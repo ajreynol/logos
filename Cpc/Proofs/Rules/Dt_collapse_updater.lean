@@ -361,7 +361,10 @@ private theorem smtx_model_eval_apply_eq_apply_of_not_dt_ops
     (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     __smtx_model_eval M (SmtTerm.Apply f x) =
       __smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x) := by
-  cases f <;> simp [__smtx_model_eval]
+  cases f with
+  | DtSel s d i j => exact False.elim (hSel s d i j rfl)
+  | DtTester s d i => exact False.elim (hTester s d i rfl)
+  | _ => simp [__smtx_model_eval]
 
 private theorem updater_rec_eval_components
     (M : SmtModel) (hM : model_total_typed M)
@@ -1973,8 +1976,11 @@ private theorem facts___eo_prog_dt_collapse_updater_impl
                           __smtx_model_eval M
                               (SmtTerm.ite cond recTerm (__eo_to_smt t)) =
                             __smtx_model_eval M (__eo_to_smt t) := by
-                        simp [cond, __smtx_model_eval,
-                          __smtx_model_eval_ite, hTesterFalse]
+                        rw [smtx_eval_ite_term_eq]
+                        rw [show __smtx_model_eval M cond =
+                            SmtValue.Boolean false by
+                          simpa [cond] using hTesterFalse]
+                        simp [__smtx_model_eval_ite]
                       rw [hSelSmt]
                       rw [hUpdaterEq]
                       rw [hEvalIte]

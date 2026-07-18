@@ -908,7 +908,8 @@ private theorem smt_typeof_rhs_int
       have hlt : (-1 : Int) < wmv := by simpa [native_zlt, SmtEval.native_zlt] using hg1
       have : (0 : Int) ≤ wmv := by omega
       simpa [native_zleq, SmtEval.native_zleq] using this
-    have hle : native_zleq wmv wmv = true := by simp [native_zleq, SmtEval.native_zleq]
+    have hle : native_zleq wmv wmv = true := by
+      simp [native_zleq, SmtEval.native_zleq]
     have hlt : native_zlt wmv (native_nat_to_int (native_int_to_nat w)) = true := by
       have hwlt : (wmv : Int) < w := by simpa [native_zlt, SmtEval.native_zlt] using hg2
       have hwfit : native_nat_to_int (native_int_to_nat w) = w := by
@@ -923,13 +924,13 @@ private theorem smt_typeof_rhs_int
         (wmv + 1) + -wmv = (wmv + -wmv) + 1 := by ac_rfl
         _ = 0 + 1 := by rw [Int.add_right_neg]
         _ = 1 := rfl
-    have hwidth : native_int_to_nat
-        (native_zplus (native_zplus wmv 1) (native_zneg wmv)) = 1 := by
-      rw [hsum]
-      native_decide
     have hwidthPos :
         native_zlt 0
           (native_zplus (native_zplus wmv 1) (native_zneg wmv)) = true := by
+      rw [hsum]
+      native_decide
+    have hwidth : native_int_to_nat
+        (native_zplus (native_zplus wmv 1) (native_zneg wmv)) = 1 := by
       rw [hsum]
       native_decide
     have hNatOne : native_int_to_nat (1 : native_Int) = 1 := by

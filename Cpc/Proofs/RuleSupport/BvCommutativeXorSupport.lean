@@ -762,12 +762,6 @@ private theorem bv_xor_not_context
     bv_xor_not_nil_x_ne x y hResultTy,
     bv_xor_not_nil_not_x_ne x y hResultTy⟩
 
-private theorem smtx_typeof_bvnot_term_eq
-    (x : SmtTerm) :
-    __smtx_typeof (SmtTerm.bvnot x) =
-      __smtx_typeof_bv_op_1 (__smtx_typeof x) := by
-  rw [__smtx_typeof.eq_def] <;> simp only
-
 private theorem smt_typeof_bv_xor_not_lhs
     (x y : Term) (w : Nat) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
@@ -1013,12 +1007,6 @@ private theorem bvnot_eval_canonical
         (native_mod_total p (native_int_pow2 (native_nat_to_int w))) = true :=
     bitvec_payload_canonical (by simpa [hEval] using hTy)
   exact ⟨p, hEval, hCan⟩
-
-private theorem smtx_eval_bvnot_term_eq
-    (M : SmtModel) (x : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.bvnot x) =
-      __smtx_model_eval_bvnot (__smtx_model_eval M x) := by
-  rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem eval_bv_xor_not
     (M : SmtModel) (hM : model_total_typed M) (x y : Term) :

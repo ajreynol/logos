@@ -151,10 +151,20 @@ private theorem typed___eo_prog_distinct_binary_elim_impl
     RuleProofs.eo_has_bool_type_eq_of_same_smt_type t1 s1 hSameSmt hT1Trans
   have hNotEqBool : RuleProofs.eo_has_bool_type notEq :=
     RuleProofs.eo_has_bool_type_not_of_bool_arg eqTerm hEqBool
+  have hNotEqSmtTy :
+      __smtx_typeof
+          (SmtTerm.not (SmtTerm.eq (__eo_to_smt t1) (__eo_to_smt s1))) =
+        SmtType.Bool := by
+    simpa [RuleProofs.eo_has_bool_type, notEq, eqTerm] using hNotEqBool
   have hEqSmtTy :
       __smtx_typeof (SmtTerm.eq (__eo_to_smt t1) (__eo_to_smt s1)) =
         SmtType.Bool := by
     simpa [RuleProofs.eo_has_bool_type, eqTerm] using hEqBool
+  have hEqSmtTy' :
+      __smtx_typeof_eq (__smtx_typeof (__eo_to_smt t1))
+          (__smtx_typeof (__eo_to_smt s1)) = SmtType.Bool := by
+    rw [← typeof_eq_eq]
+    exact hEqSmtTy
   have hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None := by
     have hTypesSymm := hTypes.symm
     have hTypeWf :
@@ -180,8 +190,10 @@ private theorem typed___eo_prog_distinct_binary_elim_impl
             (SmtTerm.Boolean true))
           (SmtTerm.and (SmtTerm.Boolean true) (SmtTerm.Boolean true))) =
         SmtType.Bool
-    simp [typeof_and_eq, typeof_not_eq, __smtx_typeof, hEqSmtTy, native_ite,
-      native_Teq]
+    have hTrueTy :
+        __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool := rfl
+    simp only [typeof_and_eq, hNotEqSmtTy, hTrueTy, native_Teq, native_ite]
+    simp
   rw [prog_distinct_binary_elim_eq t1 s1 hT1NotStuck hS1NotStuck hT1TypeNotStuck]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type distinctTerm notEq
     (by rw [hDistinctBool, hNotEqBool])

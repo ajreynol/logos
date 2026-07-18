@@ -191,23 +191,11 @@ private theorem smtx_typeof_bvor_term_eq
       __smtx_typeof_bv_op_2 (__smtx_typeof x) (__smtx_typeof y) := by
   rw [__smtx_typeof.eq_def] <;> simp only
 
-private theorem smtx_typeof_bvnot_term_eq
-    (x : SmtTerm) :
-    __smtx_typeof (SmtTerm.bvnot x) =
-      __smtx_typeof_bv_op_1 (__smtx_typeof x) := by
-  rw [__smtx_typeof.eq_def] <;> simp only
-
 private theorem smtx_eval_bvor_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.bvor x y) =
       __smtx_model_eval_bvor
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
-  rw [__smtx_model_eval.eq_def] <;> simp only
-
-private theorem smtx_eval_bvnot_term_eq
-    (M : SmtModel) (x : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.bvnot x) =
-      __smtx_model_eval_bvnot (__smtx_model_eval M x) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem bvor_smt_type
