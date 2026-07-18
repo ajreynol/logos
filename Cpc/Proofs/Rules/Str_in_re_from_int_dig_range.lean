@@ -347,6 +347,19 @@ theorem smtx_eval_str_from_int_term_eq
       __smtx_model_eval_str_from_int (__smtx_model_eval M x) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
+theorem smtx_eval_re_mult_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.re_mult x) =
+      __smtx_model_eval_re_mult (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+theorem smtx_eval_str_in_re_term_eq
+    (M : SmtModel) (x r : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.str_in_re x r) =
+      __smtx_model_eval_str_in_re
+        (__smtx_model_eval M x) (__smtx_model_eval M r) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
 theorem smtx_eval_digit_range
     (M : SmtModel) :
     __smtx_model_eval M
@@ -361,7 +374,9 @@ private theorem smtx_eval_star_range
         (SmtTerm.re_mult
           (SmtTerm.re_range (SmtTerm.String zeroStr) (SmtTerm.String nineStr))) =
       SmtValue.RegLan (native_re_mult digitRange) := by
-  simp [__smtx_model_eval, __smtx_model_eval_re_mult, smtx_eval_digit_range]
+  rw [smtx_eval_re_mult_term_eq]
+  rw [smtx_eval_digit_range]
+  rfl
 
 private theorem facts
     (M : SmtModel) (hM : model_total_typed M) (n : Term)
@@ -396,8 +411,10 @@ private theorem facts
             (SmtTerm.re_range (SmtTerm.String zeroStr)
               (SmtTerm.String nineStr)))) =
       SmtValue.Boolean true
-    simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hFromEval,
-      smtx_eval_star_range, RuleProofs.native_unpack_string_pack_string,
+    rw [smtx_eval_str_in_re_term_eq]
+    rw [hFromEval, smtx_eval_star_range]
+    simp [__smtx_model_eval_str_in_re,
+      RuleProofs.native_unpack_string_pack_string,
       native_str_in_re_from_int_digit_range_star]
   exact RuleProofs.eo_interprets_eq_of_rel M (lhs n) (Term.Boolean true)
     hBool <| by

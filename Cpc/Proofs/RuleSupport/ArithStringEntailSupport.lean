@@ -858,19 +858,10 @@ private theorem str_len_eval_decomp
   rw [smtx_eval_str_len_term_eq, hSEval] at hEval
   simpa [__smtx_model_eval_str_len, native_seq_len] using hEval.symm
 
-private theorem native_unpack_pack_seq
-    (T : SmtType) (xs : List SmtValue) :
-    native_unpack_seq (native_pack_seq T xs) = xs := by
-  induction xs with
-  | nil =>
-      simp [native_pack_seq, native_unpack_seq]
-  | cons x xs ih =>
-      simp [native_pack_seq, native_unpack_seq, ih]
-
 private theorem native_unpack_pack_string_len
     (s : native_String) :
     (native_unpack_seq (native_pack_string s)).length = s.length := by
-  simp [native_pack_string, native_unpack_pack_seq]
+  simp [native_pack_string, Smtm.native_unpack_pack_seq]
 
 private theorem str_to_int_eval_decomp
     (M : SmtModel) (hM : model_total_typed M)
@@ -997,7 +988,7 @@ private theorem str_substr_len_eval_decomp
       (native_unpack_seq subSeq).length =
         (native_seq_extract (native_unpack_seq ss) z1 z2).length := by
     rw [← hSubEval']
-    simp [native_unpack_pack_seq]
+    simp [Smtm.native_unpack_pack_seq]
   refine ⟨T', ss, z1, z2, hSTy, hN1Ty, hN2Ty, hSEval, hN1Eval, hN2Eval, ?_⟩
   rw [hzLen, hLenEq]
 
@@ -1061,7 +1052,7 @@ private theorem str_replace_len_eval_decomp
         (native_seq_replace (native_unpack_seq ss) (native_unpack_seq tt)
           (native_unpack_seq rr)).length := by
     rw [← hRepEval']
-    simp [native_unpack_pack_seq]
+    simp [Smtm.native_unpack_pack_seq]
   refine ⟨T', ss, tt, rr, hSTy, hTTy, hRTy, hSEval, hTEval, hREval, ?_⟩
   rw [hzLen, hLenEq]
 

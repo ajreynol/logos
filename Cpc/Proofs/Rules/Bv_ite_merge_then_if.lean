@@ -86,12 +86,6 @@ private theorem typeof_args_of_prog_bv_ite_merge_then_if_bool
     ⟨hC2Type, hT1E1, hT1NN⟩
   exact ⟨hC1Type, hC2Type, hT1E1, hT1NN⟩
 
-private theorem smtx_typeof_bvnot_term_eq
-    (x : SmtTerm) :
-    __smtx_typeof (SmtTerm.bvnot x) =
-      __smtx_typeof_bv_op_1 (__smtx_typeof x) := by
-  rw [__smtx_typeof.eq_def] <;> simp only
-
 private theorem smt_typeof_bvnot_bitvec_one
     (x : Term) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec 1 ->
@@ -246,12 +240,6 @@ private theorem typed___eo_prog_bv_ite_merge_then_if_impl
       hT1Trans hE1Trans hResultTy)
     (smt_typeof_then_if_left_non_none c1 c2 t1 e1 hC1Trans hC2Trans
       hT1Trans hE1Trans hResultTy)
-
-private theorem smtx_eval_bvnot_term_eq
-    (M : SmtModel) (x : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.bvnot x) =
-      __smtx_model_eval_bvnot (__smtx_model_eval M x) := by
-  rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem bv1_not (b : Bool) :
     __smtx_model_eval_bvnot (bv1 b) = bv1 (!b) := by

@@ -2639,11 +2639,13 @@ theorem scratch_str_flatten_arg_ne_stuck (t : Term)
 
 theorem scratch_flatten_concat_nonstr_tail_ne_stuck (a rest : Term)
     (ha : __eo_is_str a = Term.Boolean false)
+    (hNotConcat : ∀ head tail, a ≠ mkConcat head tail)
     (h : __str_flatten (mkConcat a rest) ≠ Term.Stuck) :
     __str_flatten rest ≠ Term.Stuck := by
   intro htail
   apply h
-  simp only [__str_flatten, ha, htail]
+  rw [__str_flatten.eq_3 a rest hNotConcat, htail]
+  simp only [ha]
   rw [eo_ite_false]
   rfl
 
@@ -2680,7 +2682,25 @@ theorem scratch_smt_typeof_str_flatten_of_seq :
   | case1 =>
       intro T hTy hFlatNe
       simp [__str_flatten] at hFlatNe
-  | case2 s ss ih =>
+  | case2 a a2 b ih1 ih2 =>
+      intro T hTy hFlatNe
+      rw [__str_flatten.eq_2] at hFlatNe ⊢
+      obtain ⟨hHeadTy, hTailTy⟩ :=
+        strConcat_args_of_seq_type (mkConcat a a2) b T hTy
+      have hLists := scratch_list_concat_lists_of_ne_stuck
+        (__str_flatten (mkConcat a a2)) (__str_flatten b) hFlatNe
+      have hHeadNe : __str_flatten (mkConcat a a2) ≠ Term.Stuck := by
+        intro hBad
+        rw [hBad] at hLists
+        simp [__eo_is_list] at hLists
+      have hTailNe : __str_flatten b ≠ Term.Stuck := by
+        intro hBad
+        rw [hBad] at hLists
+        simp [__eo_is_list] at hLists
+      exact scratch_smt_typeof_list_concat_str_concat_of_seq
+        (__str_flatten (mkConcat a a2)) (__str_flatten b) T hLists.1 hLists.2
+        (ih1 T hHeadTy hHeadNe) (ih2 T hTailTy hTailNe)
+  | case3 s ss hNotConcat ih =>
       intro T hTy hFlatNe
       obtain ⟨hsTy, hssTy⟩ := strConcat_args_of_seq_type s ss T hTy
       have hsNe : s ≠ Term.Stuck := term_ne_stuck_of_smt_seq_type s T hsTy
@@ -2720,11 +2740,12 @@ theorem scratch_smt_typeof_str_flatten_of_seq :
           cases bStr <;> simp_all
         have hTailFlatNe :
             __str_flatten ss ≠ Term.Stuck :=
-          scratch_flatten_concat_nonstr_tail_ne_stuck s ss hStrFalse hFlatNe
+          scratch_flatten_concat_nonstr_tail_ne_stuck s ss hStrFalse
+            hNotConcat hFlatNe
         have hTailTy := ih T hssTy hTailFlatNe
-        rw [flatten_concat_nonstr s ss hStrFalse hTailFlatNe]
+        rw [flatten_concat_nonstr s ss hStrFalse hNotConcat hTailFlatNe]
         exact smt_typeof_str_concat_of_seq s (__str_flatten ss) T hsTy hTailTy
-  | case3 t hStuck hNotConcat =>
+  | case4 t hStuck hNotSeq hNotConcat =>
       intro T hTy hFlatNe
       have hNot : ¬ ∃ head tail : Term, t = mkConcat head tail := by
         rintro ⟨head, tail, hEq⟩
@@ -2847,6 +2868,110 @@ theorem scratch_flatSeqValueCount_list_concat_charChain (M : SmtModel)
       simp [flatSeqValueCount, hHeadCount, ih, valueCount_cons]
       omega
 
+theorem scratch_flatSeqValueCount_list_concat (M : SmtModel) (v : SmtValue) :
+    ∀ (a z : Term),
+      __eo_is_list (Term.UOp UserOp.str_concat) a = Term.Boolean true ->
+      __eo_is_list (Term.UOp UserOp.str_concat) z = Term.Boolean true ->
+      flatSeqValueCount M v
+          (__eo_list_concat (Term.UOp UserOp.str_concat) a z) =
+        flatSeqValueCount M v a + flatSeqValueCount M v z := by
+  intro a z hAList hZList
+  have hConcat :
+      __eo_list_concat (Term.UOp UserOp.str_concat) a z =
+        __eo_list_concat_rec a z := by
+    change
+      __eo_requires (__eo_is_list (Term.UOp UserOp.str_concat) a)
+          (Term.Boolean true)
+          (__eo_requires (__eo_is_list (Term.UOp UserOp.str_concat) z)
+            (Term.Boolean true) (__eo_list_concat_rec a z)) =
+        __eo_list_concat_rec a z
+    rw [hAList, hZList]
+    simp [eo_requires_self_eq_of_ne_stuck]
+  rw [hConcat]
+  induction a, z using __eo_list_concat_rec.induct with
+  | case1 z =>
+      simp [__eo_is_list] at hAList
+  | case2 a hA =>
+      simp [__eo_is_list] at hZList
+  | case3 f x xs z hZ ih =>
+      have hf : f = Term.UOp UserOp.str_concat :=
+        eo_is_list_cons_head_eq_of_true
+          (Term.UOp UserOp.str_concat) f x xs hAList
+      subst f
+      have hXsList :
+          __eo_is_list (Term.UOp UserOp.str_concat) xs = Term.Boolean true :=
+        eo_is_list_tail_true_of_cons_self
+          (Term.UOp UserOp.str_concat) x xs hAList
+      have hTailNe : __eo_list_concat_rec xs z ≠ Term.Stuck :=
+        eo_list_concat_rec_ne_stuck_of_list
+          (Term.UOp UserOp.str_concat) xs z hXsList hZ
+      have hTailConcat :
+          __eo_list_concat (Term.UOp UserOp.str_concat) xs z =
+            __eo_list_concat_rec xs z := by
+        change
+          __eo_requires (__eo_is_list (Term.UOp UserOp.str_concat) xs)
+              (Term.Boolean true)
+              (__eo_requires (__eo_is_list (Term.UOp UserOp.str_concat) z)
+                (Term.Boolean true) (__eo_list_concat_rec xs z)) =
+            __eo_list_concat_rec xs z
+        rw [hXsList, hZList]
+        simp [eo_requires_self_eq_of_ne_stuck]
+      have hIH := ih hXsList hZList hTailConcat
+      rw [eo_list_concat_rec_str_concat_cons_eq_of_tail_ne_stuck
+        x xs z hTailNe]
+      simp [flatSeqValueCount, hIH, Nat.add_assoc]
+  | case4 nil z hNil hZ hNot =>
+      have hGet :
+          __eo_get_nil_rec (Term.UOp UserOp.str_concat) nil ≠ Term.Stuck :=
+        eo_get_nil_rec_ne_stuck_of_is_list_true
+          (Term.UOp UserOp.str_concat) nil hAList
+      have hReq :
+          __eo_requires
+              (__eo_is_list_nil (Term.UOp UserOp.str_concat) nil)
+              (Term.Boolean true) nil ≠ Term.Stuck := by
+        simpa [__eo_get_nil_rec] using hGet
+      have hNilTrue :
+          __eo_is_list_nil (Term.UOp UserOp.str_concat) nil =
+            Term.Boolean true :=
+        eo_requires_eq_of_ne_stuck
+          (__eo_is_list_nil (Term.UOp UserOp.str_concat) nil)
+          (Term.Boolean true) nil hReq
+      have hNilCases :
+          (∃ A, nil = Term.UOp1 UserOp1.seq_empty A) ∨
+            nil = Term.String [] := by
+        cases nil <;>
+          simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq,
+            native_teq] at hNilTrue
+        case UOp1 op A =>
+          cases op <;> simp at hNilTrue
+          exact Or.inl ⟨A, rfl⟩
+        case String s =>
+          subst s
+          exact Or.inr rfl
+      have hNilCount : flatSeqValueCount M v nil = 0 := by
+        rcases hNilCases with ⟨A, rfl⟩ | rfl
+        · have hSeqCount :
+              seqTermValueCount M v (Term.UOp1 UserOp1.seq_empty A) = 0 := by
+            unfold seqTermValueCount
+            change
+              (match
+                __smtx_model_eval M
+                  (__eo_to_smt_seq_empty (__eo_to_smt_type A)) with
+              | SmtValue.Seq s => valueCount v (native_unpack_seq s)
+              | _ => 0) = 0
+            cases hTy : __eo_to_smt_type A <;>
+              simp [__eo_to_smt_seq_empty, hTy, __smtx_model_eval,
+                native_unpack_seq, valueCount]
+          by_cases hEmpty :
+              __str_is_empty (Term.UOp1 UserOp1.seq_empty A) =
+                Term.Boolean true
+          · simp [flatSeqValueCount, hEmpty]
+          · simp [flatSeqValueCount, hEmpty, hSeqCount]
+        · simp [flatSeqValueCount, __str_is_empty]
+      rw [show __eo_list_concat_rec nil z = z by
+        simp [__eo_list_concat_rec]]
+      simp [hNilCount]
+
 theorem scratch_flatSeqValueCount_str_flatten_le_eval
     (M : SmtModel) (hM : model_total_typed M) (v : SmtValue) :
     ∀ (t : Term) (S : SmtSeq) (T : SmtType),
@@ -2860,7 +2985,37 @@ theorem scratch_flatSeqValueCount_str_flatten_le_eval
   | case1 =>
       intro S T hTy hEval hFlatNe
       simp [__str_flatten] at hFlatNe
-  | case2 s ss ih =>
+  | case2 a a2 b ih1 ih2 =>
+      intro S T hTy hEval hFlatNe
+      rw [__str_flatten.eq_2] at hFlatNe ⊢
+      obtain ⟨hHeadTy, hTailTy⟩ :=
+        strConcat_args_of_seq_type (mkConcat a a2) b T hTy
+      obtain ⟨⟨Shead, hHeadEval⟩, ⟨Stail, hTailEval⟩⟩ :=
+        strConcat_args_eval_seq_of_concat_eval_seq M (mkConcat a a2) b
+          ⟨S, hEval⟩
+      obtain ⟨Sxy, hxy, hUnpack⟩ :=
+        concat_unpack M (mkConcat a a2) b Shead Stail hHeadEval hTailEval
+      have hSeq : S = Sxy := by
+        rw [hEval] at hxy
+        injection hxy
+      have hLists := scratch_list_concat_lists_of_ne_stuck
+        (__str_flatten (mkConcat a a2)) (__str_flatten b) hFlatNe
+      have hHeadNe : __str_flatten (mkConcat a a2) ≠ Term.Stuck := by
+        intro hBad
+        rw [hBad] at hLists
+        simp [__eo_is_list] at hLists
+      have hTailNe : __str_flatten b ≠ Term.Stuck := by
+        intro hBad
+        rw [hBad] at hLists
+        simp [__eo_is_list] at hLists
+      have hHeadBound := ih1 Shead T hHeadTy hHeadEval hHeadNe
+      have hTailBound := ih2 Stail T hTailTy hTailEval hTailNe
+      rw [scratch_flatSeqValueCount_list_concat M v
+        (__str_flatten (mkConcat a a2)) (__str_flatten b) hLists.1 hLists.2]
+      rw [hSeq, hUnpack, valueCount_append]
+      simp only [mkConcat] at hHeadBound ⊢
+      omega
+  | case3 s ss hNotConcat ih =>
       intro S T hTy hEval hFlatNe
       obtain ⟨hsTy, hssTy⟩ := strConcat_args_of_seq_type s ss T hTy
       obtain ⟨⟨Ss, hSsEval⟩, ⟨Sss, hSssEval⟩⟩ :=
@@ -2898,14 +3053,15 @@ theorem scratch_flatSeqValueCount_str_flatten_le_eval
           cases bStr <;> simp_all
         have hTailFlatNe :
             __str_flatten ss ≠ Term.Stuck :=
-          scratch_flatten_concat_nonstr_tail_ne_stuck s ss hStrFalse hFlatNe
+          scratch_flatten_concat_nonstr_tail_ne_stuck s ss hStrFalse
+            hNotConcat hFlatNe
         have hTailBound := ih Sss T hssTy hSssEval hTailFlatNe
-        rw [flatten_concat_nonstr s ss hStrFalse hTailFlatNe]
+        rw [flatten_concat_nonstr s ss hStrFalse hNotConcat hTailFlatNe]
         simp [flatSeqValueCount]
         rw [seqTermValueCount_of_eval_seq M v s Ss hSsEval]
         rw [hSeq, hUnpack, valueCount_append]
         omega
-  | case3 t hStuck hNotConcat =>
+  | case4 t hStuck hNotSeq hNotConcat =>
       intro S T hTy hEval hFlatNe
       have hNot : ¬ ∃ head tail : Term, t = mkConcat head tail := by
         rintro ⟨head, tail, hEq⟩

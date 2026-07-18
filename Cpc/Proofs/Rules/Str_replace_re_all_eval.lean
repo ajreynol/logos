@@ -254,7 +254,7 @@ private theorem str_concat_string_eval
       (SmtTerm.str_concat (SmtTerm.String x) (SmtTerm.String y)) =
     SmtValue.Seq (native_pack_string (x ++ y))
   simp [__smtx_model_eval, __smtx_model_eval_str_concat,
-    native_seq_concat, native_pack_string, native_unpack_pack_seq,
+    native_seq_concat, native_pack_string, Smtm.native_unpack_pack_seq,
     elem_typeof_pack_seq, List.map_append]
 
 private theorem str_concat_eval_string_left
@@ -271,7 +271,7 @@ private theorem str_concat_eval_string_left
       (SmtTerm.str_concat (SmtTerm.String sx) (__eo_to_smt y)) =
     SmtValue.Seq (native_pack_string (sx ++ sy))
   simp [__smtx_model_eval, __smtx_model_eval_str_concat, hy,
-    native_seq_concat, native_pack_string, native_unpack_pack_seq,
+    native_seq_concat, native_pack_string, Smtm.native_unpack_pack_seq,
     elem_typeof_pack_seq, List.map_append]
 
 private theorem str_concat_eval_replacement_left
@@ -290,7 +290,7 @@ private theorem str_concat_eval_replacement_left
   have hElem : __smtx_elem_typeof_seq_value repl = SmtType.Char :=
     elem_typeof_seq_value_of_typeof_seq_value hReplTy
   simp [__smtx_model_eval, __smtx_model_eval_str_concat, hTEval, hy,
-    native_seq_concat, native_pack_string, native_unpack_pack_seq, hElem]
+    native_seq_concat, native_pack_string, Smtm.native_unpack_pack_seq, hElem]
   simpa [native_pack_string, List.append_assoc] using
     native_pack_seq_char_append_unpack_string [] sy repl hReplTy
 
