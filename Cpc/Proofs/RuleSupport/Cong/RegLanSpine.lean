@@ -59,7 +59,7 @@ theorem congTrueSpine_re_exp_eq_true
       RuleProofs.smt_value_rel
         (__smtx_model_eval M (SmtTerm.re_exp I X))
         (__smtx_model_eval M (SmtTerm.re_exp I Y))
-    rw [__smtx_model_eval.eq_109, __smtx_model_eval.eq_109, hI,
+    rw [__smtx_model_eval.eq_107, __smtx_model_eval.eq_107, hI,
       __smtx_model_eval.eq_2, hXEval, hYEval]
     exact smt_value_rel_re_exp_reglan_congr k hExt
 
@@ -112,7 +112,7 @@ theorem congTrueSpine_re_loop_eq_true
       RuleProofs.smt_value_rel
         (__smtx_model_eval M (SmtTerm.re_loop L H X))
         (__smtx_model_eval M (SmtTerm.re_loop L H Y))
-    rw [__smtx_model_eval.eq_117, __smtx_model_eval.eq_117, hL, hH,
+    rw [__smtx_model_eval.eq_115, __smtx_model_eval.eq_115, hL, hH,
       __smtx_model_eval.eq_2, __smtx_model_eval.eq_2, hXEval, hYEval]
     exact smt_value_rel_re_loop_reglan_congr loN hiN hExt
 
@@ -248,7 +248,7 @@ theorem congTrueSpine_re_concat_eq_true
     SmtTerm.re_concat native_re_concat
     (by intro a b; rfl)
     (by intro a b; exact typeof_re_concat_eq a b)
-    (by intro a b; rw [__smtx_model_eval.eq_113]; rfl)
+    (by intro a b; rw [__smtx_model_eval.eq_111]; rfl)
     (by
       intro r₁ r₁' r₂ r₂' h₁ h₂ str _hValid
       exact native_str_in_re_re_concat_congr str r₁ r₁' r₂ r₂' h₁ h₂)
@@ -287,7 +287,7 @@ theorem congTrueSpine_re_union_eq_true
     SmtTerm.re_union native_re_union
     (by intro a b; rfl)
     (by intro a b; exact typeof_re_union_eq a b)
-    (by intro a b; rw [__smtx_model_eval.eq_115]; rfl)
+    (by intro a b; rw [__smtx_model_eval.eq_113]; rfl)
     (by
       intro r₁ r₁' r₂ r₂' h₁ h₂ str hValid
       rw [native_str_in_re_re_union, native_str_in_re_re_union,
@@ -327,7 +327,7 @@ theorem congTrueSpine_re_inter_eq_true
     SmtTerm.re_inter native_re_inter
     (by intro a b; rfl)
     (by intro a b; exact typeof_re_inter_eq a b)
-    (by intro a b; rw [__smtx_model_eval.eq_114]; rfl)
+    (by intro a b; rw [__smtx_model_eval.eq_112]; rfl)
     (by
       intro r₁ r₁' r₂ r₂' h₁ h₂ str hValid
       rw [native_str_in_re_re_inter, native_str_in_re_re_inter,
@@ -367,7 +367,7 @@ theorem congTrueSpine_re_diff_eq_true
     SmtTerm.re_diff native_re_diff
     (by intro a b; rfl)
     (by intro a b; exact typeof_re_diff_eq a b)
-    (by intro a b; rw [__smtx_model_eval.eq_116]; rfl)
+    (by intro a b; rw [__smtx_model_eval.eq_114]; rfl)
     (by
       intro r₁ r₁' r₂ r₂' h₁ h₂ str hValid
       rw [native_str_in_re_re_diff, native_str_in_re_re_diff,
@@ -1046,7 +1046,7 @@ theorem congTrueSpine_strings_stoi_result_eq_true
       (by
         intro a b
         rw [stringsStoiResultTerm, stringsStoiResultEval,
-          __smtx_model_eval.eq_95, __smtx_model_eval.eq_81,
+          __smtx_model_eval.eq_93, __smtx_model_eval.eq_79,
           __smtx_model_eval.eq_2])
       x₁ x₂ rhs
 
@@ -1223,7 +1223,7 @@ theorem congTrueSpine_strings_num_occur_eq_true
       rw [stringsNumOccurTerm, stringsNumOccurEval, __smtx_model_eval.eq_24,
         __smtx_model_eval.eq_13, smtx_eval_str_len_term_eq,
         smtx_eval_str_len_term_eq, smtx_eval_str_len_term_eq,
-        __smtx_model_eval.eq_99, __smtx_model_eval.eq_78])
+        __smtx_model_eval.eq_97, __smtx_model_eval.eq_76])
     x₁ x₂ rhs
 
 theorem congTypeSpine_strings_num_occur_eq_has_bool_type
@@ -1354,7 +1354,7 @@ theorem congTrueSpine_str_replace_re_eq_true
         (__smtx_model_eval M (SmtTerm.str_replace_re X₁ X₂ X₃))
         (__smtx_model_eval M (SmtTerm.str_replace_re Y₁ Y₂ Y₃)) =
           SmtValue.Boolean true
-    rw [__smtx_model_eval.eq_100, __smtx_model_eval.eq_100,
+    rw [__smtx_model_eval.eq_98, __smtx_model_eval.eq_98,
       hX₁Eval, hY₁Eval, hX₂Eval, hY₂Eval, hX₃Eval, hY₃Eval]
     simp [__smtx_model_eval_str_replace_re, __smtx_model_eval_eq,
       native_veq,
@@ -1469,7 +1469,7 @@ theorem congTrueSpine_str_replace_re_all_eq_true
         (__smtx_model_eval M (SmtTerm.str_replace_re_all X₁ X₂ X₃))
         (__smtx_model_eval M (SmtTerm.str_replace_re_all Y₁ Y₂ Y₃)) =
           SmtValue.Boolean true
-    rw [__smtx_model_eval.eq_101, __smtx_model_eval.eq_101,
+    rw [__smtx_model_eval.eq_99, __smtx_model_eval.eq_99,
       hX₁Eval, hY₁Eval, hX₂Eval, hY₂Eval, hX₃Eval, hY₃Eval]
     simp [__smtx_model_eval_str_replace_re_all, __smtx_model_eval_eq,
       native_veq,
@@ -1575,7 +1575,7 @@ theorem congTrueSpine_str_indexof_re_eq_true
         (__smtx_model_eval M (SmtTerm.str_indexof_re X₁ X₂ X₃))
         (__smtx_model_eval M (SmtTerm.str_indexof_re Y₁ Y₂ Y₃)) =
           SmtValue.Boolean true
-    rw [__smtx_model_eval.eq_102, __smtx_model_eval.eq_102,
+    rw [__smtx_model_eval.eq_100, __smtx_model_eval.eq_100,
       hX₁Eval, hY₁Eval, hX₂Eval, hY₂Eval, hX₃Eval, hY₃Eval]
     simp [__smtx_model_eval_str_indexof_re, __smtx_model_eval_eq,
       native_veq,
@@ -1746,8 +1746,8 @@ theorem congTrueSpine_strings_stoi_non_digit_eq_true
       (by
         intro a
         rw [stringsStoiNonDigitTerm, stringsStoiNonDigitEval,
-          stringsStoiNonDigitRegex, __smtx_model_eval.eq_102,
-          __smtx_model_eval.eq_111, __smtx_model_eval.eq_112,
+          stringsStoiNonDigitRegex, __smtx_model_eval.eq_100,
+          __smtx_model_eval.eq_109, __smtx_model_eval.eq_110,
           __smtx_model_eval.eq_4, __smtx_model_eval.eq_4,
           __smtx_model_eval.eq_2])
       x rhs

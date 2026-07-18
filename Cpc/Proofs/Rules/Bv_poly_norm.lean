@@ -1145,12 +1145,12 @@ private theorem bvneg_arg_of_bitvec_type (x : Term) (w : native_Nat) :
   rcases bv_unop_arg_of_non_none (op := SmtTerm.bvneg)
       (show __smtx_typeof (SmtTerm.bvneg (__eo_to_smt x)) =
         __smtx_typeof_bv_op_1 (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_46]) hNN with ⟨w', hx⟩
+        rw [__smtx_typeof.eq_44]) hNN with ⟨w', hx⟩
   have hWidth : w' = w := by
     have hResult : SmtType.BitVec w' = SmtType.BitVec w := by
       rw [show __smtx_typeof (SmtTerm.bvneg (__eo_to_smt x)) =
         __smtx_typeof_bv_op_1 (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_46]] at hTy'
+        rw [__smtx_typeof.eq_44]] at hTy'
       simpa [__smtx_typeof_bv_op_1, hx] using hTy'
     cases hResult
     rfl
@@ -1178,13 +1178,13 @@ private theorem bvadd_args_of_bitvec_type (y x : Term) (w : native_Nat) :
       (show __smtx_typeof (SmtTerm.bvadd (__eo_to_smt y) (__eo_to_smt x)) =
         __smtx_typeof_bv_op_2
           (__smtx_typeof (__eo_to_smt y)) (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_47]) hNN with ⟨w', hy, hx⟩
+        rw [__smtx_typeof.eq_45]) hNN with ⟨w', hy, hx⟩
   have hWidth : w' = w := by
     have hResult : SmtType.BitVec w' = SmtType.BitVec w := by
       rw [show __smtx_typeof (SmtTerm.bvadd (__eo_to_smt y) (__eo_to_smt x)) =
         __smtx_typeof_bv_op_2
           (__smtx_typeof (__eo_to_smt y)) (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_47]] at hTy'
+        rw [__smtx_typeof.eq_45]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hy, hx, native_ite, native_nateq,
         SmtEval.native_nateq] using hTy'
     cases hResult
@@ -1213,13 +1213,13 @@ private theorem bvmul_args_of_bitvec_type (y x : Term) (w : native_Nat) :
       (show __smtx_typeof (SmtTerm.bvmul (__eo_to_smt y) (__eo_to_smt x)) =
         __smtx_typeof_bv_op_2
           (__smtx_typeof (__eo_to_smt y)) (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_48]) hNN with ⟨w', hy, hx⟩
+        rw [__smtx_typeof.eq_46]) hNN with ⟨w', hy, hx⟩
   have hWidth : w' = w := by
     have hResult : SmtType.BitVec w' = SmtType.BitVec w := by
       rw [show __smtx_typeof (SmtTerm.bvmul (__eo_to_smt y) (__eo_to_smt x)) =
         __smtx_typeof_bv_op_2
           (__smtx_typeof (__eo_to_smt y)) (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_48]] at hTy'
+        rw [__smtx_typeof.eq_46]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hy, hx, native_ite, native_nateq,
         SmtEval.native_nateq] using hTy'
     cases hResult
@@ -1248,13 +1248,13 @@ private theorem bvsub_args_of_bitvec_type (y x : Term) (w : native_Nat) :
       (show __smtx_typeof (SmtTerm.bvsub (__eo_to_smt y) (__eo_to_smt x)) =
         __smtx_typeof_bv_op_2
           (__smtx_typeof (__eo_to_smt y)) (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_51]) hNN with ⟨w', hy, hx⟩
+        rw [__smtx_typeof.eq_49]) hNN with ⟨w', hy, hx⟩
   have hWidth : w' = w := by
     have hResult : SmtType.BitVec w' = SmtType.BitVec w := by
       rw [show __smtx_typeof (SmtTerm.bvsub (__eo_to_smt y) (__eo_to_smt x)) =
         __smtx_typeof_bv_op_2
           (__smtx_typeof (__eo_to_smt y)) (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_51]] at hTy'
+        rw [__smtx_typeof.eq_49]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hy, hx, native_ite, native_nateq,
         SmtEval.native_nateq] using hTy'
     cases hResult
@@ -1274,7 +1274,7 @@ private theorem bv_atom_denote_bvneg_mod
   simp [bv_atom_denote]
   rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.bvneg) x) =
       SmtTerm.bvneg (__eo_to_smt x) by rfl]
-  rw [__smtx_model_eval.eq_46, hxEval]
+  rw [__smtx_model_eval.eq_44, hxEval]
   simp [__smtx_model_eval_bvneg, SmtEval.native_zneg,
     SmtEval.native_mod_total]
 
@@ -1291,7 +1291,7 @@ private theorem bv_atom_denote_bvadd_mod
   simp [bv_atom_denote]
   rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) y) x) =
       SmtTerm.bvadd (__eo_to_smt y) (__eo_to_smt x) by rfl]
-  rw [__smtx_model_eval.eq_47, hyEval, hxEval]
+  rw [__smtx_model_eval.eq_45, hyEval, hxEval]
   simp [__smtx_model_eval_bvadd, SmtEval.native_zplus,
     SmtEval.native_mod_total]
 
@@ -1308,7 +1308,7 @@ private theorem bv_atom_denote_bvmul_mod
   simp [bv_atom_denote]
   rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) y) x) =
       SmtTerm.bvmul (__eo_to_smt y) (__eo_to_smt x) by rfl]
-  rw [__smtx_model_eval.eq_48, hyEval, hxEval]
+  rw [__smtx_model_eval.eq_46, hyEval, hxEval]
   simp [__smtx_model_eval_bvmul, SmtEval.native_zmult,
     SmtEval.native_mod_total]
 
@@ -1326,7 +1326,7 @@ private theorem bv_atom_denote_bvsub_mod
   simp [bv_atom_denote]
   rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsub) y) x) =
       SmtTerm.bvsub (__eo_to_smt y) (__eo_to_smt x) by rfl]
-  rw [__smtx_model_eval.eq_51, hyEval, hxEval]
+  rw [__smtx_model_eval.eq_49, hyEval, hxEval]
   simp [__smtx_model_eval_bvsub, __smtx_model_eval_bvadd, __smtx_model_eval_bvneg,
     SmtEval.native_zplus, SmtEval.native_zneg,
     SmtEval.native_mod_total]

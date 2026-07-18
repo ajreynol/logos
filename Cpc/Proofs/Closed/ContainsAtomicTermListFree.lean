@@ -4590,11 +4590,9 @@ by
             | exact geq_args_have_smt_translation_of_has_smt_translation h
             | exact div_args_have_smt_translation_of_has_smt_translation h
             | exact mod_args_have_smt_translation_of_has_smt_translation h
-            | exact multmult_args_have_smt_translation_of_has_smt_translation h
             | exact divisible_args_have_smt_translation_of_has_smt_translation h
             | exact div_total_args_have_smt_translation_of_has_smt_translation h
             | exact mod_total_args_have_smt_translation_of_has_smt_translation h
-            | exact multmult_total_args_have_smt_translation_of_has_smt_translation h
             | exact select_args_have_smt_translation_of_has_smt_translation h
             | exact array_deq_diff_args_have_smt_translation_of_has_smt_translation h
             | exact strings_stoi_result_args_have_smt_translation_of_has_smt_translation h

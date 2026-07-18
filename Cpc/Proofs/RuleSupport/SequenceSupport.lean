@@ -768,7 +768,7 @@ theorem eval_seq_empty_of_type (M : SmtModel) (A : Term) (T : SmtType) :
       rw [hA]
       change __smtx_model_eval M (SmtTerm.seq_empty T) =
         SmtValue.Seq (SmtSeq.empty T)
-      rw [__smtx_model_eval.eq_78]
+      rw [__smtx_model_eval.eq_76]
 
 theorem eval_seq_empty_typeof (M : SmtModel) (x : Term) (T : SmtType)
     (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
@@ -1057,7 +1057,7 @@ theorem smtx_model_eval_str_concat_term_eq (M : SmtModel) (x y : Term) :
   rw [show __eo_to_smt (mkConcat x y) =
       SmtTerm.str_concat (__eo_to_smt x) (__eo_to_smt y) by
     rfl]
-  rw [__smtx_model_eval.eq_80]
+  rw [__smtx_model_eval.eq_78]
 
 theorem str_concat_args_of_non_none (x y : Term) :
     __smtx_typeof (__eo_to_smt (mkConcat x y)) ≠ SmtType.None ->
@@ -3420,7 +3420,7 @@ theorem smt_value_rel_str_concat_nil_empty
               rw [hTyU] at hNilTy
               injection hNilTy
             subst T
-            rw [__smtx_model_eval.eq_78]
+            rw [__smtx_model_eval.eq_76]
             unfold RuleProofs.smt_value_rel
             simp [__smtx_model_eval_eq, native_veq]
         | _ =>

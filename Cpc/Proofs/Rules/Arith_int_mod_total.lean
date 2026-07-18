@@ -52,7 +52,7 @@ private theorem smtx_eval_mod_total_term_eq
     __smtx_model_eval M (SmtTerm.mod_total x y) =
       __smtx_model_eval_mod_total
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
-  rw [__smtx_model_eval.eq_31]
+  rw [__smtx_model_eval.eq_30]
 
 private theorem smtx_typeof_of_eo_int
     (a : Term)

@@ -1121,7 +1121,7 @@ private theorem str_replace_re_eval_valid_properties
       SmtValue.Seq
         (native_pack_string
           (native_str_replace_re str rv (native_unpack_string repl)))
-    rw [__smtx_model_eval.eq_100, __smtx_model_eval.eq_4, hREval, hTEval]
+    rw [__smtx_model_eval.eq_98, __smtx_model_eval.eq_4, hREval, hTEval]
     simp [__smtx_model_eval_str_replace_re,
       RuleProofs.native_unpack_string_pack_string]
   have hSideDef :

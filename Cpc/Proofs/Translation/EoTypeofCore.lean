@@ -5794,17 +5794,6 @@ theorem eo_to_smt_type_typeof_apply_apply_mod_of_int
   rw [hy, hx]
   rfl
 
-/-- Stronger EO-side helper for `typeof_apply_apply_multmult`. -/
-theorem eo_to_smt_type_typeof_apply_apply_multmult_of_int
-    (x y : Term)
-    (hy : __eo_typeof y = Term.UOp UserOp.Int)
-    (hx : __eo_typeof x = Term.UOp UserOp.Int) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) y) x)) =
-      SmtType.Int := by
-  change __eo_to_smt_type (__eo_typeof_div (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
-  rw [hy, hx]
-  rfl
-
 /-- Stronger EO-side helper for `typeof_apply_apply_divisible`. -/
 theorem eo_to_smt_type_typeof_apply_apply_divisible_of_int
     (x y : Term)
@@ -5833,17 +5822,6 @@ theorem eo_to_smt_type_typeof_apply_apply_mod_total_of_int
     (hy : __eo_typeof y = Term.UOp UserOp.Int)
     (hx : __eo_typeof x = Term.UOp UserOp.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) y) x)) =
-      SmtType.Int := by
-  change __eo_to_smt_type (__eo_typeof_div (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
-  rw [hy, hx]
-  rfl
-
-/-- Stronger EO-side helper for `typeof_apply_apply_multmult_total`. -/
-theorem eo_to_smt_type_typeof_apply_apply_multmult_total_of_int
-    (x y : Term)
-    (hy : __eo_typeof y = Term.UOp UserOp.Int)
-    (hx : __eo_typeof x = Term.UOp UserOp.Int) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) y) x)) =
       SmtType.Int := by
   change __eo_to_smt_type (__eo_typeof_div (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
   rw [hy, hx]

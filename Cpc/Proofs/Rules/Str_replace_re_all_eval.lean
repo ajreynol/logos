@@ -964,7 +964,7 @@ private theorem str_replace_re_all_eval_valid_properties
         (native_pack_string
           (native_str_replace_re_all (native_unpack_string src) rv
             (native_unpack_string repl)))
-    rw [__smtx_model_eval.eq_101, hSEval, hREval, hTEval]
+    rw [__smtx_model_eval.eq_99, hSEval, hREval, hTEval]
     simp [__smtx_model_eval_str_replace_re_all]
   rcases eo_is_str_eq_true_cases s hStrReq with ⟨str, rfl⟩
   change __smtx_model_eval M (SmtTerm.String str) = SmtValue.Seq src at hSEval

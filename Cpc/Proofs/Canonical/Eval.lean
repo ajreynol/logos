@@ -626,19 +626,6 @@ theorem model_eval_canonical_of_supported
           (model_eval_apply_lookup_ifun_canonical M hM native_mod_by_zero_id
             SmtType.Int SmtType.Int (__smtx_model_eval M t1) ifun_type_wf_int_int hxTy)
           (model_eval_mod_total_canonical _ _)
-  case multmult ht1 hs1 ht2 hs2 ih1 ih2 =>
-      have hApply :
-          __smtx_value_canonical
-              (__smtx_model_eval_apply M
-                (native_model_lookup M native_div_by_zero_id
-                (SmtType.FunType SmtType.Int SmtType.Int))
-              (SmtValue.Numeral 1)) :=
-        model_eval_apply_lookup_ifun_canonical M hM native_div_by_zero_id
-          SmtType.Int SmtType.Int (SmtValue.Numeral 1) ifun_type_wf_int_int rfl
-      simpa [__smtx_model_eval] using
-        model_eval_ite_canonical
-          (model_eval_multmult_total_canonical _ _)
-          (model_eval_ite_canonical hApply (model_eval_div_total_canonical _ _))
   case divisible ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
         model_eval_divisible_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
@@ -654,9 +641,6 @@ theorem model_eval_canonical_of_supported
   case mod_total ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
         model_eval_mod_total_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
-  case multmult_total ht1 hs1 ht2 hs2 ih1 ih2 =>
-      simpa [__smtx_model_eval] using
-        model_eval_multmult_total_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
   case qdiv t1 t2 ht1 hs1 ht2 hs2 ih1 ih2 =>
       rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv) (typeof_qdiv_eq t1 t2) hTy with hArgs | hArgs
       · have hpres1 :=

@@ -236,12 +236,6 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.mod t1 t2)
-  | multmult {t1 t2 : SmtTerm}
-      (ht1 : term_has_non_none_type t1)
-      (hs1 : supported_preservation_term t1)
-      (ht2 : term_has_non_none_type t2)
-      (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.multmult t1 t2)
   | divisible {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
@@ -268,12 +262,6 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.mod_total t1 t2)
-  | multmult_total {t1 t2 : SmtTerm}
-      (ht1 : term_has_non_none_type t1)
-      (hs1 : supported_preservation_term t1)
-      (ht2 : term_has_non_none_type t2)
-      (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.multmult_total t1 t2)
   | qdiv {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)

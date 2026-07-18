@@ -333,13 +333,11 @@ def SmtTermClosedIn (vars : List SmtVarKey) : SmtTerm -> Prop
   | SmtTerm.uneg x => SmtTermClosedIn vars x
   | SmtTerm.div x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
   | SmtTerm.mod x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
-  | SmtTerm.multmult x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
   | SmtTerm.divisible x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
   | SmtTerm.int_pow2 x => SmtTermClosedIn vars x
   | SmtTerm.int_log2 x => SmtTermClosedIn vars x
   | SmtTerm.div_total x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
   | SmtTerm.mod_total x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
-  | SmtTerm.multmult_total x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
   | SmtTerm.select x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
   | SmtTerm.store x y z =>
       SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y ∧ SmtTermClosedIn vars z
@@ -1573,11 +1571,12 @@ theorem smtTermClosedIn_eo_to_smt_strings_stoi_non_digit
 by
   change SmtTermClosedIn vars
     (SmtTerm.str_indexof_re (__eo_to_smt x)
-      (SmtTerm.re_comp
-        (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-          (SmtTerm.String (native_string_lit "9"))))
+      (SmtTerm.re_inter SmtTerm.re_allchar
+        (SmtTerm.re_comp
+          (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+            (SmtTerm.String (native_string_lit "9")))))
       (SmtTerm.Numeral 0))
-  exact ⟨hx, ⟨trivial, trivial⟩, trivial⟩
+  exact ⟨hx, ⟨trivial, ⟨trivial, trivial⟩⟩, trivial⟩
 
 theorem smtTermClosedIn_eo_to_smt_strings_itos_result
     {vars : List SmtVarKey} {x y : Term}
@@ -1588,9 +1587,12 @@ theorem smtTermClosedIn_eo_to_smt_strings_itos_result
       (Term.Apply (Term._at_strings_itos_result x) y)) :=
 by
   change SmtTermClosedIn vars
-    (SmtTerm.mod (__eo_to_smt x)
-      (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt y)))
-  exact ⟨hx, ⟨trivial, hy⟩⟩
+    (SmtTerm.ite (SmtTerm.eq (__eo_to_smt y) (SmtTerm.Numeral 0))
+      (SmtTerm.Numeral 0)
+      (SmtTerm.str_to_int
+        (SmtTerm.str_substr (SmtTerm.str_from_int (__eo_to_smt x))
+          (SmtTerm.Numeral 0) (__eo_to_smt y))))
+  exact ⟨⟨hy, trivial⟩, trivial, ⟨hx, trivial, hy⟩⟩
 
 theorem smtTermClosedIn_eo_to_smt_strings_num_occur
     {vars : List SmtVarKey} {x y : Term}
@@ -2247,15 +2249,6 @@ theorem smtTermClosedIn_eo_to_smt_mod
 by
   exact ⟨hx, hy⟩
 
-theorem smtTermClosedIn_eo_to_smt_multmult
-    {vars : List SmtVarKey} {x y : Term}
-    (hx : SmtTermClosedIn vars (__eo_to_smt x))
-    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
-  SmtTermClosedIn vars
-    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y)) :=
-by
-  exact ⟨hx, hy⟩
-
 theorem smtTermClosedIn_eo_to_smt_divisible
     {vars : List SmtVarKey} {x y : Term}
     (hx : SmtTermClosedIn vars (__eo_to_smt x))
@@ -2280,16 +2273,6 @@ theorem smtTermClosedIn_eo_to_smt_mod_total
     (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
   SmtTermClosedIn vars
     (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) x) y)) :=
-by
-  exact ⟨hx, hy⟩
-
-theorem smtTermClosedIn_eo_to_smt_multmult_total
-    {vars : List SmtVarKey} {x y : Term}
-    (hx : SmtTermClosedIn vars (__eo_to_smt x))
-    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
-  SmtTermClosedIn vars
-    (__eo_to_smt
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x) y)) :=
 by
   exact ⟨hx, hy⟩
 
@@ -5716,9 +5699,6 @@ by
   case mod =>
     exact binary (by decide) (by decide)
       (fun hx hy => smtTermClosedIn_eo_to_smt_mod hx hy)
-  case multmult =>
-    exact binary (by decide) (by decide)
-      (fun hx hy => smtTermClosedIn_eo_to_smt_multmult hx hy)
   case divisible =>
     exact binary (by decide) (by decide)
       (fun hx hy => smtTermClosedIn_eo_to_smt_divisible hx hy)
@@ -5728,9 +5708,6 @@ by
   case mod_total =>
     exact binary (by decide) (by decide)
       (fun hx hy => smtTermClosedIn_eo_to_smt_mod_total hx hy)
-  case multmult_total =>
-    exact binary (by decide) (by decide)
-      (fun hx hy => smtTermClosedIn_eo_to_smt_multmult_total hx hy)
   case select =>
     exact binary (by decide) (by decide)
       (fun hx hy => smtTermClosedIn_eo_to_smt_select hx hy)
@@ -6769,9 +6746,6 @@ by
   case mod =>
     exact binary (by decide) (by decide)
       (fun hx hy => smtTermClosedIn_eo_to_smt_mod hx hy)
-  case multmult =>
-    exact binary (by decide) (by decide)
-      (fun hx hy => smtTermClosedIn_eo_to_smt_multmult hx hy)
   case divisible =>
     exact binary (by decide) (by decide)
       (fun hx hy => smtTermClosedIn_eo_to_smt_divisible hx hy)
@@ -6781,9 +6755,6 @@ by
   case mod_total =>
     exact binary (by decide) (by decide)
       (fun hx hy => smtTermClosedIn_eo_to_smt_mod_total hx hy)
-  case multmult_total =>
-    exact binary (by decide) (by decide)
-      (fun hx hy => smtTermClosedIn_eo_to_smt_multmult_total hx hy)
   case select =>
     exact binary (by decide) (by decide)
       (fun hx hy => smtTermClosedIn_eo_to_smt_select hx hy)
