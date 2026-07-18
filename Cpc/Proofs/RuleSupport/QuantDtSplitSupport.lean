@@ -570,7 +570,7 @@ Constructors mirror the arms of the (fixed) guard:
   binder list (no later shadowing).
 - `absorb`: `ys` exhausted; absorb the conjunct's next binder as a constructor
   argument (no later shadowing, not free in `F`).
-- `unwrap`: the conjunct's binder list is exhausted; continue in its body.
+- `unwrap`: the single conjunct binder list is exhausted; finish at its body.
 - `final`: the remaining conjunct is exactly the substituted body.
 -/
 inductive ConjRel (x F : Term) : Term -> Term -> Term -> Type where
@@ -580,14 +580,13 @@ inductive ConjRel (x F : Term) : Term -> Term -> Term -> Type where
       ConjRel x F c (eoCons y ys) (mkForall (eoCons y zs) G)
   | absorb {c y zs G : Term} :
       __eo_list_find Term.__eo_List_cons zs y = Term.Numeral (-1 : native_Int) ->
-      __contains_atomic_term_list_free_rec c (eoCons y Term.__eo_List_nil)
-        Term.__eo_List_nil = Term.Boolean false ->
       __contains_atomic_term_list_free_rec F (eoCons y Term.__eo_List_nil)
         Term.__eo_List_nil = Term.Boolean false ->
       ConjRel x F (Term.Apply c y) Term.__eo_List_nil (mkForall zs G) ->
       ConjRel x F c Term.__eo_List_nil (mkForall (eoCons y zs) G)
   | unwrap {c G : Term} :
-      ConjRel x F c Term.__eo_List_nil G ->
+      __eo_typeof c = __eo_typeof x ->
+      substOne x c F = G ->
       ConjRel x F c Term.__eo_List_nil (mkForall Term.__eo_List_nil G)
   | final {cx g : Term} :
       __eo_typeof cx = __eo_typeof x ->
@@ -614,14 +613,15 @@ def CtorInst (x F : Term) {c ys g : Term}
     (rel : ConjRel x F c ys g) (M : SmtModel) (v : SmtValue) : Prop :=
   (match rel with
   | ConjRel.peel _ tail => CtorInst x F tail M v
-  | @ConjRel.absorb _ _ _ y _ _ _ _ _ tail =>
+  | @ConjRel.absorb _ _ _ y _ _ _ _ tail =>
       ∃ (s : native_String) (T : Term) (u : SmtValue),
         y = Term.Var (Term.String s) T ∧
         __smtx_typeof_value u = __eo_to_smt_type T ∧
         __smtx_value_canonical_bool u = true ∧
         CtorInst x F tail
           (native_model_push M s (__eo_to_smt_type T) u) v
-  | ConjRel.unwrap tail => CtorInst x F tail M v
+  | @ConjRel.unwrap _ _ c _ _ _ =>
+      __smtx_model_eval M (__eo_to_smt c) = v
   | @ConjRel.final _ _ cx _ _ _ _ =>
       __smtx_model_eval M (__eo_to_smt cx) = v : Prop)
 
@@ -701,8 +701,8 @@ def conjAbsorbed {x F c ys g : Term}
     (rel : ConjRel x F c ys g) : List Term :=
   match rel with
   | ConjRel.peel _ tail => conjAbsorbed tail
-  | @ConjRel.absorb _ _ _ y _ _ _ _ _ tail => y :: conjAbsorbed tail
-  | ConjRel.unwrap tail => conjAbsorbed tail
+  | @ConjRel.absorb _ _ _ y _ _ _ _ tail => y :: conjAbsorbed tail
+  | ConjRel.unwrap _ _ => []
   | ConjRel.final _ _ _ => []
 
 /-- Fully applied constructor at the final node of a conjunct relation. -/
@@ -710,28 +710,93 @@ def conjFinal {x F c ys g : Term}
     (rel : ConjRel x F c ys g) : Term :=
   match rel with
   | ConjRel.peel _ tail => conjFinal tail
-  | ConjRel.absorb _ _ _ tail => conjFinal tail
-  | ConjRel.unwrap tail => conjFinal tail
+  | ConjRel.absorb _ _ tail => conjFinal tail
+  | @ConjRel.unwrap _ _ c _ _ _ => c
   | @ConjRel.final _ _ cx _ _ _ _ => cx
+
+/-- A Lean list occurring as an initial segment of an EO list. -/
+inductive EoListPrefix : List Term → Term → Prop where
+  | nil (zs : Term) : EoListPrefix [] zs
+  | cons {ys : List Term} {zs y : Term} :
+      EoListPrefix ys zs → EoListPrefix (y :: ys) (eoCons y zs)
+
+private theorem conjAbsorbed_prefix_aux {x F c ys g : Term}
+    (rel : ConjRel x F c ys g) :
+    ∀ {zs G : Term}, ys = Term.__eo_List_nil -> g = mkForall zs G ->
+      EoListPrefix (conjAbsorbed rel) zs := by
+  induction rel with
+  | peel hFind tail ih =>
+      intro zs G hys hg
+      simp [eoCons] at hys
+  | @absorb c y zs G hFind hFree tail ih =>
+      intro zs' G' hys hg
+      cases hg
+      exact EoListPrefix.cons (ih rfl rfl)
+  | unwrap hTy hSubst =>
+      intro zs G hys hg
+      exact EoListPrefix.nil _
+  | final hTy hNotForall hSubst =>
+      intro zs G hys hg
+      exact EoListPrefix.nil _
+
+theorem conjAbsorbed_prefix_of_forall
+    {x F c zs G : Term}
+    (rel : ConjRel x F c Term.__eo_List_nil (mkForall zs G)) :
+    EoListPrefix (conjAbsorbed rel) zs :=
+  conjAbsorbed_prefix_aux rel rfl rfl
+
+theorem EoListPrefix.not_mem_of_var_env_not_mem
+    {ys : List Term} {zs : Term} {vars : List EoVarKey}
+    (hPrefix : EoListPrefix ys zs) (hEnv : EoVarEnv zs vars)
+    {s : native_String} {T : Term} (hNotMem : (s, T) ∉ vars) :
+    Term.Var (Term.String s) T ∉ ys := by
+  induction hPrefix generalizing vars with
+  | nil => simp
+  | @cons ys zs y hPrefix ih =>
+      cases hEnv with
+      | cons hTail =>
+          simp only [List.mem_cons, not_or]
+          constructor
+          · intro hEq
+            injection hEq with hName hTy
+            injection hName with hs
+            subst hs
+            subst hTy
+            exact hNotMem (List.Mem.head _)
+          · exact ih hTail (fun hMem => hNotMem (List.Mem.tail _ hMem))
+
+theorem EoListPrefix.var_shape_of_mem_env
+    {ys : List Term} {zs : Term} {vars : List EoVarKey}
+    (hPrefix : EoListPrefix ys zs) (hEnv : EoVarEnv zs vars)
+    {y : Term} (hMem : y ∈ ys) :
+    ∃ s T, y = Term.Var (Term.String s) T := by
+  induction hPrefix generalizing vars with
+  | nil => simp at hMem
+  | @cons ys zs z hPrefix ih =>
+      cases hEnv with
+      | @cons s T env vars hTail =>
+          cases hMem with
+          | head => exact ⟨s, T, rfl⟩
+          | tail _ hMem => exact ih hTail hMem
 
 theorem conjFinal_eq_spine {x F c ys g : Term}
     (rel : ConjRel x F c ys g) :
     conjFinal rel = eoTermSpine c (conjAbsorbed rel) := by
   induction rel with
   | peel hFind tail ih => simpa [conjFinal, conjAbsorbed] using ih
-  | absorb hFind hCtorFree hFree tail ih =>
+  | absorb hFind hFree tail ih =>
       simpa [conjFinal, conjAbsorbed, eoTermSpine] using ih
-  | unwrap tail ih => simpa [conjFinal, conjAbsorbed] using ih
-  | final hTy hNotForall hSubst => rfl
+  | unwrap hTy hSubst => simp [conjFinal, conjAbsorbed, eoTermSpine]
+  | final hTy hNotForall hSubst => simp [conjFinal, conjAbsorbed, eoTermSpine]
 
 theorem conjFinal_typeof {x F c ys g : Term}
     (rel : ConjRel x F c ys g) :
     __eo_typeof (conjFinal rel) = __eo_typeof x := by
   induction rel with
   | peel hFind tail ih => exact ih
-  | absorb hFind hCtorFree hFree tail ih => exact ih
-  | unwrap tail ih => exact ih
-  | final hTy hNotForall hSubst => exact hTy
+  | absorb hFind hFree tail ih => exact ih
+  | unwrap hTy hSubst => simpa [conjFinal] using hTy
+  | final hTy hNotForall hSubst => simpa [conjFinal] using hTy
 
 theorem ctorInst_of_no_absorbed
     {x F c ys g : Term} (rel : ConjRel x F c ys g) :
@@ -743,15 +808,15 @@ theorem ctorInst_of_no_absorbed
   | peel hFind tail ih =>
       intro M v hAbs hEval
       exact ih M v hAbs hEval
-  | absorb hFind hCtorFree hFree tail ih =>
+  | absorb hFind hFree tail ih =>
       intro M v hAbs hEval
       simp [conjAbsorbed] at hAbs
-  | unwrap tail ih =>
+  | unwrap hTy hSubst =>
       intro M v hAbs hEval
-      exact ih M v hAbs hEval
+      simpa [CtorInst, conjFinal] using hEval
   | final hTy hNotForall hSubst =>
       intro M v hAbs hEval
-      exact hEval
+      simpa [CtorInst, conjFinal] using hEval
 
 theorem ctorInst_of_one_absorbed
     {x F c ys g : Term} (rel : ConjRel x F c ys g) :
@@ -768,7 +833,7 @@ theorem ctorInst_of_one_absorbed
   | peel hFind tail ih =>
       intro M v s T u hAbs huTy huCanon hEval
       exact ih M v s T u hAbs huTy huCanon hEval
-  | @absorb c y zs G hFind hCtorFree hFree tail ih =>
+  | @absorb c y zs G hFind hFree tail ih =>
       intro M v s T u hAbs huTy huCanon hEval
       have hHead : y = Term.Var (Term.String s) T := by
         simpa [conjAbsorbed] using congrArg List.head? hAbs
@@ -779,9 +844,9 @@ theorem ctorInst_of_one_absorbed
       exact ctorInst_of_no_absorbed tail
         (native_model_push M s (__eo_to_smt_type T) u) v hTailAbs
         (by simpa [conjFinal] using hEval)
-  | unwrap tail ih =>
+  | unwrap hTy hSubst =>
       intro M v s T u hAbs huTy huCanon hEval
-      exact ih M v s T u hAbs huTy huCanon hEval
+      simp [conjAbsorbed] at hAbs
   | final hTy hNotForall hSubst =>
       intro M v s T u hAbs huTy huCanon hEval
       simp [conjAbsorbed] at hAbs
@@ -807,7 +872,7 @@ theorem ctorInst_of_two_absorbed
   | peel hFind tail ih =>
       intro M v s₁ T₁ u₁ s₂ T₂ u₂ hAbs hU₁Ty hU₁Canon hU₂Ty hU₂Canon hEval
       exact ih M v s₁ T₁ u₁ s₂ T₂ u₂ hAbs hU₁Ty hU₁Canon hU₂Ty hU₂Canon hEval
-  | @absorb c y zs G hFind hCtorFree hFree tail ih =>
+  | @absorb c y zs G hFind hFree tail ih =>
       intro M v s₁ T₁ u₁ s₂ T₂ u₂ hAbs hU₁Ty hU₁Canon hU₂Ty hU₂Canon hEval
       have hHead : y = Term.Var (Term.String s₁) T₁ := by
         simpa [conjAbsorbed] using congrArg List.head? hAbs
@@ -820,77 +885,12 @@ theorem ctorInst_of_two_absorbed
         (native_model_push M s₁ (__eo_to_smt_type T₁) u₁) v
         s₂ T₂ u₂ hTailAbs hU₂Ty hU₂Canon
         (by simpa [conjFinal] using hEval)
-  | unwrap tail ih =>
+  | unwrap hTy hSubst =>
       intro M v s₁ T₁ u₁ s₂ T₂ u₂ hAbs hU₁Ty hU₁Canon hU₂Ty hU₂Canon hEval
-      exact ih M v s₁ T₁ u₁ s₂ T₂ u₂ hAbs hU₁Ty hU₁Canon hU₂Ty hU₂Canon hEval
+      simp [conjAbsorbed] at hAbs
   | final hTy hNotForall hSubst =>
       intro M v s₁ T₁ u₁ s₂ T₂ u₂ hAbs hU₁Ty hU₁Canon hU₂Ty hU₂Canon hEval
       simp [conjAbsorbed] at hAbs
-
-theorem conj_ctor_free_of_one_absorbed
-    {x F c ys g y : Term} (rel : ConjRel x F c ys g)
-    (hAbs : conjAbsorbed rel = [y]) :
-    __contains_atomic_term_list_free_rec c (eoCons y Term.__eo_List_nil)
-      Term.__eo_List_nil = Term.Boolean false := by
-  induction rel with
-  | peel hFind tail ih => exact ih hAbs
-  | @absorb c y₀ zs G hFind hCtorFree hFree tail ih =>
-      have hHead : y₀ = y := by
-        simpa [conjAbsorbed] using congrArg List.head? hAbs
-      simpa [hHead] using hCtorFree
-  | unwrap tail ih => exact ih hAbs
-  | final hTy hNotForall hSubst => simp [conjAbsorbed] at hAbs
-
-theorem conj_ctor_free_of_two_absorbed
-    {x F c ys g y₁ y₂ : Term} (rel : ConjRel x F c ys g)
-    (hAbs : conjAbsorbed rel = [y₁, y₂]) :
-    __contains_atomic_term_list_free_rec (Term.Apply c y₁)
-      (eoCons y₂ Term.__eo_List_nil) Term.__eo_List_nil =
-        Term.Boolean false := by
-  induction rel with
-  | peel hFind tail ih => exact ih hAbs
-  | @absorb c y zs G hFind hCtorFree hFree tail ih =>
-      have hHead : y = y₁ := by
-        simpa [conjAbsorbed] using congrArg List.head? hAbs
-      have hTailAbs : conjAbsorbed tail = [y₂] := by
-        simpa [conjAbsorbed] using congrArg List.tail hAbs
-      subst y
-      exact conj_ctor_free_of_one_absorbed tail hTailAbs
-  | unwrap tail ih => exact ih hAbs
-  | final hTy hNotForall hSubst => simp [conjAbsorbed] at hAbs
-
-theorem tuple_absorbed_two_ne
-    {x F ys g : Term}
-    (rel : ConjRel x F (Term.UOp UserOp.tuple) ys g)
-    (s₁ s₂ : native_String) (T₁ T₂ : Term)
-    (hAbs : conjAbsorbed rel =
-      [Term.Var (Term.String s₁) T₁, Term.Var (Term.String s₂) T₂]) :
-    Term.Var (Term.String s₁) T₁ ≠
-      Term.Var (Term.String s₂) T₂ := by
-  have hTailFree :
-      __contains_atomic_term_list_free_rec
-          (Term.Apply (Term.UOp UserOp.tuple)
-            (Term.Var (Term.String s₁) T₁))
-          (eoCons (Term.Var (Term.String s₂) T₂) Term.__eo_List_nil)
-          Term.__eo_List_nil = Term.Boolean false := by
-    exact conj_ctor_free_of_two_absorbed rel hAbs
-  intro hEq
-  cases hEq
-  have hExcept : EoVarEnvPerm
-      (eoCons (Term.Var (Term.String s₁) T₁) Term.__eo_List_nil)
-      [(s₁, T₁)] :=
-    EoVarEnvPerm.of_exact (EoVarEnv.cons EoVarEnv.nil)
-  have hBound : EoVarEnvPerm Term.__eo_List_nil [] :=
-    EoVarEnvPerm.of_exact EoVarEnv.nil
-  have hVarFree :=
-    (contains_atomic_term_list_free_rec_apply_false_cases hExcept hBound
-      (by intro q z zs h; cases h) hTailFree).2
-  rcases contains_atomic_term_list_free_rec_var_false_cases hVarFree with
-    hNotExcept | hInBound
-  · have hNotMem := EoVarEnvPerm.not_mem_of_find_neg_true hExcept hNotExcept
-    exact hNotMem (by simp)
-  · have hMem := EoVarEnvPerm.mem_of_find_neg_false hBound hInBound
-    simp at hMem
 
 def eoTermArgs : Term -> List Term
   | Term.Apply f a => eoTermArgs f ++ [a]
@@ -941,24 +941,20 @@ private theorem conjRel_extract_aux (x F : Term) :
           rename_i y zs G _ _ _
           simp only [__eo_l_1___is_quant_dt_split_conj] at h
           obtain ⟨hFind, _, hRest⟩ := eo_requires_boolean_true_elim h
-          obtain ⟨hCtorFree, _, hRest'⟩ := eo_requires_boolean_true_elim hRest
-          obtain ⟨hFree, _, hRec⟩ := eo_requires_boolean_true_elim hRest'
+          obtain ⟨hFree, _, hRec⟩ := eo_requires_boolean_true_elim hRest
           have hSize : sizeOf (mkForall zs G) < n := by
             simp only [mkForall, eoCons] at hsz ⊢
             simp +arith at hsz ⊢
             omega
           obtain ⟨tail⟩ :=
             (ih (Term.Apply c y) Term.__eo_List_nil (mkForall zs G) hSize).2 hRec
-          exact ⟨ConjRel.absorb hFind hCtorFree hFree tail⟩
-        -- unwrap arm
+          exact ⟨ConjRel.absorb hFind hFree tail⟩
+        -- terminal empty-prefix arm
         case case6 =>
           rename_i G _ _ _
           simp only [__eo_l_1___is_quant_dt_split_conj] at h
-          have hSize : sizeOf G < n := by
-            simp +arith [mkForall] at hsz
-            omega
-          obtain ⟨tail⟩ := (ih c Term.__eo_List_nil G hSize).2 h
-          exact ⟨ConjRel.unwrap tail⟩
+          obtain ⟨hType, _, hEq⟩ := eo_requires_boolean_true_elim h
+          exact ⟨ConjRel.unwrap hType (eo_eq_boolean_true_elim hEq)⟩
         -- final arm
         case case7 =>
           rename_i hxStuck hcStuck hFStuck hgStuck hCons hNil
@@ -1270,6 +1266,44 @@ theorem eval_push_not_free_eq
         injection hc with h1 h2 h3
         exact Prod.ext h2 h3)]
 
+theorem contains_atomic_term_list_free_rec_apply_false_intro
+    {f a except bound : Term}
+    (hNotList : ∀ q x xs,
+      f ≠ Term.Apply q (eoCons x xs))
+    (hF : __contains_atomic_term_list_free_rec f except bound =
+      Term.Boolean false)
+    (hA : __contains_atomic_term_list_free_rec a except bound =
+      Term.Boolean false) :
+    __contains_atomic_term_list_free_rec (Term.Apply f a) except bound =
+      Term.Boolean false := by
+  have hExcept : except ≠ Term.Stuck := by
+    intro h
+    subst except
+    cases f <;> simp [__contains_atomic_term_list_free_rec] at hF
+  have hBound : bound ≠ Term.Stuck := by
+    intro h
+    subst bound
+    cases f <;> cases except <;>
+      simp [__contains_atomic_term_list_free_rec] at hF
+  have hEq :
+      __contains_atomic_term_list_free_rec (Term.Apply f a) except bound =
+        __eo_ite (__contains_atomic_term_list_free_rec f except bound)
+          (Term.Boolean true)
+          (__contains_atomic_term_list_free_rec a except bound) := by
+    cases except <;> try contradiction
+    all_goals cases bound <;> try contradiction
+    all_goals
+      cases f <;> try rfl
+      rename_i q listArg
+      cases listArg <;> try rfl
+      rename_i listHead xs
+      cases listHead <;> try rfl
+      rename_i cons x
+      cases cons <;> try rfl
+      exact False.elim (hNotList q x xs rfl)
+  rw [hEq, hF]
+  simpa [__eo_ite, native_ite, native_teq] using hA
+
 /-! ## The LHS with the split variable pushed last -/
 
 /--
@@ -1488,6 +1522,94 @@ theorem exl_cons_bool_var_shape {y zs : Term} {body : SmtTerm}
         show __smtx_typeof SmtTerm.None = SmtType.None from rfl] at h
       cases h
 
+theorem eoVarEnv_of_exists_bool {zs : Term} {body : SmtTerm}
+    (hTy : __smtx_typeof (__eo_to_smt_exists zs body) = SmtType.Bool) :
+    ∃ vars, EoVarEnv zs vars := by
+  revert hTy
+  fun_cases __eo_to_smt_exists zs body
+  case case1 =>
+    intro hTy
+    exact ⟨[], EoVarEnv.nil⟩
+  case case2 =>
+    intro hTy
+    have hTailTy := (smtx_typeof_exists_bool_inv hTy).1
+    obtain ⟨vars, hEnv⟩ := eoVarEnv_of_exists_bool hTailTy
+    exact ⟨_ :: vars, EoVarEnv.cons hEnv⟩
+  case case3 =>
+    intro hTy
+    simp [__smtx_typeof] at hTy
+termination_by sizeOf zs
+decreasing_by subst zs; simp_wf; omega
+
+theorem conjAbsorbed_nodup_of_typed {x F c ys g : Term}
+    (rel : ConjRel x F c ys g)
+    (hTy : __smtx_typeof (gEnc g) = SmtType.Bool) :
+    (conjAbsorbed rel).Nodup := by
+  induction rel with
+  | @peel c y ys zs G hFind tail ih =>
+      rw [gEnc_forall] at hTy
+      have hNotTy := smtx_typeof_not_bool_inv hTy
+      obtain ⟨sy, Ty, rfl⟩ := exl_cons_bool_var_shape hNotTy
+      rw [show __eo_to_smt_exists
+            (eoCons (Term.Var (Term.String sy) Ty) zs)
+              (SmtTerm.not (__eo_to_smt G)) =
+          SmtTerm.exists sy (__eo_to_smt_type Ty)
+            (__eo_to_smt_exists zs (SmtTerm.not (__eo_to_smt G))) from rfl]
+        at hNotTy
+      obtain ⟨hTailTy, hWf⟩ := smtx_typeof_exists_bool_inv hNotTy
+      apply ih
+      rw [gEnc_forall]
+      exact smtx_typeof_not_bool_intro hTailTy
+  | @absorb c y zs G hFind hFree tail ih =>
+      rw [gEnc_forall] at hTy
+      have hNotTy := smtx_typeof_not_bool_inv hTy
+      obtain ⟨sy, Ty, rfl⟩ := exl_cons_bool_var_shape hNotTy
+      rw [show __eo_to_smt_exists
+            (eoCons (Term.Var (Term.String sy) Ty) zs)
+              (SmtTerm.not (__eo_to_smt G)) =
+          SmtTerm.exists sy (__eo_to_smt_type Ty)
+            (__eo_to_smt_exists zs (SmtTerm.not (__eo_to_smt G))) from rfl]
+        at hNotTy
+      obtain ⟨hTailTy, hWf⟩ := smtx_typeof_exists_bool_inv hNotTy
+      obtain ⟨vars, hEnv⟩ := eoVarEnv_of_exists_bool hTailTy
+      have hFindNeg : __eo_is_neg
+          (__eo_list_find Term.__eo_List_cons zs
+            (Term.Var (Term.String sy) Ty)) = Term.Boolean true := by
+        rw [hFind]
+        rfl
+      have hKeyNotMem : (sy, Ty) ∉ vars :=
+        EoVarEnvPerm.not_mem_of_find_neg_true
+          (EoVarEnvPerm.of_exact hEnv) hFindNeg
+      have hHeadNotMem : Term.Var (Term.String sy) Ty ∉
+          conjAbsorbed tail :=
+        (conjAbsorbed_prefix_of_forall tail).not_mem_of_var_env_not_mem
+          hEnv hKeyNotMem
+      simp only [conjAbsorbed, List.nodup_cons]
+      refine ⟨hHeadNotMem, ih ?_⟩
+      rw [gEnc_forall]
+      exact smtx_typeof_not_bool_intro hTailTy
+  | unwrap hCxTy hSubst => simp [conjAbsorbed]
+  | final hCxTy hNotForall hSubst => simp [conjAbsorbed]
+
+theorem conj_absorbed_two_ne_of_typed
+    {x F c ys g y₁ y₂ : Term} (rel : ConjRel x F c ys g)
+    (hTy : __smtx_typeof (gEnc g) = SmtType.Bool)
+    (hAbs : conjAbsorbed rel = [y₁, y₂]) : y₁ ≠ y₂ := by
+  have hNodup := conjAbsorbed_nodup_of_typed rel hTy
+  rw [hAbs] at hNodup
+  simpa using hNodup
+
+theorem tuple_absorbed_two_ne_of_typed
+    {x F ys g : Term}
+    (rel : ConjRel x F (Term.UOp UserOp.tuple) ys g)
+    (hTy : __smtx_typeof (gEnc g) = SmtType.Bool)
+    (s₁ s₂ : native_String) (T₁ T₂ : Term)
+    (hAbs : conjAbsorbed rel =
+      [Term.Var (Term.String s₁) T₁, Term.Var (Term.String s₂) T₂]) :
+    Term.Var (Term.String s₁) T₁ ≠
+      Term.Var (Term.String s₂) T₂ := by
+  exact conj_absorbed_two_ne_of_typed rel hTy hAbs
+
 /-- `gEnc` agrees with the direct translation on Bool-translatable terms. -/
 theorem gEnc_eq_eo_to_smt_of_bool {G : Term}
     (hGTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool) :
@@ -1514,6 +1636,64 @@ theorem gEnc_eq_eo_to_smt_of_bool {G : Term}
           | _ => rfl
       | _ => rfl
   | _ => rfl
+
+private theorem conj_final_forward_core
+    (sx : native_String) (xT F c G : Term)
+    (hWfX : __smtx_type_wf (__eo_to_smt_type xT) = true)
+    (hFTrans : eoHasSmtTranslation F)
+    (hCxType : __eo_typeof c = __eo_typeof (Term.Var (Term.String sx) xT))
+    (hSubst : substOne (Term.Var (Term.String sx) xT) c F = G)
+    (hSpine : CS c) (M₀ : SmtModel) (hM₀ : model_total_typed M₀)
+    (hGTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool)
+    (hH : ∀ N, ForallInstantiationModel M₀ Term.__eo_List_nil N →
+      ∀ v : SmtValue,
+        __smtx_typeof_value v = __eo_to_smt_type xT →
+        __smtx_value_canonical_bool v = true →
+        __smtx_model_eval
+            (native_model_push N sx (__eo_to_smt_type xT) v)
+            (__eo_to_smt F) = SmtValue.Boolean true) :
+    __smtx_model_eval M₀ (__eo_to_smt G) = SmtValue.Boolean true := by
+  have hCxTrans : RuleProofs.eo_has_smt_translation c :=
+    ctor_spine_translation hSpine hCxType hWfX
+  have hCxTy : __smtx_typeof (__eo_to_smt c) = __eo_to_smt_type xT := by
+    rw [TranslationProofs.eo_to_smt_typeof_matches_translation c hCxTrans,
+      hCxType]
+    rfl
+  obtain ⟨hEvalCxTy, hEvalCxCanon⟩ :=
+    InstantiateRule.eo_to_smt_eval_typed_canonical M₀ hM₀ c hCxTrans
+  have hActuals : SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes
+      (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
+      (eoCons c Term.__eo_List_nil) :=
+    SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes.cons
+      hWfX hCxTrans hCxTy
+      (SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes.nil
+        Term.__eo_List_nil)
+  have hTs : EoListAllHaveSmtTranslation (eoCons c Term.__eo_List_nil) := by
+    simpa [eoCons, EoListAllHaveSmtTranslation] using
+      And.intro hCxTrans True.intro
+  have hSubstTrans : RuleProofs.eo_has_smt_translation
+      (substOne (Term.Var (Term.String sx) xT) c F) := by
+    intro hNone
+    rw [hSubst, hGTy] at hNone
+    cases hNone
+  have hEval := InstantiateRule.substitute_simul_eval M₀ hM₀ F
+    (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
+    (eoCons c Term.__eo_List_nil) hFTrans hTs hActuals hSubstTrans
+  have hBody := hH M₀ (ForallInstantiationModel.nil M₀)
+    (__smtx_model_eval M₀ (__eo_to_smt c))
+    (by simpa [hCxTy] using hEvalCxTy)
+    (by simpa [__smtx_value_canonical] using hEvalCxCanon)
+  calc
+    __smtx_model_eval M₀ (__eo_to_smt G) =
+        __smtx_model_eval M₀
+          (__eo_to_smt (substOne (Term.Var (Term.String sx) xT) c F)) := by
+            rw [hSubst]
+    _ = __smtx_model_eval
+          (InstantiateRule.pushSubstModel M₀
+            (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
+            (eoCons c Term.__eo_List_nil)) (__eo_to_smt F) := hEval
+    _ = SmtValue.Boolean true := by
+          simpa [eoCons, InstantiateRule.pushSubstModel] using hBody
 
 /--
 Core forward induction: a conjunct accepted by the guard is true whenever the
@@ -1568,7 +1748,7 @@ theorem conj_forward_aux
           exact hH N (ForallInstantiationModel.cons hWfY hvT hvC hInst) u huT huC)
       rw [gEnc_forall] at hStep
       exact hStep
-  | @absorb c y zs G hFind hCtorFree hFree hTail ih =>
+  | @absorb c y zs G hFind hFree hTail ih =>
       intro hSpine M₀ hM₀ hTy hH
       rw [gEnc_forall] at hTy ⊢
       have hNotTy : __smtx_typeof
@@ -1606,19 +1786,15 @@ theorem conj_forward_aux
                 exact hH M₀ (ForallInstantiationModel.nil M₀) v hvT hvC)
       rw [gEnc_forall] at hStep
       exact hStep
-  | @unwrap c G hTail ih =>
+  | @unwrap c G hCxType hSubst =>
       intro hSpine M₀ hM₀ hTy hH
       rw [gEnc_forall] at hTy ⊢
       rw [show __eo_to_smt_exists Term.__eo_List_nil (SmtTerm.not (__eo_to_smt G)) =
         SmtTerm.not (__eo_to_smt G) from rfl] at hTy ⊢
       have hGTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool :=
         smtx_typeof_not_bool_inv (smtx_typeof_not_bool_inv hTy)
-      have hEnc : gEnc G = __eo_to_smt G := gEnc_eq_eo_to_smt_of_bool hGTy
-      have hInner : __smtx_model_eval M₀ (gEnc G) = SmtValue.Boolean true := by
-        refine ih hSpine M₀ hM₀ ?_ hH
-        rw [hEnc]
-        exact hGTy
-      rw [hEnc] at hInner
+      have hInner := conj_final_forward_core sx xT F c G hWfX hFTrans
+        hCxType hSubst hSpine M₀ hM₀ hGTy hH
       rw [smtx_model_eval_not_unfold, smtx_model_eval_not_unfold, hInner]
       rfl
   | @final cx g hCxType hNotNilForall hSubst =>
@@ -1626,48 +1802,59 @@ theorem conj_forward_aux
       have hEnc : gEnc g = __eo_to_smt g :=
         gEnc_eq_eo_to_smt_of_not_nil_forall hNotNilForall
       rw [hEnc] at hTy ⊢
-      have hCxTrans : RuleProofs.eo_has_smt_translation cx :=
-        ctor_spine_translation hSpine hCxType hWfX
-      have hCxTy : __smtx_typeof (__eo_to_smt cx) = __eo_to_smt_type xT := by
-        rw [TranslationProofs.eo_to_smt_typeof_matches_translation cx hCxTrans,
-          hCxType]
-        rfl
-      obtain ⟨hEvalCxTy, hEvalCxCanon⟩ :=
-        InstantiateRule.eo_to_smt_eval_typed_canonical M₀ hM₀ cx hCxTrans
-      have hActuals : SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes
-          (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
-          (eoCons cx Term.__eo_List_nil) :=
-        SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes.cons
-          hWfX hCxTrans hCxTy
-          (SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes.nil
-            Term.__eo_List_nil)
-      have hTs : EoListAllHaveSmtTranslation
-          (eoCons cx Term.__eo_List_nil) := by
-        simpa [eoCons, EoListAllHaveSmtTranslation] using
-          And.intro hCxTrans True.intro
-      have hSubstTrans : RuleProofs.eo_has_smt_translation (substOne
-          (Term.Var (Term.String sx) xT) cx F) := by
-        intro hNone
-        rw [hSubst, hTy] at hNone
-        cases hNone
-      have hEval := InstantiateRule.substitute_simul_eval M₀ hM₀ F
+      exact conj_final_forward_core sx xT F cx g hWfX hFTrans hCxType
+        hSubst hSpine M₀ hM₀ hTy hH
+
+private theorem conj_final_backward_core
+    (sx : native_String) (xT F c G : Term)
+    (hWfX : __smtx_type_wf (__eo_to_smt_type xT) = true)
+    (hFTrans : eoHasSmtTranslation F)
+    (hCxType : __eo_typeof c = __eo_typeof (Term.Var (Term.String sx) xT))
+    (hSubst : substOne (Term.Var (Term.String sx) xT) c F = G)
+    (hSpine : CS c) (M : SmtModel) (hM : model_total_typed M)
+    (hGTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool)
+    (hGTrue : __smtx_model_eval M (__eo_to_smt G) = SmtValue.Boolean true)
+    (v : SmtValue) (hCI : __smtx_model_eval M (__eo_to_smt c) = v) :
+    __smtx_model_eval
+        (native_model_push M sx (__eo_to_smt_type xT) v)
+        (__eo_to_smt F) = SmtValue.Boolean true := by
+  have hCxTrans : RuleProofs.eo_has_smt_translation c :=
+    ctor_spine_translation hSpine hCxType hWfX
+  have hCxTy : __smtx_typeof (__eo_to_smt c) = __eo_to_smt_type xT := by
+    rw [TranslationProofs.eo_to_smt_typeof_matches_translation c hCxTrans,
+      hCxType]
+    rfl
+  have hActuals :
+      SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes
         (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
-        (eoCons cx Term.__eo_List_nil) hFTrans hTs hActuals hSubstTrans
-      have hBody := hH M₀ (ForallInstantiationModel.nil M₀)
-        (__smtx_model_eval M₀ (__eo_to_smt cx))
-        (by simpa [hCxTy] using hEvalCxTy)
-        (by simpa [__smtx_value_canonical] using hEvalCxCanon)
-      calc
-        __smtx_model_eval M₀ (__eo_to_smt g) =
-            __smtx_model_eval M₀
-              (__eo_to_smt (substOne (Term.Var (Term.String sx) xT) cx F)) := by
-                rw [hSubst]
-        _ = __smtx_model_eval
-              (InstantiateRule.pushSubstModel M₀
-                (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
-                (eoCons cx Term.__eo_List_nil)) (__eo_to_smt F) := hEval
-        _ = SmtValue.Boolean true := by
-              simpa [eoCons, InstantiateRule.pushSubstModel] using hBody
+        (eoCons c Term.__eo_List_nil) :=
+    SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes.cons
+      hWfX hCxTrans hCxTy
+      (SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes.nil
+        Term.__eo_List_nil)
+  have hTs : EoListAllHaveSmtTranslation (eoCons c Term.__eo_List_nil) := by
+    simpa [eoCons, EoListAllHaveSmtTranslation] using
+      And.intro hCxTrans True.intro
+  have hSubstTrans : RuleProofs.eo_has_smt_translation
+      (substOne (Term.Var (Term.String sx) xT) c F) := by
+    intro hNone
+    rw [hSubst, hGTy] at hNone
+    cases hNone
+  have hEval := InstantiateRule.substitute_simul_eval M hM F
+    (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
+    (eoCons c Term.__eo_List_nil) hFTrans hTs hActuals hSubstTrans
+  have hBody : __smtx_model_eval
+      (InstantiateRule.pushSubstModel M
+        (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
+      (eoCons c Term.__eo_List_nil)) (__eo_to_smt F) =
+      SmtValue.Boolean true := by
+    rw [← hEval]
+    change __smtx_model_eval M
+      (__eo_to_smt (substOne (Term.Var (Term.String sx) xT) c F)) =
+      SmtValue.Boolean true
+    rw [hSubst]
+    exact hGTrue
+  simpa [eoCons, InstantiateRule.pushSubstModel, hCI] using hBody
 
 /-- Reverse semantic induction for one accepted conjunct. -/
 theorem conj_backward_aux
@@ -1717,7 +1904,7 @@ theorem conj_backward_aux
             exact smtx_typeof_not_bool_intro hTailTy
           · rw [gEnc_forall]
             exact hTailTrue
-  | @absorb c y zs G hFind hCtorFree hFree hTail ih =>
+  | @absorb c y zs G hFind hFree hTail ih =>
       intro hSpine M hM hTy hTrue N hInst v hCI
       cases hInst
       rw [gEnc_forall] at hTy hTrue
@@ -1759,9 +1946,10 @@ theorem conj_backward_aux
           (native_model_push M sx (__eo_to_smt_type xT) v) sw Tw u F
           hFTrans hFree] at hStep
         exact hStep
-  | @unwrap c G hTail ih =>
+  | @unwrap c G hCxType hSubst =>
       intro hSpine M hM hTy hTrue N hInst v hCI
-      change CtorInst (Term.Var (Term.String sx) xT) F hTail N v at hCI
+      cases hInst
+      change __smtx_model_eval M (__eo_to_smt c) = v at hCI
       rw [gEnc_forall] at hTy hTrue
       rw [show __eo_to_smt_exists Term.__eo_List_nil
           (SmtTerm.not (__eo_to_smt G)) = SmtTerm.not (__eo_to_smt G)
@@ -1777,11 +1965,8 @@ theorem conj_backward_aux
             at hTrue
           exact absurd hTrue (by decide)
         · exact hb
-      refine ih hSpine M hM ?_ ?_ N hInst v hCI
-      · rw [hEnc]
-        exact hGTy
-      · rw [hEnc]
-        exact hGTrue
+      exact conj_final_backward_core sx xT F c G hWfX hFTrans hCxType
+        hSubst hSpine M hM hGTy hGTrue v hCI
   | @final cx g hCxType hNotNilForall hSubst =>
       intro hSpine M hM hTy hTrue N hInst v hCI
       cases hInst
@@ -1789,46 +1974,8 @@ theorem conj_backward_aux
       have hEnc : gEnc g = __eo_to_smt g :=
         gEnc_eq_eo_to_smt_of_not_nil_forall hNotNilForall
       rw [hEnc] at hTy hTrue
-      have hCxTrans : RuleProofs.eo_has_smt_translation cx :=
-        ctor_spine_translation hSpine hCxType hWfX
-      have hCxTy : __smtx_typeof (__eo_to_smt cx) =
-          __eo_to_smt_type xT := by
-        rw [TranslationProofs.eo_to_smt_typeof_matches_translation cx hCxTrans,
-          hCxType]
-        rfl
-      have hActuals :
-          SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes
-            (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
-            (eoCons cx Term.__eo_List_nil) :=
-        SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes.cons
-          hWfX hCxTrans hCxTy
-          (SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes.nil
-            Term.__eo_List_nil)
-      have hTs : EoListAllHaveSmtTranslation
-          (eoCons cx Term.__eo_List_nil) := by
-        simpa [eoCons, EoListAllHaveSmtTranslation] using
-          And.intro hCxTrans True.intro
-      have hSubstTrans : RuleProofs.eo_has_smt_translation
-          (substOne (Term.Var (Term.String sx) xT) cx F) := by
-        intro hNone
-        rw [hSubst, hTy] at hNone
-        cases hNone
-      have hEval := InstantiateRule.substitute_simul_eval M hM F
-        (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
-        (eoCons cx Term.__eo_List_nil) hFTrans hTs hActuals hSubstTrans
-      have hBody : __smtx_model_eval
-          (InstantiateRule.pushSubstModel M
-            (eoCons (Term.Var (Term.String sx) xT) Term.__eo_List_nil)
-          (eoCons cx Term.__eo_List_nil)) (__eo_to_smt F) =
-          SmtValue.Boolean true := by
-        rw [← hEval]
-        change __smtx_model_eval M
-          (__eo_to_smt
-            (substOne (Term.Var (Term.String sx) xT) cx F)) =
-          SmtValue.Boolean true
-        rw [hSubst]
-        exact hTrue
-      simpa [eoCons, InstantiateRule.pushSubstModel, hCI] using hBody
+      exact conj_final_backward_core sx xT F cx g hWfX hFTrans hCxType
+        hSubst hSpine M hM hTy hTrue v hCI
 
 /-! ## Reconstructing a selected constructor branch -/
 
@@ -1878,7 +2025,7 @@ theorem conj_final_smt_type
       refine ih hSpine ?_
       rw [gEnc_forall]
       exact smtx_typeof_not_bool_intro hTailTy
-  | @absorb c y zs G hFind hCtorFree hFree hTail ih =>
+  | @absorb c y zs G hFind hFree hTail ih =>
       intro hSpine hTy
       rw [gEnc_forall] at hTy
       have hNotTy : __smtx_typeof
@@ -1895,18 +2042,14 @@ theorem conj_final_smt_type
       refine ih (CS.apply hSpine hWfY) ?_
       rw [gEnc_forall]
       exact smtx_typeof_not_bool_intro hTailTy
-  | @unwrap c G hTail ih =>
+  | @unwrap c G hCxType hSubst =>
       intro hSpine hTy
-      rw [gEnc_forall] at hTy
-      rw [show __eo_to_smt_exists Term.__eo_List_nil
-          (SmtTerm.not (__eo_to_smt G)) = SmtTerm.not (__eo_to_smt G)
-        from rfl] at hTy
-      have hGTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool :=
-        smtx_typeof_not_bool_inv (smtx_typeof_not_bool_inv hTy)
-      have hEnc : gEnc G = __eo_to_smt G := gEnc_eq_eo_to_smt_of_bool hGTy
-      refine ih hSpine ?_
-      rw [hEnc]
-      exact hGTy
+      have hTrans : RuleProofs.eo_has_smt_translation c :=
+        ctor_spine_translation hSpine hCxType hWfX
+      change __smtx_typeof (__eo_to_smt c) = __eo_to_smt_type xT
+      rw [TranslationProofs.eo_to_smt_typeof_matches_translation c hTrans,
+        hCxType]
+      rfl
   | @final cx g hCxType hNotForall hSubst =>
       intro hSpine hTy
       have hTrans : RuleProofs.eo_has_smt_translation cx :=
@@ -1940,7 +2083,7 @@ theorem conj_final_ucs
       refine ih hSpine ?_
       rw [gEnc_forall]
       exact smtx_typeof_not_bool_intro hTailTy
-  | @absorb c y zs G hFind hCtorFree hFree hTail ih =>
+  | @absorb c y zs G hFind hFree hTail ih =>
       intro hSpine hTy
       rw [gEnc_forall] at hTy
       have hNotTy := smtx_typeof_not_bool_inv hTy
@@ -1955,17 +2098,9 @@ theorem conj_final_ucs
       refine ih (UCS.apply hSpine hWfY) ?_
       rw [gEnc_forall]
       exact smtx_typeof_not_bool_intro hTailTy
-  | @unwrap c G hTail ih =>
+  | @unwrap c G hCxType hSubst =>
       intro hSpine hTy
-      rw [gEnc_forall] at hTy
-      rw [show __eo_to_smt_exists Term.__eo_List_nil
-          (SmtTerm.not (__eo_to_smt G)) = SmtTerm.not (__eo_to_smt G)
-        from rfl] at hTy
-      have hGTy := smtx_typeof_not_bool_inv (smtx_typeof_not_bool_inv hTy)
-      have hEnc : gEnc G = __eo_to_smt G := gEnc_eq_eo_to_smt_of_bool hGTy
-      refine ih hSpine ?_
-      rw [hEnc]
-      exact hGTy
+      simpa [conjFinal] using hSpine
   | final hCxType hNotForall hSubst =>
       intro hSpine hTy
       exact hSpine
@@ -1994,7 +2129,7 @@ theorem conj_final_tcs
       refine ih hSpine ?_
       rw [gEnc_forall]
       exact smtx_typeof_not_bool_intro hTailTy
-  | @absorb c y zs G hFind hCtorFree hFree hTail ih =>
+  | @absorb c y zs G hFind hFree hTail ih =>
       intro hSpine hTy
       rw [gEnc_forall] at hTy
       have hNotTy := smtx_typeof_not_bool_inv hTy
@@ -2009,17 +2144,9 @@ theorem conj_final_tcs
       refine ih (TCS.apply hSpine hWfY) ?_
       rw [gEnc_forall]
       exact smtx_typeof_not_bool_intro hTailTy
-  | @unwrap c G hTail ih =>
+  | @unwrap c G hCxType hSubst =>
       intro hSpine hTy
-      rw [gEnc_forall] at hTy
-      rw [show __eo_to_smt_exists Term.__eo_List_nil
-          (SmtTerm.not (__eo_to_smt G)) = SmtTerm.not (__eo_to_smt G)
-        from rfl] at hTy
-      have hGTy := smtx_typeof_not_bool_inv (smtx_typeof_not_bool_inv hTy)
-      have hEnc : gEnc G = __eo_to_smt G := gEnc_eq_eo_to_smt_of_bool hGTy
-      refine ih hSpine ?_
-      rw [hEnc]
-      exact hGTy
+      simpa [conjFinal] using hSpine
   | final hCxType hNotForall hSubst =>
       intro hSpine hTy
       exact hSpine
@@ -2027,12 +2154,17 @@ theorem conj_final_tcs
 /-- Given values matching the statically typed absorbed fields, instantiate a
 selected conjunct so that its final constructor evaluates to the requested
 constructor value. -/
-theorem conj_ctor_inst_from_values
+private theorem conj_ctor_inst_from_values_aux
     (s : native_String) (d : Datatype) (i : Nat)
     (hReserved : native_reserved_datatype_name s = false) :
     ∀ {x F c ys g : Term}
       (rel : ConjRel x F c ys g),
       DtEoSpine c s d i ->
+      (∀ z, z ∈ conjAbsorbed rel ->
+        __contains_atomic_term_list_free_rec c
+          (eoCons z Term.__eo_List_nil) Term.__eo_List_nil =
+            Term.Boolean false) ->
+      (∀ q z zs, c ≠ Term.Apply q (eoCons z zs)) ->
       ∀ (M : SmtModel) (v : SmtValue) (args : List SmtValue),
       __smtx_typeof (gEnc g) = SmtType.Bool ->
       __smtx_typeof (__eo_to_smt (conjFinal rel)) =
@@ -2049,7 +2181,8 @@ theorem conj_ctor_inst_from_values
   intro x F c ys g rel
   induction rel with
   | @peel c y ys zs G hFind hTail ih =>
-      intro hSpine M v args hTy hFinalTy hLen hArgTy hCanon hEvalHead hTarget
+      intro hSpine hFresh hNotList M v args hTy hFinalTy hLen hArgTy hCanon
+        hEvalHead hTarget
       rw [gEnc_forall] at hTy
       have hNotTy : __smtx_typeof
           (__eo_to_smt_exists (eoCons y zs) (SmtTerm.not (__eo_to_smt G))) =
@@ -2063,15 +2196,19 @@ theorem conj_ctor_inst_from_values
         at hNotTy
       obtain ⟨hTailTy, hWfY⟩ := smtx_typeof_exists_bool_inv hNotTy
       change CtorInst x F hTail M v
-      refine ih hSpine M v args ?_ ?_ ?_ ?_ ?_ hEvalHead hTarget
+      refine ih hSpine ?_ hNotList M v args ?_ ?_ ?_ ?_ ?_ hEvalHead hTarget
+      · intro z hz
+        exact hFresh z (by simpa [conjAbsorbed] using hz)
       · rw [gEnc_forall]
         exact smtx_typeof_not_bool_intro hTailTy
       · simpa [conjFinal] using hFinalTy
       · simpa [conjAbsorbed] using hLen
       · simpa [conjAbsorbed] using hArgTy
       · simpa [conjAbsorbed] using hCanon
-  | @absorb c y zs G hFind hCtorFree hFree hTail ih =>
-      intro hSpine M v args hTy hFinalTy hLen hArgTy hCanon hEvalHead hTarget
+  | @absorb c y zs G hFind hFree hTail ih =>
+      intro hSpine hFresh hNotList M v args hTy hFinalTy hLen hArgTy hCanon
+        hEvalHead hTarget
+      have hRelTy := hTy
       rw [gEnc_forall] at hTy
       have hNotTy : __smtx_typeof
           (__eo_to_smt_exists (eoCons y zs) (SmtTerm.not (__eo_to_smt G))) =
@@ -2084,6 +2221,7 @@ theorem conj_ctor_inst_from_values
             (__eo_to_smt_exists zs (SmtTerm.not (__eo_to_smt G))) from rfl]
         at hNotTy
       obtain ⟨hTailTy, hWfY⟩ := smtx_typeof_exists_bool_inv hNotTy
+      obtain ⟨tailVars, hTailEnv⟩ := eoVarEnv_of_exists_bool hTailTy
       cases args with
       | nil => simp [conjAbsorbed] at hLen
       | cons u us =>
@@ -2124,7 +2262,7 @@ theorem conj_ctor_inst_from_values
           have hFullNN : __smtx_typeof (__eo_to_smt (conjFinal hTail)) ≠
               SmtType.None := by
             rw [show conjFinal hTail = conjFinal
-              (ConjRel.absorb hFind hCtorFree hFree hTail) from rfl]
+              (ConjRel.absorb hFind hFree hTail) from rfl]
             rw [hFinalTy]
             simp
           rw [conjFinal_eq_spine hTail,
@@ -2152,6 +2290,11 @@ theorem conj_ctor_inst_from_values
             ⟨A, B, hFun, hArg, hA, hB⟩
           unfold RuleProofs.eo_has_smt_translation
           rcases hFun with hFun | hFun <;> rw [hFun] <;> simp
+        have hCtorFree :
+            __contains_atomic_term_list_free_rec c
+              (eoCons (Term.Var (Term.String sy) Ty) Term.__eo_List_nil)
+              Term.__eo_List_nil = Term.Boolean false :=
+          hFresh _ (by simp [conjAbsorbed])
         have hEvalC : __smtx_model_eval
             (native_model_push M sy (__eo_to_smt_type Ty) u)
               (__eo_to_smt c) =
@@ -2178,7 +2321,67 @@ theorem conj_ctor_inst_from_values
           rw [hEvalC, hEvalY]
           exact smt_model_eval_apply_of_dt_head M _ _ hEvalHead huNN
         refine ⟨sy, Ty, u, rfl, huTy, huCanon, ?_⟩
+        have hNodup := conjAbsorbed_nodup_of_typed
+          (ConjRel.absorb hFind hFree hTail) hRelTy
+        have hCurrentNotTail : Term.Var (Term.String sy) Ty ∉
+            conjAbsorbed hTail := by
+          simpa [conjAbsorbed] using (List.nodup_cons.mp hNodup).1
+        have hTailFresh : ∀ z, z ∈ conjAbsorbed hTail ->
+            __contains_atomic_term_list_free_rec
+                (Term.Apply c (Term.Var (Term.String sy) Ty))
+                (eoCons z Term.__eo_List_nil) Term.__eo_List_nil =
+              Term.Boolean false := by
+          intro z hz
+          obtain ⟨sz, Tz, rfl⟩ :=
+            (conjAbsorbed_prefix_of_forall hTail).var_shape_of_mem_env
+              hTailEnv hz
+          have hHeadNe : Term.Var (Term.String sy) Ty ≠
+              Term.Var (Term.String sz) Tz := by
+            intro hEq
+            apply hCurrentNotTail
+            simpa [hEq] using hz
+          have hCFree := hFresh (Term.Var (Term.String sz) Tz)
+            (by simp [conjAbsorbed, hz])
+          have hYFree : __contains_atomic_term_list_free_rec
+                (Term.Var (Term.String sy) Ty)
+                (eoCons (Term.Var (Term.String sz) Tz) Term.__eo_List_nil)
+                Term.__eo_List_nil = Term.Boolean false := by
+            have hKeyNe : (sy, Ty) ≠ (sz, Tz) := by
+              intro hEq
+              cases hEq
+              exact hHeadNe rfl
+            have hFindNeg : __eo_is_neg
+                (__eo_list_find Term.__eo_List_cons
+                  (eoCons (Term.Var (Term.String sz) Tz)
+                    Term.__eo_List_nil)
+                  (Term.Var (Term.String sy) Ty)) = Term.Boolean true :=
+              (EoVarEnv.cons EoVarEnv.nil).find_neg_true_of_not_mem
+                (by simpa using hKeyNe)
+            rw [show __contains_atomic_term_list_free_rec
+                  (Term.Var (Term.String sy) Ty)
+                  (eoCons (Term.Var (Term.String sz) Tz) Term.__eo_List_nil)
+                  Term.__eo_List_nil =
+                __eo_ite
+                  (__eo_is_neg (__eo_list_find Term.__eo_List_cons
+                    (eoCons (Term.Var (Term.String sz) Tz)
+                      Term.__eo_List_nil)
+                    (Term.Var (Term.String sy) Ty)))
+                  (Term.Boolean false)
+                  (__eo_is_neg (__eo_list_find Term.__eo_List_cons
+                    Term.__eo_List_nil
+                    (Term.Var (Term.String sy) Ty))) from rfl,
+              hFindNeg]
+            rfl
+          exact contains_atomic_term_list_free_rec_apply_false_intro
+            hNotList hCFree hYFree
+        have hTailNotList : ∀ q z zs,
+            Term.Apply c (Term.Var (Term.String sy) Ty) ≠
+              Term.Apply q (eoCons z zs) := by
+          intro q z zs hEq
+          injection hEq with hFun hArg
+          simp [eoCons] at hArg
         refine ih (DtEoSpine.app (Term.Var (Term.String sy) Ty) hSpine)
+          hTailFresh hTailNotList
           (native_model_push M sy (__eo_to_smt_type Ty) u) v us ?_ ?_ ?_ ?_ ?_ ?_ ?_
         · rw [gEnc_forall]
           exact smtx_typeof_not_bool_intro hTailTy
@@ -2193,30 +2396,51 @@ theorem conj_ctor_inst_from_values
           simpa [__vsm_apply_head] using hEvalHead
         · rw [hEvalApply]
           simpa [vsmMkSpine] using hTarget
-  | @unwrap c G hTail ih =>
-      intro hSpine M v args hTy hFinalTy hLen hArgTy hCanon hEvalHead hTarget
-      rw [gEnc_forall] at hTy
-      rw [show __eo_to_smt_exists Term.__eo_List_nil
-          (SmtTerm.not (__eo_to_smt G)) = SmtTerm.not (__eo_to_smt G)
-        from rfl] at hTy
-      have hGTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool :=
-        smtx_typeof_not_bool_inv (smtx_typeof_not_bool_inv hTy)
-      have hEnc : gEnc G = __eo_to_smt G := gEnc_eq_eo_to_smt_of_bool hGTy
-      change CtorInst x F hTail M v
-      refine ih hSpine M v args ?_ ?_ ?_ ?_ ?_ hEvalHead hTarget
-      · rw [hEnc]
-        exact hGTy
-      · simpa [conjFinal] using hFinalTy
-      · simpa [conjAbsorbed] using hLen
-      · simpa [conjAbsorbed] using hArgTy
-      · simpa [conjAbsorbed] using hCanon
+  | @unwrap c G hCxType hSubst =>
+      intro hSpine hFresh hNotList M v args hTy hFinalTy hLen hArgTy hCanon
+        hEvalHead hTarget
+      cases args with
+      | nil =>
+        change __smtx_model_eval M (__eo_to_smt c) = v
+        exact hTarget.symm
+      | cons u us => simp [conjAbsorbed] at hLen
   | @final cx g hCxTy hNotForall hSubst =>
-      intro hSpine M v args hTy hFinalTy hLen hArgTy hCanon hEvalHead hTarget
+      intro hSpine hFresh hNotList M v args hTy hFinalTy hLen hArgTy hCanon
+        hEvalHead hTarget
       cases args with
       | nil =>
         change __smtx_model_eval M (__eo_to_smt cx) = v
         exact hTarget.symm
       | cons u us => simp [conjAbsorbed] at hLen
+
+theorem conj_ctor_inst_from_values
+    (s : native_String) (d : Datatype) (i : Nat)
+    (hReserved : native_reserved_datatype_name s = false) :
+    ∀ {x F ys g : Term}
+      (rel : ConjRel x F (Term.DtCons s d i) ys g),
+      ∀ (M : SmtModel) (v : SmtValue) (args : List SmtValue),
+      __smtx_typeof (gEnc g) = SmtType.Bool ->
+      __smtx_typeof (__eo_to_smt (conjFinal rel)) =
+        SmtType.Datatype s (__eo_to_smt_datatype d) ->
+      args.length = (conjAbsorbed rel).length ->
+      (∀ j, j < args.length ->
+        __smtx_typeof_value args[j]! =
+          __smtx_typeof (__eo_to_smt (conjAbsorbed rel)[j]!)) ->
+      (∀ u ∈ args, __smtx_value_canonical_bool u = true) ->
+      __vsm_apply_head
+          (__smtx_model_eval M (__eo_to_smt (Term.DtCons s d i))) =
+        SmtValue.DtCons s (__eo_to_smt_datatype d) i ->
+      v = vsmMkSpine
+        (__smtx_model_eval M (__eo_to_smt (Term.DtCons s d i))) args ->
+      CtorInst x F rel M v := by
+  intro x F ys g rel
+  refine conj_ctor_inst_from_values_aux s d i hReserved rel
+    (DtEoSpine.root s d i) ?_ ?_
+  · intro z hz
+    simp [__contains_atomic_term_list_free_rec, __is_closed_rec,
+      __eo_requires, native_ite, native_teq, native_not]
+  · intro q z zs hEq
+    simp [eoCons] at hEq
 
 /-! ## Semantic core
 
@@ -3002,7 +3226,7 @@ theorem split_backward
           rfl
         rwa [hArgs]
       have hCI := conj_ctor_inst_from_values sD dD ci hReserved crel
-        (DtEoSpine.root sD dD ci) N₀ w args hgEncTy hFinalTy hFieldsLen
+        N₀ w args hgEncTy hFinalTy hFieldsLen
         hMatchTypes hArgsCanon' hEvalHead hTarget
       have hBody := conj_backward_aux sx (Term.DatatypeType sD dD) F hWfX
         hFTrans crel (CS.head (CH.datatype sD dD ci)) M hM hgEncTy hgEncTrue
@@ -3174,7 +3398,8 @@ theorem split_backward
               apply vsm_canonical_of_spine rest tailRoot
               · rfl
               · exact hRestCanon
-            have hSourceNe := tuple_absorbed_two_ne crel s₁ s₂ T₁ T₂ hAbs
+            have hSourceNe := tuple_absorbed_two_ne_of_typed crel hgEncTy
+              s₁ s₂ T₁ T₂ hAbs
             have hFullValid := TranslationProofs.eo_type_valid_of_smt_wf
               (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T₁) T₂) hWfX
             have hT₁Valid : TranslationProofs.eo_type_valid_rec [] T₁ := by
