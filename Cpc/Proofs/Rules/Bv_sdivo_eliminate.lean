@@ -171,11 +171,6 @@ private theorem smtx_typeof_bvsdivo_term_eq (x y : SmtTerm) :
         SmtType.Bool := by
   rw [__smtx_typeof.eq_def] <;> simp only
 
-private theorem smtx_typeof_bvnot_term_eq (x : SmtTerm) :
-    __smtx_typeof (SmtTerm.bvnot x) =
-      __smtx_typeof_bv_op_1 (__smtx_typeof x) := by
-  rw [__smtx_typeof.eq_def] <;> simp only
-
 private theorem smt_typeof_bvsdivo (x y : SmtTerm) (n : Nat) :
     __smtx_typeof x = SmtType.BitVec n ->
     __smtx_typeof y = SmtType.BitVec n ->
@@ -205,12 +200,6 @@ private theorem smtx_eval_bvsdivo_term_eq
     __smtx_model_eval M (SmtTerm.bvsdivo x y) =
       __smtx_model_eval_bvsdivo
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
-  rw [__smtx_model_eval.eq_def] <;> simp only
-
-private theorem smtx_eval_bvnot_term_eq
-    (M : SmtModel) (x : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.bvnot x) =
-      __smtx_model_eval_bvnot (__smtx_model_eval M x) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem smtx_eval_bvnego_term_eq_local
