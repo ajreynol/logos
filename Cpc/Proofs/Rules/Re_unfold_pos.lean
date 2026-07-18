@@ -1016,7 +1016,7 @@ private theorem native_pack_string_unpack_string_of_typeof_seq_char
     ss
   rw [hMap]
   rw [← native_pack_unpack_seq ss, hElem]
-  simp [native_unpack_pack_seq]
+  simp [_root_.native_unpack_pack_seq]
 
 private theorem native_seq_substr_split
     (ss : SmtSeq) (i : native_Int)
@@ -1070,7 +1070,7 @@ private theorem native_string_append_to_seq_append
       native_pack_seq SmtType.Char
         (native_unpack_seq (native_pack_string xs) ++
           native_unpack_seq (native_pack_string ys)) := by
-  simp [native_pack_string, native_unpack_pack_seq, List.map_append]
+  simp [native_pack_string, _root_.native_unpack_pack_seq, List.map_append]
 
 private theorem smtx_typeof_str_concat_of_seq_char (x y : Term)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char)
@@ -1380,7 +1380,7 @@ private theorem native_seq_concat_eq_of_unpack_string
         (native_pack_string_unpack_string_of_typeof_seq_char ss hSsTy).symm
       _ = native_pack_string (left ++ right) := by rw [hSs]
   rw [hLeftPack, hRightPack, hSsPack]
-  simp [native_pack_string, native_unpack_pack_seq, List.map_append,
+  simp [native_pack_string, _root_.native_unpack_pack_seq, List.map_append,
     elem_typeof_native_pack_seq]
 
 private theorem str_in_re_native_true

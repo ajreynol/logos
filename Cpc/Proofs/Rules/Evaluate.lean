@@ -5585,16 +5585,21 @@ private theorem eo_extract_literal_arg_binary_of_typeof_bitvec
         simpa [native_zlt, SmtEval.native_zlt, native_zplus,
           SmtEval.native_zplus, native_zneg, SmtEval.native_zneg]
           using hDeltaNeg
-      have hDeltaNonneg : 0 <= i + -j := by omega
+      have hDeltaNonneg : 0 <= i + -j :=
+        Int.le_of_not_gt hDeltaNotLt
       have hWidthNonneg : native_zleq 0 (i + -j + 1) = true := by
         have hNonneg : 0 <= i + -j + 1 :=
           Int.add_nonneg hDeltaNonneg (by decide)
         simpa [native_zleq, SmtEval.native_zleq] using hNonneg
-      simp [hjNotNeg, hDeltaNeg, native_zneg, SmtEval.native_zneg,
+      have hDeltaNotNegNative : native_zlt (i + -j) 0 = false := by
+        simpa [native_zlt, SmtEval.native_zlt] using
+          Int.not_lt_of_ge hDeltaNonneg
+      simp [hjNotNeg, hDeltaNotNegNative, native_zneg, SmtEval.native_zneg,
         native_or, native_ite, __eo_mk_binary, hWidthNonneg,
         native_zplus, SmtEval.native_zplus] at h
-      cases h
-      refine ⟨wx, nx, rfl, rfl, ?_⟩
+      have hW : w = native_zplus (native_zplus i (native_zneg j)) 1 :=
+        (Term.Numeral.inj ((Term.Apply.inj h).2)).symm
+      refine ⟨wx, nx, rfl, hW, ?_⟩
       change
         native_ite
             (native_or (native_zlt j 0)
@@ -5606,9 +5611,9 @@ private theorem eo_extract_literal_arg_binary_of_typeof_bitvec
             (native_mod_total (native_binary_extract wx nx i j)
               (native_int_pow2
                 (native_zplus (native_zplus i (native_zneg j)) 1)))
-      simp [hjNotNeg, hDeltaNeg, hWidthNonnegNative,
+      simp [hjNotNeg, hDeltaNotNegNative, hWidthNonneg,
         __eo_mk_binary, native_or, native_ite, native_zplus,
-        SmtEval.native_zplus]
+        SmtEval.native_zplus, native_zneg, SmtEval.native_zneg]
     · have hDeltaLt : i + -j < 0 := by
         simpa [native_zlt, SmtEval.native_zlt, native_zplus,
           SmtEval.native_zplus, native_zneg, SmtEval.native_zneg]
@@ -5617,16 +5622,20 @@ private theorem eo_extract_literal_arg_binary_of_typeof_bitvec
         simpa [native_zleq, SmtEval.native_zleq, native_zplus,
           SmtEval.native_zplus, native_zneg, SmtEval.native_zneg,
           Int.add_assoc] using hWidthNonnegNative
-      have hWidthZeroInt : i + -j + 1 = 0 := by omega
+      have hWidthZeroInt : i + -j + 1 = 0 :=
+        Int.le_antisymm (Int.add_one_le_iff.mpr hDeltaLt) hWidthGe
       have hWidthZero :
           native_zplus (native_zplus i (native_zneg j)) 1 = 0 := by
         simpa [native_zplus, SmtEval.native_zplus, native_zneg,
           SmtEval.native_zneg, Int.add_assoc] using hWidthZeroInt
-      simp [hjNotNeg, hDeltaNeg, native_zneg, SmtEval.native_zneg,
+      have hDeltaNegNative : native_zlt (i + -j) 0 = true := by
+        simpa [native_zlt, SmtEval.native_zlt] using hDeltaLt
+      simp [hjNotNeg, hDeltaNegNative, native_zneg, SmtEval.native_zneg,
         native_or, native_ite, __eo_lit_type_Binary, __eo_len,
         __eo_mk_apply] at h
-      cases h
-      refine ⟨wx, nx, rfl, hWidthZero.symm, ?_⟩
+      have hW : w = 0 :=
+        (Term.Numeral.inj ((Term.Apply.inj h).2)).symm
+      refine ⟨wx, nx, rfl, hW.trans hWidthZero.symm, ?_⟩
       change
         native_ite
             (native_or (native_zlt j 0)
@@ -5638,8 +5647,13 @@ private theorem eo_extract_literal_arg_binary_of_typeof_bitvec
             (native_mod_total (native_binary_extract wx nx i j)
               (native_int_pow2
                 (native_zplus (native_zplus i (native_zneg j)) 1)))
-      simp [hjNotNeg, hDeltaNeg, hWidthZero, native_or, native_ite,
-        native_mod_total, native_int_pow2, native_zexp_total]
+      simp [hjNotNeg, hDeltaNegNative, hWidthZero, native_or, native_ite,
+        native_mod_total, native_int_pow2, native_zexp_total, native_zplus,
+        SmtEval.native_zplus, native_zneg, SmtEval.native_zneg]
+      constructor
+      · exact hWidthZeroInt.symm
+      · rw [hWidthZeroInt]
+        simp [native_mod_total, native_int_pow2, native_zexp_total]
   case String s =>
     change
       Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) =
@@ -13067,7 +13081,8 @@ private theorem eo_extract_typeof_bitvec_of_arg_bitvec_and_ne_stuck
         simpa [native_zlt, SmtEval.native_zlt, native_zplus,
           SmtEval.native_zplus, native_zneg, SmtEval.native_zneg]
           using hDeltaNeg
-      have hDeltaNonneg : 0 <= i + -j := by omega
+      have hDeltaNonneg : 0 <= i + -j :=
+        Int.le_of_not_gt hDeltaNotLt
       have hWidthNonneg :
           native_zleq 0
               (native_zplus (native_zplus i (native_zneg j)) 1) =
@@ -13088,13 +13103,15 @@ private theorem eo_extract_typeof_bitvec_of_arg_bitvec_and_ne_stuck
         simpa [native_zleq, SmtEval.native_zleq, native_zplus,
           SmtEval.native_zplus, native_zneg, SmtEval.native_zneg,
           Int.add_assoc] using hWidthNonnegNative
-      have hWidthZeroInt : i + -j + 1 = 0 := by omega
+      have hWidthZeroInt : i + -j + 1 = 0 :=
+        Int.le_antisymm (Int.add_one_le_iff.mpr hDeltaLt) hWidthGe
       have hWidthZero :
           native_zplus (native_zplus i (native_zneg j)) 1 = 0 := by
         simpa [native_zplus, SmtEval.native_zplus, native_zneg,
           SmtEval.native_zneg, Int.add_assoc] using hWidthZeroInt
       simp [hjNotNeg, hDeltaNeg, native_or, native_ite,
         __eo_lit_type_Binary, __eo_len, __eo_mk_apply, hWidthZero]
+      rfl
   all_goals
     first
     | contradiction
@@ -19679,41 +19696,54 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 eo_extract_typeof_bitvec_of_arg_bitvec_and_ne_stuck
                   (__run_evaluate x) i j (native_nat_to_int w)
                   hj0 hji hRunXBv hRunExtNe
-                have hjNonneg : 0 <= j := by
-                  simpa [native_zleq, SmtEval.native_zleq] using hj0
-                have hLowSuccPos :
-                    native_zlt 0 (j + 1) = true := by
-                  have h : 0 < j + 1 := Int.lt_add_one_of_le hjNonneg
-                  simpa [native_zlt, SmtEval.native_zlt] using h
-                have hJGtNegOne : native_zlt (-1 : native_Int) j = true := by
-                  have hlt : (-1 : native_Int) < j :=
-                    Int.lt_of_lt_of_le (by decide) hjNonneg
-                  simpa [native_zlt, SmtEval.native_zlt] using hlt
-                have hWidthAssoc :
-                    native_zplus (native_zplus i 1) (native_zneg j) =
-                      native_zplus (native_zplus i (native_zneg j)) 1 := by
-                  simp [native_zplus, SmtEval.native_zplus, native_zneg,
-                    SmtEval.native_zneg, Int.add_assoc, Int.add_comm,
-                    Int.add_left_comm]
-                have hWidthNonneg :
-                    native_zleq 0
-                        (native_zplus (native_zplus i (native_zneg j)) 1) =
-                      true := by
-                  simpa [hWidthAssoc] using hji
-                change
-                  __eo_typeof
-                      (__eo_extract (__run_evaluate x)
-                        (Term.Numeral j) (Term.Numeral i)) =
-                  __eo_typeof_extract (Term.UOp UserOp.Int)
-                    (Term.Numeral i) (Term.UOp UserOp.Int)
-                    (Term.Numeral j) (__eo_typeof x)
-                rw [hXEoBv]
-                simpa [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt,
-                  __eo_requires, __eo_mk_apply, hLowSuccPos, hJGtNegOne,
-                  hWidthNonneg, hiw, native_ite, native_teq, native_not,
-                  native_zplus, SmtEval.native_zplus, native_zneg,
-                  SmtEval.native_zneg]
-                  using hRunBodyTy
+              have hjNonneg : 0 <= j := by
+                simpa [native_zleq, SmtEval.native_zleq] using hj0
+              have hLowSuccPos :
+                  native_zlt 0 (j + 1) = true := by
+                have h : 0 < j + 1 := Int.lt_add_one_of_le hjNonneg
+                simpa [native_zlt, SmtEval.native_zlt] using h
+              have hJGtNegOne : native_zlt (-1 : native_Int) j = true := by
+                have hlt : (-1 : native_Int) < j :=
+                  Int.lt_of_lt_of_le (by decide) hjNonneg
+                simpa [native_zlt, SmtEval.native_zlt] using hlt
+              have hWidthAssoc :
+                  native_zplus (native_zplus i 1) (native_zneg j) =
+                    native_zplus (native_zplus i (native_zneg j)) 1 := by
+                simp [native_zplus, SmtEval.native_zplus, native_zneg,
+                  SmtEval.native_zneg, Int.add_assoc, Int.add_comm,
+                  Int.add_left_comm]
+              have hWidthNonneg :
+                  native_zleq 0
+                      (native_zplus (native_zplus i (native_zneg j)) 1) =
+                    true := by
+                simpa [hWidthAssoc] using hji
+              have hWidthGtNegOne :
+                  native_zlt (-1 : native_Int)
+                      (i + -j + 1) =
+                    true := by
+                have hWidthGe : 0 <= i + -j + 1 := by
+                  simpa [native_zleq, SmtEval.native_zleq, native_zplus,
+                    SmtEval.native_zplus, native_zneg, SmtEval.native_zneg,
+                    Int.add_assoc] using hWidthNonneg
+                have hlt :
+                    (-1 : native_Int) < i + -j + 1 :=
+                  Int.lt_of_lt_of_le (by decide) hWidthGe
+                simpa [native_zlt, SmtEval.native_zlt] using hlt
+              change
+                __eo_typeof
+                    (__eo_extract (__run_evaluate x)
+                      (Term.Numeral j) (Term.Numeral i)) =
+                __eo_typeof_extract (Term.UOp UserOp.Int)
+                  (Term.Numeral i) (Term.UOp UserOp.Int)
+                  (Term.Numeral j) (__eo_typeof x)
+              rw [hXEoBv]
+              simpa [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt,
+                __eo_requires, __eo_mk_apply, hLowSuccPos, hJGtNegOne,
+                hWidthNonneg, hWidthGtNegOne, hiw, native_ite, native_teq,
+                native_not,
+                native_zplus, SmtEval.native_zplus, native_zneg,
+                SmtEval.native_zneg]
+                using hRunBodyTy
             | _ =>
               exact False.elim (hRun rfl)
         | _ =>
@@ -38327,24 +38357,34 @@ private theorem run_evaluate_sound_apply_extract_core
           (Term.Numeral (native_nat_to_int w)) :=
     TranslationProofs.eo_to_smt_type_eq_bitvec
       (hXMatch.symm.trans hxSmtTy)
-    have hjNonneg : 0 <= j := by
-      simpa [native_zleq, SmtEval.native_zleq] using hj0
-    have hLowSuccPos : native_zlt 0 (j + 1) = true := by
-      have h : 0 < j + 1 := Int.lt_add_one_of_le hjNonneg
-      simpa [native_zlt, SmtEval.native_zlt] using h
-    have hJGtNegOne : native_zlt (-1 : native_Int) j = true := by
-      have hlt : (-1 : native_Int) < j :=
-        Int.lt_of_lt_of_le (by decide) hjNonneg
-      simpa [native_zlt, SmtEval.native_zlt] using hlt
-    have hWidthAssoc :
-        native_zplus (native_zplus i 1) (native_zneg j) =
-          native_zplus (native_zplus i (native_zneg j)) 1 := by
-      simp [native_zplus, SmtEval.native_zplus, native_zneg,
-        SmtEval.native_zneg, Int.add_assoc, Int.add_comm, Int.add_left_comm]
-    have hWidthNonneg :
-        native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) =
-          true := by
-      simpa [hWidthAssoc] using hji
+  have hjNonneg : 0 <= j := by
+    simpa [native_zleq, SmtEval.native_zleq] using hj0
+  have hLowSuccPos : native_zlt 0 (j + 1) = true := by
+    have h : 0 < j + 1 := Int.lt_add_one_of_le hjNonneg
+    simpa [native_zlt, SmtEval.native_zlt] using h
+  have hJGtNegOne : native_zlt (-1 : native_Int) j = true := by
+    have hlt : (-1 : native_Int) < j :=
+      Int.lt_of_lt_of_le (by decide) hjNonneg
+    simpa [native_zlt, SmtEval.native_zlt] using hlt
+  have hWidthAssoc :
+      native_zplus (native_zplus i 1) (native_zneg j) =
+        native_zplus (native_zplus i (native_zneg j)) 1 := by
+    simp [native_zplus, SmtEval.native_zplus, native_zneg,
+      SmtEval.native_zneg, Int.add_assoc, Int.add_comm, Int.add_left_comm]
+  have hWidthNonneg :
+      native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) =
+        true := by
+    simpa [hWidthAssoc] using hji
+  have hWidthGtNegOne :
+      native_zlt (-1 : native_Int)
+          (i + -j + 1) = true := by
+    have hWidthGe : 0 <= i + -j + 1 := by
+      simpa [native_zleq, SmtEval.native_zleq, native_zplus,
+        SmtEval.native_zplus, native_zneg, SmtEval.native_zneg,
+        Int.add_assoc] using hWidthNonneg
+    have hlt : (-1 : native_Int) < i + -j + 1 :=
+      Int.lt_of_lt_of_le (by decide) hWidthGe
+    simpa [native_zlt, SmtEval.native_zlt] using hlt
   have hExtractEoType :
       __eo_typeof
           (Term.Apply
@@ -38360,7 +38400,8 @@ private theorem run_evaluate_sound_apply_extract_core
               (native_zplus (native_zplus i (native_zneg j)) 1))
       rw [hXEoBv]
       simp [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt, __eo_requires,
-        __eo_mk_apply, hLowSuccPos, hJGtNegOne, hWidthNonneg, hiw,
+        __eo_mk_apply, hLowSuccPos, hJGtNegOne, hWidthNonneg,
+        hWidthGtNegOne, hiw,
         native_ite, native_teq, native_not, native_zplus, SmtEval.native_zplus,
         native_zneg, SmtEval.native_zneg]
   let runExt :=
@@ -38487,11 +38528,11 @@ private theorem run_evaluate_sound_apply_extract_core
             (native_mod_total (native_binary_extract runW runN i j)
               (native_int_pow2
                 (native_zplus (native_zplus i (native_zneg j)) 1)))))
-    constructor
-    · rw [typeof_extract_eq, hxSmtTy]
-      simp [__smtx_typeof_extract, native_ite, hj0, hji, hiw]
-      rw [hWidthAssoc]
-      rw [smtx_typeof_binary_mod_of_nonneg _ _ hWidthNonneg]
+  constructor
+  · rw [typeof_extract_eq, hxSmtTy]
+    simp [__smtx_typeof_extract, native_ite, hj0, hji, hiw]
+    rw [hWidthAssoc]
+    rw [smtx_typeof_binary_mod_of_nonneg _ _ hWidthNonneg]
   · rw [show
         __smtx_model_eval M
             (SmtTerm.extract (SmtTerm.Numeral i) (SmtTerm.Numeral j)

@@ -567,7 +567,7 @@ private theorem smtx_model_eval_str_concat_replacement
   have hElem : __smtx_elem_typeof_seq_value repl = SmtType.Char :=
     elem_typeof_seq_value_of_typeof_seq_value hReplTy
   simp [__smtx_model_eval, __smtx_model_eval_str_concat, hTEval,
-    native_seq_concat, native_pack_string, native_unpack_pack_seq,
+    native_seq_concat, native_pack_string, Smtm.native_unpack_pack_seq,
     elem_typeof_pack_seq, hElem]
   simpa [native_pack_string, native_unpack_string, List.map_append,
     List.append_assoc] using

@@ -432,6 +432,16 @@ private theorem typeof_extract_diag_numeral (wmv w : native_Int) :
   by_cases hg1 : native_zlt (-1 : native_Int) wmv = true <;>
     by_cases hg2 : native_zlt wmv w = true <;>
     simp [hg1, hg2, native_ite, native_teq]
+  have hWidth :
+      native_zplus (native_zplus wmv (native_zneg wmv)) 1 =
+        (1 : native_Int) := by
+    change (wmv + -wmv) + 1 = (1 : Int)
+    rw [Int.add_right_neg]
+    rfl
+  have hOnePositive :
+      native_zlt (-1 : native_Int) (1 : native_Int) = true := by
+    native_decide
+  simp [hg1, hg2, hWidth, hOnePositive, native_ite, native_teq]
 
 /-- The `gt wm (-1)` guard is `Stuck` when `wm` is not a numeral. -/
 private theorem eo_gt_neg_one_stuck_of_not_numeral (wm : Term)
@@ -653,9 +663,11 @@ private theorem smtx_eval_numeral_eq (M : SmtModel) (n : native_Int) :
 /-- The translation of `@bv 0 1` evaluates to `Binary 1 0`. -/
 private theorem eval_bv_zero_one (M : SmtModel) :
     __smtx_model_eval M (__eo_to_smt bvOneZeroTerm) = SmtValue.Binary 1 0 := by
-  have hTrans : __eo_to_smt bvOneZeroTerm = SmtTerm.Binary 1 0 := rfl
-  rw [hTrans]
-  rw [__smtx_model_eval.eq_def] <;> simp only
+  change __smtx_model_eval M
+      (SmtTerm.int_to_bv (SmtTerm.Numeral 1) (SmtTerm.Numeral 0)) =
+    SmtValue.Binary 1 0
+  rw [smtx_eval_int_to_bv_numerals]
+  simp [native_mod_total]
 
 /-- The SMT type of `bvsize t` is `Int` and its value is the static width. -/
 private theorem eval_bvsize_eq (M : SmtModel) (t : Term) (w : native_Int)
@@ -882,7 +894,6 @@ private theorem smt_typeof_rhs_int
           (__eo_to_smt bvOneZeroTerm))
         (SmtTerm.ubv_to_int (__eo_to_smt t))
         (SmtTerm.neg (SmtTerm.ubv_to_int (__eo_to_smt t)) (__eo_to_smt n))) = SmtType.Int
-  have hBvTrans : __eo_to_smt bvOneZeroTerm = SmtTerm.Binary 1 0 := rfl
   have hExtractTy :
       __smtx_typeof
           (SmtTerm.extract (SmtTerm.Numeral wmv) (SmtTerm.Numeral wmv) (__eo_to_smt t)) =
@@ -896,33 +907,39 @@ private theorem smt_typeof_rhs_int
       have hlt : (-1 : Int) < wmv := by simpa [native_zlt, SmtEval.native_zlt] using hg1
       have : (0 : Int) ≤ wmv := by omega
       simpa [native_zleq, SmtEval.native_zleq] using this
-    have hle : native_zleq wmv wmv = true := by simp [native_zleq, SmtEval.native_zleq]
     have hlt : native_zlt wmv (native_nat_to_int (native_int_to_nat w)) = true := by
       have hwlt : (wmv : Int) < w := by simpa [native_zlt, SmtEval.native_zlt] using hg2
       have hwfit : native_nat_to_int (native_int_to_nat w) = w := by
         have : 0 <= w := by simpa [SmtEval.native_zleq] using hNonneg
         simpa [native_int_to_nat, native_nat_to_int] using Int.toNat_of_nonneg this
       rw [hwfit]; simpa [native_zlt, SmtEval.native_zlt] using hwlt
-    have hwidth : native_int_to_nat
-        (native_zplus (native_zplus wmv (native_zneg wmv)) 1) = 1 := by
-      have hsum :
-          native_zplus (native_zplus wmv (native_zneg wmv)) 1 = (1 : native_Int) := by
-        change (wmv + -wmv) + 1 = (1 : Int)
-        calc
-          (wmv + -wmv) + 1 = 0 + 1 := by rw [Int.add_right_neg]
-          _ = 1 := rfl
+    have hsum :
+        native_zplus (native_zplus wmv 1) (native_zneg wmv) =
+          (1 : native_Int) := by
+      change wmv + 1 + -wmv = (1 : Int)
+      calc
+        wmv + 1 + -wmv = (wmv + -wmv) + 1 := by ac_rfl
+        _ = 1 := by
+          rw [Int.add_right_neg]
+          rfl
+    have hsumNonneg :
+        native_zleq 0
+          (native_zplus (native_zplus wmv 1) (native_zneg wmv)) = true := by
       rw [hsum]
       native_decide
-    have hNatOne : native_int_to_nat (1 : native_Int) = 1 := by
+    have hwidth : native_int_to_nat
+        (native_zplus (native_zplus wmv 1) (native_zneg wmv)) = 1 := by
+      rw [hsum]
       native_decide
-    simpa only [__smtx_typeof_extract, native_ite, hge0, hle, hlt, if_true, hwidth]
-      using hNatOne
-  have hBvTy : __smtx_typeof (SmtTerm.Binary 1 0) = SmtType.BitVec 1 := by
-    have hNatOne : native_int_to_nat (1 : native_Int) = 1 := by
-      native_decide
-    rw [__smtx_typeof.eq_def] <;> simp only
-    simp [native_ite, native_zleq, SmtEval.native_zleq, native_and, SmtEval.native_and,
-      native_zeq, SmtEval.native_zeq, native_mod_total, native_int_pow2, hNatOne]
+    simp only [__smtx_typeof_extract, native_ite, hge0, hlt, hsumNonneg, if_true,
+      hwidth]
+  have hBvTy :
+      __smtx_typeof (__eo_to_smt bvOneZeroTerm) = SmtType.BitVec 1 := by
+    change __smtx_typeof
+        (SmtTerm.int_to_bv (SmtTerm.Numeral 1) (SmtTerm.Numeral 0)) =
+      SmtType.BitVec 1
+    simpa using smtx_typeof_int_to_bv_numerals
+      (1 : native_Int) (0 : native_Int) (by native_decide)
   have hUbvTy : __smtx_typeof (SmtTerm.ubv_to_int (__eo_to_smt t)) = SmtType.Int := by
     rw [show __smtx_typeof (SmtTerm.ubv_to_int (__eo_to_smt t)) =
         __smtx_typeof_bv_op_1_ret (__smtx_typeof (__eo_to_smt t)) SmtType.Int by
@@ -943,7 +960,7 @@ private theorem smt_typeof_rhs_int
             (SmtTerm.extract (SmtTerm.Numeral wmv) (SmtTerm.Numeral wmv) (__eo_to_smt t)))
           (__smtx_typeof (__eo_to_smt bvOneZeroTerm)) by
         rw [__smtx_typeof.eq_def] <;> simp only]
-    rw [hExtractTy, hBvTrans, hBvTy]
+    rw [hExtractTy, hBvTy]
     simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq]
   -- neg type: arith_overload_op_2 Int Int = Int
   have hNegTy :

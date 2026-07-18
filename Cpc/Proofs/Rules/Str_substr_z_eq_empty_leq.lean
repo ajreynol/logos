@@ -121,13 +121,6 @@ private theorem smtx_eval_boolean_term_eq
     __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
   rw [__smtx_model_eval.eq_def]
 
-private theorem native_seq_extract_empty_of_len_nonpos
-    (xs : List SmtValue) (i n : native_Int)
-    (h : n ≤ 0) :
-    native_seq_extract xs i n = [] := by
-  unfold native_seq_extract
-  simp [h]
-
 private theorem native_seq_extract_zero_nat_any
     (xs : List SmtValue) (n : Nat) :
     native_seq_extract xs 0 (Int.ofNat n) = xs.take n := by

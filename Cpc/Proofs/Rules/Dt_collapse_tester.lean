@@ -564,6 +564,8 @@ private theorem smtx_model_eval_apply_eq_apply_of_not_dt_ops
     __smtx_model_eval M (SmtTerm.Apply f x) =
       __smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x) := by
   cases f <;> simp [__smtx_model_eval]
+  case DtSel s d i j => exact False.elim (hSel s d i j rfl)
+  case DtTester s d i => exact False.elim (hTester s d i rfl)
 
 private theorem smtx_model_eval_apply_of_dt_chain
     (M : SmtModel) (v x : SmtValue)
