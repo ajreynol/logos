@@ -80,7 +80,7 @@ if [[ "${input}" == *.lean ]]; then
 elif [[ "${input}" == Cpc.Proofs.Rules.* ]]; then
   module="${input}"
   rel_file="${module//./\/}.lean"
-elif [[ "${input}" == Cpc.* || "${input}" == CpcMini.* || "${input}" == CpcMicro.* ]]; then
+elif [[ "${input}" == Cpc.* || "${input}" == CpcMini.* ]]; then
   module="${input}"
   rel_file="${module//./\/}.lean"
 else
