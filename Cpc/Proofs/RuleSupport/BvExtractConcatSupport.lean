@@ -100,6 +100,107 @@ def bvExtractConcat4ProgramBody (x y xs i j : Term) : Term :=
     (__eo_mk_apply ext
       (__eo_list_singleton_elim (Term.UOp UserOp.concat) tail))
 
+def bvExtractConcat2Lhs (x y xs i j : Term) : Term :=
+  bvExtractTerm (bvExtractConcat1Whole x y xs) j i
+
+def bvExtractConcat2High (y xs u1 : Term) : Term :=
+  bvExtractTerm (bvExtractConcat4TailElim y xs) u1 (Term.Numeral 0)
+
+def bvExtractConcat2Low (x i u2 : Term) : Term :=
+  bvExtractTerm x u2 i
+
+def bvExtractConcat2Rhs (x y xs i u1 u2 : Term) : Term :=
+  bvConcatTerm (bvExtractConcat2High y xs u1)
+    (bvConcatTerm (bvExtractConcat2Low x i u2) (Term.Binary 0 0))
+
+def bvExtractConcat2Term (x y xs i j u1 u2 : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+    (bvExtractConcat2Lhs x y xs i j))
+    (bvExtractConcat2Rhs x y xs i u1 u2)
+
+def bvExtractConcat2PremI (x i : Term) : Term :=
+  Term.Apply
+    (Term.Apply (Term.UOp UserOp.eq)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.lt) i)
+        (Term.Apply (Term.UOp UserOp._at_bvsize) x)))
+    (Term.Boolean true)
+
+def bvExtractConcat2PremJ (x j : Term) : Term :=
+  Term.Apply
+    (Term.Apply (Term.UOp UserOp.eq)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) j)
+        (Term.Apply (Term.UOp UserOp._at_bvsize) x)))
+    (Term.Boolean true)
+
+def bvExtractConcat2PremU1 (x j u1 : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq) u1)
+    (Term.Apply (Term.Apply (Term.UOp UserOp.neg) j)
+      (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+
+def bvExtractConcat2PremU2 (x u2 : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq) u2)
+    (Term.Apply
+      (Term.Apply (Term.UOp UserOp.neg)
+        (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+      (Term.Numeral 1))
+
+def bvExtractConcat2Program
+    (x xs y i j u1 u2 P1 P2 P3 P4 : Term) : Term :=
+  __eo_prog_bv_extract_concat_2 x xs y i j u1 u2
+    (Proof.pf P1) (Proof.pf P2) (Proof.pf P3) (Proof.pf P4)
+
+def bvExtractConcat2ProgramBody (x xs y i j u1 u2 : Term) : Term :=
+  let lhs := __eo_mk_apply (Term.UOp2 UserOp2.extract j i)
+    (bvExtractConcat1Whole x y xs)
+  let high := __eo_mk_apply (Term.UOp2 UserOp2.extract u1 (Term.Numeral 0))
+    (bvExtractConcat4TailElim y xs)
+  let low := Term.Apply (Term.UOp2 UserOp2.extract u2 i) x
+  let rhs := __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.concat) high)
+    (bvConcatTerm low (Term.Binary 0 0))
+  __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.eq) lhs) rhs
+
+def bvExtractConcat3Lhs (x y xs i j : Term) : Term :=
+  bvExtractTerm (bvExtractConcat1Whole x y xs) j i
+
+def bvExtractConcat3Rhs (y xs u l : Term) : Term :=
+  bvExtractTerm (bvExtractConcat4TailElim y xs) u l
+
+def bvExtractConcat3Term (x y xs i j u l : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+    (bvExtractConcat3Lhs x y xs i j))
+    (bvExtractConcat3Rhs y xs u l)
+
+def bvExtractConcat3PremI (x i : Term) : Term :=
+  Term.Apply
+    (Term.Apply (Term.UOp UserOp.eq)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) i)
+        (Term.Apply (Term.UOp UserOp._at_bvsize) x)))
+    (Term.Boolean true)
+
+def bvExtractConcat3PremU (x j u : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq) u)
+    (Term.Apply (Term.Apply (Term.UOp UserOp.neg) j)
+      (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+
+def bvExtractConcat3PremL (x i l : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq) l)
+    (Term.Apply (Term.Apply (Term.UOp UserOp.neg) i)
+      (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+
+def bvExtractConcat3Program
+    (x y xs i j u l P1 P2 P3 : Term) : Term :=
+  __eo_prog_bv_extract_concat_3 x y xs i j u l
+    (Proof.pf P1) (Proof.pf P2) (Proof.pf P3)
+
+def bvExtractConcat3ProgramBody (x y xs i j u l : Term) : Term :=
+  let lhs :=
+    __eo_mk_apply (Term.UOp2 UserOp2.extract j i)
+      (bvExtractConcat1Whole x y xs)
+  let rhs :=
+    __eo_mk_apply (Term.UOp2 UserOp2.extract u l)
+      (bvExtractConcat4TailElim y xs)
+  __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.eq) lhs) rhs
+
 private def BvEvalCanonical (M : SmtModel) (t : Term) : Prop :=
   ∃ (w : Nat) (n : Int),
     __smtx_model_eval M (__eo_to_smt t) = SmtValue.Binary ↑w n ∧
@@ -2547,4 +2648,2158 @@ theorem facts_bv_extract_concat4_program_body
     rw [hLowExtract]
     rw [eval_extract_term M tail h l,
       eval_extract_term M tailElim h l, hTailElimEq]
+    exact RuleProofs.smt_value_rel_refl _
+
+/-! The two middle extract-over-concat cases share the same concat spine as
+    cases 1 and 4.  Case 3 removes the low `x` component and shifts both
+    extract indices by its width. -/
+
+private theorem bv_extract_concat3_guard_refs
+    {i x u j l iRef xRef1 uRef jRef xRef2 lRef iRef2 xRef3 body : Term} :
+    __eo_requires
+        (__eo_and
+          (__eo_and
+            (__eo_and
+              (__eo_and
+                (__eo_and
+                  (__eo_and
+                    (__eo_and (__eo_eq i iRef) (__eo_eq x xRef1))
+                    (__eo_eq u uRef))
+                  (__eo_eq j jRef))
+                (__eo_eq x xRef2))
+              (__eo_eq l lRef))
+            (__eo_eq i iRef2))
+          (__eo_eq x xRef3))
+        (Term.Boolean true) body ≠ Term.Stuck ->
+    iRef = i ∧ xRef1 = x ∧ uRef = u ∧ jRef = j ∧
+      xRef2 = x ∧ lRef = l ∧ iRef2 = i ∧ xRef3 = x := by
+  intro hReq
+  have hGuard := bv_extract_support_requires_guard hReq
+  rcases bv_extract_support_and_true hGuard with ⟨hG7, hX3⟩
+  rcases bv_extract_support_and_true hG7 with ⟨hG6, hI2⟩
+  rcases bv_extract_support_and_true hG6 with ⟨hG5, hL⟩
+  rcases bv_extract_support_and_true hG5 with ⟨hG4, hX2⟩
+  rcases bv_extract_support_and_true hG4 with ⟨hG3, hJ⟩
+  rcases bv_extract_support_and_true hG3 with ⟨hG2, hU⟩
+  rcases bv_extract_support_and_true hG2 with ⟨hI, hX1⟩
+  exact ⟨(bv_extract_support_eq_true hI).symm,
+    (bv_extract_support_eq_true hX1).symm,
+    (bv_extract_support_eq_true hU).symm,
+    (bv_extract_support_eq_true hJ).symm,
+    (bv_extract_support_eq_true hX2).symm,
+    (bv_extract_support_eq_true hL).symm,
+    (bv_extract_support_eq_true hI2).symm,
+    (bv_extract_support_eq_true hX3).symm⟩
+
+private theorem bv_extract_concat3_premise_shape
+    (x y xs i j u l P1 P2 P3 : Term) :
+    x ≠ Term.Stuck -> y ≠ Term.Stuck -> xs ≠ Term.Stuck ->
+    i ≠ Term.Stuck -> j ≠ Term.Stuck -> u ≠ Term.Stuck ->
+    l ≠ Term.Stuck ->
+    bvExtractConcat3Program x y xs i j u l P1 P2 P3 ≠ Term.Stuck ->
+    ∃ iRef xRef1 uRef jRef xRef2 lRef iRef2 xRef3,
+      P1 = bvExtractConcat3PremI xRef1 iRef ∧
+      P2 = bvExtractConcat3PremU xRef2 jRef uRef ∧
+      P3 = bvExtractConcat3PremL xRef3 iRef2 lRef := by
+  intro hX hY hXs hI hJ hU hL hProg
+  by_cases hShape :
+      ∃ iRef xRef1 uRef jRef xRef2 lRef iRef2 xRef3,
+        P1 = bvExtractConcat3PremI xRef1 iRef ∧
+        P2 = bvExtractConcat3PremU xRef2 jRef uRef ∧
+        P3 = bvExtractConcat3PremL xRef3 iRef2 lRef
+  · exact hShape
+  · exfalso
+    apply hProg
+    exact __eo_prog_bv_extract_concat_3.eq_9
+      x y xs i j u l (Proof.pf P1) (Proof.pf P2) (Proof.pf P3)
+      hX hY hXs hI hJ hU hL (by
+        intro iRef xRef1 uRef jRef xRef2 lRef iRef2 xRef3
+          hP1 hP2 hP3
+        cases hP1
+        cases hP2
+        cases hP3
+        exact hShape
+          ⟨iRef, xRef1, uRef, jRef, xRef2, lRef, iRef2, xRef3,
+            rfl, rfl, rfl⟩)
+
+private theorem bv_extract_concat3_program_body_canonical
+    (x y xs i j u l : Term) :
+    x ≠ Term.Stuck -> y ≠ Term.Stuck -> xs ≠ Term.Stuck ->
+    i ≠ Term.Stuck -> j ≠ Term.Stuck -> u ≠ Term.Stuck ->
+    l ≠ Term.Stuck ->
+    bvExtractConcat3Program x y xs i j u l
+        (bvExtractConcat3PremI x i)
+        (bvExtractConcat3PremU x j u)
+        (bvExtractConcat3PremL x i l) =
+      bvExtractConcat3ProgramBody x y xs i j u l := by
+  intro hX hY hXs hI hJ hU hL
+  unfold bvExtractConcat3Program bvExtractConcat3PremI
+    bvExtractConcat3PremU bvExtractConcat3PremL
+    bvExtractConcat3ProgramBody bvExtractConcat1Whole
+    bvExtractConcat1Seed bvExtractConcat4TailElim bvExtractConcat4Tail
+    bvConcatTerm
+  rw [__eo_prog_bv_extract_concat_3.eq_8
+    x y xs i j u l i x u j x l i x hX hY hXs hI hJ hU hL]
+  simp [__eo_requires, __eo_and, __eo_eq, native_ite, native_teq,
+    native_not, native_and, hX, hY, hXs, hI, hJ, hU, hL]
+
+theorem bvExtractConcat3Program_normalize
+    (x y xs i j u l P1 P2 P3 : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation xs ->
+    RuleProofs.eo_has_smt_translation i ->
+    RuleProofs.eo_has_smt_translation j ->
+    RuleProofs.eo_has_smt_translation u ->
+    RuleProofs.eo_has_smt_translation l ->
+    bvExtractConcat3Program x y xs i j u l P1 P2 P3 ≠ Term.Stuck ->
+    P1 = bvExtractConcat3PremI x i ∧
+      P2 = bvExtractConcat3PremU x j u ∧
+      P3 = bvExtractConcat3PremL x i l ∧
+      bvExtractConcat3Program x y xs i j u l P1 P2 P3 =
+        bvExtractConcat3ProgramBody x y xs i j u l := by
+  intro hXTrans hYTrans hXsTrans hITrans hJTrans hUTrans hLTrans hProg
+  have hX := RuleProofs.term_ne_stuck_of_has_smt_translation x hXTrans
+  have hY := RuleProofs.term_ne_stuck_of_has_smt_translation y hYTrans
+  have hXs := RuleProofs.term_ne_stuck_of_has_smt_translation xs hXsTrans
+  have hI := RuleProofs.term_ne_stuck_of_has_smt_translation i hITrans
+  have hJ := RuleProofs.term_ne_stuck_of_has_smt_translation j hJTrans
+  have hU := RuleProofs.term_ne_stuck_of_has_smt_translation u hUTrans
+  have hL := RuleProofs.term_ne_stuck_of_has_smt_translation l hLTrans
+  rcases bv_extract_concat3_premise_shape x y xs i j u l P1 P2 P3
+      hX hY hXs hI hJ hU hL hProg with
+    ⟨iRef, xRef1, uRef, jRef, xRef2, lRef, iRef2, xRef3,
+      hP1, hP2, hP3⟩
+  have hReq := hProg
+  rw [hP1, hP2, hP3] at hReq
+  unfold bvExtractConcat3Program bvExtractConcat3PremI
+    bvExtractConcat3PremU bvExtractConcat3PremL at hReq
+  rw [__eo_prog_bv_extract_concat_3.eq_8
+    x y xs i j u l iRef xRef1 uRef jRef xRef2 lRef iRef2 xRef3
+    hX hY hXs hI hJ hU hL] at hReq
+  rcases bv_extract_concat3_guard_refs hReq with
+    ⟨hIRef, hXRef1, hURef, hJRef, hXRef2, hLRef, hIRef2, hXRef3⟩
+  subst iRef
+  subst xRef1
+  subst uRef
+  subst jRef
+  subst xRef2
+  subst lRef
+  subst iRef2
+  subst xRef3
+  have hP1Canon : P1 = bvExtractConcat3PremI x i := hP1
+  have hP2Canon : P2 = bvExtractConcat3PremU x j u := hP2
+  have hP3Canon : P3 = bvExtractConcat3PremL x i l := hP3
+  refine ⟨hP1Canon, hP2Canon, hP3Canon, ?_⟩
+  rw [hP1Canon, hP2Canon, hP3Canon]
+  exact bv_extract_concat3_program_body_canonical
+    x y xs i j u l hX hY hXs hI hJ hU hL
+
+private theorem bv_extract_concat2_guard_refs
+    (x xs y i j u1 u2 iRef xRef1 jRef xRef2 u1Ref jRef2 xRef3
+      u2Ref xRef4 body : Term) :
+    __eo_requires
+        (__eo_and
+          (__eo_and
+            (__eo_and
+              (__eo_and
+                (__eo_and
+                  (__eo_and
+                    (__eo_and
+                      (__eo_and (__eo_eq i iRef) (__eo_eq x xRef1))
+                      (__eo_eq j jRef))
+                    (__eo_eq x xRef2))
+                  (__eo_eq u1 u1Ref))
+                (__eo_eq j jRef2))
+              (__eo_eq x xRef3))
+            (__eo_eq u2 u2Ref))
+          (__eo_eq x xRef4))
+        (Term.Boolean true) body ≠ Term.Stuck ->
+    iRef = i ∧ xRef1 = x ∧ jRef = j ∧ xRef2 = x ∧
+      u1Ref = u1 ∧ jRef2 = j ∧ xRef3 = x ∧
+      u2Ref = u2 ∧ xRef4 = x := by
+  intro hReq
+  have hGuard := bv_extract_support_requires_guard hReq
+  rcases bv_extract_support_and_true hGuard with ⟨hG8, hX4⟩
+  rcases bv_extract_support_and_true hG8 with ⟨hG7, hU2⟩
+  rcases bv_extract_support_and_true hG7 with ⟨hG6, hX3⟩
+  rcases bv_extract_support_and_true hG6 with ⟨hG5, hJ2⟩
+  rcases bv_extract_support_and_true hG5 with ⟨hG4, hU1⟩
+  rcases bv_extract_support_and_true hG4 with ⟨hG3, hX2⟩
+  rcases bv_extract_support_and_true hG3 with ⟨hG2, hJ⟩
+  rcases bv_extract_support_and_true hG2 with ⟨hI, hX1⟩
+  exact ⟨(bv_extract_support_eq_true hI).symm,
+    (bv_extract_support_eq_true hX1).symm,
+    (bv_extract_support_eq_true hJ).symm,
+    (bv_extract_support_eq_true hX2).symm,
+    (bv_extract_support_eq_true hU1).symm,
+    (bv_extract_support_eq_true hJ2).symm,
+    (bv_extract_support_eq_true hX3).symm,
+    (bv_extract_support_eq_true hU2).symm,
+    (bv_extract_support_eq_true hX4).symm⟩
+
+private theorem bv_extract_concat2_premise_shape
+    (x xs y i j u1 u2 P1 P2 P3 P4 : Term) :
+    x ≠ Term.Stuck -> xs ≠ Term.Stuck -> y ≠ Term.Stuck ->
+    i ≠ Term.Stuck -> j ≠ Term.Stuck -> u1 ≠ Term.Stuck ->
+    u2 ≠ Term.Stuck ->
+    bvExtractConcat2Program x xs y i j u1 u2 P1 P2 P3 P4 ≠ Term.Stuck ->
+    ∃ iRef xRef1 jRef xRef2 u1Ref jRef2 xRef3 u2Ref xRef4,
+      P1 = bvExtractConcat2PremI xRef1 iRef ∧
+      P2 = bvExtractConcat2PremJ xRef2 jRef ∧
+      P3 = bvExtractConcat2PremU1 xRef3 jRef2 u1Ref ∧
+      P4 = bvExtractConcat2PremU2 xRef4 u2Ref := by
+  intro hX hXs hY hI hJ hU1 hU2 hProg
+  by_cases hShape :
+      ∃ iRef xRef1 jRef xRef2 u1Ref jRef2 xRef3 u2Ref xRef4,
+        P1 = bvExtractConcat2PremI xRef1 iRef ∧
+        P2 = bvExtractConcat2PremJ xRef2 jRef ∧
+        P3 = bvExtractConcat2PremU1 xRef3 jRef2 u1Ref ∧
+        P4 = bvExtractConcat2PremU2 xRef4 u2Ref
+  · exact hShape
+  · exfalso
+    apply hProg
+    exact __eo_prog_bv_extract_concat_2.eq_9
+      x xs y i j u1 u2 (Proof.pf P1) (Proof.pf P2) (Proof.pf P3)
+      (Proof.pf P4) hX hXs hY hI hJ hU1 hU2 (by
+        intro iRef xRef1 jRef xRef2 u1Ref jRef2 xRef3 u2Ref xRef4
+          hP1 hP2 hP3 hP4
+        cases hP1
+        cases hP2
+        cases hP3
+        cases hP4
+        exact hShape
+          ⟨iRef, xRef1, jRef, xRef2, u1Ref, jRef2, xRef3, u2Ref,
+            xRef4, rfl, rfl, rfl, rfl⟩)
+
+private theorem bv_extract_concat2_program_body_canonical
+    (x xs y i j u1 u2 : Term) :
+    x ≠ Term.Stuck -> xs ≠ Term.Stuck -> y ≠ Term.Stuck ->
+    i ≠ Term.Stuck -> j ≠ Term.Stuck -> u1 ≠ Term.Stuck ->
+    u2 ≠ Term.Stuck ->
+    bvExtractConcat2Program x xs y i j u1 u2
+        (bvExtractConcat2PremI x i)
+        (bvExtractConcat2PremJ x j)
+        (bvExtractConcat2PremU1 x j u1)
+        (bvExtractConcat2PremU2 x u2) =
+      bvExtractConcat2ProgramBody x xs y i j u1 u2 := by
+  intro hX hXs hY hI hJ hU1 hU2
+  unfold bvExtractConcat2Program bvExtractConcat2PremI
+    bvExtractConcat2PremJ bvExtractConcat2PremU1 bvExtractConcat2PremU2
+    bvExtractConcat2ProgramBody bvExtractConcat1Whole
+    bvExtractConcat1Seed bvExtractConcat4TailElim bvExtractConcat4Tail
+    bvConcatTerm
+  rw [__eo_prog_bv_extract_concat_2.eq_8
+    x xs y i j u1 u2 i x j x u1 j x u2 x
+    hX hXs hY hI hJ hU1 hU2]
+  simp [__eo_requires, __eo_and, __eo_eq, native_ite, native_teq,
+    native_not, native_and, hX, hXs, hY, hI, hJ, hU1, hU2]
+
+theorem bvExtractConcat2Program_normalize
+    (x xs y i j u1 u2 P1 P2 P3 P4 : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation xs ->
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation i ->
+    RuleProofs.eo_has_smt_translation j ->
+    RuleProofs.eo_has_smt_translation u1 ->
+    RuleProofs.eo_has_smt_translation u2 ->
+    bvExtractConcat2Program x xs y i j u1 u2 P1 P2 P3 P4 ≠ Term.Stuck ->
+    P1 = bvExtractConcat2PremI x i ∧
+      P2 = bvExtractConcat2PremJ x j ∧
+      P3 = bvExtractConcat2PremU1 x j u1 ∧
+      P4 = bvExtractConcat2PremU2 x u2 ∧
+      bvExtractConcat2Program x xs y i j u1 u2 P1 P2 P3 P4 =
+        bvExtractConcat2ProgramBody x xs y i j u1 u2 := by
+  intro hXTrans hXsTrans hYTrans hITrans hJTrans hU1Trans hU2Trans hProg
+  have hX := RuleProofs.term_ne_stuck_of_has_smt_translation x hXTrans
+  have hXs := RuleProofs.term_ne_stuck_of_has_smt_translation xs hXsTrans
+  have hY := RuleProofs.term_ne_stuck_of_has_smt_translation y hYTrans
+  have hI := RuleProofs.term_ne_stuck_of_has_smt_translation i hITrans
+  have hJ := RuleProofs.term_ne_stuck_of_has_smt_translation j hJTrans
+  have hU1 := RuleProofs.term_ne_stuck_of_has_smt_translation u1 hU1Trans
+  have hU2 := RuleProofs.term_ne_stuck_of_has_smt_translation u2 hU2Trans
+  rcases bv_extract_concat2_premise_shape x xs y i j u1 u2 P1 P2 P3 P4
+      hX hXs hY hI hJ hU1 hU2 hProg with
+    ⟨iRef, xRef1, jRef, xRef2, u1Ref, jRef2, xRef3, u2Ref, xRef4,
+      hP1, hP2, hP3, hP4⟩
+  have hReq := hProg
+  rw [hP1, hP2, hP3, hP4] at hReq
+  unfold bvExtractConcat2Program bvExtractConcat2PremI
+    bvExtractConcat2PremJ bvExtractConcat2PremU1 bvExtractConcat2PremU2 at hReq
+  rw [__eo_prog_bv_extract_concat_2.eq_8
+    x xs y i j u1 u2 iRef xRef1 jRef xRef2 u1Ref jRef2 xRef3
+    u2Ref xRef4 hX hXs hY hI hJ hU1 hU2] at hReq
+  rcases bv_extract_concat2_guard_refs x xs y i j u1 u2 iRef xRef1
+      jRef xRef2 u1Ref jRef2 xRef3 u2Ref xRef4 _ hReq with
+    ⟨hIRef, hXRef1, hJRef, hXRef2, hU1Ref, hJRef2, hXRef3,
+      hU2Ref, hXRef4⟩
+  subst iRef
+  subst xRef1
+  subst jRef
+  subst xRef2
+  subst u1Ref
+  subst jRef2
+  subst xRef3
+  subst u2Ref
+  subst xRef4
+  refine ⟨hP1, hP2, hP3, hP4, ?_⟩
+  rw [hP1, hP2, hP3, hP4]
+  exact bv_extract_concat2_program_body_canonical
+    x xs y i j u1 u2 hX hXs hY hI hJ hU1 hU2
+
+private theorem bvExtractConcat2Whole_ne_of_body_bool
+    (x xs y i j u1 u2 : Term) :
+    __eo_typeof (bvExtractConcat2ProgramBody x xs y i j u1 u2) = Term.Bool ->
+    bvExtractConcat1Whole x y xs ≠ Term.Stuck := by
+  intro hTy
+  let whole := bvExtractConcat1Whole x y xs
+  let lhs := __eo_mk_apply (Term.UOp2 UserOp2.extract j i) whole
+  let high := __eo_mk_apply (Term.UOp2 UserOp2.extract u1 (Term.Numeral 0))
+    (bvExtractConcat4TailElim y xs)
+  let low := Term.Apply (Term.UOp2 UserOp2.extract u2 i) x
+  let rhs := __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.concat) high)
+    (bvConcatTerm low (Term.Binary 0 0))
+  let eqHead := __eo_mk_apply (Term.UOp UserOp.eq) lhs
+  have hBodyNe : __eo_mk_apply eqHead rhs ≠ Term.Stuck := by
+    have hNe := term_ne_stuck_of_typeof_bool hTy
+    simpa [bvExtractConcat2ProgramBody, whole, lhs, high, low, rhs,
+      eqHead] using hNe
+  have hEqHeadNe := (eo_mk_apply_args_ne_stuck hBodyNe).1
+  have hLhsNe := (eo_mk_apply_args_ne_stuck hEqHeadNe).2
+  exact (eo_mk_apply_args_ne_stuck hLhsNe).2
+
+private theorem bvExtractConcat2Xs_list_of_body_bool
+    (x xs y i j u1 u2 : Term) :
+    __eo_typeof (bvExtractConcat2ProgramBody x xs y i j u1 u2) = Term.Bool ->
+    __eo_is_list (Term.UOp UserOp.concat) xs = Term.Boolean true := by
+  intro hTy
+  have hWholeNe :=
+    bvExtractConcat2Whole_ne_of_body_bool x xs y i j u1 u2 hTy
+  exact (bv_list_concat_lists_of_ne_stuck
+    (Term.UOp UserOp.concat) xs (bvExtractConcat1Seed x y)
+    hWholeNe).1
+
+private theorem bvExtractConcat2ProgramBody_eq_term_of_type_bool
+    (x xs y i j u1 u2 : Term) :
+    __eo_typeof (bvExtractConcat2ProgramBody x xs y i j u1 u2) = Term.Bool ->
+    bvExtractConcat2ProgramBody x xs y i j u1 u2 =
+      bvExtractConcat2Term x y xs i j u1 u2 := by
+  intro hTy
+  let whole := bvExtractConcat1Whole x y xs
+  let lhs := __eo_mk_apply (Term.UOp2 UserOp2.extract j i) whole
+  let high := __eo_mk_apply (Term.UOp2 UserOp2.extract u1 (Term.Numeral 0))
+    (bvExtractConcat4TailElim y xs)
+  let low := Term.Apply (Term.UOp2 UserOp2.extract u2 i) x
+  let inner := bvConcatTerm low (Term.Binary 0 0)
+  let concatHead := __eo_mk_apply (Term.UOp UserOp.concat) high
+  let rhs := __eo_mk_apply concatHead inner
+  let eqHead := __eo_mk_apply (Term.UOp UserOp.eq) lhs
+  have hBodyNe : __eo_mk_apply eqHead rhs ≠ Term.Stuck := by
+    have hNe := term_ne_stuck_of_typeof_bool hTy
+    simpa [bvExtractConcat2ProgramBody, whole, lhs, high, low, inner,
+      concatHead, rhs, eqHead] using hNe
+  have hEqHeadNe := (eo_mk_apply_args_ne_stuck hBodyNe).1
+  have hLhsNe := (eo_mk_apply_args_ne_stuck hEqHeadNe).2
+  have hRhsNe := (eo_mk_apply_args_ne_stuck hBodyNe).2
+  have hConcatHeadNe := (eo_mk_apply_args_ne_stuck hRhsNe).1
+  have hHighNe := (eo_mk_apply_args_ne_stuck hConcatHeadNe).2
+  have hOuterEq := eo_mk_apply_eq_apply_of_ne_stuck_local hBodyNe
+  have hEqHeadEq := eo_mk_apply_eq_apply_of_ne_stuck_local hEqHeadNe
+  have hLhsEq := eo_mk_apply_eq_apply_of_ne_stuck_local hLhsNe
+  have hRhsEq := eo_mk_apply_eq_apply_of_ne_stuck_local hRhsNe
+  have hConcatHeadEq := eo_mk_apply_eq_apply_of_ne_stuck_local hConcatHeadNe
+  have hHighEq := eo_mk_apply_eq_apply_of_ne_stuck_local hHighNe
+  calc
+    bvExtractConcat2ProgramBody x xs y i j u1 u2 =
+        __eo_mk_apply eqHead rhs := by
+          simp [bvExtractConcat2ProgramBody, whole, lhs, high, low,
+            inner, concatHead, rhs, eqHead]
+    _ = Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp2 UserOp2.extract j i) whole))
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.concat)
+              (Term.Apply (Term.UOp2 UserOp2.extract u1 (Term.Numeral 0))
+                (bvExtractConcat4TailElim y xs)))
+            inner) := by
+          rw [hOuterEq]
+          change Term.Apply (__eo_mk_apply (Term.UOp UserOp.eq) lhs) rhs = _
+          rw [hEqHeadEq]
+          simp only [lhs, rhs]
+          rw [hLhsEq, hRhsEq]
+          simp only [concatHead]
+          rw [hConcatHeadEq]
+          simp only [high]
+          rw [hHighEq]
+    _ = bvExtractConcat2Term x y xs i j u1 u2 := by
+          simp [bvExtractConcat2Term, bvExtractConcat2Lhs,
+            bvExtractConcat2Rhs, bvExtractConcat2High,
+            bvExtractConcat2Low, bvExtractTerm, bvConcatTerm,
+            whole, low, inner]
+
+private theorem bvExtractConcat2PremI_smt_context
+    (x i : Term) :
+    RuleProofs.eo_has_bool_type (bvExtractConcat2PremI x i) ->
+    ∃ wx,
+      __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ∧
+      __smtx_typeof (__eo_to_smt i) = SmtType.Int := by
+  intro hPremBool
+  let cond := Term.Apply (Term.Apply (Term.UOp UserOp.lt) i)
+    (Term.Apply (Term.UOp UserOp._at_bvsize) x)
+  have hCondTy : __smtx_typeof (__eo_to_smt cond) = SmtType.Bool := by
+    rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+        cond (Term.Boolean true) (by
+          simpa [bvExtractConcat2PremI, cond] using hPremBool) with
+      ⟨hEqTy, _hNN⟩
+    simpa [RuleProofs.eo_has_bool_type] using hEqTy
+  change __smtx_typeof
+      (SmtTerm.lt (__eo_to_smt i)
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))) =
+    SmtType.Bool at hCondTy
+  have hLtNN : term_has_non_none_type
+      (SmtTerm.lt (__eo_to_smt i)
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))) := by
+    unfold term_has_non_none_type
+    rw [hCondTy]
+    intro h
+    cases h
+  rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.lt)
+      (typeof_lt_eq (__eo_to_smt i)
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x)))
+      hLtNN with hArgs | hArgs
+  · rcases smt_typeof_bvsize_int_inv x hArgs.2 with ⟨wx, hXTy⟩
+    exact ⟨wx, hXTy, hArgs.1⟩
+  · exact False.elim (smt_typeof_bvsize_ne_real x hArgs.2)
+
+private theorem bvExtractConcat2_body_smt_context
+    (x xs y i j u1 u2 : Term) :
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation xs ->
+    RuleProofs.eo_has_bool_type (bvExtractConcat2PremI x i) ->
+    __eo_typeof (bvExtractConcat2ProgramBody x xs y i j u1 u2) = Term.Bool ->
+    ∃ wx wy wxs,
+      __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ∧
+      __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ∧
+      __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec wxs ∧
+      __eo_is_list (Term.UOp UserOp.concat) xs = Term.Boolean true ∧
+      __smtx_typeof (__eo_to_smt (bvExtractConcat1Whole x y xs)) =
+        SmtType.BitVec (wxs + (wy + wx)) := by
+  intro hYTrans hXsTrans hPremBool hBodyTy
+  rcases bvExtractConcat2PremI_smt_context x i hPremBool with
+    ⟨wx, hXTy, _hITy⟩
+  have hBodyEq :=
+    bvExtractConcat2ProgramBody_eq_term_of_type_bool x xs y i j u1 u2 hBodyTy
+  have hTermTy :
+      __eo_typeof (bvExtractConcat2Term x y xs i j u1 u2) = Term.Bool := by
+    rw [← hBodyEq]
+    exact hBodyTy
+  rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof (bvExtractConcat2Lhs x y xs i j))
+      (__eo_typeof (bvExtractConcat2Rhs x y xs i u1 u2))
+      (by simpa [bvExtractConcat2Term] using hTermTy) with
+    ⟨hLhsNe, _hRhsNe⟩
+  rcases eo_typeof_extract_arg_bitvec_of_ne_stuck
+      (by simpa [bvExtractConcat2Lhs, bvExtractTerm] using hLhsNe) with
+    ⟨wWhole, hWholeEoTy⟩
+  have hXsList :=
+    bvExtractConcat2Xs_list_of_body_bool x xs y i j u1 u2 hBodyTy
+  have hSeedList := bv_extract_concat1_seed_is_list_true x y
+  rcases eo_typeof_list_concat_right_bitvec_of_result
+      xs (bvExtractConcat1Seed x y) wWhole hXsList hSeedList
+      (by simpa [bvExtractConcat1Whole] using hWholeEoTy) with
+    ⟨wSeed, hSeedEoTy⟩
+  have hSeedNe : __eo_typeof (bvExtractConcat1Seed x y) ≠ Term.Stuck := by
+    rw [hSeedEoTy]
+    intro h
+    cases h
+  rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local (by
+      change __eo_typeof_concat (__eo_typeof y)
+          (__eo_typeof (bvConcatTerm x (Term.Binary 0 0))) ≠ Term.Stuck
+      simpa [bvExtractConcat1Seed, bvConcatTerm] using hSeedNe) with
+    ⟨wYTerm, _wInnerTerm, hYEoTy, _hInnerEoTy⟩
+  rcases smt_bitvec_type_of_eo_bitvec_type_with_width
+      y wYTerm hYTrans hYEoTy with
+    ⟨wyInt, rfl, _hWy0, hYTy⟩
+  let wy := native_int_to_nat wyInt
+  rcases smt_typeof_concat_list_of_translation xs hXsList hXsTrans with
+    ⟨wxs, hXsTy⟩
+  have hWholeTy :
+      __smtx_typeof (__eo_to_smt (bvExtractConcat1Whole x y xs)) =
+        SmtType.BitVec (wxs + (wy + wx)) := by
+    simpa [wy] using
+      smt_typeof_bv_extract_concat1_whole x y xs wx wy wxs
+        hXsList hXTy hYTy hXsTy
+  exact ⟨wx, wy, wxs, hXTy, by simpa [wy] using hYTy,
+    hXsTy, hXsList, hWholeTy⟩
+
+theorem typed_bv_extract_concat2_program_body
+    (x xs y i j u1 u2 : Term) :
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation xs ->
+    RuleProofs.eo_has_bool_type (bvExtractConcat2PremI x i) ->
+    __eo_typeof (bvExtractConcat2ProgramBody x xs y i j u1 u2) = Term.Bool ->
+    RuleProofs.eo_has_bool_type
+      (bvExtractConcat2ProgramBody x xs y i j u1 u2) := by
+  intro hYTrans hXsTrans hPremBool hBodyTy
+  rcases bvExtractConcat2_body_smt_context x xs y i j u1 u2
+      hYTrans hXsTrans hPremBool hBodyTy with
+    ⟨wx, wy, wxs, hXTy, hYTy, hXsTy, hXsList, hWholeTy⟩
+  have hBodyEq :=
+    bvExtractConcat2ProgramBody_eq_term_of_type_bool x xs y i j u1 u2 hBodyTy
+  have hTermTy :
+      __eo_typeof (bvExtractConcat2Term x y xs i j u1 u2) = Term.Bool := by
+    rw [← hBodyEq]
+    exact hBodyTy
+  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hXTy]
+    intro h
+    cases h
+  have hWholeTrans : RuleProofs.eo_has_smt_translation
+      (bvExtractConcat1Whole x y xs) := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hWholeTy]
+    intro h
+    cases h
+  let tail := bvExtractConcat4Tail y xs
+  let tailElim := bvExtractConcat4TailElim y xs
+  have hTailList : __eo_is_list (Term.UOp UserOp.concat) tail =
+      Term.Boolean true := by
+    simpa [tail] using bv_extract_concat4_tail_is_list_true y xs hXsList
+  have hTailTy : __smtx_typeof (__eo_to_smt tail) =
+      SmtType.BitVec (wxs + wy) := by
+    simpa [tail] using smt_typeof_bv_extract_concat4_tail y xs wy wxs
+      hXsList hYTy hXsTy
+  have hTailElimTy : __smtx_typeof (__eo_to_smt tailElim) =
+      SmtType.BitVec (wxs + wy) := by
+    simpa [tailElim, bvExtractConcat4TailElim, tail] using
+      smt_typeof_bv_singleton_elim tail (wxs + wy) hTailList hTailTy
+  have hTailElimTrans : RuleProofs.eo_has_smt_translation tailElim := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hTailElimTy]
+    intro h
+    cases h
+  rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof (bvExtractConcat2Lhs x y xs i j))
+      (__eo_typeof (bvExtractConcat2Rhs x y xs i u1 u2))
+      (by simpa [bvExtractConcat2Term] using hTermTy) with
+    ⟨hLhsNe, hRhsNe⟩
+  rcases bv_extract_context_of_non_stuck
+      (bvExtractConcat1Whole x y xs) j i hWholeTrans
+      (by simpa [bvExtractConcat2Lhs] using hLhsNe) with
+    ⟨wLhs, jv, iv, _hWholeEoTy, hJ, hI, hwLhs0, hi0,
+      hjw, hdLhs0, hWholeSmtTy⟩
+  subst j
+  subst i
+  let high := bvExtractConcat2High y xs u1
+  let low := bvExtractConcat2Low x (Term.Numeral iv) u2
+  let inner := bvConcatTerm low (Term.Binary 0 0)
+  have hRhsConcatNe :
+      __eo_typeof_concat (__eo_typeof high) (__eo_typeof inner) ≠
+        Term.Stuck := by
+    simpa [bvExtractConcat2Rhs, bvConcatTerm, high, low, inner] using hRhsNe
+  rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hRhsConcatNe with
+    ⟨wHighEo, wInnerEo, hHighEoTy, hInnerEoTy⟩
+  have hHighNe : __eo_typeof high ≠ Term.Stuck := by
+    rw [hHighEoTy]
+    intro h
+    cases h
+  rcases bv_extract_context_of_non_stuck tailElim u1 (Term.Numeral 0)
+      hTailElimTrans (by
+        simpa [high, bvExtractConcat2High, tailElim] using hHighNe) with
+    ⟨wHighSrc, u1v, zv, _hTailEoTy, hU1, hZero, hwHigh0, hz0,
+      hu1w, hdHigh0, hTailSmtTy⟩
+  subst u1
+  injection hZero with hZeroVal
+  subst zv
+  have hInnerNe : __eo_typeof inner ≠ Term.Stuck := by
+    rw [hInnerEoTy]
+    intro h
+    cases h
+  have hInnerConcatNe :
+      __eo_typeof_concat (__eo_typeof low)
+          (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
+    simpa [inner, bvConcatTerm] using hInnerNe
+  rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hInnerConcatNe with
+    ⟨wLowEo, wEmptyEo, hLowEoTy, _hEmptyEoTy⟩
+  have hLowNe : __eo_typeof low ≠ Term.Stuck := by
+    rw [hLowEoTy]
+    intro h
+    cases h
+  rcases bv_extract_context_of_non_stuck x u2 (Term.Numeral iv)
+      hXTrans (by
+        simpa [low, bvExtractConcat2Low] using hLowNe) with
+    ⟨wLowSrc, u2v, iv2, _hXEoTy, hU2, hILow, hwLow0, hiLow0,
+      hu2w, hdLow0, hXSmtTy⟩
+  subst u2
+  injection hILow with hIV
+  subst iv2
+  let dLhs := native_zplus (native_zplus jv 1) (native_zneg iv)
+  let dHigh := native_zplus (native_zplus u1v 1) (native_zneg 0)
+  let dLow := native_zplus (native_zplus u2v 1) (native_zneg iv)
+  have hLhsSmtTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (bvExtractConcat2Lhs x y xs (Term.Numeral iv)
+              (Term.Numeral jv))) =
+        SmtType.BitVec (native_int_to_nat dLhs) := by
+    simpa [bvExtractConcat2Lhs, dLhs] using
+      smt_typeof_extract_of_context (bvExtractConcat1Whole x y xs)
+        wLhs jv iv hWholeSmtTy hwLhs0 hi0 hjw hdLhs0
+  have hHighSmtTy : __smtx_typeof (__eo_to_smt high) =
+      SmtType.BitVec (native_int_to_nat dHigh) := by
+    simpa [high, bvExtractConcat2High, tailElim, dHigh] using
+      smt_typeof_extract_of_context tailElim wHighSrc u1v 0
+        hTailSmtTy hwHigh0 hz0 hu1w hdHigh0
+  have hLowSmtTy : __smtx_typeof (__eo_to_smt low) =
+      SmtType.BitVec (native_int_to_nat dLow) := by
+    simpa [low, bvExtractConcat2Low, dLow] using
+      smt_typeof_extract_of_context x wLowSrc u2v iv hXSmtTy
+        hwLow0 hiLow0 hu2w hdLow0
+  have hInnerSmtTy : __smtx_typeof (__eo_to_smt inner) =
+      SmtType.BitVec (native_int_to_nat dLow + 0) := by
+    simpa [inner] using smt_typeof_bv_concat_eq low (Term.Binary 0 0)
+      (native_int_to_nat dLow) 0 hLowSmtTy smt_typeof_concat_empty
+  have hRhsSmtTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (bvExtractConcat2Rhs x y xs (Term.Numeral iv)
+              (Term.Numeral u1v) (Term.Numeral u2v))) =
+        SmtType.BitVec
+          (native_int_to_nat dHigh + (native_int_to_nat dLow + 0)) := by
+    simpa [bvExtractConcat2Rhs, high, low, inner] using
+      smt_typeof_bv_concat_eq high inner (native_int_to_nat dHigh)
+        (native_int_to_nat dLow + 0) hHighSmtTy hInnerSmtTy
+  let lhs := bvExtractConcat2Lhs x y xs (Term.Numeral iv)
+    (Term.Numeral jv)
+  let rhs := bvExtractConcat2Rhs x y xs (Term.Numeral iv)
+    (Term.Numeral u1v) (Term.Numeral u2v)
+  have hLhsTrans : RuleProofs.eo_has_smt_translation lhs := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [show __smtx_typeof (__eo_to_smt lhs) =
+        SmtType.BitVec (native_int_to_nat dLhs) by
+      simpa [lhs] using hLhsSmtTy]
+    intro h
+    cases h
+  have hRhsTrans : RuleProofs.eo_has_smt_translation rhs := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [show __smtx_typeof (__eo_to_smt rhs) =
+        SmtType.BitVec
+          (native_int_to_nat dHigh + (native_int_to_nat dLow + 0)) by
+      simpa [rhs] using hRhsSmtTy]
+    intro h
+    cases h
+  have hEOTypeEq : __eo_typeof lhs = __eo_typeof rhs := by
+    apply RuleProofs.eo_typeof_eq_bool_operands_eq
+    simpa [bvExtractConcat2Term, lhs, rhs] using hTermTy
+  have hLhsBridge :=
+    RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+      lhs (__eo_typeof lhs) (__eo_to_smt lhs) rfl hLhsTrans rfl
+  have hRhsBridge :=
+    RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+      rhs (__eo_typeof rhs) (__eo_to_smt rhs) rfl hRhsTrans rfl
+  have hTermBool : RuleProofs.eo_has_bool_type
+      (bvExtractConcat2Term x y xs (Term.Numeral iv) (Term.Numeral jv)
+        (Term.Numeral u1v) (Term.Numeral u2v)) := by
+    unfold bvExtractConcat2Term
+    exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type lhs rhs
+      (by rw [hLhsBridge, hRhsBridge, hEOTypeEq])
+      (by rw [show __smtx_typeof (__eo_to_smt lhs) =
+          SmtType.BitVec (native_int_to_nat dLhs) by
+        simpa [lhs] using hLhsSmtTy]
+          simp)
+  simpa [hBodyEq] using hTermBool
+
+private theorem bvExtractConcat3Whole_ne_of_body_bool
+    (x y xs i j u l : Term) :
+    __eo_typeof (bvExtractConcat3ProgramBody x y xs i j u l) = Term.Bool ->
+    bvExtractConcat1Whole x y xs ≠ Term.Stuck := by
+  intro hTy
+  let whole := bvExtractConcat1Whole x y xs
+  let lhs := __eo_mk_apply (Term.UOp2 UserOp2.extract j i) whole
+  let rhs := __eo_mk_apply (Term.UOp2 UserOp2.extract u l)
+    (bvExtractConcat4TailElim y xs)
+  let eqHead := __eo_mk_apply (Term.UOp UserOp.eq) lhs
+  have hBodyNe : __eo_mk_apply eqHead rhs ≠ Term.Stuck := by
+    have hNe := term_ne_stuck_of_typeof_bool hTy
+    simpa [bvExtractConcat3ProgramBody, whole, lhs, rhs, eqHead] using hNe
+  have hEqHeadNe := (eo_mk_apply_args_ne_stuck hBodyNe).1
+  have hLhsNe := (eo_mk_apply_args_ne_stuck hEqHeadNe).2
+  exact (eo_mk_apply_args_ne_stuck hLhsNe).2
+
+private theorem bvExtractConcat3Xs_list_of_body_bool
+    (x y xs i j u l : Term) :
+    __eo_typeof (bvExtractConcat3ProgramBody x y xs i j u l) = Term.Bool ->
+    __eo_is_list (Term.UOp UserOp.concat) xs = Term.Boolean true := by
+  intro hTy
+  have hWholeNe :=
+    bvExtractConcat3Whole_ne_of_body_bool x y xs i j u l hTy
+  exact (bv_list_concat_lists_of_ne_stuck
+    (Term.UOp UserOp.concat) xs (bvExtractConcat1Seed x y)
+    hWholeNe).1
+
+private theorem bvExtractConcat3ProgramBody_eq_term_of_type_bool
+    (x y xs i j u l : Term) :
+    __eo_typeof (bvExtractConcat3ProgramBody x y xs i j u l) = Term.Bool ->
+    bvExtractConcat3ProgramBody x y xs i j u l =
+      bvExtractConcat3Term x y xs i j u l := by
+  intro hTy
+  let whole := bvExtractConcat1Whole x y xs
+  let lhs := __eo_mk_apply (Term.UOp2 UserOp2.extract j i) whole
+  let rhs := __eo_mk_apply (Term.UOp2 UserOp2.extract u l)
+    (bvExtractConcat4TailElim y xs)
+  let eqHead := __eo_mk_apply (Term.UOp UserOp.eq) lhs
+  have hBodyNe : __eo_mk_apply eqHead rhs ≠ Term.Stuck := by
+    have hNe := term_ne_stuck_of_typeof_bool hTy
+    simpa [bvExtractConcat3ProgramBody, whole, lhs, rhs, eqHead] using hNe
+  have hEqHeadNe := (eo_mk_apply_args_ne_stuck hBodyNe).1
+  have hLhsNe := (eo_mk_apply_args_ne_stuck hEqHeadNe).2
+  have hRhsNe := (eo_mk_apply_args_ne_stuck hBodyNe).2
+  have hOuterEq := eo_mk_apply_eq_apply_of_ne_stuck_local hBodyNe
+  have hEqHeadEq := eo_mk_apply_eq_apply_of_ne_stuck_local hEqHeadNe
+  have hLhsEq := eo_mk_apply_eq_apply_of_ne_stuck_local hLhsNe
+  have hRhsEq := eo_mk_apply_eq_apply_of_ne_stuck_local hRhsNe
+  calc
+    bvExtractConcat3ProgramBody x y xs i j u l =
+        __eo_mk_apply eqHead rhs := by
+          simp [bvExtractConcat3ProgramBody, whole, lhs, rhs, eqHead]
+    _ = Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+          (Term.Apply (Term.UOp2 UserOp2.extract j i) whole))
+          (Term.Apply (Term.UOp2 UserOp2.extract u l)
+          (bvExtractConcat4TailElim y xs)) := by
+          rw [hOuterEq]
+          change Term.Apply (__eo_mk_apply (Term.UOp UserOp.eq) lhs) rhs = _
+          rw [hEqHeadEq]
+          change Term.Apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (__eo_mk_apply (Term.UOp2 UserOp2.extract j i) whole))
+            (__eo_mk_apply (Term.UOp2 UserOp2.extract u l)
+              (bvExtractConcat4TailElim y xs)) = _
+          rw [hLhsEq, hRhsEq]
+    _ = bvExtractConcat3Term x y xs i j u l := by
+          simp [bvExtractConcat3Term, bvExtractConcat3Lhs,
+            bvExtractConcat3Rhs, bvExtractTerm, whole]
+
+private theorem bvExtractConcat3PremI_smt_context
+    (x i : Term) :
+    RuleProofs.eo_has_bool_type (bvExtractConcat3PremI x i) ->
+    ∃ wx,
+      __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ∧
+      __smtx_typeof (__eo_to_smt i) = SmtType.Int := by
+  intro hPremBool
+  let cond := Term.Apply (Term.Apply (Term.UOp UserOp.geq) i)
+    (Term.Apply (Term.UOp UserOp._at_bvsize) x)
+  have hCondTy : __smtx_typeof (__eo_to_smt cond) = SmtType.Bool := by
+    rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+        cond (Term.Boolean true) (by
+          simpa [bvExtractConcat3PremI, cond] using hPremBool) with
+      ⟨hEqTy, _hNN⟩
+    simpa [RuleProofs.eo_has_bool_type] using hEqTy
+  change __smtx_typeof
+      (SmtTerm.geq (__eo_to_smt i)
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))) =
+    SmtType.Bool at hCondTy
+  have hGeqNN : term_has_non_none_type
+      (SmtTerm.geq (__eo_to_smt i)
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))) := by
+    unfold term_has_non_none_type
+    rw [hCondTy]
+    intro h
+    cases h
+  rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.geq)
+      (typeof_geq_eq (__eo_to_smt i)
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x)))
+      hGeqNN with hArgs | hArgs
+  · rcases smt_typeof_bvsize_int_inv x hArgs.2 with ⟨wx, hXTy⟩
+    exact ⟨wx, hXTy, hArgs.1⟩
+  · exact False.elim (smt_typeof_bvsize_ne_real x hArgs.2)
+
+private theorem bvExtractConcat3_body_smt_context
+    (x y xs i j u l : Term) :
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation xs ->
+    RuleProofs.eo_has_bool_type (bvExtractConcat3PremI x i) ->
+    __eo_typeof (bvExtractConcat3ProgramBody x y xs i j u l) = Term.Bool ->
+    ∃ wx wy wxs,
+      __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ∧
+      __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ∧
+      __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec wxs ∧
+      __eo_is_list (Term.UOp UserOp.concat) xs = Term.Boolean true ∧
+      __smtx_typeof (__eo_to_smt (bvExtractConcat1Whole x y xs)) =
+        SmtType.BitVec (wxs + (wy + wx)) := by
+  intro hYTrans hXsTrans hPremBool hBodyTy
+  rcases bvExtractConcat3PremI_smt_context x i hPremBool with
+    ⟨wx, hXTy, _hITy⟩
+  have hBodyEq :=
+    bvExtractConcat3ProgramBody_eq_term_of_type_bool x y xs i j u l hBodyTy
+  have hTermTy :
+      __eo_typeof (bvExtractConcat3Term x y xs i j u l) = Term.Bool := by
+    rw [← hBodyEq]
+    exact hBodyTy
+  rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof (bvExtractConcat3Lhs x y xs i j))
+      (__eo_typeof (bvExtractConcat3Rhs y xs u l))
+      (by simpa [bvExtractConcat3Term] using hTermTy) with
+    ⟨hLhsNe, _hRhsNe⟩
+  rcases eo_typeof_extract_arg_bitvec_of_ne_stuck
+      (by simpa [bvExtractConcat3Lhs, bvExtractTerm] using hLhsNe) with
+    ⟨wWhole, hWholeEoTy⟩
+  have hXsList :=
+    bvExtractConcat3Xs_list_of_body_bool x y xs i j u l hBodyTy
+  have hSeedList := bv_extract_concat1_seed_is_list_true x y
+  rcases eo_typeof_list_concat_right_bitvec_of_result
+      xs (bvExtractConcat1Seed x y) wWhole hXsList hSeedList
+      (by simpa [bvExtractConcat1Whole] using hWholeEoTy) with
+    ⟨wSeed, hSeedEoTy⟩
+  have hSeedNe : __eo_typeof (bvExtractConcat1Seed x y) ≠ Term.Stuck := by
+    rw [hSeedEoTy]
+    intro h
+    cases h
+  rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local (by
+      change __eo_typeof_concat (__eo_typeof y)
+          (__eo_typeof (bvConcatTerm x (Term.Binary 0 0))) ≠ Term.Stuck
+      simpa [bvExtractConcat1Seed, bvConcatTerm] using hSeedNe) with
+    ⟨wYTerm, _wInnerTerm, hYEoTy, _hInnerEoTy⟩
+  rcases smt_bitvec_type_of_eo_bitvec_type_with_width
+      y wYTerm hYTrans hYEoTy with
+    ⟨wyInt, rfl, _hWy0, hYTy⟩
+  let wy := native_int_to_nat wyInt
+  rcases smt_typeof_concat_list_of_translation xs hXsList hXsTrans with
+    ⟨wxs, hXsTy⟩
+  have hWholeTy :
+      __smtx_typeof (__eo_to_smt (bvExtractConcat1Whole x y xs)) =
+        SmtType.BitVec (wxs + (wy + wx)) := by
+    simpa [wy] using
+      smt_typeof_bv_extract_concat1_whole x y xs wx wy wxs
+        hXsList hXTy hYTy hXsTy
+  exact ⟨wx, wy, wxs, hXTy, by simpa [wy] using hYTy,
+    hXsTy, hXsList, hWholeTy⟩
+
+theorem typed_bv_extract_concat3_program_body
+    (x y xs i j u l : Term) :
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation xs ->
+    RuleProofs.eo_has_bool_type (bvExtractConcat3PremI x i) ->
+    __eo_typeof (bvExtractConcat3ProgramBody x y xs i j u l) = Term.Bool ->
+    RuleProofs.eo_has_bool_type
+      (bvExtractConcat3ProgramBody x y xs i j u l) := by
+  intro hYTrans hXsTrans hPremBool hBodyTy
+  rcases bvExtractConcat3_body_smt_context x y xs i j u l
+      hYTrans hXsTrans hPremBool hBodyTy with
+    ⟨wx, wy, wxs, _hXTy, hYTy, hXsTy, hXsList, hWholeTy⟩
+  have hBodyEq :=
+    bvExtractConcat3ProgramBody_eq_term_of_type_bool x y xs i j u l hBodyTy
+  have hTermTy :
+      __eo_typeof (bvExtractConcat3Term x y xs i j u l) = Term.Bool := by
+    rw [← hBodyEq]
+    exact hBodyTy
+  have hWholeTrans : RuleProofs.eo_has_smt_translation
+      (bvExtractConcat1Whole x y xs) := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hWholeTy]
+    intro h
+    cases h
+  let tail := bvExtractConcat4Tail y xs
+  let tailElim := bvExtractConcat4TailElim y xs
+  have hTailList : __eo_is_list (Term.UOp UserOp.concat) tail =
+      Term.Boolean true := by
+    simpa [tail] using bv_extract_concat4_tail_is_list_true y xs hXsList
+  have hTailTy : __smtx_typeof (__eo_to_smt tail) =
+      SmtType.BitVec (wxs + wy) := by
+    simpa [tail] using smt_typeof_bv_extract_concat4_tail y xs wy wxs
+      hXsList hYTy hXsTy
+  have hTailElimTy : __smtx_typeof (__eo_to_smt tailElim) =
+      SmtType.BitVec (wxs + wy) := by
+    simpa [tailElim, bvExtractConcat4TailElim, tail] using
+      smt_typeof_bv_singleton_elim tail (wxs + wy) hTailList hTailTy
+  have hTailElimTrans : RuleProofs.eo_has_smt_translation tailElim := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hTailElimTy]
+    intro h
+    cases h
+  rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof (bvExtractConcat3Lhs x y xs i j))
+      (__eo_typeof (bvExtractConcat3Rhs y xs u l))
+      (by simpa [bvExtractConcat3Term] using hTermTy) with
+    ⟨hLhsNe, hRhsNe⟩
+  rcases bv_extract_context_of_non_stuck
+      (bvExtractConcat1Whole x y xs) j i hWholeTrans
+      (by simpa [bvExtractConcat3Lhs] using hLhsNe) with
+    ⟨wLhs, hv, iv, _hWholeEoTy, hJ, hI, hwLhs0, hi0,
+      hjw, hdLhs0, hWholeSmtTy⟩
+  rcases bv_extract_context_of_non_stuck tailElim u l hTailElimTrans
+      (by simpa [bvExtractConcat3Rhs, tailElim] using hRhsNe) with
+    ⟨wRhs, uv, lv, _hTailEoTy, hU, hL, hwRhs0, hl0,
+      huw, hdRhs0, hTailSmtTy⟩
+  subst j
+  subst i
+  subst u
+  subst l
+  let lhs := bvExtractConcat3Lhs x y xs (Term.Numeral iv)
+    (Term.Numeral hv)
+  let rhs := bvExtractConcat3Rhs y xs (Term.Numeral uv)
+    (Term.Numeral lv)
+  let dLhs := native_zplus (native_zplus hv 1) (native_zneg iv)
+  let dRhs := native_zplus (native_zplus uv 1) (native_zneg lv)
+  have hLhsTy : __smtx_typeof (__eo_to_smt lhs) =
+      SmtType.BitVec (native_int_to_nat dLhs) := by
+    simpa [lhs, bvExtractConcat3Lhs, dLhs] using
+      smt_typeof_extract_of_context (bvExtractConcat1Whole x y xs)
+        wLhs hv iv hWholeSmtTy hwLhs0 hi0 hjw hdLhs0
+  have hRhsTy : __smtx_typeof (__eo_to_smt rhs) =
+      SmtType.BitVec (native_int_to_nat dRhs) := by
+    simpa [rhs, bvExtractConcat3Rhs, tailElim, dRhs] using
+      smt_typeof_extract_of_context tailElim wRhs uv lv hTailSmtTy
+        hwRhs0 hl0 huw hdRhs0
+  have hLhsTrans : RuleProofs.eo_has_smt_translation lhs := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hLhsTy]
+    intro h
+    cases h
+  have hRhsTrans : RuleProofs.eo_has_smt_translation rhs := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hRhsTy]
+    intro h
+    cases h
+  have hEOTypeEq : __eo_typeof lhs = __eo_typeof rhs := by
+    apply RuleProofs.eo_typeof_eq_bool_operands_eq
+    simpa [bvExtractConcat3Term, lhs, rhs] using hTermTy
+  have hLhsBridge :=
+    RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+      lhs (__eo_typeof lhs) (__eo_to_smt lhs) rfl hLhsTrans rfl
+  have hRhsBridge :=
+    RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+      rhs (__eo_typeof rhs) (__eo_to_smt rhs) rfl hRhsTrans rfl
+  have hTermBool : RuleProofs.eo_has_bool_type
+      (bvExtractConcat3Term x y xs (Term.Numeral iv)
+        (Term.Numeral hv) (Term.Numeral uv) (Term.Numeral lv)) := by
+    unfold bvExtractConcat3Term
+    exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type lhs rhs
+      (by rw [hLhsBridge, hRhsBridge, hEOTypeEq])
+      (by rw [hLhsTy]; simp)
+  simpa [hBodyEq] using hTermBool
+
+private theorem eval_bv_concat_assoc
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b c : Term) (wa wb wc : Nat) :
+    __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
+    __smtx_typeof (__eo_to_smt b) = SmtType.BitVec wb ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.BitVec wc ->
+    __smtx_model_eval M
+        (__eo_to_smt (bvConcatTerm a (bvConcatTerm b c))) =
+      __smtx_model_eval M
+        (__eo_to_smt (bvConcatTerm (bvConcatTerm a b) c)) := by
+  intro hATy hBTy hCTy
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt a) wa
+      hATy with ⟨pa, hAEval, hACan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt b) wb
+      hBTy with ⟨pb, hBEval, hBCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt c) wc
+      hCTy with ⟨pc, hCEval, hCCan⟩
+  have hWa0 : native_zleq 0 (native_nat_to_int wa) = true := by
+    simp [SmtEval.native_zleq, native_nat_to_int,
+      SmtEval.native_nat_to_int]
+  have hWb0 : native_zleq 0 (native_nat_to_int wb) = true := by
+    simp [SmtEval.native_zleq, native_nat_to_int,
+      SmtEval.native_nat_to_int]
+  have hWc0 : native_zleq 0 (native_nat_to_int wc) = true := by
+    simp [SmtEval.native_zleq, native_nat_to_int,
+      SmtEval.native_nat_to_int]
+  have hARange := bitvec_payload_range_of_canonical hWa0 hACan
+  have hBRange := bitvec_payload_range_of_canonical hWb0 hBCan
+  have hCRange := bitvec_payload_range_of_canonical hWc0 hCCan
+  have hpa0 : 0 ≤ pa := hARange.1
+  have hpa1 : pa < (2 : Int) ^ wa := by
+    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using
+      hARange.2
+  have hpb0 : 0 ≤ pb := hBRange.1
+  have hpb1 : pb < (2 : Int) ^ wb := by
+    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using
+      hBRange.2
+  have hpc0 : 0 ≤ pc := hCRange.1
+  have hpc1 : pc < (2 : Int) ^ wc := by
+    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using
+      hCRange.2
+  let ba := BitVec.ofInt wa pa
+  let bb := BitVec.ofInt wb pb
+  let bc := BitVec.ofInt wc pc
+  have hPa : (↑ba.toNat : Int) = pa := by
+    rw [show ba.toNat = pa.toNat by
+      exact ofInt_toNat_canonical wa pa hpa0 hpa1]
+    exact Int.toNat_of_nonneg hpa0
+  have hPb : (↑bb.toNat : Int) = pb := by
+    rw [show bb.toNat = pb.toNat by
+      exact ofInt_toNat_canonical wb pb hpb0 hpb1]
+    exact Int.toNat_of_nonneg hpb0
+  have hPc : (↑bc.toNat : Int) = pc := by
+    rw [show bc.toNat = pc.toNat by
+      exact ofInt_toNat_canonical wc pc hpc0 hpc1]
+    exact Int.toNat_of_nonneg hpc0
+  have hAEval' : __smtx_model_eval M (__eo_to_smt a) =
+      SmtValue.Binary (↑wa : Int) (↑ba.toNat : Int) := by
+    simpa [native_nat_to_int, SmtEval.native_nat_to_int, hPa] using hAEval
+  have hBEval' : __smtx_model_eval M (__eo_to_smt b) =
+      SmtValue.Binary (↑wb : Int) (↑bb.toNat : Int) := by
+    simpa [native_nat_to_int, SmtEval.native_nat_to_int, hPb] using hBEval
+  have hCEval' : __smtx_model_eval M (__eo_to_smt c) =
+      SmtValue.Binary (↑wc : Int) (↑bc.toNat : Int) := by
+    simpa [native_nat_to_int, SmtEval.native_nat_to_int, hPc] using hCEval
+  change __smtx_model_eval M
+      (SmtTerm.concat (__eo_to_smt a)
+        (SmtTerm.concat (__eo_to_smt b) (__eo_to_smt c))) =
+    __smtx_model_eval M
+      (SmtTerm.concat (SmtTerm.concat (__eo_to_smt a) (__eo_to_smt b))
+        (__eo_to_smt c))
+  simp only [__smtx_model_eval, hAEval', hBEval', hCEval',
+    concat_bitvec_values]
+  have hAssoc := BitVec.append_assoc (x₁ := ba) (x₂ := bb) (x₃ := bc)
+  have hNat : ((ba ++ bb) ++ bc).toNat =
+      (ba ++ (bb ++ bc)).toNat := by
+    rw [hAssoc, BitVec.toNat_cast]
+  simp [Nat.add_assoc, hNat]
+
+private theorem eval_bv_list_concat_rec_append
+    (M : SmtModel) (hM : model_total_typed M) :
+    (a z1 z2 x : Term) -> (wa wz wx : Nat) ->
+    __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
+    __smtx_typeof (__eo_to_smt z1) = SmtType.BitVec (wz + wx) ->
+    __smtx_typeof (__eo_to_smt z2) = SmtType.BitVec wz ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
+    __smtx_model_eval M (__eo_to_smt z1) =
+      __smtx_model_eval M (__eo_to_smt (bvConcatTerm z2 x)) ->
+    __smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec a z1)) =
+      __smtx_model_eval M
+        (__eo_to_smt (bvConcatTerm (__eo_list_concat_rec a z2) x)) := by
+  intro a z1
+  induction a, z1 using __eo_list_concat_rec.induct with
+  | case1 z1 =>
+      intro z2 x wa wz wx hList
+      simp [__eo_is_list] at hList
+  | case2 a hA =>
+      intro z2 x wa wz wx hList hATy hZ1Ty
+      change __smtx_typeof SmtTerm.None = SmtType.BitVec (wz + wx) at hZ1Ty
+      rw [TranslationProofs.smtx_typeof_none] at hZ1Ty
+      cases hZ1Ty
+  | case3 g head tail z1 hZ1 ih =>
+      intro z2 x wa wz wx hList hATy hZ1Ty hZ2Ty hXTy hBase
+      have hg : g = Term.UOp UserOp.concat :=
+        eo_is_list_cons_head_eq_of_true
+          (Term.UOp UserOp.concat) g head tail hList
+      subst g
+      have hTailList :
+          __eo_is_list (Term.UOp UserOp.concat) tail = Term.Boolean true :=
+        eo_is_list_tail_true_of_cons_self
+          (Term.UOp UserOp.concat) head tail hList
+      rcases smt_typeof_bv_concat_width_inv head tail wa (by
+          simpa [bvConcatTerm] using hATy) with
+        ⟨wh, wt, hHeadTy, hTailTy, hWa⟩
+      have hZ2Ne := term_ne_stuck_of_smt_bitvec_type hZ2Ty
+      have hTailZ1Ne : __eo_list_concat_rec tail z1 ≠ Term.Stuck :=
+        eo_list_concat_rec_ne_stuck_of_list
+          (Term.UOp UserOp.concat) tail z1 hTailList hZ1
+      have hTailZ2Ne : __eo_list_concat_rec tail z2 ≠ Term.Stuck :=
+        eo_list_concat_rec_ne_stuck_of_list
+          (Term.UOp UserOp.concat) tail z2 hTailList hZ2Ne
+      have hTailRecTy :
+          __smtx_typeof (__eo_to_smt (__eo_list_concat_rec tail z2)) =
+            SmtType.BitVec (wt + wz) :=
+        smt_typeof_list_concat_rec_bv tail z2 wt wz
+          hTailList hTailTy hZ2Ty
+      have hIH := ih z2 x wt wz wx hTailList hTailTy
+        hZ1Ty hZ2Ty hXTy hBase
+      rw [eo_list_concat_rec_cons_eq_of_tail_ne_stuck
+        (Term.UOp UserOp.concat) head tail z1 hTailZ1Ne]
+      rw [eo_list_concat_rec_cons_eq_of_tail_ne_stuck
+        (Term.UOp UserOp.concat) head tail z2 hTailZ2Ne]
+      have hReplace :
+          __smtx_model_eval M
+              (__eo_to_smt
+                (bvConcatTerm head (__eo_list_concat_rec tail z1))) =
+            __smtx_model_eval M
+              (__eo_to_smt
+                (bvConcatTerm head
+                  (bvConcatTerm (__eo_list_concat_rec tail z2) x))) := by
+        change __smtx_model_eval_concat
+            (__smtx_model_eval M (__eo_to_smt head))
+            (__smtx_model_eval M
+              (__eo_to_smt (__eo_list_concat_rec tail z1))) =
+          __smtx_model_eval_concat
+            (__smtx_model_eval M (__eo_to_smt head))
+            (__smtx_model_eval M
+              (__eo_to_smt
+                (bvConcatTerm (__eo_list_concat_rec tail z2) x)))
+        rw [hIH]
+      exact hReplace.trans
+        (eval_bv_concat_assoc M hM head
+          (__eo_list_concat_rec tail z2) x wh (wt + wz) wx
+          hHeadTy hTailRecTy hXTy)
+  | case4 nil z1 hNil hZ1 hNot =>
+      intro z2 x wa wz wx hList hATy hZ1Ty hZ2Ty hXTy hBase
+      have hZ2Ne := term_ne_stuck_of_smt_bitvec_type hZ2Ty
+      simpa [__eo_list_concat_rec, hZ1, hZ2Ne] using hBase
+
+private theorem eval_bv_extract_concat_seed_append
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y : Term) (wx wy : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ->
+    __smtx_model_eval M (__eo_to_smt (bvExtractConcat1Seed x y)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (bvConcatTerm (bvConcatTerm y (Term.Binary 0 0)) x)) := by
+  intro hXTy hYTy
+  have hXYTy := smt_typeof_bv_concat_eq y x wy wx hYTy hXTy
+  have hAssoc := eval_bv_concat_assoc M hM y x (Term.Binary 0 0)
+    wy wx 0 hYTy hXTy smt_typeof_concat_empty
+  have hXYEmpty := bvConcat_right_empty_eval_eq M hM
+    (bvConcatTerm y x) (wy + wx) hXYTy
+  have hYEmpty := bvConcat_right_empty_eval_eq M hM y wy hYTy
+  have hRight :
+      __smtx_model_eval M (__eo_to_smt (bvConcatTerm y x)) =
+        __smtx_model_eval M
+          (__eo_to_smt
+            (bvConcatTerm (bvConcatTerm y (Term.Binary 0 0)) x)) := by
+    change __smtx_model_eval_concat
+        (__smtx_model_eval M (__eo_to_smt y))
+        (__smtx_model_eval M (__eo_to_smt x)) =
+      __smtx_model_eval_concat
+        (__smtx_model_eval M
+          (__eo_to_smt (bvConcatTerm y (Term.Binary 0 0))))
+        (__smtx_model_eval M (__eo_to_smt x))
+    rw [hYEmpty]
+  exact hAssoc.trans (hXYEmpty.trans hRight)
+
+private theorem eval_bv_extract_concat_whole_append
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y xs : Term) (wx wy wxs : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) xs = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ->
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec wxs ->
+    __smtx_model_eval M
+        (__eo_to_smt (bvExtractConcat1Whole x y xs)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (bvConcatTerm (bvExtractConcat4Tail y xs) x)) := by
+  intro hXsList hXTy hYTy hXsTy
+  have hSeed1List := bv_extract_concat1_seed_is_list_true x y
+  have hSeed2List := bv_concat_seed_is_list_true y
+  have hSeed1Ty :=
+    smt_typeof_bv_extract_concat1_seed x y wx wy hXTy hYTy
+  have hSeed2Ty := smt_typeof_bv_concat_seed y wy hYTy
+  have hBase := eval_bv_extract_concat_seed_append M hM x y wx wy
+    hXTy hYTy
+  have hRec := eval_bv_list_concat_rec_append M hM xs
+    (bvExtractConcat1Seed x y) (bvConcatTerm y (Term.Binary 0 0)) x
+    wxs wy wx hXsList hXsTy hSeed1Ty hSeed2Ty hXTy hBase
+  simpa [bvExtractConcat1Whole, bvExtractConcat4Tail,
+    __eo_list_concat, hXsList, hSeed1List, hSeed2List,
+    __eo_requires, native_ite, native_teq, native_not,
+    SmtEval.native_not] using hRec
+
+private theorem bvConcatSingletonElimEvalEq
+    (M : SmtModel) (hM : model_total_typed M) (c : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) c = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__eo_list_singleton_elim (Term.UOp UserOp.concat) c)) =
+      __smtx_model_eval M (__eo_to_smt c) := by
+  intro hList hTy
+  have hElimTy := smt_typeof_bv_singleton_elim c w hList hTy
+  have hElimValueTy :
+      __smtx_typeof_value
+          (__smtx_model_eval M
+            (__eo_to_smt
+              (__eo_list_singleton_elim (Term.UOp UserOp.concat) c))) =
+        SmtType.BitVec w := by
+    have hNN : term_has_non_none_type
+        (__eo_to_smt
+          (__eo_list_singleton_elim (Term.UOp UserOp.concat) c)) := by
+      unfold term_has_non_none_type
+      rw [hElimTy]
+      intro h
+      cases h
+    simpa [hElimTy] using
+      smt_model_eval_preserves_type_of_non_none M hM
+        (__eo_to_smt
+          (__eo_list_singleton_elim (Term.UOp UserOp.concat) c)) hNN
+  have hRel := bvConcatSingletonElimEvalRel M hM c w hList hTy
+  exact (RuleProofs.smt_value_rel_iff_eq _ _ (by
+    rintro ⟨r1, r2, hLeft, _hRight⟩
+    rw [hLeft] at hElimValueTy
+    cases hElimValueTy)).mp hRel
+
+/-! Public, concat-specific interfaces for other BV rewrite families.  The
+implementation lemmas above stay local so that their generic-looking names do
+not leak into every rule module importing this file. -/
+
+theorem bvConcat_term_smt_type
+    (x y : Term) (wx wy : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ->
+    __smtx_typeof (__eo_to_smt (bvConcatTerm x y)) =
+      SmtType.BitVec (wx + wy) :=
+  smt_typeof_bv_concat_eq x y wx wy
+
+theorem bvConcat_term_smt_type_inv
+    (x y : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt (bvConcatTerm x y)) = SmtType.BitVec w ->
+    ∃ wx wy,
+      __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ∧
+      __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ∧
+      w = wx + wy :=
+  smt_typeof_bv_concat_width_inv x y w
+
+theorem bvConcat_empty_smt_type :
+    __smtx_typeof (__eo_to_smt (Term.Binary 0 0)) = SmtType.BitVec 0 :=
+  smt_typeof_concat_empty
+
+theorem bvConcat_list_concat_smt_type
+    (a z : Term) (wa wz : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.concat) z = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
+    __smtx_typeof (__eo_to_smt z) = SmtType.BitVec wz ->
+    __smtx_typeof
+        (__eo_to_smt (__eo_list_concat (Term.UOp UserOp.concat) a z)) =
+      SmtType.BitVec (wa + wz) :=
+  smt_typeof_list_concat_bv a z wa wz
+
+theorem bvConcat_singleton_elim_smt_type
+    (c : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) c = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
+    __smtx_typeof
+        (__eo_to_smt
+          (__eo_list_singleton_elim (Term.UOp UserOp.concat) c)) =
+      SmtType.BitVec w :=
+  smt_typeof_bv_singleton_elim c w
+
+theorem bvConcat_singleton_elim_eo_type_inv
+    (c : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) c = Term.Boolean true ->
+    __eo_typeof
+        (__eo_list_singleton_elim (Term.UOp UserOp.concat) c) =
+      Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w)) ->
+    __eo_typeof c =
+      Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w)) := by
+  intro hList hTy
+  change __eo_typeof
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.concat) c)
+        (Term.Boolean true) (__eo_list_singleton_elim_2 c)) = _ at hTy
+  rw [hList] at hTy
+  simp [__eo_requires, native_ite, native_teq, native_not,
+    SmtEval.native_not] at hTy
+  cases c with
+  | Apply f tail =>
+      cases f with
+      | Apply g head =>
+          have hg : g = Term.UOp UserOp.concat :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.concat) g head tail hList
+          subst g
+          have hTailList := eo_is_list_tail_true_of_cons_self
+            (Term.UOp UserOp.concat) head tail hList
+          have hTailNe : tail ≠ Term.Stuck := by
+            intro h
+            subst tail
+            simp [__eo_is_list] at hTailList
+          rcases bv_concat_is_list_nil_boolean_of_ne_stuck tail hTailNe with
+            ⟨b, hNil⟩
+          simp [__eo_list_singleton_elim_2, hNil, __eo_ite, native_ite,
+            native_teq] at hTy
+          cases b
+          · simpa [bvConcatTerm] using hTy
+          · have hTailEq : tail = Term.Binary 0 0 := by
+              cases tail <;> simp [__eo_is_list_nil] at hNil ⊢
+              case Binary bw bn =>
+                split at hNil <;> simp_all
+            subst tail
+            have hHeadTy : __eo_typeof head =
+                Term.Apply (Term.UOp UserOp.BitVec)
+                  (Term.Numeral (native_nat_to_int w)) := by
+              simpa using hTy
+            have hEmptyTy : __eo_typeof (Term.Binary 0 0) =
+                Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 0) := by
+              rfl
+            change __eo_typeof_concat (__eo_typeof head)
+                (__eo_typeof (Term.Binary 0 0)) = _
+            rw [hHeadTy, hEmptyTy]
+            simp [__eo_typeof_concat, __eo_lit_type_Binary,
+              __eo_mk_apply, __eo_add, native_nat_to_int,
+              SmtEval.native_nat_to_int, SmtEval.native_zplus]
+      | _ => simpa [__eo_list_singleton_elim_2] using hTy
+  | _ => simpa [__eo_list_singleton_elim_2] using hTy
+
+theorem bvConcat_list_smt_type_of_translation
+    (t : Term) :
+    __eo_is_list (Term.UOp UserOp.concat) t = Term.Boolean true ->
+    RuleProofs.eo_has_smt_translation t ->
+    ∃ w : Nat, __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w :=
+  smt_typeof_concat_list_of_translation t
+
+theorem bvConcat_list_concat_lists_of_ne_stuck
+    (a b : Term) :
+    __eo_list_concat (Term.UOp UserOp.concat) a b ≠ Term.Stuck ->
+    __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.concat) b = Term.Boolean true :=
+  bv_list_concat_lists_of_ne_stuck (Term.UOp UserOp.concat) a b
+
+theorem bvConcat_eo_typeof_concat_args_bitvec
+    {A B : Term}
+    (h : __eo_typeof_concat A B ≠ Term.Stuck) :
+    ∃ n m,
+      A = Term.Apply (Term.UOp UserOp.BitVec) n ∧
+        B = Term.Apply (Term.UOp UserOp.BitVec) m :=
+  eo_typeof_concat_args_bitvec_of_ne_stuck_local h
+
+theorem bvConcat_eo_typeof_list_concat_right_bitvec
+    (a z w : Term) :
+    __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.concat) z = Term.Boolean true ->
+    __eo_typeof (__eo_list_concat (Term.UOp UserOp.concat) a z) =
+      Term.Apply (Term.UOp UserOp.BitVec) w ->
+    ∃ wz, __eo_typeof z = Term.Apply (Term.UOp UserOp.BitVec) wz :=
+  eo_typeof_list_concat_right_bitvec_of_result a z w
+
+theorem bvConcat_list_concat_rec_eval_append
+    (M : SmtModel) (hM : model_total_typed M)
+    (a z1 z2 x : Term) (wa wz wx : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
+    __smtx_typeof (__eo_to_smt z1) = SmtType.BitVec (wz + wx) ->
+    __smtx_typeof (__eo_to_smt z2) = SmtType.BitVec wz ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
+    __smtx_model_eval M (__eo_to_smt z1) =
+      __smtx_model_eval M (__eo_to_smt (bvConcatTerm z2 x)) ->
+    __smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec a z1)) =
+      __smtx_model_eval M
+        (__eo_to_smt (bvConcatTerm (__eo_list_concat_rec a z2) x)) :=
+  eval_bv_list_concat_rec_append M hM a z1 z2 x wa wz wx
+
+theorem bvConcat_assoc_eval
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b c : Term) (wa wb wc : Nat) :
+    __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
+    __smtx_typeof (__eo_to_smt b) = SmtType.BitVec wb ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.BitVec wc ->
+    __smtx_model_eval M
+        (__eo_to_smt (bvConcatTerm a (bvConcatTerm b c))) =
+      __smtx_model_eval M
+        (__eo_to_smt (bvConcatTerm (bvConcatTerm a b) c)) :=
+  eval_bv_concat_assoc M hM a b c wa wb wc
+
+theorem bvConcat_singleton_elim_eval_eq
+    (M : SmtModel) (hM : model_total_typed M) (c : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) c = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__eo_list_singleton_elim (Term.UOp UserOp.concat) c)) =
+      __smtx_model_eval M (__eo_to_smt c) :=
+  bvConcatSingletonElimEvalEq M hM c w
+
+private theorem eval_bv_extract_concat_whole_append_elim
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y xs : Term) (wx wy wxs : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) xs = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ->
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec wxs ->
+    __smtx_model_eval M
+        (__eo_to_smt (bvExtractConcat1Whole x y xs)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (bvConcatTerm (bvExtractConcat4TailElim y xs) x)) := by
+  intro hXsList hXTy hYTy hXsTy
+  have hWhole := eval_bv_extract_concat_whole_append M hM
+    x y xs wx wy wxs hXsList hXTy hYTy hXsTy
+  have hTailList := bv_extract_concat4_tail_is_list_true y xs hXsList
+  have hTailTy := smt_typeof_bv_extract_concat4_tail y xs wy wxs
+    hXsList hYTy hXsTy
+  have hElim := bvConcatSingletonElimEvalEq M hM
+    (bvExtractConcat4Tail y xs) (wxs + wy) hTailList hTailTy
+  have hElim' :
+      __smtx_model_eval M
+          (__eo_to_smt (bvExtractConcat4TailElim y xs)) =
+        __smtx_model_eval M
+          (__eo_to_smt (bvExtractConcat4Tail y xs)) := by
+    simpa [bvExtractConcat4TailElim] using hElim
+  rw [hWhole]
+  change __smtx_model_eval_concat
+      (__smtx_model_eval M
+        (__eo_to_smt (bvExtractConcat4Tail y xs)))
+      (__smtx_model_eval M (__eo_to_smt x)) =
+    __smtx_model_eval_concat
+      (__smtx_model_eval M
+        (__eo_to_smt (bvExtractConcat4TailElim y xs)))
+      (__smtx_model_eval M (__eo_to_smt x))
+  rw [hElim']
+
+private theorem extractLsb'_append_high
+    {x : BitVec W} {y : BitVec T} {L D : Nat}
+    (hFit : L + D ≤ W) :
+    (x ++ y).extractLsb' (T + L) D = x.extractLsb' L D := by
+  apply BitVec.eq_of_getElem_eq
+  intro k hk
+  rw [BitVec.getElem_extractLsb' hk, BitVec.getElem_extractLsb' hk]
+  have hHead : L + k < W := by omega
+  have hApp : T + L + k < W + T := by omega
+  rw [BitVec.getLsbD_eq_getElem hApp, BitVec.getElem_append]
+  have hNotTail : ¬ T + L + k < T := by omega
+  have hSub : T + L + k - T = L + k := by omega
+  simp [hNotTail, hSub, BitVec.getLsbD_eq_getElem hHead]
+
+private theorem extractLsb'_append_straddle
+    {x : BitVec T} {y : BitVec W} {I DH : Nat}
+    (hI : I < W) (hDH : DH ≤ T) :
+    (x ++ y).extractLsb' I (DH + (W - I)) =
+      x.extractLsb' 0 DH ++ y.extractLsb' I (W - I) := by
+  apply BitVec.eq_of_getElem_eq
+  intro k hk
+  rw [BitVec.getElem_extractLsb' hk, BitVec.getElem_append]
+  have hWhole : I + k < T + W := by omega
+  rw [BitVec.getLsbD_eq_getElem hWhole, BitVec.getElem_append]
+  by_cases hLow : k < W - I
+  · have hY : I + k < W := by omega
+    have hLowExtract : k < W - I := hLow
+    simp [hLow, BitVec.getElem_extractLsb' hLowExtract,
+      BitVec.getLsbD_eq_getElem hY]
+    split <;> simp_all
+  · have hHead : k - (W - I) < DH := by omega
+    have hHeadX : k - (W - I) < T := by omega
+    have hNotWholeLow : ¬ I + k < W := by omega
+    have hShift : I + k - W = k - (W - I) := by omega
+    simp [hLow, hNotWholeLow, hShift,
+      BitVec.getElem_extractLsb' hHead]
+    rw [BitVec.getLsbD_eq_getElem hHeadX]
+
+private theorem extract_concat_straddle_val
+    (T W I DH : Nat) (pt px j i u1 u2 : Int)
+    (hpt0 : 0 ≤ pt) (hpt1 : pt < (2 : Int) ^ T)
+    (hpx0 : 0 ≤ px) (hpx1 : px < (2 : Int) ^ W)
+    (hi : i = ↑I)
+    (hdLeft : j + 1 + -i = ↑(DH + (W - I)))
+    (hdHigh : u1 + 1 + -(0 : Int) = ↑DH)
+    (hdLow : u2 + 1 + -i = ↑(W - I))
+    (hI : I < W) (hDH : DH ≤ T) :
+    __smtx_model_eval_extract (SmtValue.Numeral j) (SmtValue.Numeral i)
+        (__smtx_model_eval_concat
+          (SmtValue.Binary (↑T : Int) pt)
+          (SmtValue.Binary (↑W : Int) px)) =
+      __smtx_model_eval_concat
+        (__smtx_model_eval_extract (SmtValue.Numeral u1)
+          (SmtValue.Numeral 0) (SmtValue.Binary (↑T : Int) pt))
+        (__smtx_model_eval_extract (SmtValue.Numeral u2)
+          (SmtValue.Numeral i) (SmtValue.Binary (↑W : Int) px)) := by
+  let bt := BitVec.ofInt T pt
+  let bx := BitVec.ofInt W px
+  have hPt : (↑bt.toNat : Int) = pt := by
+    rw [show bt.toNat = pt.toNat by
+      exact ofInt_toNat_canonical T pt hpt0 hpt1]
+    exact Int.toNat_of_nonneg hpt0
+  have hPx : (↑bx.toNat : Int) = px := by
+    rw [show bx.toNat = px.toNat by
+      exact ofInt_toNat_canonical W px hpx0 hpx1]
+    exact Int.toNat_of_nonneg hpx0
+  rw [← hPt, ← hPx, concat_bitvec_values]
+  have hApp0 : (0 : Int) ≤ (↑(bt ++ bx).toNat : Int) :=
+    Int.natCast_nonneg _
+  have hApp1 : (↑(bt ++ bx).toNat : Int) < (2 : Int) ^ (T + W) := by
+    exact_mod_cast (bt ++ bx).isLt
+  have hBt0 : (0 : Int) ≤ (↑bt.toNat : Int) := Int.natCast_nonneg _
+  have hBt1 : (↑bt.toNat : Int) < (2 : Int) ^ T := by
+    exact_mod_cast bt.isLt
+  have hBx0 : (0 : Int) ≤ (↑bx.toNat : Int) := Int.natCast_nonneg _
+  have hBx1 : (↑bx.toNat : Int) < (2 : Int) ^ W := by
+    exact_mod_cast bx.isLt
+  rw [extract_val_bitvec_start_len (T + W) I (DH + (W - I))
+    (↑(bt ++ bx).toNat : Int) j i hApp0 hApp1 hi hdLeft]
+  rw [extract_val_bitvec_start_len T 0 DH (↑bt.toNat : Int)
+    u1 0 hBt0 hBt1 rfl hdHigh]
+  rw [extract_val_bitvec_start_len W I (W - I) (↑bx.toNat : Int)
+    u2 i hBx0 hBx1 hi hdLow]
+  rw [bitvec_ofInt_natCast_toNat (bt ++ bx),
+    bitvec_ofInt_natCast_toNat bt, bitvec_ofInt_natCast_toNat bx,
+    concat_bitvec_values]
+  congr 2
+  exact congrArg BitVec.toNat
+    (extractLsb'_append_straddle (x := bt) (y := bx) hI hDH)
+
+private theorem bvExtractConcat2_premises_numeric
+    (M : SmtModel) (x : Term) (wx : Nat)
+    (i j u1 u2 : native_Int) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
+    eo_interprets M
+      (bvExtractConcat2PremI x (Term.Numeral i)) true ->
+    eo_interprets M
+      (bvExtractConcat2PremJ x (Term.Numeral j)) true ->
+    eo_interprets M
+      (bvExtractConcat2PremU1 x (Term.Numeral j) (Term.Numeral u1)) true ->
+    eo_interprets M
+      (bvExtractConcat2PremU2 x (Term.Numeral u2)) true ->
+    native_zlt i (native_nat_to_int wx) = true ∧
+      native_zleq (native_nat_to_int wx) j = true ∧
+      u1 = native_zplus j (native_zneg (native_nat_to_int wx)) ∧
+      u2 = native_zplus (native_nat_to_int wx) (native_zneg 1) := by
+  intro hXTy hP1 hP2 hP3 hP4
+  have hSize := eval_bvsize_of_smt_bitvec_nat M x wx hXTy
+  have hEq1 := model_eval_eq_true_of_eo_eq_true M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.lt) (Term.Numeral i))
+      (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+    (Term.Boolean true) (by simpa [bvExtractConcat2PremI] using hP1)
+  have hEq2 := model_eval_eq_true_of_eo_eq_true M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.geq) (Term.Numeral j))
+      (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+    (Term.Boolean true) (by simpa [bvExtractConcat2PremJ] using hP2)
+  have hEq3 := model_eval_eq_true_of_eo_eq_true M
+    (Term.Numeral u1)
+    (Term.Apply (Term.Apply (Term.UOp UserOp.neg) (Term.Numeral j))
+      (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+    (by simpa [bvExtractConcat2PremU1] using hP3)
+  have hEq4 := model_eval_eq_true_of_eo_eq_true M
+    (Term.Numeral u2)
+    (Term.Apply
+      (Term.Apply (Term.UOp UserOp.neg)
+        (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+      (Term.Numeral 1))
+    (by simpa [bvExtractConcat2PremU2] using hP4)
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M
+        (SmtTerm.lt (SmtTerm.Numeral i)
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))))
+      (SmtValue.Boolean true) = SmtValue.Boolean true at hEq1
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M
+        (SmtTerm.geq (SmtTerm.Numeral j)
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))))
+      (SmtValue.Boolean true) = SmtValue.Boolean true at hEq2
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M (SmtTerm.Numeral u1))
+      (__smtx_model_eval M
+        (SmtTerm.neg (SmtTerm.Numeral j)
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x)))) =
+    SmtValue.Boolean true at hEq3
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M (SmtTerm.Numeral u2))
+      (__smtx_model_eval M
+        (SmtTerm.neg
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+          (SmtTerm.Numeral 1))) = SmtValue.Boolean true at hEq4
+  simp [__smtx_model_eval, __smtx_model_eval__, __smtx_model_eval_lt,
+    __smtx_model_eval_geq, __smtx_model_eval_leq, hSize,
+    __smtx_model_eval_eq, native_veq, SmtEval.native_zeq,
+    SmtEval.native_zplus, SmtEval.native_zneg]
+    at hEq1 hEq2 hEq3 hEq4
+  exact ⟨hEq1, hEq2, hEq3, hEq4⟩
+
+private theorem bvExtractConcat2_index_arithmetic
+    (W I DH : Nat) (i j u1 u2 : Int)
+    (hi : i = ↑I) (hDH : u1 + 1 = ↑DH)
+    (hiW : i < ↑W) (hjW : ↑W ≤ j)
+    (hu1 : u1 = j - ↑W) (hu2 : u2 = ↑W - 1) :
+    I < W ∧
+      j + 1 + -i = ↑(DH + (W - I)) ∧
+      u1 + 1 + -(0 : Int) = ↑DH ∧
+      u2 + 1 + -i = ↑(W - I) := by
+  constructor
+  · have hCast : (↑I : Int) < ↑W := by
+      rw [← hi]
+      exact hiW
+    exact_mod_cast hCast
+  constructor
+  · rw [← Int.ofNat_add_ofNat]
+    rw [Int.ofNat_sub (by omega : I ≤ W)]
+    omega
+  constructor <;> omega
+
+private theorem bvExtractConcat2_high_length_fits
+    (T DH : Nat) (u1 : Int)
+    (hDH : u1 + 1 = ↑DH) (hu1T : u1 < ↑T) : DH ≤ T := by
+  have hCast : (↑DH : Int) ≤ ↑T := by
+    rw [← hDH]
+    omega
+  exact_mod_cast hCast
+
+private theorem eval_bv_extract_concat2_rhs_no_empty
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y xs i u1 u2 : Term) (dLow : Nat) :
+    __smtx_typeof (__eo_to_smt (bvExtractConcat2Low x i u2)) =
+      SmtType.BitVec dLow ->
+    __smtx_model_eval M
+        (__eo_to_smt (bvExtractConcat2Rhs x y xs i u1 u2)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (bvConcatTerm (bvExtractConcat2High y xs u1)
+            (bvExtractConcat2Low x i u2))) := by
+  intro hLowTy
+  have hEmpty := bvConcat_right_empty_eval_eq M hM
+    (bvExtractConcat2Low x i u2) dLow hLowTy
+  change __smtx_model_eval_concat
+      (__smtx_model_eval M
+        (__eo_to_smt (bvExtractConcat2High y xs u1)))
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (bvConcatTerm (bvExtractConcat2Low x i u2) (Term.Binary 0 0)))) =
+    __smtx_model_eval_concat
+      (__smtx_model_eval M
+        (__eo_to_smt (bvExtractConcat2High y xs u1)))
+      (__smtx_model_eval M
+        (__eo_to_smt (bvExtractConcat2Low x i u2)))
+  rw [hEmpty]
+
+theorem facts_bv_extract_concat2_program_body
+    (M : SmtModel) (hM : model_total_typed M)
+    (x xs y i j u1 u2 : Term) :
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation xs ->
+    RuleProofs.eo_has_bool_type (bvExtractConcat2PremI x i) ->
+    __eo_typeof (bvExtractConcat2ProgramBody x xs y i j u1 u2) = Term.Bool ->
+    eo_interprets M (bvExtractConcat2PremI x i) true ->
+    eo_interprets M (bvExtractConcat2PremJ x j) true ->
+    eo_interprets M (bvExtractConcat2PremU1 x j u1) true ->
+    eo_interprets M (bvExtractConcat2PremU2 x u2) true ->
+    eo_interprets M (bvExtractConcat2ProgramBody x xs y i j u1 u2) true := by
+  intro hYTrans hXsTrans hPremBool hBodyTy hP1 hP2 hP3 hP4
+  rcases bvExtractConcat2_body_smt_context x xs y i j u1 u2
+      hYTrans hXsTrans hPremBool hBodyTy with
+    ⟨wx, wy, wxs, hXTy, hYTy, hXsTy, hXsList, hWholeTy⟩
+  have hBodyEq :=
+    bvExtractConcat2ProgramBody_eq_term_of_type_bool x xs y i j u1 u2 hBodyTy
+  have hTermTy :
+      __eo_typeof (bvExtractConcat2Term x y xs i j u1 u2) = Term.Bool := by
+    rw [← hBodyEq]
+    exact hBodyTy
+  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hXTy]
+    intro h
+    cases h
+  have hWholeTrans : RuleProofs.eo_has_smt_translation
+      (bvExtractConcat1Whole x y xs) := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hWholeTy]
+    intro h
+    cases h
+  let tail := bvExtractConcat4Tail y xs
+  let tailElim := bvExtractConcat4TailElim y xs
+  have hTailList : __eo_is_list (Term.UOp UserOp.concat) tail =
+      Term.Boolean true := by
+    simpa [tail] using bv_extract_concat4_tail_is_list_true y xs hXsList
+  have hTailTy : __smtx_typeof (__eo_to_smt tail) =
+      SmtType.BitVec (wxs + wy) := by
+    simpa [tail] using smt_typeof_bv_extract_concat4_tail y xs wy wxs
+      hXsList hYTy hXsTy
+  have hTailElimTy : __smtx_typeof (__eo_to_smt tailElim) =
+      SmtType.BitVec (wxs + wy) := by
+    simpa [tailElim, bvExtractConcat4TailElim, tail] using
+      smt_typeof_bv_singleton_elim tail (wxs + wy) hTailList hTailTy
+  have hTailElimTrans : RuleProofs.eo_has_smt_translation tailElim := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hTailElimTy]
+    intro h
+    cases h
+  rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof (bvExtractConcat2Lhs x y xs i j))
+      (__eo_typeof (bvExtractConcat2Rhs x y xs i u1 u2))
+      (by simpa [bvExtractConcat2Term] using hTermTy) with
+    ⟨hLhsNe, hRhsNe⟩
+  rcases bv_extract_context_of_non_stuck
+      (bvExtractConcat1Whole x y xs) j i hWholeTrans
+      (by simpa [bvExtractConcat2Lhs] using hLhsNe) with
+    ⟨wLhs, jv, iv, _hWholeEoTy, hJ, hI, hwLhs0, hi0,
+      hjw, hdLhs0, hWholeSmtTy⟩
+  subst j
+  subst i
+  let high := bvExtractConcat2High y xs u1
+  let low := bvExtractConcat2Low x (Term.Numeral iv) u2
+  let inner := bvConcatTerm low (Term.Binary 0 0)
+  have hRhsConcatNe :
+      __eo_typeof_concat (__eo_typeof high) (__eo_typeof inner) ≠
+        Term.Stuck := by
+    simpa [bvExtractConcat2Rhs, bvConcatTerm, high, low, inner] using hRhsNe
+  rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hRhsConcatNe with
+    ⟨wHighEo, wInnerEo, hHighEoTy, hInnerEoTy⟩
+  have hHighNe : __eo_typeof high ≠ Term.Stuck := by
+    rw [hHighEoTy]
+    intro h
+    cases h
+  rcases bv_extract_context_of_non_stuck tailElim u1 (Term.Numeral 0)
+      hTailElimTrans (by
+        simpa [high, bvExtractConcat2High, tailElim] using hHighNe) with
+    ⟨wHighSrc, u1v, zv, _hTailEoTy, hU1, hZero, hwHigh0, hz0,
+      hu1w, hdHigh0, hTailSmtTy⟩
+  subst u1
+  injection hZero with hZeroVal
+  subst zv
+  have hInnerNe : __eo_typeof inner ≠ Term.Stuck := by
+    rw [hInnerEoTy]
+    intro h
+    cases h
+  have hInnerConcatNe :
+      __eo_typeof_concat (__eo_typeof low)
+          (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
+    simpa [inner, bvConcatTerm] using hInnerNe
+  rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hInnerConcatNe with
+    ⟨wLowEo, wEmptyEo, hLowEoTy, _hEmptyEoTy⟩
+  have hLowNe : __eo_typeof low ≠ Term.Stuck := by
+    rw [hLowEoTy]
+    intro h
+    cases h
+  rcases bv_extract_context_of_non_stuck x u2 (Term.Numeral iv)
+      hXTrans (by
+        simpa [low, bvExtractConcat2Low] using hLowNe) with
+    ⟨wLowSrc, u2v, iv2, _hXEoTy, hU2, hILow, hwLow0, hiLow0,
+      hu2w, hdLow0, hXSmtTy⟩
+  subst u2
+  injection hILow with hIV
+  subst iv2
+  rcases bvExtractConcat2_premises_numeric M x wx iv jv u1v u2v
+      hXTy hP1 hP2 hP3 hP4 with ⟨hiWx, hWxJ, hu1, hu2⟩
+  let I := native_int_to_nat iv
+  let dHigh := native_zplus (native_zplus u1v 1) (native_zneg 0)
+  let DH := native_int_to_nat dHigh
+  have hIRound : (↑I : Int) = iv := by
+    simpa [I, native_nat_to_int, SmtEval.native_nat_to_int] using
+      native_int_to_nat_roundtrip iv hi0
+  have hdHighNonneg : native_zleq 0 dHigh = true :=
+    native_zleq_of_zlt_true _ _ hdHigh0
+  have hDHRound : (↑DH : Int) = dHigh := by
+    simpa [DH, native_nat_to_int, SmtEval.native_nat_to_int] using
+      native_int_to_nat_roundtrip dHigh hdHighNonneg
+  have hiWxInt : iv < (↑wx : Int) := by
+    simpa [SmtEval.native_zlt, native_nat_to_int,
+      SmtEval.native_nat_to_int] using hiWx
+  have hWxJInt : (↑wx : Int) ≤ jv := by
+    simpa [SmtEval.native_zleq, native_nat_to_int,
+      SmtEval.native_nat_to_int] using hWxJ
+  have hu1Int : u1v = jv - (↑wx : Int) := by
+    simpa [SmtEval.native_zplus, SmtEval.native_zneg,
+      native_nat_to_int, SmtEval.native_nat_to_int,
+      Int.sub_eq_add_neg] using hu1
+  have hu2Int : u2v = (↑wx : Int) - 1 := by
+    simpa [SmtEval.native_zplus, SmtEval.native_zneg,
+      native_nat_to_int, SmtEval.native_nat_to_int,
+      Int.sub_eq_add_neg] using hu2
+  have hDHCast : u1v + 1 = (↑DH : Int) := by
+    rw [hDHRound]
+    simp [dHigh, SmtEval.native_zplus, SmtEval.native_zneg]
+  rcases bvExtractConcat2_index_arithmetic wx I DH iv jv u1v u2v
+      hIRound.symm hDHCast hiWxInt hWxJInt hu1Int hu2Int with
+    ⟨hIlt, hLeftLen, hHighLen, hLowLen⟩
+  have hTailWidthEq : native_int_to_nat wHighSrc = wxs + wy := by
+    rw [hTailElimTy] at hTailSmtTy
+    simpa using hTailSmtTy.symm
+  have hHighWidthRound := native_int_to_nat_roundtrip wHighSrc hwHigh0
+  have hHighWidthInt : wHighSrc = (↑(wxs + wy) : Int) := by
+    calc
+      wHighSrc = native_nat_to_int (native_int_to_nat wHighSrc) := by
+        simpa [native_nat_to_int, SmtEval.native_nat_to_int] using
+          hHighWidthRound.symm
+      _ = (↑(wxs + wy) : Int) := by
+        rw [hTailWidthEq]
+        rfl
+  have hu1TailInt : u1v < (↑(wxs + wy) : Int) := by
+    have h := (show u1v < wHighSrc by
+      simpa [SmtEval.native_zlt] using hu1w)
+    rw [hHighWidthInt] at h
+    exact h
+  have hDHFit : DH ≤ wxs + wy :=
+    bvExtractConcat2_high_length_fits (wxs + wy) DH u1v
+      hDHCast hu1TailInt
+  let dLow := native_zplus (native_zplus u2v 1) (native_zneg iv)
+  have hLowSmtTy : __smtx_typeof (__eo_to_smt low) =
+      SmtType.BitVec (wx - I) := by
+    have hRaw := smt_typeof_extract_of_context x wLowSrc u2v iv hXSmtTy
+      hwLow0 hiLow0 hu2w hdLow0
+    have hWidthNat : native_int_to_nat dLow = wx - I := by
+      rw [show dLow = (↑(wx - I) : Int) by
+        simpa [dLow, SmtEval.native_zplus, SmtEval.native_zneg] using hLowLen]
+      simp [native_int_to_nat, SmtEval.native_int_to_nat]
+    simpa [low, bvExtractConcat2Low, dLow, hWidthNat] using hRaw
+  have hRhsEval := eval_bv_extract_concat2_rhs_no_empty M hM
+    x y xs (Term.Numeral iv) (Term.Numeral u1v) (Term.Numeral u2v)
+    (wx - I) hLowSmtTy
+  have hWholeEval := eval_bv_extract_concat_whole_append_elim M hM
+    x y xs wx wy wxs hXsList hXTy hYTy hXsTy
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt tailElim)
+      (wxs + wy) hTailElimTy with ⟨pt, hTailEval, hTailCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
+      wx hXTy with ⟨px, hXEval, hXCan⟩
+  have hWt0 : native_zleq 0 (native_nat_to_int (wxs + wy)) = true := by
+    have hNonneg : (0 : Int) ≤ ↑(wxs + wy) := Int.natCast_nonneg _
+    simpa [SmtEval.native_zleq, native_nat_to_int,
+      SmtEval.native_nat_to_int] using hNonneg
+  have hWx0 : native_zleq 0 (native_nat_to_int wx) = true := by
+    simp [SmtEval.native_zleq, native_nat_to_int,
+      SmtEval.native_nat_to_int]
+  have hTRange := bitvec_payload_range_of_canonical hWt0 hTailCan
+  have hXRange := bitvec_payload_range_of_canonical hWx0 hXCan
+  have hpt0 : 0 ≤ pt := hTRange.1
+  have hpt1 : pt < (2 : Int) ^ (wxs + wy) := by
+    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using
+      hTRange.2
+  have hpx0 : 0 ≤ px := hXRange.1
+  have hpx1 : px < (2 : Int) ^ wx := by
+    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using
+      hXRange.2
+  have hTailEval' : __smtx_model_eval M (__eo_to_smt tailElim) =
+      SmtValue.Binary (↑(wxs + wy) : Int) pt := by
+    simpa [native_nat_to_int, SmtEval.native_nat_to_int] using hTailEval
+  have hXEval' : __smtx_model_eval M (__eo_to_smt x) =
+      SmtValue.Binary (↑wx : Int) px := by
+    simpa [native_nat_to_int, SmtEval.native_nat_to_int] using hXEval
+  have hBool := typed_bv_extract_concat2_program_body x xs y
+    (Term.Numeral iv) (Term.Numeral jv) (Term.Numeral u1v)
+    (Term.Numeral u2v) hYTrans hXsTrans (by simpa using hPremBool) hBodyTy
+  rw [hBodyEq] at hBool
+  rw [hBodyEq]
+  unfold bvExtractConcat2Term
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · simpa [bvExtractConcat2Term] using hBool
+  · change RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (bvExtractConcat2Lhs x y xs (Term.Numeral iv)
+            (Term.Numeral jv))))
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (bvExtractConcat2Rhs x y xs (Term.Numeral iv)
+            (Term.Numeral u1v) (Term.Numeral u2v))))
+    rw [hRhsEval]
+    unfold bvExtractConcat2Lhs bvExtractConcat2High bvExtractConcat2Low
+    rw [eval_extract_term]
+    rw [hWholeEval]
+    change RuleProofs.smt_value_rel
+      (__smtx_model_eval_extract (SmtValue.Numeral jv)
+        (SmtValue.Numeral iv)
+        (__smtx_model_eval_concat
+          (__smtx_model_eval M (__eo_to_smt tailElim))
+          (__smtx_model_eval M (__eo_to_smt x))))
+      (__smtx_model_eval_concat
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (bvExtractTerm tailElim (Term.Numeral u1v) (Term.Numeral 0))))
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (bvExtractTerm x (Term.Numeral u2v) (Term.Numeral iv)))))
+    rw [eval_extract_term, eval_extract_term]
+    change RuleProofs.smt_value_rel
+      (__smtx_model_eval_extract (SmtValue.Numeral jv)
+        (SmtValue.Numeral iv)
+        (__smtx_model_eval_concat
+          (__smtx_model_eval M (__eo_to_smt tailElim))
+          (__smtx_model_eval M (__eo_to_smt x))))
+      (__smtx_model_eval_concat
+        (__smtx_model_eval_extract (SmtValue.Numeral u1v)
+          (SmtValue.Numeral 0)
+          (__smtx_model_eval M (__eo_to_smt tailElim)))
+        (__smtx_model_eval_extract (SmtValue.Numeral u2v)
+          (SmtValue.Numeral iv)
+          (__smtx_model_eval M (__eo_to_smt x))))
+    rw [hTailEval', hXEval']
+    rw [extract_concat_straddle_val (wxs + wy) wx I DH pt px
+      jv iv u1v u2v hpt0 hpt1 hpx0 hpx1 hIRound.symm
+      hLeftLen hHighLen hLowLen hIlt hDHFit]
+    exact RuleProofs.smt_value_rel_refl _
+
+private theorem bvExtractConcat3_premises_numeric
+    (M : SmtModel) (x : Term) (wx : Nat)
+    (i j u l : native_Int) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
+    eo_interprets M
+      (bvExtractConcat3PremI x (Term.Numeral i)) true ->
+    eo_interprets M
+      (bvExtractConcat3PremU x (Term.Numeral j) (Term.Numeral u)) true ->
+    eo_interprets M
+      (bvExtractConcat3PremL x (Term.Numeral i) (Term.Numeral l)) true ->
+    native_zleq (native_nat_to_int wx) i = true ∧
+      u = native_zplus j (native_zneg (native_nat_to_int wx)) ∧
+      l = native_zplus i (native_zneg (native_nat_to_int wx)) := by
+  intro hXTy hP1 hP2 hP3
+  have hSize := eval_bvsize_of_smt_bitvec_nat M x wx hXTy
+  have hEq1 := model_eval_eq_true_of_eo_eq_true M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.geq) (Term.Numeral i))
+      (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+    (Term.Boolean true) (by simpa [bvExtractConcat3PremI] using hP1)
+  have hEq2 := model_eval_eq_true_of_eo_eq_true M
+    (Term.Numeral u)
+    (Term.Apply (Term.Apply (Term.UOp UserOp.neg) (Term.Numeral j))
+      (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+    (by simpa [bvExtractConcat3PremU] using hP2)
+  have hEq3 := model_eval_eq_true_of_eo_eq_true M
+    (Term.Numeral l)
+    (Term.Apply (Term.Apply (Term.UOp UserOp.neg) (Term.Numeral i))
+      (Term.Apply (Term.UOp UserOp._at_bvsize) x))
+    (by simpa [bvExtractConcat3PremL] using hP3)
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M
+        (SmtTerm.geq (SmtTerm.Numeral i)
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))))
+      (SmtValue.Boolean true) = SmtValue.Boolean true at hEq1
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M (SmtTerm.Numeral u))
+      (__smtx_model_eval M
+        (SmtTerm.neg (SmtTerm.Numeral j)
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x)))) =
+    SmtValue.Boolean true at hEq2
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M (SmtTerm.Numeral l))
+      (__smtx_model_eval M
+        (SmtTerm.neg (SmtTerm.Numeral i)
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x)))) =
+    SmtValue.Boolean true at hEq3
+  simp [__smtx_model_eval, __smtx_model_eval__, __smtx_model_eval_geq,
+    __smtx_model_eval_leq, hSize, __smtx_model_eval_eq, native_veq,
+    SmtEval.native_zeq, SmtEval.native_zplus, SmtEval.native_zneg]
+    at hEq1 hEq2 hEq3
+  exact ⟨hEq1, hEq2, hEq3⟩
+
+private theorem extract_concat_high_val
+    (T W L D : Nat) (pt px h i u l : Int)
+    (hpt0 : 0 ≤ pt) (hpt1 : pt < (2 : Int) ^ T)
+    (hpx0 : 0 ≤ px) (hpx1 : px < (2 : Int) ^ W)
+    (hi : i = ↑(W + L)) (hd : h + 1 + -i = ↑D)
+    (hl : l = ↑L) (hdR : u + 1 + -l = ↑D)
+    (hFit : L + D ≤ T) :
+    __smtx_model_eval_extract (SmtValue.Numeral h) (SmtValue.Numeral i)
+        (__smtx_model_eval_concat
+          (SmtValue.Binary (↑T : Int) pt)
+          (SmtValue.Binary (↑W : Int) px)) =
+      __smtx_model_eval_extract (SmtValue.Numeral u) (SmtValue.Numeral l)
+        (SmtValue.Binary (↑T : Int) pt) := by
+  let bt := BitVec.ofInt T pt
+  let bx := BitVec.ofInt W px
+  have hPt : (↑bt.toNat : Int) = pt := by
+    rw [show bt.toNat = pt.toNat by
+      exact ofInt_toNat_canonical T pt hpt0 hpt1]
+    exact Int.toNat_of_nonneg hpt0
+  have hPx : (↑bx.toNat : Int) = px := by
+    rw [show bx.toNat = px.toNat by
+      exact ofInt_toNat_canonical W px hpx0 hpx1]
+    exact Int.toNat_of_nonneg hpx0
+  rw [← hPt, ← hPx, concat_bitvec_values]
+  have hApp0 : (0 : Int) ≤ (↑(bt ++ bx).toNat : Int) :=
+    Int.natCast_nonneg _
+  have hApp1 : (↑(bt ++ bx).toNat : Int) < (2 : Int) ^ (T + W) := by
+    exact_mod_cast (bt ++ bx).isLt
+  have hBt0 : (0 : Int) ≤ (↑bt.toNat : Int) := Int.natCast_nonneg _
+  have hBt1 : (↑bt.toNat : Int) < (2 : Int) ^ T := by
+    exact_mod_cast bt.isLt
+  rw [extract_val_bitvec_start_len (T + W) (W + L) D
+    (↑(bt ++ bx).toNat : Int) h i hApp0 hApp1 hi hd]
+  rw [extract_val_bitvec_start_len T L D (↑bt.toNat : Int)
+    u l hBt0 hBt1 hl hdR]
+  rw [bitvec_ofInt_natCast_toNat (bt ++ bx),
+    bitvec_ofInt_natCast_toNat bt]
+  congr 2
+  exact congrArg BitVec.toNat
+    (extractLsb'_append_high (x := bt) (y := bx) (L := L) (D := D)
+      hFit)
+
+private theorem int_sub_shift_extract
+    (h i w : Int) :
+    (h - w) + 1 + -(i - w) = h + 1 + -i := by
+  omega
+
+private theorem int_cancel_extract_start
+    (l u : Int) :
+    l + (u + 1 + -l) = u + 1 := by
+  omega
+
+theorem facts_bv_extract_concat3_program_body
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y xs i j u l : Term) :
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation xs ->
+    RuleProofs.eo_has_bool_type (bvExtractConcat3PremI x i) ->
+    __eo_typeof (bvExtractConcat3ProgramBody x y xs i j u l) = Term.Bool ->
+    eo_interprets M (bvExtractConcat3PremI x i) true ->
+    eo_interprets M (bvExtractConcat3PremU x j u) true ->
+    eo_interprets M (bvExtractConcat3PremL x i l) true ->
+    eo_interprets M (bvExtractConcat3ProgramBody x y xs i j u l) true := by
+  intro hYTrans hXsTrans hPremBool hBodyTy hP1 hP2 hP3
+  rcases bvExtractConcat3_body_smt_context x y xs i j u l
+      hYTrans hXsTrans hPremBool hBodyTy with
+    ⟨wx, wy, wxs, hXTy, hYTy, hXsTy, hXsList, hWholeTy⟩
+  have hBodyEq :=
+    bvExtractConcat3ProgramBody_eq_term_of_type_bool x y xs i j u l hBodyTy
+  have hTermTy :
+      __eo_typeof (bvExtractConcat3Term x y xs i j u l) = Term.Bool := by
+    rw [← hBodyEq]
+    exact hBodyTy
+  have hWholeTrans : RuleProofs.eo_has_smt_translation
+      (bvExtractConcat1Whole x y xs) := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hWholeTy]
+    intro h
+    cases h
+  let tail := bvExtractConcat4Tail y xs
+  let tailElim := bvExtractConcat4TailElim y xs
+  have hTailList : __eo_is_list (Term.UOp UserOp.concat) tail =
+      Term.Boolean true := by
+    simpa [tail] using bv_extract_concat4_tail_is_list_true y xs hXsList
+  have hTailTy : __smtx_typeof (__eo_to_smt tail) =
+      SmtType.BitVec (wxs + wy) := by
+    simpa [tail] using smt_typeof_bv_extract_concat4_tail y xs wy wxs
+      hXsList hYTy hXsTy
+  have hTailElimTy : __smtx_typeof (__eo_to_smt tailElim) =
+      SmtType.BitVec (wxs + wy) := by
+    simpa [tailElim, bvExtractConcat4TailElim, tail] using
+      smt_typeof_bv_singleton_elim tail (wxs + wy) hTailList hTailTy
+  have hTailElimTrans : RuleProofs.eo_has_smt_translation tailElim := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hTailElimTy]
+    intro h
+    cases h
+  rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof (bvExtractConcat3Lhs x y xs i j))
+      (__eo_typeof (bvExtractConcat3Rhs y xs u l))
+      (by simpa [bvExtractConcat3Term] using hTermTy) with
+    ⟨hLhsNe, hRhsNe⟩
+  rcases bv_extract_context_of_non_stuck
+      (bvExtractConcat1Whole x y xs) j i hWholeTrans
+      (by simpa [bvExtractConcat3Lhs] using hLhsNe) with
+    ⟨wLhs, jv, iv, _hWholeEoTy, hJ, hI, hwLhs0, hi0,
+      hjw, hdLhs0, hWholeSmtTy⟩
+  rcases bv_extract_context_of_non_stuck tailElim u l hTailElimTrans
+      (by simpa [bvExtractConcat3Rhs, tailElim] using hRhsNe) with
+    ⟨wRhs, uv, lv, _hTailEoTy, hU, hL, hwRhs0, hl0,
+      huw, hdRhs0, hTailSmtTy⟩
+  subst j
+  subst i
+  subst u
+  subst l
+  rcases bvExtractConcat3_premises_numeric M x wx iv jv uv lv
+      hXTy hP1 hP2 hP3 with ⟨hwxi, hu, hl⟩
+  let L := native_int_to_nat lv
+  let d := native_zplus (native_zplus jv 1) (native_zneg iv)
+  let D := native_int_to_nat d
+  have hLRound : (↑L : Int) = lv := by
+    simpa [L, native_nat_to_int, SmtEval.native_nat_to_int] using
+      native_int_to_nat_roundtrip lv hl0
+  have hd0 : native_zleq 0 d = true :=
+    native_zleq_of_zlt_true _ _ hdLhs0
+  have hDRound : (↑D : Int) = d := by
+    simpa [D, native_nat_to_int, SmtEval.native_nat_to_int] using
+      native_int_to_nat_roundtrip d hd0
+  have hiCast : iv = (↑(wx + L) : Int) := by
+    have hlInt : lv = iv - (↑wx : Int) := by
+      simpa [SmtEval.native_zplus, SmtEval.native_zneg,
+        native_nat_to_int, SmtEval.native_nat_to_int,
+        Int.sub_eq_add_neg] using hl
+    rw [← Int.ofNat_add_ofNat, hLRound]
+    calc
+      iv = (iv - (↑wx : Int)) + ↑wx := (Int.sub_add_cancel iv _).symm
+      _ = lv + ↑wx := by rw [hlInt]
+      _ = ↑wx + lv := Int.add_comm _ _
+  have hdCast : jv + 1 + -iv = (↑D : Int) := by
+    rw [hDRound]
+    rfl
+  have huInt : uv = jv - (↑wx : Int) := by
+    simpa [SmtEval.native_zplus, SmtEval.native_zneg,
+      native_nat_to_int, SmtEval.native_nat_to_int,
+      Int.sub_eq_add_neg] using hu
+  have hlInt : lv = iv - (↑wx : Int) := by
+    simpa [SmtEval.native_zplus, SmtEval.native_zneg,
+      native_nat_to_int, SmtEval.native_nat_to_int,
+      Int.sub_eq_add_neg] using hl
+  have hdRCast : uv + 1 + -lv = (↑D : Int) := by
+    calc
+      uv + 1 + -lv = (jv - (↑wx : Int)) + 1 +
+          -(iv - (↑wx : Int)) := by rw [huInt, hlInt]
+      _ = jv + 1 + -iv := int_sub_shift_extract jv iv ↑wx
+      _ = ↑D := hdCast
+  have huwInt : uv < (↑(wxs + wy) : Int) := by
+    have hWidthEq : native_int_to_nat wRhs = wxs + wy := by
+      rw [hTailElimTy] at hTailSmtTy
+      simpa using hTailSmtTy.symm
+    have hWRound := native_int_to_nat_roundtrip wRhs hwRhs0
+    have hWInt : wRhs = (↑(wxs + wy) : Int) := by
+      calc
+        wRhs = native_nat_to_int (native_int_to_nat wRhs) := by
+          simpa [native_nat_to_int, SmtEval.native_nat_to_int] using
+            hWRound.symm
+        _ = (↑(wxs + wy) : Int) := by
+          rw [hWidthEq]
+          rfl
+    have : uv < wRhs := by simpa [SmtEval.native_zlt] using huw
+    rw [hWInt] at this
+    exact this
+  have hFitInt : (↑L : Int) + (↑D : Int) ≤
+      (↑(wxs + wy) : Int) := by
+    rw [hLRound, hDRound]
+    have hEnd : lv + d = uv + 1 := by
+      calc
+        lv + d = lv + (↑D : Int) := by rw [hDRound]
+        _ = lv + (uv + 1 + -lv) := by rw [hdRCast]
+        _ = uv + 1 := int_cancel_extract_start lv uv
+    rw [hEnd]
+    exact Int.add_one_le_iff.mpr huwInt
+  have hFit : L + D ≤ wxs + wy := by exact_mod_cast hFitInt
+  have hWholeEval := eval_bv_extract_concat_whole_append_elim M hM
+    x y xs wx wy wxs hXsList hXTy hYTy hXsTy
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt tailElim)
+      (wxs + wy) hTailElimTy with ⟨pt, hTailEval, hTailCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
+      wx hXTy with ⟨px, hXEval, hXCan⟩
+  have hWt0 : native_zleq 0 (native_nat_to_int (wxs + wy)) = true := by
+    have hNonneg : (0 : Int) ≤ ↑(wxs + wy) := Int.natCast_nonneg _
+    simpa [SmtEval.native_zleq, native_nat_to_int,
+      SmtEval.native_nat_to_int] using hNonneg
+  have hWx0 : native_zleq 0 (native_nat_to_int wx) = true := by
+    simp [SmtEval.native_zleq, native_nat_to_int,
+      SmtEval.native_nat_to_int]
+  have hTRange := bitvec_payload_range_of_canonical hWt0 hTailCan
+  have hXRange := bitvec_payload_range_of_canonical hWx0 hXCan
+  have hpt0 : 0 ≤ pt := hTRange.1
+  have hpt1 : pt < (2 : Int) ^ (wxs + wy) := by
+    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using
+      hTRange.2
+  have hpx0 : 0 ≤ px := hXRange.1
+  have hpx1 : px < (2 : Int) ^ wx := by
+    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using
+      hXRange.2
+  have hTailEval' : __smtx_model_eval M (__eo_to_smt tailElim) =
+      SmtValue.Binary (↑(wxs + wy) : Int) pt := by
+    simpa [native_nat_to_int, SmtEval.native_nat_to_int] using hTailEval
+  have hXEval' : __smtx_model_eval M (__eo_to_smt x) =
+      SmtValue.Binary (↑wx : Int) px := by
+    simpa [native_nat_to_int, SmtEval.native_nat_to_int] using hXEval
+  have hBool := typed_bv_extract_concat3_program_body x y xs
+    (Term.Numeral iv) (Term.Numeral jv) (Term.Numeral uv)
+    (Term.Numeral lv) hYTrans hXsTrans (by simpa using hPremBool) hBodyTy
+  rw [hBodyEq] at hBool
+  rw [hBodyEq]
+  unfold bvExtractConcat3Term
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · simpa [bvExtractConcat3Term] using hBool
+  · change RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (bvExtractConcat3Lhs x y xs (Term.Numeral iv)
+            (Term.Numeral jv))))
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (bvExtractConcat3Rhs y xs (Term.Numeral uv)
+            (Term.Numeral lv))))
+    unfold bvExtractConcat3Lhs bvExtractConcat3Rhs
+    rw [eval_extract_term, eval_extract_term, hWholeEval]
+    change RuleProofs.smt_value_rel
+      (__smtx_model_eval_extract (SmtValue.Numeral jv)
+        (SmtValue.Numeral iv)
+        (__smtx_model_eval_concat
+          (__smtx_model_eval M (__eo_to_smt tailElim))
+          (__smtx_model_eval M (__eo_to_smt x))))
+      (__smtx_model_eval_extract (SmtValue.Numeral uv)
+        (SmtValue.Numeral lv)
+        (__smtx_model_eval M (__eo_to_smt tailElim)))
+    rw [hTailEval', hXEval']
+    rw [extract_concat_high_val (wxs + wy) wx L D pt px jv iv uv lv
+      hpt0 hpt1 hpx0 hpx1 hiCast hdCast hLRound.symm hdRCast hFit]
     exact RuleProofs.smt_value_rel_refl _

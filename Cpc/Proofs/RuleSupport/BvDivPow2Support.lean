@@ -847,6 +847,222 @@ private theorem native_int_pow2_lt_of_lt_nonneg_div
     native_zexp_total, if_neg hnotW, if_neg hnotK]
   exact_mod_cast hPowNat
 
+private theorem native_int_pow2_add_of_nonneg_div
+    {a b : native_Int} (ha : 0 ≤ a) (hb : 0 ≤ b) :
+    native_int_pow2 (a + b) =
+      native_int_pow2 a * native_int_pow2 b := by
+  have hna : ¬ a < 0 := Int.not_lt_of_ge ha
+  have hnb : ¬ b < 0 := Int.not_lt_of_ge hb
+  have hab : ¬ a + b < 0 := Int.not_lt_of_ge (Int.add_nonneg ha hb)
+  have hto : Int.toNat (a + b) = Int.toNat a + Int.toNat b :=
+    Int.toNat_add ha hb
+  rw [native_int_pow2, native_int_pow2, native_int_pow2,
+    native_zexp_total, native_zexp_total, native_zexp_total]
+  simp [hna, hnb, hab, hto]
+  exact Int.pow_add 2 (Int.toNat a) (Int.toNat b)
+
+private theorem bv_udiv_pow2_value_local
+    (W P N D p : native_Int)
+    (hW0 : 0 ≤ W) (hP0 : 0 ≤ P) (hD0 : 0 ≤ D)
+    (hDPos : 0 < D) (hPD : P + D = W) (hN : N = W - 1)
+    (hp0 : 0 ≤ p) (hpW : p < native_int_pow2 W) :
+    __smtx_model_eval_bvudiv
+        (SmtValue.Binary W p)
+        (__smtx_model_eval_int_to_bv
+          (SmtValue.Numeral W)
+          (SmtValue.Numeral (native_int_pow2 P))) =
+      __smtx_model_eval_concat
+        (__smtx_model_eval_int_to_bv
+          (SmtValue.Numeral P) (SmtValue.Numeral 0))
+        (__smtx_model_eval_concat
+          (__smtx_model_eval_extract
+            (SmtValue.Numeral N) (SmtValue.Numeral P)
+            (SmtValue.Binary W p))
+          (SmtValue.Binary 0 0)) := by
+  let q : native_Int := native_div_total p (native_int_pow2 P)
+  have hPW : P < W := by
+    calc
+      P < P + D := Int.lt_add_of_pos_right P hDPos
+      _ = W := hPD
+  have hPowPPos : 0 < native_int_pow2 P :=
+    native_int_pow2_pos_of_nonneg_div hP0
+  have hPowWPos : 0 < native_int_pow2 W :=
+    native_int_pow2_pos_of_nonneg_div hW0
+  have hPow : native_int_pow2 W =
+      native_int_pow2 P * native_int_pow2 D := by
+    rw [← hPD]
+    exact native_int_pow2_add_of_nonneg_div hP0 hD0
+  have hPowPLtW : native_int_pow2 P < native_int_pow2 W :=
+    native_int_pow2_lt_of_lt_nonneg_div hP0 hPW
+  have hPowPModW :
+      native_mod_total (native_int_pow2 P) (native_int_pow2 W) =
+        native_int_pow2 P := by
+    exact Int.emod_eq_of_lt (Int.le_of_lt hPowPPos) hPowPLtW
+  have hq0 : 0 ≤ q := by
+    dsimp [q, native_div_total]
+    exact Int.ediv_nonneg hp0 (Int.le_of_lt hPowPPos)
+  have hqD : q < native_int_pow2 D := by
+    dsimp [q, native_div_total]
+    apply Int.ediv_lt_of_lt_mul hPowPPos
+    rw [Int.mul_comm, ← hPow]
+    exact hpW
+  have hqW : q < native_int_pow2 W := by
+    have hDW : D ≤ W := by
+      calc
+        D ≤ P + D := Int.le_add_of_nonneg_left hP0
+        _ = W := hPD
+    exact Int.lt_of_lt_of_le hqD
+      (native_int_pow2_le_of_le_nonneg hD0 hDW)
+  have hqModD : native_mod_total q (native_int_pow2 D) = q := by
+    exact Int.emod_eq_of_lt hq0 hqD
+  have hqModW : native_mod_total q (native_int_pow2 W) = q := by
+    exact Int.emod_eq_of_lt hq0 hqW
+  have hZeroModP : native_mod_total 0 (native_int_pow2 P) = 0 := by
+    simp [native_mod_total]
+  have hPowZero : native_int_pow2 0 = 1 := by native_decide
+  have hWidthExtract : N + 1 + -P = D := by
+    rw [hN]
+    rw [Int.sub_add_cancel]
+    rw [← hPD]
+    calc
+      (P + D) + -P = (P + -P) + D := by ac_rfl
+      _ = 0 + D := by rw [Int.add_right_neg]
+      _ = D := Int.zero_add D
+  have hPowPNe : native_int_pow2 P ≠ 0 := Int.ne_of_gt hPowPPos
+  simp only [__smtx_model_eval_int_to_bv, __smtx_model_eval_bvudiv,
+    __smtx_model_eval_extract, __smtx_model_eval_concat,
+    native_binary_extract, native_binary_concat]
+  simp [native_ite, native_zeq, hPowPModW, hPowPNe, q,
+    native_zplus, native_zneg, native_zmult, hWidthExtract, hPD,
+    hPowZero, hZeroModP, hqModD, hqModW]
+
+private theorem smtx_eval_bvudiv_term_eq_div
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.bvudiv x y) =
+      __smtx_model_eval_bvudiv
+        (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem eval_bv_udiv_pow2_term
+    (M : SmtModel) (hM : model_total_typed M)
+    (x v n power nm : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation v ->
+    RuleProofs.eo_has_smt_translation n ->
+    RuleProofs.eo_has_smt_translation power ->
+    __eo_typeof (bvUdivPow2Term x v n power nm) = Term.Bool ->
+    eo_interprets M (bvPow2IspowPrem v) true ->
+    eo_interprets M (bvPow2GtOnePrem v) true ->
+    eo_interprets M (bvPow2PowerPrem v power) true ->
+    eo_interprets M (bvUdivPow2NmPrem n nm) true ->
+    __smtx_model_eval M (__eo_to_smt (bvUdivPow2Lhs x v n)) =
+      __smtx_model_eval M (__eo_to_smt (bvUdivPow2Rhs x power nm)) := by
+  intro hXTrans hVTrans hNTrans hPowerTrans hResultTy
+    hIspPrem hGtPrem hPowerPrem hNmPrem
+  rcases bv_udiv_pow2_context x v n power nm hXTrans hVTrans hNTrans
+      hPowerTrans hResultTy with
+    ⟨W, P, N, D, rfl, rfl, rfl, hW0, hP0, hNW, hD, hD0, hPD,
+      hXSmtTy, hVSmtTy⟩
+  rcases bv_udiv_pow2_premises_numeric M hM v W P N hVSmtTy
+      hIspPrem hGtPrem hPowerPrem hNmPrem with
+    ⟨V, hVEval, hVPow, hVOne, hN⟩
+  have hw0 : (0 : Int) ≤ W := by
+    simpa [SmtEval.native_zleq] using hW0
+  have hp0 : (0 : Int) ≤ P := by
+    simpa [SmtEval.native_zleq] using hP0
+  have hDNonneg : native_zleq 0 D = true :=
+    native_zleq_of_zlt_true _ _ hD0
+  have hd0 : (0 : Int) ≤ D := by
+    simpa [SmtEval.native_zleq] using hDNonneg
+  have hdPos : (0 : Int) < D := by
+    simpa [SmtEval.native_zlt] using hD0
+  have hpd : P + D = W := by
+    simpa [SmtEval.native_zplus] using hPD
+  have hn : N = W - 1 := by
+    simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hN
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
+      (native_int_to_nat W) hXSmtTy with ⟨p, hXEval, hCanonical⟩
+  have hRound := native_int_to_nat_roundtrip W hW0
+  have hXEval' :
+      __smtx_model_eval M (__eo_to_smt x) = SmtValue.Binary W p := by
+    simpa [hRound] using hXEval
+  have hCanonical' :
+      native_zeq p (native_mod_total p (native_int_pow2 W)) = true := by
+    simpa [hRound] using hCanonical
+  have hRange := bitvec_payload_range_of_canonical hW0 hCanonical'
+  have hConstEval :
+      __smtx_model_eval M
+          (__eo_to_smt (bvPow2Const v (Term.Numeral W))) =
+        __smtx_model_eval_int_to_bv
+          (SmtValue.Numeral W)
+          (SmtValue.Numeral (native_int_pow2 P)) := by
+    change __smtx_model_eval M
+        (SmtTerm.int_to_bv (SmtTerm.Numeral W) (__eo_to_smt v)) = _
+    rw [smtx_eval_int_to_bv_term_eq, hVEval, hVPow]
+    simp only [__smtx_model_eval]
+  have hZeroEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (bvPow2Const (Term.Numeral 0) (Term.Numeral P))) =
+        __smtx_model_eval_int_to_bv
+          (SmtValue.Numeral P) (SmtValue.Numeral 0) := by
+    change __smtx_model_eval M
+        (SmtTerm.int_to_bv (SmtTerm.Numeral P) (SmtTerm.Numeral 0)) = _
+    rw [smtx_eval_int_to_bv_term_eq]
+    simp only [__smtx_model_eval]
+  have hExtractEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (bvExtractTerm x (Term.Numeral N) (Term.Numeral P))) =
+        __smtx_model_eval_extract
+          (SmtValue.Numeral N) (SmtValue.Numeral P)
+          (SmtValue.Binary W p) := by
+    rw [eval_extract_term, hXEval']
+  change __smtx_model_eval M
+      (SmtTerm.bvudiv (__eo_to_smt x)
+        (__eo_to_smt (bvPow2Const v (Term.Numeral W)))) =
+    __smtx_model_eval M
+      (SmtTerm.concat
+        (__eo_to_smt
+          (bvPow2Const (Term.Numeral 0) (Term.Numeral P)))
+        (SmtTerm.concat
+          (__eo_to_smt
+            (bvExtractTerm x (Term.Numeral N) (Term.Numeral P)))
+          (SmtTerm.Binary 0 0)))
+  rw [smtx_eval_bvudiv_term_eq_div, hXEval', hConstEval,
+    smtx_eval_concat_term_eq, hZeroEval, smtx_eval_concat_term_eq,
+    hExtractEval]
+  simp only [__smtx_model_eval]
+  exact bv_udiv_pow2_value_local W P N D p hw0 hp0 hd0 hdPos hpd hn
+    hRange.1 hRange.2
+
+private theorem facts_bv_udiv_pow2_term
+    (M : SmtModel) (hM : model_total_typed M)
+    (x v n power nm : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation v ->
+    RuleProofs.eo_has_smt_translation n ->
+    RuleProofs.eo_has_smt_translation power ->
+    __eo_typeof (bvUdivPow2Term x v n power nm) = Term.Bool ->
+    eo_interprets M (bvPow2IspowPrem v) true ->
+    eo_interprets M (bvPow2GtOnePrem v) true ->
+    eo_interprets M (bvPow2PowerPrem v power) true ->
+    eo_interprets M (bvUdivPow2NmPrem n nm) true ->
+    eo_interprets M (bvUdivPow2Term x v n power nm) true := by
+  intro hXTrans hVTrans hNTrans hPowerTrans hResultTy
+    hIspPrem hGtPrem hPowerPrem hNmPrem
+  have hBool := typed_bv_udiv_pow2_term x v n power nm hXTrans hVTrans
+    hNTrans hPowerTrans hResultTy
+  unfold bvUdivPow2Term
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · simpa [bvUdivPow2Term] using hBool
+  · change RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (bvUdivPow2Lhs x v n)))
+      (__smtx_model_eval M (__eo_to_smt (bvUdivPow2Rhs x power nm)))
+    rw [eval_bv_udiv_pow2_term M hM x v n power nm hXTrans hVTrans
+      hNTrans hPowerTrans hResultTy hIspPrem hGtPrem hPowerPrem hNmPrem]
+    exact RuleProofs.smt_value_rel_refl _
+
 private theorem bv_urem_pow2_value_local
     (W A D Q p : native_Int)
     (hW0 : 0 ≤ W) (hA0 : 0 ≤ A) (hD0 : 0 ≤ D)
@@ -1277,3 +1493,201 @@ theorem facts_bv_urem_pow2_program
   rw [hProgramEq]
   exact facts_bv_urem_pow2_term M hM x v n nmp pm hXTrans hVTrans
     hNTrans hNmpTrans hTermTy hIspPrem hGtPrem hNmpPrem hPmPrem
+
+def bvUdivPow2Program
+    (x v n power nm P1 P2 P3 P4 : Term) : Term :=
+  __eo_prog_bv_udiv_pow2_not_one x v n power nm
+    (Proof.pf P1) (Proof.pf P2) (Proof.pf P3) (Proof.pf P4)
+
+private def bvUdivPow2Guard
+    (x v n power nm vRef1 vRef2 powerRef vRef3 nmRef nRef : Term) :
+    Term :=
+  __eo_and
+    (__eo_and
+      (__eo_and
+        (__eo_and
+          (__eo_and (__eo_eq v vRef1) (__eo_eq v vRef2))
+          (__eo_eq power powerRef))
+        (__eo_eq v vRef3))
+      (__eo_eq nm nmRef))
+    (__eo_eq n nRef)
+
+private theorem bv_udiv_pow2_guard_refs
+    {x v n power nm vRef1 vRef2 powerRef vRef3 nmRef nRef body : Term} :
+    __eo_requires
+        (bvUdivPow2Guard x v n power nm vRef1 vRef2 powerRef vRef3
+          nmRef nRef)
+        (Term.Boolean true) body ≠ Term.Stuck ->
+    vRef1 = v ∧ vRef2 = v ∧ powerRef = power ∧ vRef3 = v ∧
+      nmRef = nm ∧ nRef = n := by
+  intro hReq
+  have hGuard := support_eo_requires_cond_eq_of_non_stuck hReq
+  unfold bvUdivPow2Guard at hGuard
+  rcases pow2_and_true hGuard with ⟨hG5, hN⟩
+  rcases pow2_and_true hG5 with ⟨hG4, hNm⟩
+  rcases pow2_and_true hG4 with ⟨hG3, hV3⟩
+  rcases pow2_and_true hG3 with ⟨hG2, hPower⟩
+  rcases pow2_and_true hG2 with ⟨hV1, hV2⟩
+  exact ⟨support_eq_of_eo_eq_true v vRef1 hV1,
+    support_eq_of_eo_eq_true v vRef2 hV2,
+    support_eq_of_eo_eq_true power powerRef hPower,
+    support_eq_of_eo_eq_true v vRef3 hV3,
+    support_eq_of_eo_eq_true nm nmRef hNm,
+    support_eq_of_eo_eq_true n nRef hN⟩
+
+private theorem bv_udiv_pow2_premise_shape
+    (x v n power nm P1 P2 P3 P4 : Term) :
+    x ≠ Term.Stuck -> v ≠ Term.Stuck -> n ≠ Term.Stuck ->
+    power ≠ Term.Stuck -> nm ≠ Term.Stuck ->
+    bvUdivPow2Program x v n power nm P1 P2 P3 P4 ≠ Term.Stuck ->
+    ∃ vRef1 vRef2 powerRef vRef3 nmRef nRef,
+      P1 = bvPow2IspowPrem vRef1 ∧
+      P2 = bvPow2GtOnePrem vRef2 ∧
+      P3 = bvPow2PowerPrem vRef3 powerRef ∧
+      P4 = bvUdivPow2NmPrem nRef nmRef := by
+  intro hX hV hN hPower hNm hProg
+  by_cases hShape :
+      ∃ vRef1 vRef2 powerRef vRef3 nmRef nRef,
+        P1 = bvPow2IspowPrem vRef1 ∧
+        P2 = bvPow2GtOnePrem vRef2 ∧
+        P3 = bvPow2PowerPrem vRef3 powerRef ∧
+        P4 = bvUdivPow2NmPrem nRef nmRef
+  · exact hShape
+  · exfalso
+    apply hProg
+    exact __eo_prog_bv_udiv_pow2_not_one.eq_7 x v n power nm
+      (Proof.pf P1) (Proof.pf P2) (Proof.pf P3) (Proof.pf P4)
+      hX hV hN hPower hNm (by
+        intro vRef1 vRef2 powerRef vRef3 nmRef nRef hP1 hP2 hP3 hP4
+        cases hP1
+        cases hP2
+        cases hP3
+        cases hP4
+        exact hShape
+          ⟨vRef1, vRef2, powerRef, vRef3, nmRef, nRef,
+            rfl, rfl, rfl, rfl⟩)
+
+private theorem bv_udiv_pow2_program_canonical
+    (x v n power nm : Term) :
+    x ≠ Term.Stuck -> v ≠ Term.Stuck -> n ≠ Term.Stuck ->
+    power ≠ Term.Stuck -> nm ≠ Term.Stuck ->
+    bvUdivPow2Program x v n power nm
+        (bvPow2IspowPrem v) (bvPow2GtOnePrem v)
+        (bvPow2PowerPrem v power) (bvUdivPow2NmPrem n nm) =
+      bvUdivPow2Term x v n power nm := by
+  intro hX hV hN hPower hNm
+  unfold bvUdivPow2Program bvPow2IspowPrem bvPow2GtOnePrem
+    bvPow2PowerPrem bvUdivPow2NmPrem
+  rw [__eo_prog_bv_udiv_pow2_not_one.eq_6 x v n power nm
+    v v power v nm n hX hV hN hPower hNm]
+  simp [bvUdivPow2Term, bvUdivPow2Lhs, bvUdivPow2Rhs, bvPow2Const,
+    bvExtractTerm, __eo_requires, __eo_and, __eo_eq, native_ite,
+    native_teq, native_not, native_and, hX, hV, hN, hPower, hNm]
+
+private theorem bvUdivPow2Program_normalize
+    (x v n power nm P1 P2 P3 P4 : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation v ->
+    RuleProofs.eo_has_smt_translation n ->
+    RuleProofs.eo_has_smt_translation power ->
+    RuleProofs.eo_has_smt_translation nm ->
+    bvUdivPow2Program x v n power nm P1 P2 P3 P4 ≠ Term.Stuck ->
+    P1 = bvPow2IspowPrem v ∧
+      P2 = bvPow2GtOnePrem v ∧
+      P3 = bvPow2PowerPrem v power ∧
+      P4 = bvUdivPow2NmPrem n nm ∧
+      bvUdivPow2Program x v n power nm P1 P2 P3 P4 =
+        bvUdivPow2Term x v n power nm := by
+  intro hXTrans hVTrans hNTrans hPowerTrans hNmTrans hProg
+  have hX := RuleProofs.term_ne_stuck_of_has_smt_translation x hXTrans
+  have hV := RuleProofs.term_ne_stuck_of_has_smt_translation v hVTrans
+  have hN := RuleProofs.term_ne_stuck_of_has_smt_translation n hNTrans
+  have hPower :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation power hPowerTrans
+  have hNm := RuleProofs.term_ne_stuck_of_has_smt_translation nm hNmTrans
+  rcases bv_udiv_pow2_premise_shape x v n power nm P1 P2 P3 P4
+      hX hV hN hPower hNm hProg with
+    ⟨vRef1, vRef2, powerRef, vRef3, nmRef, nRef,
+      hP1, hP2, hP3, hP4⟩
+  have hReq := hProg
+  rw [hP1, hP2, hP3, hP4] at hReq
+  unfold bvUdivPow2Program bvPow2IspowPrem bvPow2GtOnePrem
+    bvPow2PowerPrem bvUdivPow2NmPrem at hReq
+  rw [__eo_prog_bv_udiv_pow2_not_one.eq_6 x v n power nm
+    vRef1 vRef2 powerRef vRef3 nmRef nRef
+    hX hV hN hPower hNm] at hReq
+  rcases bv_udiv_pow2_guard_refs
+      (x := x) (v := v) (n := n) (power := power) (nm := nm)
+      (vRef1 := vRef1) (vRef2 := vRef2) (powerRef := powerRef)
+      (vRef3 := vRef3) (nmRef := nmRef) (nRef := nRef)
+      (by simpa [bvUdivPow2Guard] using hReq) with
+    ⟨hv1, hv2, hpower, hv3, hnm, hn⟩
+  subst vRef1
+  subst vRef2
+  subst powerRef
+  subst vRef3
+  subst nmRef
+  subst nRef
+  refine ⟨hP1, hP2, hP3, hP4, ?_⟩
+  rw [hP1, hP2, hP3, hP4]
+  exact bv_udiv_pow2_program_canonical x v n power nm
+    hX hV hN hPower hNm
+
+theorem typed_bv_udiv_pow2_program
+    (x v n power nm P1 P2 P3 P4 : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation v ->
+    RuleProofs.eo_has_smt_translation n ->
+    RuleProofs.eo_has_smt_translation power ->
+    RuleProofs.eo_has_smt_translation nm ->
+    __eo_typeof (bvUdivPow2Program x v n power nm P1 P2 P3 P4) =
+      Term.Bool ->
+    RuleProofs.eo_has_bool_type
+      (bvUdivPow2Program x v n power nm P1 P2 P3 P4) := by
+  intro hXTrans hVTrans hNTrans hPowerTrans hNmTrans hResultTy
+  have hProg := term_ne_stuck_of_typeof_bool hResultTy
+  rcases bvUdivPow2Program_normalize x v n power nm P1 P2 P3 P4
+      hXTrans hVTrans hNTrans hPowerTrans hNmTrans hProg with
+    ⟨_hP1, _hP2, _hP3, _hP4, hProgramEq⟩
+  have hTermTy :
+      __eo_typeof (bvUdivPow2Term x v n power nm) = Term.Bool := by
+    rw [← hProgramEq]
+    exact hResultTy
+  rw [hProgramEq]
+  exact typed_bv_udiv_pow2_term x v n power nm hXTrans hVTrans
+    hNTrans hPowerTrans hTermTy
+
+theorem facts_bv_udiv_pow2_program
+    (M : SmtModel) (hM : model_total_typed M)
+    (x v n power nm P1 P2 P3 P4 : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation v ->
+    RuleProofs.eo_has_smt_translation n ->
+    RuleProofs.eo_has_smt_translation power ->
+    RuleProofs.eo_has_smt_translation nm ->
+    __eo_typeof (bvUdivPow2Program x v n power nm P1 P2 P3 P4) =
+      Term.Bool ->
+    eo_interprets M P1 true -> eo_interprets M P2 true ->
+    eo_interprets M P3 true -> eo_interprets M P4 true ->
+    eo_interprets M (bvUdivPow2Program x v n power nm P1 P2 P3 P4) true := by
+  intro hXTrans hVTrans hNTrans hPowerTrans hNmTrans hResultTy
+    hP1True hP2True hP3True hP4True
+  have hProg := term_ne_stuck_of_typeof_bool hResultTy
+  rcases bvUdivPow2Program_normalize x v n power nm P1 P2 P3 P4
+      hXTrans hVTrans hNTrans hPowerTrans hNmTrans hProg with
+    ⟨hP1, hP2, hP3, hP4, hProgramEq⟩
+  have hTermTy :
+      __eo_typeof (bvUdivPow2Term x v n power nm) = Term.Bool := by
+    rw [← hProgramEq]
+    exact hResultTy
+  have hIspPrem : eo_interprets M (bvPow2IspowPrem v) true := by
+    simpa [hP1] using hP1True
+  have hGtPrem : eo_interprets M (bvPow2GtOnePrem v) true := by
+    simpa [hP2] using hP2True
+  have hPowerPrem : eo_interprets M (bvPow2PowerPrem v power) true := by
+    simpa [hP3] using hP3True
+  have hNmPrem : eo_interprets M (bvUdivPow2NmPrem n nm) true := by
+    simpa [hP4] using hP4True
+  rw [hProgramEq]
+  exact facts_bv_udiv_pow2_term M hM x v n power nm hXTrans hVTrans
+    hNTrans hPowerTrans hTermTy hIspPrem hGtPrem hPowerPrem hNmPrem
