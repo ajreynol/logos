@@ -1,19 +1,15 @@
 module
 
 public import Cpc.Proofs.Translation.Datatypes
-import all Cpc.Proofs.Translation.Datatypes
 public import Cpc.Proofs.Translation.Quantifiers
-import all Cpc.Proofs.Translation.Quantifiers
 public import Cpc.Proofs.Translation.Special
-import all Cpc.Proofs.Translation.Special
 public import Cpc.Proofs.Translation.Inversions
-import all Cpc.Proofs.Translation.Inversions
 public import Cpc.Proofs.Translation.Heads
-import all Cpc.Proofs.Translation.Heads
 public import Cpc.Proofs.Translation.EoTypeofCore
-import all Cpc.Proofs.Translation.EoTypeofCore
 public import Cpc.Proofs.TypePreservation.Full
-import all Cpc.Proofs.TypePreservation.Full
+import all Cpc.Spec
+import all Cpc.Proofs.TypePreservation.Datatypes
+import all Cpc.Proofs.Translation.SmtFreeRefs
 
 public section
 

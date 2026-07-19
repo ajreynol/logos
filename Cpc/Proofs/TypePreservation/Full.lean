@@ -1,17 +1,12 @@
 module
 
 public import Cpc.Proofs.Canonical.Ops
-import all Cpc.Proofs.Canonical.Ops
 public import Cpc.Proofs.TypePreservation.BitVec
-import all Cpc.Proofs.TypePreservation.BitVec
 public import Cpc.Proofs.TypePreservation.CoreArith
-import all Cpc.Proofs.TypePreservation.CoreArith
 public import Cpc.Proofs.TypePreservation.Datatypes
-import all Cpc.Proofs.TypePreservation.Datatypes
 public import Cpc.Proofs.TypePreservation.Sets
-import all Cpc.Proofs.TypePreservation.Sets
 public import Cpc.Proofs.TypePreservation.SeqStringRegex
-import all Cpc.Proofs.TypePreservation.SeqStringRegex
+import all Cpc.Proofs.TypePreservation.Common
 
 public section
 
@@ -2603,7 +2598,7 @@ private theorem bool_unop_arg_of_non_none
     simp [hTy, native_ite, native_Teq, h] at ht
   simp
 
-def type_has_no_none_components : SmtType -> Prop
+@[expose] def type_has_no_none_components : SmtType -> Prop
   | SmtType.None => False
   | SmtType.TypeRef _ => False
   | SmtType.Seq A => type_has_no_none_components A

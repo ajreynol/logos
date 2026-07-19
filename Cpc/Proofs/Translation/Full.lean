@@ -1,7 +1,7 @@
 module
 
 public import Cpc.Proofs.Translation.Apply
-import all Cpc.Proofs.Translation.Apply
+import all Cpc.Proofs.TypePreservation.Common
 
 public section
 

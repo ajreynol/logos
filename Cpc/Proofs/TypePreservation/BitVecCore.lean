@@ -1,7 +1,8 @@
 module
 
 public import Cpc.Proofs.TypePreservation.BitVecPrep
-import all Cpc.Proofs.TypePreservation.BitVecPrep
+import all Cpc.SmtModel
+import all Cpc.Proofs.TypePreservation.Common
 
 public section
 

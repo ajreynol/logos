@@ -1,7 +1,8 @@
 module
 
 public import Cpc.Proofs.Translation.Base
-import all Cpc.Proofs.Translation.Base
+import all Cpc.Spec
+import all Cpc.Logos
 
 public section
 

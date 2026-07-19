@@ -1,7 +1,7 @@
 module
 
 public import Cpc.Proofs.Translation.EoTypeofCore
-import all Cpc.Proofs.Translation.EoTypeofCore
+import all Cpc.Proofs.TypePreservation.Common
 
 public section
 

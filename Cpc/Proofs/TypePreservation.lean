@@ -1,7 +1,6 @@
 module
 
 public import Cpc.Proofs.TypePreservation.Full
-import all Cpc.Proofs.TypePreservation.Full
 
 public section
 
