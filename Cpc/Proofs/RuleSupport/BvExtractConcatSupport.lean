@@ -4010,6 +4010,14 @@ theorem bvConcat_singleton_elim_eval_eq
       __smtx_model_eval M (__eo_to_smt c) :=
   bvConcatSingletonElimEvalEq M hM c w
 
+theorem bvConcat_eval_right_empty
+    (M : SmtModel) (hM : model_total_typed M) (x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt (bvConcatTerm x (Term.Binary 0 0))) =
+      __smtx_model_eval M (__eo_to_smt x) :=
+  bvConcat_right_empty_eval_eq M hM x w
+
 private theorem eval_bv_extract_concat_whole_append_elim
     (M : SmtModel) (hM : model_total_typed M)
     (x y xs : Term) (wx wy wxs : Nat) :
@@ -4809,3 +4817,264 @@ theorem facts_bv_extract_concat3_program_body
     rw [extract_concat_high_val (wxs + wy) wx L D pt px jv iv uv lv
       hpt0 hpt1 hpx0 hpx1 hiCast hdCast hLRound.symm hdRCast hFit]
     exact RuleProofs.smt_value_rel_refl _
+
+/-! Full-component projections used by the concat-pullup rules. -/
+
+theorem bvConcat_bvsize_smt_type_inv (t : Term) :
+    __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) t)) =
+      SmtType.Int ->
+    ∃ w, __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w :=
+  smt_typeof_bvsize_int_inv t
+
+theorem bvConcat_bvsize_smt_type_of_non_none (t : Term) :
+    __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) t)) ≠
+      SmtType.None ->
+    ∃ w,
+      __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ∧
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) t)) =
+        SmtType.Int := by
+  intro hNN
+  change __smtx_typeof
+      (native_ite
+        (native_zleq 0
+          (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt t))))
+        (SmtTerm._at_purify
+          (SmtTerm.Numeral
+            (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt t)))))
+        SmtTerm.None) ≠ SmtType.None at hNN
+  have hInt : __smtx_typeof
+      (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) t)) =
+        SmtType.Int := by
+    change __smtx_typeof
+        (native_ite
+          (native_zleq 0
+            (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt t))))
+          (SmtTerm._at_purify
+            (SmtTerm.Numeral
+              (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt t)))))
+          SmtTerm.None) = SmtType.Int
+    generalize hT : __smtx_typeof (__eo_to_smt t) = T at hNN ⊢
+    cases T <;>
+      simp [__smtx_bv_sizeof_type, SmtEval.native_zleq,
+        SmtEval.native_zneg, native_nat_to_int,
+        SmtEval.native_nat_to_int, native_ite, __smtx_typeof] at hNN ⊢
+  rcases smt_typeof_bvsize_int_inv t hInt with ⟨w, hTy⟩
+  exact ⟨w, hTy, hInt⟩
+
+theorem bvConcat_smt_typeof_neg_int_args (a b : SmtTerm) :
+    __smtx_typeof (SmtTerm.neg a b) = SmtType.Int ->
+    __smtx_typeof a = SmtType.Int ∧ __smtx_typeof b = SmtType.Int :=
+  smt_typeof_neg_int_args a b
+
+theorem bvConcat_eval_bvsize_of_smt_bitvec_nat
+    (M : SmtModel) (x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x)) =
+      SmtValue.Numeral (native_nat_to_int w) :=
+  eval_bvsize_of_smt_bitvec_nat M x w
+
+theorem bvConcat_model_eval_eq_true_of_eo_eq_true
+    (M : SmtModel) (x y : Term) :
+    eo_interprets M
+        (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) true ->
+    __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt x))
+      (__smtx_model_eval M (__eo_to_smt y)) =
+        SmtValue.Boolean true :=
+  model_eval_eq_true_of_eo_eq_true M x y
+
+theorem bvConcat_extract_low_full_value
+    (A B : Nat) (a b : Int)
+    (ha0 : 0 ≤ a) (ha1 : a < (2 : Int) ^ A)
+    (hb0 : 0 ≤ b) (hb1 : b < (2 : Int) ^ B)
+    (hB : 0 < B) :
+    __smtx_model_eval_extract (SmtValue.Numeral ↑(B - 1))
+        (SmtValue.Numeral 0)
+        (__smtx_model_eval_concat
+          (SmtValue.Binary ↑A a) (SmtValue.Binary ↑B b)) =
+      SmtValue.Binary ↑B b := by
+  let ba : BitVec A := BitVec.ofInt A a
+  let bb : BitVec B := BitVec.ofInt B b
+  have hBa : (↑ba.toNat : Int) = a := by
+    rw [show ba.toNat = a.toNat by
+      exact ofInt_toNat_canonical A a ha0 ha1]
+    exact Int.toNat_of_nonneg ha0
+  have hBb : (↑bb.toNat : Int) = b := by
+    rw [show bb.toNat = b.toNat by
+      exact ofInt_toNat_canonical B b hb0 hb1]
+    exact Int.toNat_of_nonneg hb0
+  rw [← hBa, ← hBb, concat_bitvec_values]
+  have hApp0 : (0 : Int) ≤ (↑(ba ++ bb).toNat : Int) :=
+    Int.natCast_nonneg _
+  have hApp1 : (↑(ba ++ bb).toNat : Int) < (2 : Int) ^ (A + B) := by
+    exact_mod_cast (ba ++ bb).isLt
+  rw [extract_val_bitvec_start_len (A + B) 0 B
+    (↑(ba ++ bb).toNat : Int) (↑(B - 1) : Int) 0 hApp0 hApp1
+    (by rfl) (by norm_cast; omega)]
+  congr 2
+  rw [bitvec_ofInt_natCast_toNat (ba ++ bb),
+    BitVec.extractLsb'_append_eq_right]
+
+theorem bvConcat_extract_high_full_value
+    (A B : Nat) (a b : Int)
+    (ha0 : 0 ≤ a) (ha1 : a < (2 : Int) ^ A)
+    (hb0 : 0 ≤ b) (hb1 : b < (2 : Int) ^ B)
+    (hA : 0 < A) :
+    __smtx_model_eval_extract (SmtValue.Numeral ↑(A + B - 1))
+        (SmtValue.Numeral ↑B)
+        (__smtx_model_eval_concat
+          (SmtValue.Binary ↑A a) (SmtValue.Binary ↑B b)) =
+      SmtValue.Binary ↑A a := by
+  let ba : BitVec A := BitVec.ofInt A a
+  let bb : BitVec B := BitVec.ofInt B b
+  have hBa : (↑ba.toNat : Int) = a := by
+    rw [show ba.toNat = a.toNat by
+      exact ofInt_toNat_canonical A a ha0 ha1]
+    exact Int.toNat_of_nonneg ha0
+  have hBb : (↑bb.toNat : Int) = b := by
+    rw [show bb.toNat = b.toNat by
+      exact ofInt_toNat_canonical B b hb0 hb1]
+    exact Int.toNat_of_nonneg hb0
+  rw [← hBa, ← hBb, concat_bitvec_values]
+  have hApp0 : (0 : Int) ≤ (↑(ba ++ bb).toNat : Int) :=
+    Int.natCast_nonneg _
+  have hApp1 : (↑(ba ++ bb).toNat : Int) < (2 : Int) ^ (A + B) := by
+    exact_mod_cast (ba ++ bb).isLt
+  rw [extract_val_bitvec_start_len (A + B) B A
+    (↑(ba ++ bb).toNat : Int) (↑(A + B - 1) : Int) ↑B hApp0 hApp1
+    (by rfl) (by norm_cast; omega)]
+  congr 2
+  rw [bitvec_ofInt_natCast_toNat (ba ++ bb),
+    BitVec.extractLsb'_append_eq_left]
+
+theorem bvConcat_extract_mid_three_value
+    (A B C : Nat) (a b c : Int)
+    (ha0 : 0 ≤ a) (ha1 : a < (2 : Int) ^ A)
+    (hb0 : 0 ≤ b) (hb1 : b < (2 : Int) ^ B)
+    (hc0 : 0 ≤ c) (hc1 : c < (2 : Int) ^ C)
+    (hB : 0 < B) :
+    __smtx_model_eval_extract (SmtValue.Numeral ↑(B + C - 1))
+        (SmtValue.Numeral ↑C)
+        (__smtx_model_eval_concat (SmtValue.Binary ↑A a)
+          (__smtx_model_eval_concat
+            (SmtValue.Binary ↑B b) (SmtValue.Binary ↑C c))) =
+      SmtValue.Binary ↑B b := by
+  let ba : BitVec A := BitVec.ofInt A a
+  let bb : BitVec B := BitVec.ofInt B b
+  let bc : BitVec C := BitVec.ofInt C c
+  have hBa : (↑ba.toNat : Int) = a := by
+    rw [show ba.toNat = a.toNat by
+      exact ofInt_toNat_canonical A a ha0 ha1]
+    exact Int.toNat_of_nonneg ha0
+  have hBb : (↑bb.toNat : Int) = b := by
+    rw [show bb.toNat = b.toNat by
+      exact ofInt_toNat_canonical B b hb0 hb1]
+    exact Int.toNat_of_nonneg hb0
+  have hBc : (↑bc.toNat : Int) = c := by
+    rw [show bc.toNat = c.toNat by
+      exact ofInt_toNat_canonical C c hc0 hc1]
+    exact Int.toNat_of_nonneg hc0
+  rw [← hBa, ← hBb, ← hBc, concat_bitvec_values,
+    concat_bitvec_values]
+  have hApp0 : (0 : Int) ≤ (↑(ba ++ (bb ++ bc)).toNat : Int) :=
+    Int.natCast_nonneg _
+  have hApp1 : (↑(ba ++ (bb ++ bc)).toNat : Int) <
+      (2 : Int) ^ (A + (B + C)) := by
+    exact_mod_cast (ba ++ (bb ++ bc)).isLt
+  rw [extract_val_bitvec_start_len (A + (B + C)) C B
+    (↑(ba ++ (bb ++ bc)).toNat : Int) (↑(B + C - 1) : Int)
+    (↑C : Int) hApp0 hApp1 (by rfl) (by norm_cast; omega)]
+  congr 2
+  rw [bitvec_ofInt_natCast_toNat (ba ++ (bb ++ bc))]
+  exact congrArg BitVec.toNat ((extractLsb'_append_low
+    (x := ba) (y := bb ++ bc) (L := C) (D := B) (by omega)).trans
+      BitVec.extractLsb'_append_eq_left)
+
+theorem bvConcat_extract_high_three_value
+    (A B C : Nat) (a b c : Int)
+    (ha0 : 0 ≤ a) (ha1 : a < (2 : Int) ^ A)
+    (hb0 : 0 ≤ b) (hb1 : b < (2 : Int) ^ B)
+    (hc0 : 0 ≤ c) (hc1 : c < (2 : Int) ^ C)
+    (hA : 0 < A) :
+    __smtx_model_eval_extract (SmtValue.Numeral ↑(A + B + C - 1))
+        (SmtValue.Numeral ↑(B + C))
+        (__smtx_model_eval_concat (SmtValue.Binary ↑A a)
+          (__smtx_model_eval_concat
+            (SmtValue.Binary ↑B b) (SmtValue.Binary ↑C c))) =
+      SmtValue.Binary ↑A a := by
+  let ba : BitVec A := BitVec.ofInt A a
+  let bb : BitVec B := BitVec.ofInt B b
+  let bc : BitVec C := BitVec.ofInt C c
+  have hBa : (↑ba.toNat : Int) = a := by
+    rw [show ba.toNat = a.toNat by
+      exact ofInt_toNat_canonical A a ha0 ha1]
+    exact Int.toNat_of_nonneg ha0
+  have hBb : (↑bb.toNat : Int) = b := by
+    rw [show bb.toNat = b.toNat by
+      exact ofInt_toNat_canonical B b hb0 hb1]
+    exact Int.toNat_of_nonneg hb0
+  have hBc : (↑bc.toNat : Int) = c := by
+    rw [show bc.toNat = c.toNat by
+      exact ofInt_toNat_canonical C c hc0 hc1]
+    exact Int.toNat_of_nonneg hc0
+  rw [← hBa, ← hBb, ← hBc, concat_bitvec_values,
+    concat_bitvec_values]
+  have hApp0 : (0 : Int) ≤ (↑(ba ++ (bb ++ bc)).toNat : Int) :=
+    Int.natCast_nonneg _
+  have hApp1 : (↑(ba ++ (bb ++ bc)).toNat : Int) <
+      (2 : Int) ^ (A + (B + C)) := by
+    exact_mod_cast (ba ++ (bb ++ bc)).isLt
+  rw [extract_val_bitvec_start_len (A + (B + C)) (B + C) A
+    (↑(ba ++ (bb ++ bc)).toNat : Int) (↑(A + B + C - 1) : Int)
+    (↑(B + C) : Int) hApp0 hApp1 (by rfl) (by norm_cast; omega)]
+  congr 2
+  rw [bitvec_ofInt_natCast_toNat (ba ++ (bb ++ bc))]
+  exact congrArg BitVec.toNat BitVec.extractLsb'_append_eq_left
+
+theorem bvConcat_extract_low_three_value
+    (A B C : Nat) (a b c : Int)
+    (ha0 : 0 ≤ a) (ha1 : a < (2 : Int) ^ A)
+    (hb0 : 0 ≤ b) (hb1 : b < (2 : Int) ^ B)
+    (hc0 : 0 ≤ c) (hc1 : c < (2 : Int) ^ C)
+    (hC : 0 < C) :
+    __smtx_model_eval_extract (SmtValue.Numeral ↑(C - 1))
+        (SmtValue.Numeral 0)
+        (__smtx_model_eval_concat (SmtValue.Binary ↑A a)
+          (__smtx_model_eval_concat
+            (SmtValue.Binary ↑B b) (SmtValue.Binary ↑C c))) =
+      SmtValue.Binary ↑C c := by
+  let ba : BitVec A := BitVec.ofInt A a
+  let bb : BitVec B := BitVec.ofInt B b
+  let bc : BitVec C := BitVec.ofInt C c
+  have hBa : (↑ba.toNat : Int) = a := by
+    rw [show ba.toNat = a.toNat by
+      exact ofInt_toNat_canonical A a ha0 ha1]
+    exact Int.toNat_of_nonneg ha0
+  have hBb : (↑bb.toNat : Int) = b := by
+    rw [show bb.toNat = b.toNat by
+      exact ofInt_toNat_canonical B b hb0 hb1]
+    exact Int.toNat_of_nonneg hb0
+  have hBc : (↑bc.toNat : Int) = c := by
+    rw [show bc.toNat = c.toNat by
+      exact ofInt_toNat_canonical C c hc0 hc1]
+    exact Int.toNat_of_nonneg hc0
+  rw [← hBa, ← hBb, ← hBc, concat_bitvec_values,
+    concat_bitvec_values]
+  have hApp0 : (0 : Int) ≤ (↑(ba ++ (bb ++ bc)).toNat : Int) :=
+    Int.natCast_nonneg _
+  have hApp1 : (↑(ba ++ (bb ++ bc)).toNat : Int) <
+      (2 : Int) ^ (A + (B + C)) := by
+    exact_mod_cast (ba ++ (bb ++ bc)).isLt
+  rw [extract_val_bitvec_start_len (A + (B + C)) 0 C
+    (↑(ba ++ (bb ++ bc)).toNat : Int) (↑(C - 1) : Int) 0
+    hApp0 hApp1 (by rfl) (by norm_cast; omega)]
+  congr 2
+  rw [bitvec_ofInt_natCast_toNat (ba ++ (bb ++ bc))]
+  have hOuter := extractLsb'_append_low
+    (x := ba) (y := bb ++ bc) (L := 0) (D := C) (by omega)
+  have hInner : (bb ++ bc).extractLsb' 0 C = bc :=
+    BitVec.extractLsb'_append_eq_right
+  exact congrArg BitVec.toNat (hOuter.trans hInner)
