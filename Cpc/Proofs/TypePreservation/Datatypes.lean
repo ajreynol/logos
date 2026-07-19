@@ -376,6 +376,18 @@ def vsm_num_apply_args : SmtValue -> Nat
   | SmtValue.Apply f _ => Nat.succ (vsm_num_apply_args f)
   | _ => 0
 
+/-- A bare datatype constructor value has no applied arguments. -/
+theorem vsm_num_apply_args_dt_cons
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    vsm_num_apply_args (SmtValue.DtCons s d i) = 0 := by
+  rfl
+
+/-- An application value has one more applied argument than its head. -/
+theorem vsm_num_apply_args_apply (f x : SmtValue) :
+    vsm_num_apply_args (SmtValue.Apply f x) =
+      Nat.succ (vsm_num_apply_args f) := by
+  rfl
+
 /-- Lemma about `dtc_num_sels_substitute`. -/
 theorem dtc_num_sels_substitute
     (s : native_String)

@@ -1039,7 +1039,7 @@ theorem setof_parts {L : Term}
 theorem map_canonical_default (A : SmtType) :
     __smtx_map_canonical (SmtMap.default A (SmtValue.Boolean false)) = true := by
   simp only [__smtx_map_canonical, __smtx_map_default_canonical, __smtx_value_canonical_bool,
-    __smtx_typeof_value, __smtx_type_default, native_veq, native_and, decide_true,
+    __smtx_typeof_value, __smtx_type_default, native_veq, native_and,
     Bool.and_true]
   cases __smtx_is_finite_type A <;> first | rfl | native_decide
 

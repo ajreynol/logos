@@ -208,7 +208,7 @@ theorem zleq_of_geq_premise (M : SmtModel) (x y : Term) (a b : Int)
         SmtValue.Boolean (native_zleq b a) := by
     change __smtx_model_eval M (SmtTerm.geq (__eo_to_smt x) (__eo_to_smt y)) = _
     rw [hx, hy]
-    simp only [__smtx_model_eval, eval_smt_numeral, __smtx_model_eval_geq,
+    simp only [__smtx_model_eval, __smtx_model_eval_geq,
       __smtx_model_eval_leq]
   have hEvalTrue :
       __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) = SmtValue.Boolean true := by

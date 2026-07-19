@@ -382,13 +382,11 @@ private theorem mtTangent_true_has_bool_type_of_smt_type
   rw [eo_to_smt_mtTangent_true]
   rcases hT with rfl | rfl
   · simp [smtTangentFormula, __smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
-      typeof_eq_eq, typeof_geq_eq, typeof_leq_eq, typeof_mult_eq, typeof_neg_eq,
-      typeof_plus_eq, typeof_or_eq, typeof_and_eq,
+      typeof_eq_eq,
       __smtx_typeof_arith_overload_op_2, __smtx_typeof_arith_overload_op_2_ret,
       hOne, hZero, hX, hY, hA, hB, native_ite, native_Teq]
   · simp [smtTangentFormula, __smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
-      typeof_eq_eq, typeof_geq_eq, typeof_leq_eq, typeof_mult_eq, typeof_neg_eq,
-      typeof_plus_eq, typeof_or_eq, typeof_and_eq,
+      typeof_eq_eq,
       __smtx_typeof_arith_overload_op_2, __smtx_typeof_arith_overload_op_2_ret,
       hOne, hZero, hX, hY, hA, hB, native_ite, native_Teq]
 
@@ -407,13 +405,11 @@ private theorem mtTangent_false_has_bool_type_of_smt_type
   rw [eo_to_smt_mtTangent_false]
   rcases hT with rfl | rfl
   · simp [smtTangentFormula, __smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
-      typeof_eq_eq, typeof_geq_eq, typeof_leq_eq, typeof_mult_eq, typeof_neg_eq,
-      typeof_plus_eq, typeof_or_eq, typeof_and_eq,
+      typeof_eq_eq,
       __smtx_typeof_arith_overload_op_2, __smtx_typeof_arith_overload_op_2_ret,
       hOne, hZero, hX, hY, hA, hB, native_ite, native_Teq]
   · simp [smtTangentFormula, __smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
-      typeof_eq_eq, typeof_geq_eq, typeof_leq_eq, typeof_mult_eq, typeof_neg_eq,
-      typeof_plus_eq, typeof_or_eq, typeof_and_eq,
+      typeof_eq_eq,
       __smtx_typeof_arith_overload_op_2, __smtx_typeof_arith_overload_op_2_ret,
       hOne, hZero, hX, hY, hA, hB, native_ite, native_Teq]
 

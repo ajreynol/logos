@@ -1342,9 +1342,8 @@ private theorem string_eager_reduction_has_bool_type
                     (SmtTerm.Boolean true)))
                 (SmtTerm.eq (SmtTerm.str_to_code (__eo_to_smt x))
                   (SmtTerm.Numeral (-1 : native_Int)))) ≠ SmtType.None
-          simp [typeof_ite_eq, typeof_eq_eq, typeof_str_len_eq,
-            typeof_str_to_code_eq, typeof_geq_eq, typeof_lt_eq, typeof_and_eq,
-            hsTy, __smtx_typeof_seq_op_1_ret, __smtx_typeof_arith_overload_op_2_ret,
+          simp [hsTy, __smtx_typeof_seq_op_1_ret,
+            __smtx_typeof_arith_overload_op_2_ret,
             __smtx_typeof_eq, __smtx_typeof_guard, __smtx_typeof_ite,
             __smtx_typeof, native_ite, native_Teq]
         · simpa [__eo_prog_string_eager_reduction, __mk_str_eager_reduction] using hTy
@@ -1367,9 +1366,7 @@ private theorem string_eager_reduction_has_bool_type
                 (SmtTerm.eq
                   (SmtTerm._at_purify (SmtTerm.str_from_code (__eo_to_smt x)))
                   (SmtTerm.String []))) ≠ SmtType.None
-          simp [typeof_ite_eq, typeof_eq_eq, typeof_leq_eq, typeof_lt_eq,
-            typeof_and_eq, typeof_str_from_code_eq, typeof_str_to_code_eq,
-            hnTy, __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_eq,
+          simp [hnTy, __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_eq,
             __smtx_typeof_guard, __smtx_typeof_ite, __smtx_typeof,
             native_ite, native_Teq, native_string_valid]
         · simpa [__eo_prog_string_eager_reduction, __mk_str_eager_reduction] using hTy
@@ -1422,8 +1419,8 @@ private theorem string_eager_reduction_has_bool_type
                     (SmtTerm.str_substr (__eo_to_smt y) (SmtTerm.Numeral 0)
                       (SmtTerm.str_indexof (__eo_to_smt y) (__eo_to_smt x)
                         (SmtTerm.Numeral 0)))) = SmtType.Seq T
-              simp [__smtx_typeof, typeof_str_substr_eq, typeof_str_indexof_eq,
-                hyTy, hxTy, __smtx_typeof_str_indexof, __smtx_typeof_str_substr,
+              simp [__smtx_typeof, hyTy, hxTy, __smtx_typeof_str_indexof,
+                __smtx_typeof_str_substr,
                 native_ite, native_Teq]
             have hNilNe :
                 __eo_nil (Term.UOp UserOp.str_concat) (__eo_typeof pre) ≠
@@ -1509,11 +1506,7 @@ private theorem string_eager_reduction_has_bool_type
                                       (Term.Numeral 0)))))))))))
                   (SmtTerm.not (SmtTerm.eq (__eo_to_smt y) (__eo_to_smt x)))) ≠
                 SmtType.None
-            simp [typeof_ite_eq, typeof_eq_eq,
-              typeof_str_contains_eq,
-              typeof_str_substr_eq, typeof_str_indexof_eq, typeof_str_len_eq,
-              typeof_str_concat_eq, typeof_plus_eq, typeof_neg_eq, typeof_not_eq,
-              hyTy, hxTy, __smtx_typeof_str_indexof,
+            simp [hyTy, hxTy, __smtx_typeof_str_indexof,
               __smtx_typeof_str_substr,
               __smtx_typeof_seq_op_2, __smtx_typeof_seq_op_2_ret,
               __smtx_typeof_seq_op_1_ret, __smtx_typeof_arith_overload_op_2,
@@ -1576,8 +1569,7 @@ private theorem string_eager_reduction_has_bool_type
                     (SmtTerm.eq (SmtTerm.str_len (__eo_to_smt y))
                       (SmtTerm.Numeral n))) ≠
                 SmtType.None
-            simp [typeof_imp_eq, typeof_str_in_re_eq, typeof_eq_eq,
-              typeof_str_len_eq, hyTy, hxTy,
+            simp [hyTy, hxTy,
               __smtx_typeof_seq_op_1_ret, __smtx_typeof_eq,
               __smtx_typeof_guard, __smtx_typeof, native_ite, native_Teq]
           · simpa [__eo_prog_string_eager_reduction, __mk_str_eager_reduction] using hTy
@@ -1613,9 +1605,7 @@ private theorem string_eager_reduction_has_bool_type
                           (__eo_to_smt x))
                         (SmtTerm.str_len (__eo_to_smt z)))
                       (SmtTerm.Boolean true))) ≠ SmtType.None
-              simp [typeof_and_eq, typeof_or_eq, typeof_eq_eq, typeof_geq_eq,
-                typeof_leq_eq, typeof_str_indexof_eq, typeof_str_len_eq,
-                hzTy, hyTy, hxTy, __smtx_typeof_str_indexof,
+              simp [hzTy, hyTy, hxTy, __smtx_typeof_str_indexof,
                 __smtx_typeof_seq_op_1_ret, __smtx_typeof_arith_overload_op_2_ret,
                 __smtx_typeof_eq, __smtx_typeof_guard, __smtx_typeof,
                 native_ite, native_Teq]
@@ -1646,9 +1636,7 @@ private theorem string_eager_reduction_has_bool_type
                           (__eo_to_smt x))
                         (SmtTerm.str_len (__eo_to_smt z)))
                       (SmtTerm.Boolean true))) ≠ SmtType.None
-              simp [typeof_and_eq, typeof_or_eq, typeof_eq_eq, typeof_geq_eq,
-                typeof_leq_eq, typeof_str_indexof_re_eq, typeof_str_len_eq,
-                hzTy, hyTy, hxTy, __smtx_typeof_seq_op_1_ret,
+              simp [hzTy, hyTy, hxTy, __smtx_typeof_seq_op_1_ret,
                 __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_eq,
                 __smtx_typeof_guard, __smtx_typeof, native_ite, native_Teq]
             · simpa [__eo_prog_string_eager_reduction, __mk_str_eager_reduction] using hTy
@@ -2020,8 +2008,7 @@ private theorem string_eager_reduction_true
           have hPreTy :
               __smtx_typeof (__eo_to_smt pre) = SmtType.Seq U := by
             change __smtx_typeof pfx = SmtType.Seq U
-            simp [pfx, idx, ty, tx, typeof_str_substr_eq,
-              typeof_str_indexof_eq, hyTy, hxTy, __smtx_typeof,
+            simp [pfx, idx, ty, tx, hyTy, hxTy, __smtx_typeof,
               __smtx_typeof_str_indexof, __smtx_typeof_str_substr,
               native_ite, native_Teq]
           have hNilEval : __smtx_model_eval M nilS =
