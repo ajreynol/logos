@@ -116,7 +116,7 @@ def mkSkolemList (F : Term) : List EoVarKey -> native_Int -> Term
 
 /-- Pairwise distinctness of a list (self-contained; the project has no
 external list library). -/
-inductive DistinctList {α : Type} : List α -> Prop
+public inductive DistinctList {α : Type} : List α -> Prop
   | nil : DistinctList []
   | cons {a : α} {l : List α} :
       a ∉ l -> DistinctList l -> DistinctList (a :: l)
@@ -443,7 +443,7 @@ theorem setof_rec_env :
       simpa [ddfKeys] using EoVarEnv.cons (s := s) (T := T) hErase
 
 /-- The `setof` guard forces the reflected binder keys to be distinct. -/
-theorem distinct_of_setof_guard
+public theorem distinct_of_setof_guard
     {env : Term} {vars : List EoVarKey} (hEnv : EoVarEnv env vars)
     (hGuard : __eo_list_setof Term.__eo_List_cons env = env) :
     DistinctList vars := by

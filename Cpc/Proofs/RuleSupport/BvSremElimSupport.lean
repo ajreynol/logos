@@ -55,7 +55,7 @@ private theorem bv_srem_context (x y nm : Term) :
   have hOps := RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hResultTy
   rcases eo_typeof_bvbin_arg_types_of_ne_stuck hOps.1 with
     ⟨widthTerm, hXTy, hYTy⟩
-  rcases smt_bitvec_type_of_eo_bitvec_type_with_width x widthTerm
+  rcases _root_.smt_bitvec_type_of_eo_bitvec_type_with_width x widthTerm
       hXTrans hXTy with ⟨w, hWidth, hw0, hXSmtTy⟩
   subst widthTerm
   have hYSmtTy :

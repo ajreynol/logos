@@ -382,7 +382,7 @@ private theorem distinct_true_shape_of_typeof_bool
                                         simpa [__eo_prog_distinct_true, guard]
                                           using hProg
                                       have hGuard : guard = Term.Boolean true :=
-                                        eo_requires_arg_eq_of_ne_stuck hReq
+                                        _root_.eo_requires_arg_eq_of_ne_stuck hReq
                                       refine ⟨xs, rfl, ?_, ?_⟩
                                       · simpa [guard] using hGuard
                                       · intro hStuck

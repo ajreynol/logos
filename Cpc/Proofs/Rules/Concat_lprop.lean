@@ -145,7 +145,7 @@ private theorem len_gt_seq_types_of_bool (x y : Term)
       term_has_non_none_type
         (SmtTerm.gt (SmtTerm.str_len (__eo_to_smt x))
           (SmtTerm.str_len (__eo_to_smt y))) := by
-    apply term_has_non_none_of_type_eq
+    apply _root_.term_has_non_none_of_type_eq
     · simpa [RuleProofs.eo_has_bool_type, mkGt, mkStrLen] using hLenGtBool
     · decide
   have hArgs :=

@@ -1,7 +1,7 @@
 module
 
-public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.BvMultPow2NarySupport
+import all Cpc.Proofs.RuleSupport.BvMultPow2NarySupport
 
 open Eo
 open SmtEval
@@ -19,4 +19,132 @@ public theorem cmd_step_bv_mult_pow2_2_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bv_mult_pow2_2 args premises) :=
 by
-  sorry
+  intro hCmdTrans _hPremisesBool hResultTy
+  have hProg :
+      __eo_cmd_step_proven s CRule.bv_mult_pow2_2 args premises ≠
+        Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+  | cons xs args =>
+      cases args with
+      | nil =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+      | cons ys args =>
+          cases args with
+          | nil =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+          | cons z args =>
+              cases args with
+              | nil =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
+              | cons size args =>
+                  cases args with
+                  | nil =>
+                      change Term.Stuck ≠ Term.Stuck at hProg
+                      exact False.elim (hProg rfl)
+                  | cons n args =>
+                      cases args with
+                      | nil =>
+                          change Term.Stuck ≠ Term.Stuck at hProg
+                          exact False.elim (hProg rfl)
+                      | cons exponent args =>
+                          cases args with
+                          | nil =>
+                              change Term.Stuck ≠ Term.Stuck at hProg
+                              exact False.elim (hProg rfl)
+                          | cons u args =>
+                              cases args with
+                              | cons _ _ =>
+                                  change Term.Stuck ≠ Term.Stuck at hProg
+                                  exact False.elim (hProg rfl)
+                              | nil =>
+                                  cases premises with
+                                  | nil =>
+                                      change Term.Stuck ≠ Term.Stuck at hProg
+                                      exact False.elim (hProg rfl)
+                                  | cons n1 premises =>
+                                      cases premises with
+                                      | nil =>
+                                          change Term.Stuck ≠ Term.Stuck at hProg
+                                          exact False.elim (hProg rfl)
+                                      | cons n2 premises =>
+                                          cases premises with
+                                          | nil =>
+                                              change Term.Stuck ≠ Term.Stuck at hProg
+                                              exact False.elim (hProg rfl)
+                                          | cons n3 premises =>
+                                              cases premises with
+                                              | cons _ _ =>
+                                                  change Term.Stuck ≠ Term.Stuck at hProg
+                                                  exact False.elim (hProg rfl)
+                                              | nil =>
+                                                  let P1 := __eo_state_proven_nth s n1
+                                                  let P2 := __eo_state_proven_nth s n2
+                                                  let P3 := __eo_state_proven_nth s n3
+                                                  change StepRuleProperties M
+                                                    [P1, P2, P3]
+                                                    (BvMultPow2NarySupport.program
+                                                      xs ys z size n exponent u
+                                                      P1 P2 P3)
+                                                  have hArgsTrans :
+                                                      RuleProofs.eo_has_smt_translation xs ∧
+                                                      RuleProofs.eo_has_smt_translation ys ∧
+                                                      RuleProofs.eo_has_smt_translation z ∧
+                                                      RuleProofs.eo_has_smt_translation size ∧
+                                                      RuleProofs.eo_has_smt_translation n ∧
+                                                      RuleProofs.eo_has_smt_translation exponent ∧
+                                                      RuleProofs.eo_has_smt_translation u ∧
+                                                      True := by
+                                                    simpa [cmdTranslationOk,
+                                                      cArgListTranslationOk] using
+                                                      hCmdTrans
+                                                  have hXsTrans := hArgsTrans.1
+                                                  have hYsTrans := hArgsTrans.2.1
+                                                  have hZTrans := hArgsTrans.2.2.1
+                                                  have hSizeTrans :=
+                                                    hArgsTrans.2.2.2.1
+                                                  have hNTrans :=
+                                                    hArgsTrans.2.2.2.2.1
+                                                  have hExponentTrans :=
+                                                    hArgsTrans.2.2.2.2.2.1
+                                                  have hUTrans :=
+                                                    hArgsTrans.2.2.2.2.2.2.1
+                                                  have hProgramTy :
+                                                      __eo_typeof
+                                                        (BvMultPow2NarySupport.program
+                                                          xs ys z size n exponent u
+                                                          P1 P2 P3) = Term.Bool := by
+                                                    simpa [P1, P2, P3] using
+                                                      hResultTy
+                                                  refine ⟨?_, ?_⟩
+                                                  · intro hPremisesTrue
+                                                    have hP1True :
+                                                        eo_interprets M P1 true :=
+                                                      hPremisesTrue P1 (by simp)
+                                                    have hP2True :
+                                                        eo_interprets M P2 true :=
+                                                      hPremisesTrue P2 (by simp)
+                                                    have hP3True :
+                                                        eo_interprets M P3 true :=
+                                                      hPremisesTrue P3 (by simp)
+                                                    exact
+                                                      BvMultPow2NarySupport.facts_program
+                                                        M hM xs ys z size n exponent u
+                                                        P1 P2 P3 hXsTrans hYsTrans
+                                                        hZTrans hSizeTrans hNTrans
+                                                        hExponentTrans hUTrans hProgramTy
+                                                        hP1True hP2True hP3True
+                                                  · exact
+                                                      RuleProofs.eo_has_smt_translation_of_has_bool_type
+                                                        _
+                                                        (BvMultPow2NarySupport.typed_program
+                                                          xs ys z size n exponent u
+                                                          P1 P2 P3 hXsTrans hYsTrans
+                                                          hZTrans hSizeTrans hNTrans
+                                                          hExponentTrans hUTrans hProgramTy)

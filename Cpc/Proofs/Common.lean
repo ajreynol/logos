@@ -6,6 +6,7 @@ public import Cpc.Proofs.Translation
 import all Cpc.Proofs.Translation
 public import Cpc.Proofs.TypePreservation
 import all Cpc.Proofs.TypePreservation
+import all Cpc.Proofs.TypePreservation.Common
 
 public section
 

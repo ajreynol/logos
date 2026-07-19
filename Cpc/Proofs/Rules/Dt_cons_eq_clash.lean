@@ -39,9 +39,9 @@ private theorem prog_dt_cons_eq_clash_shape_of_not_stuck
   have hReq : __eo_requires guard (Term.Boolean true) result ≠ Term.Stuck := by
     simpa [__eo_prog_dt_cons_eq_clash, guard, result] using hProg
   constructor
-  · exact eo_requires_arg_eq_of_ne_stuck hReq
+  · exact _root_.eo_requires_arg_eq_of_ne_stuck hReq
   · simpa [__eo_prog_dt_cons_eq_clash, guard, result] using
-      eo_requires_result_eq_of_ne_stuck hReq
+      _root_.eo_requires_result_eq_of_ne_stuck hReq
 
 public theorem cmd_step_dt_cons_eq_clash_properties
     (M : SmtModel) (hM : model_total_typed M)

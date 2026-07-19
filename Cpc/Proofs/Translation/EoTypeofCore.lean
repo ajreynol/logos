@@ -1,23 +1,17 @@
 module
 
 public import Cpc.Proofs.Translation.Base
-import all Cpc.Proofs.Translation.Base
 public import Cpc.Proofs.Translation.Datatypes
-import all Cpc.Proofs.Translation.Datatypes
 public import Cpc.Proofs.Translation.Inversions
 import all Cpc.Proofs.Translation.Inversions
 public import Cpc.Proofs.Translation.SmtFreeRefs
 import all Cpc.Proofs.Translation.SmtFreeRefs
 public import Cpc.Proofs.TypePreservation.BitVecPrep
-import all Cpc.Proofs.TypePreservation.BitVecPrep
 public import Cpc.Proofs.TypePreservation.Common
 import all Cpc.Proofs.TypePreservation.Common
 public import Cpc.Proofs.TypePreservation.CoreArith
-import all Cpc.Proofs.TypePreservation.CoreArith
 public import Cpc.Proofs.TypePreservation.Datatypes
-import all Cpc.Proofs.TypePreservation.Datatypes
 public import Cpc.Proofs.TypePreservation.SeqStringRegex
-import all Cpc.Proofs.TypePreservation.SeqStringRegex
 
 public section
 
@@ -121,7 +115,7 @@ the predicate to use for `__eo_typeof` results.
 -/
 mutual
 
-def eo_type_valid_rec (refs : List native_String) : Term -> Prop
+@[expose] def eo_type_valid_rec (refs : List native_String) : Term -> Prop
   | Term.Bool => True
   | Term.DatatypeType s d =>
       __eo_reserved_datatype_name s = false ∧ eo_datatype_valid_rec (s :: refs) d
@@ -145,19 +139,19 @@ def eo_type_valid_rec (refs : List native_String) : Term -> Prop
           true
   | _ => False
 
-def eo_datatype_cons_valid_rec (refs : List native_String) : DatatypeCons -> Prop
+@[expose] def eo_datatype_cons_valid_rec (refs : List native_String) : DatatypeCons -> Prop
   | DatatypeCons.unit => True
   | DatatypeCons.cons T c =>
       eo_type_valid_rec refs T ∧ eo_datatype_cons_valid_rec refs c
 
-def eo_datatype_valid_rec (refs : List native_String) : Datatype -> Prop
+@[expose] def eo_datatype_valid_rec (refs : List native_String) : Datatype -> Prop
   | Datatype.null => True
   | Datatype.sum c d =>
       eo_datatype_cons_valid_rec refs c ∧ eo_datatype_valid_rec refs d
 
 end
 
-def eo_type_valid : Term -> Prop
+@[expose] def eo_type_valid : Term -> Prop
   | Term.UOp UserOp.RegLan => True
   | T => eo_type_valid_rec [] T
 

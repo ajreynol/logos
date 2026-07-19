@@ -134,7 +134,7 @@ theorem bv_ule_max_context
   have hOps := RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hResultTy
   rcases typeof_bvult_args_of_ne_stuck hOps.1 with
     ⟨width, hXTy, hConstTy⟩
-  rcases smt_bitvec_type_of_eo_bitvec_type_with_width x width
+  rcases _root_.smt_bitvec_type_of_eo_bitvec_type_with_width x width
       hXTrans hXTy with ⟨W, hWidth, hW0, hXSmtTy⟩
   have hNNe := RuleProofs.term_ne_stuck_of_has_smt_translation n hNTrans
   have hWNe := RuleProofs.term_ne_stuck_of_has_smt_translation w hWTrans
@@ -173,7 +173,7 @@ theorem bv_ult_ones_context
   have hOps := RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hResultTy
   rcases typeof_bvult_args_of_ne_stuck hOps.1 with
     ⟨width, hXTy, hConstTy⟩
-  rcases smt_bitvec_type_of_eo_bitvec_type_with_width x width
+  rcases _root_.smt_bitvec_type_of_eo_bitvec_type_with_width x width
       hXTrans hXTy with ⟨W, hWidth, hW0, hXSmtTy⟩
   have hNNe := RuleProofs.term_ne_stuck_of_has_smt_translation n hNTrans
   have hWNe := RuleProofs.term_ne_stuck_of_has_smt_translation w hWTrans

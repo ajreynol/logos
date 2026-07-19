@@ -155,7 +155,7 @@ private theorem concat_val_nat (w1 p1 w2 p2 : Nat) :
   simp only [__smtx_model_eval_concat, SmtEval.native_zplus,
     native_mod_total, native_binary_concat, native_zmult]
   have hw : (↑w1 + ↑w2 : Int) = ↑(w1 + w2) := by norm_cast
-  rw [hw, natpow2_eq w2, natpow2_eq (w1 + w2),
+  rw [hw, _root_.natpow2_eq w2, _root_.natpow2_eq (w1 + w2),
     show ((2 : Int) ^ w2) = ((2 ^ w2 : Nat) : Int) by norm_cast,
     show ((2 : Int) ^ (w1 + w2)) = ((2 ^ (w1 + w2) : Nat) : Int) by
       norm_cast]
@@ -587,7 +587,7 @@ theorem typed_bv_rotate_decomp_term
       __smtx_typeof (__eo_to_smt (Term.Binary 0 0)) = SmtType.BitVec 0 := by
     rfl
   have hD2Round : native_nat_to_int (native_int_to_nat d2) = d2 :=
-    native_int_to_nat_roundtrip d2
+    _root_.native_int_to_nat_roundtrip d2
       (native_zleq_of_zlt_true _ _ (by simpa [d2] using hD20))
   have hInnerTy :
       __smtx_typeof
@@ -616,7 +616,7 @@ theorem typed_bv_rotate_decomp_term
   have hw : (0 : Int) ≤ w := by
     simpa [SmtEval.native_zleq] using hw0
   have hD1Round : native_nat_to_int (native_int_to_nat d1) = d1 :=
-    native_int_to_nat_roundtrip d1
+    _root_.native_int_to_nat_roundtrip d1
       (native_zleq_of_zlt_true _ _ (by simpa [d1] using hD10))
   have hRhsTy :
       __smtx_typeof
@@ -665,7 +665,7 @@ private theorem eval_bvsize_rotate
     __smtx_model_eval M
         (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x)) =
       SmtValue.Numeral w := by
-  have hRound := native_int_to_nat_roundtrip w hw0
+  have hRound := _root_.native_int_to_nat_roundtrip w hw0
   have hSize :
       __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)) = w := by
     rw [hXSmtTy]
@@ -700,7 +700,7 @@ private theorem smt_typeof_bvsize_rotate
             (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
         SmtTerm.None) = SmtType.Int
   rw [hXSmtTy]
-  have hRound := native_int_to_nat_roundtrip w hw0
+  have hRound := _root_.native_int_to_nat_roundtrip w hw0
   change __smtx_typeof
       (native_ite
         (native_zleq 0 (native_nat_to_int (native_int_to_nat w)))
@@ -1065,12 +1065,12 @@ private theorem eval_bv_rotate_decomp
       let R := native_int_to_nat r
       have hWRound : (↑W : Int) = w := by
         simpa [W, native_nat_to_int, SmtEval.native_nat_to_int] using
-          native_int_to_nat_roundtrip w hw0
+          _root_.native_int_to_nat_roundtrip w hw0
       have hR0Native : native_zleq 0 r = true := by
         simpa [SmtEval.native_zleq] using hr0
       have hRRound : (↑R : Int) = r := by
         simpa [R, native_nat_to_int, SmtEval.native_nat_to_int] using
-          native_int_to_nat_roundtrip r hR0Native
+          _root_.native_int_to_nat_roundtrip r hR0Native
       have hR0 : 0 < R := by
         apply Int.ofNat_lt.mp
         change (0 : Int) < (R : Int)
@@ -1114,7 +1114,7 @@ private theorem eval_bv_rotate_decomp
         (w := (↑W : Int)) (n := p) (by simp [SmtEval.native_zleq]) hCan
       have hp0 : (0 : Int) ≤ p := hRange.1
       have hp1 : p < (2 : Int) ^ W := by
-        simpa [natpow2_eq] using hRange.2
+        simpa [_root_.natpow2_eq] using hRange.2
       have hLhsEval :
           __smtx_model_eval M
               (__eo_to_smt
@@ -1209,12 +1209,12 @@ private theorem eval_bv_rotate_decomp
       let R := native_int_to_nat r
       have hWRound : (↑W : Int) = w := by
         simpa [W, native_nat_to_int, SmtEval.native_nat_to_int] using
-          native_int_to_nat_roundtrip w hw0
+          _root_.native_int_to_nat_roundtrip w hw0
       have hR0Native : native_zleq 0 r = true := by
         simpa [SmtEval.native_zleq] using hr0
       have hRRound : (↑R : Int) = r := by
         simpa [R, native_nat_to_int, SmtEval.native_nat_to_int] using
-          native_int_to_nat_roundtrip r hR0Native
+          _root_.native_int_to_nat_roundtrip r hR0Native
       have hR0 : 0 < R := by
         apply Int.ofNat_lt.mp
         change (0 : Int) < (R : Int)
@@ -1252,7 +1252,7 @@ private theorem eval_bv_rotate_decomp
         (w := (↑W : Int)) (n := p) (by simp [SmtEval.native_zleq]) hCan
       have hp0 : (0 : Int) ≤ p := hRange.1
       have hp1 : p < (2 : Int) ^ W := by
-        simpa [natpow2_eq] using hRange.2
+        simpa [_root_.natpow2_eq] using hRange.2
       have hLhsEval :
           __smtx_model_eval M
               (__eo_to_smt

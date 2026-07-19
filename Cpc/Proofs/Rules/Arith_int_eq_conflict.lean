@@ -228,6 +228,10 @@ private theorem facts___eo_prog_arith_int_eq_conflict_impl
       rw [RuleProofs.eo_to_smt_false_eq, __smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean false)
 
+end ArithIntEqConflict
+
+open ArithIntEqConflict
+
 public theorem cmd_step_arith_int_eq_conflict_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
@@ -311,5 +315,3 @@ by
                             (Proof.pf P))
                           (typed___eo_prog_arith_int_eq_conflict_impl
                             T1 C1 P hTTrans hCTrans hTInt hProgEq hResultTy)
-
-end ArithIntEqConflict

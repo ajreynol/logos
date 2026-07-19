@@ -1,35 +1,22 @@
 module
 
 public import Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
-import all Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationShared
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationShared
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationClassifiers
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationClassifiers
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationGenericApply
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationGenericApply
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationAtomApply
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationAtomApply
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationGenericOps
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationGenericOps
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinaryOps
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinaryOps
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationSetInsert
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationSetInsert
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationDistinct
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationDistinct
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryOps
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryOps
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationDtSel
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationDtSel
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationIndexedOps
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationIndexedOps
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationUOp1
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationUOp1
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTupleOps
-import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTupleOps
 public import Cpc.Proofs.RuleSupport.TypedListSubstitutionSupport
-import all Cpc.Proofs.RuleSupport.TypedListSubstitutionSupport
+import all Cpc.Logos
+import all Cpc.Proofs.RuleSupport.SubstituteTypeSupport
 
 public section
 

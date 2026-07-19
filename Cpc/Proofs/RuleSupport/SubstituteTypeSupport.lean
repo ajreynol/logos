@@ -21,8 +21,8 @@ set_option maxRecDepth 2000
 
 namespace SubstituteSupport
 
-private abbrev consTerm (v vs : Term) : Term :=
-  Term.Apply (Term.Apply Term.__eo_List_cons v) vs
+local macro "consTerm" v:ident vs:ident : term =>
+  `(Term.Apply (Term.Apply Term.__eo_List_cons $v) $vs)
 
 /-- A mapped-substitution entry has the same EO type as the variable it replaces. -/
 def SubstEntryPreservesTypes (xs ss : Term) : Prop :=

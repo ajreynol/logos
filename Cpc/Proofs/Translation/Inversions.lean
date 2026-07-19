@@ -1,7 +1,8 @@
 module
 
 public import Cpc.Proofs.Translation.Base
-import all Cpc.Proofs.Translation.Base
+import all Cpc.Spec
+import all Cpc.Logos
 
 public section
 
@@ -286,7 +287,7 @@ function argument, sequence/set/map element, …). Under the new algorithm this 
 diagonal self-check `__smtx_type_wf_rec T T`; the ambient `refs` parameter is now vestigial
 (kept only so existing call sites, many of which threaded a `RefList` that no longer carries any
 scoping information, continue to type-check). -/
-def smtx_type_field_wf_rec (T : SmtType) (_refs : RefList) : Prop :=
+@[expose] def smtx_type_field_wf_rec (T : SmtType) (_refs : RefList) : Prop :=
   __smtx_type_wf_rec T T = true
 
 private theorem smtx_datatype_field_wf_rec_parts
@@ -2468,15 +2469,15 @@ then rules out `None` everywhere (`noNone…`). Injectivity is proved directly o
 section AlignNoNone
 attribute [-simp] native_ite native_streq native_and
 mutual
-def alignTy : SmtType → SmtType → Bool
+@[expose] def alignTy : SmtType → SmtType → Bool
   | SmtType.Datatype _ dF, SmtType.Datatype _ dU => alignDt dF dU
   | _, SmtType.Datatype _ _ => false
   | _, _ => true
-def alignDt : SmtDatatype → SmtDatatype → Bool
+@[expose] def alignDt : SmtDatatype → SmtDatatype → Bool
   | SmtDatatype.sum cF dF, SmtDatatype.sum cU dU => native_and (alignDtc cF cU) (alignDt dF dU)
   | SmtDatatype.null, SmtDatatype.null => true
   | _, _ => false
-def alignDtc : SmtDatatypeCons → SmtDatatypeCons → Bool
+@[expose] def alignDtc : SmtDatatypeCons → SmtDatatypeCons → Bool
   | SmtDatatypeCons.cons TF cF, SmtDatatypeCons.cons TU cU =>
       native_and (alignTy TF TU) (alignDtc cF cU)
   | SmtDatatypeCons.unit, SmtDatatypeCons.unit => true

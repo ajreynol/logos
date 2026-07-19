@@ -1,19 +1,15 @@
 module
 
 public import Cpc.Proofs.Translation.Datatypes
-import all Cpc.Proofs.Translation.Datatypes
 public import Cpc.Proofs.Translation.Quantifiers
-import all Cpc.Proofs.Translation.Quantifiers
 public import Cpc.Proofs.Translation.Special
-import all Cpc.Proofs.Translation.Special
 public import Cpc.Proofs.Translation.Inversions
-import all Cpc.Proofs.Translation.Inversions
 public import Cpc.Proofs.Translation.Heads
-import all Cpc.Proofs.Translation.Heads
 public import Cpc.Proofs.Translation.EoTypeofCore
-import all Cpc.Proofs.Translation.EoTypeofCore
 public import Cpc.Proofs.TypePreservation.Full
-import all Cpc.Proofs.TypePreservation.Full
+import all Cpc.Spec
+import all Cpc.Proofs.TypePreservation.Datatypes
+import all Cpc.Proofs.Translation.SmtFreeRefs
 
 public section
 
@@ -87,7 +83,7 @@ private theorem smtx_dt_wf_rec_of_datatype_type_wf_rec_apply
     native_inhabited_type (SmtType.Set T) = true :=
   native_inhabited_type_set T
 
-@[simp] private theorem native_inhabited_type_bitvec_apply
+@[simp] theorem native_inhabited_type_bitvec_apply
     (w : native_Nat) :
     native_inhabited_type (SmtType.BitVec w) = true := by
   simp [native_inhabited_type, native_not, native_Teq, __smtx_type_default,

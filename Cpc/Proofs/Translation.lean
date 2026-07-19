@@ -1,7 +1,6 @@
 module
 
 public import Cpc.Proofs.Translation.EoTypeof
-import all Cpc.Proofs.Translation.EoTypeof
 
 public section
 
