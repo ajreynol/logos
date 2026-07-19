@@ -116,12 +116,10 @@ theorem RenamingLists.assoc_eq_of_mem
             injection hPairEq with hSource hTarget
             subst source
             subst target
-            have hXsList := hTail.envs.1.is_list
             have hConsList :=
               (EoVarEnv.cons (s := s) (T := T) hTail.envs.1).is_list
-            simp [__eo_list_find, __eo_requires, hXsList, hConsList,
-              __eo_list_find_rec, __assoc_nil_nth,
-              __eo_l_1___assoc_nil_nth, __eo_ite, __eo_eq, __eo_add,
+            simp [__eo_list_find, __eo_requires, hConsList,
+              __eo_list_find_rec, __assoc_nil_nth, __eo_ite, __eo_eq,
               native_ite, native_teq, native_not, SmtEval.native_not]
           · have hSourceMem : source ∈ sourceKeys pairs := by
               exact List.mem_map.2 ⟨(source, target), hTailMem, rfl⟩
@@ -700,7 +698,7 @@ theorem binderRenaming_of_substitute
   induction hSourceEnv with
   | nil =>
       refine ⟨Term.__eo_List_nil, [], BinderRenaming.nil, ?_⟩
-      simpa [__substitute_simul_rec, __is_closed_rec, __eo_requires,
+      simp [__substitute_simul_rec, __is_closed_rec, __eo_requires,
         native_ite, native_teq, native_not, SmtEval.native_not]
   | @cons s T sourceTail sourceVars hTailEnv ih =>
       have hHeadTargetNot : ((s, T) : EoVarKey) ∉ targetKeys pairs :=
@@ -1098,7 +1096,7 @@ theorem alpha_binder_preserves
     hRec
       (G := a) (bvs' := bvs)
       (by
-        simp [binder]
+        simp
         omega)
       hVsEnv hBvsPerm hBodyTrans hTs hActuals
       (by
@@ -1149,7 +1147,7 @@ theorem alpha_binder_preserves
       rw [eo_typeof_eo_var_env_eq_list hBinderSubEnv, hBodyBool]
       rfl
   refine ⟨?_, ?_⟩
-  · simpa [SubstitutePreservationSupport.substResult, binder,
+  · simp [SubstitutePreservationSupport.substResult, binder,
       hSubstEq, hSubTyBool, hOrigTyBool]
   · rw [show
         SubstitutePreservationSupport.substResult true
@@ -1894,7 +1892,7 @@ theorem prog_alpha_equiv_shape
   have hProgDef :
       __eo_prog_alpha_equiv t vs ts =
         __eo_requires outerGuard (Term.Boolean true) sourceReq := by
-    simp [__eo_prog_alpha_equiv, ht, hvs, hts, outerGuard, sourceReq,
+    simp [__eo_prog_alpha_equiv, outerGuard, sourceReq,
       targetReq, result]
   have hOuterNe :
       __eo_requires outerGuard (Term.Boolean true) sourceReq ≠

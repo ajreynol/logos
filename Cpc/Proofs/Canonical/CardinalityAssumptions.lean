@@ -2064,7 +2064,7 @@ private theorem diag_pump_field_large
         closed_infinite_large_witness_from_oracle n hOracle (SmtType.Seq U)
           (by simpa [__smtx_type_substitute] using hFInh)
           (by simpa [__smtx_type_substitute] using hFWf)
-          (by simpa [__smtx_is_finite_type] using hTUInf)
+          hTUInf
   | Set A =>
       simpa [__smtx_type_substitute] using
         closed_infinite_large_witness_from_oracle n hOracle (SmtType.Set A)
