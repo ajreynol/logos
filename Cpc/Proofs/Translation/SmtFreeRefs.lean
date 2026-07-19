@@ -64,6 +64,24 @@ def hasFreeDtc (sub : native_String) : RefList → SmtDatatypeCons → Bool
   | _,    SmtDatatypeCons.unit => false
 end
 
+/-- Public computation equation for an empty datatype constructor. -/
+theorem hasFreeDtc_unit (sub : native_String) (refs : RefList) :
+    hasFreeDtc sub refs SmtDatatypeCons.unit = false := by
+  rfl
+
+/-- Public computation equation for a datatype-constructor field. -/
+theorem hasFreeDtc_cons (sub : native_String) (refs : RefList)
+    (T : SmtType) (c : SmtDatatypeCons) :
+    hasFreeDtc sub refs (SmtDatatypeCons.cons T c) =
+      match T with
+      | SmtType.TypeRef s =>
+          native_or
+            (native_and (native_streq s sub)
+              (native_not (native_reflist_contains refs sub)))
+            (hasFreeDtc sub refs c)
+      | _ => native_or (hasFreeTy sub refs T) (hasFreeDtc sub refs c) := by
+  cases T <;> rfl
+
 private theorem contains_cons_irrel {sub s : native_String} {r1 r2 : RefList}
     (h : native_reflist_contains r1 sub = native_reflist_contains r2 sub) :
     native_reflist_contains (native_reflist_insert r1 s) sub
