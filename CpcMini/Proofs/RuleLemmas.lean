@@ -9,8 +9,8 @@ import CpcMini.Proofs.Rules.Refl
 import CpcMini.Proofs.Rules.Symm
 import CpcMini.Proofs.Rules.Trans
 
-public section
 
+public section
 
 open Eo
 open SmtEval
@@ -114,3 +114,4 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | trans =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
+

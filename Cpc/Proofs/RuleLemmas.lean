@@ -595,8 +595,8 @@ import Cpc.Proofs.Rules.Aci_norm
 import Cpc.Proofs.Rules.Absorb
 import Cpc.Proofs.Rules.Distinct_card_conflict
 
-public section
 
+public section
 
 open Eo
 open SmtEval
