@@ -84,7 +84,9 @@ def count_loc_text(text: str) -> int:
 
 
 # --- File-level import graph (for the PROOF column) -----------------------
-IMPORT_RE = re.compile(r"^\s*import\s+(Cpc[\w.]+)")
+# Lean's module system spells imports `public import M`, `import all M`, and
+# `public import all M` in addition to plain `import M`.
+IMPORT_RE = re.compile(r"^\s*(?:public\s+)?import\s+(?:all\s+)?(Cpc[\w.]+)")
 
 
 def module_path(module: str) -> str:
@@ -125,13 +127,14 @@ def import_closure(roots, imports, modules) -> set[str]:
 
 # --- Definition-level call graph (for the EO_PROG column) -----------------
 DECL_RE = re.compile(
-    r"^(?:private |noncomputable |partial |protected |unsafe )*"
+    r"^(?:private |public |noncomputable |partial |protected |unsafe )*"
     r"(?:def|abbrev|theorem|lemma|inductive|structure|instance)\s+"
     r"(?:@\[[^\]]*\]\s*)?([A-Za-z_][A-Za-z0-9_'!?]*)"
 )
 # Lines that end the current declaration without starting a new named one.
 BOUNDARY_RE = re.compile(
-    r"^(mutual|end|namespace|open|set_option|import|attribute|section|variable)\b"
+    r"^(?:public )?"
+    r"(mutual|end|namespace|open|set_option|import|attribute|section|variable|module)\b"
     r"|^/-"
 )
 TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_'!?]*")

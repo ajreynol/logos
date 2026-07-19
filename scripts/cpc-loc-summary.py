@@ -86,7 +86,9 @@ LOGOS_ROOTS = ["Cpc.Logos"]
 
 
 # --- Import graph ---------------------------------------------------------
-IMPORT_RE = re.compile(r"^\s*import\s+(Cpc[\w.]+)")
+# Lean's module system spells imports `public import M`, `import all M`, and
+# `public import all M` in addition to plain `import M`.
+IMPORT_RE = re.compile(r"^\s*(?:public\s+)?import\s+(?:all\s+)?(Cpc[\w.]+)")
 
 
 def module_to_path(module: str) -> str:
