@@ -1,7 +1,7 @@
 module
 
-public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.BvConcatPullupSupport
+import all Cpc.Proofs.RuleSupport.BvConcatPullupSupport
 
 open Eo
 open SmtEval
@@ -19,4 +19,5 @@ public theorem cmd_step_bv_or_concat_pullup3_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bv_or_concat_pullup3 args premises) :=
 by
-  sorry
+  simpa [BvConcatPullupOp.pullup3Rule] using
+    (cmd_step_bvConcatPullup3_properties M hM .bor s args premises)

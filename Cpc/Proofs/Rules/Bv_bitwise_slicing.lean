@@ -878,6 +878,178 @@ private theorem concat_split_op (op : BvOpSpec) (W : Nat) (cn an : Int)
   norm_cast
   rw [← nat_split_mod (op.opnat cn.toNat an.toNat) k (s + 1) hks, Nat.mod_mod]
 
+/-! Public value-level interface used by the concat-pullup family.  Keeping the
+    interface at `SmtValue` avoids exposing the internal `BvOpSpec` machinery. -/
+
+public theorem bvand_concat_slice_split_value
+    (W : Nat) (cn an : Int) (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an)
+    (s k : Nat) (hk1 : 1 ≤ k) (hks : k ≤ s + 1) :
+    __smtx_model_eval_bvand
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+          (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn))
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+          (SmtValue.Numeral 0) (SmtValue.Binary ↑W an)) =
+      __smtx_model_eval_concat
+        (__smtx_model_eval_bvand
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W an)))
+        (__smtx_model_eval_bvand
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W an))) :=
+  concat_split_op bvOpAnd W cn an hc0 ha0 s k hk1 hks
+
+public theorem bvor_concat_slice_split_value
+    (W : Nat) (cn an : Int) (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an)
+    (s k : Nat) (hk1 : 1 ≤ k) (hks : k ≤ s + 1) :
+    __smtx_model_eval_bvor
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+          (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn))
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+          (SmtValue.Numeral 0) (SmtValue.Binary ↑W an)) =
+      __smtx_model_eval_concat
+        (__smtx_model_eval_bvor
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W an)))
+        (__smtx_model_eval_bvor
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W an))) :=
+  concat_split_op bvOpOr W cn an hc0 ha0 s k hk1 hks
+
+public theorem bvxor_concat_slice_split_value
+    (W : Nat) (cn an : Int) (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an)
+    (s k : Nat) (hk1 : 1 ≤ k) (hks : k ≤ s + 1) :
+    __smtx_model_eval_bvxor
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+          (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn))
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+          (SmtValue.Numeral 0) (SmtValue.Binary ↑W an)) =
+      __smtx_model_eval_concat
+        (__smtx_model_eval_bvxor
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑s)
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W an)))
+        (__smtx_model_eval_bvxor
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W an))) :=
+  concat_split_op bvOpXor W cn an hc0 ha0 s k hk1 hks
+
+private theorem concat_full_split_op (op : BvOpSpec)
+    (W k : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (hc1 : cn < 2^W)
+    (ha0 : 0 ≤ an) (ha1 : an < 2^W)
+    (hk1 : 1 ≤ k) (hkW : k ≤ W) :
+    op.opval (SmtValue.Binary ↑W cn) (SmtValue.Binary ↑W an) =
+      __smtx_model_eval_concat
+        (op.opval
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(W - 1))
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(W - 1))
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W an)))
+        (op.opval
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W an))) := by
+  have hW1 : 1 ≤ W := Nat.le_trans hk1 hkW
+  have hWpos : 0 < W := by omega
+  have hWholeC :
+      __smtx_model_eval_extract (SmtValue.Numeral ↑(W - 1))
+          (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn) =
+        SmtValue.Binary ↑W cn := by
+    rw [show (0 : Int) = ((0 : Nat) : Int) by rfl,
+      extract_valN W cn (W - 1) 0 hc0 (by omega)]
+    have hWidth : W - 1 + 1 - 0 = W := by omega
+    simp only [Nat.sub_zero, Nat.pow_zero, Nat.div_one, hWidth]
+    congr 2
+    norm_cast
+    have hcn : cn.toNat < 2^W := toNat_lt_pow_of_canonical hc0 hc1
+    rw [Nat.mod_eq_of_lt hcn, Int.toNat_of_nonneg hc0]
+  have hWholeA :
+      __smtx_model_eval_extract (SmtValue.Numeral ↑(W - 1))
+          (SmtValue.Numeral 0) (SmtValue.Binary ↑W an) =
+        SmtValue.Binary ↑W an := by
+    rw [show (0 : Int) = ((0 : Nat) : Int) by rfl,
+      extract_valN W an (W - 1) 0 ha0 (by omega)]
+    have hWidth : W - 1 + 1 - 0 = W := by omega
+    simp only [Nat.sub_zero, Nat.pow_zero, Nat.div_one, hWidth]
+    congr 2
+    norm_cast
+    have han : an.toNat < 2^W := toNat_lt_pow_of_canonical ha0 ha1
+    rw [Nat.mod_eq_of_lt han, Int.toNat_of_nonneg ha0]
+  have hSplit := concat_split_op op W cn an hc0 ha0 (W - 1) k hk1 (by omega)
+  rwa [hWholeC, hWholeA] at hSplit
+
+public theorem bvand_concat_full_split_value
+    (W k : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (hc1 : cn < 2^W)
+    (ha0 : 0 ≤ an) (ha1 : an < 2^W)
+    (hk1 : 1 ≤ k) (hkW : k ≤ W) :
+    __smtx_model_eval_bvand (SmtValue.Binary ↑W cn)
+        (SmtValue.Binary ↑W an) =
+      __smtx_model_eval_concat
+        (__smtx_model_eval_bvand
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(W - 1))
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(W - 1))
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W an)))
+        (__smtx_model_eval_bvand
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W an))) :=
+  concat_full_split_op bvOpAnd W k cn an hc0 hc1 ha0 ha1 hk1 hkW
+
+public theorem bvor_concat_full_split_value
+    (W k : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (hc1 : cn < 2^W)
+    (ha0 : 0 ≤ an) (ha1 : an < 2^W)
+    (hk1 : 1 ≤ k) (hkW : k ≤ W) :
+    __smtx_model_eval_bvor (SmtValue.Binary ↑W cn)
+        (SmtValue.Binary ↑W an) =
+      __smtx_model_eval_concat
+        (__smtx_model_eval_bvor
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(W - 1))
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(W - 1))
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W an)))
+        (__smtx_model_eval_bvor
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W an))) :=
+  concat_full_split_op bvOpOr W k cn an hc0 hc1 ha0 ha1 hk1 hkW
+
+public theorem bvxor_concat_full_split_value
+    (W k : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (hc1 : cn < 2^W)
+    (ha0 : 0 ≤ an) (ha1 : an < 2^W)
+    (hk1 : 1 ≤ k) (hkW : k ≤ W) :
+    __smtx_model_eval_bvxor (SmtValue.Binary ↑W cn)
+        (SmtValue.Binary ↑W an) =
+      __smtx_model_eval_concat
+        (__smtx_model_eval_bvxor
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(W - 1))
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(W - 1))
+            (SmtValue.Numeral ↑k) (SmtValue.Binary ↑W an)))
+        (__smtx_model_eval_bvxor
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W cn))
+          (__smtx_model_eval_extract (SmtValue.Numeral ↑(k - 1))
+            (SmtValue.Numeral 0) (SmtValue.Binary ↑W an))) :=
+  concat_full_split_op bvOpXor W k cn an hc0 hc1 ha0 ha1 hk1 hkW
+
 -- eval of the full per-slice term: `bvand (extract c) (bvand (extract a) nil)` = the
 -- closed-form `bvand` of the [hi:lo] slices of `c` and `a`.
 private theorem slice_eval (M : SmtModel) (W : Nat) (cn : Int) (a : Term) (an : Int)
