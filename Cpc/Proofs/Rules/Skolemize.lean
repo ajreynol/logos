@@ -1,8 +1,15 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
-import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
-import Cpc.Proofs.Closed.ContainsAtomicTermListFree
-import Cpc.Proofs.Closed.IsClosedRec
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
+import all Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
+public import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+import all Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
+public import Cpc.Proofs.Closed.IsClosedRec
+import all Cpc.Proofs.Closed.IsClosedRec
 
 open Eo
 open SmtEval
@@ -109,7 +116,7 @@ def mkSkolemList (F : Term) : List EoVarKey -> native_Int -> Term
 
 /-- Pairwise distinctness of a list (self-contained; the project has no
 external list library). -/
-inductive DistinctList {α : Type} : List α -> Prop
+public inductive DistinctList {α : Type} : List α -> Prop
   | nil : DistinctList []
   | cons {a : α} {l : List α} :
       a ∉ l -> DistinctList l -> DistinctList (a :: l)
@@ -436,7 +443,7 @@ theorem setof_rec_env :
       simpa [ddfKeys] using EoVarEnv.cons (s := s) (T := T) hErase
 
 /-- The `setof` guard forces the reflected binder keys to be distinct. -/
-theorem distinct_of_setof_guard
+public theorem distinct_of_setof_guard
     {env : Term} {vars : List EoVarKey} (hEnv : EoVarEnv env vars)
     (hGuard : __eo_list_setof Term.__eo_List_cons env = env) :
     DistinctList vars := by
@@ -1657,7 +1664,7 @@ distinctness and body closedness, the skolem list is typed against the
 binders, and the soundness obligation delegates to
 `SkolemizeRule.skolemize_sound`.
 -/
-theorem cmd_step_skolemize_properties
+public theorem cmd_step_skolemize_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.skolemize args premises) ->

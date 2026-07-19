@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -1893,7 +1899,7 @@ private theorem reConcat_args_of_reglan_type (x y : Term) :
   exact reglan_binop_args_of_non_none (op := SmtTerm.re_concat)
     (typeof_re_concat_eq (__eo_to_smt x) (__eo_to_smt y)) hNN
 
-private def RegLanEval (M : SmtModel) (t : Term) : Prop :=
+def RegLanEval (M : SmtModel) (t : Term) : Prop :=
   ∃ r, __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r
 
 private def RegLanContains (M : SmtModel) (t : Term)

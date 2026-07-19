@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvExtractSignExtend2Support
+module
+
+public import Cpc.Proofs.RuleSupport.BvExtractSignExtend2Support
+import all Cpc.Proofs.RuleSupport.BvExtractSignExtend2Support
+
+public section
 
 /-! Support for the above-source `bv_extract_sign_extend_3` rewrite. -/
 
@@ -753,7 +758,7 @@ private theorem eval_bv_extract_sign_extend_3
     rw [hLRound, hRRound, hKRound, hWRound]
     exact hFitZ
   have hFit : L + R ≤ K + W := by exact_mod_cast hFitInt
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) W
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) W
       (by simpa [W] using hXSmtTy) with ⟨p, hXEval, hCan⟩
   have hXEval' :
       __smtx_model_eval M (__eo_to_smt x) =

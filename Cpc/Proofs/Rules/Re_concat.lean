@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -298,7 +301,7 @@ private theorem mk_re_concat_premises_true
           (mkStrConcat s accS) (mkReConcat r accR)
           hTailBool hTailTrue hNewBool hNewTrue hTailNe
 
-theorem cmd_step_re_concat_properties
+public theorem cmd_step_re_concat_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_concat args premises) ->

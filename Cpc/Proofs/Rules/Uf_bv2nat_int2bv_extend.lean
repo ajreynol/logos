@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.BitVec
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.BitVec
+import all Cpc.Proofs.TypePreservation.BitVec
 
 open Eo
 open SmtEval
@@ -833,7 +837,7 @@ private theorem facts_conclusion_impl
   rw [hLhsEval, hRhsEval]
   exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_uf_bv2nat_int2bv_extend_properties
+public theorem cmd_step_uf_bv2nat_int2bv_extend_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.uf_bv2nat_int2bv_extend args premises) ->

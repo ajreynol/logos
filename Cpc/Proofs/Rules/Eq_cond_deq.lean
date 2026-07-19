@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -360,7 +364,7 @@ private theorem facts___eo_prog_eq_cond_deq_impl
       (__smtx_model_eval M (__eo_to_smt r))
       hSrFalse
 
-theorem cmd_step_eq_cond_deq_properties
+public theorem cmd_step_eq_cond_deq_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.eq_cond_deq args premises) ->

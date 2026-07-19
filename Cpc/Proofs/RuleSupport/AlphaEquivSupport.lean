@@ -1,5 +1,10 @@
-import Cpc.Proofs.Rules.Skolemize
-import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+module
+
+public import Cpc.Proofs.Rules.Skolemize
+public import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+import all Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -1195,7 +1200,8 @@ theorem native_eval_texists_eq_of_renamed_body
       __smtx_value_canonical_bool v = true →
       __smtx_model_eval (native_model_push M t T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    native_eval_texists M t T bodyM = native_eval_texists N s T bodyN := by
+    (native_eval_texists M t T bodyM : SmtValue) =
+      (native_eval_texists N s T bodyN : SmtValue) := by
   classical
   let PM : Prop :=
     ∃ v : SmtValue,

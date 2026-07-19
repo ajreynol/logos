@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+import all Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
 
 open Eo
 open SmtEval
@@ -270,7 +273,7 @@ Boilerplate (arg/premise destructuring, `Stuck` discharge, translation
 obligation) mirrors `BooleanElimSupport.cmd_step_and_elim_properties`; the
 soundness obligation delegates to `InstantiateRule.instantiate_sound`.
 -/
-theorem cmd_step_instantiate_properties
+public theorem cmd_step_instantiate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.instantiate args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -2052,7 +2055,7 @@ private theorem step_concat_csplit_core
           (concatCSplitHead (Term.Boolean false) s) U huTyU
           hHeadTy (Or.inr rfl))
 
-theorem cmd_step_concat_csplit_properties
+public theorem cmd_step_concat_csplit_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.concat_csplit args premises) ->

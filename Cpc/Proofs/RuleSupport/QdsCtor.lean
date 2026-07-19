@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.DatatypeSupport
-import Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+module
+
+public import Cpc.Proofs.RuleSupport.DatatypeSupport
+import all Cpc.Proofs.RuleSupport.DatatypeSupport
+public import Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+import all Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+
+public section
 
 open Eo
 open SmtEval

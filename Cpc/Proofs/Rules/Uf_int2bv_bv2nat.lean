@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -316,7 +319,7 @@ private theorem facts___eo_prog_uf_int2bv_bv2nat_impl
     rw [eval_ubv_int_to_bv_matches_mod_pow2 M hM n t hTTrans hTType]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_uf_int2bv_bv2nat_properties
+public theorem cmd_step_uf_int2bv_bv2nat_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.uf_int2bv_bv2nat args premises) ->

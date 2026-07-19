@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
 
 open Eo
 open SmtEval
@@ -142,7 +145,7 @@ private theorem len_gt_seq_types_of_bool (x y : Term)
       term_has_non_none_type
         (SmtTerm.gt (SmtTerm.str_len (__eo_to_smt x))
           (SmtTerm.str_len (__eo_to_smt y))) := by
-    apply term_has_non_none_of_type_eq
+    apply _root_.term_has_non_none_of_type_eq
     · simpa [RuleProofs.eo_has_bool_type, mkGt, mkStrLen] using hLenGtBool
     · decide
   have hArgs :=
@@ -1241,7 +1244,7 @@ by
           change Term.Stuck ≠ Term.Stuck at hProg
           exact False.elim (hProg rfl)
 
-theorem cmd_step_concat_lprop_properties
+public theorem cmd_step_concat_lprop_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.concat_lprop args premises) ->

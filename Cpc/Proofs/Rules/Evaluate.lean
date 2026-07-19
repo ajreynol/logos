@@ -1,7 +1,14 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
-import Cpc.Proofs.RuleSupport.NativeSeqSupport
-import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+public import Cpc.Proofs.RuleSupport.NativeSeqSupport
+import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Init.Data.Repr
 
 open Eo
 open SmtEval
@@ -39035,7 +39042,7 @@ by
   · rw [hProgEq]
     exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hEqBool
 
-theorem cmd_step_evaluate_properties
+public theorem cmd_step_evaluate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.evaluate args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.BvXorOnesSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvXorOnesSupport
+import all Cpc.Proofs.RuleSupport.BvXorOnesSupport
 
 open Eo
 open SmtEval
@@ -93,7 +96,7 @@ private theorem bv_xor_ones_shape_of_ne_stuck
           exact hShape ⟨pn, pw, rfl⟩)
     exact False.elim (hProg hStuck)
 
-theorem cmd_step_bv_xor_ones_properties
+public theorem cmd_step_bv_xor_ones_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_xor_ones args premises) ->

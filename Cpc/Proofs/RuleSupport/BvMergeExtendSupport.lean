@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
+import all Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
+
+public section
 
 /-! Support for the `bv_merge_sign_extend_1` rewrite. -/
 

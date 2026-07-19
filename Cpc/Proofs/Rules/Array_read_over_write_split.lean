@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ArraySupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArraySupport
+import all Cpc.Proofs.RuleSupport.ArraySupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -388,7 +392,7 @@ private theorem facts___eo_prog_array_read_over_write_split_impl
           (__smtx_model_eval M (__eo_to_smt e1))
           hT1Can hJ1Can hI1Can hE1Can hij)
 
-theorem cmd_step_array_read_over_write_split_properties
+public theorem cmd_step_array_read_over_write_split_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.array_read_over_write_split args premises) ->

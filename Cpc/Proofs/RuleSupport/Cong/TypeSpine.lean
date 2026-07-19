@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Cong.Binders
+module
+
+public import Cpc.Proofs.RuleSupport.Cong.Binders
+import all Cpc.Proofs.RuleSupport.Cong.Binders
+
+public section
 
 open Eo
 open SmtEval

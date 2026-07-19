@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.SubstituteTypeSupport
-import Cpc.Proofs.Canonical
-import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+module
+
+public import Cpc.Proofs.RuleSupport.SubstituteTypeSupport
+import all Cpc.Proofs.RuleSupport.SubstituteTypeSupport
+public import Cpc.Proofs.Canonical
+import all Cpc.Proofs.Canonical
+public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
+
+public section
 
 open Eo
 open SmtEval

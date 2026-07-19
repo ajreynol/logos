@@ -1,5 +1,11 @@
-import CpcMini.Spec
-import CpcMini.Logos
+module
+
+public import CpcMini.Spec
+import all CpcMini.Spec
+public import CpcMini.Logos
+import all CpcMini.Logos
+
+public section
 
 open Eo
 open SmtEval

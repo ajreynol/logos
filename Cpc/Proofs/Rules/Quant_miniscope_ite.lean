@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
 
 open Eo
 open SmtEval
@@ -606,7 +611,7 @@ private theorem quant_miniscope_ite_shape_of_not_stuck
   | _ =>
       simp [__eo_prog_quant_miniscope_ite] at hProg
 
-theorem cmd_step_quant_miniscope_ite_properties
+public theorem cmd_step_quant_miniscope_ite_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.quant_miniscope_ite args premises) ->

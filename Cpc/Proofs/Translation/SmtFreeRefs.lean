@@ -1,4 +1,9 @@
-import Cpc.SmtModel
+module
+
+public import Cpc.SmtModel
+import all Cpc.SmtModel
+
+public section
 
 /-!
 # SMT free type-references, aliasing and datatype occurrence tracking

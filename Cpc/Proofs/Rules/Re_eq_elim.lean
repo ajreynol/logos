@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.ReConcatStarSupport
-import Cpc.Proofs.Closed.IsClosedRec
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.ReConcatStarSupport
+import all Cpc.Proofs.RuleSupport.ReConcatStarSupport
+public import Cpc.Proofs.Closed.IsClosedRec
+import all Cpc.Proofs.Closed.IsClosedRec
 
 open Eo
 open SmtEval
@@ -481,7 +486,7 @@ private theorem re_eq_elim_smt_value_rel
 
 end RuleProofs
 
-theorem cmd_step_re_eq_elim_properties
+public theorem cmd_step_re_eq_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_eq_elim args premises) ->

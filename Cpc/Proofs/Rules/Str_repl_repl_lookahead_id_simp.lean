@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StringRewriteSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StringRewriteSupport
+import all Cpc.Proofs.RuleSupport.StringRewriteSupport
 
 open Eo
 open SmtEval
@@ -257,7 +260,7 @@ private theorem facts_program
 
 end StrReplReplLookaheadIdSimpProof
 
-theorem cmd_step_str_repl_repl_lookahead_id_simp_properties
+public theorem cmd_step_str_repl_repl_lookahead_id_simp_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk

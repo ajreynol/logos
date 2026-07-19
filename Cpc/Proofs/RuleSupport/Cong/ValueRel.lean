@@ -1,4 +1,10 @@
-import Cpc.Proofs.RuleSupport.Cong.Core
+module
+
+public import Cpc.Proofs.RuleSupport.Cong.Core
+import all Cpc.Proofs.RuleSupport.Cong.Core
+import all Cpc.SmtModel
+
+public section
 
 open Eo
 open SmtEval
@@ -984,6 +990,15 @@ private theorem native_str_ext_to_list_ext
   intro ys hys
   simpa [native_str_in_re, native_list_in_re, hys] using hExt ys hys
 
+end CongSupport
+end
+
+open Eo
+open SmtEval
+open Smtm
+
+namespace CongSupport
+
 theorem native_re_prefix_match_len_go_congr_valid_ext_of_str_ext
     (xs : List native_Char) (r r' : native_RegLan) (n : Nat)
     (hExt :
@@ -994,6 +1009,21 @@ theorem native_re_prefix_match_len_go_congr_valid_ext_of_str_ext
       native_re_prefix_match_len?.go r' xs n :=
   native_re_prefix_match_len_go_congr_valid_ext xs r r' n
     (native_str_ext_to_list_ext r r' hExt)
+
+end CongSupport
+
+public section
+
+open Eo
+open SmtEval
+open Smtm
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
+
+namespace CongSupport
+
+attribute [local simp] native_streq native_and native_ite
 
 theorem native_str_in_re_ext_of_valid_ext
     {r r' : native_RegLan}

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ReInclusionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReInclusionSupport
+import all Cpc.Proofs.RuleSupport.ReInclusionSupport
 
 open Eo
 open SmtEval
@@ -303,7 +306,7 @@ private theorem facts
 
 end ReUnionConstElimProof
 
-theorem cmd_step_re_union_const_elim_properties
+public theorem cmd_step_re_union_const_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_union_const_elim args premises) ->

@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinarySelectHelpers
+module
+
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinarySelectHelpers
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinarySelectHelpers
+
+public section
 
 open Eo
 open SmtEval

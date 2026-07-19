@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.BvDivPow2Support
-import Cpc.Proofs.RuleSupport.BvOverflowSupport
-import Cpc.Proofs.RuleSupport.BvSsuboElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvDivPow2Support
+import all Cpc.Proofs.RuleSupport.BvDivPow2Support
+public import Cpc.Proofs.RuleSupport.BvOverflowSupport
+import all Cpc.Proofs.RuleSupport.BvOverflowSupport
+public import Cpc.Proofs.RuleSupport.BvSsuboElimSupport
+import all Cpc.Proofs.RuleSupport.BvSsuboElimSupport
+
+public section
 
 /-! Support for the list-free multiplication-by-a-power-of-two rewrite. -/
 
@@ -1066,7 +1073,7 @@ private theorem eval_bv_mult_pow2
     intro hZero
     have hDLe : D ≤ 0 := Int.toNat_eq_zero.mp hZero
     omega
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) WN
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) WN
       (by simpa [WN] using hZSmtTy) with
     ⟨p, hZEval, hZCan⟩
   have hWidth0 : native_zleq 0 (native_nat_to_int WN) = true := by
@@ -1179,7 +1186,7 @@ private theorem eval_bv_mult_pow2
           (__eo_to_smt (Term.Apply (Term.UOp UserOp.bvneg) z)) =
         SmtValue.Binary (native_nat_to_int WN) ((-x).toNat : Int) := by
     change __smtx_model_eval M (SmtTerm.bvneg (__eo_to_smt z)) = _
-    rw [smtx_eval_bvneg_term_eq, hZEval', hxNat]
+    rw [_root_.smtx_eval_bvneg_term_eq, hZEval', hxNat]
     simpa [x] using eval_bvneg_canonical_ssubo WN Z
   have hNeg0 : (0 : Int) ≤ ((-x).toNat : Int) := Int.natCast_nonneg _
   have hNeg1 : ((-x).toNat : Int) < (2 : Int) ^ WN := by
@@ -1296,7 +1303,7 @@ theorem eval_bv_mult_pow2_direct
     intro hZero
     have hDLe : D ≤ 0 := Int.toNat_eq_zero.mp hZero
     omega
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) WN
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) WN
       (by simpa [WN] using hZSmtTy) with
     ⟨p, hZEval, hZCan⟩
   have hWidth0 : native_zleq 0 (native_nat_to_int WN) = true := by
@@ -1379,7 +1386,7 @@ theorem eval_bv_mult_pow2_direct
           (__eo_to_smt (Term.Apply (Term.UOp UserOp.bvneg) z)) =
         SmtValue.Binary (native_nat_to_int WN) ((-x).toNat : Int) := by
     change __smtx_model_eval M (SmtTerm.bvneg (__eo_to_smt z)) = _
-    rw [smtx_eval_bvneg_term_eq, hZEval', hxNat]
+    rw [_root_.smtx_eval_bvneg_term_eq, hZEval', hxNat]
     simpa [x] using eval_bvneg_canonical_ssubo WN Z
   have hNeg0 : (0 : Int) ≤ ((-x).toNat : Int) := Int.natCast_nonneg _
   have hNeg1 : ((-x).toNat : Int) < (2 : Int) ^ WN := by

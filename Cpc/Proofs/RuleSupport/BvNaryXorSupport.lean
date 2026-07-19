@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
-import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+import all Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+
+public section
 
 /-! Shared typing and evaluation support for n-ary bit-vector XOR lists. -/
 
@@ -143,14 +150,14 @@ private theorem native_binary_xor_assoc_mod_nat
             (native_int_pow2 (native_nat_to_int w))) =
         BitVec.ofInt w n1 ^^^ BitVec.ofInt w n2 := by
     rw [native_binary_xor_mod_eq_toNat]
-    exact bitvec_ofInt_natCast_toNat _
+    exact _root_.bitvec_ofInt_natCast_toNat _
   have h23 :
       BitVec.ofInt w
           (native_mod_total (native_binary_xor (native_nat_to_int w) n2 n3)
             (native_int_pow2 (native_nat_to_int w))) =
         BitVec.ofInt w n2 ^^^ BitVec.ofInt w n3 := by
     rw [native_binary_xor_mod_eq_toNat]
-    exact bitvec_ofInt_natCast_toNat _
+    exact _root_.bitvec_ofInt_natCast_toNat _
   calc
     native_mod_total
         (native_binary_xor (native_nat_to_int w)
@@ -196,7 +203,7 @@ private theorem evalCanonical_of_smt_type
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
     EvalCanonical M w t := by
   intro hTy
-  exact smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t) w hTy
+  exact _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t) w hTy
 
 private theorem xor_eval_canonical
     (M : SmtModel) (x y : Term) (w : Nat) :

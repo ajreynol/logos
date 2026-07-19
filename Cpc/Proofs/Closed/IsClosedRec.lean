@@ -1,8 +1,16 @@
+module
+
 import Lean
-import Cpc.Proofs.Common
-import Cpc.Proofs.Assumptions
-import Cpc.Proofs.Closed.Support
-import Cpc.Proofs.TypePreservation.Full
+public import Cpc.Proofs.Common
+import all Cpc.Proofs.Common
+public import Cpc.Proofs.Assumptions
+import all Cpc.Proofs.Assumptions
+public import Cpc.Proofs.Closed.Support
+import all Cpc.Proofs.Closed.Support
+public import Cpc.Proofs.TypePreservation.Full
+import all Cpc.Proofs.TypePreservation.Full
+
+public section
 
 open Eo
 open SmtEval

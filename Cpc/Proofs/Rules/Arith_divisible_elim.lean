@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -232,7 +235,7 @@ private theorem facts___eo_prog_arith_divisible_elim_impl
         (__smtx_model_eval_eq
           (SmtValue.Numeral (native_mod_total ti ni)) (SmtValue.Numeral 0))
 
-theorem cmd_step_arith_divisible_elim_properties
+public theorem cmd_step_arith_divisible_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_divisible_elim args premises) ->

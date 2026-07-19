@@ -1,4 +1,9 @@
-import CpcMini.Proofs.TypePreservation.Helpers
+module
+
+public import CpcMini.Proofs.TypePreservation.Helpers
+import all CpcMini.Proofs.TypePreservation.Helpers
+
+public section
 
 open SmtEval
 open Smtm

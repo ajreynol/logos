@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.Proofs.TypePreservation.BitVecCmp
 
 open Eo
 open SmtEval
@@ -238,7 +242,7 @@ private theorem facts___eo_prog_bv_not_idemp_impl
     rw [eval_bvnot_bvnot_self M hM x1 hX1Trans hResultTy]
     exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt x1))
 
-theorem cmd_step_bv_not_idemp_properties
+public theorem cmd_step_bv_not_idemp_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_not_idemp args premises) ->

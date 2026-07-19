@@ -1,5 +1,9 @@
-import Cpc.Proofs.Rules.Bv_nego_eliminate
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.Rules.Bv_nego_eliminate
+import all Cpc.Proofs.Rules.Bv_nego_eliminate
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -490,7 +494,7 @@ private theorem facts_bv_sdivo_term
     rw [eval_bv_sdivo_term M hM x y w wm hXTrans hYTrans hResultTy]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_bv_sdivo_eliminate_properties
+public theorem cmd_step_bv_sdivo_eliminate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_sdivo_eliminate args premises) ->

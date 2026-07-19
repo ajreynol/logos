@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
-import Cpc.Proofs.RuleSupport.StringSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
+import all Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
 
 open Eo
 open SmtEval
@@ -3287,7 +3291,7 @@ theorem re_unfold_pos_concat_has_bool_type
 end ReUnfoldPosSupport
 end RuleProofs
 
-theorem cmd_step_re_unfold_pos_properties
+public theorem cmd_step_re_unfold_pos_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_unfold_pos args premises) ->

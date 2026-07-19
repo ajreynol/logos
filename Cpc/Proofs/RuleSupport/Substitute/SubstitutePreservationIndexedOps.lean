@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationDtSel
+module
+
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationDtSel
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationDtSel
+
+public section
 
 open Eo
 open SmtEval

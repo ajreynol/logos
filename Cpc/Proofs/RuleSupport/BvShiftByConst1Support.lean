@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvShiftByConst2Support
+module
+
+public import Cpc.Proofs.RuleSupport.BvShiftByConst2Support
+import all Cpc.Proofs.RuleSupport.BvShiftByConst2Support
+
+public section
 
 /-! Shared support for the in-range constant `bvshl` and `bvlshr` rewrites. -/
 
@@ -500,7 +505,7 @@ private theorem eval_bv_term_local1
       __smtx_model_eval M (__eo_to_smt t) = SmtValue.Binary W p /\
       native_zeq p (native_mod_total p (native_int_pow2 W)) = true := by
   intro hW0 hTy
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t)
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t)
       (native_int_to_nat W) hTy with
     ⟨p, hEval, hCanonical⟩
   have hRound := native_int_to_nat_roundtrip W hW0
@@ -1652,10 +1657,9 @@ private theorem bv_ashr_by_const_1_context
   have hFillNe :
       __eo_typeof (bvAshrByConst1Fill x (Term.Numeral A)
         (Term.Numeral N)) ≠ Term.Stuck := by
-    change __eo_typeof_repeat (Term.UOp UserOp.Int) (Term.Numeral A)
-        (__eo_typeof (bvAshrByConst1Sign x (Term.Numeral N))) ≠
-      Term.Stuck
-    simpa [bvAshrByConst1Rhs, bvAshrByConst1Fill] using hRhsNe
+    rw [_hFillTy]
+    intro h
+    cases h
   have hFillNe' :
       __eo_typeof_repeat (Term.UOp UserOp.Int) (Term.Numeral A)
           (__eo_typeof (bvAshrByConst1Sign x (Term.Numeral N))) ≠
@@ -1691,7 +1695,8 @@ private theorem bv_ashr_by_const_1_context
       (bvAshrByConst1Sign x (Term.Numeral N)) (Term.Numeral A) wSign
       hSignTy hFillNe with ⟨A', hAEq, hAPos⟩
   have hAA' : A' = A := by
-    injection hAEq
+    injection hAEq with hEq
+    exact hEq.symm
   subst A'
   exact ⟨W, A, N, rfl, rfl, rfl, hW0, hAPos, hN0, hNW', hD0,
     hXSmtTy⟩
@@ -1715,12 +1720,19 @@ private theorem typed_bv_ashr_by_const_1_term
       __smtx_typeof
           (__eo_to_smt (bvAshrByConst1Sign x (Term.Numeral N))) =
         SmtType.BitVec 1 := by
+    have hOne :
+        native_zplus (native_zplus N 1) (native_zneg N) = 1 := by
+      simp [SmtEval.native_zplus, SmtEval.native_zneg]
+      grind
+    have hSignD0 :
+        native_zlt 0
+            (native_zplus (native_zplus N 1) (native_zneg N)) = true := by
+      rw [hOne]
+      native_decide
     have hRaw := smt_typeof_extract_of_context x W N N hXSmtTy
-      hW0 hN0 hNW (by
-        simpa [SmtEval.native_zplus, SmtEval.native_zneg,
-          SmtEval.native_zlt])
-    simpa [bvAshrByConst1Sign, SmtEval.native_zplus,
-      SmtEval.native_zneg] using hRaw
+      hW0 hN0 hNW hSignD0
+    simpa [bvAshrByConst1Sign, hOne, native_int_to_nat,
+      SmtEval.native_int_to_nat] using hRaw
   have hAOne : native_zleq 1 A = true := by
     have hAInt : (0 : Int) < A := by
       simpa [SmtEval.native_zlt] using hAPos
@@ -2017,6 +2029,11 @@ private theorem eval_repeat_bit_local1 (A : Nat) (b : Bool) :
       SmtValue.Binary (↑A : Int) (↑(BitVec.fill A b).toNat : Int) := by
   have hAToNat : native_int_to_nat (↑A : Int) = A := by
     simp [native_int_to_nat, SmtEval.native_int_to_nat]
+  have hPowOne : 1 ≤ (2 : Nat) ^ A :=
+    Nat.one_le_pow A 2 (by decide)
+  have hOnesCast : Int.ofNat ((2 : Nat) ^ A - 1) =
+      (2 : Int) ^ A - 1 := by
+    simpa using (Int.ofNat_sub hPowOne)
   cases b with
   | false =>
       simp [__smtx_model_eval_repeat, hAToNat,
@@ -2026,6 +2043,7 @@ private theorem eval_repeat_bit_local1 (A : Nat) (b : Bool) :
       simp [__smtx_model_eval_repeat, hAToNat,
         eval_repeat_rec_one_bit_local1, BitVec.fill_toNat,
         native_nat_to_int, SmtEval.native_nat_to_int, natpow2_eq]
+      exact hOnesCast.symm
 
 private theorem ashr_const1_value_local1
     (W A N p : native_Int)
@@ -2053,17 +2071,30 @@ private theorem ashr_const1_value_local1
   have hARound : (↑AN : Int) = A := by
     simpa [AN] using Int.toNat_of_nonneg hA0
   have hANPos : 0 < AN := by
-    exact_mod_cast hAPos
+    have hANPosInt : (0 : Int) < (↑AN : Int) := by
+      rw [hARound]
+      exact hAPos
+    exact_mod_cast hANPosInt
   have hANW : AN < WN := by
-    exact_mod_cast hAW
+    have hANWInt : (↑AN : Int) < (↑WN : Int) := by
+      rw [hARound, hWRound]
+      exact hAW
+    exact_mod_cast hANWInt
   have hWNPos : 0 < WN := Nat.lt_trans hANPos hANW
   have hNCast : N = (↑(WN - 1) : Int) := by
-    rw [hN, ← hWRound]
-    omega
+    calc
+      N = W - 1 := hN
+      _ = (↑WN : Int) - 1 := by simpa only [hWRound]
+      _ = (↑(WN - 1) : Int) := by omega
   have hDCast : N + 1 + -A = (↑(WN - AN) : Int) := by
-    rw [hNCast, ← hARound]
-    push_cast
-    omega
+    have hCastSub :
+        (↑(WN - AN) : Int) = (↑WN : Int) - (↑AN : Int) :=
+      Int.ofNat_sub (Nat.le_of_lt hANW)
+    calc
+      N + 1 + -A = W - A := by rw [hN]; grind
+      _ = (↑WN : Int) - (↑AN : Int) := by
+        simp only [hWRound, hARound]
+      _ = (↑(WN - AN) : Int) := hCastSub.symm
   have hpW' : p < (2 : Int) ^ WN := by
     simpa [← hWRound, natpow2_eq] using hpW
   have hXToNat : (↑xBV.toNat : Int) = p := by
@@ -2094,7 +2125,6 @@ private theorem ashr_const1_value_local1
           (SmtValue.Binary W p) =
         SmtValue.Binary (↑(WN - AN) : Int) (↑lowBV.toNat : Int) := by
     rw [show W = (↑WN : Int) by exact hWRound.symm,
-      show p = (↑xBV.toNat : Int) by exact hXToNat.symm,
       hNCast, ← hARound]
     simpa [lowBV, xBV] using
       extract_val_bitvec_start_len WN AN (WN - AN) p
@@ -2119,7 +2149,7 @@ private theorem ashr_const1_value_local1
     show p = (↑xBV.toNat : Int) by exact hXToNat.symm]
   rw [hAshr, hDecomp]
   simp only [BitVec.toNat_cast]
-  simpa [hWidth]
+  simpa [hWidth, lowBV, BitVec.extractLsb'_toNat]
 
 private theorem eval_bv_ashr_by_const_1_term
     (M : SmtModel) (hM : model_total_typed M)
@@ -2189,6 +2219,7 @@ private theorem eval_bv_ashr_by_const_1_term
           (__eo_to_smt (bvAshrByConst1Sign x (Term.Numeral N)))) = _
     rw [__smtx_model_eval.eq_def] <;> simp only
     rw [hSignEval]
+    simp [__smtx_model_eval]
   have hLowEval :
       __smtx_model_eval M
           (__eo_to_smt

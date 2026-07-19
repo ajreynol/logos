@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.Proofs.TypePreservation.BitVecCmp
 
 open Eo
 open SmtEval
@@ -354,7 +358,7 @@ private theorem facts___eo_prog_bv_sle_eliminate_impl
     rw [eval_bvsle_matches_not_bvslt_swap M hM x1 y1 hX1Trans hY1Trans hResultTy]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_bv_sle_eliminate_properties
+public theorem cmd_step_bv_sle_eliminate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_sle_eliminate args premises) ->

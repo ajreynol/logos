@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.BvXorOnesSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+import all Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.BvXorOnesSupport
+import all Cpc.Proofs.RuleSupport.BvXorOnesSupport
+
+public section
 
 /-! Shared typing and evaluation support for n-ary bit-vector addition lists. -/
 
@@ -99,11 +106,11 @@ theorem addAssocEval
     __smtx_model_eval M (__eo_to_smt (add (add x y) z)) =
       __smtx_model_eval M (__eo_to_smt (add x (add y z))) := by
   intro hXTy hYTy hZTy
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
       hXTy with ⟨nx, hXEval, _hXCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w
       hYTy with ⟨ny, hYEval, _hYCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) w
       hZTy with ⟨nz, hZEval, _hZCan⟩
   change __smtx_model_eval_bvadd
       (__smtx_model_eval_bvadd
@@ -149,9 +156,9 @@ theorem addCommEval
     __smtx_model_eval M (__eo_to_smt (add x y)) =
       __smtx_model_eval M (__eo_to_smt (add y x)) := by
   intro hXTy hYTy
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
       hXTy with ⟨nx, hXEval, _hXCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w
       hYTy with ⟨ny, hYEval, _hYCan⟩
   change __smtx_model_eval_bvadd
       (__smtx_model_eval M (__eo_to_smt x))
@@ -205,9 +212,9 @@ private theorem addLeftZeroEval
     __smtx_model_eval M (__eo_to_smt (add nil x)) =
       __smtx_model_eval M (__eo_to_smt x) := by
   intro hNilTy hXTy hNil
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt nil) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt nil) w
       hNilTy with ⟨nn, hNilEval, _hNilCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
       hXTy with ⟨nx, hXEval, hXCan⟩
   have hNilZero := nilPayloadEqZero M nil w nn hNil hNilEval
   subst nn
@@ -232,9 +239,9 @@ private theorem addRightZeroEval
     __smtx_model_eval M (__eo_to_smt (add x nil)) =
       __smtx_model_eval M (__eo_to_smt x) := by
   intro hXTy hNilTy hNil
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
       hXTy with ⟨nx, hXEval, hXCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt nil) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt nil) w
       hNilTy with ⟨nn, hNilEval, _hNilCan⟩
   have hNilZero := nilPayloadEqZero M nil w nn hNil hNilEval
   subst nn

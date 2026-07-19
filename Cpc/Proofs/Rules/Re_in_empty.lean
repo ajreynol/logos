@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -150,7 +154,7 @@ private theorem facts___eo_prog_re_in_empty_impl
     rw [hEvalEq]
     exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt rhs))
 
-theorem cmd_step_re_in_empty_properties
+public theorem cmd_step_re_in_empty_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_in_empty args premises) ->

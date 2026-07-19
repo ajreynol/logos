@@ -1,7 +1,15 @@
-import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+
+public section
 
 open Eo
 open SmtEval

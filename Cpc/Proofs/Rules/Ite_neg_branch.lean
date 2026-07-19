@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -238,7 +243,7 @@ private theorem facts___eo_prog_ite_neg_branch_impl
         __smtx_model_eval_ite, __smtx_model_eval_not, native_veq,
         SmtEval.native_not] at hPremRel ⊢
 
-theorem cmd_step_ite_neg_branch_properties
+public theorem cmd_step_ite_neg_branch_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ite_neg_branch args premises) ->

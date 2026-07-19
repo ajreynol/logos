@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -20,7 +23,7 @@ A sound version must prevent this wraparound (for example, by requiring
 unfinished until the rule specification is corrected.
 -/
 
-theorem cmd_step_bv_ashr_by_const_2_properties
+public theorem cmd_step_bv_ashr_by_const_2_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_ashr_by_const_2 args premises) ->

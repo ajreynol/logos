@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
 
 open Eo
 open SmtEval
@@ -104,7 +107,7 @@ private theorem str_in_re_eval_valid_properties
 
 end RuleProofs
 
-theorem cmd_step_str_in_re_eval_properties
+public theorem cmd_step_str_in_re_eval_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_eval args premises) ->

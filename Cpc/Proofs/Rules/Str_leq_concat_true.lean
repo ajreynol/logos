@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
+import all Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
 
 open Eo
 open SmtEval
@@ -141,7 +144,7 @@ private theorem prog_str_leq_concat_true_info
       leqConcatTrueCore, Pfx, T, S, TTail, STail] using
         raw_leq_concat_true_conclusion_eq left right hRawNe
 
-theorem cmd_step_str_leq_concat_true_properties
+public theorem cmd_step_str_leq_concat_true_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_leq_concat_true args premises) ->

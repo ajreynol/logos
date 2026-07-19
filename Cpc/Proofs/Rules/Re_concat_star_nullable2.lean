@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ReConcatNullableSupport
-import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReConcatNullableSupport
+import all Cpc.Proofs.RuleSupport.ReConcatNullableSupport
+public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
 
 open Eo
 open SmtEval
@@ -87,7 +91,7 @@ end ReConcatStarNullable2Proof
 
 open ReConcatStarNullable2Proof
 
-theorem cmd_step_re_concat_star_nullable2_properties
+public theorem cmd_step_re_concat_star_nullable2_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_concat_star_nullable2 args premises) ->

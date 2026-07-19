@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.BvExtractConcatSupport
-import Cpc.Proofs.RuleSupport.Cong.Core
+module
+
+public import Cpc.Proofs.RuleSupport.BvExtractConcatSupport
+import all Cpc.Proofs.RuleSupport.BvExtractConcatSupport
+public import Cpc.Proofs.RuleSupport.Cong.Core
+import all Cpc.Proofs.RuleSupport.Cong.Core
+
+public section
 
 /-! Support for merging adjacent integer bit-vector constants under concat. -/
 

@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.StrLeqConcatSupport
-import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.StrLeqConcatSupport
+import all Cpc.Proofs.RuleSupport.StrLeqConcatSupport
+public import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+import all Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+
+public section
 
 open Eo
 open SmtEval

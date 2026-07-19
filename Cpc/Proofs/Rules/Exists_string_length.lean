@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.Canonical.Seq
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.Canonical.Seq
+import all Cpc.Proofs.Canonical.Seq
 
 open Eo
 open SmtEval
@@ -464,7 +468,7 @@ private theorem eslFormula_true
       hChoiceLen', __smtx_model_eval_eq, native_veq]
   exact RuleProofs.eo_interprets_of_bool_eval M _ true hBool hEval
 
-theorem cmd_step_exists_string_length_properties
+public theorem cmd_step_exists_string_length_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.exists_string_length args premises) ->

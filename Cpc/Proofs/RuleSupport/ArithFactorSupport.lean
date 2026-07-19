@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.ArithValueSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithValueSupport
+import all Cpc.Proofs.RuleSupport.ArithValueSupport
+
+public section
 
 open ArithValueSupport
 

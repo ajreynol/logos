@@ -1,4 +1,10 @@
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.SmtModel
+import all Cpc.Proofs.TypePreservation.Common
+
+public section
 
 open SmtEval
 open Smtm

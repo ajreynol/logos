@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -154,7 +158,7 @@ private theorem facts_re_inter
               cases hr : __smtx_model_eval M (__eo_to_smt r) <;>
                 simp [hx, hr, __smtx_model_eval_str_in_re] at hEvalXR
 
-theorem cmd_step_re_inter_properties
+public theorem cmd_step_re_inter_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_inter args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrContainsConcatSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrContainsConcatSupport
+import all Cpc.Proofs.RuleSupport.StrContainsConcatSupport
 
 open Eo
 open SmtEval
@@ -94,7 +97,7 @@ private theorem prog_str_contains_concat_find_contra_info
       Suffix] using
         raw_contains_concat_find_contra_conclusion_eq Outer whole hRawNe
 
-theorem cmd_step_str_contains_concat_find_contra_properties
+public theorem cmd_step_str_contains_concat_find_contra_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_contains_concat_find_contra args premises) ->

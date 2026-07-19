@@ -1,6 +1,13 @@
-import Cpc.Proofs.TermCompat
-import Cpc.Proofs.TypePreservation.Predicates
-import Cpc.Proofs.Canonical.TypeDefaultBasic
+module
+
+public import Cpc.Proofs.TermCompat
+import all Cpc.Proofs.TermCompat
+public import Cpc.Proofs.TypePreservation.Predicates
+import all Cpc.Proofs.TypePreservation.Predicates
+public import Cpc.Proofs.Canonical.TypeDefaultBasic
+import all Cpc.Proofs.Canonical.TypeDefaultBasic
+
+public section
 
 open SmtEval
 open Smtm

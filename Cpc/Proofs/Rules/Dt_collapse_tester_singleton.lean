@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.DatatypeSupport
-import Cpc.Proofs.Translation.Apply
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.DatatypeSupport
+import all Cpc.Proofs.RuleSupport.DatatypeSupport
+public import Cpc.Proofs.Translation.Apply
+import all Cpc.Proofs.Translation.Apply
 
 open Eo
 open SmtEval
@@ -349,7 +354,7 @@ private theorem facts___eo_prog_dt_collapse_tester_singleton_impl
   rw [hA1Eq]
   exact dt_collapse_tester_singleton_sound M hM c t hBool hGuard
 
-theorem cmd_step_dt_collapse_tester_singleton_properties
+public theorem cmd_step_dt_collapse_tester_singleton_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_collapse_tester_singleton args premises) ->

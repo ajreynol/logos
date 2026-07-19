@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ArraySupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArraySupport
+import all Cpc.Proofs.RuleSupport.ArraySupport
 
 open Eo
 open SmtEval
@@ -535,7 +538,7 @@ private theorem facts___eo_prog_array_read_over_write2_impl
           ] at hProg
       exact False.elim this
 
-theorem cmd_step_array_read_over_write2_properties
+public theorem cmd_step_array_read_over_write2_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.array_read_over_write2 args premises) ->

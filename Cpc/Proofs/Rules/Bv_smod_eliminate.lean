@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.TypePreservation.BitVec
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.TypePreservation.BitVec
+import all Cpc.Proofs.TypePreservation.BitVec
 
 open Eo
 open SmtEval
@@ -2071,7 +2075,7 @@ private theorem trusted_bv_smod_eliminate_canonical_properties
         hxNe hyNe (by intro h; cases h) (by intro h; cases h)] using hProgBool)
     hEqRel
 
-theorem cmd_step_bv_smod_eliminate_properties
+public theorem cmd_step_bv_smod_eliminate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_smod_eliminate args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -670,7 +673,7 @@ private theorem facts_conclusion_impl
     hWiNonneg hTwNonneg hWiEq hTSmtTy]
   exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_uf_bv2nat_int2bv_extract_properties
+public theorem cmd_step_uf_bv2nat_int2bv_extract_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.uf_bv2nat_int2bv_extract args premises) ->

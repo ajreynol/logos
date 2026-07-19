@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinarySeqHelpers
+module
+
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinarySeqHelpers
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinarySeqHelpers
+
+public section
 
 open Eo
 open SmtEval

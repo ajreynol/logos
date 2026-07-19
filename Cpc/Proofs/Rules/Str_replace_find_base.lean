@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrReplaceFindSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrReplaceFindSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceFindSupport
 
 open Eo
 open SmtEval
@@ -8,7 +11,7 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
-theorem cmd_step_str_replace_find_base_properties
+public theorem cmd_step_str_replace_find_base_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_replace_find_base args premises) ->

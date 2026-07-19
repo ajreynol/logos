@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -1722,7 +1726,7 @@ private theorem eo_prog_absorb_interprets_true
         all_goals
           exact False.elim (eo_typeof_stuck_ne_bool hResultTy)
 
-theorem cmd_step_absorb_properties
+public theorem cmd_step_absorb_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.absorb args premises) ->

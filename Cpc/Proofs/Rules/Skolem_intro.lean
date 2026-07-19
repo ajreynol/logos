@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -60,7 +63,7 @@ theorem facts___eo_prog_skolem_intro_impl
   · simpa [eo_prog_skolem_intro_purify_eq] using hBool
   · exact smtx_model_eval_eo_to_smt_purify_rel M x1
 
-theorem cmd_step_skolem_intro_properties
+public theorem cmd_step_skolem_intro_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.skolem_intro args premises) ->

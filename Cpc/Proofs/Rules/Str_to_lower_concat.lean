@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -620,7 +624,7 @@ private theorem facts___eo_prog_str_to_lower_concat_impl
   exact RuleProofs.eo_interprets_eq_of_rel M _ _ hBoolEq
     (RuleProofs.smt_value_rel_symm _ _ hRhsToLhs)
 
-theorem cmd_step_str_to_lower_concat_properties
+public theorem cmd_step_str_to_lower_concat_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_to_lower_concat args premises) ->

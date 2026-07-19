@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrOverlapSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrOverlapSupport
+import all Cpc.Proofs.RuleSupport.StrOverlapSupport
 
 open Eo
 open SmtEval
@@ -9710,7 +9713,7 @@ private theorem seq_eval_smt_value_rel
       (__smtx_model_eval M (__eo_to_smt t)) :=
   (seq_eval_smt_type_and_value_rel M hM t hEvalNe hNN).2
 
-theorem cmd_step_seq_eval_op_properties
+public theorem cmd_step_seq_eval_op_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.seq_eval_op args premises) ->

@@ -1,7 +1,15 @@
-import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
-import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
-import Cpc.Proofs.RuleSupport.BvSdivElimSupport
-import Cpc.Proofs.RuleSupport.Cong.Core
+module
+
+public import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+import all Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+public import Cpc.Proofs.RuleSupport.BvSdivElimSupport
+import all Cpc.Proofs.RuleSupport.BvSdivElimSupport
+public import Cpc.Proofs.RuleSupport.Cong.Core
+import all Cpc.Proofs.RuleSupport.Cong.Core
+
+public section
 
 /-! Support for the unsigned division/remainder by a nontrivial power of two. -/
 
@@ -980,7 +988,7 @@ private theorem eval_bv_udiv_pow2_term
     simpa [SmtEval.native_zplus] using hPD
   have hn : N = W - 1 := by
     simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hN
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
       (native_int_to_nat W) hXSmtTy with ⟨p, hXEval, hCanonical⟩
   have hRound := native_int_to_nat_roundtrip W hW0
   have hXEval' :
@@ -1030,7 +1038,7 @@ private theorem eval_bv_udiv_pow2_term
             (bvExtractTerm x (Term.Numeral N) (Term.Numeral P)))
           (SmtTerm.Binary 0 0)))
   rw [smtx_eval_bvudiv_term_eq_div, hXEval', hConstEval,
-    smtx_eval_concat_term_eq, hZeroEval, smtx_eval_concat_term_eq,
+    _root_.smtx_eval_concat_term_eq, hZeroEval, _root_.smtx_eval_concat_term_eq,
     hExtractEval]
   simp only [__smtx_model_eval]
   exact bv_udiv_pow2_value_local W P N D p hw0 hp0 hd0 hdPos hpd hn
@@ -1192,7 +1200,7 @@ private theorem eval_bv_urem_pow2_term
     simpa [SmtEval.native_zplus] using hAD
   have hqd : Q + 1 = D := by
     simpa [hD, SmtEval.native_zplus]
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
       (native_int_to_nat W) hXSmtTy with ⟨p, hXEval, hCanonical⟩
   have hRound := native_int_to_nat_roundtrip W hW0
   have hXEval' :
@@ -1245,7 +1253,7 @@ private theorem eval_bv_urem_pow2_term
             (bvExtractTerm x (Term.Numeral Q) (Term.Numeral 0)))
           (SmtTerm.Binary 0 0)))
   rw [smtx_eval_bvurem_term_eq_div, hXEval', hConstEval,
-    smtx_eval_concat_term_eq, hZeroEval, smtx_eval_concat_term_eq,
+    _root_.smtx_eval_concat_term_eq, hZeroEval, _root_.smtx_eval_concat_term_eq,
     hExtractEval]
   simp only [__smtx_model_eval]
   exact bv_urem_pow2_value_local W A D Q p hw0 ha0 hd0 had hqd

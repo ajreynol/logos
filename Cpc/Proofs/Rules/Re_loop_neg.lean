@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ReLoopElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReLoopElimSupport
+import all Cpc.Proofs.RuleSupport.ReLoopElimSupport
 
 open Eo
 open SmtEval
@@ -248,7 +251,7 @@ private theorem facts
 
 end ReLoopNegProof
 
-theorem cmd_step_re_loop_neg_properties
+public theorem cmd_step_re_loop_neg_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_loop_neg args premises) ->

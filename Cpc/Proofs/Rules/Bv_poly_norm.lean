@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
 
 open Eo
 open SmtEval
@@ -1965,7 +1969,7 @@ theorem facts___eo_prog_bv_poly_norm_impl
     (smt_value_rel_of_equal_bv_poly_norm M hM a b modulus
       hEqBool hModulus hNormEq hNormNotStuck)
 
-theorem cmd_step_bv_poly_norm_properties
+public theorem cmd_step_bv_poly_norm_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_poly_norm args premises) ->

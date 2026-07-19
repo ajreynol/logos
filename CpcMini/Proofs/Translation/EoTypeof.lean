@@ -1,4 +1,9 @@
-import CpcMini.Proofs.Translation.Datatypes
+module
+
+public import CpcMini.Proofs.Translation.Datatypes
+import all CpcMini.Proofs.Translation.Datatypes
+
+public section
 
 open Eo
 open SmtEval

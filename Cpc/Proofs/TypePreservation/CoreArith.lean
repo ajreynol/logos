@@ -1,4 +1,10 @@
-import Cpc.Proofs.TypePreservation.Datatypes
+module
+
+public import Cpc.Proofs.TypePreservation.Datatypes
+import all Cpc.SmtModel
+import all Cpc.Proofs.TypePreservation.Common
+
+public section
 
 open SmtEval
 open Smtm

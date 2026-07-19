@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvMultPow2Support
+module
+
+public import Cpc.Proofs.RuleSupport.BvMultPow2Support
+import all Cpc.Proofs.RuleSupport.BvMultPow2Support
+
+public section
 
 /-! Support for multiplication by a positive power of two. -/
 
@@ -473,7 +478,7 @@ theorem eval_direct
     intro hZero
     have hDLe : D ≤ 0 := Int.toNat_eq_zero.mp hZero
     omega
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) WN
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) WN
       (by simpa [WN] using hZSmtTy) with
     ⟨p, hZEval, hZCan⟩
   have hWidth0 : native_zleq 0 (native_nat_to_int WN) = true := by

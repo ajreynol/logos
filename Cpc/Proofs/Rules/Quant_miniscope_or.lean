@@ -1,7 +1,13 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.StringSupport
-import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
+public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
 
 open Eo
 open SmtEval
@@ -2040,7 +2046,7 @@ private theorem quant_miniscope_or_formula_true
   exact RuleProofs.smt_value_rel_refl
     (__smtx_model_eval M (__eo_to_smt G))
 
-theorem cmd_step_quant_miniscope_or_properties
+public theorem cmd_step_quant_miniscope_or_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.quant_miniscope_or args premises) ->

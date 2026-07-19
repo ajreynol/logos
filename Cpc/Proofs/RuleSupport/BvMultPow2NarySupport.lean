@@ -1,7 +1,15 @@
-import Cpc.Proofs.RuleSupport.BvMultPow2Support
-import Cpc.Proofs.RuleSupport.BvMultPow2PosSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.BvXorOnesSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvMultPow2Support
+import all Cpc.Proofs.RuleSupport.BvMultPow2Support
+public import Cpc.Proofs.RuleSupport.BvMultPow2PosSupport
+import all Cpc.Proofs.RuleSupport.BvMultPow2PosSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.BvXorOnesSupport
+import all Cpc.Proofs.RuleSupport.BvXorOnesSupport
+
+public section
 
 /-! Support for the n-ary multiplication-by-a-power-of-two rewrite. -/
 
@@ -17,7 +25,7 @@ set_option linter.unnecessarySimpa false
 
 namespace BvMultPow2NarySupport
 
-private abbrev op : Term := Term.UOp UserOp.bvmul
+abbrev op : Term := Term.UOp UserOp.bvmul
 
 private def mul (x y : Term) : Term :=
   Term.Apply (Term.Apply op x) y
@@ -1117,11 +1125,11 @@ private theorem eval_mul_assoc
     __smtx_model_eval M (__eo_to_smt (mul (mul x y) z)) =
       __smtx_model_eval M (__eo_to_smt (mul x (mul y z))) := by
   intro hXTy hYTy hZTy
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hXTy with
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hXTy with
     ⟨nx, hXEval, _hXCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w hYTy with
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w hYTy with
     ⟨ny, hYEval, _hYCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) w hZTy with
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) w hZTy with
     ⟨nz, hZEval, _hZCan⟩
   change __smtx_model_eval_bvmul
       (__smtx_model_eval_bvmul
@@ -1178,9 +1186,9 @@ private theorem eval_mul_comm
     __smtx_model_eval M (__eo_to_smt (mul x y)) =
       __smtx_model_eval M (__eo_to_smt (mul y x)) := by
   intro hXTy hYTy
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hXTy with
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hXTy with
     ⟨nx, hXEval, _hXCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w hYTy with
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w hYTy with
     ⟨ny, hYEval, _hYCan⟩
   change __smtx_model_eval_bvmul
       (__smtx_model_eval M (__eo_to_smt x))
@@ -1258,9 +1266,9 @@ private theorem eval_mul_right_one
     __smtx_model_eval M (__eo_to_smt (mul x nil)) =
       __smtx_model_eval M (__eo_to_smt x) := by
   intro hXTy hNilTy hNil
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hXTy with
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hXTy with
     ⟨nx, hXEval, hXCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt nil) w hNilTy with
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt nil) w hNilTy with
     ⟨nnil, hNilEval, _hNilCan⟩
   have hNilOne := nil_payload_eq_one M nil w nnil hNil hNilEval
   subst nnil

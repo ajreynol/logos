@@ -1,4 +1,9 @@
-import Cpc.Proofs.Canonical.Basic
+module
+
+public import Cpc.Proofs.Canonical.Basic
+import all Cpc.Proofs.Canonical.Basic
+
+public section
 
 open SmtEval
 open Smtm

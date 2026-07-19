@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationIndexedOps
+module
+
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationIndexedOps
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationIndexedOps
+
+public section
 
 open Eo
 open SmtEval

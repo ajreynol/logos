@@ -1,10 +1,21 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.StrConcatSupport
-import Cpc.Proofs.RuleSupport.StringSupport
-import Cpc.Proofs.RuleSupport.NativeSeqSupport
-import Cpc.Proofs.RuleSupport.StrInReEvalSupport
-import Cpc.Proofs.RuleSupport.DistinctTermsSupport
-import Cpc.Proofs.Translation.EoTypeof
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.StrConcatSupport
+import all Cpc.Proofs.RuleSupport.StrConcatSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
+public import Cpc.Proofs.RuleSupport.NativeSeqSupport
+import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
+public import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+import all Cpc.Proofs.RuleSupport.DistinctTermsSupport
+public import Cpc.Proofs.Translation.EoTypeof
+import all Cpc.Proofs.Translation.EoTypeof
+
+public section
 
 open Eo
 open SmtEval
@@ -590,9 +601,31 @@ theorem eo_eq_val (a b : Term) (ha : a ≠ Term.Stuck) (hb : b ≠ Term.Stuck) :
 def atomChainTerm (atoms : List Term) (e : Term) : Term :=
   atoms.foldr (fun a acc => Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) acc) e
 
+end RuleProofs
+end
+
+open Eo
+open SmtEval
+open Smtm
+
+namespace RuleProofs
+
 theorem atomChainTerm_cons (a : Term) (xs : List Term) (e : Term) :
     atomChainTerm (a :: xs) e =
       Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) (atomChainTerm xs e) := rfl
+
+end RuleProofs
+
+public section
+
+open Eo
+open SmtEval
+open Smtm
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
+
+namespace RuleProofs
 
 theorem atomChainTerm_ne_stuck (xs : List Term) (e : Term) (he : e ≠ Term.Stuck) :
     atomChainTerm xs e ≠ Term.Stuck := by

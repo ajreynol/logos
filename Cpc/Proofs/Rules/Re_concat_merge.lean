@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.RegexRewriteSupport
-import Cpc.Proofs.RuleSupport.StrLeqConcatSupport
+module
+
+public import Cpc.Proofs.RuleSupport.RegexRewriteSupport
+import all Cpc.Proofs.RuleSupport.RegexRewriteSupport
+public import Cpc.Proofs.RuleSupport.StrLeqConcatSupport
+import all Cpc.Proofs.RuleSupport.StrLeqConcatSupport
 
 open Eo
 open SmtEval
@@ -344,7 +348,7 @@ private theorem type_and_facts
 
 end ReConcatMergeProof
 
-theorem cmd_step_re_concat_merge_properties
+public theorem cmd_step_re_concat_merge_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_concat_merge args premises) ->

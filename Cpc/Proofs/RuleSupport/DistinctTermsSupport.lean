@@ -1,7 +1,15 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.SetsMemberSupport
-import Cpc.Proofs.RuleSupport.DtConsEqSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.SetsMemberSupport
+import all Cpc.Proofs.RuleSupport.SetsMemberSupport
+public import Cpc.Proofs.RuleSupport.DtConsEqSupport
+import all Cpc.Proofs.RuleSupport.DtConsEqSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -2479,11 +2487,11 @@ private theorem dt_distinct_terms_base_info {c d : Term} :
   have hGuardAnd :
       __eo_and (dtDistinctBaseGuard c) (dtDistinctBaseGuard d) =
         Term.Boolean true :=
-    eo_requires_arg_eq_of_ne_stuck hReqNe
+    _root_.eo_requires_arg_eq_of_ne_stuck hReqNe
   have hResult :
       __eo_not (__eo_eq c d) = Term.Boolean true := by
     have hReqResult :=
-      eo_requires_result_eq_of_ne_stuck hReqNe
+      _root_.eo_requires_result_eq_of_ne_stuck hReqNe
     simpa [h] using hReqResult.symm
   rcases eo_and_true hGuardAnd with ⟨hc, hd⟩
   exact ⟨hc, hd, eo_not_eq_true_eq_false hResult⟩

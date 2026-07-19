@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -169,7 +173,7 @@ private theorem facts___eo_prog_bool_not_eq_elim2_impl
     cases bx <;> cases bY <;> simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
       __smtx_model_eval_not, native_veq, SmtEval.native_not]
 
-theorem cmd_step_bool_not_eq_elim2_properties
+public theorem cmd_step_bool_not_eq_elim2_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_not_eq_elim2 args premises) ->

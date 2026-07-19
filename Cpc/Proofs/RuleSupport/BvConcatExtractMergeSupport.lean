@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvConcatMergeConstSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvConcatMergeConstSupport
+import all Cpc.Proofs.RuleSupport.BvConcatMergeConstSupport
+
+public section
 
 /-! Support for merging adjacent extracts under bit-vector concat. -/
 
@@ -800,7 +805,7 @@ private theorem eval_bv_concat_extract_merge_core
       rw [hKRound, hWRound]
       exact hKwInt
     exact_mod_cast hCast
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt s) W
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt s) W
       (by simpa [W] using hSTy) with ⟨p, hSEval, hCanonical⟩
   have hSEval' :
       __smtx_model_eval M (__eo_to_smt s) =

@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Cong.ApplySpineA
+module
+
+public import Cpc.Proofs.RuleSupport.Cong.ApplySpineA
+import all Cpc.Proofs.RuleSupport.Cong.ApplySpineA
+
+public section
 
 open Eo
 open SmtEval

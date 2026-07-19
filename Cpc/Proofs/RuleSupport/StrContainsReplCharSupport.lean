@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.StrEqReplSupport
-import Cpc.Proofs.RuleSupport.StringSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrEqReplSupport
+import all Cpc.Proofs.RuleSupport.StrEqReplSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
+
+public section
 
 open Eo
 open SmtEval

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
+import all Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
 
 open Eo
 open SmtEval
@@ -190,7 +193,7 @@ private theorem facts___eo_prog_sets_choose_singleton_impl
     rw [hEvalEq]
     exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt rhs))
 
-theorem cmd_step_sets_choose_singleton_properties
+public theorem cmd_step_sets_choose_singleton_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_choose_singleton args premises) ->

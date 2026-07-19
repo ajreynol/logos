@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
-import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
-import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+import all Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+public import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+import all Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+public import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+import all Cpc.Proofs.RuleSupport.StrConcatUnifySupport
 
 open Eo
 open SmtEval
@@ -480,7 +485,7 @@ private theorem facts___eo_prog_str_indexof_contains_pre_impl
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt right))
 
-theorem cmd_step_str_indexof_contains_pre_properties
+public theorem cmd_step_str_indexof_contains_pre_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_indexof_contains_pre args premises) ->

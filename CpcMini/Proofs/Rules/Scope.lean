@@ -1,4 +1,7 @@
-import CpcMini.Proofs.RuleSupport.Support
+module
+
+public import CpcMini.Proofs.RuleSupport.Support
+import all CpcMini.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -132,7 +135,7 @@ by
   exact correct___eo_prog_scope_impl M hM x1 x2 hImp hBool
 
 /-- Packages the properties required for the `pop_scope` checker step. -/
-theorem cmd_step_pop_scope_properties
+public theorem cmd_step_pop_scope_properties
     (x1 : Term) (s : CState) (args : CArgList) (premises : CIndexList) :
   RuleProofs.eo_has_smt_translation x1 ->
   __eo_typeof x1 = Term.Bool ->

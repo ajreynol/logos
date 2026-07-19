@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ReConcatStarSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReConcatStarSupport
+import all Cpc.Proofs.RuleSupport.ReConcatStarSupport
 
 open Eo
 open SmtEval
@@ -374,7 +377,7 @@ on each bound, so `__eo_typeof_re_loop` enforces `__eo_gt · (-1)` on both `l` a
 `h`.  From `__eo_typeof (mkConcl …) = Bool`, `hBounds` inverts that rule to recover
 `a1 = Numeral lo`, `a2 = Numeral hi` with `lo, hi ≥ 0` and a `RegLan` body.
 -/
-theorem cmd_step_re_loop_star_properties
+public theorem cmd_step_re_loop_star_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_loop_star args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
 
 open Eo
 open SmtEval
@@ -715,7 +718,7 @@ private theorem step_concat_split_core
       exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
         (concatSplitFalseFormula_has_bool_type tc sc T htcTy hscTy)
 
-theorem cmd_step_concat_split_properties
+public theorem cmd_step_concat_split_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.concat_split args premises) ->

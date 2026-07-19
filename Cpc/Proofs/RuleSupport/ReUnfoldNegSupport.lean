@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
+
+public section
 
 open Eo
 open SmtEval

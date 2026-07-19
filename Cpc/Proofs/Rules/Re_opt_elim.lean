@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -164,7 +168,7 @@ private theorem facts___eo_prog_re_opt_elim_impl
     simp [__smtx_model_eval, hEval]
     exact smt_value_rel_re_opt_elim r
 
-theorem cmd_step_re_opt_elim_properties
+public theorem cmd_step_re_opt_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_opt_elim args premises) ->

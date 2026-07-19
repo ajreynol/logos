@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -1236,7 +1239,7 @@ private theorem tangent_false_real_properties
   intro _hTrue
   exact RuleProofs.eo_interprets_of_bool_eval M _ true hBool hEval
 
-theorem cmd_step_arith_mult_tangent_properties
+public theorem cmd_step_arith_mult_tangent_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_mult_tangent args premises) ->

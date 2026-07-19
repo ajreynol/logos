@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
 
 open Eo
 open SmtEval
@@ -142,7 +145,7 @@ private theorem facts___eo_prog_bool_implies_de_morgan_impl
         __smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not, native_veq,
         SmtEval.native_and, SmtEval.native_or, SmtEval.native_not]
 
-theorem cmd_step_bool_implies_de_morgan_properties
+public theorem cmd_step_bool_implies_de_morgan_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_implies_de_morgan args premises) ->

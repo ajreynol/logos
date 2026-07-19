@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
-import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
+public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
 
 open Eo
 open SmtEval
@@ -7620,7 +7624,7 @@ private theorem step_concat_cprop_core
       exact concatCPropFormula_has_smt_translation_false t s tc hPremBool
         hNonzeroBool hProg hResultTy
 
-theorem cmd_step_concat_cprop_properties
+public theorem cmd_step_concat_cprop_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.concat_cprop args premises) ->

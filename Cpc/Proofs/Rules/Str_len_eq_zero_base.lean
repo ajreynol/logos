@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -238,7 +242,7 @@ private theorem facts___eo_prog_str_len_eq_zero_base_impl
       hSeqTy]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_str_len_eq_zero_base_properties
+public theorem cmd_step_str_len_eq_zero_base_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_len_eq_zero_base args premises) ->

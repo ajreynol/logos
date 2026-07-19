@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.QuantDtSplitSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.QuantDtSplitSupport
+import all Cpc.Proofs.RuleSupport.QuantDtSplitSupport
 
 open Eo
 open SmtEval
@@ -131,7 +136,7 @@ private theorem quant_dt_split_formula_true
   intro hTrans hTy hGuard
   exact QuantDtSplitRule.qds_formula_true M hM x ys F G hGuard hTrans hTy
 
-theorem cmd_step_quant_dt_split_properties
+public theorem cmd_step_quant_dt_split_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.quant_dt_split args premises) ->

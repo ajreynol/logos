@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -863,7 +866,7 @@ private theorem typed_conclusion_impl
 
 /-! ## Top-level dispatch -/
 
-theorem cmd_step_uf_bv2nat_geq_elim_properties
+public theorem cmd_step_uf_bv2nat_geq_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.uf_bv2nat_geq_elim args premises) ->

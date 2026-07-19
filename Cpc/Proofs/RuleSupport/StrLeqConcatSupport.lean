@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.NativeSeqSupport
-import Cpc.Proofs.RuleSupport.StrEqReplSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.NativeSeqSupport
+import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrEqReplSupport
+import all Cpc.Proofs.RuleSupport.StrEqReplSupport
+
+public section
 
 open Eo
 open SmtEval

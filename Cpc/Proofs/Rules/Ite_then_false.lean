@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
 
 open Eo
 open SmtEval
@@ -136,7 +139,7 @@ private theorem facts___eo_prog_ite_then_false_impl
         __smtx_model_eval_and, __smtx_model_eval_not, native_veq,
         SmtEval.native_and, SmtEval.native_not]
 
-theorem cmd_step_ite_then_false_properties
+public theorem cmd_step_ite_then_false_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ite_then_false args premises) ->

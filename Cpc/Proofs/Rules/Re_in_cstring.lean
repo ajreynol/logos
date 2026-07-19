@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ReInclusionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReInclusionSupport
+import all Cpc.Proofs.RuleSupport.ReInclusionSupport
 
 open Eo
 open SmtEval
@@ -366,7 +369,7 @@ private theorem facts___eo_prog_re_in_cstring_impl
 
 end ReInCStringProof
 
-theorem cmd_step_re_in_cstring_properties
+public theorem cmd_step_re_in_cstring_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_in_cstring args premises) ->

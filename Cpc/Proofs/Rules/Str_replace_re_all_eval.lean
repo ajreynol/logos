@@ -1,5 +1,10 @@
-import Cpc.Proofs.Rules.Str_replace_re_eval
-import Cpc.Proofs.RuleSupport.StrConcatSupport
+module
+
+public import Cpc.Proofs.Rules.Str_replace_re_eval
+import all Cpc.Proofs.Rules.Str_replace_re_eval
+public import Cpc.Proofs.RuleSupport.StrConcatSupport
+import all Cpc.Proofs.RuleSupport.StrConcatSupport
+import all Cpc.SmtModel
 
 open Eo
 open SmtEval
@@ -1155,7 +1160,7 @@ private theorem str_replace_re_all_eval_arg_properties
 
 end RuleProofs
 
-theorem cmd_step_str_replace_re_all_eval_properties
+public theorem cmd_step_str_replace_re_all_eval_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_replace_re_all_eval args premises) ->

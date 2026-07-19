@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvNaryAddSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvNaryAddSupport
+import all Cpc.Proofs.RuleSupport.BvNaryAddSupport
+
+public section
 
 /-! Support for the `bv_ult_add_one` rewrite. -/
 
@@ -350,7 +355,7 @@ theorem inferredArgumentTypes (x ys zs c w : Term) :
     (by simpa [term] using hTermTy)
   rcases typeof_bvult_args_of_ne_stuck (by
       simpa [lhs] using hSides.1) with ⟨width, hXTy, hIncTy⟩
-  rcases smt_bitvec_type_of_eo_bitvec_type_with_width x width
+  rcases _root_.smt_bitvec_type_of_eo_bitvec_type_with_width x width
       hXTrans hXTy with ⟨W, hWidth, hW0, hXSTy⟩
   subst width
   have hIncTyNe : __eo_typeof (incList ys zs c) ≠ Term.Stuck := by
@@ -494,7 +499,7 @@ private theorem hasBoolTypeBvult
   unfold RuleProofs.eo_has_bool_type
   change __smtx_typeof (SmtTerm.bvult (__eo_to_smt a) (__eo_to_smt b)) =
     SmtType.Bool
-  rw [__smtx_typeof.eq_55]
+  rw [__smtx_typeof.eq_53]
   simp [__smtx_typeof_bv_op_2_ret, hA, hB, native_nateq, native_ite]
 
 theorem typedTerm (x ys zs c w : Term) :
@@ -758,12 +763,12 @@ theorem factsTerm
   let width := native_int_to_nat W
   have hWidthInt : native_nat_to_int width = W := by
     simpa [width] using native_nat_to_int_int_to_nat_eq W hW0
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) width
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) width
       (by simpa [width] using hXTy) with ⟨px, hXEval, hXCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM
       (__eo_to_smt (base ys zs)) width
       (by simpa [width] using hBaseTy) with ⟨pb, hBaseEval, hBaseCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt c) width
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt c) width
       (by simpa [width] using hCTy) with ⟨pc, hCEval, _hCCan⟩
   rw [hWidthInt] at hXEval hXCan hBaseEval hBaseCan hCEval
   have hXRange := bitvec_payload_range_of_canonical hW0 hXCan

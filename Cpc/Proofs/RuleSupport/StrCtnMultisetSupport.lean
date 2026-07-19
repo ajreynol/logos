@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.StrOverlapSupport
-import Cpc.Proofs.RuleSupport.SetsEvalOpSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrOverlapSupport
+import all Cpc.Proofs.RuleSupport.StrOverlapSupport
+public import Cpc.Proofs.RuleSupport.SetsEvalOpSupport
+import all Cpc.Proofs.RuleSupport.SetsEvalOpSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -272,6 +278,15 @@ theorem seqTermValueCount_eval_nil_of_empty (M : SmtModel) (v : SmtValue)
   rw [str_is_empty_eval_unpack_nil M t s hEmpty hEval]
   rfl
 
+end RuleProofs
+end
+
+open Eo
+open SmtEval
+open Smtm
+
+namespace RuleProofs
+
 theorem eoListSeqValueCount_cons (M : SmtModel) (v : SmtValue)
     (f x xs : Term) :
     eoListSeqValueCount M v (Term.Apply (Term.Apply f x) xs) =
@@ -279,6 +294,19 @@ theorem eoListSeqValueCount_cons (M : SmtModel) (v : SmtValue)
 
 theorem eoListSeqValueCount_nil_typed (M : SmtModel) (v : SmtValue) (T : Term) :
     eoListSeqValueCount M v (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) = 0 := rfl
+
+end RuleProofs
+
+public section
+
+open Eo
+open SmtEval
+open Smtm
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
+
+namespace RuleProofs
 
 theorem eoListSeqValueCount_mk_apply_cons (M : SmtModel) (v : SmtValue)
     (x xs : Term) (hx : x ≠ Term.Stuck) (hxs : xs ≠ Term.Stuck) :

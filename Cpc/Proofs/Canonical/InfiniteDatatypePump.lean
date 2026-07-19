@@ -1,4 +1,9 @@
-import Cpc.Proofs.Canonical.FiniteDefaultable
+module
+
+public import Cpc.Proofs.Canonical.FiniteDefaultable
+import all Cpc.Proofs.Canonical.FiniteDefaultable
+
+public section
 open SmtEval Smtm
 namespace Smtm
 set_option linter.unusedVariables false

@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Cong.RegLanSpine
+module
+
+public import Cpc.Proofs.RuleSupport.Cong.RegLanSpine
+import all Cpc.Proofs.RuleSupport.Cong.RegLanSpine
+
+public section
 
 open Eo
 open SmtEval

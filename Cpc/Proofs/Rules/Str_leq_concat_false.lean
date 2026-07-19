@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
+import all Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
 
 open Eo
 open SmtEval
@@ -136,7 +139,7 @@ private theorem native_str_leq_bool_false_ne
   subst t
   simp [native_str_leq_bool, SmtEval.native_or] at h
 
-theorem cmd_step_str_leq_concat_false_properties
+public theorem cmd_step_str_leq_concat_false_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_leq_concat_false args premises) ->
