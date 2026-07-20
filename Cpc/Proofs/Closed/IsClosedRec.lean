@@ -104,6 +104,14 @@ by
       __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_type_substitute,
       __smtx_typeof_dt_cons_rec, smtx_dt_cons_wf_rec_cons_none_eq_false,
       hNeg, native_ite, native_Teq, native_and]
+  case _at_strings_stoi_result =>
+    by_cases hBodyNone :
+        __smtx_typeof (__eo_to_smt body) = SmtType.None
+    · simp [hBodyNone]
+    · by_cases hBodyInt :
+          __smtx_typeof (__eo_to_smt body) = SmtType.Int
+      · simp [hBodyNone, hBodyInt]
+      · simp [hBodyNone, hBodyInt]
   case _at_strings_itos_result =>
     by_cases hBodyNone :
         __smtx_typeof (__eo_to_smt body) = SmtType.None
@@ -9443,18 +9451,26 @@ theorem strings_stoi_result_args_have_smt_translation_of_has_smt_translation
   eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
 by
   have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
-  let sub :=
-    SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-      (__eo_to_smt y)
-  change term_has_non_none_type (SmtTerm.str_to_int sub) at hNN
-  have hSubTy : __smtx_typeof sub = SmtType.Seq SmtType.Char :=
-    seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
-      (typeof_str_to_int_eq sub) hNN
-  have hSubNN : term_has_non_none_type sub := by
+  let zero := SmtTerm.Numeral 0
+  let prefixTerm := SmtTerm.str_substr (__eo_to_smt x) zero (__eo_to_smt y)
+  let parsed := SmtTerm.str_to_int prefixTerm
+  let result :=
+    SmtTerm.ite (SmtTerm.eq (__eo_to_smt y) zero) zero parsed
+  change term_has_non_none_type result at hNN
+  rcases ite_args_of_non_none hNN with
+    ⟨T, _hCondTy, _hZeroTy, hParsedTy, hTNN⟩
+  have hParsedNN : term_has_non_none_type parsed := by
     unfold term_has_non_none_type
-    rw [hSubTy]
+    rw [hParsedTy]
+    exact hTNN
+  have hPrefixTy : __smtx_typeof prefixTerm = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
+      (typeof_str_to_int_eq prefixTerm) hParsedNN
+  have hPrefixNN : term_has_non_none_type prefixTerm := by
+    unfold term_has_non_none_type
+    rw [hPrefixTy]
     simp
-  rcases str_substr_args_of_non_none hSubNN with
+  rcases str_substr_args_of_non_none hPrefixNN with
     ⟨A, hXTy, _hZeroTy, hYTy⟩
   exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
     eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩

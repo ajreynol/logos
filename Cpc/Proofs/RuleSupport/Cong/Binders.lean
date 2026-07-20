@@ -1264,10 +1264,9 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
             __smtx_typeof
               (stringsStoiResultTerm (__eo_to_smt z) (__eo_to_smt x)) =
               SmtType.None
-          rw [stringsStoiResultTerm, typeof_str_to_int_eq,
-            typeof_str_substr_eq, hx]
-          cases __smtx_typeof (__eo_to_smt z) <;>
-            simp [__smtx_typeof_str_substr, native_ite, native_Teq])
+          rw [stringsStoiResultTerm, typeof_ite_eq, typeof_eq_eq, hx]
+          simp [__smtx_typeof_eq, __smtx_typeof_guard,
+            __smtx_typeof_ite, native_ite, native_Teq])
       case _at_strings_itos_result =>
         exact hTrans (by
           change

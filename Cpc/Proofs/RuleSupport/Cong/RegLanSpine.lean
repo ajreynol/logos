@@ -1004,11 +1004,16 @@ theorem congTrueSpine_strings_deq_diff_eq_true
     x₁ x₂ rhs
 
 def stringsStoiResultTerm (a b : SmtTerm) : SmtTerm :=
-  SmtTerm.str_to_int (SmtTerm.str_substr a (SmtTerm.Numeral 0) b)
+  SmtTerm.ite (SmtTerm.eq b (SmtTerm.Numeral 0))
+    (SmtTerm.Numeral 0)
+    (SmtTerm.str_to_int (SmtTerm.str_substr a (SmtTerm.Numeral 0) b))
 
-private def stringsStoiResultEval (a b : SmtValue) : SmtValue :=
-  __smtx_model_eval_str_to_int
-    (__smtx_model_eval_str_substr a (SmtValue.Numeral 0) b)
+private noncomputable def stringsStoiResultEval (a b : SmtValue) : SmtValue :=
+  __smtx_model_eval_ite
+    (__smtx_model_eval_eq b (SmtValue.Numeral 0))
+    (SmtValue.Numeral 0)
+    (__smtx_model_eval_str_to_int
+      (__smtx_model_eval_str_substr a (SmtValue.Numeral 0) b))
 
 private theorem strings_stoi_result_args_non_reg_of_non_none
     (a b : SmtTerm) :
@@ -1018,10 +1023,21 @@ private theorem strings_stoi_result_args_non_reg_of_non_none
           A ≠ SmtType.None ∧ B ≠ SmtType.None ∧
           A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan := by
   intro hNN
+  have hTermNN : term_has_non_none_type (stringsStoiResultTerm a b) := by
+    exact hNN
+  rcases ite_args_of_non_none hTermNN with
+    ⟨T, _hCondTy, _hZeroTy, hParsedTy, hTNN⟩
+  have hParsedNN :
+      term_has_non_none_type
+        (SmtTerm.str_to_int
+          (SmtTerm.str_substr a (SmtTerm.Numeral 0) b)) := by
+    unfold term_has_non_none_type
+    rw [hParsedTy]
+    exact hTNN
   rcases seq_char_unop_args_non_reg_of_non_none SmtTerm.str_to_int
       SmtType.Int (by intro x; exact typeof_str_to_int_eq x)
       (SmtTerm.str_substr a (SmtTerm.Numeral 0) b)
-      (by simpa [stringsStoiResultTerm] using hNN) with
+      hParsedNN with
     ⟨A, hSubstrA, hANN, _hAReg⟩
   have hSubstrNN :
       __smtx_typeof (SmtTerm.str_substr a (SmtTerm.Numeral 0) b) ≠
@@ -1050,9 +1066,10 @@ theorem congTrueSpine_strings_stoi_result_eq_true
       strings_stoi_result_args_non_reg_of_non_none
       (by
         intro a b
-        rw [stringsStoiResultTerm, stringsStoiResultEval,
-          __smtx_model_eval.eq_93, __smtx_model_eval.eq_79,
-          __smtx_model_eval.eq_2])
+        simp only [stringsStoiResultTerm, stringsStoiResultEval,
+          smtx_model_eval_ite_term_eq, smtx_model_eval_eq_term_eq,
+          __smtx_model_eval.eq_2, __smtx_model_eval.eq_79,
+          __smtx_model_eval.eq_93])
       x₁ x₂ rhs
 
 theorem congTypeSpine_strings_stoi_result_eq_has_bool_type
@@ -1070,6 +1087,7 @@ theorem congTypeSpine_strings_stoi_result_eq_has_bool_type
       (by
         intro a b a' b' ha hb
         rw [stringsStoiResultTerm, stringsStoiResultTerm,
+          typeof_ite_eq, typeof_ite_eq, typeof_eq_eq, typeof_eq_eq,
           typeof_str_to_int_eq, typeof_str_to_int_eq,
           typeof_str_substr_eq, typeof_str_substr_eq, ha, hb])
       x₁ x₂ rhs

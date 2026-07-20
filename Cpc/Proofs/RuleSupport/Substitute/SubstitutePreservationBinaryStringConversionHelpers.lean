@@ -60,9 +60,12 @@ theorem smt_strings_stoi_result_non_none_of_eo_typeof_ne_stuck
       __eo_typeof__at_strings_stoi_result (__eo_typeof X) (__eo_typeof Y) ≠
         Term.Stuck) :
     __smtx_typeof
-        (SmtTerm.str_to_int
-          (SmtTerm.str_substr (__eo_to_smt X) (SmtTerm.Numeral 0)
-            (__eo_to_smt Y))) ≠
+        (SmtTerm.ite
+          (SmtTerm.eq (__eo_to_smt Y) (SmtTerm.Numeral 0))
+          (SmtTerm.Numeral 0)
+          (SmtTerm.str_to_int
+            (SmtTerm.str_substr (__eo_to_smt X) (SmtTerm.Numeral 0)
+              (__eo_to_smt Y)))) ≠
       SmtType.None := by
   rcases eo_typeof_strings_stoi_result_arg_types_of_ne_stuck hApp with
     ⟨hXTy, hYTy⟩
@@ -73,18 +76,32 @@ theorem smt_strings_stoi_result_non_none_of_eo_typeof_ne_stuck
       TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
     rw [hYTy] at hMatch
     exact hMatch
+  have hZero :
+      __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
+    rw [__smtx_typeof.eq_2]
   have hSubTy :
       __smtx_typeof
           (SmtTerm.str_substr (__eo_to_smt X) (SmtTerm.Numeral 0)
             (__eo_to_smt Y)) =
         SmtType.Seq SmtType.Char := by
-    have hZero :
-        __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
-      rw [__smtx_typeof.eq_2]
     rw [typeof_str_substr_eq, hXSmt, hYSmt, hZero]
     simp [__smtx_typeof_str_substr]
-  rw [typeof_str_to_int_eq, hSubTy]
-  simp [native_ite, native_Teq]
+  have hParsed :
+      __smtx_typeof
+          (SmtTerm.str_to_int
+            (SmtTerm.str_substr (__eo_to_smt X) (SmtTerm.Numeral 0)
+              (__eo_to_smt Y))) =
+        SmtType.Int := by
+    rw [typeof_str_to_int_eq, hSubTy]
+    simp [native_ite, native_Teq]
+  have hCond :
+      __smtx_typeof
+          (SmtTerm.eq (__eo_to_smt Y) (SmtTerm.Numeral 0)) =
+        SmtType.Bool := by
+    rw [typeof_eq_eq, hYSmt, hZero]
+    simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq]
+  rw [typeof_ite_eq, hCond, hZero, hParsed]
+  simp [__smtx_typeof_ite, native_ite, native_Teq]
 
 theorem smt_strings_itos_result_non_none_of_eo_typeof_ne_stuck
     (X Y : Term)
