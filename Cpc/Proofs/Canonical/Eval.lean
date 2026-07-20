@@ -45,30 +45,20 @@ theorem model_eval_var_canonical
     (hM : model_total_typed M)
     (s : native_String)
     (T : SmtType)
-    (hT : type_inhabited T) :
+    (hWF : __smtx_type_wf T = true) :
     __smtx_value_canonical (__smtx_model_eval M (SmtTerm.Var s T)) := by
-  by_cases hWF : __smtx_type_wf T = true
-  · simpa [__smtx_model_eval] using model_total_typed_var_lookup_canonical hM s T hWF
-  · have hWF' : __smtx_type_wf T = false := by
-      cases hWFBool : __smtx_type_wf T <;> simp [hWFBool] at hWF ⊢
-    have hLookup : native_model_var_lookup M s T = SmtValue.NotValue :=
-      model_total_typed_var_lookup_uninhabited hM s T hWF'
-    simpa [__smtx_model_eval, hLookup] using value_canonical_notValue
+  simpa [__smtx_model_eval] using
+    model_total_typed_var_lookup_canonical hM s T hWF
 
 theorem model_eval_uconst_canonical
     (M : SmtModel)
     (hM : model_total_typed M)
     (s : native_String)
     (T : SmtType)
-    (hT : type_inhabited T) :
+    (hWF : __smtx_type_wf T = true) :
     __smtx_value_canonical (__smtx_model_eval M (SmtTerm.UConst s T)) := by
-  by_cases hWF : __smtx_type_wf T = true
-  · simpa [__smtx_model_eval] using model_total_typed_lookup_canonical hM s T hWF
-  · have hWF' : __smtx_type_wf T = false := by
-      cases hWFBool : __smtx_type_wf T <;> simp [hWFBool] at hWF ⊢
-    have hLookup : native_model_lookup M s T = SmtValue.NotValue :=
-      model_total_typed_lookup_not_wf hM s T hWF'
-    simpa [__smtx_model_eval, hLookup] using value_canonical_notValue
+  simpa [__smtx_model_eval] using
+    model_total_typed_lookup_canonical hM s T hWF
 
 theorem model_eval_eq_term_canonical
     (M : SmtModel)
@@ -361,13 +351,40 @@ theorem model_eval_seq_nth_term_canonical
     (M : SmtModel)
     (hM : model_total_typed M)
     (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2))
+    (hElemRec :
+      ∀ {T : SmtType},
+        __smtx_typeof t1 = SmtType.Seq T ->
+          __smtx_type_wf_rec T T = true)
     (h1 : __smtx_value_canonical (__smtx_model_eval M t1)) :
     __smtx_value_canonical (__smtx_model_eval M (SmtTerm.seq_nth t1 t2)) := by
+  rcases seq_nth_args_of_non_none ht with ⟨T, ht1Ty, ht2Ty⟩
+  have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    rw [typeof_seq_nth_eq t1 t2] at ht
+    simpa [__smtx_typeof_seq_nth, ht1Ty, ht2Ty] using ht
+  have hTWf : __smtx_type_wf T = true :=
+    smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+  have hRec : __smtx_type_wf_rec T T = true := hElemRec ht1Ty
+  have hTInh : native_inhabited_type T = true := by
+    cases T <;>
+      simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] at hTWf hRec ⊢
+    all_goals first | exact hTWf | exact hTWf.1 | exact hTWf.1.1 | contradiction
+  have hMapWF := seq_nth_wrong_map_type_wf hTInh hRec
+    (type_no_alias_of_type_wf hTWf)
+  have ht1 : term_has_non_none_type t1 := by
+    unfold term_has_non_none_type
+    rw [ht1Ty]
+    simp
+  have hValTy :
+      __smtx_typeof_value (__smtx_model_eval M t1) = SmtType.Seq T :=
+    (smt_model_eval_preserves_type_of_non_none M hM t1 ht1).trans ht1Ty
   simpa [__smtx_model_eval] using
     model_eval_seq_nth_canonical
       (M := M) (hM := hM)
       (v := __smtx_model_eval M t1)
-      (i := __smtx_model_eval M t2) h1
+      (i := __smtx_model_eval M t2) h1 T hValTy hMapWF
 
 theorem model_eval_dt_sel_term_canonical
     (M : SmtModel)
@@ -391,7 +408,8 @@ theorem model_eval_dt_sel_term_canonical
       smt_model_eval_preserves_type_of_non_none M hM x htx
   simpa [__smtx_model_eval] using
     model_eval_dt_sel_canonical M hM s d i j
-      (v := __smtx_model_eval M x) hxTy hx
+      (v := __smtx_model_eval M x)
+      (dt_sel_wrong_map_type_wf_of_non_none ht) hxTy hx
 
 theorem native_eval_tchoice_canonical
     (M : SmtModel)
@@ -502,9 +520,13 @@ theorem model_eval_canonical_of_supported
       simpa [__smtx_model_eval, __smtx_model_eval__at_purify] using
         ih M hM ht
   case var s T hT =>
-      exact model_eval_var_canonical M hM s T hT
+      exact model_eval_var_canonical M hM s T
+        (smtx_typeof_guard_wf_wf_of_non_none T T (by
+          simpa [term_has_non_none_type, __smtx_typeof] using hTy))
   case uconst s T hT =>
-      exact model_eval_uconst_canonical M hM s T hT
+      exact model_eval_uconst_canonical M hM s T
+        (smtx_typeof_guard_wf_wf_of_non_none T T (by
+          simpa [term_has_non_none_type, __smtx_typeof] using hTy))
   case re_allchar =>
       simpa [__smtx_model_eval] using value_canonical_reglan_allchar
   case re_none =>
@@ -520,7 +542,8 @@ theorem model_eval_canonical_of_supported
   case set_singleton ht hs ih =>
       exact model_eval_set_singleton_term_canonical M _ (ih M hM ht)
   case seq_nth ht1 hs1 ht2 hs2 hT hElemRec ih1 ih2 =>
-      exact model_eval_seq_nth_term_canonical M hM _ _ (ih1 M hM ht1)
+      exact model_eval_seq_nth_term_canonical M hM _ _ hTy hElemRec
+        (ih1 M hM ht1)
   case set_union ht1 hs1 ht2 hs2 ih1 ih2 =>
       exact model_eval_set_union_term_canonical M _ _ (ih1 M hM ht1) (ih2 M hM ht2)
   case set_inter ht1 hs1 ht2 hs2 ih1 ih2 =>
