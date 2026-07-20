@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationGenericOps
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinaryBvHelpers
+module
+
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationGenericOps
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationGenericOps
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinaryBvHelpers
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinaryBvHelpers
+
+public section
 
 open Eo
 open SmtEval

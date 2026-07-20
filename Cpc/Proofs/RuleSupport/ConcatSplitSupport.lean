@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.StrConcatSupport
-import Cpc.Proofs.RuleSupport.StringSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrConcatSupport
+import all Cpc.Proofs.RuleSupport.StrConcatSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -777,22 +783,22 @@ theorem smt_typeof_seq_empty_typeof_of_smt_type_seq
       (smt_seq_component_wf_of_non_none_type (__eo_to_smt x) T hxTy).1
       (smt_seq_component_wf_of_non_none_type (__eo_to_smt x) T hxTy).2)
 
-@[simp] theorem term_apply_ne_stuck (f x : Term) :
+@[simp] private theorem term_apply_ne_stuck (f x : Term) :
     Term.Apply f x ≠ Term.Stuck := by
   intro h
   cases h
 
-@[simp] theorem term_uop_ne_stuck (op : UserOp) :
+@[simp] private theorem term_uop_ne_stuck (op : UserOp) :
     Term.UOp op ≠ Term.Stuck := by
   intro h
   cases h
 
-@[simp] theorem term_boolean_ne_stuck (b : Bool) :
+@[simp] private theorem term_boolean_ne_stuck (b : Bool) :
     Term.Boolean b ≠ Term.Stuck := by
   intro h
   cases h
 
-@[simp] theorem term_numeral_ne_stuck (n : native_Int) :
+@[simp] private theorem term_numeral_ne_stuck (n : native_Int) :
     Term.Numeral n ≠ Term.Stuck := by
   intro h
   cases h

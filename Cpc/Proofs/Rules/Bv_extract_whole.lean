@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.TypePreservation.BitVec
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.TypePreservation.BitVec
+import all Cpc.Proofs.TypePreservation.BitVec
 
 open Eo
 open SmtEval
@@ -403,7 +407,7 @@ private theorem facts_bv_extract_whole_term
     rw [eval_extract_whole_matches M hM x n hXTrans hResultTy]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_bv_extract_whole_properties
+public theorem cmd_step_bv_extract_whole_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_extract_whole args premises) ->

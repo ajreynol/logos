@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ReConcatNullableSupport
-import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReConcatNullableSupport
+import all Cpc.Proofs.RuleSupport.ReConcatNullableSupport
+public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
 
 open Eo
 open SmtEval
@@ -99,7 +103,7 @@ the EO→SMT type-preservation bridge.  This rule has no EO/SMT typing gap — e
 operation involved (`re.concat`, `re.++`, `str.to_re`, `re.*`, `re.allchar`) is
 faithfully translatable.
 -/
-theorem cmd_step_re_concat_star_nullable1_properties
+public theorem cmd_step_re_concat_star_nullable1_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_concat_star_nullable1 args premises) ->

@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Cong.ValueRel
+module
+
+public import Cpc.Proofs.RuleSupport.Cong.ValueRel
+import all Cpc.Proofs.RuleSupport.Cong.ValueRel
+
+public section
 
 open Eo
 open SmtEval
@@ -103,8 +108,7 @@ private theorem hoAppSpine_typeof_apply_eq
                 __smtx_typeof
                     (SmtTerm.Apply SmtTerm.None (__eo_to_smt p₂)) =
                   SmtType.None
-              simp [__smtx_typeof, __smtx_typeof_apply,
-                TranslationProofs.smtx_typeof_none]) hBase hPrev)
+              simp [__smtx_typeof, __smtx_typeof_apply]) hBase hPrev)
 
 theorem eo_apply_apply_head_has_translation_of_generic_apply_translation
     (f z x : Term)
@@ -338,28 +342,25 @@ private theorem mk_ho_cong_bad_head_stuck
     __mk_ho_cong l r
         (Term.Apply (Term.Apply (Term.UOp UserOp.and) a) tail) =
       Term.Stuck := by
-  cases hEq : eqPremise? a with
-  | some xy =>
-      rcases xy with ⟨x, y⟩
-      simp [eqPremise?] at hEq
-  | none =>
-      cases a with
-      | Apply pf y =>
-          cases pf with
-          | Apply pg x =>
-              cases pg with
-              | UOp op =>
-                  cases op
-                  case eq =>
-                    simp [eqPremise?] at hEq
-                  all_goals
-                    cases l <;> cases r <;> rfl
-              | _ =>
-                  cases l <;> cases r <;> rfl
-          | _ =>
-              cases l <;> cases r <;> rfl
-      | _ =>
-          cases l <;> cases r <;> rfl
+  by_cases hl : l = Term.Stuck
+  · subst l
+    rfl
+  by_cases hr : r = Term.Stuck
+  · subst r
+    simp [__mk_ho_cong]
+  cases a with
+  | Apply pf y =>
+      cases pf with
+      | Apply pg x =>
+          cases pg with
+          | UOp op =>
+              cases op <;>
+                first
+                | exact (hBad x y rfl).elim
+                | simp [__mk_ho_cong]
+          | _ => simp [__mk_ho_cong]
+      | _ => simp [__mk_ho_cong]
+  | _ => simp [__mk_ho_cong]
 
 private theorem mk_ho_cong_type_spine_of_list
     (f g : Term) :

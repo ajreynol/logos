@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
-import Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+import all Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+public import Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
+import all Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
+
+public section
 
 open Eo
 open SmtEval

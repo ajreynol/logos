@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -246,7 +250,7 @@ private theorem facts___eo_prog_ite_then_neg_lookahead_impl
     · simpa [__smtx_model_eval_ite, __smtx_model_eval_not, SmtEval.native_not] using
         RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt y1))
 
-theorem cmd_step_ite_then_neg_lookahead_properties
+public theorem cmd_step_ite_then_neg_lookahead_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ite_then_neg_lookahead args premises) ->

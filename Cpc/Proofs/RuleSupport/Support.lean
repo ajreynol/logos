@@ -1,6 +1,13 @@
-import Cpc.Proofs.Common
-import Cpc.Proofs.Assumptions
-import Cpc.Proofs.Closed.Support
+module
+
+public import Cpc.Proofs.Common
+import all Cpc.Proofs.Common
+public import Cpc.Proofs.Assumptions
+import all Cpc.Proofs.Assumptions
+public import Cpc.Proofs.Closed.Support
+import all Cpc.Proofs.Closed.Support
+
+@[expose] public section
 
 open Eo
 open SmtEval

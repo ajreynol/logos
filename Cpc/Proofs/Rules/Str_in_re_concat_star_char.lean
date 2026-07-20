@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -1631,7 +1634,7 @@ private theorem str_in_re_concat_star_char_valid_properties
 
 end RuleProofs
 
-theorem cmd_step_str_in_re_concat_star_char_properties
+public theorem cmd_step_str_in_re_concat_star_char_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_concat_star_char args premises) ->

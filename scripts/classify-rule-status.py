@@ -10,24 +10,32 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+DECL_MODIFIER = r"(?:private|protected|public|noncomputable)"
+
 MAIN_THEOREM_RE = re.compile(
-    r"(?m)^(?:private\s+)?theorem\s+(cmd_step_([A-Za-z0-9_]+)_properties)\b"
+    rf"(?m)^(?:{DECL_MODIFIER}\s+)*theorem\s+(cmd_step_([A-Za-z0-9_]+)_properties)\b"
 )
 
-PROG_DEF_RE = re.compile(r"(?m)^(partial\s+def|def)\s+__eo_prog_([A-Za-z0-9_]+)\b")
-CRULE_START_RE = re.compile(r"(?m)^inductive\s+CRule\s*:\s*Type\s+where\b")
+PROG_DEF_RE = re.compile(
+    rf"(?m)^(?:{DECL_MODIFIER}\s+)*(partial\s+def|def)\s+__eo_prog_([A-Za-z0-9_]+)\b"
+)
+CRULE_START_RE = re.compile(
+    rf"(?m)^(?:{DECL_MODIFIER}\s+)*inductive\s+CRule\s*:\s*Type\s+where\b"
+)
 CRULE_CONSTRUCTOR_RE = re.compile(r"^\s*\|\s+([A-Za-z0-9_]+)\s*:\s*CRule\b")
 IDENT_SEGMENT = r"(?:«[^»]+»|[A-Za-z_][A-Za-z0-9_'!?]*)"
 QUALIFIED_IDENT = rf"{IDENT_SEGMENT}(?:\.{IDENT_SEGMENT})*"
 DECL_START_RE = re.compile(
-    rf"^(?P<prefix>(?:(?:private|protected|noncomputable)\s+)*)"
+    rf"^(?P<prefix>(?:{DECL_MODIFIER}\s+)*)"
     rf"(?P<kind>partial\s+def|theorem|lemma|def|abbrev|axiom|opaque|inductive|structure|class)\s+"
     rf"(?P<name>{QUALIFIED_IDENT})(?=\s|:|\(|\{{|:=|$)",
     re.M,
 )
-IMPORT_RE = re.compile(r"(?m)^import\s+(.+)$")
+# Lean's module system spells imports `public import M`, `import all M`, and
+# `public import all M` in addition to plain `import M`.
+IMPORT_RE = re.compile(r"(?m)^(?:public\s+)?import\s+(?:all\s+)?(.+)$")
 NAMESPACE_RE = re.compile(r"^namespace\s+(.+?)\s*$")
-SECTION_RE = re.compile(r"^(?:noncomputable\s+)?section(?:\s+.+)?\s*$")
+SECTION_RE = re.compile(r"^(?:(?:public|noncomputable)\s+)?section(?:\s+.+)?\s*$")
 MUTUAL_RE = re.compile(r"^mutual\s*$")
 END_RE = re.compile(r"^end(?:\s+(.+?))?\s*$")
 IDENT_RE = re.compile(QUALIFIED_IDENT)

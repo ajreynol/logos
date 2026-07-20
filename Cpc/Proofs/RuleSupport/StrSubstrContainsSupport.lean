@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+import all Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+
+public section
 
 open Eo
 open SmtEval

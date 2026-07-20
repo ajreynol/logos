@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrContainsConcatSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrContainsConcatSupport
+import all Cpc.Proofs.RuleSupport.StrContainsConcatSupport
 
 open Eo
 open SmtEval
@@ -135,7 +138,7 @@ private theorem eval_contains_of_interprets_true
           native_veq] using hEval
       rw [str_contains_eval_eq M x y sx sy hXEval hYEval, hNative]
 
-theorem cmd_step_str_contains_concat_find_properties
+public theorem cmd_step_str_contains_concat_find_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_contains_concat_find args premises) ->

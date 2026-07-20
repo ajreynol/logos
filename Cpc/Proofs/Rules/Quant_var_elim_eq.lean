@@ -1,8 +1,15 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CongSupport
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.RuleSupport.RelCoincidenceSupport
-import Cpc.Proofs.Rules.Instantiate
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CongSupport
+import all Cpc.Proofs.RuleSupport.CongSupport
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.RelCoincidenceSupport
+import all Cpc.Proofs.RuleSupport.RelCoincidenceSupport
+public import Cpc.Proofs.Rules.Instantiate
+import all Cpc.Proofs.Rules.Instantiate
 
 open Eo
 open SmtEval
@@ -1267,7 +1274,7 @@ private theorem quant_var_elim_eq_formula_true
 
 end QuantVarElimEqRule
 
-theorem cmd_step_quant_var_elim_eq_properties
+public theorem cmd_step_quant_var_elim_eq_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.quant_var_elim_eq args premises) ->

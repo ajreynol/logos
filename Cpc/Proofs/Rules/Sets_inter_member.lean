@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SetsMemberSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SetsMemberSupport
+import all Cpc.Proofs.RuleSupport.SetsMemberSupport
 
 open Eo
 open SmtEval
@@ -419,7 +422,7 @@ private theorem facts___eo_prog_sets_inter_member_impl
   simpa [setsInterMemberFormula, lhs, rhs, mem] using
     RuleProofs.eo_interprets_eq_of_rel M lhs rhs hEqBool hRel
 
-theorem cmd_step_sets_inter_member_properties
+public theorem cmd_step_sets_inter_member_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_inter_member args premises) ->

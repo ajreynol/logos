@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationAtomApply
+module
+
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationAtomApply
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationAtomApply
+
+public section
 
 open Eo
 open SmtEval

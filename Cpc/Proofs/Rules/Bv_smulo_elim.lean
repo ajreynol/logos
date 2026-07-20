@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.BvOverflowSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvOverflowSupport
+import all Cpc.Proofs.RuleSupport.BvOverflowSupport
 
 open Eo
 open SmtEval
@@ -3803,7 +3806,7 @@ private theorem eval_bv_smulo_expanded
           (by simpa [Nat.succ_eq_add_one] using hbBound)
           hNilXorA hNilXorB hNilMul
 
-theorem cmd_step_bv_smulo_elim_properties
+public theorem cmd_step_bv_smulo_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_smulo_elim args premises) ->

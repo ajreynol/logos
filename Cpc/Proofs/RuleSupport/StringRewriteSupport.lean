@@ -1,7 +1,15 @@
-import Cpc.Proofs.RuleSupport.RegexRewriteSupport
-import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
-import Cpc.Proofs.RuleSupport.StrReplaceFindSupport
-import Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
+module
+
+public import Cpc.Proofs.RuleSupport.RegexRewriteSupport
+import all Cpc.Proofs.RuleSupport.RegexRewriteSupport
+public import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+import all Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+public import Cpc.Proofs.RuleSupport.StrReplaceFindSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceFindSupport
+public import Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
+import all Cpc.Proofs.RuleSupport.StrLeqConcatNarySupport
+
+public section
 
 open Eo
 open SmtEval
@@ -1503,7 +1511,7 @@ theorem native_seq_indexof_take_index_append_self
     simp [pref, List.length_take, Nat.min_eq_left hKLe]
   have hExpandedDropK : expanded.drop k = xs := by
     dsimp [expanded]
-    rw [list_drop_append_of_le_length pref xs k (by simpa [hPrefLen])]
+    rw [list_drop_append_of_le_length pref xs k (by simp [hPrefLen])]
     simp [hPrefLen]
   have hXsAtK :
       native_seq_prefix_eq xs (expanded.drop k) = true := by

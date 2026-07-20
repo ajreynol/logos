@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -269,14 +272,13 @@ private theorem facts___eo_prog_distinct_binary_elim_impl
         (__smtx_model_eval M (__eo_to_smt s1)) with
       ⟨b, hEqEval⟩
     cases b <;>
-      simp [smtx_eval_and_term_eq, smtx_eval_not_term_eq,
-        smtx_eval_eq_term_eq, RuleProofs.smt_value_rel, __smtx_model_eval,
+      simp [RuleProofs.smt_value_rel, __smtx_model_eval,
         __smtx_model_eval_and, __smtx_model_eval_not,
         SmtEval.native_and, SmtEval.native_not, hEqEval]
     all_goals simp [__smtx_model_eval_eq]
     all_goals simp [native_veq]
 
-theorem cmd_step_distinct_binary_elim_properties
+public theorem cmd_step_distinct_binary_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.distinct_binary_elim args premises) ->

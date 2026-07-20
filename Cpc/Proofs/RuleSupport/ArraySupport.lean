@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.Canonical.CardinalityAssumptions
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.Canonical.CardinalityAssumptions
+import all Cpc.Proofs.Canonical.CardinalityAssumptions
+
+public section
 
 open Eo
 open SmtEval

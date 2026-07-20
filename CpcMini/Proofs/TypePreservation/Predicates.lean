@@ -1,4 +1,9 @@
-import CpcMini.SmtModel
+module
+
+public import CpcMini.SmtModel
+import all CpcMini.SmtModel
+
+public section
 
 open SmtEval
 open Smtm

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrConcatClashSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrConcatClashSupport
+import all Cpc.Proofs.RuleSupport.StrConcatClashSupport
 
 open Eo
 open SmtEval
@@ -36,7 +39,7 @@ private theorem prog_str_concat_clash_info
       native_ite, native_teq, native_and, SmtEval.native_not,
       concatClashConclusion, mkEq, mkConcat]
 
-theorem cmd_step_str_concat_clash_properties
+public theorem cmd_step_str_concat_clash_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_concat_clash args premises) ->

@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -395,7 +399,7 @@ private theorem trusted_bv_redand_eliminate_canonical_properties
   · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
       (typed_redand_body x w hXTrans hwNe hBodyTy)
 
-theorem cmd_step_bv_redand_eliminate_properties
+public theorem cmd_step_bv_redand_eliminate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_redand_eliminate args premises) ->

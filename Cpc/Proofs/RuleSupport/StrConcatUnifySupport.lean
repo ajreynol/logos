@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.StrConcatClashSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrConcatClashSupport
+import all Cpc.Proofs.RuleSupport.StrConcatClashSupport
+
+public section
 
 open Eo
 open SmtEval

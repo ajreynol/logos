@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.BvRotateElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvRotateElimSupport
+import all Cpc.Proofs.RuleSupport.BvRotateElimSupport
 
 open Eo
 open SmtEval
@@ -9,7 +12,7 @@ set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
-theorem cmd_step_bv_rotate_left_eliminate_2_properties
+public theorem cmd_step_bv_rotate_left_eliminate_2_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_rotate_left_eliminate_2 args premises) ->

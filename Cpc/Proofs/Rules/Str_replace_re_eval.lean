@@ -1,7 +1,14 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.RegexSupport
-import Cpc.Proofs.RuleSupport.CongSupport
-import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.CongSupport
+import all Cpc.Proofs.RuleSupport.CongSupport
+public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.SmtModel
 
 open Eo
 open SmtEval
@@ -1221,7 +1228,7 @@ private theorem str_replace_re_eval_arg_properties
 
 end RuleProofs
 
-theorem cmd_step_str_replace_re_eval_properties
+public theorem cmd_step_str_replace_re_eval_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_replace_re_eval args premises) ->

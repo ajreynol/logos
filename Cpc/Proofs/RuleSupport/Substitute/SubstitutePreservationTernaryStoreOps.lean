@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryCore
+module
+
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryCore
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryCore
+
+public section
 
 open Eo
 open SmtEval

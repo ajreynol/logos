@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.RegexRewriteSupport
+module
+
+public import Cpc.Proofs.RuleSupport.RegexRewriteSupport
+import all Cpc.Proofs.RuleSupport.RegexRewriteSupport
 
 open Eo
 open SmtEval
@@ -178,7 +181,7 @@ private theorem type_and_facts
 
 end ReConcatStarSwapProof
 
-theorem cmd_step_re_concat_star_swap_properties
+public theorem cmd_step_re_concat_star_swap_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_concat_star_swap args premises) ->

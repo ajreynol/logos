@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -212,7 +215,7 @@ private theorem facts___eo_prog_re_plus_elim_impl
             (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
               (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))))))
 
-theorem cmd_step_re_plus_elim_properties
+public theorem cmd_step_re_plus_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_plus_elim args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrContainsConcatSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrContainsConcatSupport
+import all Cpc.Proofs.RuleSupport.StrContainsConcatSupport
 
 open Eo
 open SmtEval
@@ -335,7 +338,7 @@ private theorem facts___eo_prog_str_to_int_concat_neg_one_impl
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt rhs))
 
-theorem cmd_step_str_to_int_concat_neg_one_properties
+public theorem cmd_step_str_to_int_concat_neg_one_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_to_int_concat_neg_one args premises) ->

@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CongSupport
-import Cpc.Proofs.Rules.Instantiate
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CongSupport
+import all Cpc.Proofs.RuleSupport.CongSupport
+public import Cpc.Proofs.Rules.Instantiate
+import all Cpc.Proofs.Rules.Instantiate
+
+public section
 
 /-!
 # Rel-coincidence: evaluation respects extensional model equivalence

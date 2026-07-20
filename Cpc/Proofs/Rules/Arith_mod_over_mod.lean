@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ArithModOverModSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithModOverModSupport
+import all Cpc.Proofs.RuleSupport.ArithModOverModSupport
 
 open Eo
 open SmtEval
@@ -290,7 +293,11 @@ private theorem facts___eo_prog_arith_mod_over_mod_impl
       exact RuleProofs.smt_value_rel_refl
         (SmtValue.Numeral (native_mod_total (nts + (nr + nss)) nc))
 
-theorem cmd_step_arith_mod_over_mod_properties
+end ArithModOverMod
+
+open ArithModOverMod
+
+public theorem cmd_step_arith_mod_over_mod_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_mod_over_mod args premises) ->
@@ -414,5 +421,3 @@ by
                                     M hM C1 TS1 R1 SS1 P1
                                     hCTrans hTsTrans hRTrans hSsTrans hCInt
                                     hTsInt hRInt hSsInt hTsList hSsList hProgEq)
-
-end ArithModOverMod

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
+import all Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
 
 open Eo
 open SmtEval
@@ -197,7 +200,7 @@ private theorem facts___eo_prog_sets_union_comm_impl
         exact set_union_comm_rel mx my (__eo_to_smt_type T)
           hMxCan hMyCan hMxTy hMyTy hMxDef hMyDef)
 
-theorem cmd_step_sets_union_comm_properties
+public theorem cmd_step_sets_union_comm_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_union_comm args premises) ->

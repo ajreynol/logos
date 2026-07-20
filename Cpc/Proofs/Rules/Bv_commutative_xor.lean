@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+import all Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
 
 open Eo
 open SmtEval
@@ -9,7 +12,7 @@ set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
-theorem cmd_step_bv_commutative_xor_properties
+public theorem cmd_step_bv_commutative_xor_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_commutative_xor args premises) ->

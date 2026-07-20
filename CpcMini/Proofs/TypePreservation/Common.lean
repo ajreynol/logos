@@ -1,6 +1,13 @@
-import CpcMini.Proofs.TypePreservation.Predicates
-import CpcMini.Proofs.TypePreservation.CanonicalAssumptions
-import CpcMini.Proofs.Canonical.TypeDefaultBasic
+module
+
+public import CpcMini.Proofs.TypePreservation.Predicates
+import all CpcMini.Proofs.TypePreservation.Predicates
+public import CpcMini.Proofs.TypePreservation.CanonicalAssumptions
+import all CpcMini.Proofs.TypePreservation.CanonicalAssumptions
+public import CpcMini.Proofs.Canonical.TypeDefaultBasic
+import all CpcMini.Proofs.Canonical.TypeDefaultBasic
+
+public section
 
 open SmtEval
 open Smtm

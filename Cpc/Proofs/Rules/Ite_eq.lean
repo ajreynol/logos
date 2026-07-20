@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
 
 open Eo
 open SmtEval
@@ -123,7 +126,7 @@ private theorem eo_interprets_ite_eq_else_true
         simpa [__smtx_model_eval_ite] using
           RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt E))
 
-theorem cmd_step_ite_eq_properties
+public theorem cmd_step_ite_eq_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ite_eq args premises) ->

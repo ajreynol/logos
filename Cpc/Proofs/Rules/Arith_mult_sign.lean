@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
 
 open Eo
 open SmtEval
@@ -1396,7 +1400,7 @@ private theorem lt_zero_has_bool_type_of_typeof_bool
         SmtType.Bool
     rw [__smtx_typeof.eq_3]
     rfl
-theorem cmd_step_arith_mult_sign_properties
+public theorem cmd_step_arith_mult_sign_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_mult_sign args premises) ->

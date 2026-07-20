@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+
+public section
 
 open Eo
 open SmtEval

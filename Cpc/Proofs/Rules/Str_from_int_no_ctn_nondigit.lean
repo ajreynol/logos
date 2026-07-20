@@ -1,5 +1,9 @@
-import Cpc.Proofs.Rules.Str_in_re_from_int_dig_range
-import Cpc.Proofs.RuleSupport.NativeSeqSupport
+module
+
+public import Cpc.Proofs.Rules.Str_in_re_from_int_dig_range
+import all Cpc.Proofs.Rules.Str_in_re_from_int_dig_range
+public import Cpc.Proofs.RuleSupport.NativeSeqSupport
+import all Cpc.Proofs.RuleSupport.NativeSeqSupport
 
 open Eo
 open SmtEval
@@ -439,7 +443,7 @@ private theorem facts
 
 end StrFromIntNoCtnNondigitProof
 
-theorem cmd_step_str_from_int_no_ctn_nondigit_properties
+public theorem cmd_step_str_from_int_no_ctn_nondigit_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_from_int_no_ctn_nondigit args premises) ->

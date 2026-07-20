@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.TypePreservation.BitVec
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.TypePreservation.BitVec
+import all Cpc.Proofs.TypePreservation.BitVec
+
+public section
 
 open Eo
 open SmtEval
@@ -347,6 +353,73 @@ theorem native_zleq_of_zlt_true
   · have hle : a ≤ b := Int.le_of_lt hlt
     simp [hle]
   · simp [hlt] at h
+
+theorem eo_typeof_extract_of_context
+    (x : Term) (w h l : native_Int) :
+    __eo_typeof x =
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) ->
+    native_zleq 0 l = true ->
+    native_zlt h w = true ->
+    native_zlt 0
+        (native_zplus (native_zplus h 1) (native_zneg l)) = true ->
+    __eo_typeof
+        (bvExtractTerm x (Term.Numeral h) (Term.Numeral l)) =
+      Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral
+          (native_zplus (native_zplus h 1) (native_zneg l))) := by
+  intro hXTy hl0 hhw hd0
+  have hl : (0 : Int) ≤ l := by
+    simpa [SmtEval.native_zleq] using hl0
+  have hlNeg : native_zlt (-1 : native_Int) l = true := by
+    have : (-1 : Int) < l := by omega
+    simpa [SmtEval.native_zlt] using this
+  have hdNeg : native_zlt (-1 : native_Int)
+      (native_zplus (native_zplus h 1) (native_zneg l)) = true := by
+    have : (-1 : Int) <
+        native_zplus (native_zplus h 1) (native_zneg l) := by
+      have hd : (0 : Int) <
+          native_zplus (native_zplus h 1) (native_zneg l) := by
+        simpa [SmtEval.native_zlt] using hd0
+      omega
+    simpa [SmtEval.native_zlt] using this
+  have hWidth :
+      native_zplus (native_zplus h (native_zneg l)) 1 =
+        native_zplus (native_zplus h 1) (native_zneg l) := by
+    change h + (-l) + 1 = h + 1 + (-l)
+    ac_rfl
+  have hdNegRaw : native_zlt (-1 : native_Int)
+      (native_zplus (native_zplus h (native_zneg l)) 1) = true := by
+    rw [hWidth]
+    exact hdNeg
+  have hdPosRaw : native_zlt 0
+      (native_zplus (native_zplus h (native_zneg l)) 1) = true := by
+    rw [hWidth]
+    exact hd0
+  have hLoGuard :
+      __eo_gt (Term.Numeral l) (Term.Numeral (-1 : native_Int)) =
+        Term.Boolean true := by simp [__eo_gt, hlNeg]
+  have hHiGuard :
+      __eo_gt (Term.Numeral w) (Term.Numeral h) = Term.Boolean true := by
+    simp [__eo_gt, hhw]
+  have hWidthGuard :
+      __eo_gt
+          (Term.Numeral
+            (native_zplus (native_zplus h (native_zneg l)) 1))
+          (Term.Numeral 0) = Term.Boolean true := by
+    simp [__eo_gt, hdPosRaw]
+  change __eo_typeof_extract (Term.UOp UserOp.Int) (Term.Numeral h)
+      (Term.UOp UserOp.Int) (Term.Numeral l) (__eo_typeof x) = _
+  rw [hXTy]
+  simp [__eo_typeof_extract, __eo_requires, __eo_gt, __eo_add, __eo_neg,
+    __eo_mk_apply, hLoGuard, hHiGuard, hWidthGuard, hlNeg, hhw,
+    hdNeg, native_ite, native_teq, native_not, SmtEval.native_zplus,
+    SmtEval.native_zneg, hWidth, hdNegRaw]
+  have hRaw : h + -l + 1 = h + 1 + -l := by ac_rfl
+  have hRawGuard : native_zlt 0 (h + -l + 1) = true := by
+    rw [hRaw]
+    exact hd0
+  rw [hRawGuard]
+  simp [hRaw]
 
 theorem smt_typeof_extract_of_context
     (x : Term) (w h l : native_Int) :

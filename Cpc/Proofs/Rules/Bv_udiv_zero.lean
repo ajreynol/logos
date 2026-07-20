@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.BitVec
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.BitVec
+import all Cpc.Proofs.TypePreservation.BitVec
 
 open Eo
 open SmtEval
@@ -337,7 +341,7 @@ private theorem facts___eo_prog_bv_udiv_zero_impl
           (Term.Apply (Term.UOp UserOp.bvnot)
             (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0)))))
 
-theorem cmd_step_bv_udiv_zero_properties
+public theorem cmd_step_bv_udiv_zero_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_udiv_zero args premises) ->

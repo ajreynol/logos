@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrConcatSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrConcatSupport
+import all Cpc.Proofs.RuleSupport.StrConcatSupport
 
 open Eo
 open SmtEval
@@ -5634,7 +5637,7 @@ private theorem step_concat_eq_core
                                               ⟨hSConcatAny, hTConcatAny,
                                                 hHead⟩)
 
-theorem cmd_step_concat_eq_properties
+public theorem cmd_step_concat_eq_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.concat_eq args premises) ->

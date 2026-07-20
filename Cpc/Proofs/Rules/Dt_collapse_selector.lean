@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.Translation.EoTypeofCore
-import Cpc.Proofs.Translation.Full
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.Translation.EoTypeofCore
+import all Cpc.Proofs.Translation.EoTypeofCore
+public import Cpc.Proofs.Translation.Full
+import all Cpc.Proofs.Translation.Full
 
 open Eo
 open SmtEval
@@ -443,9 +448,9 @@ private theorem vsm_num_apply_args_mkDtSmtValueSpineRev_dtcons
           (mkDtSmtValueSpineRev (SmtValue.DtCons s d i) xs) =
         xs.length
   | [] => by
-      simp [mkDtSmtValueSpineRev, vsm_num_apply_args]
+      simp [mkDtSmtValueSpineRev, vsm_num_apply_args_dt_cons]
   | x :: xs => by
-      simp [mkDtSmtValueSpineRev, vsm_num_apply_args,
+      simp [mkDtSmtValueSpineRev, vsm_num_apply_args_apply,
         vsm_num_apply_args_mkDtSmtValueSpineRev_dtcons s d i xs]
 
 private theorem mkDtSmtValueSpineRev_append_singleton
@@ -3552,15 +3557,12 @@ private theorem dt_cons_applied_type_rec_non_none_implies_lt_ctors_local
       dt_cons_applied_type_rec s d0 d i n ≠ SmtType.None ->
       i < smtDatatypeNumCtorsLocal d
   | SmtDatatype.null, i, n, h => by
-      cases i <;> cases n <;>
-        simp [dt_cons_applied_type_rec, __smtx_typeof_dt_cons_value_rec] at h
+      exact False.elim (h (dt_cons_applied_type_rec_null s d0 i n))
   | SmtDatatype.sum c d, 0, n, _h => by
       simp [smtDatatypeNumCtorsLocal]
   | SmtDatatype.sum c d, Nat.succ i, n, h => by
       have h' : dt_cons_applied_type_rec s d0 d i n ≠ SmtType.None := by
-        cases n <;>
-          simpa [dt_cons_applied_type_rec, __smtx_typeof_dt_cons_value_rec,
-            Nat.succ_eq_add_one] using h
+        simpa only [dt_cons_applied_type_rec_succ] using h
       have hlt := dt_cons_applied_type_rec_non_none_implies_lt_ctors_local
         s d0 (d := d) (i := i) (n := n) h'
       simpa [smtDatatypeNumCtorsLocal] using Nat.succ_lt_succ hlt
@@ -3584,7 +3586,7 @@ private theorem datatype_value_head_of_type_local
           0 := by
       have hArgs := congrArg dt_cons_type_num_args hEq
       rw [dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
-      simpa [dt_cons_type_num_args] using hArgs
+      simpa only [dt_cons_type_num_args_datatype] using hArgs
     have hle :
         vsm_num_apply_args v ≤
           __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0 :=
@@ -5558,7 +5560,7 @@ private theorem facts___eo_prog_dt_collapse_selector_impl
   | _ =>
       exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
 
-theorem cmd_step_dt_collapse_selector_properties
+public theorem cmd_step_dt_collapse_selector_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_collapse_selector args premises) ->

@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -243,7 +247,7 @@ private theorem facts___eo_prog_eq_ite_lift_impl
           (__smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt t1))
             (__smtx_model_eval M (__eo_to_smt r1)))
 
-theorem cmd_step_eq_ite_lift_properties
+public theorem cmd_step_eq_ite_lift_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.eq_ite_lift args premises) ->

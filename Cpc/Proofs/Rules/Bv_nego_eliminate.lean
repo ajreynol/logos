@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.TypePreservation.BitVec
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.TypePreservation.BitVec
+import all Cpc.Proofs.TypePreservation.BitVec
 
 open Eo
 open SmtEval
@@ -585,7 +589,7 @@ theorem facts_bv_nego_term
     rw [eval_bvnego_matches_eq_min M hM x n hXTrans hResultTy]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_bv_nego_eliminate_properties
+public theorem cmd_step_bv_nego_eliminate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_nego_eliminate args premises) ->

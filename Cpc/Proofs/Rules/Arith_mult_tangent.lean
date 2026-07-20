@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -379,13 +382,11 @@ private theorem mtTangent_true_has_bool_type_of_smt_type
   rw [eo_to_smt_mtTangent_true]
   rcases hT with rfl | rfl
   · simp [smtTangentFormula, __smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
-      typeof_eq_eq, typeof_geq_eq, typeof_leq_eq, typeof_mult_eq, typeof_neg_eq,
-      typeof_plus_eq, typeof_or_eq, typeof_and_eq,
+      typeof_eq_eq,
       __smtx_typeof_arith_overload_op_2, __smtx_typeof_arith_overload_op_2_ret,
       hOne, hZero, hX, hY, hA, hB, native_ite, native_Teq]
   · simp [smtTangentFormula, __smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
-      typeof_eq_eq, typeof_geq_eq, typeof_leq_eq, typeof_mult_eq, typeof_neg_eq,
-      typeof_plus_eq, typeof_or_eq, typeof_and_eq,
+      typeof_eq_eq,
       __smtx_typeof_arith_overload_op_2, __smtx_typeof_arith_overload_op_2_ret,
       hOne, hZero, hX, hY, hA, hB, native_ite, native_Teq]
 
@@ -404,13 +405,11 @@ private theorem mtTangent_false_has_bool_type_of_smt_type
   rw [eo_to_smt_mtTangent_false]
   rcases hT with rfl | rfl
   · simp [smtTangentFormula, __smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
-      typeof_eq_eq, typeof_geq_eq, typeof_leq_eq, typeof_mult_eq, typeof_neg_eq,
-      typeof_plus_eq, typeof_or_eq, typeof_and_eq,
+      typeof_eq_eq,
       __smtx_typeof_arith_overload_op_2, __smtx_typeof_arith_overload_op_2_ret,
       hOne, hZero, hX, hY, hA, hB, native_ite, native_Teq]
   · simp [smtTangentFormula, __smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
-      typeof_eq_eq, typeof_geq_eq, typeof_leq_eq, typeof_mult_eq, typeof_neg_eq,
-      typeof_plus_eq, typeof_or_eq, typeof_and_eq,
+      typeof_eq_eq,
       __smtx_typeof_arith_overload_op_2, __smtx_typeof_arith_overload_op_2_ret,
       hOne, hZero, hX, hY, hA, hB, native_ite, native_Teq]
 
@@ -1236,7 +1235,7 @@ private theorem tangent_false_real_properties
   intro _hTrue
   exact RuleProofs.eo_interprets_of_bool_eval M _ true hBool hEval
 
-theorem cmd_step_arith_mult_tangent_properties
+public theorem cmd_step_arith_mult_tangent_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_mult_tangent args premises) ->

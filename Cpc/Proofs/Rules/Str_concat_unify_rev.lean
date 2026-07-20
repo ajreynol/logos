@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+import all Cpc.Proofs.RuleSupport.StrConcatUnifySupport
 
 open Eo
 open SmtEval
@@ -131,7 +134,7 @@ private theorem raw_str_concat_unify_rev_eq
     strConcatUnifyRevConclusion suffix sHead sMiddle tHead tMiddle
   rw [eOuter, eLeft, eRight, eSAppend', eTAppend']
 
-theorem cmd_step_str_concat_unify_rev_properties
+public theorem cmd_step_str_concat_unify_rev_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_concat_unify_rev args premises) ->

@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.DatatypeSupport
-import Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+module
+
+public import Cpc.Proofs.RuleSupport.DatatypeSupport
+import all Cpc.Proofs.RuleSupport.DatatypeSupport
+public import Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+import all Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+
+public section
 
 open Eo
 open SmtEval
@@ -179,7 +185,7 @@ private theorem qds_smt_dt_cons_chain_type_aux :
                 (__smtx_dt_substitute s' d' d') i' :=
           smtx_typeof_guard_wf_of_non_none _ _
             (by simpa [Smtm.typeof_dt_cons_eq] using hNN)
-        simp [hGuard, qdsSmtNumApplyArgs, dt_cons_applied_type_rec,
+        simp only [hGuard, qdsSmtNumApplyArgs, dt_cons_applied_type_rec_zero,
           typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec]
   | succ n ih =>
       intro t s d i hN hHead hNN
@@ -213,11 +219,11 @@ private theorem qds_smt_dt_cons_chain_type_aux :
           rcases hHeadTy with hHeadTy | hHeadTy
           · have hArgs := congrArg dt_cons_type_num_args hHeadTy
             rw [ihEq, dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
-            simp [dt_cons_type_num_args] at hArgs
+            simp only [dt_cons_type_num_args_fun_type] at hArgs
             omega
           · have hArgs := congrArg dt_cons_type_num_args hHeadTy
             rw [ihEq, dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
-            simp [dt_cons_type_num_args] at hArgs
+            simp only [dt_cons_type_num_args_dtc_app_type] at hArgs
             omega
         let R := __smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) i
           (qdsSmtNumApplyArgs f)
@@ -302,11 +308,11 @@ private theorem qds_smt_dt_cons_arg_types_aux :
           rcases hHeadTy with hHeadTy | hHeadTy
           · have hArgs := congrArg dt_cons_type_num_args hHeadTy
             rw [hChain, dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
-            simp [dt_cons_type_num_args] at hArgs
+            simp only [dt_cons_type_num_args_fun_type] at hArgs
             omega
           · have hArgs := congrArg dt_cons_type_num_args hHeadTy
             rw [hChain, dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
-            simp [dt_cons_type_num_args] at hArgs
+            simp only [dt_cons_type_num_args_dtc_app_type] at hArgs
             omega
         let R := __smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) i
           (qdsSmtNumApplyArgs f)
@@ -369,7 +375,7 @@ theorem qds_smt_dt_cons_num_args_of_datatype
       qdsSmtNumApplyArgs t = 0 := by
     have hArgs := congrArg dt_cons_type_num_args hRes
     rw [dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
-    simpa [dt_cons_type_num_args] using hArgs
+    simpa only [dt_cons_type_num_args_datatype] using hArgs
   have hLe : qdsSmtNumApplyArgs t ≤
       __smtx_dt_num_sels (__smtx_dt_substitute s d d) i :=
     dt_cons_applied_type_rec_non_none_implies_le s d
@@ -562,7 +568,7 @@ private theorem dcs_smt_rec_non_none_of_eo_rec_non_stuck
             __smtx_typeof_dt_cons_rec]
   | Datatype.sum c tail, Nat.succ i, h => by
       have hTail : __eo_typeof_dt_cons_rec T tail i ≠ Term.Stuck := by
-        cases T <;> simpa [__eo_typeof_dt_cons_rec] using h
+        cases T <;> simp [__eo_typeof_dt_cons_rec] at h ⊢ <;> exact h
       simpa [__eo_to_smt_datatype, __smtx_typeof_dt_cons_rec] using
         dcs_smt_rec_non_none_of_eo_rec_non_stuck T base hBase tail i hTail
 
@@ -1038,7 +1044,7 @@ theorem qds_tuple_fields_no_free :
       · rcases hUnit with ⟨rfl, hC⟩
         injection hC with hC'
         subst c
-        simp [Smtm.hasFreeDtc]
+        simp only [Smtm.hasFreeDtc_unit]
       · rcases hCons with ⟨head, tail, tailC, rfl, hTail, hC⟩
         injection hC with hC'
         subst c
@@ -1048,16 +1054,16 @@ theorem qds_tuple_fields_no_free :
               native_reflist_nil
         have hTailFree := qds_tuple_fields_no_free hTail
         cases hHeadTy : __eo_to_smt_type head <;>
-          simp [Smtm.hasFreeDtc, hHeadTy] at hHeadFree ⊢
+          simp [Smtm.hasFreeDtc_cons, hHeadTy] at hHeadFree ⊢
         case TypeRef s =>
           have hs : s ≠ native_string_lit "@Tuple" := by
             intro hs
             subst s
             exact TranslationProofs.eo_to_smt_type_ne_tuple_typeref head hHeadTy
-          simp [Smtm.hasFreeDtc, native_streq, hs, hTailFree,
+          simp [native_streq, hs, hTailFree,
             native_or, native_and, native_not, native_reflist_contains]
-        all_goals simp_all [Smtm.hasFreeDtc, native_or]
-termination_by T c hT => T
+        all_goals simp_all [native_or]
+termination_by T c _hT => T
 
 theorem qds_tuple_type_substitute_noop
     (T : SmtType) (d : SmtDatatype)
@@ -1071,7 +1077,7 @@ theorem qds_tuple_type_substitute_noop
         intro hs
         subst s
         exact hNotTuple rfl
-      simp [__smtx_type_substitute, native_ite, native_streq, hs, hs.symm]
+      simp [__smtx_type_substitute, native_ite, native_streq, hs.symm]
   | _ =>
       exact Smtm.subst_noop_no_free_ty (native_string_lit "@Tuple") _ d
         native_reflist_nil (by intro s h; cases h) (by native_decide) hFree
@@ -1229,7 +1235,7 @@ private theorem qds_tuple_seed_type
   have hFullFree : Smtm.hasFreeDtc (native_string_lit "@Tuple")
       native_reflist_nil (SmtDatatypeCons.cons A c) = false := by
     cases A <;>
-      simp_all [Smtm.hasFreeDtc, native_or, native_and, native_not,
+      simp_all [Smtm.hasFreeDtc_cons, native_or, native_and, native_not,
         native_reflist_contains, native_streq]
   have hSubFullC := Smtm.subst_noop_no_free_dtc
     (native_string_lit "@Tuple") (SmtDatatypeCons.cons A c) fullD
@@ -1253,10 +1259,11 @@ private theorem qds_tuple_seed_type
           (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero))
         (__smtx_typeof head) by rfl]
   rw [Smtm.typeof_dt_cons_eq, hHeadTy]
-  simp only [fullD, hFullWf, hSubD, hSubA,
+  simp only [fullD, hFullWf, hSubD,
     __smtx_typeof_guard_wf, __smtx_typeof_dt_cons_rec,
-    __smtx_typeof_apply, __smtx_typeof_guard, hHeadWf,
-    dt_cons_applied_type_rec, native_ite, native_Teq]
+    __smtx_typeof_apply, __smtx_typeof_guard,
+    dt_cons_applied_type_rec_cons_succ, dt_cons_applied_type_rec_zero,
+    native_ite, native_Teq]
   simpa [__smtx_typeof_apply, __smtx_typeof_guard,
     native_ite, native_Teq, hANone] using
       (typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec
@@ -1339,7 +1346,7 @@ private theorem qds_tuple_prepend_rec_type
         simp [qdsSmtApplyHead] at hRecHead
       have hGeneric : generic_apply_type recTerm selTerm :=
         generic_apply_type_of_non_datatype_head hNotSel hNotTester
-      simp only [__eo_to_smt_tuple_prepend_rec, recTerm, selTerm]
+      simp only [__eo_to_smt_tuple_prepend_rec]
       rw [hGeneric]
       exact qds_smt_typeof_apply_of_head_cases
         (Or.inr (hRecTy.trans hStep)) hSelTy hSelNN
@@ -1350,11 +1357,14 @@ theorem qds_dtc_full_arity
         native_nat_zero (__smtx_dtc_num_sels c) =
       SmtType.Datatype s d0
   | SmtDatatypeCons.unit => by
-      simp [dt_cons_applied_type_rec, __smtx_dtc_num_sels,
-        __smtx_typeof_dt_cons_value_rec]
+      rw [show __smtx_dtc_num_sels SmtDatatypeCons.unit = 0 by rfl]
+      rw [dt_cons_applied_type_rec_zero]
+      simp [__smtx_typeof_dt_cons_value_rec]
   | SmtDatatypeCons.cons U c => by
-      simpa [dt_cons_applied_type_rec, __smtx_dtc_num_sels,
-        __smtx_typeof_dt_cons_value_rec] using qds_dtc_full_arity s d0 c
+      rw [show __smtx_dtc_num_sels (SmtDatatypeCons.cons U c) =
+        Nat.succ (__smtx_dtc_num_sels c) by rfl]
+      rw [dt_cons_applied_type_rec_cons_succ]
+      exact qds_dtc_full_arity s d0 c
 
 private theorem qds_tuple_full_arity
     (A : SmtType) (c : SmtDatatypeCons) :
@@ -1389,7 +1399,7 @@ private theorem qds_tuple_prepend_non_none
   unfold __eo_to_smt_tuple_prepend
   rw [hTailTy]
   simp only [__eo_to_smt_tuple_prepend_of_type, native_streq, native_and,
-    hFullWf, Bool.and_self, native_ite, if_true]
+    hFullWf, native_ite]
   simp only [Bool.and_true, decide_true, if_true]
   let tailD := SmtDatatype.sum c SmtDatatype.null
   let fullD := SmtDatatype.sum (SmtDatatypeCons.cons A c) SmtDatatype.null

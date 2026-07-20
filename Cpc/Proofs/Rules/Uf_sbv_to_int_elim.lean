@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.BitVec
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.BitVec
+import all Cpc.Proofs.TypePreservation.BitVec
 
 open Eo
 open SmtEval
@@ -1108,7 +1112,7 @@ private theorem facts_body_impl
   apply RuleProofs.eo_interprets_eq_of_rel M (sbvToIntTerm t) _ hBoolTy
   exact eval_sides_rel M hM t n wmv w hTTrans hNonneg hwpos hTSmt hwfit hWmVal hNEval
 
-theorem cmd_step_uf_sbv_to_int_elim_properties
+public theorem cmd_step_uf_sbv_to_int_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.uf_sbv_to_int_elim args premises) ->

@@ -1,12 +1,23 @@
-import Cpc.Proofs.RuleSupport.NativeSeqSupport
-import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.StrOverlapSupport
-import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
-import Cpc.Proofs.RuleSupport.RegexIndexofSupport
-import Cpc.Proofs.Closed.IsClosedRec
+module
+
+public import Cpc.Proofs.RuleSupport.NativeSeqSupport
+import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+import all Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.StrOverlapSupport
+import all Cpc.Proofs.RuleSupport.StrOverlapSupport
+public import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+import all Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+public import Cpc.Proofs.RuleSupport.RegexIndexofSupport
+import all Cpc.Proofs.RuleSupport.RegexIndexofSupport
+public import Cpc.Proofs.Closed.IsClosedRec
+import all Cpc.Proofs.Closed.IsClosedRec
 
 open Eo
 open SmtEval
@@ -5746,7 +5757,7 @@ private theorem string_reduction_true
   exact string_reduction_body_true M s hTrans
     (string_reduction_pred_true M hM s hTrans hClosed hBodyTy)
 
-theorem cmd_step_string_reduction_properties
+public theorem cmd_step_string_reduction_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.string_reduction args premises) ->

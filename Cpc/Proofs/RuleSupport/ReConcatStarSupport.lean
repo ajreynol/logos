@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.RegexSupport
-import Cpc.Proofs.RuleSupport.ReLoopElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.ReLoopElimSupport
+import all Cpc.Proofs.RuleSupport.ReLoopElimSupport
+
+public section
 
 open Eo
 open SmtEval

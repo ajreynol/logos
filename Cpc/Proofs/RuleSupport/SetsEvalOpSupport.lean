@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.SetsMemberSupport
-import Cpc.Proofs.RuleSupport.ArraySupport
-import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SetsMemberSupport
+import all Cpc.Proofs.RuleSupport.SetsMemberSupport
+public import Cpc.Proofs.RuleSupport.ArraySupport
+import all Cpc.Proofs.RuleSupport.ArraySupport
+public import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+import all Cpc.Proofs.RuleSupport.DistinctTermsSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -441,10 +448,45 @@ theorem erase_all_mem (M : SmtModel) (v : SmtValue) :
         unfold __eo_list_erase_all_rec; split <;> simp_all
       rw [hEq]
 
+end SetsEvalOpSupport
+end
+
+open Eo
+open SmtEval
+open Smtm
+
+namespace SetsEvalOpSupport
+
 theorem setof_rec_cons (f x y : Term) :
     __eo_list_setof_rec (Term.Apply (Term.Apply f x) y) =
       __eo_mk_apply (Term.Apply f x)
         (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) := rfl
+
+theorem eo_ite_true (yes no : Term) : __eo_ite (Term.Boolean true) yes no = yes := rfl
+
+theorem eo_ite_false (yes no : Term) : __eo_ite (Term.Boolean false) yes no = no := rfl
+
+theorem listLookup_nil_list (M : SmtModel) (v : SmtValue) :
+    listLookup M Term.__eo_List_nil v = SmtValue.Boolean false := rfl
+
+theorem getelem_cons (f x y : Term) :
+    __eo_get_elements_rec (Term.Apply (Term.Apply f x) y) =
+      __eo_mk_apply (Term.Apply Term.__eo_List_cons x) (__eo_get_elements_rec y) := rfl
+
+end SetsEvalOpSupport
+
+public section
+
+open Eo
+open SmtEval
+open Smtm
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
+
+namespace SetsEvalOpSupport
+
+open SetsMemberSupport
 
 /-- `__eo_list_setof_rec` preserves the element-list invariant. -/
 theorem setof_rec_isElemList :
@@ -521,10 +563,6 @@ theorem eo_and_eq_true {p q : Term} (h : __eo_and p q = Term.Boolean true) :
     simp_all [__eo_and, native_and, __eo_requires, native_ite, native_teq,
       native_not, SmtEval.native_not, Bool.and_eq_true] <;>
     split at h <;> simp_all
-
-theorem eo_ite_true (yes no : Term) : __eo_ite (Term.Boolean true) yes no = yes := rfl
-
-theorem eo_ite_false (yes no : Term) : __eo_ite (Term.Boolean false) yes no = no := rfl
 
 /-! #### `__eo_list_erase_rec` lemmas -/
 
@@ -636,9 +674,6 @@ theorem minclude_rec_false (y z : Term) (hy : y ≠ Term.Stuck) (hz : z ≠ Term
   cases y <;> cases z <;>
     first | (exact absurd rfl hy) | (exact absurd rfl hz) | rfl
 
-theorem listLookup_nil_list (M : SmtModel) (v : SmtValue) :
-    listLookup M Term.__eo_List_nil v = SmtValue.Boolean false := rfl
-
 theorem minclude_mem (M : SmtModel) (v : SmtValue) :
     ∀ Y Z g : Term,
       __eo_list_minclude_rec Y Z g = Term.Boolean true ->
@@ -690,10 +725,6 @@ theorem minclude_mem (M : SmtModel) (v : SmtValue) :
       rw [hStuck] at h; cases h
 
 /-! #### `__eo_get_elements_rec` lemmas -/
-
-theorem getelem_cons (f x y : Term) :
-    __eo_get_elements_rec (Term.Apply (Term.Apply f x) y) =
-      __eo_mk_apply (Term.Apply Term.__eo_List_cons x) (__eo_get_elements_rec y) := rfl
 
 theorem getelem_isElemList :
     ∀ L : Term, IsElemList L -> IsElemList (__eo_get_elements_rec L) := by
@@ -1008,7 +1039,7 @@ theorem setof_parts {L : Term}
 theorem map_canonical_default (A : SmtType) :
     __smtx_map_canonical (SmtMap.default A (SmtValue.Boolean false)) = true := by
   simp only [__smtx_map_canonical, __smtx_map_default_canonical, __smtx_value_canonical_bool,
-    __smtx_typeof_value, __smtx_type_default, native_veq, native_and, decide_true,
+    __smtx_typeof_value, __smtx_type_default, native_veq, native_and,
     Bool.and_true]
   cases __smtx_is_finite_type A <;> first | rfl | native_decide
 

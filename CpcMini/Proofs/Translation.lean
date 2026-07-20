@@ -1,4 +1,9 @@
-import CpcMini.Proofs.Translation.Typeof
+module
+
+public import CpcMini.Proofs.Translation.Typeof
+import all CpcMini.Proofs.Translation.Typeof
+
+public section
 
 open Eo
 open SmtEval

@@ -1,9 +1,17 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.DatatypeSupport
-import Cpc.Proofs.Translation.Apply
-import Cpc.Proofs.Translation.EoTypeofCore
-import Cpc.Proofs.Translation.Inversions
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.DatatypeSupport
+import all Cpc.Proofs.RuleSupport.DatatypeSupport
+public import Cpc.Proofs.Translation.Apply
+import all Cpc.Proofs.Translation.Apply
+public import Cpc.Proofs.Translation.EoTypeofCore
+import all Cpc.Proofs.Translation.EoTypeofCore
+public import Cpc.Proofs.Translation.Inversions
+import all Cpc.Proofs.Translation.Inversions
 
 open Eo
 open SmtEval
@@ -1700,7 +1708,7 @@ private theorem facts___eo_prog_dt_inst_impl
     exact dt_inst_tuple_unit_interprets M hM x hXTy
       (by simpa [lhs, rhs, hMkUnit] using hFormulaBool)
 
-theorem cmd_step_dt_inst_properties
+public theorem cmd_step_dt_inst_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_inst args premises) ->

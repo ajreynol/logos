@@ -1,4 +1,9 @@
-import CpcMini.Proofs.TypePreservation.CoreArith
+module
+
+public import CpcMini.Proofs.TypePreservation.CoreArith
+import all CpcMini.Proofs.TypePreservation.CoreArith
+
+public section
 
 open SmtEval
 open Smtm

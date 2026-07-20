@@ -1,6 +1,14 @@
-import Cpc.Proofs.TermCompat
-import Cpc.Proofs.Translation
-import Cpc.Proofs.TypePreservation
+module
+
+public import Cpc.Proofs.TermCompat
+import all Cpc.Proofs.TermCompat
+public import Cpc.Proofs.Translation
+import all Cpc.Proofs.Translation
+public import Cpc.Proofs.TypePreservation
+import all Cpc.Proofs.TypePreservation
+import all Cpc.Proofs.TypePreservation.Common
+
+public section
 
 open Eo
 open SmtEval

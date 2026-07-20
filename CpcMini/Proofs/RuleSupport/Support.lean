@@ -1,5 +1,11 @@
-import CpcMini.Proofs.Common
-import CpcMini.Proofs.Assumptions
+module
+
+public import CpcMini.Proofs.Common
+import all CpcMini.Proofs.Common
+public import CpcMini.Proofs.Assumptions
+import all CpcMini.Proofs.Assumptions
+
+@[expose] public section
 
 open Eo
 open SmtEval

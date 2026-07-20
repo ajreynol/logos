@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -1011,7 +1014,7 @@ private theorem facts_string_decompose_true_body
       (sdAnd (sdEq (sdLen last) n) (Term.Boolean true))
       hEqTrue hTailTrue
 
-theorem cmd_step_string_decompose_properties
+public theorem cmd_step_string_decompose_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.string_decompose args premises) ->

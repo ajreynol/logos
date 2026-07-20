@@ -1,6 +1,13 @@
-import CpcMini.Proofs.TypePreservation
-import CpcMini.Proofs.Translation.EoTypeof
-import CpcMini.Proofs.Translation.Apply
+module
+
+public import CpcMini.Proofs.TypePreservation
+import all CpcMini.Proofs.TypePreservation
+public import CpcMini.Proofs.Translation.EoTypeof
+import all CpcMini.Proofs.Translation.EoTypeof
+public import CpcMini.Proofs.Translation.Apply
+import all CpcMini.Proofs.Translation.Apply
+
+public section
 
 open Eo
 open SmtEval

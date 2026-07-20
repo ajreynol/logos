@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -359,7 +362,7 @@ private theorem facts
 
 end ReRangeEmpProof
 
-theorem cmd_step_re_range_emp_properties
+public theorem cmd_step_re_range_emp_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_range_emp args premises) ->

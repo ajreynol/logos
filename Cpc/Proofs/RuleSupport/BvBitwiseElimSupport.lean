@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -467,6 +472,117 @@ private theorem smt_typeof_binary_zero (w : Nat) :
   simp [__smtx_typeof, SmtEval.native_and, native_ite, native_zleq,
     native_zeq, native_nat_to_int, native_mod_total, SmtEval.native_int_to_nat,
     native_int_to_nat]
+
+theorem bvand_generated_nil_eq_allOnes
+    (w : Nat) :
+    __eo_nil (Term.UOp UserOp.bvand)
+        (Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w))) ≠ Term.Stuck ->
+    __eo_nil (Term.UOp UserOp.bvand)
+        (Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w))) =
+      Term.Binary (native_nat_to_int w)
+        (native_int_pow2 (native_nat_to_int w) - 1) := by
+  intro hNe
+  exact bvAnd_nil_eq_allOnes_of_type w (by
+    simp [__eo_to_smt_type, native_ite, SmtEval.native_zleq, native_nat_to_int, native_int_to_nat,
+      SmtEval.native_nat_to_int, SmtEval.native_int_to_nat]) hNe
+
+theorem bvor_generated_nil_eq_zero
+    (w : Nat) :
+    __eo_nil (Term.UOp UserOp.bvor)
+        (Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w))) ≠ Term.Stuck ->
+    __eo_nil (Term.UOp UserOp.bvor)
+        (Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w))) =
+      Term.Binary (native_nat_to_int w) 0 := by
+  intro hNe
+  exact bvOr_nil_eq_zero_of_type w (by
+    simp [__eo_to_smt_type, native_ite, SmtEval.native_zleq, native_nat_to_int, native_int_to_nat,
+      SmtEval.native_nat_to_int, SmtEval.native_int_to_nat]) hNe
+
+theorem bvxor_generated_nil_eq_zero
+    (w : Nat) :
+    __eo_nil (Term.UOp UserOp.bvxor)
+        (Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w))) ≠ Term.Stuck ->
+    __eo_nil (Term.UOp UserOp.bvxor)
+        (Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w))) =
+      Term.Binary (native_nat_to_int w) 0 := by
+  intro hNe
+  exact bvXor_nil_eq_zero_of_type w (by
+    simp [__eo_to_smt_type, native_ite, SmtEval.native_zleq, native_nat_to_int, native_int_to_nat,
+      SmtEval.native_nat_to_int, SmtEval.native_int_to_nat]) hNe
+
+theorem bvand_generated_nil_smt_type
+    (w : Nat) (hNe : __eo_nil (Term.UOp UserOp.bvand)
+      (Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w))) ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt (__eo_nil (Term.UOp UserOp.bvand)
+      (Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w))))) = SmtType.BitVec w := by
+  rw [bvand_generated_nil_eq_allOnes w hNe]
+  exact smt_typeof_binary_allOnes w
+
+theorem bvor_generated_nil_smt_type
+    (w : Nat) (hNe : __eo_nil (Term.UOp UserOp.bvor)
+      (Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w))) ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt (__eo_nil (Term.UOp UserOp.bvor)
+      (Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w))))) = SmtType.BitVec w := by
+  rw [bvor_generated_nil_eq_zero w hNe]
+  exact smt_typeof_binary_zero w
+
+theorem bvxor_generated_nil_smt_type
+    (w : Nat) (hNe : __eo_nil (Term.UOp UserOp.bvxor)
+      (Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w))) ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt (__eo_nil (Term.UOp UserOp.bvxor)
+      (Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w))))) = SmtType.BitVec w := by
+  rw [bvxor_generated_nil_eq_zero w hNe]
+  exact smt_typeof_binary_zero w
+
+theorem bvand_generated_nil_marker
+    (w : Nat) (hNe : __eo_nil (Term.UOp UserOp.bvand)
+      (Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w))) ≠ Term.Stuck) :
+    __eo_is_list_nil (Term.UOp UserOp.bvand)
+      (__eo_nil (Term.UOp UserOp.bvand)
+        (Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w)))) = Term.Boolean true := by
+  rw [bvand_generated_nil_eq_allOnes w hNe]
+  simp [__eo_is_list_nil, __eo_is_list_nil_bvand, __eo_to_z, __eo_not,
+    __eo_is_eq, native_binary_not, native_zplus, native_zneg,
+    native_mod_total, native_and, native_not, SmtEval.native_not,
+    native_teq]
+
+theorem bvor_generated_nil_marker
+    (w : Nat) (hNe : __eo_nil (Term.UOp UserOp.bvor)
+      (Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w))) ≠ Term.Stuck) :
+    __eo_is_list_nil (Term.UOp UserOp.bvor)
+      (__eo_nil (Term.UOp UserOp.bvor)
+        (Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w)))) = Term.Boolean true := by
+  rw [bvor_generated_nil_eq_zero w hNe]
+  simp [__eo_is_list_nil, __eo_is_list_nil_bvor, __eo_to_z, __eo_is_eq,
+    native_and, native_not, SmtEval.native_not, native_teq]
+
+theorem bvxor_generated_nil_marker
+    (w : Nat) (hNe : __eo_nil (Term.UOp UserOp.bvxor)
+      (Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w))) ≠ Term.Stuck) :
+    __eo_is_list_nil (Term.UOp UserOp.bvxor)
+      (__eo_nil (Term.UOp UserOp.bvxor)
+        (Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w)))) = Term.Boolean true := by
+  rw [bvxor_generated_nil_eq_zero w hNe]
+  simp [__eo_is_list_nil, __eo_is_list_nil_bvxor, __eo_to_z, __eo_is_eq,
+    native_and, native_not, SmtEval.native_not, native_teq]
 
 private theorem smt_typeof_nil
     (k : BvBitwiseElimKind) (x : Term) (w : Nat) :

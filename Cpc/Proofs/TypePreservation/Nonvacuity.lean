@@ -1,4 +1,9 @@
-import Cpc.Proofs.TypePreservation.Model
+module
+
+public import Cpc.Proofs.TypePreservation.Model
+import all Cpc.Proofs.TypePreservation.Model
+
+public section
 
 open SmtEval
 open Smtm

@@ -1,7 +1,15 @@
-import Cpc.Proofs.TypePreservation.Predicates
-import Cpc.Proofs.Canonical.TypeDefaultBasic
-import Cpc.Proofs.Canonical.FiniteDefaultable
-import Cpc.Proofs.Canonical.WfDiag
+module
+
+public import Cpc.Proofs.TypePreservation.Predicates
+import all Cpc.Proofs.TypePreservation.Predicates
+public import Cpc.Proofs.Canonical.TypeDefaultBasic
+import all Cpc.Proofs.Canonical.TypeDefaultBasic
+public import Cpc.Proofs.Canonical.FiniteDefaultable
+import all Cpc.Proofs.Canonical.FiniteDefaultable
+public import Cpc.Proofs.Canonical.WfDiag
+import all Cpc.Proofs.Canonical.WfDiag
+
+public section
 
 /-!
 Canonical/cardinality and freshness witnesses used by datatype cardinality
@@ -2056,7 +2064,7 @@ private theorem diag_pump_field_large
         closed_infinite_large_witness_from_oracle n hOracle (SmtType.Seq U)
           (by simpa [__smtx_type_substitute] using hFInh)
           (by simpa [__smtx_type_substitute] using hFWf)
-          (by simpa [__smtx_is_finite_type] using hTUInf)
+          hTUInf
   | Set A =>
       simpa [__smtx_type_substitute] using
         closed_infinite_large_witness_from_oracle n hOracle (SmtType.Set A)

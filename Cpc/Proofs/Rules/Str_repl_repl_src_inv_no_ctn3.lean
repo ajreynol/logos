@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+import all Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
 
 open Eo
 open SmtEval
@@ -244,7 +247,7 @@ private theorem facts___eo_prog_str_repl_repl_src_inv_no_ctn3_impl
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt rhs))
 
-theorem cmd_step_str_repl_repl_src_inv_no_ctn3_properties
+public theorem cmd_step_str_repl_repl_src_inv_no_ctn3_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_repl_repl_src_inv_no_ctn3 args premises) ->

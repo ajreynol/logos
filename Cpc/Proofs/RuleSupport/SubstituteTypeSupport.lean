@@ -1,7 +1,15 @@
-import Cpc.Proofs.Closed.Substitute
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.Translation.Full
-import Cpc.Proofs.Translation.Inversions
+module
+
+public import Cpc.Proofs.Closed.Substitute
+import all Cpc.Proofs.Closed.Substitute
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.Translation.Full
+import all Cpc.Proofs.Translation.Full
+public import Cpc.Proofs.Translation.Inversions
+import all Cpc.Proofs.Translation.Inversions
+
+public section
 
 open Eo
 open SmtEval
@@ -13,8 +21,8 @@ set_option maxRecDepth 2000
 
 namespace SubstituteSupport
 
-private abbrev consTerm (v vs : Term) : Term :=
-  Term.Apply (Term.Apply Term.__eo_List_cons v) vs
+local macro "consTerm" v:ident vs:ident : term =>
+  `(Term.Apply (Term.Apply Term.__eo_List_cons $v) $vs)
 
 /-- A mapped-substitution entry has the same EO type as the variable it replaces. -/
 def SubstEntryPreservesTypes (xs ss : Term) : Prop :=

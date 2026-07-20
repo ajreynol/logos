@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.RegexSupport
-import Cpc.Proofs.RuleSupport.StrConcatSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.StrConcatSupport
+import all Cpc.Proofs.RuleSupport.StrConcatSupport
 
 open Eo
 open SmtEval
@@ -23600,7 +23605,7 @@ private theorem facts___eo_prog_aci_norm_impl
         all_goals
           exact False.elim (eo_typeof_stuck_ne_bool hResultTy)
 
-theorem cmd_step_aci_norm_properties
+public theorem cmd_step_aci_norm_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.aci_norm args premises) ->

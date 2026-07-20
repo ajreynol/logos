@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -199,7 +202,7 @@ private theorem facts___eo_prog_arith_mod_over_mod_1_impl
       exact RuleProofs.smt_value_rel_refl
         (SmtValue.Numeral (native_mod_total ri ci))
 
-theorem cmd_step_arith_mod_over_mod_1_properties
+public theorem cmd_step_arith_mod_over_mod_1_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_mod_over_mod_1 args premises) ->

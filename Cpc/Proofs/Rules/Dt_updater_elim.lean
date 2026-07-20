@@ -1,8 +1,15 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.DatatypeSupport
-import Cpc.Proofs.Translation.Apply
-import Cpc.Proofs.Translation.Full
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.DatatypeSupport
+import all Cpc.Proofs.RuleSupport.DatatypeSupport
+public import Cpc.Proofs.Translation.Apply
+import all Cpc.Proofs.Translation.Apply
+public import Cpc.Proofs.Translation.Full
+import all Cpc.Proofs.Translation.Full
 
 open Eo
 open SmtEval
@@ -1568,7 +1575,7 @@ private theorem facts___eo_prog_dt_updater_elim_impl
             (by intro sel h; cases h)
             hMk hBool)
 
-theorem cmd_step_dt_updater_elim_properties
+public theorem cmd_step_dt_updater_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_updater_elim args premises) ->

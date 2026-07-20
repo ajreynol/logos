@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -645,7 +648,7 @@ private theorem ubv_to_int_elim_shape_of_ne_stuck (A : Term) :
       exact hShape ⟨b, m, hEq⟩
     exact False.elim (h hStuck)
 
-theorem cmd_step_ubv_to_int_elim_properties
+public theorem cmd_step_ubv_to_int_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ubv_to_int_elim args premises) ->

@@ -1,7 +1,13 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
 
 open Eo
 open SmtEval
@@ -289,7 +295,7 @@ private theorem facts_arith_leq_ite_lift
 
 end ArithLeqIteLift
 
-theorem cmd_step_arith_leq_ite_lift_properties
+public theorem cmd_step_arith_leq_ite_lift_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_leq_ite_lift args premises) ->

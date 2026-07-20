@@ -1,5 +1,11 @@
-import Cpc.Proofs.Canonical.Ops
-import Cpc.Proofs.Canonical.BasicModel
+module
+
+public import Cpc.Proofs.Canonical.Ops
+import all Cpc.Proofs.Canonical.Ops
+public import Cpc.Proofs.Canonical.BasicModel
+import all Cpc.Proofs.Canonical.BasicModel
+
+public section
 
 open SmtEval
 open Smtm

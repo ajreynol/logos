@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.RegexSupport
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -791,7 +795,7 @@ private theorem str_in_re_sigma_star_valid_properties
 
 end RuleProofs
 
-theorem cmd_step_str_in_re_sigma_star_properties
+public theorem cmd_step_str_in_re_sigma_star_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_sigma_star args premises) ->

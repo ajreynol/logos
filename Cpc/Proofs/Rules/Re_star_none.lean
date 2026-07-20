@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -44,7 +47,7 @@ private theorem facts___eo_prog_re_star_none (M : SmtModel) :
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))))
 
-theorem cmd_step_re_star_none_properties
+public theorem cmd_step_re_star_none_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_star_none args premises) ->

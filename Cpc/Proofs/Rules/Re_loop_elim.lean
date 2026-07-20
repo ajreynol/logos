@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ReLoopElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReLoopElimSupport
+import all Cpc.Proofs.RuleSupport.ReLoopElimSupport
 
 open Eo
 open SmtEval
@@ -263,7 +266,7 @@ private theorem re_loop_elim_canonical_true
           RuleProofs.eo_interprets_eq_of_rel M loopTerm rhs hOrigBool hRel
       simpa [orig] using hFact
 
-theorem cmd_step_re_loop_elim_properties
+public theorem cmd_step_re_loop_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_loop_elim args premises) ->

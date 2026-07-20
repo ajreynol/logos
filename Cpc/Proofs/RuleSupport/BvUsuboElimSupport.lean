@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.BvOverflowSupport
-import Cpc.Proofs.RuleSupport.BvSdivElimSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvOverflowSupport
+import all Cpc.Proofs.RuleSupport.BvOverflowSupport
+public import Cpc.Proofs.RuleSupport.BvSdivElimSupport
+import all Cpc.Proofs.RuleSupport.BvSdivElimSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
+
+public section
 
 /-! Support for the `bv_usubo_eliminate` rewrite. -/
 
@@ -229,7 +236,7 @@ theorem usubo_context (x y n : Term) :
   have hOps := RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hResultTy
   rcases typeof_bvult_args_of_ne_stuck hOps.1 with
     ⟨widthTerm, hXTy, hYTy⟩
-  rcases smt_bitvec_type_of_eo_bitvec_type_with_width x widthTerm
+  rcases _root_.smt_bitvec_type_of_eo_bitvec_type_with_width x widthTerm
       hXTrans hXTy with ⟨w, hWidth, hw0, hXSmtTy⟩
   subst widthTerm
   have hYSmtTy :

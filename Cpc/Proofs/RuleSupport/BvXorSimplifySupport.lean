@@ -1,7 +1,15 @@
-import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
-import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
-import Cpc.Proofs.RuleSupport.BvNaryXorSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+import all Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+public import Cpc.Proofs.RuleSupport.BvNaryXorSupport
+import all Cpc.Proofs.RuleSupport.BvNaryXorSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+
+public section
 
 /-! Shared support for the three n-ary bit-vector XOR simplification rules. -/
 
@@ -941,9 +949,9 @@ theorem program1_lists_of_ne_stuck
     xs ≠ Term.Stuck -> ys ≠ Term.Stuck ->
     zs ≠ Term.Stuck -> x ≠ Term.Stuck ->
     __eo_typeof (__eo_prog_bv_xor_simplify_1 xs ys zs x) = Term.Bool ->
-    __eo_is_list op xs = Term.Boolean true ∧
-      __eo_is_list op ys = Term.Boolean true ∧
-      __eo_is_list op zs = Term.Boolean true := by
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.bvxor) zs = Term.Boolean true := by
   intro hXsNe hYsNe hZsNe hXNe hResultTy
   exact guardedLhs_lists_of_ne_stuck xs ys zs x x
     (program1_lhs_ne_of_ne_stuck xs ys zs x
@@ -954,9 +962,9 @@ theorem program2_lists_of_ne_stuck
     xs ≠ Term.Stuck -> ys ≠ Term.Stuck ->
     zs ≠ Term.Stuck -> x ≠ Term.Stuck ->
     __eo_typeof (__eo_prog_bv_xor_simplify_2 xs ys zs x) = Term.Bool ->
-    __eo_is_list op xs = Term.Boolean true ∧
-      __eo_is_list op ys = Term.Boolean true ∧
-      __eo_is_list op zs = Term.Boolean true := by
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.bvxor) zs = Term.Boolean true := by
   intro hXsNe hYsNe hZsNe hXNe hResultTy
   exact guardedLhs_lists_of_ne_stuck xs ys zs x (bvnot x)
     (program2_lhs_ne_of_ne_stuck xs ys zs x
@@ -967,9 +975,9 @@ theorem program3_lists_of_ne_stuck
     xs ≠ Term.Stuck -> ys ≠ Term.Stuck ->
     zs ≠ Term.Stuck -> x ≠ Term.Stuck ->
     __eo_typeof (__eo_prog_bv_xor_simplify_3 xs ys zs x) = Term.Bool ->
-    __eo_is_list op xs = Term.Boolean true ∧
-      __eo_is_list op ys = Term.Boolean true ∧
-      __eo_is_list op zs = Term.Boolean true := by
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.bvxor) zs = Term.Boolean true := by
   intro hXsNe hYsNe hZsNe hXNe hResultTy
   exact guardedLhs_lists_of_ne_stuck xs ys zs (bvnot x) x
     (program3_lhs_ne_of_ne_stuck xs ys zs x
@@ -1076,8 +1084,8 @@ theorem inferred_argument_types1
     RuleProofs.eo_has_smt_translation ys ->
     RuleProofs.eo_has_smt_translation zs ->
     RuleProofs.eo_has_smt_translation x ->
-    __eo_is_list op xs = Term.Boolean true ->
-    __eo_is_list op ys = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ->
     __eo_typeof (term1 xs ys zs x) = Term.Bool ->
     ∃ width : Nat,
       ListTypeOrNil xs width ∧
@@ -1098,8 +1106,8 @@ theorem inferred_argument_types2
     RuleProofs.eo_has_smt_translation ys ->
     RuleProofs.eo_has_smt_translation zs ->
     RuleProofs.eo_has_smt_translation x ->
-    __eo_is_list op xs = Term.Boolean true ->
-    __eo_is_list op ys = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ->
     __eo_typeof (term2 xs ys zs x) = Term.Bool ->
     ∃ width : Nat,
       ListTypeOrNil xs width ∧
@@ -1121,8 +1129,8 @@ theorem inferred_argument_types3
     RuleProofs.eo_has_smt_translation ys ->
     RuleProofs.eo_has_smt_translation zs ->
     RuleProofs.eo_has_smt_translation x ->
-    __eo_is_list op xs = Term.Boolean true ->
-    __eo_is_list op ys = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ->
     __eo_typeof (term3 xs ys zs x) = Term.Bool ->
     ∃ width : Nat,
       ListTypeOrNil xs width ∧
@@ -1531,9 +1539,9 @@ theorem typed_term1_of_type_or_nil
     ListTypeOrNil ys w ->
     __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
-    __eo_is_list op xs = Term.Boolean true ->
-    __eo_is_list op ys = Term.Boolean true ->
-    __eo_is_list op zs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) zs = Term.Boolean true ->
     RuleProofs.eo_has_bool_type (term1 xs ys zs x) := by
   intro hXs hYs hZsTy hXTy hXsList hYsList hZsList
   rcases hXs with hXsTy | hXsNil
@@ -1562,9 +1570,9 @@ theorem typed_term2_of_type_or_nil
     ListTypeOrNil ys w ->
     __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
-    __eo_is_list op xs = Term.Boolean true ->
-    __eo_is_list op ys = Term.Boolean true ->
-    __eo_is_list op zs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) zs = Term.Boolean true ->
     RuleProofs.eo_has_bool_type (term2 xs ys zs x) := by
   intro hXs hYs hZsTy hXTy hXsList hYsList hZsList
   rcases hXs with hXsTy | hXsNil
@@ -1593,9 +1601,9 @@ theorem typed_term3_of_type_or_nil
     ListTypeOrNil ys w ->
     __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
-    __eo_is_list op xs = Term.Boolean true ->
-    __eo_is_list op ys = Term.Boolean true ->
-    __eo_is_list op zs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) zs = Term.Boolean true ->
     RuleProofs.eo_has_bool_type (term3 xs ys zs x) := by
   intro hXs hYs hZsTy hXTy hXsList hYsList hZsList
   rcases hXs with hXsTy | hXsNil
@@ -1635,13 +1643,13 @@ private theorem facts_term1_core
   have hEvals := eval_lhs_base M hM xs ys zs x x w
     hXsTy hYsTy hZsTy hXTy hXTy
     hXsList hYsList hZsList
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) w
       hXsTy with ⟨nxs, hXsEval, hXsCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt ys) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt ys) w
       hYsTy with ⟨nys, hYsEval, hYsCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) w
       hZsTy with ⟨nzs, hZsEval, hZsCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
       hXTy with ⟨nx, hXEval, hXCan⟩
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt (lhs xs ys zs x x)) =
@@ -1690,13 +1698,13 @@ private theorem facts_term2_core
   have hEvals := eval_lhs_base M hM xs ys zs x (bvnot x) w
     hXsTy hYsTy hZsTy hXTy hNotXTy
     hXsList hYsList hZsList
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) w
       hXsTy with ⟨nxs, hXsEval, hXsCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt ys) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt ys) w
       hYsTy with ⟨nys, hYsEval, hYsCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) w
       hZsTy with ⟨nzs, hZsEval, hZsCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
       hXTy with ⟨nx, hXEval, hXCan⟩
   have hNotXEval :
       __smtx_model_eval M (__eo_to_smt (bvnot x)) =
@@ -1759,13 +1767,13 @@ private theorem facts_term3_core
   have hEvals := eval_lhs_base M hM xs ys zs (bvnot x) x w
     hXsTy hYsTy hZsTy hNotXTy hXTy
     hXsList hYsList hZsList
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) w
       hXsTy with ⟨nxs, hXsEval, hXsCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt ys) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt ys) w
       hYsTy with ⟨nys, hYsEval, hYsCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) w
       hZsTy with ⟨nzs, hZsEval, hZsCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
       hXTy with ⟨nx, hXEval, hXCan⟩
   have hNotXEval :
       __smtx_model_eval M (__eo_to_smt (bvnot x)) =
@@ -1817,9 +1825,9 @@ theorem facts_term1_of_type_or_nil
     ListTypeOrNil ys w ->
     __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
-    __eo_is_list op xs = Term.Boolean true ->
-    __eo_is_list op ys = Term.Boolean true ->
-    __eo_is_list op zs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) zs = Term.Boolean true ->
     eo_interprets M (term1 xs ys zs x) true := by
   intro hXs hYs hZsTy hXTy hXsList hYsList hZsList
   rcases hXs with hXsTy | hXsNil
@@ -1849,9 +1857,9 @@ theorem facts_term2_of_type_or_nil
     ListTypeOrNil ys w ->
     __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
-    __eo_is_list op xs = Term.Boolean true ->
-    __eo_is_list op ys = Term.Boolean true ->
-    __eo_is_list op zs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) zs = Term.Boolean true ->
     eo_interprets M (term2 xs ys zs x) true := by
   intro hXs hYs hZsTy hXTy hXsList hYsList hZsList
   rcases hXs with hXsTy | hXsNil
@@ -1881,9 +1889,9 @@ theorem facts_term3_of_type_or_nil
     ListTypeOrNil ys w ->
     __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
-    __eo_is_list op xs = Term.Boolean true ->
-    __eo_is_list op ys = Term.Boolean true ->
-    __eo_is_list op zs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) ys = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) zs = Term.Boolean true ->
     eo_interprets M (term3 xs ys zs x) true := by
   intro hXs hYs hZsTy hXTy hXsList hYsList hZsList
   rcases hXs with hXsTy | hXsNil

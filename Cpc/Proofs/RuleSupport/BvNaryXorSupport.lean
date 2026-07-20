@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
-import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+import all Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+
+public section
 
 /-! Shared typing and evaluation support for n-ary bit-vector XOR lists. -/
 
@@ -143,14 +150,14 @@ private theorem native_binary_xor_assoc_mod_nat
             (native_int_pow2 (native_nat_to_int w))) =
         BitVec.ofInt w n1 ^^^ BitVec.ofInt w n2 := by
     rw [native_binary_xor_mod_eq_toNat]
-    exact bitvec_ofInt_natCast_toNat _
+    exact _root_.bitvec_ofInt_natCast_toNat _
   have h23 :
       BitVec.ofInt w
           (native_mod_total (native_binary_xor (native_nat_to_int w) n2 n3)
             (native_int_pow2 (native_nat_to_int w))) =
         BitVec.ofInt w n2 ^^^ BitVec.ofInt w n3 := by
     rw [native_binary_xor_mod_eq_toNat]
-    exact bitvec_ofInt_natCast_toNat _
+    exact _root_.bitvec_ofInt_natCast_toNat _
   calc
     native_mod_total
         (native_binary_xor (native_nat_to_int w)
@@ -196,7 +203,7 @@ private theorem evalCanonical_of_smt_type
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
     EvalCanonical M w t := by
   intro hTy
-  exact smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t) w hTy
+  exact _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t) w hTy
 
 private theorem xor_eval_canonical
     (M : SmtModel) (x y : Term) (w : Nat) :
@@ -395,8 +402,14 @@ private theorem eval_xor_assoc
         SmtValue.Binary (native_nat_to_int w) ny ->
     __smtx_model_eval M (__eo_to_smt z) =
         SmtValue.Binary (native_nat_to_int w) nz ->
-    __smtx_model_eval M (__eo_to_smt (xor (xor x y) z)) =
-      __smtx_model_eval M (__eo_to_smt (xor x (xor y z))) := by
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) y)) z)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y) z))) := by
   intro hxEval hyEval hzEval
   change __smtx_model_eval M
       (SmtTerm.bvxor
@@ -665,5 +678,95 @@ theorem listSingletonElimEvalEq
           simpa [__eo_list_singleton_elim_2]
   | _ =>
       simpa [__eo_list_singleton_elim_2]
+
+theorem binaryArgsSmtType
+    (x y : Term) (w : Nat) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) y)) =
+      SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ∧
+      __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w :=
+  bvxor_args_of_bitvec_type x y w
+
+theorem binarySmtType
+    (x y : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) y)) =
+      SmtType.BitVec w := by
+  intro hX hY
+  change __smtx_typeof
+      (SmtTerm.bvxor (__eo_to_smt x) (__eo_to_smt y)) = _
+  rw [__smtx_typeof.eq_41]
+  simp [__smtx_typeof_bv_op_2, hX, hY, native_nateq, native_ite]
+
+theorem evalAssoc
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y z : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt z) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) y)) z)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y) z))) := by
+  intro hX hY hZ
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hX with
+    ⟨nx, hXE, _⟩
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w hY with
+    ⟨ny, hYE, _⟩
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) w hZ with
+    ⟨nz, hZE, _⟩
+  exact eval_xor_assoc M x y z w nx ny nz hXE hYE hZE
+
+theorem evalComm
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) y)) =
+      __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y) x)) := by
+  intro hX hY
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hX with
+    ⟨nx, hXE, _⟩
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w hY with
+    ⟨ny, hYE, _⟩
+  change __smtx_model_eval_bvxor
+      (__smtx_model_eval M (__eo_to_smt x))
+      (__smtx_model_eval M (__eo_to_smt y)) =
+    __smtx_model_eval_bvxor
+      (__smtx_model_eval M (__eo_to_smt y))
+      (__smtx_model_eval M (__eo_to_smt x))
+  rw [hXE, hYE]
+  simp [__smtx_model_eval_bvxor, native_binary_xor, native_pixor,
+    BitVec.xor_comm]
+
+theorem evalRightNil
+    (M : SmtModel) (hM : model_total_typed M)
+    (x nil : Term) (w : Nat) :
+    __eo_is_list_nil (Term.UOp UserOp.bvxor) nil = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt nil) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) nil)) =
+      __smtx_model_eval M (__eo_to_smt x) := by
+  intro hNil hXTy hNilTy
+  rcases evalCanonical_of_smt_type M hM x w hXTy with
+    ⟨nx, hXEval, hXMod⟩
+  rcases evalCanonical_of_smt_type M hM nil w hNilTy with
+    ⟨nnil, hNilEval, _hNilMod⟩
+  have hZero := nil_payload_eq_zero M nil w nnil hNil hNilEval
+  subst nnil
+  exact eval_xor_right_zero M x nil w nx hXEval hNilEval hXMod
 
 end BvNaryXorSupport

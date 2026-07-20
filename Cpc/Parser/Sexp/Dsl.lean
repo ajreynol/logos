@@ -1,3 +1,5 @@
+module
+
 /-
 Copyright (c) 2021-2022 by the authors listed in the file AUTHORS and their
 institutional affiliations. All rights reserved.
@@ -5,9 +7,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Wojciech Nawrocki
 Source: https://github.com/ufmg-smite/lean-smt/blob/main/Smt/Dsl/Sexp.lean
 -/
-import Lean.Parser
+public import Lean.Parser
 
-import Cpc.Parser.Sexp.Basic
+public import Cpc.Parser.Sexp.Basic
+import all Cpc.Parser.Sexp.Basic
+
+public section
 
 section
 open Lean.Parser

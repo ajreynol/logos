@@ -1,4 +1,8 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.SmtModel
 
 open Eo
 open SmtEval
@@ -17,8 +21,8 @@ private theorem native_re_prefix_match_len?_empty_of_nullable
   native_re_prefix_match_len? r xs = some 0 := by
   rw [native_re_prefix_match_len?.eq_1]
   cases xs with
-  | nil => simp [native_re_prefix_match_len?.go.eq_1, h]
-  | cons c cs => simp [native_re_prefix_match_len?.go.eq_2, h]
+  | nil => unfold native_re_prefix_match_len?.go; simp [h]
+  | cons c cs => unfold native_re_prefix_match_len?.go; simp [h]
 
 private theorem native_re_find_idx_from_empty_of_nullable
     (r : native_RegLan) (xs : native_String) (start : Nat)
@@ -478,7 +482,7 @@ private theorem str_indexof_re_emp_requires_eqs
   have hN₂ : lvN₂ = n := RuleProofs.eq_of_eo_eq_true n lvN₂ hTop.2
   exact ⟨hReqEq, hR, hT, hN₁, hN₂⟩
 
-theorem cmd_step_str_indexof_re_emp_re_properties
+public theorem cmd_step_str_indexof_re_emp_re_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_indexof_re_emp_re args premises) ->

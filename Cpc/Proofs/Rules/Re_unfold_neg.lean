@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -1895,7 +1899,7 @@ private theorem re_unfold_neg_nonstuck_shape (p : Term) :
 
 end RuleProofs
 
-theorem cmd_step_re_unfold_neg_properties
+public theorem cmd_step_re_unfold_neg_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_unfold_neg args premises) ->

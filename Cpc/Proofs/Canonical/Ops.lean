@@ -1,5 +1,11 @@
-import Cpc.Proofs.Canonical.Maps
-import Cpc.Proofs.Canonical.Seq
+module
+
+public import Cpc.Proofs.Canonical.Maps
+import all Cpc.Proofs.Canonical.Maps
+public import Cpc.Proofs.Canonical.Seq
+import all Cpc.Proofs.Canonical.Seq
+
+public section
 
 open SmtEval
 open Smtm

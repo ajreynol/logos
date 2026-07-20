@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.BvSubElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvSubElimSupport
+import all Cpc.Proofs.RuleSupport.BvSubElimSupport
 
 open Eo
 open SmtEval
@@ -9,7 +12,7 @@ set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
-theorem cmd_step_bv_sub_eliminate_properties
+public theorem cmd_step_bv_sub_eliminate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_sub_eliminate args premises) ->

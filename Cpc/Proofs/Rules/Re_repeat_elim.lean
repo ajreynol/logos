@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.TypePreservation.SeqStringRegex
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.TypePreservation.SeqStringRegex
+import all Cpc.Proofs.TypePreservation.SeqStringRegex
 
 open Eo
 open SmtEval
@@ -198,7 +202,7 @@ private theorem facts___eo_prog_re_repeat_elim_impl
     rw [eval_re_loop_same_bounds M n x1]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_re_repeat_elim_properties
+public theorem cmd_step_re_repeat_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_repeat_elim args premises) ->

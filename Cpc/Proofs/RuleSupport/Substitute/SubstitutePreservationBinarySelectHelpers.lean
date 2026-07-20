@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinaryArithHelpers
+module
+
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinaryArithHelpers
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationBinaryArithHelpers
+
+public section
 
 open Eo
 open SmtEval

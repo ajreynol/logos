@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
-import Cpc.Proofs.Rules.Bv_nego_eliminate
+module
+
+public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
+public import Cpc.Proofs.Rules.Bv_nego_eliminate
+import all Cpc.Proofs.Rules.Bv_nego_eliminate
+
+public section
 
 /-! Support for the `bv_sdiv_eliminate` rewrite. -/
 
@@ -94,7 +101,7 @@ private theorem bv_sdiv_context (x y nm : Term) :
   have hOps := RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hResultTy
   rcases eo_typeof_bvbin_arg_types_of_ne_stuck hOps.1 with
     ⟨widthTerm, hXTy, hYTy⟩
-  rcases smt_bitvec_type_of_eo_bitvec_type_with_width x widthTerm
+  rcases _root_.smt_bitvec_type_of_eo_bitvec_type_with_width x widthTerm
       hXTrans hXTy with ⟨w, hWidth, hw0, hXSmtTy⟩
   subst widthTerm
   have hYSmtTy :

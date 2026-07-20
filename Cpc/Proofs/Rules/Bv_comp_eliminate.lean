@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.Proofs.TypePreservation.BitVecCmp
 
 open Eo
 open SmtEval
@@ -396,7 +400,7 @@ private theorem facts___eo_prog_bv_comp_eliminate_impl
     rw [eval_bvcomp_eliminate M x1 y1]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_bv_comp_eliminate_properties
+public theorem cmd_step_bv_comp_eliminate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_comp_eliminate args premises) ->

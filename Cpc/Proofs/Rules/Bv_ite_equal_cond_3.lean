@@ -1,4 +1,7 @@
-import Cpc.Proofs.Rules.Bv_ite_equal_cond_1
+module
+
+public import Cpc.Proofs.Rules.Bv_ite_equal_cond_1
+import all Cpc.Proofs.Rules.Bv_ite_equal_cond_1
 
 open Eo
 open SmtEval
@@ -268,7 +271,7 @@ private theorem facts___eo_prog_bv_ite_equal_cond_3_impl
     rw [eval_bvite_equal_cond_3 M c1 t1 e1 t2 e2]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_bv_ite_equal_cond_3_properties
+public theorem cmd_step_bv_ite_equal_cond_3_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_ite_equal_cond_3 args premises) ->

@@ -1,4 +1,9 @@
-import CpcMini.Proofs.RuleLemmas
+module
+
+public import CpcMini.Proofs.RuleLemmas
+import all CpcMini.Proofs.CheckerCore
+
+public section
 
 open Eo
 open SmtEval

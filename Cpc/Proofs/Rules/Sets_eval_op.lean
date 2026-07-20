@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SetsEvalOpSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SetsEvalOpSupport
+import all Cpc.Proofs.RuleSupport.SetsEvalOpSupport
 
 open Eo
 open SmtEval
@@ -62,7 +65,7 @@ private theorem facts_sets_eval_op
       | _ => exact (hEvalNe rfl).elim
   | _ => exact (hEvalNe rfl).elim
 
-theorem cmd_step_sets_eval_op_properties
+public theorem cmd_step_sets_eval_op_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_eval_op args premises) ->

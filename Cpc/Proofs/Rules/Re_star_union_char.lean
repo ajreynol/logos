@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.RegexRewriteSupport
+module
+
+public import Cpc.Proofs.RuleSupport.RegexRewriteSupport
+import all Cpc.Proofs.RuleSupport.RegexRewriteSupport
 
 open Eo
 open SmtEval
@@ -148,7 +151,7 @@ private theorem type_and_facts
 
 end ReStarUnionCharProof
 
-theorem cmd_step_re_star_union_char_properties
+public theorem cmd_step_re_star_union_char_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_star_union_char args premises) ->

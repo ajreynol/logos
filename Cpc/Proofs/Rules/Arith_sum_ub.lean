@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -1935,7 +1938,7 @@ private theorem arithSumFoldRight_true
                   (by simpa [tail, hTailShape, arithSumFoldRight, arithSumStep] using hOutBool)
               simpa [tail, hTailShape, arithSumFoldRight, arithSumStep] using hStepTrue
 
-theorem cmd_step_arith_sum_ub_properties
+public theorem cmd_step_arith_sum_ub_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_sum_ub args premises) ->

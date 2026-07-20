@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+module
+
+public import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+import all Cpc.Proofs.RuleSupport.DistinctTermsSupport
 
 open Eo
 open SmtEval
@@ -35,7 +38,7 @@ private theorem eo_typeof_eq_bool_operands_eq {A B : Term} :
     rw [hReq]
     intro hBad
     cases hBad
-  exact eo_eq_true_eq (eo_requires_arg_eq_of_ne_stuck hReqNe)
+  exact eo_eq_true_eq (_root_.eo_requires_arg_eq_of_ne_stuck hReqNe)
 
 private theorem eo_typeof_not_eq_bool_operands_eq {a b : Term} :
     __eo_typeof
@@ -88,8 +91,8 @@ private theorem prog_distinct_values_shape_of_ne_stuck {a b : Term} :
        exact False.elim (hProg rfl))
   all_goals
     constructor
-    · exact eo_requires_arg_eq_of_ne_stuck hProg
-    · exact eo_requires_result_eq_of_ne_stuck hProg
+    · exact _root_.eo_requires_arg_eq_of_ne_stuck hProg
+    · exact _root_.eo_requires_result_eq_of_ne_stuck hProg
 
 private theorem prog_distinct_values_shape_of_typeof_bool {a b : Term} :
     __eo_typeof (__eo_prog_distinct_values a b) = Term.Bool ->
@@ -160,7 +163,7 @@ private theorem facts___eo_prog_distinct_values_of_eval_eq_false
   exact RuleProofs.eo_interprets_not_of_false M
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) hEqFalse
 
-theorem cmd_step_distinct_values_properties
+public theorem cmd_step_distinct_values_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.distinct_values args premises) ->

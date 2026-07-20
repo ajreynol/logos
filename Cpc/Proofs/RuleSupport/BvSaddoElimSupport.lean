@@ -1,9 +1,19 @@
-import Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
-import Cpc.Proofs.RuleSupport.BvOverflowSupport
-import Cpc.Proofs.RuleSupport.BvSdivElimSupport
-import Cpc.Proofs.RuleSupport.BvSubElimSupport
-import Cpc.Proofs.RuleSupport.BvUsuboElimSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
+import all Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
+public import Cpc.Proofs.RuleSupport.BvOverflowSupport
+import all Cpc.Proofs.RuleSupport.BvOverflowSupport
+public import Cpc.Proofs.RuleSupport.BvSdivElimSupport
+import all Cpc.Proofs.RuleSupport.BvSdivElimSupport
+public import Cpc.Proofs.RuleSupport.BvSubElimSupport
+import all Cpc.Proofs.RuleSupport.BvSubElimSupport
+public import Cpc.Proofs.RuleSupport.BvUsuboElimSupport
+import all Cpc.Proofs.RuleSupport.BvUsuboElimSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
+
+public section
 
 /-! Support for the `bv_saddo_eliminate` rewrite. -/
 
@@ -152,7 +162,7 @@ private theorem bv_saddo_context (x y nm : Term) :
   have hOps := RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hResultTy
   rcases typeof_bvult_args_of_ne_stuck hOps.1 with
     ⟨widthTerm, hXTy, hYTy⟩
-  rcases smt_bitvec_type_of_eo_bitvec_type_with_width x widthTerm
+  rcases _root_.smt_bitvec_type_of_eo_bitvec_type_with_width x widthTerm
       hXTrans hXTy with ⟨w, hWidth, hw0, hXSmtTy⟩
   subst widthTerm
   have hYSmtTy :

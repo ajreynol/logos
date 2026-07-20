@@ -1,4 +1,9 @@
-import Cpc.Proofs.Assumptions
+module
+
+public import Cpc.Proofs.Assumptions
+import all Cpc.Proofs.Assumptions
+
+public section
 
 open Eo
 open SmtEval

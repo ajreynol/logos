@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+import all Cpc.Proofs.RuleSupport.StrConcatUnifySupport
 
 open Eo
 open SmtEval
@@ -138,7 +141,7 @@ private theorem str_concat_unify_base_rev_type_shape
       cases op <;>
         simp [__eo_prog_str_concat_unify_base_rev, hs, hh, hm] at h ⊢
 
-theorem cmd_step_str_concat_unify_base_rev_properties
+public theorem cmd_step_str_concat_unify_base_rev_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_concat_unify_base_rev args premises) ->

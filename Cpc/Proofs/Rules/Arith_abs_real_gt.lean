@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ArithSimpleSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithSimpleSupport
+import all Cpc.Proofs.RuleSupport.ArithSimpleSupport
 
 open Eo
 open SmtEval
@@ -383,7 +386,7 @@ private theorem facts_result (M : SmtModel) (hM : model_total_typed M) (x1 y1 : 
 end ArithAbsRealGt
 
 open ArithAbsRealGt in
-theorem cmd_step_arith_abs_real_gt_properties
+public theorem cmd_step_arith_abs_real_gt_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_abs_real_gt args premises) ->

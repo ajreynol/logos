@@ -1,6 +1,14 @@
+module
+
 -- This module serves as the root of the `Cpc` library.
 -- Import modules here that should be built as part of the library.
-import Cpc.Logos
-import Cpc.SmtEval
-import Cpc.SmtModel
-import Cpc.Spec
+public import Cpc.Logos
+import all Cpc.Logos
+public import Cpc.SmtEval
+import all Cpc.SmtEval
+public import Cpc.SmtModel
+import all Cpc.SmtModel
+public import Cpc.Spec
+import all Cpc.Spec
+
+public section

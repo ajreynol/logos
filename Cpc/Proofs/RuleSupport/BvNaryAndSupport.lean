@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
-import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+import all Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+
+public section
 
 /-! Shared typing and evaluation support for n-ary bit-vector AND lists. -/
 
@@ -147,14 +154,14 @@ private theorem native_binary_and_assoc_mod_nat
             (native_int_pow2 (native_nat_to_int w))) =
         BitVec.ofInt w n1 &&& BitVec.ofInt w n2 := by
     rw [native_binary_and_mod_eq_toNat]
-    exact bitvec_ofInt_natCast_toNat _
+    exact _root_.bitvec_ofInt_natCast_toNat _
   have h23 :
       BitVec.ofInt w
           (native_mod_total (native_binary_and (native_nat_to_int w) n2 n3)
             (native_int_pow2 (native_nat_to_int w))) =
         BitVec.ofInt w n2 &&& BitVec.ofInt w n3 := by
     rw [native_binary_and_mod_eq_toNat]
-    exact bitvec_ofInt_natCast_toNat _
+    exact _root_.bitvec_ofInt_natCast_toNat _
   calc
     native_mod_total
         (native_binary_and (native_nat_to_int w)
@@ -207,7 +214,7 @@ private theorem eval_bvand_canonicalBitVecValue
       canonicalBitVecValue w (x &&& y) := by
   simp only [canonicalBitVecValue, __smtx_model_eval_bvand]
   rw [native_binary_and_mod_eq_toNat]
-  simp [bitvec_ofInt_natCast_toNat]
+  simp [_root_.bitvec_ofInt_natCast_toNat]
 
 private theorem eval_bvnot_canonicalBitVecValue
     (w : Nat) (x : BitVec w) :
@@ -216,7 +223,7 @@ private theorem eval_bvnot_canonicalBitVecValue
   simp only [canonicalBitVecValue, __smtx_model_eval_bvnot]
   rw [native_binary_not_mod_eq_toNat_of_canonical w (x.toNat : Int)
     (bitvec_toNat_canonical w x)]
-  simp [bitvec_ofInt_natCast_toNat]
+  simp [_root_.bitvec_ofInt_natCast_toNat]
 
 /-- A complemented pair makes a right-associated AND spine zero. -/
 theorem bvand_not_pair_nested_eval
@@ -321,7 +328,7 @@ private theorem evalCanonical_of_smt_type
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
     EvalCanonical M w t := by
   intro hTy
-  exact smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t) w hTy
+  exact _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t) w hTy
 
 private theorem band_eval_canonical
     (M : SmtModel) (x y : Term) (w : Nat) :
@@ -850,5 +857,96 @@ theorem listSingletonElimEvalEq
           simpa [__eo_list_singleton_elim_2]
   | _ =>
       simpa [__eo_list_singleton_elim_2]
+
+theorem binaryArgsSmtType
+    (x y : Term) (w : Nat) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x) y)) =
+      SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ∧
+      __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w :=
+  bvand_args_of_bitvec_type x y w
+
+theorem binarySmtType
+    (x y : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x) y)) =
+      SmtType.BitVec w := by
+  intro hX hY
+  change __smtx_typeof
+      (SmtTerm.bvand (__eo_to_smt x) (__eo_to_smt y)) = _
+  rw [__smtx_typeof.eq_def] <;> simp only
+  simp [__smtx_typeof_bv_op_2, hX, hY, native_nateq, native_ite]
+
+theorem evalAssoc
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y z : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt z) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvand)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x) y)) z)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) y) z))) := by
+  intro hX hY hZ
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hX with
+    ⟨nx, hXE, _⟩
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w hY with
+    ⟨ny, hYE, _⟩
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) w hZ with
+    ⟨nz, hZE, _⟩
+  exact eval_band_assoc M x y z w nx ny nz hXE hYE hZE
+
+theorem evalComm
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x) y)) =
+      __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) y) x)) := by
+  intro hX hY
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hX with
+    ⟨nx, hXE, _⟩
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w hY with
+    ⟨ny, hYE, _⟩
+  change __smtx_model_eval_bvand
+      (__smtx_model_eval M (__eo_to_smt x))
+      (__smtx_model_eval M (__eo_to_smt y)) =
+    __smtx_model_eval_bvand
+      (__smtx_model_eval M (__eo_to_smt y))
+      (__smtx_model_eval M (__eo_to_smt x))
+  rw [hXE, hYE]
+  simp [__smtx_model_eval_bvand, native_binary_and, native_piand,
+    BitVec.and_comm]
+
+theorem evalRightNil
+    (M : SmtModel) (hM : model_total_typed M)
+    (x nil : Term) (w : Nat) :
+    __eo_is_list_nil (Term.UOp UserOp.bvand) nil = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt nil) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x) nil)) =
+      __smtx_model_eval M (__eo_to_smt x) := by
+  intro hNil hXTy hNilTy
+  rcases evalCanonical_of_smt_type M hM x w hXTy with
+    ⟨nx, hXEval, hXMod⟩
+  rcases evalCanonical_of_smt_type M hM nil w hNilTy with
+    ⟨nnil, hNilEval, hNilMod⟩
+  have hAllOnes := nil_payload_is_allOnes M nil w nnil
+    hNil hNilEval hNilMod
+  exact eval_band_right_allOnes M x nil w nx nnil
+    hXEval hNilEval hXMod hAllOnes
 
 end BvNaryAndSupport

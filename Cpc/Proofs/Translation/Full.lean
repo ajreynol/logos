@@ -1,4 +1,9 @@
-import Cpc.Proofs.Translation.Apply
+module
+
+public import Cpc.Proofs.Translation.Apply
+import all Cpc.Proofs.TypePreservation.Common
+
+public section
 
 open Eo
 open SmtEval
