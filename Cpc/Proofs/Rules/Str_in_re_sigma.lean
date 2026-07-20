@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.RegexSupport
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -195,7 +199,7 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                     have hRv : rv = SmtRegLan.epsilon := by
                       change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String (native_string_lit ""))) =
                           SmtValue.RegLan rv at hREval
-                      rw [__smtx_model_eval.eq_106, __smtx_model_eval.eq_4] at hREval
+                      rw [__smtx_model_eval.eq_104, __smtx_model_eval.eq_4] at hREval
                       simpa [__smtx_model_eval_str_to_re, native_str_to_re,
                         native_unpack_string, native_pack_string, native_pack_seq,
                         native_unpack_seq, native_re_of_list] using hREval.symm
@@ -253,7 +257,7 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                           change __smtx_model_eval M
                               (SmtTerm.re_concat SmtTerm.re_allchar (__eo_to_smt x)) =
                             SmtValue.RegLan rv at hREval
-                          rw [__smtx_model_eval.eq_113, __smtx_model_eval.eq_103] at hREval
+                          rw [__smtx_model_eval.eq_111, __smtx_model_eval.eq_101] at hREval
                           cases hTailEval : __smtx_model_eval M (__eo_to_smt x) with
                           | RegLan rvTail =>
                               have hRv : rv = native_re_concat native_re_allchar rvTail := by
@@ -292,8 +296,8 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                                             (SmtTerm.re_mult SmtTerm.re_allchar)
                                             (__eo_to_smt x)) =
                                         SmtValue.RegLan rv at hREval
-                                      rw [__smtx_model_eval.eq_113, __smtx_model_eval.eq_107,
-                                        __smtx_model_eval.eq_103] at hREval
+                                      rw [__smtx_model_eval.eq_111, __smtx_model_eval.eq_105,
+                                        __smtx_model_eval.eq_101] at hREval
                                       cases hTailEval :
                                           __smtx_model_eval M (__eo_to_smt x) with
                                       | RegLan rvTail =>
@@ -472,7 +476,7 @@ private theorem smtx_model_eval_str_in_re_eq_sigma_side
       SmtValue.Boolean
         (nativeListInRe (native_unpack_string ss)
           (nativeSigmaState 0 true rv))
-  rw [__smtx_model_eval.eq_118]
+  rw [__smtx_model_eval.eq_116]
   have hState : nativeSigmaState 0 true rv = rv := by
     cases rv <;> simp [nativeSigmaState, nativeSigmaExact, native_re_mk_concat]
   rw [hSEval, hREval]
@@ -572,7 +576,7 @@ private theorem str_in_re_sigma_valid_properties
 
 end RuleProofs
 
-theorem cmd_step_str_in_re_sigma_properties
+public theorem cmd_step_str_in_re_sigma_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_sigma args premises) ->

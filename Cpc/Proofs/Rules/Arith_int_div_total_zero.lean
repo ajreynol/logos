@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -121,7 +124,7 @@ private theorem facts___eo_prog_arith_int_div_total_zero_impl
           (__eo_to_smt (Term.Apply (Term.Apply Term.div_total t1) (Term.Numeral 0))) =
         SmtValue.Numeral 0 := by
     rw [eo_to_smt_div_total_eq]
-    rw [__smtx_model_eval.eq_30]
+    rw [__smtx_model_eval.eq_29]
     rw [hEvalT1, hEval0]
     simp [__smtx_model_eval_div_total]
     simp [SmtEval.native_div_total]
@@ -132,7 +135,7 @@ private theorem facts___eo_prog_arith_int_div_total_zero_impl
       rw [hEvalLhs, hEval0]
       exact RuleProofs.smt_value_rel_refl (SmtValue.Numeral 0)
 
-theorem cmd_step_arith_int_div_total_zero_properties
+public theorem cmd_step_arith_int_div_total_zero_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_int_div_total_zero args premises) ->

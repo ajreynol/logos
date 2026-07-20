@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -210,22 +213,6 @@ private theorem arith_sum_leq_args_of_bool (a1 b1 a2 b2 : Term) :
         rw [hRightTy] at hOut
         cases hOut.2
       · exact Or.inr ⟨hLeft.1, hRight.1, hLeft.2, hRight.2⟩
-
-private theorem native_zleq_of_zeq_true {a b : native_Int} :
-    native_zeq a b = true -> native_zleq a b = true := by
-  intro h
-  have hEq : a = b := by
-    simpa [native_zeq, SmtEval.native_zeq] using h
-  subst b
-  simp [native_zleq, SmtEval.native_zleq]
-
-private theorem native_qleq_of_qeq_true {a b : native_Rat} :
-    native_qeq a b = true -> native_qleq a b = true := by
-  intro h
-  have hEq : a = b := by
-    simpa [native_qeq, SmtEval.native_qeq] using h
-  subst b
-  simp [native_qleq, SmtEval.native_qleq]
 
 private theorem native_zleq_of_zlt_true {a b : native_Int} :
     native_zlt a b = true -> native_zleq a b = true := by
@@ -1073,76 +1060,27 @@ private theorem arithSumZeroAcc_true_of_not_stuck
     apply hZeroNe
     simp [__arith_mk_zero, hTy]
 
-private theorem eo_typeof_eq_int_of_smt_int_local
-    (t : Term)
-    (h : __smtx_typeof (__eo_to_smt t) = SmtType.Int) :
-    __eo_typeof t = Term.UOp UserOp.Int := by
-  have hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
-    intro hNone
-    rw [h] at hNone
-    cases hNone
-  have hMatch := TranslationProofs.eo_to_smt_typeof_matches_translation t hNN
-  have hType : __eo_to_smt_type (__eo_typeof t) = SmtType.Int := by
-    rw [h] at hMatch
-    exact hMatch.symm
-  exact TranslationProofs.eo_to_smt_type_eq_int hType
-
-private theorem eo_typeof_eq_real_of_smt_real_local
-    (t : Term)
-    (h : __smtx_typeof (__eo_to_smt t) = SmtType.Real) :
-    __eo_typeof t = Term.UOp UserOp.Real := by
-  have hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
-    intro hNone
-    rw [h] at hNone
-    cases hNone
-  have hMatch := TranslationProofs.eo_to_smt_typeof_matches_translation t hNN
-  have hType : __eo_to_smt_type (__eo_typeof t) = SmtType.Real := by
-    rw [h] at hMatch
-    exact hMatch.symm
-  exact TranslationProofs.eo_to_smt_type_eq_real hType
-
 private theorem eo_typeof_lt_bool_args
     (A B : Term) :
     __eo_typeof_lt A B = Term.Bool ->
     (A = Term.UOp UserOp.Int ∧ B = Term.UOp UserOp.Int) ∨
       (A = Term.UOp UserOp.Real ∧ B = Term.UOp UserOp.Real) := by
   intro h
-  cases A <;> cases B <;>
-    try
-      (simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h)
-  case UOp opA =>
-    rename_i opB
-    cases opA <;> cases opB <;>
-      simp at h ⊢
+  exact RuleProofs.eo_typeof_lt_bool_cases A B h
 
 private theorem eo_typeof_plus_eq_int_args
     (A B : Term) :
     __eo_typeof_plus A B = Term.UOp UserOp.Int ->
     A = Term.UOp UserOp.Int ∧ B = Term.UOp UserOp.Int := by
   intro h
-  cases A <;> cases B <;>
-    try
-      (simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h)
-  case UOp opA =>
-    rename_i opB
-    cases opA <;> cases opB <;>
-      simp at h ⊢
+  exact RuleProofs.eo_typeof_plus_int_args A B h
 
 private theorem eo_typeof_plus_eq_real_args
     (A B : Term) :
     __eo_typeof_plus A B = Term.UOp UserOp.Real ->
     A = Term.UOp UserOp.Real ∧ B = Term.UOp UserOp.Real := by
   intro h
-  cases A <;> cases B <;>
-    try
-      (simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h)
-  case UOp opA =>
-    rename_i opB
-    cases opA <;> cases opB <;>
-      simp at h ⊢
+  exact RuleProofs.eo_typeof_plus_real_args A B h
 
 private theorem eo_typeof_right_rel_of_sum_rel_bool
     (op : UserOp) (a1 b1 a2 b2 : Term)
@@ -1680,20 +1618,6 @@ private theorem arithSumFoldRight_has_bool_type_of_typeof_bool :
       exact arithSumStep_has_bool_type_of_typeof_bool p tail hPBool hTailBool
         (by simpa [tail, arithSumFoldRight] using hFoldTy)
 
-private theorem allInterpretedTrue_reverse
-    (M : SmtModel) (ps : List Term) :
-    AllInterpretedTrue M ps ->
-    AllInterpretedTrue M ps.reverse := by
-  intro h t ht
-  exact h t (by simpa using ht)
-
-private theorem allHaveBoolType_reverse
-    (ps : List Term) :
-    AllHaveBoolType ps ->
-    AllHaveBoolType ps.reverse := by
-  intro h t ht
-  exact h t (by simpa using ht)
-
 private theorem eo_has_bool_type_lt_of_arith
     (a b : Term)
     (hTy :
@@ -1956,7 +1880,7 @@ private theorem arithSumFoldRight_true
                   (by simpa [tail, hTailShape, arithSumFoldRight, arithSumStep] using hOutBool)
               simpa [tail, hTailShape, arithSumFoldRight, arithSumStep] using hStepTrue
 
-theorem cmd_step_arith_sum_ub_properties
+public theorem cmd_step_arith_sum_ub_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_sum_ub args premises) ->

@@ -1,5 +1,11 @@
+module
+
 import Lean
-import Cpc.Proofs.TypePreservation.Model
+public import Cpc.Proofs.TypePreservation.Model
+import all Cpc.SmtModel
+import all Cpc.Proofs.TypePreservation.Common
+
+public section
 
 open SmtEval
 open Smtm
@@ -9,41 +15,18 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
-syntax "smtx_evalChoiceNth_eq_def" : term
-
-elab "smtx_evalChoiceNth_eq_def" : term => do
-  let env ← Lean.getEnv
-  let candidates := env.constants.toList.filter (fun (name, _) =>
-    let s := name.toString
-    s.contains "__smtx_model_eval.evalChoiceNth." &&
-      !s.contains "_mutual" &&
-      s.endsWith "eq_def")
-  match candidates with
-  | [(name, _)] => return Lean.mkConst name
-  | [] => throwError "could not find evalChoiceNth equation theorem"
-  | _ => throwError "found multiple evalChoiceNth equation theorems"
-
-theorem smtx_model_eval_choice_nth_zero_eq
+theorem smtx_model_eval_choice_eq
     (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm) :
-  __smtx_model_eval M (SmtTerm.choice_nth s T body native_nat_zero) =
+  __smtx_model_eval M (SmtTerm.choice s T body) =
     native_eval_tchoice M s T body :=
 by
-  rw [__smtx_model_eval.eq_def] <;> simp only
-  rw [smtx_evalChoiceNth_eq_def]
+  rw [__smtx_model_eval.eq_def]
 
-theorem smtx_model_eval_choice_nth_succ_exists_eq
-    (M : SmtModel) (s : native_String) (T : SmtType)
-    (s' : native_String) (U : SmtType) (body : SmtTerm) (n : native_Nat) :
-  __smtx_model_eval M
-      (SmtTerm.choice_nth s T (SmtTerm.exists s' U body) (native_nat_succ n)) =
-    __smtx_model_eval
-      (native_model_push M s T
-        (native_eval_tchoice M s T (SmtTerm.exists s' U body)))
-      (SmtTerm.choice_nth s' U body n) :=
+theorem smtx_model_eval_bind_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) (x1 x2 : SmtTerm) :
+  __smtx_model_eval M (SmtTerm.bind s T x1 x2) =
+    __smtx_model_eval (native_model_push M s T (__smtx_model_eval M x1)) x2 :=
 by
-  rw [__smtx_model_eval.eq_def] <;> simp only
-  rw [smtx_evalChoiceNth_eq_def]
-  simp only
   rw [__smtx_model_eval.eq_def]
 
 /-- Shows that evaluating `boolean` terms produces values of the expected type. -/
@@ -575,14 +558,14 @@ theorem typeof_value_model_eval_forall
   · simp [dif_pos h, __smtx_typeof_value]
   · simp [dif_neg h, __smtx_typeof_value]
 
-/-- Provides a witness for `choice_term_has`. -/
+/-- Provides a witness for a `choice` term whose typing is non-`None`. -/
 theorem choice_term_has_witness
     (Mw : SmtModel)
     (hMw : model_total_typed Mw)
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
+    (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
     ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v := by
   unfold term_has_non_none_type at ht
   have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
@@ -593,23 +576,23 @@ theorem choice_term_has_witness
         cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
       apply ht
       unfold __smtx_typeof
-      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
+      simp [hEqFalse, native_ite]
   have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
     unfold __smtx_typeof at ht
-    simpa [__smtx_typeof_choice_nth, hEq, native_ite] using ht
+    simpa [hEq, native_ite] using ht
   have hWF : __smtx_type_wf T = true :=
     smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
   exact ⟨native_model_lookup Mw s T,
     model_total_typed_lookup hMw s T hWF,
     model_total_typed_lookup_canonical hMw s T hWF⟩
 
-/-- Derives the zero-index `choice_nth` type as the self-guarded choice type from `non_none`. -/
+/-- Derives the `choice` type as the self-guarded choice type from `non_none`. -/
 theorem choice_term_guard_type_of_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
-    __smtx_typeof (SmtTerm.choice_nth s T body 0) = __smtx_typeof_guard_wf T T := by
+    (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
+    __smtx_typeof (SmtTerm.choice s T body) = __smtx_typeof_guard_wf T T := by
   unfold term_has_non_none_type at ht
   have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
     by_cases hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true
@@ -619,18 +602,18 @@ theorem choice_term_guard_type_of_non_none
         cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
       apply ht
       unfold __smtx_typeof
-      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
+      simp [hEqFalse, native_ite]
   unfold __smtx_typeof
-  simp [__smtx_typeof_choice_nth, hEq, native_ite]
+  simp [hEq, native_ite]
 
 /-- Derives `choice_term_typeof` from `non_none`. -/
 theorem choice_term_typeof_of_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
-    __smtx_typeof (SmtTerm.choice_nth s T body 0) = T := by
-  have hGuard : __smtx_typeof (SmtTerm.choice_nth s T body 0) = __smtx_typeof_guard_wf T T :=
+    (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
+    __smtx_typeof (SmtTerm.choice s T body) = T := by
+  have hGuard : __smtx_typeof (SmtTerm.choice s T body) = __smtx_typeof_guard_wf T T :=
     choice_term_guard_type_of_non_none ht
   have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
     intro hNone
@@ -639,209 +622,89 @@ theorem choice_term_typeof_of_non_none
     rw [hGuard, hNone]
   exact hGuard.trans (smtx_typeof_guard_wf_of_non_none T T hGuardNN)
 
-/-- A guarded successor `choice_nth` has the tail choice type whenever it is well-typed. -/
-theorem choice_nth_succ_typeof_tail_of_non_none
-    {s s' : native_String}
-    {T U : SmtType}
-    {body : SmtTerm}
-    {n : native_Nat}
-    (ht : term_has_non_none_type
-      (SmtTerm.choice_nth s T (SmtTerm.exists s' U body) n.succ)) :
-    __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body) n.succ) =
-      __smtx_typeof (SmtTerm.choice_nth s' U body n) := by
-  unfold term_has_non_none_type at ht
-  have hGuardNN :
-      __smtx_typeof_guard_wf T (__smtx_typeof_choice_nth U body n) ≠ SmtType.None := by
-    intro hNone
-    apply ht
-    simpa [__smtx_typeof, __smtx_typeof_choice_nth] using hNone
-  have hGuard :
-      __smtx_typeof_guard_wf T (__smtx_typeof_choice_nth U body n) =
-        __smtx_typeof_choice_nth U body n :=
-    smtx_typeof_guard_wf_of_non_none T (__smtx_typeof_choice_nth U body n) hGuardNN
-  simpa [__smtx_typeof, __smtx_typeof_choice_nth] using hGuard
-
-/-- Non-`None` typing for a guarded successor `choice_nth` descends to the tail choice. -/
-theorem choice_nth_succ_tail_non_none_of_non_none
-    {s s' : native_String}
-    {T U : SmtType}
-    {body : SmtTerm}
-    {n : native_Nat}
-    (ht : term_has_non_none_type
-      (SmtTerm.choice_nth s T (SmtTerm.exists s' U body) n.succ)) :
-    term_has_non_none_type (SmtTerm.choice_nth s' U body n) := by
-  unfold term_has_non_none_type at ht ⊢
-  intro hNone
-  apply ht
-  rw [choice_nth_succ_typeof_tail_of_non_none (s := s) (T := T) ht, hNone]
-
-/-- If a `choice_nth` term has sequence type `Seq A`, then `A` is non-`None`. -/
+/-- If a `choice` term has sequence type `Seq A`, then `A` is non-`None`. -/
 theorem choice_term_seq_component_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    {n : native_Nat}
     {A : SmtType}
-    (h : __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.Seq A) :
+    (h : __smtx_typeof (SmtTerm.choice s T body) = SmtType.Seq A) :
     A ≠ SmtType.None := by
-  induction n generalizing s T body with
-  | zero =>
-      have hNN : term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
-        unfold term_has_non_none_type
-        intro hNone
-        rw [hNone] at h
-        simp at h
-      have hGuard : __smtx_typeof_guard_wf T T = SmtType.Seq A := by
-        calc
-          __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice_nth s T body 0) := by
-            symm
-            exact choice_term_guard_type_of_non_none hNN
-          _ = SmtType.Seq A := h
-      exact smtx_typeof_guard_wf_self_eq_seq_component_non_none hGuard
-  | succ n ih =>
-      cases body with
-      | «exists» s' U body' =>
-          have hNN :
-              term_has_non_none_type
-                (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) := by
-            unfold term_has_non_none_type
-            intro hNone
-            rw [hNone] at h
-            simp at h
-          have hTyEq :
-              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
-                __smtx_typeof (SmtTerm.choice_nth s' U body' n) :=
-            choice_nth_succ_typeof_tail_of_non_none hNN
-          exact ih (s := s') (T := U) (body := body') (by simpa [hTyEq] using h)
-      | _ =>
-          exfalso
-          simp [__smtx_typeof, __smtx_typeof_choice_nth] at h
+  have hNN : term_has_non_none_type (SmtTerm.choice s T body) := by
+    unfold term_has_non_none_type
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hGuard : __smtx_typeof_guard_wf T T = SmtType.Seq A := by
+    calc
+      __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice s T body) := by
+        symm
+        exact choice_term_guard_type_of_non_none hNN
+      _ = SmtType.Seq A := h
+  exact smtx_typeof_guard_wf_self_eq_seq_component_non_none hGuard
 
-/-- If a `choice_nth` term has set type `Set A`, then `A` is non-`None`. -/
+/-- If a `choice` term has set type `Set A`, then `A` is non-`None`. -/
 theorem choice_term_set_component_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    {n : native_Nat}
     {A : SmtType}
-    (h : __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.Set A) :
+    (h : __smtx_typeof (SmtTerm.choice s T body) = SmtType.Set A) :
     A ≠ SmtType.None := by
-  induction n generalizing s T body with
-  | zero =>
-      have hNN : term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
-        unfold term_has_non_none_type
-        intro hNone
-        rw [hNone] at h
-        simp at h
-      have hGuard : __smtx_typeof_guard_wf T T = SmtType.Set A := by
-        calc
-          __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice_nth s T body 0) := by
-            symm
-            exact choice_term_guard_type_of_non_none hNN
-          _ = SmtType.Set A := h
-      exact smtx_typeof_guard_wf_self_eq_set_component_non_none hGuard
-  | succ n ih =>
-      cases body with
-      | «exists» s' U body' =>
-          have hNN :
-              term_has_non_none_type
-                (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) := by
-            unfold term_has_non_none_type
-            intro hNone
-            rw [hNone] at h
-            simp at h
-          have hTyEq :
-              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
-                __smtx_typeof (SmtTerm.choice_nth s' U body' n) :=
-            choice_nth_succ_typeof_tail_of_non_none hNN
-          exact ih (s := s') (T := U) (body := body') (by simpa [hTyEq] using h)
-      | _ =>
-          exfalso
-          simp [__smtx_typeof, __smtx_typeof_choice_nth] at h
+  have hNN : term_has_non_none_type (SmtTerm.choice s T body) := by
+    unfold term_has_non_none_type
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hGuard : __smtx_typeof_guard_wf T T = SmtType.Set A := by
+    calc
+      __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice s T body) := by
+        symm
+        exact choice_term_guard_type_of_non_none hNN
+      _ = SmtType.Set A := h
+  exact smtx_typeof_guard_wf_self_eq_set_component_non_none hGuard
 
-/-- If a `choice_nth` term has map type `Map A B`, then both components are non-`None`. -/
+/-- If a `choice` term has map type `Map A B`, then both components are non-`None`. -/
 theorem choice_term_map_components_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    {n : native_Nat}
     {A B : SmtType}
-    (h : __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.Map A B) :
+    (h : __smtx_typeof (SmtTerm.choice s T body) = SmtType.Map A B) :
     A ≠ SmtType.None ∧ B ≠ SmtType.None := by
-  induction n generalizing s T body with
-  | zero =>
-      have hNN : term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
-        unfold term_has_non_none_type
-        intro hNone
-        rw [hNone] at h
-        simp at h
-      have hGuard : __smtx_typeof_guard_wf T T = SmtType.Map A B := by
-        calc
-          __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice_nth s T body 0) := by
-            symm
-            exact choice_term_guard_type_of_non_none hNN
-          _ = SmtType.Map A B := h
-      exact smtx_typeof_guard_wf_self_eq_map_components_non_none hGuard
-  | succ n ih =>
-      cases body with
-      | «exists» s' U body' =>
-          have hNN :
-              term_has_non_none_type
-                (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) := by
-            unfold term_has_non_none_type
-            intro hNone
-            rw [hNone] at h
-            simp at h
-          have hTyEq :
-              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
-                __smtx_typeof (SmtTerm.choice_nth s' U body' n) :=
-            choice_nth_succ_typeof_tail_of_non_none hNN
-          exact ih (s := s') (T := U) (body := body') (by simpa [hTyEq] using h)
-      | _ =>
-          exfalso
-          simp [__smtx_typeof, __smtx_typeof_choice_nth] at h
+  have hNN : term_has_non_none_type (SmtTerm.choice s T body) := by
+    unfold term_has_non_none_type
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hGuard : __smtx_typeof_guard_wf T T = SmtType.Map A B := by
+    calc
+      __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice s T body) := by
+        symm
+        exact choice_term_guard_type_of_non_none hNN
+      _ = SmtType.Map A B := h
+  exact smtx_typeof_guard_wf_self_eq_map_components_non_none hGuard
 
-/-- If a `choice_nth` term has function type `FunType A B`, then both components are non-`None`. -/
+/-- If a `choice` term has function type `FunType A B`, then both components are non-`None`. -/
 theorem choice_term_fun_components_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    {n : native_Nat}
     {A B : SmtType}
-    (h : __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.FunType A B) :
+    (h : __smtx_typeof (SmtTerm.choice s T body) = SmtType.FunType A B) :
     A ≠ SmtType.None ∧ B ≠ SmtType.None := by
-  induction n generalizing s T body with
-  | zero =>
-      have hNN : term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
-        unfold term_has_non_none_type
-        intro hNone
-        rw [hNone] at h
-        simp at h
-      have hGuard : __smtx_typeof_guard_wf T T = SmtType.FunType A B := by
-        calc
-          __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice_nth s T body 0) := by
-            symm
-            exact choice_term_guard_type_of_non_none hNN
-          _ = SmtType.FunType A B := h
-      exact smtx_typeof_guard_wf_self_eq_fun_components_non_none hGuard
-  | succ n ih =>
-      cases body with
-      | «exists» s' U body' =>
-          have hNN :
-              term_has_non_none_type
-                (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) := by
-            unfold term_has_non_none_type
-            intro hNone
-            rw [hNone] at h
-            simp at h
-          have hTyEq :
-              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
-                __smtx_typeof (SmtTerm.choice_nth s' U body' n) :=
-            choice_nth_succ_typeof_tail_of_non_none hNN
-          exact ih (s := s') (T := U) (body := body') (by simpa [hTyEq] using h)
-      | _ =>
-          exfalso
-          simp [__smtx_typeof, __smtx_typeof_choice_nth] at h
+  have hNN : term_has_non_none_type (SmtTerm.choice s T body) := by
+    unfold term_has_non_none_type
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hGuard : __smtx_typeof_guard_wf T T = SmtType.FunType A B := by
+    calc
+      __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice s T body) := by
+        symm
+        exact choice_term_guard_type_of_non_none hNN
+      _ = SmtType.FunType A B := h
+  exact smtx_typeof_guard_wf_self_eq_fun_components_non_none hGuard
 
 /-- Shows that evaluating `choice` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_choice
@@ -851,9 +714,9 @@ theorem typeof_value_model_eval_choice
     (s : native_String)
     (T : SmtType)
     (body : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.choice_nth s T body 0)) =
-      __smtx_typeof (SmtTerm.choice_nth s T body 0) := by
+    (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.choice s T body)) =
+      __smtx_typeof (SmtTerm.choice s T body) := by
   classical
   have hTy : ∃ v : SmtValue, __smtx_typeof_value v = T ∧
       __smtx_value_canonical_bool v = true := by
@@ -869,60 +732,123 @@ theorem typeof_value_model_eval_choice
         __smtx_typeof_value v = T ∧
           __smtx_value_canonical_bool v = true ∧
           __smtx_model_eval (native_model_push M s T v) body = SmtValue.Boolean true
-  · rw [smtx_model_eval_choice_nth_zero_eq]
+  · rw [smtx_model_eval_choice_eq]
     simp [hSat]
     exact (Classical.choose_spec hSat).1
-  · rw [smtx_model_eval_choice_nth_zero_eq]
+  · rw [smtx_model_eval_choice_eq]
     simp [hSat, hTyIf]
     exact (Classical.choose_spec hTy).1
 
-/-- Shows that evaluating `choice_nth` terms preserves the computed choice type for any index. -/
-theorem typeof_value_model_eval_choice_nth
-    (Mw : SmtModel)
-    (hMw : model_total_typed Mw)
-    (M : SmtModel)
-    (s : native_String)
-    (T : SmtType)
-    (body : SmtTerm)
-    (n : native_Nat)
-    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.choice_nth s T body n)) =
-      __smtx_typeof (SmtTerm.choice_nth s T body n) := by
-  classical
-  induction n generalizing M s T body with
-  | zero =>
-      simpa using typeof_value_model_eval_choice Mw hMw M s T body ht
-  | succ n ih =>
-      cases body with
-      | «exists» s' U body' =>
-          have hTyEq :
-              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
-                __smtx_typeof (SmtTerm.choice_nth s' U body' n) :=
-            choice_nth_succ_typeof_tail_of_non_none ht
-          have ht' : term_has_non_none_type (SmtTerm.choice_nth s' U body' n) := by
-            exact choice_nth_succ_tail_non_none_of_non_none ht
-          rw [smtx_model_eval_choice_nth_succ_exists_eq]
-          rw [hTyEq]
-          exact
-            ih (native_model_push M s T
-              (native_eval_tchoice M s T (SmtTerm.exists s' U body'))) s' U body' ht'
-      | _ =>
-          exfalso
-          apply ht
-          simp [__smtx_typeof, __smtx_typeof_choice_nth]
-
-/-- Extracts inhabitation of the computed `choice_nth` type from a non-`None` typing judgment. -/
+/-- Extracts inhabitation of the computed `choice` type from a non-`None` typing judgment. -/
 theorem choice_term_inhabited_of_non_none
     (Mw : SmtModel)
     (hMw : model_total_typed Mw)
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    {n : native_Nat}
-    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
-    type_inhabited (__smtx_typeof (SmtTerm.choice_nth s T body n)) := by
-  refine ⟨__smtx_model_eval Mw (SmtTerm.choice_nth s T body n), ?_⟩
-  simpa using typeof_value_model_eval_choice_nth Mw hMw Mw s T body n ht
+    (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
+    type_inhabited (__smtx_typeof (SmtTerm.choice s T body)) := by
+  refine ⟨__smtx_model_eval Mw (SmtTerm.choice s T body), ?_⟩
+  simpa using typeof_value_model_eval_choice Mw hMw Mw s T body ht
+
+/-- Type of a `bind` term equals the (guarded) type of its body when well-typed. -/
+theorem bind_term_typeof_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    {x1 x2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    __smtx_typeof (SmtTerm.bind s T x1 x2) = __smtx_typeof x2 := by
+  unfold term_has_non_none_type at ht
+  have hEq : native_Teq (__smtx_typeof x1) T = true := by
+    by_cases hEq : native_Teq (__smtx_typeof x1) T = true
+    · exact hEq
+    · exfalso
+      have hEqFalse : native_Teq (__smtx_typeof x1) T = false := by
+        cases hTest : native_Teq (__smtx_typeof x1) T <;> simp [hTest] at hEq ⊢
+      apply ht
+      unfold __smtx_typeof
+      simp [hEqFalse, native_ite]
+  have hGuardNN : __smtx_typeof_guard_wf T (__smtx_typeof x2) ≠ SmtType.None := by
+    unfold __smtx_typeof at ht
+    simpa [hEq, native_ite] using ht
+  have hGuard : __smtx_typeof_guard_wf T (__smtx_typeof x2) = __smtx_typeof x2 :=
+    smtx_typeof_guard_wf_of_non_none T (__smtx_typeof x2) hGuardNN
+  have hLHS : __smtx_typeof (SmtTerm.bind s T x1 x2)
+      = __smtx_typeof_guard_wf T (__smtx_typeof x2) := by
+    rw [__smtx_typeof.eq_def]
+    simp [hEq, native_ite]
+  rw [hLHS]
+  exact hGuard
+
+/-- The bound value of a well-typed `bind` has the binder type. -/
+theorem bind_arg1_type_of_non_none
+    {s : native_String} {T : SmtType} {x1 x2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    __smtx_typeof x1 = T := by
+  unfold term_has_non_none_type at ht
+  by_cases hEq : native_Teq (__smtx_typeof x1) T = true
+  · exact of_decide_eq_true (by simpa [native_Teq] using hEq)
+  · exfalso
+    have hEqFalse : native_Teq (__smtx_typeof x1) T = false := by
+      cases hTest : native_Teq (__smtx_typeof x1) T <;> simp [hTest] at hEq ⊢
+    apply ht
+    unfold __smtx_typeof
+    simp [hEqFalse, native_ite]
+
+/-- The binder type of a well-typed `bind` is well formed. -/
+theorem bind_binder_type_wf_of_non_none
+    {s : native_String} {T : SmtType} {x1 x2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    __smtx_type_wf T = true := by
+  have hEq : native_Teq (__smtx_typeof x1) T = true := by
+    simp [native_Teq, bind_arg1_type_of_non_none ht]
+  unfold term_has_non_none_type at ht
+  have hGuardNN : __smtx_typeof_guard_wf T (__smtx_typeof x2) ≠ SmtType.None := by
+    unfold __smtx_typeof at ht
+    simpa [hEq, native_ite] using ht
+  exact smtx_typeof_guard_wf_wf_of_non_none T (__smtx_typeof x2) hGuardNN
+
+/-- The bound value of a well-typed `bind` has non-`None` type. -/
+theorem bind_arg1_non_none_of_non_none
+    {s : native_String} {T : SmtType} {x1 x2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    term_has_non_none_type x1 := by
+  unfold term_has_non_none_type
+  rw [bind_arg1_type_of_non_none ht]
+  intro hNone
+  have hWf := bind_binder_type_wf_of_non_none ht
+  rw [hNone] at hWf
+  exact absurd hWf (by native_decide)
+
+/-- The body of a well-typed `bind` has non-`None` type. -/
+theorem bind_arg2_non_none_of_non_none
+    {s : native_String} {T : SmtType} {x1 x2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    term_has_non_none_type x2 := by
+  have hEq := bind_term_typeof_of_non_none ht
+  unfold term_has_non_none_type at ht ⊢
+  rw [hEq] at ht
+  exact ht
+
+/-- Shows that evaluating a `bind` (let) term produces a value of the expected
+type, given type preservation for the body `x2` under the pushed model.  The
+caller supplies `hx2` (via canonicity preservation of `x1` so that the pushed
+model stays `model_total_typed`); `bind` is the only construct whose result type
+is the body's type under a pushed binding, so it needs this extra input. -/
+theorem typeof_value_model_eval_bind
+    (M : SmtModel)
+    (s : native_String)
+    (T : SmtType)
+    (x1 x2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2))
+    (hx2 :
+      __smtx_typeof_value
+          (__smtx_model_eval (native_model_push M s T (__smtx_model_eval M x1)) x2) =
+        __smtx_typeof x2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bind s T x1 x2)) =
+      __smtx_typeof (SmtTerm.bind s T x1 x2) := by
+  rw [smtx_model_eval_bind_eq, bind_term_typeof_of_non_none ht]
+  exact hx2
 
 
 end Smtm

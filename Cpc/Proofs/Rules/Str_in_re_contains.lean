@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ReInclusionSupport
-import Cpc.Proofs.RuleSupport.NativeSeqSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReInclusionSupport
+import all Cpc.Proofs.RuleSupport.ReInclusionSupport
+public import Cpc.Proofs.RuleSupport.NativeSeqSupport
+import all Cpc.Proofs.RuleSupport.NativeSeqSupport
 
 open Eo
 open SmtEval
@@ -635,7 +639,7 @@ private theorem facts___eo_prog_str_in_re_contains_impl
 
 end StrInReContainsProof
 
-theorem cmd_step_str_in_re_contains_properties
+public theorem cmd_step_str_in_re_contains_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_contains args premises) ->

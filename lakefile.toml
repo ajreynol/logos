@@ -1,15 +1,13 @@
 name = "Cpc"
 version = "0.1.0"
-defaultTargets = ["Cpc", "CpcMini", "CpcMicro"]
+defaultTargets = ["Cpc", "CpcMini"]
 
 [[lean_lib]]
 name = "Cpc"
+moreLeanArgs = ["-DmaxHeartbeats=10000000"]
 
 [[lean_lib]]
 name = "CpcMini"
-
-[[lean_lib]]
-name = "CpcMicro"
 
 [[lean_exe]]
 name = "logos"

@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -25,11 +30,7 @@ private theorem eo_typeof_eq_bool_same (A B : Term) :
     __eo_typeof_eq A B = Term.Bool ->
     A = B ∧ A ≠ Term.Stuck := by
   intro hTy
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hTy ⊢
-  all_goals
-    simp [hTy]
+  exact RuleProofs.eo_typeof_eq_bool_same A B hTy
 
 private theorem eo_typeof_not_nonstuck_bool_arg (A : Term) :
     __eo_typeof_not A ≠ Term.Stuck ->
@@ -42,19 +43,14 @@ private theorem eo_typeof_ite_args_of_ne_stuck
     __eo_typeof_ite C X Y ≠ Term.Stuck ->
       C = Term.Bool ∧ X = Y ∧ X ≠ Term.Stuck := by
   intro h
-  cases C <;> cases X <;> cases Y <;>
-    simp [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite,
-      native_not, native_teq] at h ⊢ <;>
-    simp_all
+  exact RuleProofs.eo_typeof_ite_args_of_ne_stuck C X Y h
 
 private theorem eo_typeof_ite_bool_same_of_ne_stuck
     (T : Term) :
     T ≠ Term.Stuck ->
       __eo_typeof_ite Term.Bool T T = T := by
   intro hT
-  cases T <;>
-    simp [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite,
-      native_not, native_teq] at hT ⊢
+  exact RuleProofs.eo_typeof_ite_bool_self T hT
 
 private theorem eo_typeof_ite_bool_args (C X Y : Term) :
     __eo_typeof_ite C X Y = Term.Bool ->
@@ -229,7 +225,7 @@ private theorem facts___eo_prog_bool_not_ite_elim_impl
       simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, __smtx_model_eval_ite,
         __smtx_model_eval_not, native_veq, SmtEval.native_not]
 
-theorem cmd_step_bool_not_ite_elim_properties
+public theorem cmd_step_bool_not_ite_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_not_ite_elim args premises) ->

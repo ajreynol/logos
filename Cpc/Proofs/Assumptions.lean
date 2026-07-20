@@ -1,8 +1,16 @@
-import Cpc.Spec
-import Cpc.Logos
-import Cpc.SmtModel
+module
+
+public import Cpc.Spec
+import all Cpc.Spec
+public import Cpc.Logos
+import all Cpc.Logos
+public import Cpc.SmtModel
+import all Cpc.SmtModel
+
+public section
 
 open Eo
+open SmtEval
 open Smtm
 
 /-- Predicate asserting that translating an EO term yields a non-`None` SMT term. -/

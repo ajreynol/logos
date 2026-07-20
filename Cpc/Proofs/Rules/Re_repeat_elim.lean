@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.TypePreservation.SeqStringRegex
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.TypePreservation.SeqStringRegex
+import all Cpc.Proofs.TypePreservation.SeqStringRegex
 
 open Eo
 open SmtEval
@@ -8,17 +12,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
-
-private theorem eo_requires_eq_result_of_ne_stuck (x y z : Term) :
-    __eo_requires x y z ≠ Term.Stuck -> __eo_requires x y z = z := by
-  intro h
-  by_cases hxy : x = y
-  · subst y
-    by_cases hx : x = Term.Stuck
-    · subst x
-      simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at h
-    · simp [__eo_requires, hx, native_ite, native_teq, native_not, SmtEval.native_not]
-  · simp [__eo_requires, hxy, native_ite, native_teq] at h
 
 private theorem eo_requires_arg_eq_of_ne_stuck {x y z : Term} :
     __eo_requires x y z ≠ Term.Stuck -> x = y := by
@@ -198,7 +191,7 @@ private theorem facts___eo_prog_re_repeat_elim_impl
     rw [eval_re_loop_same_bounds M n x1]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_re_repeat_elim_properties
+public theorem cmd_step_re_repeat_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_repeat_elim args premises) ->

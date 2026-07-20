@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -104,7 +107,7 @@ private theorem facts___eo_prog_bool_eq_nrefl_impl
     cases b <;> simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
       __smtx_model_eval_not, native_veq, SmtEval.native_not]
 
-theorem cmd_step_bool_eq_nrefl_properties
+public theorem cmd_step_bool_eq_nrefl_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_eq_nrefl args premises) ->

@@ -1,7 +1,15 @@
-import CpcMini.Spec
-import CpcMini.Logos
-import CpcMini.Proofs.Assumptions
-import CpcMini.Proofs.RuleSupport.Support
+module
+
+public import CpcMini.Spec
+import all CpcMini.Spec
+public import CpcMini.Logos
+import all CpcMini.Logos
+public import CpcMini.Proofs.Assumptions
+import all CpcMini.Proofs.Assumptions
+public import CpcMini.Proofs.RuleSupport.Support
+import all CpcMini.Proofs.RuleSupport.Support
+
+public section
 
 open Eo
 open SmtEval

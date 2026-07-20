@@ -1,4 +1,9 @@
-import Cpc.SmtEval
+module
+
+public import Cpc.SmtEval
+import all Cpc.SmtEval
+
+public section
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
@@ -44,14 +49,12 @@ inductive UserOp : Type where
   | __eoo_neg_2 : UserOp
   | div : UserOp
   | mod : UserOp
-  | multmult : UserOp
   | divisible : UserOp
   | int_pow2 : UserOp
   | int_log2 : UserOp
   | int_ispow2 : UserOp
   | div_total : UserOp
   | mod_total : UserOp
-  | multmult_total : UserOp
   | _at_int_div_by_zero : UserOp
   | _at_mod_by_zero : UserOp
   | Array : UserOp
@@ -211,7 +214,6 @@ User operators with two indices.
 -/
 inductive UserOp2 : Type where
   | extract : UserOp2
-  | _at_bv : UserOp2
   | re_loop : UserOp2
   | _at_quantifiers_skolemize : UserOp2
   | _at_const : UserOp2

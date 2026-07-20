@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -17,16 +21,6 @@ private abbrev lenZeroBaseRhs (x A : Term) : Term :=
 
 private abbrev lenZeroBaseConclusion (x A : Term) : Term :=
   Term.Apply (Term.Apply Term.eq (lenZeroBaseLhs x)) (lenZeroBaseRhs x A)
-
-private theorem eo_typeof_str_len_arg_seq_of_ne_stuck
-    (T : Term)
-    (h : __eo_typeof_str_len T ≠ Term.Stuck) :
-    ∃ U, T = Term.Apply Term.Seq U := by
-  cases T <;> simp [__eo_typeof_str_len] at h ⊢
-  case Apply f x =>
-    cases f <;> simp at h ⊢
-    case UOp op =>
-      cases op <;> simp at h ⊢
 
 private theorem eo_typeof_seq_empty_seq_of_ne_stuck
     (T : Term)
@@ -238,7 +232,7 @@ private theorem facts___eo_prog_str_len_eq_zero_base_impl
       hSeqTy]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_str_len_eq_zero_base_properties
+public theorem cmd_step_str_len_eq_zero_base_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_len_eq_zero_base args premises) ->

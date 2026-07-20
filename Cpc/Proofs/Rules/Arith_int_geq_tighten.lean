@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -45,16 +48,6 @@ private theorem eo_to_smt_to_int_eq (x : Term) :
     __eo_to_smt (toIntTerm x) = SmtTerm.to_int (__eo_to_smt x) := by
   rfl
 
-private theorem eo_to_smt_plus_eq (x y : Term) :
-    __eo_to_smt (plusTerm x y) =
-      SmtTerm.plus (__eo_to_smt x) (__eo_to_smt y) := by
-  rfl
-
-private theorem eo_to_smt_geq_eq (x y : Term) :
-    __eo_to_smt (geqTerm x y) =
-      SmtTerm.geq (__eo_to_smt x) (__eo_to_smt y) := by
-  rfl
-
 private theorem smtx_eval_plus_term_eq (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.plus x y) =
       __smtx_model_eval_plus
@@ -85,11 +78,6 @@ private theorem native_to_real_eq_intCast (n : native_Int) :
   change (n : Rat) * Rat.divInt 1 1 = (n : Rat)
   rw [show Rat.divInt 1 1 = (1 : Rat) by rfl]
   exact Rat.mul_one _
-
-private theorem native_to_int_to_real (n : native_Int) :
-    native_to_int (native_to_real n) = n := by
-  rw [native_to_int, native_to_real_eq_intCast]
-  exact Rat.floor_intCast n
 
 private theorem rat_le_int_iff_floor_add_one_le_of_nonint
     (q : Rat) (n : Int)
@@ -356,7 +344,11 @@ private theorem facts___eo_prog_arith_int_geq_tighten_impl
       exact RuleProofs.smt_value_rel_refl
         (SmtValue.Boolean (native_zleq cci ti))
 
-theorem cmd_step_arith_int_geq_tighten_properties
+end ArithIntGeqTighten
+
+open ArithIntGeqTighten
+
+public theorem cmd_step_arith_int_geq_tighten_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_int_geq_tighten args premises) ->
@@ -476,5 +468,3 @@ by
                                     T1 C1 CC1 P1 P2
                                     hTTrans hCTrans hCCTrans hTInt hCReal
                                     hCCInt hProgEq)
-
-end ArithIntGeqTighten

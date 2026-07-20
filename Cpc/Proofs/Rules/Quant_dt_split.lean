@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.QuantDtSplitSupport
+import all Cpc.Proofs.RuleSupport.QuantDtSplitSupport
 
 open Eo
 open SmtEval
@@ -23,16 +29,6 @@ private theorem eo_requires_eq_of_ne_stuck (x y z : Term) :
   intro h
   by_cases hxy : native_teq x y = true
   · simpa [native_teq] using hxy
-  · simp [__eo_requires, hxy, SmtEval.native_ite] at h
-
-private theorem eo_requires_eq_result_of_ne_stuck (x y z : Term) :
-    __eo_requires x y z ≠ Term.Stuck ->
-    __eo_requires x y z = z := by
-  intro h
-  by_cases hxy : native_teq x y = true
-  · by_cases hxOk : native_not (native_teq x Term.Stuck) = true
-    · simp [__eo_requires, hxy, hxOk, SmtEval.native_ite]
-    · simp [__eo_requires, hxy, hxOk, SmtEval.native_ite] at h
   · simp [__eo_requires, hxy, SmtEval.native_ite] at h
 
 private theorem quant_dt_split_shape_of_non_stuck (a : Term) :
@@ -127,9 +123,10 @@ private theorem quant_dt_split_formula_true
     __is_quant_dt_split x (__dt_get_constructors (__eo_typeof x)) ys F G =
       Term.Boolean true ->
     eo_interprets M (quantDtSplitFormula x ys F G) true := by
-  sorry
+  intro hTrans hTy hGuard
+  exact QuantDtSplitRule.qds_formula_true M hM x ys F G hGuard hTrans hTy
 
-theorem cmd_step_quant_dt_split_properties
+public theorem cmd_step_quant_dt_split_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.quant_dt_split args premises) ->

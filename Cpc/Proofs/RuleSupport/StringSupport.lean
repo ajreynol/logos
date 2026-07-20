@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+
+public section
 
 open Eo
 open SmtEval

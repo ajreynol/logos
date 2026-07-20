@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -29,27 +34,18 @@ private theorem eo_typeof_eq_bool_same (A B : Term) :
     __eo_typeof_eq A B = Term.Bool ->
     A = B ∧ A ≠ Term.Stuck := by
   intro hTy
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hTy ⊢
-  all_goals
-    simp [hTy]
+  exact RuleProofs.eo_typeof_eq_bool_same A B hTy
 
 private theorem eo_typeof_ite_args_of_ne_stuck
     (C X Y : Term) :
     __eo_typeof_ite C X Y ≠ Term.Stuck ->
       C = Term.Bool ∧ X = Y ∧ X ≠ Term.Stuck := by
   intro h
-  cases C <;> cases X <;> cases Y <;>
-    simp [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite,
-      native_not, native_teq] at h ⊢ <;>
-    simp_all
+  exact RuleProofs.eo_typeof_ite_args_of_ne_stuck C X Y h
 
 private theorem eo_typeof_ite_bool_self (X : Term) (hX : X ≠ Term.Stuck) :
     __eo_typeof_ite Term.Bool X X = X := by
-  cases X <;>
-    simp_all [__eo_typeof_ite, __eo_requires, __eo_eq, native_teq, native_ite,
-      native_not]
+  exact RuleProofs.eo_typeof_ite_bool_self X hX
 
 private theorem eo_typeof_or_bool_or_stuck (A B : Term) :
     __eo_typeof_or A B = Term.Bool ∨ __eo_typeof_or A B = Term.Stuck := by
@@ -246,7 +242,7 @@ private theorem facts___eo_prog_ite_expand_impl
         __smtx_model_eval.eq_1, native_veq, SmtEval.native_and, SmtEval.native_or,
         SmtEval.native_not]
 
-theorem cmd_step_ite_expand_properties
+public theorem cmd_step_ite_expand_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ite_expand args premises) ->

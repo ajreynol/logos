@@ -1,13 +1,18 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.BvBitwiseElimSupport
+import all Cpc.Proofs.RuleSupport.BvBitwiseElimSupport
 
 open Eo
 open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
+set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
-theorem cmd_step_bv_nand_eliminate_properties
+public theorem cmd_step_bv_nand_eliminate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_nand_eliminate args premises) ->
@@ -16,4 +21,44 @@ theorem cmd_step_bv_nand_eliminate_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bv_nand_eliminate args premises) :=
 by
-  sorry
+  intro hCmdTrans _hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.bv_nand_eliminate args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+  | cons a1 args =>
+      cases args with
+      | nil =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+      | cons a2 args =>
+          cases args with
+          | nil =>
+              cases premises with
+              | nil =>
+                  have hATransPair :
+                      RuleProofs.eo_has_smt_translation a1 ∧
+                        RuleProofs.eo_has_smt_translation a2 ∧ True := by
+                    simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+                  have hA1Trans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
+                  have hA2Trans : RuleProofs.eo_has_smt_translation a2 := hATransPair.2.1
+                  change __eo_typeof
+                    (bvBitwiseElimProgram BvBitwiseElimKind.nand a1 a2) = Term.Bool
+                    at hResultTy
+                  refine ⟨?_, ?_⟩
+                  · intro _hTrue
+                    change eo_interprets M
+                      (bvBitwiseElimProgram BvBitwiseElimKind.nand a1 a2) true
+                    exact facts_bv_bitwise_elim_program M hM BvBitwiseElimKind.nand a1 a2
+                      hA1Trans hA2Trans hResultTy
+                  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                      (typed_bv_bitwise_elim_program BvBitwiseElimKind.nand a1 a2
+                        hA1Trans hA2Trans hResultTy)
+              | cons _ _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
+          | cons _ _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)

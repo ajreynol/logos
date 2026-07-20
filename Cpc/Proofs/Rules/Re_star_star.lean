@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -111,7 +114,7 @@ private theorem facts___eo_prog_re_star_star_impl
           (__eo_to_smt (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1))) =
         __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult a1)) := by
     rw [hOuterTranslate, hInnerTranslate]
-    rw [__smtx_model_eval.eq_107, __smtx_model_eval.eq_107]
+    rw [__smtx_model_eval.eq_105, __smtx_model_eval.eq_105]
     exact smtx_model_eval_re_star_star (__smtx_model_eval M (__eo_to_smt a1))
   rw [hProg]
   exact RuleProofs.eo_interprets_eq_of_rel M
@@ -121,7 +124,7 @@ private theorem facts___eo_prog_re_star_star_impl
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult a1)))
 
-theorem cmd_step_re_star_star_properties
+public theorem cmd_step_re_star_star_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_star_star args premises) ->

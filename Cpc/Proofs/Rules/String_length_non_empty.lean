@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -177,7 +180,7 @@ private theorem empty_term_smt_info
                           rw [hSeqTy]
                           change __smtx_model_eval M (SmtTerm.seq_empty (__eo_to_smt_type U)) =
                             SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U))
-                          rw [__smtx_model_eval.eq_78]
+                          rw [__smtx_model_eval.eq_76]
                   | _ =>
                       simp [__str_is_empty] at hEmpty
               | _ =>
@@ -451,7 +454,7 @@ private theorem facts___eo_prog_string_length_non_empty_impl
       change Term.Stuck ≠ Term.Stuck at hProg
       exact False.elim (hProg rfl)
 
-theorem cmd_step_string_length_non_empty_properties
+public theorem cmd_step_string_length_non_empty_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.string_length_non_empty args premises) ->

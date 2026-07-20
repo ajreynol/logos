@@ -1,6 +1,14 @@
-import Cpc.Proofs.TermCompat
-import Cpc.Proofs.Translation
-import Cpc.Proofs.TypePreservation
+module
+
+public import Cpc.Proofs.TermCompat
+import all Cpc.Proofs.TermCompat
+public import Cpc.Proofs.Translation
+import all Cpc.Proofs.Translation
+public import Cpc.Proofs.TypePreservation
+import all Cpc.Proofs.TypePreservation
+import all Cpc.Proofs.TypePreservation.Common
+
+public section
 
 open Eo
 open SmtEval
@@ -31,11 +39,6 @@ set_option maxHeartbeats 10000000
 /-- Simplifies EO-to-SMT translation for `true`. -/
 private theorem eo_to_smt_true_eq :
     __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
-  rfl
-
-/-- Simplifies EO-to-SMT translation for `false`. -/
-private theorem eo_to_smt_false_eq :
-    __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false := by
   rfl
 
 /-- Simplifies EO-to-SMT translation for `stuck`. -/

@@ -1,7 +1,14 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.RegexSupport
-import Cpc.Proofs.RuleSupport.CongSupport
-import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.CongSupport
+import all Cpc.Proofs.RuleSupport.CongSupport
+public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.SmtModel
 
 open Eo
 open SmtEval
@@ -180,7 +187,7 @@ private theorem str_indexof_re_eval_match_regex_typeof
         (SmtTerm.re_concat SmtTerm.re_all
           (SmtTerm.str_to_re (SmtTerm.String [])))) = SmtType.RegLan
   rw [typeof_re_concat_eq, typeof_re_concat_eq, typeof_str_to_re_eq]
-  rw [__smtx_typeof.eq_105, __smtx_typeof.eq_4]
+  rw [__smtx_typeof.eq_103, __smtx_typeof.eq_4]
   simp [hRTy, native_ite, native_Teq]
   rfl
 
@@ -1383,7 +1390,7 @@ private theorem str_indexof_re_eval_valid_properties
 
 end RuleProofs
 
-theorem cmd_step_str_indexof_re_eval_properties
+public theorem cmd_step_str_indexof_re_eval_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_indexof_re_eval args premises) ->

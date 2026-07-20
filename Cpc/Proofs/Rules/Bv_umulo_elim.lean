@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.BvOverflowSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvOverflowSupport
+import all Cpc.Proofs.RuleSupport.BvOverflowSupport
 
 open Eo
 open SmtEval
@@ -1042,7 +1045,7 @@ theorem bvumulo_typeof_args_of_non_none
   · rw [__smtx_typeof.eq_def] <;> simp only
   · exact hNN
 
-theorem cmd_step_bv_umulo_elim_properties
+public theorem cmd_step_bv_umulo_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_umulo_elim args premises) ->

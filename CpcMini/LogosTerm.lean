@@ -1,4 +1,9 @@
-import CpcMini.SmtEval
+module
+
+public import CpcMini.SmtEval
+import all CpcMini.SmtEval
+
+public section
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000

@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -123,11 +127,6 @@ private theorem smtx_eval_geq_term_eq
       __smtx_model_eval_geq
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
-
-private theorem smtx_eval_numeral_term_eq
-    (M : SmtModel) (n : native_Int) :
-    __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n := by
-  rw [__smtx_model_eval.eq_def]
 
 private theorem smtx_eval_boolean_term_eq
     (M : SmtModel) (b : Bool) :
@@ -313,7 +312,7 @@ private theorem facts___eo_prog_str_substr_empty_start_impl
     rw [hEvalEq]
     exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt rhs))
 
-theorem cmd_step_str_substr_empty_start_properties
+public theorem cmd_step_str_substr_empty_start_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_substr_empty_start args premises) ->

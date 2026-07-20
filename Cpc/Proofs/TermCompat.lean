@@ -1,5 +1,11 @@
-import Cpc.Logos
-import Cpc.SmtModel
+module
+
+public import Cpc.Logos
+import all Cpc.Logos
+public import Cpc.SmtModel
+import all Cpc.SmtModel
+
+public section
 
 open Smtm in
 /-- `native_Teq` is reflexive; lets `simp` discharge the reflexive residual left
@@ -44,14 +50,12 @@ abbrev abs := Term.UOp UserOp.abs
 abbrev __eoo_neg_2 := Term.UOp UserOp.__eoo_neg_2
 abbrev div := Term.UOp UserOp.div
 abbrev mod := Term.UOp UserOp.mod
-abbrev multmult := Term.UOp UserOp.multmult
 abbrev divisible := Term.UOp UserOp.divisible
 abbrev int_pow2 := Term.UOp UserOp.int_pow2
 abbrev int_log2 := Term.UOp UserOp.int_log2
 abbrev int_ispow2 := Term.UOp UserOp.int_ispow2
 abbrev div_total := Term.UOp UserOp.div_total
 abbrev mod_total := Term.UOp UserOp.mod_total
-abbrev multmult_total := Term.UOp UserOp.multmult_total
 abbrev _at_int_div_by_zero := Term.UOp UserOp._at_int_div_by_zero
 abbrev _at_mod_by_zero := Term.UOp UserOp._at_mod_by_zero
 abbrev Array := Term.UOp UserOp.Array
@@ -108,7 +112,6 @@ abbrev bvredand := Term.UOp UserOp.bvredand
 abbrev bvredor := Term.UOp UserOp.bvredor
 abbrev _at_bit := Term.UOp1 UserOp1._at_bit
 abbrev _at_from_bools := Term.UOp UserOp._at_from_bools
-abbrev _at_bv := Term.UOp2 UserOp2._at_bv
 abbrev _at_purify (x : Term) := Term.Apply (Term.UOp UserOp._at_purify) x
 abbrev _at_array_deq_diff (x y : Term) :=
   Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y
@@ -247,14 +250,12 @@ attribute [match_pattern]
   Term.__eoo_neg_2
   Term.div
   Term.mod
-  Term.multmult
   Term.divisible
   Term.int_pow2
   Term.int_log2
   Term.int_ispow2
   Term.div_total
   Term.mod_total
-  Term.multmult_total
   Term._at_int_div_by_zero
   Term._at_mod_by_zero
   Term.Array
@@ -311,7 +312,6 @@ attribute [match_pattern]
   Term.bvredor
   Term._at_bit
   Term._at_from_bools
-  Term._at_bv
   Term._at_purify
   Term._at_array_deq_diff
   Term.RegLan

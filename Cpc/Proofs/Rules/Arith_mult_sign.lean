@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
 
 open Eo
 open SmtEval
@@ -30,15 +34,6 @@ private theorem rat_mul_pos_of_neg_neg {a b : Rat} (ha : a < 0) (hb : b < 0) :
   have hnb : 0 < -b := (Rat.lt_neg_iff (a := 0) (b := b)).mpr (by simpa using hb)
   have hpos : 0 < (-a) * (-b) := (Rat.mul_pos_iff_of_pos_left hna).mpr hnb
   simpa [Rat.neg_mul, Rat.mul_neg] using hpos
-
-private theorem rat_mul_self_pos_of_ne_zero {a : Rat} (ha : a ≠ 0) :
-    0 < a * a := by
-  by_cases hpos : 0 < a
-  · exact (Rat.mul_pos_iff_of_pos_left hpos).mpr hpos
-  · have hle : a ≤ 0 := (Rat.not_lt (a := (0 : Rat)) (b := a)).mp hpos
-    rcases (Rat.le_iff_lt_or_eq.mp hle) with hneg | hzero
-    · exact rat_mul_pos_of_neg_neg hneg hneg
-    · exact False.elim (ha hzero)
 
 private theorem smtValuePos_mult_pos_pos
     {v1 v2 : SmtValue}
@@ -79,24 +74,6 @@ private theorem smtValuePos_mult_neg_neg
     simp [smtValuePos, smtValueNeg, __smtx_typeof_value, __smtx_model_eval_mult] at h1 h2 hTy ⊢
   · exact Int.mul_pos_of_neg_of_neg h1 h2
   · exact rat_mul_pos_of_neg_neg h1 h2
-
-private theorem smtValuePos_square_of_nonzero
-    {v : SmtValue} (h : smtValueNonzero v) :
-    smtValuePos (__smtx_model_eval_mult v v) := by
-  cases v with
-  | Numeral n =>
-      simp [smtValueNonzero, smtValuePos, __smtx_model_eval_mult] at h ⊢
-      by_cases hpos : 0 < n
-      · exact Int.mul_pos hpos hpos
-      · have hneg : n < 0 := by
-          rcases Int.lt_or_gt_of_ne h with hlt | hgt
-          · exact hlt
-          · exact False.elim (hpos hgt)
-        exact Int.mul_pos_of_neg_of_neg hneg hneg
-  | Rational q =>
-      simpa [smtValueNonzero, smtValuePos, __smtx_model_eval_mult] using
-        rat_mul_self_pos_of_ne_zero h
-  | _ => simp [smtValueNonzero] at h
 
 private theorem smtValueNonzero_of_pos {v : SmtValue} :
     smtValuePos v -> smtValueNonzero v := by
@@ -1396,7 +1373,7 @@ private theorem lt_zero_has_bool_type_of_typeof_bool
         SmtType.Bool
     rw [__smtx_typeof.eq_3]
     rfl
-theorem cmd_step_arith_mult_sign_properties
+public theorem cmd_step_arith_mult_sign_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_mult_sign args premises) ->

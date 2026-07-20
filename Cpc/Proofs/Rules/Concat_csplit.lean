@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -59,13 +62,6 @@ private abbrev concatCSplitBody (rev t s u : Term) : Term :=
     __eo_requires (__eo_is_eq (__eo_len sc) (Term.Numeral 1))
       (Term.Boolean true) <|
         concatCSplitFormula rev u sc
-
-private theorem eq_of_eo_is_eq_true_local (a b : Term)
-    (h : __eo_is_eq a b = Term.Boolean true) :
-    a = b := by
-  simp [__eo_is_eq, native_teq, native_and, native_not,
-    SmtEval.native_and, SmtEval.native_not] at h
-  exact h.2.2.symm
 
 private theorem native_seq_extract_zero_nat_csplit
     (xs : List SmtValue) (n : Nat) (hle : n <= xs.length) :
@@ -230,7 +226,7 @@ private theorem sc_eval_length_one_of_seq_type
   · change __smtx_model_eval M (SmtTerm.String str) =
       SmtValue.Seq (native_pack_string str)
     rw [__smtx_model_eval.eq_4]
-  · simp [native_pack_string, native_unpack_pack_seq,hLen]
+  · simp [native_pack_string, _root_.native_unpack_pack_seq, hLen]
 
 private theorem length_ne_zero_of_not_len_eq_eval
     (M : SmtModel) (u : Term) (su : SmtSeq)
@@ -991,7 +987,7 @@ private theorem concat_csplit_append_eq_of_concat_eq
   have hListEq := congrArg native_unpack_seq hPackEq
   exact
     ⟨sx, sxtail, sy, sytail, hxEval, hxtailEval, hyEval, hytailEval,
-      by simpa [native_unpack_pack_seq] using hListEq⟩
+      by simpa [_root_.native_unpack_pack_seq] using hListEq⟩
 
 private theorem eval_mkConcat_right_nested
     (M : SmtModel) (a b c : Term) (T : SmtType)
@@ -1008,7 +1004,7 @@ private theorem eval_mkConcat_right_nested
   rw [smtx_model_eval_str_concat_term_eq M b c]
   rw [haEval, hbEval, hcEval]
   simp [__smtx_model_eval_str_concat, native_seq_concat,
-    native_unpack_pack_seq,haElem, List.append_assoc]
+    _root_.native_unpack_pack_seq, haElem, List.append_assoc]
 
 private theorem smt_typeof_concatCSplitLenMinusOne
     (u : Term) (T : SmtType)
@@ -1546,7 +1542,7 @@ private theorem concat_csplit_false_facts
                 native_unpack_seq (SmtSeq.empty T))) := by
         simpa only [rhs] using hNested
       _ = SmtValue.Seq (native_pack_seq T xs) := by
-        rw [native_unpack_pack_seq]
+        rw [_root_.native_unpack_pack_seq]
         change SmtValue.Seq (native_pack_seq T (ys ++ xs.drop 1 ++ [])) =
           SmtValue.Seq (native_pack_seq T xs)
         rw [List.append_nil, ← hList]
@@ -1693,7 +1689,7 @@ private theorem concat_csplit_true_facts
                 native_unpack_seq ssc ++ native_unpack_seq (SmtSeq.empty T))) := by
         simpa only [rhs] using hNested
       _ = SmtValue.Seq (native_pack_seq T xs) := by
-        rw [native_unpack_pack_seq]
+        rw [_root_.native_unpack_pack_seq]
         change SmtValue.Seq
             (native_pack_seq T (xs.take (xs.length - 1) ++ ys ++ [])) =
           SmtValue.Seq (native_pack_seq T xs)
@@ -2052,7 +2048,7 @@ private theorem step_concat_csplit_core
           (concatCSplitHead (Term.Boolean false) s) U huTyU
           hHeadTy (Or.inr rfl))
 
-theorem cmd_step_concat_csplit_properties
+public theorem cmd_step_concat_csplit_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.concat_csplit args premises) ->

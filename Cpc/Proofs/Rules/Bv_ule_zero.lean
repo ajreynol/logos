@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.Proofs.TypePreservation.BitVecCmp
 
 open Eo
 open SmtEval
@@ -16,33 +20,11 @@ private theorem prog_bv_ule_zero_eq_of_ne_stuck (x1 n1 : Term) :
     __eo_prog_bv_ule_zero x1 n1 =
       Term.Apply (Term.Apply Term.eq
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) x1)
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) n1)))
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv n1) (Term.Numeral 0))))
         (Term.Apply (Term.Apply Term.eq x1)
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) n1)) := by
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv n1) (Term.Numeral 0))) := by
   intro hX1 hN1
   cases x1 <;> cases n1 <;> simp [__eo_prog_bv_ule_zero] at hX1 hN1 ⊢
-
-private theorem eq_of_requires_eq_true_not_stuck (x y B : Term) :
-    __eo_requires (__eo_eq x y) (Term.Boolean true) B ≠ Term.Stuck ->
-    y = x := by
-  intro hProg
-  have hProg' := hProg
-  simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
-    SmtEval.native_not] at hProg'
-  have hEq : __eo_eq x y = Term.Boolean true := hProg'.1
-  by_cases hx : x = Term.Stuck
-  · subst x
-    simp [__eo_eq] at hEq
-  · by_cases hy : y = Term.Stuck
-    · subst y
-      simp [__eo_eq] at hEq
-    · have hDec : native_teq y x = true := by
-        simpa [__eo_eq, hx, hy] using hEq
-      simpa [native_teq] using hDec
-
-private theorem eo_typeof_eq_right_stuck (T : Term) :
-    __eo_typeof_eq T Term.Stuck = Term.Stuck := by
-  cases T <;> rfl
 
 private theorem typeof_args_of_prog_bv_ule_zero_bool (x1 n1 : Term) :
     __eo_typeof (__eo_prog_bv_ule_zero x1 n1) = Term.Bool ->
@@ -65,9 +47,9 @@ private theorem typeof_args_of_prog_bv_ule_zero_bool (x1 n1 : Term) :
     · rw [prog_bv_ule_zero_eq_of_ne_stuck x1 n1 hX1 hN1] at hTy
       change __eo_typeof_eq
           (__eo_typeof_bvult (__eo_typeof x1)
-            (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n1) n1))
+            (__eo_typeof_int_to_bv (__eo_typeof n1) n1 (Term.UOp UserOp.Int)))
           (__eo_typeof_eq (__eo_typeof x1)
-            (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n1) n1)) =
+            (__eo_typeof_int_to_bv (__eo_typeof n1) n1 (Term.UOp UserOp.Int))) =
         Term.Bool at hTy
       cases hXTy : __eo_typeof x1 with
       | Apply f w =>
@@ -75,11 +57,11 @@ private theorem typeof_args_of_prog_bv_ule_zero_bool (x1 n1 : Term) :
           | UOp op =>
               cases op
               · exfalso
-                simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof__at_bv,
+                simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof_int_to_bv,
                   __eo_requires, __eo_eq, native_ite, native_teq, native_not,
                   hXTy] using hTy
               · exfalso
-                simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof__at_bv,
+                simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof_int_to_bv,
                   __eo_requires, __eo_eq, native_ite, native_teq, native_not,
                   hXTy] using hTy
               · cases hNTy : __eo_typeof n1 with
@@ -92,25 +74,25 @@ private theorem typeof_args_of_prog_bv_ule_zero_bool (x1 n1 : Term) :
                       exact ⟨w, by simpa [hXTy], rfl, hN1⟩
                     all_goals
                       exfalso
-                      simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof__at_bv,
+                      simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof_int_to_bv,
                         __eo_requires, __eo_eq, native_ite, native_teq, native_not,
                         hXTy, hNTy] using hTy
                 | _ =>
                     exfalso
-                    simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof__at_bv,
+                    simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof_int_to_bv,
                       __eo_requires, __eo_eq, native_ite, native_teq, native_not,
                       hXTy, hNTy] using hTy
               all_goals
                 exfalso
-                simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof__at_bv,
+                simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof_int_to_bv,
                   __eo_requires, __eo_eq, native_ite, native_teq, native_not,
                   hXTy] using hTy
           | _ =>
-              simp [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof__at_bv,
+              simp [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof_int_to_bv,
                 __eo_requires, __eo_eq, native_ite, native_teq, native_not,
                 hXTy] at hTy
       | _ =>
-          simp [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof__at_bv,
+          simp [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof_int_to_bv,
             __eo_requires, __eo_eq, native_ite, native_teq, native_not,
             hXTy] at hTy
 
@@ -138,10 +120,10 @@ private theorem smt_bitvec_type_of_eo_bitvec_type_with_width
 private theorem smt_typeof_bv_zero
     (n : native_Int) :
     native_zleq 0 n = true ->
-    __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))) =
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))) =
       SmtType.BitVec (native_int_to_nat n) := by
   intro hNonneg
-  change __smtx_typeof (__eo_to_smt__at_bv (SmtTerm.Numeral 0) (SmtTerm.Numeral n)) =
+  change __smtx_typeof (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral 0)) =
     SmtType.BitVec (native_int_to_nat n)
   have hNN :
       __smtx_typeof
@@ -157,7 +139,7 @@ private theorem smt_typeof_bv_zero
           true :=
       native_mod_total_canonical n 0
     simp [SmtEval.native_and, hNonneg, hMod, native_ite]
-  simpa [__eo_to_smt__at_bv, native_ite, hNonneg] using
+  simpa [native_ite, hNonneg] using
     TranslationProofs.smtx_typeof_binary_of_non_none n
       (native_mod_total 0 (native_int_pow2 n)) hNN
 
@@ -167,7 +149,7 @@ private theorem eo_has_bool_type_bvule_zero_lhs
     __eo_typeof (__eo_prog_bv_ule_zero x1 n1) = Term.Bool ->
     RuleProofs.eo_has_bool_type
       (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) x1)
-        (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) n1)) := by
+        (Term.Apply (Term.UOp1 UserOp1.int_to_bv n1) (Term.Numeral 0))) := by
   intro hX1Trans hResultTy
   rcases typeof_args_of_prog_bv_ule_zero_bool x1 n1 hResultTy with
     ⟨w, hX1Type, hN1, _hW⟩
@@ -179,9 +161,9 @@ private theorem eo_has_bool_type_bvule_zero_lhs
   unfold RuleProofs.eo_has_bool_type
   change __smtx_typeof
       (SmtTerm.bvule (__eo_to_smt x1)
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n)))) =
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0)))) =
     SmtType.Bool
-  rw [__smtx_typeof.eq_56]
+  rw [__smtx_typeof.eq_54]
   simp [__smtx_typeof_bv_op_2_ret, hSmtTy, hZeroTy, native_nateq, native_ite]
 
 private theorem eo_has_bool_type_eq_bv_zero
@@ -190,7 +172,7 @@ private theorem eo_has_bool_type_eq_bv_zero
     __eo_typeof (__eo_prog_bv_ule_zero x1 n1) = Term.Bool ->
     RuleProofs.eo_has_bool_type
       (Term.Apply (Term.Apply Term.eq x1)
-        (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) n1)) := by
+        (Term.Apply (Term.UOp1 UserOp1.int_to_bv n1) (Term.Numeral 0))) := by
   intro hX1Trans hResultTy
   rcases typeof_args_of_prog_bv_ule_zero_bool x1 n1 hResultTy with
     ⟨w, hX1Type, hN1, _hW⟩
@@ -200,7 +182,7 @@ private theorem eo_has_bool_type_eq_bv_zero
   subst n1
   have hZeroTy := smt_typeof_bv_zero n hNonneg
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type x1
-    (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))
+    (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))
     (hSmtTy.trans hZeroTy.symm)
     (by
       rw [hSmtTy]
@@ -220,19 +202,19 @@ private theorem typed___eo_prog_bv_ule_zero_impl (x1 n1 : Term) :
   have hLhsBool :
       RuleProofs.eo_has_bool_type
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) x1)
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)) :=
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))) :=
     eo_has_bool_type_bvule_zero_lhs x1 w hX1Trans (by simpa using hResultTy)
   have hRhsBool :
       RuleProofs.eo_has_bool_type
         (Term.Apply (Term.Apply Term.eq x1)
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)) :=
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))) :=
     eo_has_bool_type_eq_bv_zero x1 w hX1Trans (by simpa using hResultTy)
   rw [prog_bv_ule_zero_eq_of_ne_stuck x1 w hX1NotStuck hW]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) x1)
-      (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w))
+      (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0)))
     (Term.Apply (Term.Apply Term.eq x1)
-      (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w))
+      (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0)))
     (hLhsBool.trans hRhsBool.symm)
     (by
       rw [hLhsBool]
@@ -245,11 +227,11 @@ private theorem eval_bvule_zero_matches_eq_zero
     __smtx_model_eval M
       (__eo_to_smt
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) x1)
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) n1))) =
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv n1) (Term.Numeral 0)))) =
       __smtx_model_eval M
       (__eo_to_smt
         (Term.Apply (Term.Apply Term.eq x1)
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) n1))) := by
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv n1) (Term.Numeral 0)))) := by
   intro hX1Trans hResultTy
   rcases typeof_args_of_prog_bv_ule_zero_bool x1 n1 hResultTy with
     ⟨w, hX1Type, hN1, _hW⟩
@@ -283,20 +265,19 @@ private theorem eval_bvule_zero_matches_eq_zero
       native_nat_to_int, native_int_to_nat] using hInt
   have hZeroEval :
       __smtx_model_eval M
-          (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))) =
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))) =
         SmtValue.Binary n (native_mod_total 0 (native_int_pow2 n)) := by
     change __smtx_model_eval M
-        (__eo_to_smt__at_bv (SmtTerm.Numeral 0) (SmtTerm.Numeral n)) =
+        (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral 0)) =
       SmtValue.Binary n (native_mod_total 0 (native_int_pow2 n))
-    simp [__eo_to_smt__at_bv, native_ite, hNonneg]
-    simp only [__smtx_model_eval]
+    simp [native_ite, hNonneg]
   change __smtx_model_eval M
       (SmtTerm.bvule (__eo_to_smt x1)
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n)))) =
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0)))) =
     __smtx_model_eval M
       (SmtTerm.eq (__eo_to_smt x1)
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))))
-  rw [__smtx_model_eval.eq_56, smtx_eval_eq_term_eq, hEvalX1, hZeroEval]
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))))
+  rw [__smtx_model_eval.eq_54, smtx_eval_eq_term_eq, hEvalX1, hZeroEval]
   by_cases hPayloadZero : payload = 0
   · subst payload
     simp [__smtx_model_eval_bvule, __smtx_model_eval_bvuge,
@@ -337,15 +318,15 @@ private theorem facts___eo_prog_bv_ule_zero_impl
       (__smtx_model_eval M
         (__eo_to_smt
           (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) x1)
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w))))
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0)))))
       (__smtx_model_eval M
         (__eo_to_smt
           (Term.Apply (Term.Apply Term.eq x1)
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w))))
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0)))))
     rw [eval_bvule_zero_matches_eq_zero M hM x1 w hX1Trans (by simpa using hResultTy)]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_bv_ule_zero_properties
+public theorem cmd_step_bv_ule_zero_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_ule_zero args premises) ->

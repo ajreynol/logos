@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -1150,7 +1153,7 @@ private theorem facts___eo_prog_distinct_card_conflict_impl
   rw [hProgEq]
   exact distinct_card_conflict_cardinality_sound M hM xs hFormulaBool hGuard
 
-theorem cmd_step_distinct_card_conflict_properties
+public theorem cmd_step_distinct_card_conflict_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.distinct_card_conflict args premises) ->

@@ -1,7 +1,13 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.StringSupport
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -50,21 +56,6 @@ private theorem native_seq_extract_one_nat (xs : List SmtValue) (j : Nat)
   simp only [native_seq_extract]
   rw [e1, e2, e3, htake, htn]
   simp
-
-/-- Out of bounds (negative or `≥ len`), `native_seq_extract` of length 1 is empty. -/
-private theorem native_seq_extract_one_oob (xs : List SmtValue) (i : native_Int)
-    (h : i < 0 ∨ i ≥ Int.ofNat xs.length) :
-    native_seq_extract xs i 1 = [] := by
-  simp only [native_seq_extract]
-  split
-  · rfl
-  · rename_i hc
-    exfalso
-    simp only [Bool.not_eq_true, Bool.or_eq_false_iff, decide_eq_false_iff_not] at hc
-    obtain ⟨⟨hlt0, _⟩, hge⟩ := hc
-    rcases h with h | h
-    · exact hlt0 h
-    · exact hge h
 
 private theorem cmd_step_string_ext_one_eq
     (s : CState) (n : CIndex) :
@@ -405,8 +396,14 @@ private theorem wf_elem_of_seq_typeof
     Smtm.smt_term_seq_type_wf_of_non_none (__eo_to_smt a) hNN hSmtA
   have hParts : native_inhabited_type As = true ∧
       __smtx_type_wf_rec As As = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      SmtEval.native_and] using hWf
+    have hAll :
+        ((native_inhabited_type As = true ∧
+            __smtx_type_wf_rec As As = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil As = true) ∧
+        __smtx_type_no_alias_rec native_reflist_nil (SmtType.Seq As) = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        SmtEval.native_and] using hWf
+    exact hAll.1.1
   cases As <;>
     simp_all [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
       SmtEval.native_and, native_inhabited_type]
@@ -965,7 +962,7 @@ Proof (`facts___eo_prog_string_ext_impl`): the premise makes the evaluated value
 elements differ; `j` is in bounds (`getD_ge`), giving the deq conjunct (chars/elements
 at `j` differ) and the bounds `0 ≤ j < len a`.
 -/
-theorem cmd_step_string_ext_properties
+public theorem cmd_step_string_ext_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.string_ext args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
+import all Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
 
 open Eo
 open SmtEval
@@ -21,7 +24,7 @@ private theorem prog_sets_minus_self_eq_of_ne_stuck (x T : Term) :
       SetsBasicRewritesSupport.mkSetMinus,
       SetsBasicRewritesSupport.mkSetEmpty] at hx ⊢
 
-theorem cmd_step_sets_minus_self_properties
+public theorem cmd_step_sets_minus_self_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_minus_self args premises) ->

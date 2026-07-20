@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.Translation.Quantifiers
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.Translation.Quantifiers
+import all Cpc.Proofs.Translation.Quantifiers
 
 open Eo
 open SmtEval
@@ -9,16 +14,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
-
-private theorem eo_to_smt_not_eq (t : Term) :
-    __eo_to_smt (Term.Apply (Term.UOp UserOp.not) t) =
-      SmtTerm.not (__eo_to_smt t) := by
-  rfl
-
-private theorem eo_to_smt_eq_eq (x y : Term) :
-    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) =
-      SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
-  rfl
 
 private theorem eo_to_smt_forall_eq (x F : Term)
     (hx : x ≠ Term.__eo_List_nil) :
@@ -29,15 +24,6 @@ private theorem eo_to_smt_forall_eq (x F : Term)
 private theorem smtx_typeof_none_ne_bool :
     __smtx_typeof SmtTerm.None ≠ SmtType.Bool := by
   simp [TranslationProofs.smtx_typeof_none]
-
-private theorem smtx_typeof_not_arg_bool
-    (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.not t) = SmtType.Bool ->
-    __smtx_typeof t = SmtType.Bool := by
-  intro hTy
-  rw [typeof_not_eq] at hTy
-  cases h : __smtx_typeof t <;>
-    simp [h, native_ite, native_Teq] at hTy ⊢
 
 private theorem smtx_typeof_not_arg_of_non_none
     (t : SmtTerm) :
@@ -298,22 +284,6 @@ private def eoListOfTerms : List Term -> Term
 private theorem eoListOfTerms_ne_stuck (xs : List Term) :
     eoListOfTerms xs ≠ Term.Stuck := by
   cases xs <;> simp [eoListOfTerms]
-
-private theorem eoListOfTerms_inj {xs ys : List Term} :
-    eoListOfTerms xs = eoListOfTerms ys -> xs = ys := by
-  intro h
-  induction xs generalizing ys with
-  | nil =>
-      cases ys <;> simp [eoListOfTerms] at h ⊢
-  | cons x xs ih =>
-      cases ys with
-      | nil =>
-          simp [eoListOfTerms] at h
-      | cons y ys =>
-          simp [eoListOfTerms] at h
-          rcases h with ⟨hxy, htail⟩
-          subst y
-          exact congrArg (List.cons x) (ih htail)
 
 private theorem eoListOfTerms_is_list_true (xs : List Term) :
     __eo_is_list Term.__eo_List_cons (eoListOfTerms xs) = Term.Boolean true := by
@@ -829,7 +799,7 @@ private theorem quant_var_shape_of_not_stuck
   | _ =>
       simp [__eo_prog_quant_var_reordering] at hProg
 
-theorem cmd_step_quant_var_reordering_properties
+public theorem cmd_step_quant_var_reordering_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.quant_var_reordering args premises) ->

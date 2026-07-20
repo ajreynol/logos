@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ArraySupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArraySupport
+import all Cpc.Proofs.RuleSupport.ArraySupport
 
 open Eo
 open SmtEval
@@ -274,7 +277,7 @@ private theorem facts___eo_prog_arrays_read_over_write_1_impl
       __smtx_model_eval, hEvalA, hLookup] using
       RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt e))
 
-theorem cmd_step_arrays_read_over_write_1_properties
+public theorem cmd_step_arrays_read_over_write_1_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arrays_read_over_write_1 args premises) ->

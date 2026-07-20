@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -201,10 +207,6 @@ theorem native_unpack_string_substr_split
 
 abbrev RegLanEval (M : SmtModel) (t : Term) : Prop :=
   ∃ r, __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r
-
-private theorem native_string_lit_empty :
-    native_string_lit "" = ([] : native_String) := by
-  simp [native_string_lit]
 
 theorem native_string_valid_of_str_in_re_true
     {str : native_String} {r : native_RegLan}

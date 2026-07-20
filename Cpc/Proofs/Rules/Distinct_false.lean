@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -421,21 +424,6 @@ private theorem eo_requires_arg_eq_of_ne_stuck
       simp [__eo_requires, native_teq, native_ite, hxy]
     exact False.elim (hReq hStuck)
 
-private theorem eo_requires_result_eq_of_ne_stuck
-    {x y z : Term} :
-    __eo_requires x y z ≠ Term.Stuck ->
-    __eo_requires x y z = z := by
-  intro hReq
-  have hxy : x = y := eo_requires_arg_eq_of_ne_stuck hReq
-  subst y
-  have hx : x ≠ Term.Stuck := by
-    intro hx
-    subst x
-    simp [__eo_requires, native_teq, native_ite, native_not, SmtEval.native_not]
-      at hReq
-  cases x <;> simp [__eo_requires, native_teq, native_ite, native_not,
-    SmtEval.native_not] at hx ⊢
-
 private theorem term_ne_stuck_of_smt_type_non_none
     (t : Term) :
     __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
@@ -847,7 +835,7 @@ private theorem facts___eo_prog_distinct_false_impl
   rw [hProgEq]
   exact distinct_false_sound M hM xs hFormulaBool hGuard
 
-theorem cmd_step_distinct_false_properties
+public theorem cmd_step_distinct_false_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.distinct_false args premises) ->

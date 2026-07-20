@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ReInclusionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReInclusionSupport
+import all Cpc.Proofs.RuleSupport.ReInclusionSupport
 
 open Eo
 open SmtEval
@@ -135,7 +138,7 @@ private theorem facts
         SmtValue.RegLan native_re_none := by
     change __smtx_model_eval M SmtTerm.re_none =
       SmtValue.RegLan native_re_none
-    rw [__smtx_model_eval.eq_104]
+    rw [__smtx_model_eval.eq_102]
   have hSub : RuleProofs.NativeIncludes rv2 rv1 :=
     RuleProofs.re_inclusion_side_native_includes M hM r2 r1 flat2 flat1 side
       rv2 rv1 hR2Ty hArgs.1 hR2Eval hR1Eval hFlat2 hFlat1 hSide hSideTrue
@@ -146,7 +149,7 @@ private theorem facts
 
 end ReInterInclusionProof
 
-theorem cmd_step_re_inter_inclusion_properties
+public theorem cmd_step_re_inter_inclusion_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_inter_inclusion args premises) ->

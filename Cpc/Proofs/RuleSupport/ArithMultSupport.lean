@@ -1,6 +1,19 @@
-import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.ArithValueSupport
+import all Cpc.Proofs.RuleSupport.ArithValueSupport
+public import Cpc.Proofs.RuleSupport.ArithFactorSupport
+import all Cpc.Proofs.RuleSupport.ArithFactorSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -11,6 +24,9 @@ set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
 namespace ArithMultSupport
+
+open ArithValueSupport
+open ArithFactorSupport
 
 abbrev arithZero (m : Term) : Term :=
   __arith_mk_zero (__eo_typeof m)
@@ -2017,6 +2033,79 @@ private abbrev multSingleton (t : Term) : Term :=
   __eo_mk_apply (Term.Apply multOp t)
     (__eo_nil multOp (__eo_typeof t))
 
+private theorem false_of_typeof_stuck_bool :
+    __eo_typeof Term.Stuck = Term.Bool -> False := by
+  intro h
+  change Term.Stuck = Term.Bool at h
+  cases h
+
+private theorem get_nil_ne_of_is_list_true (f xs : Term) :
+    __eo_is_list f xs = Term.Boolean true ->
+    __eo_get_nil_rec f xs ≠ Term.Stuck := by
+  intro h hs
+  cases f <;> cases xs <;>
+    simp [__eo_is_list, __eo_is_ok, hs, native_teq, native_not,
+      SmtEval.native_not] at h
+
+private theorem list_concat_rec_nil_of_ne_stuck {b : Term}
+    (hb : b ≠ Term.Stuck) :
+    __eo_list_concat_rec (Term.Numeral 1) b = b := by
+  cases b <;> simp [__eo_list_concat_rec] at hb ⊢
+
+private theorem list_concat_rec_real_nil_of_ne_stuck {b : Term}
+    (hb : b ≠ Term.Stuck) :
+    __eo_list_concat_rec (Term.Rational (native_mk_rational 1 1)) b = b := by
+  cases b <;> simp [__eo_list_concat_rec] at hb ⊢
+
+private theorem list_concat_rec_cons_of_ne_stuck {f x xs b : Term}
+    (hb : b ≠ Term.Stuck) :
+    __eo_list_concat_rec (Term.Apply (Term.Apply f x) xs) b =
+      __eo_mk_apply (Term.Apply f x) (__eo_list_concat_rec xs b) := by
+  cases b <;> simp [__eo_list_concat_rec] at hb ⊢
+
+private theorem eo_type_int_of_smt_type_int (t : Term)
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int) :
+    __eo_typeof t = Term.UOp UserOp.Int := by
+  have hMatch := TranslationProofs.eo_to_smt_typeof_matches_translation t
+    (by rw [hTy]; simp)
+  have hEoSmt : __eo_to_smt_type (__eo_typeof t) = SmtType.Int := by
+    rw [← hMatch, hTy]
+  exact TranslationProofs.eo_to_smt_type_eq_int hEoSmt
+
+private theorem eo_type_real_of_smt_type_real (t : Term)
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Real) :
+    __eo_typeof t = Term.UOp UserOp.Real := by
+  have hMatch := TranslationProofs.eo_to_smt_typeof_matches_translation t
+    (by rw [hTy]; simp)
+  have hEoSmt : __eo_to_smt_type (__eo_typeof t) = SmtType.Real := by
+    rw [← hMatch, hTy]
+  exact TranslationProofs.eo_to_smt_type_eq_real hEoSmt
+
+private theorem eq_of_eo_eq_true {a b : Term} :
+    __eo_eq a b = Term.Boolean true -> a = b := by
+  intro h
+  have hba : b = a := by
+    cases a <;> cases b <;> simpa [__eo_eq, native_teq] using h
+  exact hba.symm
+
+private theorem eo_eq_self_of_ne_stuck {t : Term} (h : t ≠ Term.Stuck) :
+    __eo_eq t t = Term.Boolean true := by
+  cases t <;> simp [__eo_eq, native_teq] at h ⊢
+
+private theorem bool_of_false_eval
+    {M : SmtModel} {t : Term} {b : Bool} :
+    eo_interprets M t false ->
+    __smtx_model_eval M (__eo_to_smt t) = SmtValue.Boolean b ->
+    b = false := by
+  intro hFalse hEval
+  rw [RuleProofs.eo_interprets_iff_smt_interprets] at hFalse
+  cases hFalse with
+  | intro_false _ hEvalFalse =>
+      rw [hEval] at hEvalFalse
+      cases b <;> simp at hEvalFalse ⊢
+
+/- BEGIN: superseded integer-only abs-comparison machinery.
+   Retained temporarily while the generic arithmetic-product proof is brought up.
 private abbrev intAbs (n : native_Int) : native_Int :=
   ((Int.natAbs n : Nat) : Int)
 
@@ -2418,18 +2507,846 @@ private theorem natAbs_mul_lt_mul_of_lt_eq_pos
   rw [Int.natAbs_mul, Int.natAbs_mul, ← hCD]
   exact Nat.mul_lt_mul_of_pos_right hAB hPos
 
+-/
+
+/- Superseded aggregate-product experiment.
+private inductive MultListProduct (M : SmtModel) : Term -> ArithProduct -> Prop
+  | nilInt : MultListProduct M (Term.Numeral 1) (some (.int 1))
+  | nilReal :
+      MultListProduct M (Term.Rational (native_mk_rational 1 1)) (some (.real 1))
+  | cons {x xs : Term} {vx : ArithValue} {vxs : ArithProduct} :
+      __smtx_typeof (__eo_to_smt x) = vx.smtType ->
+      __smtx_model_eval M (__eo_to_smt x) = vx.smtValue ->
+      MultListProduct M xs vxs ->
+      MultListProduct M (Term.Apply (Term.Apply multOp x) xs)
+        (ArithProduct.mul (some vx) vxs)
+
+private theorem MultListProduct.ne_stuck
+    {M : SmtModel} {xs : Term} {v : ArithProduct}
+    (h : MultListProduct M xs v) : xs ≠ Term.Stuck := by
+  cases h <;> simp
+
+private theorem MultListProduct.smt_type
+    {M : SmtModel} {xs : Term} {v : ArithProduct}
+    (h : MultListProduct M xs v) :
+    __smtx_typeof (__eo_to_smt xs) = v.smtType := by
+  induction h with
+  | nilInt => rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_2]
+  | nilReal => rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3]
+  | cons hxTy _ _ ih =>
+      change __smtx_typeof (SmtTerm.mult _ _) = _
+      rw [typeof_mult_eq, hxTy, ih, ArithProduct.smtType_mul]
+
+private theorem MultListProduct.eval
+    {M : SmtModel} {xs : Term} {v : ArithProduct}
+    (h : MultListProduct M xs v) :
+    __smtx_model_eval M (__eo_to_smt xs) = v.smtValue := by
+  induction h with
+  | nilInt => rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_2]
+  | nilReal => rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_3]
+  | cons _ hxEval _ ih =>
+      change __smtx_model_eval M (SmtTerm.mult _ _) = _
+      rw [__smtx_model_eval.eq_14, hxEval, ih]
+      exact ArithProduct.modelEval_mul _ _
+
+private theorem MultListProduct.is_list
+    {M : SmtModel} {xs : Term} {v : ArithProduct}
+    (h : MultListProduct M xs v) :
+    __eo_is_list multOp xs = Term.Boolean true := by
+  induction h with
+  | nilInt => native_decide
+  | nilReal => native_decide
+  | cons _ _ _ ih =>
+      unfold __eo_is_list __eo_is_ok
+      have hne := get_nil_ne_of_is_list_true _ _ ih
+      simp [__eo_get_nil_rec, __eo_requires, hne, native_ite, native_teq,
+        native_not, SmtEval.native_not, multOp]
+
+private theorem list_concat_rec_real_nil_of_ne_stuck {b : Term}
+    (hb : b ≠ Term.Stuck) :
+    __eo_list_concat_rec (Term.Rational (native_mk_rational 1 1)) b = b := by
+  cases b <;> simp [__eo_list_concat_rec] at hb ⊢
+
+private theorem MultListProduct.concat_rec
+    {M : SmtModel} {a b : Term} {va vb : ArithProduct}
+    (ha : MultListProduct M a va) (hb : MultListProduct M b vb) :
+    MultListProduct M (__eo_list_concat_rec a b) (ArithProduct.mul va vb) := by
+  induction ha generalizing b vb with
+  | nilInt =>
+      rw [list_concat_rec_nil_of_ne_stuck (MultListProduct.ne_stuck hb)]
+      simpa [ArithProduct.mul] using hb
+  | nilReal =>
+      rw [list_concat_rec_real_nil_of_ne_stuck (MultListProduct.ne_stuck hb)]
+      simpa [ArithProduct.mul] using hb
+  | @cons x xs vx vxs hxTy hxEval _ ih =>
+      have hTail := ih hb
+      have hTailNe := MultListProduct.ne_stuck hTail
+      rw [list_concat_rec_cons_of_ne_stuck (MultListProduct.ne_stuck hb)]
+      rw [ArithProduct.mul_assoc]
+      simpa [__eo_mk_apply, hTailNe, multOp] using
+        (MultListProduct.cons hxTy hxEval hTail)
+
+private theorem MultListProduct.concat
+    {M : SmtModel} {a b : Term} {va vb : ArithProduct}
+    (ha : MultListProduct M a va) (hb : MultListProduct M b vb) :
+    MultListProduct M (__eo_list_concat multOp a b) (ArithProduct.mul va vb) := by
+  have haList := MultListProduct.is_list ha
+  have hbList := MultListProduct.is_list hb
+  simpa [__eo_list_concat, haList, hbList, __eo_requires, native_ite,
+    native_teq, native_not, SmtEval.native_not, multOp] using
+    MultListProduct.concat_rec ha hb
+
+private theorem eo_type_real_of_smt_type_real (t : Term)
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Real) :
+    __eo_typeof t = Term.UOp UserOp.Real := by
+  have hMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation t
+      (by rw [hTy]; simp)
+  have hEoSmt : __eo_to_smt_type (__eo_typeof t) = SmtType.Real := by
+    rw [← hMatch, hTy]
+  exact TranslationProofs.eo_to_smt_type_eq_real hEoSmt
+
+private theorem MultListProduct.singleton
+    (M : SmtModel) (t : Term) (v : ArithValue)
+    (hTy : __smtx_typeof (__eo_to_smt t) = v.smtType)
+    (hEval : __smtx_model_eval M (__eo_to_smt t) = v.smtValue) :
+    MultListProduct M (multSingleton t) (some v) := by
+  cases v with
+  | int n =>
+      have hEoTy := eo_type_int_of_smt_type_int t hTy
+      have hCons := MultListProduct.cons hTy hEval (MultListProduct.nilInt (M := M))
+      simpa [multSingleton, multOp, __eo_nil, __eo_nil_mult, __arith_mk_one,
+        hEoTy, __eo_mk_apply, ArithProduct.mul, ArithValue.kind,
+        ArithValue.mul] using hCons
+  | real q =>
+      have hEoTy := eo_type_real_of_smt_type_real t hTy
+      have hCons := MultListProduct.cons hTy hEval (MultListProduct.nilReal (M := M))
+      simpa [multSingleton, multOp, __eo_nil, __eo_nil_mult, __arith_mk_one,
+        hEoTy, __eo_mk_apply, ArithProduct.mul, ArithValue.kind,
+        ArithValue.mul, native_mk_rational] using hCons
+
+private theorem model_eval_abs_arith
+    (M : SmtModel) (x : Term) (v : ArithValue)
+    (hx : __smtx_model_eval M (__eo_to_smt x) = v.smtValue) :
+    __smtx_model_eval M (__eo_to_smt (absTerm x)) = v.abs.smtValue := by
+  rw [show __eo_to_smt (absTerm x) = SmtTerm.abs (__eo_to_smt x) by rfl]
+  rw [__smtx_model_eval.eq_22, hx]
+  cases v <;> simp [__smtx_model_eval_abs, ArithValue.abs,
+    ArithValue.smtValue]
+
+private theorem smt_type_of_abs_eq_int (t : Term)
+    (h : __smtx_typeof (__eo_to_smt (absTerm t)) = SmtType.Int) :
+    __smtx_typeof (__eo_to_smt t) = SmtType.Int := by
+  rw [show __eo_to_smt (absTerm t) = SmtTerm.abs (__eo_to_smt t) by rfl,
+    typeof_abs_eq] at h
+  cases ht : __smtx_typeof (__eo_to_smt t) <;>
+    simp [__smtx_typeof_arith_overload_op_1, ht] at h ⊢
+
+private theorem smt_type_of_abs_eq_real (t : Term)
+    (h : __smtx_typeof (__eo_to_smt (absTerm t)) = SmtType.Real) :
+    __smtx_typeof (__eo_to_smt t) = SmtType.Real := by
+  rw [show __eo_to_smt (absTerm t) = SmtTerm.abs (__eo_to_smt t) by rfl,
+    typeof_abs_eq] at h
+  cases ht : __smtx_typeof (__eo_to_smt t) <;>
+    simp [__smtx_typeof_arith_overload_op_1, ht] at h ⊢
+
+private theorem gt_abs_operands_smt_arith_of_bool (t u : Term)
+    (hBool : RuleProofs.eo_has_bool_type
+      (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u))) :
+    (__smtx_typeof (__eo_to_smt t) = SmtType.Int ∧
+      __smtx_typeof (__eo_to_smt u) = SmtType.Int) ∨
+    (__smtx_typeof (__eo_to_smt t) = SmtType.Real ∧
+      __smtx_typeof (__eo_to_smt u) = SmtType.Real) := by
+  rcases rel_operands_arith_type_of_gt_has_bool_type (absTerm t) (absTerm u)
+      (by simpa [relTerm, absTerm] using hBool) with hInt | hReal
+  · exact Or.inl ⟨smt_type_of_abs_eq_int t hInt.1,
+      smt_type_of_abs_eq_int u hInt.2⟩
+  · exact Or.inr ⟨smt_type_of_abs_eq_real t hReal.1,
+      smt_type_of_abs_eq_real u hReal.2⟩
+
+private theorem eq_abs_operands_smt_arith_of_bool (t u : Term)
+    (hBool : RuleProofs.eo_has_bool_type
+      (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u))) :
+    (__smtx_typeof (__eo_to_smt t) = SmtType.Int ∧
+      __smtx_typeof (__eo_to_smt u) = SmtType.Int) ∨
+    (__smtx_typeof (__eo_to_smt t) = SmtType.Real ∧
+      __smtx_typeof (__eo_to_smt u) = SmtType.Real) := by
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      (absTerm t) (absTerm u) (by simpa [relTerm, absTerm] using hBool)
+    with ⟨hSame, hNN⟩
+  cases ht : __smtx_typeof (__eo_to_smt t) <;>
+    simp [absTerm, typeof_abs_eq, __smtx_typeof_arith_overload_op_1, ht] at hNN
+  · have htAbs : __smtx_typeof (__eo_to_smt (absTerm t)) = SmtType.Int := by
+      simp [absTerm, typeof_abs_eq, __smtx_typeof_arith_overload_op_1, ht]
+    have huAbs : __smtx_typeof (__eo_to_smt (absTerm u)) = SmtType.Int := by
+      rw [← hSame, htAbs]
+    exact Or.inl ⟨ht, smt_type_of_abs_eq_int u huAbs⟩
+  · have htAbs : __smtx_typeof (__eo_to_smt (absTerm t)) = SmtType.Real := by
+      simp [absTerm, typeof_abs_eq, __smtx_typeof_arith_overload_op_1, ht]
+    have huAbs : __smtx_typeof (__eo_to_smt (absTerm u)) = SmtType.Real := by
+      rw [← hSame, htAbs]
+    exact Or.inr ⟨ht, smt_type_of_abs_eq_real u huAbs⟩
+
+private theorem eval_gt_abs_values (M : SmtModel) (t u : Term)
+    (vt vu : ArithValue)
+    (hKind : vt.kind = vu.kind)
+    (ht : __smtx_model_eval M (__eo_to_smt (absTerm t)) = vt.abs.smtValue)
+    (hu : __smtx_model_eval M (__eo_to_smt (absTerm u)) = vu.abs.smtValue) :
+    __smtx_model_eval M
+        (__eo_to_smt (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u))) =
+      SmtValue.Boolean (ArithValue.ltBool vu.abs vt.abs) := by
+  rw [show __eo_to_smt
+      (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) =
+      SmtTerm.gt (__eo_to_smt (absTerm t)) (__eo_to_smt (absTerm u)) by rfl]
+  rw [__smtx_model_eval.eq_17, ht, hu]
+  cases vt <;> cases vu <;>
+    simp [__smtx_model_eval_gt, __smtx_model_eval_lt, ArithValue.abs,
+      ArithValue.smtValue, ArithValue.ltBool, ArithValue.kind] at hKind ⊢
+
+private theorem eval_eq_abs_values (M : SmtModel) (t u : Term)
+    (vt vu : ArithValue)
+    (hKind : vt.kind = vu.kind)
+    (ht : __smtx_model_eval M (__eo_to_smt (absTerm t)) = vt.abs.smtValue)
+    (hu : __smtx_model_eval M (__eo_to_smt (absTerm u)) = vu.abs.smtValue) :
+    __smtx_model_eval M
+        (__eo_to_smt (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u))) =
+      SmtValue.Boolean (ArithValue.eqBool vt.abs vu.abs) := by
+  rw [show __eo_to_smt
+      (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) =
+      SmtTerm.eq (__eo_to_smt (absTerm t)) (__eo_to_smt (absTerm u)) by rfl]
+  rw [smtx_eval_eq_term_eq, ht, hu]
+  cases vt <;> cases vu <;>
+    simp [__smtx_model_eval_eq, native_veq, ArithValue.abs,
+      ArithValue.smtValue, ArithValue.eqBool, ArithValue.kind,
+      native_zeq, native_qeq] at hKind ⊢
+
+private theorem abs_gt_factor_product
+    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    eo_interprets M (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) true ->
+    ∃ vt vu : ArithValue,
+      MultListProduct M (multSingleton t) (some vt) ∧
+      MultListProduct M (multSingleton u) (some vu) ∧
+      ArithProduct.Greater (some vt) (some vu) := by
+  intro hTrue
+  have hBool := RuleProofs.eo_has_bool_type_of_interprets_true M _ hTrue
+  rcases gt_abs_operands_smt_arith_of_bool t u hBool with hInt | hReal
+  · rcases smt_eval_int_of_type M hM t hInt.1 with ⟨nt, htEval⟩
+    rcases smt_eval_int_of_type M hM u hInt.2 with ⟨nu, huEval⟩
+    let vt : ArithValue := .int nt
+    let vu : ArithValue := .int nu
+    have htAbs := model_eval_abs_arith M t vt htEval
+    have huAbs := model_eval_abs_arith M u vu huEval
+    have hLt := bool_of_true_eval hTrue
+      (eval_gt_abs_values M t u vt vu rfl htAbs huAbs)
+    exact ⟨vt, vu, MultListProduct.singleton M t vt hInt.1 htEval,
+      MultListProduct.singleton M u vu hInt.2 huEval,
+      ⟨rfl, (ArithValue.ltBool_abs_true_iff_same_kind (a := vu) (b := vt) rfl).mp hLt⟩⟩
+  · rcases smt_eval_real_of_type M hM t hReal.1 with ⟨qt, htEval⟩
+    rcases smt_eval_real_of_type M hM u hReal.2 with ⟨qu, huEval⟩
+    let vt : ArithValue := .real qt
+    let vu : ArithValue := .real qu
+    have htAbs := model_eval_abs_arith M t vt htEval
+    have huAbs := model_eval_abs_arith M u vu huEval
+    have hLt := bool_of_true_eval hTrue
+      (eval_gt_abs_values M t u vt vu rfl htAbs huAbs)
+    exact ⟨vt, vu, MultListProduct.singleton M t vt hReal.1 htEval,
+      MultListProduct.singleton M u vu hReal.2 huEval,
+      ⟨rfl, (ArithValue.ltBool_abs_true_iff_same_kind (a := vu) (b := vt) rfl).mp hLt⟩⟩
+
+private theorem abs_eq_factor_product
+    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    eo_interprets M (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) true ->
+    ∃ vt vu : ArithValue,
+      __smtx_typeof (__eo_to_smt t) = vt.smtType ∧
+      __smtx_model_eval M (__eo_to_smt t) = vt.smtValue ∧
+      MultListProduct M (multSingleton t) (some vt) ∧
+      MultListProduct M (multSingleton u) (some vu) ∧
+      ArithProduct.EqualMagnitude (some vt) (some vu) := by
+  intro hTrue
+  have hBool := RuleProofs.eo_has_bool_type_of_interprets_true M _ hTrue
+  rcases eq_abs_operands_smt_arith_of_bool t u hBool with hInt | hReal
+  · rcases smt_eval_int_of_type M hM t hInt.1 with ⟨nt, htEval⟩
+    rcases smt_eval_int_of_type M hM u hInt.2 with ⟨nu, huEval⟩
+    let vt : ArithValue := .int nt
+    let vu : ArithValue := .int nu
+    have htAbs := model_eval_abs_arith M t vt htEval
+    have huAbs := model_eval_abs_arith M u vu huEval
+    have hEq := bool_of_true_eval hTrue
+      (eval_eq_abs_values M t u vt vu rfl htAbs huAbs)
+    exact ⟨vt, vu, hInt.1, htEval,
+      MultListProduct.singleton M t vt hInt.1 htEval,
+      MultListProduct.singleton M u vu hInt.2 huEval,
+      ⟨rfl, (ArithValue.eqBool_abs_true_iff_same_kind (a := vt) (b := vu) rfl).mp hEq⟩⟩
+  · rcases smt_eval_real_of_type M hM t hReal.1 with ⟨qt, htEval⟩
+    rcases smt_eval_real_of_type M hM u hReal.2 with ⟨qu, huEval⟩
+    let vt : ArithValue := .real qt
+    let vu : ArithValue := .real qu
+    have htAbs := model_eval_abs_arith M t vt htEval
+    have huAbs := model_eval_abs_arith M u vu huEval
+    have hEq := bool_of_true_eval hTrue
+      (eval_eq_abs_values M t u vt vu rfl htAbs huAbs)
+    exact ⟨vt, vu, hReal.1, htEval,
+      MultListProduct.singleton M t vt hReal.1 htEval,
+      MultListProduct.singleton M u vu hReal.2 huEval,
+      ⟨rfl, (ArithValue.eqBool_abs_true_iff_same_kind (a := vt) (b := vu) rfl).mp hEq⟩⟩
+
+private theorem eval_zero_of_to_q_zero_and_smt_arith
+    (M : SmtModel) (z : Term) (v : ArithValue)
+    (hToQ : __eo_to_q z = Term.Rational (native_mk_rational 0 1))
+    (hTy : __smtx_typeof (__eo_to_smt z) = v.smtType) :
+    __smtx_model_eval M (__eo_to_smt z) = (ArithValue.zero v.kind).smtValue := by
+  cases v with
+  | int n =>
+      simpa [ArithValue.zero, ArithValue.kind, ArithValue.smtValue] using
+        eval_zero_of_to_q_zero_and_smt_int M z hToQ hTy
+  | real q =>
+      cases z <;> simp [__eo_to_q] at hToQ
+      case Rational r =>
+        subst r
+        rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_3]
+        simp [ArithValue.zero, ArithValue.kind, ArithValue.smtValue,
+          native_mk_rational]
+
+private theorem eq_rhs_smt_type_of_bool_left_arith (t z : Term) (v : ArithValue)
+    (hTyT : __smtx_typeof (__eo_to_smt t) = v.smtType)
+    (hBool : RuleProofs.eo_has_bool_type (relTerm (Term.UOp UserOp.eq) t z)) :
+    __smtx_typeof (__eo_to_smt z) = v.smtType := by
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type t z
+      (by simpa [relTerm] using hBool) with ⟨hSame, _⟩
+  rw [← hSame, hTyT]
+
+private theorem eval_eq_value_zero (M : SmtModel) (t z : Term) (v : ArithValue)
+    (htEval : __smtx_model_eval M (__eo_to_smt t) = v.smtValue)
+    (hzEval : __smtx_model_eval M (__eo_to_smt z) = (ArithValue.zero v.kind).smtValue) :
+    __smtx_model_eval M (__eo_to_smt (relTerm (Term.UOp UserOp.eq) t z)) =
+      SmtValue.Boolean (ArithValue.eqBool v (ArithValue.zero v.kind)) := by
+  rw [show __eo_to_smt (relTerm (Term.UOp UserOp.eq) t z) =
+      SmtTerm.eq (__eo_to_smt t) (__eo_to_smt z) by rfl]
+  rw [smtx_eval_eq_term_eq, htEval, hzEval]
+  cases v <;> simp [__smtx_model_eval_eq, native_veq, ArithValue.smtValue,
+    ArithValue.eqBool, ArithValue.zero, ArithValue.kind]
+
+private theorem abs_factor_nonzero_product
+    (M : SmtModel) (t z : Term) (v : ArithValue)
+    (hTyT : __smtx_typeof (__eo_to_smt t) = v.smtType)
+    (htEval : __smtx_model_eval M (__eo_to_smt t) = v.smtValue)
+    (hToQ : __eo_to_q z = Term.Rational (native_mk_rational 0 1)) :
+    eo_interprets M (Term.Apply (Term.UOp UserOp.not)
+      (relTerm (Term.UOp UserOp.eq) t z)) true ->
+    ArithProduct.Positive (some v) := by
+  intro hNotTrue
+  have hEqFalse := RuleProofs.eo_interprets_not_true_implies_false M
+    (relTerm (Term.UOp UserOp.eq) t z) hNotTrue
+  have hNotBool := RuleProofs.eo_has_bool_type_of_interprets_true M _ hNotTrue
+  have hEqBool := RuleProofs.eo_has_bool_type_not_arg
+    (relTerm (Term.UOp UserOp.eq) t z) (by simpa [relTerm] using hNotBool)
+  have hTyZ := eq_rhs_smt_type_of_bool_left_arith t z v hTyT hEqBool
+  have hzEval := eval_zero_of_to_q_zero_and_smt_arith M z v hToQ hTyZ
+  have hEqFalseBool := bool_of_false_eval hEqFalse
+    (eval_eq_value_zero M t z v htEval hzEval)
+  exact ArithValue.magnitude_pos_of_eqBool_zero_false hEqFalseBool
+
+-/
+
+private inductive MultListFactors (M : SmtModel) :
+    Term -> ArithKind -> List ArithValue -> Prop
+  | nilInt : MultListFactors M (Term.Numeral 1) .int []
+  | nilReal :
+      MultListFactors M (Term.Rational (native_mk_rational 1 1)) .real []
+  | cons {x xs : Term} {k : ArithKind} {vx : ArithValue}
+      {vxs : List ArithValue} :
+      __smtx_typeof (__eo_to_smt x) = vx.smtType ->
+      __smtx_model_eval M (__eo_to_smt x) = vx.smtValue ->
+      MultListFactors M xs k vxs ->
+      MultListFactors M (Term.Apply (Term.Apply multOp x) xs) k (vx :: vxs)
+
+private theorem MultListFactors.ne_stuck
+    {M : SmtModel} {xs : Term} {k : ArithKind} {vs : List ArithValue}
+    (h : MultListFactors M xs k vs) : xs ≠ Term.Stuck := by
+  cases h <;> simp
+
+private theorem MultListFactors.is_list
+    {M : SmtModel} {xs : Term} {k : ArithKind} {vs : List ArithValue}
+    (h : MultListFactors M xs k vs) :
+    __eo_is_list multOp xs = Term.Boolean true := by
+  induction h with
+  | nilInt => native_decide
+  | nilReal => native_decide
+  | cons _ _ _ ih =>
+      unfold __eo_is_list __eo_is_ok
+      have hne := get_nil_ne_of_is_list_true _ _ ih
+      simp [__eo_get_nil_rec, __eo_requires, hne, native_ite, native_teq,
+        native_not, SmtEval.native_not, multOp]
+
+private theorem MultListFactors.concat_rec
+    {M : SmtModel} {a b : Term} {ka kb : ArithKind}
+    {va vb : List ArithValue}
+    (ha : MultListFactors M a ka va) (hb : MultListFactors M b kb vb) :
+    MultListFactors M (__eo_list_concat_rec a b) kb (va ++ vb) := by
+  induction ha with
+  | nilInt =>
+      rw [list_concat_rec_nil_of_ne_stuck (MultListFactors.ne_stuck hb)]
+      simpa using hb
+  | nilReal =>
+      rw [list_concat_rec_real_nil_of_ne_stuck (MultListFactors.ne_stuck hb)]
+      simpa using hb
+  | cons hxTy hxEval _ ih =>
+      have hTailNe := MultListFactors.ne_stuck ih
+      rw [list_concat_rec_cons_of_ne_stuck (MultListFactors.ne_stuck hb)]
+      simpa [__eo_mk_apply, hTailNe, multOp] using
+        (MultListFactors.cons hxTy hxEval ih)
+
+private theorem MultListFactors.concat
+    {M : SmtModel} {a b : Term} {ka kb : ArithKind}
+    {va vb : List ArithValue}
+    (ha : MultListFactors M a ka va) (hb : MultListFactors M b kb vb) :
+    MultListFactors M (__eo_list_concat multOp a b) kb (va ++ vb) := by
+  have haList := MultListFactors.is_list ha
+  have hbList := MultListFactors.is_list hb
+  simpa [__eo_list_concat, haList, hbList, __eo_requires, native_ite,
+    native_teq, native_not, SmtEval.native_not, multOp] using
+    MultListFactors.concat_rec ha hb
+
+private theorem MultListFactors.singleton
+    (M : SmtModel) (t : Term) (v : ArithValue)
+    (hTy : __smtx_typeof (__eo_to_smt t) = v.smtType)
+    (hEval : __smtx_model_eval M (__eo_to_smt t) = v.smtValue) :
+    MultListFactors M (multSingleton t) v.kind [v] := by
+  cases v with
+  | int n =>
+      have hEoTy := eo_type_int_of_smt_type_int t hTy
+      have hCons := MultListFactors.cons hTy hEval
+        (MultListFactors.nilInt (M := M))
+      simpa [multSingleton, multOp, __eo_nil, __eo_nil_mult, __arith_mk_one,
+        hEoTy, __eo_mk_apply, ArithValue.kind] using hCons
+  | real q =>
+      have hEoTy := eo_type_real_of_smt_type_real t hTy
+      have hCons := MultListFactors.cons hTy hEval
+        (MultListFactors.nilReal (M := M))
+      simpa [multSingleton, multOp, __eo_nil, __eo_nil_mult, __arith_mk_one,
+        hEoTy, __eo_mk_apply, ArithValue.kind, native_mk_rational] using hCons
+
+private theorem eo_typeof_plus_eq_int_args (A B : Term) :
+    __eo_typeof_plus A B = Term.Int -> A = Term.Int ∧ B = Term.Int := by
+  exact RuleProofs.eo_typeof_plus_int_args A B
+
+private theorem eo_typeof_plus_eq_real_args (A B : Term) :
+    __eo_typeof_plus A B = Term.Real -> A = Term.Real ∧ B = Term.Real := by
+  exact RuleProofs.eo_typeof_plus_real_args A B
+
+private theorem MultListFactors.all_kind_of_eo_type
+    {M : SmtModel} {xs : Term} {tailKind targetKind : ArithKind}
+    {vs : List ArithValue}
+    (h : MultListFactors M xs tailKind vs)
+    (hTy : __eo_typeof xs = (ArithValue.one targetKind).eoType) :
+    tailKind = targetKind ∧ allFactorKind targetKind vs := by
+  induction h with
+  | nilInt =>
+      cases targetKind with
+      | int => exact ⟨rfl, trivial⟩
+      | real =>
+          change Term.Int = Term.Real at hTy
+          contradiction
+  | nilReal =>
+      cases targetKind with
+      | int =>
+          change Term.Real = Term.Int at hTy
+          contradiction
+      | real => exact ⟨rfl, trivial⟩
+  | @cons x xs tailKind vx vxs hxTy _ _ ih =>
+      change __eo_typeof_plus (__eo_typeof x) (__eo_typeof xs) = _ at hTy
+      cases targetKind with
+      | int =>
+          have hArgs := eo_typeof_plus_eq_int_args _ _ hTy
+          have hxMatch := TranslationProofs.eo_to_smt_typeof_matches_translation x
+            (by rw [hxTy]; cases vx <;> simp [ArithValue.smtType])
+          have hxSmt : __smtx_typeof (__eo_to_smt x) = SmtType.Int := by
+            simpa [hArgs.1] using hxMatch
+          have hvKind : vx.kind = .int := by
+            rw [hxTy] at hxSmt
+            cases vx <;> simp [ArithValue.kind, ArithValue.smtType] at hxSmt ⊢
+          rcases ih hArgs.2 with ⟨hTail, hAll⟩
+          exact ⟨hTail, hvKind, hAll⟩
+      | real =>
+          have hArgs := eo_typeof_plus_eq_real_args _ _ hTy
+          have hxMatch := TranslationProofs.eo_to_smt_typeof_matches_translation x
+            (by rw [hxTy]; cases vx <;> simp [ArithValue.smtType])
+          have hxSmt : __smtx_typeof (__eo_to_smt x) = SmtType.Real := by
+            simpa [hArgs.1] using hxMatch
+          have hvKind : vx.kind = .real := by
+            rw [hxTy] at hxSmt
+            cases vx <;> simp [ArithValue.kind, ArithValue.smtType] at hxSmt ⊢
+          rcases ih hArgs.2 with ⟨hTail, hAll⟩
+          exact ⟨hTail, hvKind, hAll⟩
+
+private theorem MultListFactors.smt_type_of_all_kind
+    {M : SmtModel} {xs : Term} {k : ArithKind} {vs : List ArithValue}
+    (h : MultListFactors M xs k vs) (hAll : allFactorKind k vs) :
+    __smtx_typeof (__eo_to_smt xs) = (ArithValue.one k).smtType := by
+  induction h with
+  | nilInt =>
+      rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_2]
+      rfl
+  | nilReal =>
+      rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3]
+      rfl
+  | @cons x xs k vx vxs hxTy _ _ ih =>
+      rcases hAll with ⟨hv, hvs⟩
+      change __smtx_typeof (SmtTerm.mult _ _) = _
+      rw [typeof_mult_eq, hxTy, ih hvs]
+      cases k <;> cases vx <;>
+        simp [ArithValue.kind, ArithValue.smtType, ArithValue.one,
+          __smtx_typeof_arith_overload_op_2] at hv ⊢
+
+private theorem MultListFactors.eval_of_all_kind
+    {M : SmtModel} {xs : Term} {k : ArithKind} {vs : List ArithValue}
+    (h : MultListFactors M xs k vs) (hAll : allFactorKind k vs) :
+    __smtx_model_eval M (__eo_to_smt xs) = (factorProduct k vs).smtValue := by
+  induction h with
+  | nilInt =>
+      rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_2]
+      rfl
+  | nilReal =>
+      rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_3]
+      simp [factorProduct, ArithValue.one, ArithValue.smtValue,
+        native_mk_rational_one]
+  | @cons x xs k vx vxs _ hxEval _ ih =>
+      rcases hAll with ⟨hv, hvs⟩
+      change __smtx_model_eval M (SmtTerm.mult _ _) = _
+      rw [__smtx_model_eval.eq_14, hxEval, ih hvs]
+      simpa [factorProduct] using
+        ArithValue.modelEval_mul_of_same_kind
+          (hv.trans (factorProduct_kind hvs).symm)
+
+private theorem eo_typeof_abs_nonstuck_arg_arith (A : Term) :
+    __eo_typeof_abs A ≠ Term.Stuck ->
+    A = Term.Int ∨ A = Term.Real := by
+  intro h
+  have hA : A ≠ Term.Stuck := by
+    intro hStuck
+    subst A
+    exact h rfl
+  have hReq :
+      __eo_requires (__is_arith_type A) (Term.Boolean true) A ≠ Term.Stuck := by
+    simpa [__eo_typeof_abs, hA] using h
+  have hArith : __is_arith_type A = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hReq
+  exact RuleProofs.is_arith_type_true_cases A hArith
+
+private theorem eo_typeof_lt_bool_abs_args (A B : Term) :
+    __eo_typeof_lt (__eo_typeof_abs A) (__eo_typeof_abs B) = Term.Bool ->
+    (A = Term.Int ∧ B = Term.Int) ∨ (A = Term.Real ∧ B = Term.Real) := by
+  intro h
+  have hANe : __eo_typeof_abs A ≠ Term.Stuck := by
+    intro ha
+    rw [ha] at h
+    simp [__eo_typeof_lt] at h
+  have hBNe : __eo_typeof_abs B ≠ Term.Stuck := by
+    intro hb
+    rw [hb] at h
+    cases __eo_typeof_abs A <;> simp [__eo_typeof_lt] at h
+  rcases eo_typeof_abs_nonstuck_arg_arith A hANe with rfl | rfl <;>
+    rcases eo_typeof_abs_nonstuck_arg_arith B hBNe with rfl | rfl <;>
+      simp [__eo_typeof_abs, __eo_typeof_lt, __eo_requires, __eo_eq,
+        __is_arith_type, native_ite, native_teq, native_not,
+        SmtEval.native_not] at h ⊢
+
+private theorem eo_abs_rel_args_of_typeof_bool (r a b : Term)
+    (hr : r = Term.UOp UserOp.gt ∨ r = Term.UOp UserOp.eq)
+    (hTy : __eo_typeof (relTerm r (absTerm a) (absTerm b)) = Term.Bool) :
+    (__eo_typeof a = Term.Int ∧ __eo_typeof b = Term.Int) ∨
+      (__eo_typeof a = Term.Real ∧ __eo_typeof b = Term.Real) := by
+  rcases hr with rfl | rfl
+  · exact eo_typeof_lt_bool_abs_args (__eo_typeof a) (__eo_typeof b)
+      (by simpa [relTerm, absTerm] using hTy)
+  · have hEq : __eo_typeof_abs (__eo_typeof a) =
+        __eo_typeof_abs (__eo_typeof b) :=
+      RuleProofs.eo_typeof_eq_bool_operands_eq _ _
+        (by simpa [relTerm, absTerm] using hTy)
+    have hANe : __eo_typeof_abs (__eo_typeof a) ≠ Term.Stuck :=
+      (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
+        (by simpa [relTerm, absTerm] using hTy)).1
+    have hBNe : __eo_typeof_abs (__eo_typeof b) ≠ Term.Stuck :=
+      (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
+        (by simpa [relTerm, absTerm] using hTy)).2
+    rcases eo_typeof_abs_nonstuck_arg_arith (__eo_typeof a) hANe with ha | ha <;>
+      rcases eo_typeof_abs_nonstuck_arg_arith (__eo_typeof b) hBNe with hb | hb
+    · exact Or.inl ⟨ha, hb⟩
+    · rw [ha, hb] at hEq
+      simp [__eo_typeof_abs, __eo_requires, __is_arith_type, native_ite,
+        native_teq, native_not, SmtEval.native_not] at hEq
+    · rw [ha, hb] at hEq
+      simp [__eo_typeof_abs, __eo_requires, __is_arith_type, native_ite,
+        native_teq, native_not, SmtEval.native_not] at hEq
+    · exact Or.inr ⟨ha, hb⟩
+
+private theorem model_eval_abs_arith
+    (M : SmtModel) (x : Term) (v : ArithValue)
+    (hx : __smtx_model_eval M (__eo_to_smt x) = v.smtValue) :
+    __smtx_model_eval M (__eo_to_smt (absTerm x)) = v.abs.smtValue := by
+  rw [show __eo_to_smt (absTerm x) = SmtTerm.abs (__eo_to_smt x) by rfl]
+  rw [__smtx_model_eval.eq_22, hx]
+  cases v <;> simp [__smtx_model_eval_abs, ArithValue.abs,
+    ArithValue.smtValue]
+
+private theorem smt_type_of_abs_eq_int (t : Term)
+    (h : __smtx_typeof (__eo_to_smt (absTerm t)) = SmtType.Int) :
+    __smtx_typeof (__eo_to_smt t) = SmtType.Int := by
+  rw [show __eo_to_smt (absTerm t) = SmtTerm.abs (__eo_to_smt t) by rfl,
+    typeof_abs_eq] at h
+  cases ht : __smtx_typeof (__eo_to_smt t) <;>
+    simp [__smtx_typeof_arith_overload_op_1, ht] at h ⊢
+
+private theorem smt_type_of_abs_eq_real (t : Term)
+    (h : __smtx_typeof (__eo_to_smt (absTerm t)) = SmtType.Real) :
+    __smtx_typeof (__eo_to_smt t) = SmtType.Real := by
+  rw [show __eo_to_smt (absTerm t) = SmtTerm.abs (__eo_to_smt t) by rfl,
+    typeof_abs_eq] at h
+  cases ht : __smtx_typeof (__eo_to_smt t) <;>
+    simp [__smtx_typeof_arith_overload_op_1, ht] at h ⊢
+
+private theorem gt_abs_operands_smt_arith_of_bool (t u : Term)
+    (hBool : RuleProofs.eo_has_bool_type
+      (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u))) :
+    (__smtx_typeof (__eo_to_smt t) = SmtType.Int ∧
+      __smtx_typeof (__eo_to_smt u) = SmtType.Int) ∨
+    (__smtx_typeof (__eo_to_smt t) = SmtType.Real ∧
+      __smtx_typeof (__eo_to_smt u) = SmtType.Real) := by
+  rcases rel_operands_arith_type_of_gt_has_bool_type (absTerm t) (absTerm u)
+      (by simpa [relTerm, absTerm] using hBool) with hInt | hReal
+  · exact Or.inl ⟨smt_type_of_abs_eq_int t hInt.1,
+      smt_type_of_abs_eq_int u hInt.2⟩
+  · exact Or.inr ⟨smt_type_of_abs_eq_real t hReal.1,
+      smt_type_of_abs_eq_real u hReal.2⟩
+
+private theorem eq_abs_operands_smt_arith_of_bool (t u : Term)
+    (hBool : RuleProofs.eo_has_bool_type
+      (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u))) :
+    (__smtx_typeof (__eo_to_smt t) = SmtType.Int ∧
+      __smtx_typeof (__eo_to_smt u) = SmtType.Int) ∨
+    (__smtx_typeof (__eo_to_smt t) = SmtType.Real ∧
+      __smtx_typeof (__eo_to_smt u) = SmtType.Real) := by
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      (absTerm t) (absTerm u) (by simpa [relTerm, absTerm] using hBool)
+    with ⟨hSame, hNN⟩
+  have htArith :
+      __smtx_typeof (__eo_to_smt (absTerm t)) = SmtType.Int ∨
+      __smtx_typeof (__eo_to_smt (absTerm t)) = SmtType.Real := by
+    rw [show __eo_to_smt (absTerm t) = SmtTerm.abs (__eo_to_smt t) by rfl,
+      typeof_abs_eq] at hNN ⊢
+    cases ht : __smtx_typeof (__eo_to_smt t) <;>
+      simp [__smtx_typeof_arith_overload_op_1, ht] at hNN ⊢
+  rcases htArith with htInt | htReal
+  · have huInt : __smtx_typeof (__eo_to_smt (absTerm u)) = SmtType.Int := by
+      rw [← hSame, htInt]
+    exact Or.inl ⟨smt_type_of_abs_eq_int t htInt,
+      smt_type_of_abs_eq_int u huInt⟩
+  · have huReal : __smtx_typeof (__eo_to_smt (absTerm u)) = SmtType.Real := by
+      rw [← hSame, htReal]
+    exact Or.inr ⟨smt_type_of_abs_eq_real t htReal,
+      smt_type_of_abs_eq_real u huReal⟩
+
+private theorem eval_gt_abs_values (M : SmtModel) (t u : Term)
+    (vt vu : ArithValue)
+    (hKind : vt.kind = vu.kind)
+    (ht : __smtx_model_eval M (__eo_to_smt (absTerm t)) = vt.abs.smtValue)
+    (hu : __smtx_model_eval M (__eo_to_smt (absTerm u)) = vu.abs.smtValue) :
+    __smtx_model_eval M
+        (__eo_to_smt (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u))) =
+      SmtValue.Boolean (ArithValue.ltBool vu.abs vt.abs) := by
+  rw [show __eo_to_smt
+      (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) =
+      SmtTerm.gt (__eo_to_smt (absTerm t)) (__eo_to_smt (absTerm u)) by rfl]
+  rw [__smtx_model_eval.eq_17, ht, hu]
+  cases vt <;> cases vu <;>
+    simp [__smtx_model_eval_gt, __smtx_model_eval_lt, ArithValue.abs,
+      ArithValue.smtValue, ArithValue.ltBool, ArithValue.kind] at hKind ⊢
+
+private theorem eval_eq_abs_values (M : SmtModel) (t u : Term)
+    (vt vu : ArithValue)
+    (hKind : vt.kind = vu.kind)
+    (ht : __smtx_model_eval M (__eo_to_smt (absTerm t)) = vt.abs.smtValue)
+    (hu : __smtx_model_eval M (__eo_to_smt (absTerm u)) = vu.abs.smtValue) :
+    __smtx_model_eval M
+        (__eo_to_smt (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u))) =
+      SmtValue.Boolean (ArithValue.eqBool vt.abs vu.abs) := by
+  rw [show __eo_to_smt
+      (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) =
+      SmtTerm.eq (__eo_to_smt (absTerm t)) (__eo_to_smt (absTerm u)) by rfl]
+  rw [smtx_eval_eq_term_eq, ht, hu]
+  cases vt <;> cases vu <;>
+    simp [__smtx_model_eval_eq, native_veq, ArithValue.abs,
+      ArithValue.smtValue, ArithValue.eqBool, ArithValue.kind,
+      native_zeq, native_qeq] at hKind ⊢
+
+private theorem abs_gt_factor_factors
+    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    eo_interprets M (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) true ->
+    ∃ vt vu : ArithValue,
+      MultListFactors M (multSingleton t) vt.kind [vt] ∧
+      MultListFactors M (multSingleton u) vu.kind [vu] ∧
+      factorMagnitude [vu] < factorMagnitude [vt] := by
+  intro hTrue
+  have hBool := RuleProofs.eo_has_bool_type_of_interprets_true M _ hTrue
+  rcases gt_abs_operands_smt_arith_of_bool t u hBool with hInt | hReal
+  · rcases smt_eval_int_of_type M hM t hInt.1 with ⟨nt, htEval⟩
+    rcases smt_eval_int_of_type M hM u hInt.2 with ⟨nu, huEval⟩
+    let vt : ArithValue := .int nt
+    let vu : ArithValue := .int nu
+    have htAbs := model_eval_abs_arith M t vt htEval
+    have huAbs := model_eval_abs_arith M u vu huEval
+    have hLt := bool_of_true_eval hTrue
+      (eval_gt_abs_values M t u vt vu rfl htAbs huAbs)
+    have hMag := (ArithValue.ltBool_abs_true_iff_same_kind
+      (a := vu) (b := vt) rfl).mp hLt
+    exact ⟨vt, vu, MultListFactors.singleton M t vt hInt.1 htEval,
+      MultListFactors.singleton M u vu hInt.2 huEval, by
+        simpa [factorMagnitude] using hMag⟩
+  · rcases smt_eval_real_of_type M hM t hReal.1 with ⟨qt, htEval⟩
+    rcases smt_eval_real_of_type M hM u hReal.2 with ⟨qu, huEval⟩
+    let vt : ArithValue := .real qt
+    let vu : ArithValue := .real qu
+    have htAbs := model_eval_abs_arith M t vt htEval
+    have huAbs := model_eval_abs_arith M u vu huEval
+    have hLt := bool_of_true_eval hTrue
+      (eval_gt_abs_values M t u vt vu rfl htAbs huAbs)
+    have hMag := (ArithValue.ltBool_abs_true_iff_same_kind
+      (a := vu) (b := vt) rfl).mp hLt
+    exact ⟨vt, vu, MultListFactors.singleton M t vt hReal.1 htEval,
+      MultListFactors.singleton M u vu hReal.2 huEval, by
+        simpa [factorMagnitude] using hMag⟩
+
+private theorem abs_eq_factor_factors
+    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    eo_interprets M (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) true ->
+    ∃ vt vu : ArithValue,
+      __smtx_typeof (__eo_to_smt t) = vt.smtType ∧
+      __smtx_model_eval M (__eo_to_smt t) = vt.smtValue ∧
+      MultListFactors M (multSingleton t) vt.kind [vt] ∧
+      MultListFactors M (multSingleton u) vu.kind [vu] ∧
+      factorMagnitude [vt] = factorMagnitude [vu] := by
+  intro hTrue
+  have hBool := RuleProofs.eo_has_bool_type_of_interprets_true M _ hTrue
+  rcases eq_abs_operands_smt_arith_of_bool t u hBool with hInt | hReal
+  · rcases smt_eval_int_of_type M hM t hInt.1 with ⟨nt, htEval⟩
+    rcases smt_eval_int_of_type M hM u hInt.2 with ⟨nu, huEval⟩
+    let vt : ArithValue := .int nt
+    let vu : ArithValue := .int nu
+    have htAbs := model_eval_abs_arith M t vt htEval
+    have huAbs := model_eval_abs_arith M u vu huEval
+    have hEq := bool_of_true_eval hTrue
+      (eval_eq_abs_values M t u vt vu rfl htAbs huAbs)
+    have hMag := (ArithValue.eqBool_abs_true_iff_same_kind
+      (a := vt) (b := vu) rfl).mp hEq
+    exact ⟨vt, vu, hInt.1, htEval,
+      MultListFactors.singleton M t vt hInt.1 htEval,
+      MultListFactors.singleton M u vu hInt.2 huEval, by
+        simpa [factorMagnitude] using hMag⟩
+  · rcases smt_eval_real_of_type M hM t hReal.1 with ⟨qt, htEval⟩
+    rcases smt_eval_real_of_type M hM u hReal.2 with ⟨qu, huEval⟩
+    let vt : ArithValue := .real qt
+    let vu : ArithValue := .real qu
+    have htAbs := model_eval_abs_arith M t vt htEval
+    have huAbs := model_eval_abs_arith M u vu huEval
+    have hEq := bool_of_true_eval hTrue
+      (eval_eq_abs_values M t u vt vu rfl htAbs huAbs)
+    have hMag := (ArithValue.eqBool_abs_true_iff_same_kind
+      (a := vt) (b := vu) rfl).mp hEq
+    exact ⟨vt, vu, hReal.1, htEval,
+      MultListFactors.singleton M t vt hReal.1 htEval,
+      MultListFactors.singleton M u vu hReal.2 huEval, by
+        simpa [factorMagnitude] using hMag⟩
+
+private theorem numeral_zero_of_to_real_zero {n : native_Int} :
+    native_to_real n = native_mk_rational 0 1 -> n = 0 := by
+  intro h
+  have h' : ((n : Rat) / (1 : Rat)) = ((0 : Rat) / (1 : Rat)) := by
+    simpa [native_to_real, native_mk_rational] using h
+  rw [rat_div_one_intCast n, rat_zero_div_one] at h'
+  exact Rat.intCast_inj.mp h'
+
+private theorem eval_zero_of_to_q_zero_and_smt_arith
+    (M : SmtModel) (z : Term) (v : ArithValue)
+    (hToQ : __eo_to_q z = Term.Rational (native_mk_rational 0 1))
+    (hTy : __smtx_typeof (__eo_to_smt z) = v.smtType) :
+    __smtx_model_eval M (__eo_to_smt z) = (ArithValue.zero v.kind).smtValue := by
+  cases v with
+  | int n =>
+      cases z <;> simp [__eo_to_q] at hToQ
+      case Numeral m =>
+        have hm : m = 0 := numeral_zero_of_to_real_zero hToQ
+        subst m
+        rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_2]
+        simp [ArithValue.zero, ArithValue.kind, ArithValue.smtValue]
+      case Rational q =>
+        subst q
+        rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3] at hTy
+        simp [ArithValue.smtType] at hTy
+  | real q =>
+      cases z <;> simp [__eo_to_q] at hToQ
+      case Numeral n =>
+        rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_2] at hTy
+        simp [ArithValue.smtType] at hTy
+      case Rational r =>
+        subst r
+        rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_3]
+        have hz : native_mk_rational 0 1 = (0 : native_Rat) := by native_decide
+        simp [ArithValue.zero, ArithValue.kind, ArithValue.smtValue, hz]
+
+private theorem eq_rhs_smt_type_of_bool_left_arith (t z : Term) (v : ArithValue)
+    (hTyT : __smtx_typeof (__eo_to_smt t) = v.smtType)
+    (hBool : RuleProofs.eo_has_bool_type (relTerm (Term.UOp UserOp.eq) t z)) :
+    __smtx_typeof (__eo_to_smt z) = v.smtType := by
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type t z
+      (by simpa [relTerm] using hBool) with ⟨hSame, _⟩
+  rw [← hSame, hTyT]
+
+private theorem eval_eq_value_zero (M : SmtModel) (t z : Term) (v : ArithValue)
+    (htEval : __smtx_model_eval M (__eo_to_smt t) = v.smtValue)
+    (hzEval : __smtx_model_eval M (__eo_to_smt z) = (ArithValue.zero v.kind).smtValue) :
+    __smtx_model_eval M (__eo_to_smt (relTerm (Term.UOp UserOp.eq) t z)) =
+      SmtValue.Boolean (ArithValue.eqBool v (ArithValue.zero v.kind)) := by
+  rw [show __eo_to_smt (relTerm (Term.UOp UserOp.eq) t z) =
+      SmtTerm.eq (__eo_to_smt t) (__eo_to_smt z) by rfl]
+  rw [smtx_eval_eq_term_eq, htEval, hzEval]
+  cases v <;> simp [__smtx_model_eval_eq, native_veq, ArithValue.smtValue,
+    ArithValue.eqBool, ArithValue.zero, ArithValue.kind,
+    native_zeq, native_qeq]
+
+private theorem abs_factor_nonzero_factors
+    (M : SmtModel) (t z : Term) (v : ArithValue)
+    (hTyT : __smtx_typeof (__eo_to_smt t) = v.smtType)
+    (htEval : __smtx_model_eval M (__eo_to_smt t) = v.smtValue)
+    (hToQ : __eo_to_q z = Term.Rational (native_mk_rational 0 1)) :
+    eo_interprets M (Term.Apply (Term.UOp UserOp.not)
+      (relTerm (Term.UOp UserOp.eq) t z)) true ->
+    0 < factorMagnitude [v] := by
+  intro hNotTrue
+  have hEqFalse := RuleProofs.eo_interprets_not_true_implies_false M
+    (relTerm (Term.UOp UserOp.eq) t z) hNotTrue
+  have hNotBool := RuleProofs.eo_has_bool_type_of_interprets_true M _ hNotTrue
+  have hEqBool := RuleProofs.eo_has_bool_type_not_arg
+    (relTerm (Term.UOp UserOp.eq) t z) (by simpa [relTerm] using hNotBool)
+  have hTyZ := eq_rhs_smt_type_of_bool_left_arith t z v hTyT hEqBool
+  have hzEval := eval_zero_of_to_q_zero_and_smt_arith M z v hToQ hTyZ
+  have hEqFalseBool := bool_of_false_eval hEqFalse
+    (eval_eq_value_zero M t z v htEval hzEval)
+  have hPos := ArithValue.magnitude_pos_of_eqBool_zero_false hEqFalseBool
+  simpa [factorMagnitude] using hPos
+
 private inductive AbsCmpAcc (M : SmtModel) : Term -> Prop
-  | gt (a b : Term) (na nb : native_Int) :
-      MultListEval M a na ->
-      MultListEval M b nb ->
-      Int.natAbs nb < Int.natAbs na ->
+  | gt (a b : Term) (ka kb : ArithKind) (va vb : List ArithValue) :
+      MultListFactors M a ka va ->
+      MultListFactors M b kb vb ->
+      factorMagnitude vb < factorMagnitude va ->
       AbsCmpAcc M (relTerm (Term.UOp UserOp.gt) a b)
-  | eq (a b : Term) (na nb : native_Int) :
-      MultListEval M a na ->
-      MultListEval M b nb ->
-      Int.natAbs na = Int.natAbs nb ->
+  | eq (a b : Term) (ka kb : ArithKind) (va vb : List ArithValue) :
+      MultListFactors M a ka va ->
+      MultListFactors M b kb vb ->
+      factorMagnitude va = factorMagnitude vb ->
       AbsCmpAcc M (relTerm (Term.UOp UserOp.eq) a b)
 
+/- Superseded integer-only final accumulator proof.
 private theorem AbsCmpAcc.final_true
     {M : SmtModel} {rel : Term} :
     AbsCmpAcc M rel ->
@@ -2440,7 +3357,7 @@ private theorem AbsCmpAcc.final_true
        | _ => Term.Stuck) true := by
   intro hAcc
   cases hAcc with
-  | gt a b na nb ha hb hLt =>
+  | gt a b ka kb va vb ha hb hLt =>
       have hAbsA := model_eval_abs_int M a na (MultListEval.eval ha)
       have hAbsB := model_eval_abs_int M b nb (MultListEval.eval hb)
       have hBool : RuleProofs.eo_has_bool_type
@@ -2487,33 +3404,201 @@ private theorem AbsCmpAcc.final_true
             SmtTerm.eq (__eo_to_smt (absTerm a)) (__eo_to_smt (absTerm b)) by rfl]
         rw [smtx_eval_eq_term_eq, hAbsA, hAbsB]
         simp [__smtx_model_eval_eq, native_veq, hIntAbsEq])
+-/
+
+private theorem AbsCmpAcc.final_true
+    {M : SmtModel} {rel : Term} (hAcc : AbsCmpAcc M rel)
+    (hTy : __eo_typeof
+      (match rel with
+       | Term.Apply (Term.Apply r a) b => relTerm r (absTerm a) (absTerm b)
+       | _ => Term.Stuck) = Term.Bool) :
+    eo_interprets M
+      (match rel with
+       | Term.Apply (Term.Apply r a) b => relTerm r (absTerm a) (absTerm b)
+       | _ => Term.Stuck) true := by
+  cases hAcc with
+  | gt a b ka kb va vb ha hb hLt =>
+      have hEo := eo_abs_rel_args_of_typeof_bool (Term.UOp UserOp.gt) a b
+        (Or.inl rfl) (by simpa [relTerm] using hTy)
+      rcases hEo with hInt | hReal
+      · rcases MultListFactors.all_kind_of_eo_type (targetKind := .int) ha hInt.1 with
+          ⟨rfl, haAll⟩
+        rcases MultListFactors.all_kind_of_eo_type (targetKind := .int) hb hInt.2 with
+          ⟨rfl, hbAll⟩
+        have haEval := MultListFactors.eval_of_all_kind ha haAll
+        have hbEval := MultListFactors.eval_of_all_kind hb hbAll
+        have haAbs := model_eval_abs_arith M a (factorProduct .int va) haEval
+        have hbAbs := model_eval_abs_arith M b (factorProduct .int vb) hbEval
+        have hKinds : (factorProduct .int vb).kind =
+            (factorProduct .int va).kind :=
+          (factorProduct_kind hbAll).trans (factorProduct_kind haAll).symm
+        have hMagnitudes : (factorProduct .int vb).magnitude <
+            (factorProduct .int va).magnitude := by
+          simpa [factorProduct_magnitude hbAll, factorProduct_magnitude haAll]
+            using hLt
+        have hEval := eval_gt_abs_values M a b
+          (factorProduct .int va) (factorProduct .int vb) hKinds.symm haAbs hbAbs
+        have hBool : RuleProofs.eo_has_bool_type
+            (relTerm (Term.UOp UserOp.gt) (absTerm a) (absTerm b)) := by
+          have haSmt := MultListFactors.smt_type_of_all_kind ha haAll
+          have hbSmt := MultListFactors.smt_type_of_all_kind hb hbAll
+          have haAbsTy : __smtx_typeof (__eo_to_smt (absTerm a)) = SmtType.Int := by
+            rw [show __eo_to_smt (absTerm a) = SmtTerm.abs (__eo_to_smt a) by rfl,
+              typeof_abs_eq, haSmt]
+            simp [ArithValue.one, ArithValue.smtType,
+              __smtx_typeof_arith_overload_op_1]
+          have hbAbsTy : __smtx_typeof (__eo_to_smt (absTerm b)) = SmtType.Int := by
+            rw [show __eo_to_smt (absTerm b) = SmtTerm.abs (__eo_to_smt b) by rfl,
+              typeof_abs_eq, hbSmt]
+            simp [ArithValue.one, ArithValue.smtType,
+              __smtx_typeof_arith_overload_op_1]
+          exact rel_bool_of_pair_type _ _ _ (by simp [arithRelOp])
+            (Or.inl ⟨haAbsTy, hbAbsTy⟩)
+        simpa [relTerm] using RuleProofs.eo_interprets_of_bool_eval M _ true hBool (by
+          rw [hEval]
+          exact congrArg SmtValue.Boolean
+            ((ArithValue.ltBool_abs_true_iff_same_kind hKinds).mpr hMagnitudes))
+      · rcases MultListFactors.all_kind_of_eo_type (targetKind := .real) ha hReal.1 with
+          ⟨rfl, haAll⟩
+        rcases MultListFactors.all_kind_of_eo_type (targetKind := .real) hb hReal.2 with
+          ⟨rfl, hbAll⟩
+        have haEval := MultListFactors.eval_of_all_kind ha haAll
+        have hbEval := MultListFactors.eval_of_all_kind hb hbAll
+        have haAbs := model_eval_abs_arith M a (factorProduct .real va) haEval
+        have hbAbs := model_eval_abs_arith M b (factorProduct .real vb) hbEval
+        have hKinds : (factorProduct .real vb).kind =
+            (factorProduct .real va).kind :=
+          (factorProduct_kind hbAll).trans (factorProduct_kind haAll).symm
+        have hMagnitudes : (factorProduct .real vb).magnitude <
+            (factorProduct .real va).magnitude := by
+          simpa [factorProduct_magnitude hbAll, factorProduct_magnitude haAll]
+            using hLt
+        have hEval := eval_gt_abs_values M a b
+          (factorProduct .real va) (factorProduct .real vb) hKinds.symm haAbs hbAbs
+        have hBool : RuleProofs.eo_has_bool_type
+            (relTerm (Term.UOp UserOp.gt) (absTerm a) (absTerm b)) := by
+          have haSmt := MultListFactors.smt_type_of_all_kind ha haAll
+          have hbSmt := MultListFactors.smt_type_of_all_kind hb hbAll
+          have haAbsTy : __smtx_typeof (__eo_to_smt (absTerm a)) = SmtType.Real := by
+            rw [show __eo_to_smt (absTerm a) = SmtTerm.abs (__eo_to_smt a) by rfl,
+              typeof_abs_eq, haSmt]
+            simp [ArithValue.one, ArithValue.smtType,
+              __smtx_typeof_arith_overload_op_1]
+          have hbAbsTy : __smtx_typeof (__eo_to_smt (absTerm b)) = SmtType.Real := by
+            rw [show __eo_to_smt (absTerm b) = SmtTerm.abs (__eo_to_smt b) by rfl,
+              typeof_abs_eq, hbSmt]
+            simp [ArithValue.one, ArithValue.smtType,
+              __smtx_typeof_arith_overload_op_1]
+          exact rel_bool_of_pair_type _ _ _ (by simp [arithRelOp])
+            (Or.inr ⟨haAbsTy, hbAbsTy⟩)
+        simpa [relTerm] using RuleProofs.eo_interprets_of_bool_eval M _ true hBool (by
+          rw [hEval]
+          exact congrArg SmtValue.Boolean
+            ((ArithValue.ltBool_abs_true_iff_same_kind hKinds).mpr hMagnitudes))
+  | eq a b ka kb va vb ha hb hEq =>
+      have hEo := eo_abs_rel_args_of_typeof_bool (Term.UOp UserOp.eq) a b
+        (Or.inr rfl) (by simpa [relTerm] using hTy)
+      rcases hEo with hInt | hReal
+      · rcases MultListFactors.all_kind_of_eo_type (targetKind := .int) ha hInt.1 with
+          ⟨rfl, haAll⟩
+        rcases MultListFactors.all_kind_of_eo_type (targetKind := .int) hb hInt.2 with
+          ⟨rfl, hbAll⟩
+        have haEval := MultListFactors.eval_of_all_kind ha haAll
+        have hbEval := MultListFactors.eval_of_all_kind hb hbAll
+        have haAbs := model_eval_abs_arith M a (factorProduct .int va) haEval
+        have hbAbs := model_eval_abs_arith M b (factorProduct .int vb) hbEval
+        have hKinds := (factorProduct_kind haAll).trans (factorProduct_kind hbAll).symm
+        have hMagnitudes : (factorProduct .int va).magnitude =
+            (factorProduct .int vb).magnitude := by
+          simpa [factorProduct_magnitude haAll, factorProduct_magnitude hbAll]
+            using hEq
+        have hEval := eval_eq_abs_values M a b
+          (factorProduct .int va) (factorProduct .int vb) hKinds haAbs hbAbs
+        have hBool : RuleProofs.eo_has_bool_type
+            (relTerm (Term.UOp UserOp.eq) (absTerm a) (absTerm b)) := by
+          have haSmt := MultListFactors.smt_type_of_all_kind ha haAll
+          have hbSmt := MultListFactors.smt_type_of_all_kind hb hbAll
+          have haAbsTy : __smtx_typeof (__eo_to_smt (absTerm a)) = SmtType.Int := by
+            rw [show __eo_to_smt (absTerm a) = SmtTerm.abs (__eo_to_smt a) by rfl,
+              typeof_abs_eq, haSmt]
+            simp [ArithValue.one, ArithValue.smtType,
+              __smtx_typeof_arith_overload_op_1]
+          have hbAbsTy : __smtx_typeof (__eo_to_smt (absTerm b)) = SmtType.Int := by
+            rw [show __eo_to_smt (absTerm b) = SmtTerm.abs (__eo_to_smt b) by rfl,
+              typeof_abs_eq, hbSmt]
+            simp [ArithValue.one, ArithValue.smtType,
+              __smtx_typeof_arith_overload_op_1]
+          exact rel_bool_of_pair_type _ _ _ (by simp [arithRelOp])
+            (Or.inl ⟨haAbsTy, hbAbsTy⟩)
+        simpa [relTerm] using RuleProofs.eo_interprets_of_bool_eval M _ true hBool (by
+          rw [hEval]
+          exact congrArg SmtValue.Boolean
+            ((ArithValue.eqBool_abs_true_iff_same_kind hKinds).mpr hMagnitudes))
+      · rcases MultListFactors.all_kind_of_eo_type (targetKind := .real) ha hReal.1 with
+          ⟨rfl, haAll⟩
+        rcases MultListFactors.all_kind_of_eo_type (targetKind := .real) hb hReal.2 with
+          ⟨rfl, hbAll⟩
+        have haEval := MultListFactors.eval_of_all_kind ha haAll
+        have hbEval := MultListFactors.eval_of_all_kind hb hbAll
+        have haAbs := model_eval_abs_arith M a (factorProduct .real va) haEval
+        have hbAbs := model_eval_abs_arith M b (factorProduct .real vb) hbEval
+        have hKinds := (factorProduct_kind haAll).trans (factorProduct_kind hbAll).symm
+        have hMagnitudes : (factorProduct .real va).magnitude =
+            (factorProduct .real vb).magnitude := by
+          simpa [factorProduct_magnitude haAll, factorProduct_magnitude hbAll]
+            using hEq
+        have hEval := eval_eq_abs_values M a b
+          (factorProduct .real va) (factorProduct .real vb) hKinds haAbs hbAbs
+        have hBool : RuleProofs.eo_has_bool_type
+            (relTerm (Term.UOp UserOp.eq) (absTerm a) (absTerm b)) := by
+          have haSmt := MultListFactors.smt_type_of_all_kind ha haAll
+          have hbSmt := MultListFactors.smt_type_of_all_kind hb hbAll
+          have haAbsTy : __smtx_typeof (__eo_to_smt (absTerm a)) = SmtType.Real := by
+            rw [show __eo_to_smt (absTerm a) = SmtTerm.abs (__eo_to_smt a) by rfl,
+              typeof_abs_eq, haSmt]
+            simp [ArithValue.one, ArithValue.smtType,
+              __smtx_typeof_arith_overload_op_1]
+          have hbAbsTy : __smtx_typeof (__eo_to_smt (absTerm b)) = SmtType.Real := by
+            rw [show __eo_to_smt (absTerm b) = SmtTerm.abs (__eo_to_smt b) by rfl,
+              typeof_abs_eq, hbSmt]
+            simp [ArithValue.one, ArithValue.smtType,
+              __smtx_typeof_arith_overload_op_1]
+          exact rel_bool_of_pair_type _ _ _ (by simp [arithRelOp])
+            (Or.inr ⟨haAbsTy, hbAbsTy⟩)
+        simpa [relTerm] using RuleProofs.eo_interprets_of_bool_eval M _ true hBool (by
+          rw [hEval]
+          exact congrArg SmtValue.Boolean
+            ((ArithValue.eqBool_abs_true_iff_same_kind hKinds).mpr hMagnitudes))
 
 private theorem mk_rel_eq_relTerm_gt
-    {M : SmtModel} {a b : Term} {na nb : native_Int}
-    (ha : MultListEval M a na) (hb : MultListEval M b nb) :
+    {M : SmtModel} {a b : Term} {ka kb : ArithKind}
+    {va vb : List ArithValue}
+    (ha : MultListFactors M a ka va) (hb : MultListFactors M b kb vb) :
     __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.gt) a) b =
       relTerm (Term.UOp UserOp.gt) a b := by
-  simp [__eo_mk_apply, MultListEval.ne_stuck ha, MultListEval.ne_stuck hb,
+  simp [__eo_mk_apply, MultListFactors.ne_stuck ha, MultListFactors.ne_stuck hb,
     relTerm]
 
 private theorem mk_rel_eq_relTerm_eq
-    {M : SmtModel} {a b : Term} {na nb : native_Int}
-    (ha : MultListEval M a na) (hb : MultListEval M b nb) :
+    {M : SmtModel} {a b : Term} {ka kb : ArithKind}
+    {va vb : List ArithValue}
+    (ha : MultListFactors M a ka va) (hb : MultListFactors M b kb vb) :
     __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.eq) a) b =
       relTerm (Term.UOp UserOp.eq) a b := by
-  simp [__eo_mk_apply, MultListEval.ne_stuck ha, MultListEval.ne_stuck hb,
+  simp [__eo_mk_apply, MultListFactors.ne_stuck ha, MultListFactors.ne_stuck hb,
     relTerm]
 
 private inductive AbsCmpTypeAcc (M : SmtModel) : Term -> Prop
-  | gt (a b : Term) (na nb : native_Int) :
-      MultListEval M a na ->
-      MultListEval M b nb ->
+  | gt (a b : Term) (ka kb : ArithKind) (va vb : List ArithValue) :
+      MultListFactors M a ka va ->
+      MultListFactors M b kb vb ->
       AbsCmpTypeAcc M (relTerm (Term.UOp UserOp.gt) a b)
-  | eq (a b : Term) (na nb : native_Int) :
-      MultListEval M a na ->
-      MultListEval M b nb ->
+  | eq (a b : Term) (ka kb : ArithKind) (va vb : List ArithValue) :
+      MultListFactors M a ka va ->
+      MultListFactors M b kb vb ->
       AbsCmpTypeAcc M (relTerm (Term.UOp UserOp.eq) a b)
 
+/- Superseded integer-only type-accumulator finalization.
 private theorem AbsCmpTypeAcc.final_bool
     {M : SmtModel} {rel : Term} :
     AbsCmpTypeAcc M rel ->
@@ -2524,7 +3609,7 @@ private theorem AbsCmpTypeAcc.final_bool
        | _ => Term.Stuck) := by
   intro hAcc
   cases hAcc with
-  | gt a b na nb ha hb =>
+  | gt a b ka kb va vb ha hb =>
       have haAbsTy : __smtx_typeof (__eo_to_smt (absTerm a)) = SmtType.Int := by
         rw [show __eo_to_smt (absTerm a) = SmtTerm.abs (__eo_to_smt a) by rfl]
         rw [typeof_abs_eq, MultListEval.type_int ha]
@@ -2536,6 +3621,85 @@ private theorem AbsCmpTypeAcc.final_bool
       simpa [relTerm] using
         rel_bool_of_pair_type (Term.UOp UserOp.gt) (absTerm a) (absTerm b)
           (by simp [arithRelOp]) (Or.inl ⟨haAbsTy, hbAbsTy⟩)
+-/
+
+private theorem factor_lists_abs_rel_has_bool
+    {M : SmtModel} (r a b : Term)
+    (hr : r = Term.UOp UserOp.gt ∨ r = Term.UOp UserOp.eq)
+    {ka kb : ArithKind} {va vb : List ArithValue}
+    (ha : MultListFactors M a ka va) (hb : MultListFactors M b kb vb)
+    (hTy : __eo_typeof (relTerm r (absTerm a) (absTerm b)) = Term.Bool) :
+    RuleProofs.eo_has_bool_type (relTerm r (absTerm a) (absTerm b)) := by
+  have hEo := eo_abs_rel_args_of_typeof_bool r a b hr hTy
+  rcases hEo with hInt | hReal
+  · rcases MultListFactors.all_kind_of_eo_type (targetKind := .int) ha hInt.1 with
+      ⟨rfl, haAll⟩
+    rcases MultListFactors.all_kind_of_eo_type (targetKind := .int) hb hInt.2 with
+      ⟨rfl, hbAll⟩
+    have haSmt := MultListFactors.smt_type_of_all_kind ha haAll
+    have hbSmt := MultListFactors.smt_type_of_all_kind hb hbAll
+    have haAbsTy : __smtx_typeof (__eo_to_smt (absTerm a)) = SmtType.Int := by
+      rw [show __eo_to_smt (absTerm a) = SmtTerm.abs (__eo_to_smt a) by rfl,
+        typeof_abs_eq, haSmt]
+      simp [ArithValue.one, ArithValue.smtType,
+        __smtx_typeof_arith_overload_op_1]
+    have hbAbsTy : __smtx_typeof (__eo_to_smt (absTerm b)) = SmtType.Int := by
+      rw [show __eo_to_smt (absTerm b) = SmtTerm.abs (__eo_to_smt b) by rfl,
+        typeof_abs_eq, hbSmt]
+      simp [ArithValue.one, ArithValue.smtType,
+        __smtx_typeof_arith_overload_op_1]
+    rcases hr with rfl | rfl
+    · exact rel_bool_of_pair_type _ _ _ (by simp [arithRelOp])
+        (Or.inl ⟨haAbsTy, hbAbsTy⟩)
+    · exact rel_bool_of_pair_type _ _ _ (by simp [arithRelOp])
+        (Or.inl ⟨haAbsTy, hbAbsTy⟩)
+  · rcases MultListFactors.all_kind_of_eo_type (targetKind := .real) ha hReal.1 with
+      ⟨rfl, haAll⟩
+    rcases MultListFactors.all_kind_of_eo_type (targetKind := .real) hb hReal.2 with
+      ⟨rfl, hbAll⟩
+    have haSmt := MultListFactors.smt_type_of_all_kind ha haAll
+    have hbSmt := MultListFactors.smt_type_of_all_kind hb hbAll
+    have haAbsTy : __smtx_typeof (__eo_to_smt (absTerm a)) = SmtType.Real := by
+      rw [show __eo_to_smt (absTerm a) = SmtTerm.abs (__eo_to_smt a) by rfl,
+        typeof_abs_eq, haSmt]
+      simp [ArithValue.one, ArithValue.smtType,
+        __smtx_typeof_arith_overload_op_1]
+    have hbAbsTy : __smtx_typeof (__eo_to_smt (absTerm b)) = SmtType.Real := by
+      rw [show __eo_to_smt (absTerm b) = SmtTerm.abs (__eo_to_smt b) by rfl,
+        typeof_abs_eq, hbSmt]
+      simp [ArithValue.one, ArithValue.smtType,
+        __smtx_typeof_arith_overload_op_1]
+    rcases hr with rfl | rfl
+    · exact rel_bool_of_pair_type _ _ _ (by simp [arithRelOp])
+        (Or.inr ⟨haAbsTy, hbAbsTy⟩)
+    · exact rel_bool_of_pair_type _ _ _ (by simp [arithRelOp])
+        (Or.inr ⟨haAbsTy, hbAbsTy⟩)
+
+private theorem AbsCmpTypeAcc.final_bool
+    {M : SmtModel} {rel : Term} (hAcc : AbsCmpTypeAcc M rel)
+    (hTy : __eo_typeof
+      (match rel with
+       | Term.Apply (Term.Apply r a) b => relTerm r (absTerm a) (absTerm b)
+       | _ => Term.Stuck) = Term.Bool) :
+    RuleProofs.eo_has_bool_type
+      (match rel with
+       | Term.Apply (Term.Apply r a) b => relTerm r (absTerm a) (absTerm b)
+       | _ => Term.Stuck) := by
+  cases hAcc with
+  | gt a b ka kb va vb ha hb =>
+      exact factor_lists_abs_rel_has_bool _ _ _ (Or.inl rfl) ha hb
+        (by simpa [relTerm] using hTy)
+  | eq a b ka kb va vb ha hb =>
+      exact factor_lists_abs_rel_has_bool _ _ _ (Or.inr rfl) ha hb
+        (by simpa [relTerm] using hTy)
+
+private theorem AbsCmpAcc.toTypeAcc
+    {M : SmtModel} {rel : Term} : AbsCmpAcc M rel -> AbsCmpTypeAcc M rel := by
+  intro h
+  cases h with
+  | gt a b ka kb va vb ha hb _ => exact AbsCmpTypeAcc.gt a b ka kb va vb ha hb
+  | eq a b ka kb va vb ha hb _ => exact AbsCmpTypeAcc.eq a b ka kb va vb ha hb
+/- Remainder of superseded integer-only finalization.
   | eq a b na nb ha hb =>
       have haAbsTy : __smtx_typeof (__eo_to_smt (absTerm a)) = SmtType.Int := by
         rw [show __eo_to_smt (absTerm a) = SmtTerm.abs (__eo_to_smt a) by rfl]
@@ -2548,7 +3712,9 @@ private theorem AbsCmpTypeAcc.final_bool
       simpa [relTerm] using
         rel_bool_of_pair_type (Term.UOp UserOp.eq) (absTerm a) (absTerm b)
           (by simp [arithRelOp]) (Or.inl ⟨haAbsTy, hbAbsTy⟩)
+-/
 
+/- Superseded integer-only factor typing.
 private theorem abs_gt_factor_type
     (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
     RuleProofs.eo_has_bool_type
@@ -2562,7 +3728,49 @@ private theorem abs_gt_factor_type
   rcases smt_eval_int_of_type M hM u hTy.2 with ⟨nu, huEval⟩
   exact ⟨nt, nu, MultListEval.singleton M t nt hTy.1 htEval,
     MultListEval.singleton M u nu hTy.2 huEval⟩
+-/
 
+private theorem abs_gt_factor_type
+    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    RuleProofs.eo_has_bool_type
+      (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) ->
+    ∃ vt vu : ArithValue,
+      MultListFactors M (multSingleton t) vt.kind [vt] ∧
+      MultListFactors M (multSingleton u) vu.kind [vu] := by
+  intro hBool
+  rcases gt_abs_operands_smt_arith_of_bool t u hBool with hInt | hReal
+  · rcases smt_eval_int_of_type M hM t hInt.1 with ⟨nt, htEval⟩
+    rcases smt_eval_int_of_type M hM u hInt.2 with ⟨nu, huEval⟩
+    exact ⟨.int nt, .int nu,
+      MultListFactors.singleton M t (.int nt) hInt.1 htEval,
+      MultListFactors.singleton M u (.int nu) hInt.2 huEval⟩
+  · rcases smt_eval_real_of_type M hM t hReal.1 with ⟨qt, htEval⟩
+    rcases smt_eval_real_of_type M hM u hReal.2 with ⟨qu, huEval⟩
+    exact ⟨.real qt, .real qu,
+      MultListFactors.singleton M t (.real qt) hReal.1 htEval,
+      MultListFactors.singleton M u (.real qu) hReal.2 huEval⟩
+
+private theorem abs_eq_factor_type
+    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    RuleProofs.eo_has_bool_type
+      (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) ->
+    ∃ vt vu : ArithValue,
+      MultListFactors M (multSingleton t) vt.kind [vt] ∧
+      MultListFactors M (multSingleton u) vu.kind [vu] := by
+  intro hBool
+  rcases eq_abs_operands_smt_arith_of_bool t u hBool with hInt | hReal
+  · rcases smt_eval_int_of_type M hM t hInt.1 with ⟨nt, htEval⟩
+    rcases smt_eval_int_of_type M hM u hInt.2 with ⟨nu, huEval⟩
+    exact ⟨.int nt, .int nu,
+      MultListFactors.singleton M t (.int nt) hInt.1 htEval,
+      MultListFactors.singleton M u (.int nu) hInt.2 huEval⟩
+  · rcases smt_eval_real_of_type M hM t hReal.1 with ⟨qt, htEval⟩
+    rcases smt_eval_real_of_type M hM u hReal.2 with ⟨qu, huEval⟩
+    exact ⟨.real qt, .real qu,
+      MultListFactors.singleton M t (.real qt) hReal.1 htEval,
+      MultListFactors.singleton M u (.real qu) hReal.2 huEval⟩
+
+/- Superseded integer-only equality factor typing.
 private theorem abs_eq_factor_type
     (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
     RuleProofs.eo_has_bool_type
@@ -2576,6 +3784,7 @@ private theorem abs_eq_factor_type
   rcases smt_eval_int_of_type M hM u hTy.2 with ⟨nu, huEval⟩
   exact ⟨nt, nu, MultListEval.singleton M t nt hTy.1 htEval,
     MultListEval.singleton M u nu hTy.2 huEval⟩
+-/
 
 private theorem l2_abs_comparison_has_bool_type
     (M : SmtModel) (F rel : Term) :
@@ -2586,7 +3795,7 @@ private theorem l2_abs_comparison_has_bool_type
       (__eo_l_2___mk_arith_mult_abs_comparison_rec F rel) := by
   intro _hFType hAcc hTy
   cases hAcc with
-  | gt a b na nb ha hb =>
+  | gt a b ka kb va vb ha hb =>
       cases F <;> try
         exact False.elim (false_of_typeof_stuck_bool
           (by simpa [__eo_l_2___mk_arith_mult_abs_comparison_rec] using hTy))
@@ -2596,8 +3805,10 @@ private theorem l2_abs_comparison_has_bool_type
             (by simpa [__eo_l_2___mk_arith_mult_abs_comparison_rec] using hTy))
         · simpa [relTerm, __eo_l_2___mk_arith_mult_abs_comparison_rec] using
             (AbsCmpTypeAcc.final_bool (M := M)
-              (AbsCmpTypeAcc.gt a b na nb ha hb))
-  | eq a b na nb ha hb =>
+              (AbsCmpTypeAcc.gt a b ka kb va vb ha hb)
+              (by simpa [relTerm, __eo_l_2___mk_arith_mult_abs_comparison_rec]
+                using hTy))
+  | eq a b ka kb va vb ha hb =>
       cases F <;> try
         exact False.elim (false_of_typeof_stuck_bool
           (by simpa [__eo_l_2___mk_arith_mult_abs_comparison_rec] using hTy))
@@ -2607,7 +3818,9 @@ private theorem l2_abs_comparison_has_bool_type
             (by simpa [__eo_l_2___mk_arith_mult_abs_comparison_rec] using hTy))
         · simpa [relTerm, __eo_l_2___mk_arith_mult_abs_comparison_rec] using
             (AbsCmpTypeAcc.final_bool (M := M)
-              (AbsCmpTypeAcc.eq a b na nb ha hb))
+              (AbsCmpTypeAcc.eq a b ka kb va vb ha hb)
+              (by simpa [relTerm, __eo_l_2___mk_arith_mult_abs_comparison_rec]
+                using hTy))
 
 private theorem arith_mult_abs_comparison_rec_has_bool_type
     (M : SmtModel) (hM : model_total_typed M)
@@ -2664,13 +3877,14 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
                 (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) := by
             simpa [relTerm, absTerm] using
               RuleProofs.eo_has_bool_type_and_left _ _ hLeftType
-          have htTy := (eq_abs_operands_smt_int_of_bool t u hEqAbsType).1
+          have htArith := eq_abs_operands_smt_arith_of_bool t u hEqAbsType
           have htNe : t ≠ Term.Stuck :=
             RuleProofs.term_ne_stuck_of_has_smt_translation t
               (by
                 unfold RuleProofs.eo_has_smt_translation
-                rw [htTy]
-                simp)
+                rcases htArith with hInt | hReal
+                · rw [hInt.1]; simp
+                · rw [hReal.1]; simp)
           have hEqSelfRaw :
               (match t, t with
                 | Term.Stuck, _ => Term.Stuck
@@ -2681,9 +3895,9 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
           rcases abs_eq_factor_type M hM t u hEqAbsType with
             ⟨nt, nu, htList, huList⟩
           cases hAcc with
-          | gt _ _ na nb ha hb =>
-              have hLeft := MultListEval.concat ha htList
-              have hRight := MultListEval.concat hb huList
+          | gt _ _ ka kb va vb ha hb =>
+              have hLeft := MultListFactors.concat ha htList
+              have hRight := MultListFactors.concat hb huList
               have hRelEq :
                   __eo_mk_apply
                     (__eo_mk_apply (Term.UOp UserOp.gt)
@@ -2699,7 +3913,7 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
                       (__eo_list_concat multOp a (multSingleton t)))
                     (__eo_list_concat multOp b (multSingleton u))) := by
                 rw [hRelEq]
-                exact AbsCmpTypeAcc.gt _ _ (na * nt) (nb * nu) hLeft hRight
+                exact AbsCmpTypeAcc.gt _ _ _ _ _ _ hLeft hRight
               have hRec := ih hBType hAccNew (by
                 simpa [hEqSelfRaw] using hTy)
               simpa [hEqSelfRaw] using hRec
@@ -2745,11 +3959,11 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
           simpa [relTerm, absTerm] using
             RuleProofs.eo_has_bool_type_and_right _ _ hFType
         cases hAcc with
-        | gt _ _ na nb ha hb =>
+        | gt _ _ ka kb va vb ha hb =>
             rcases abs_gt_factor_type M hM t u (by simpa [relTerm] using hHeadType)
               with ⟨nt, nu, htList, huList⟩
-            have hLeft := MultListEval.concat ha htList
-            have hRight := MultListEval.concat hb huList
+            have hLeft := MultListFactors.concat ha htList
+            have hRight := MultListFactors.concat hb huList
             have hRelEq :
                 __eo_mk_apply
                   (__eo_mk_apply (Term.UOp UserOp.gt)
@@ -2765,13 +3979,13 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
                     (__eo_list_concat multOp a (multSingleton t)))
                   (__eo_list_concat multOp b (multSingleton u))) := by
               rw [hRelEq]
-              exact AbsCmpTypeAcc.gt _ _ (na * nt) (nb * nu) hLeft hRight
+              exact AbsCmpTypeAcc.gt _ _ _ _ _ _ hLeft hRight
             exact ihRec hBType hAccNew hTy
-        | eq _ _ na nb ha hb =>
+        | eq _ _ ka kb va vb ha hb =>
             rcases abs_eq_factor_type M hM t u (by simpa [relTerm] using hHeadType)
               with ⟨nt, nu, htList, huList⟩
-            have hLeft := MultListEval.concat ha htList
-            have hRight := MultListEval.concat hb huList
+            have hLeft := MultListFactors.concat ha htList
+            have hRight := MultListFactors.concat hb huList
             have hRelEq :
                 __eo_mk_apply
                   (__eo_mk_apply (Term.UOp UserOp.eq)
@@ -2787,7 +4001,7 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
                     (__eo_list_concat multOp a (multSingleton t)))
                   (__eo_list_concat multOp b (multSingleton u))) := by
               rw [hRelEq]
-              exact AbsCmpTypeAcc.eq _ _ (na * nt) (nb * nu) hLeft hRight
+              exact AbsCmpTypeAcc.eq _ _ _ _ _ _ hLeft hRight
             exact ihRec hBType hAccNew hTy
       · cases hCond : __eo_eq r r2 with
         | Boolean c =>
@@ -2833,7 +4047,7 @@ private theorem arith_mult_abs_comparison_mk_has_bool_type
     rw [hRelEq] at hTy ⊢
     exact arith_mult_abs_comparison_rec_has_bool_type M hM B
       (relTerm (Term.UOp UserOp.gt) (multSingleton t) (multSingleton u))
-      hBType (AbsCmpTypeAcc.gt _ _ nt nu htList huList) hTy
+      hBType (AbsCmpTypeAcc.gt _ _ _ _ _ _ htList huList) hTy
   · rename_i _ t u B
     have hHeadType :
         RuleProofs.eo_has_bool_type
@@ -2854,7 +4068,7 @@ private theorem arith_mult_abs_comparison_mk_has_bool_type
     rw [hRelEq] at hTy ⊢
     exact arith_mult_abs_comparison_rec_has_bool_type M hM B
       (relTerm (Term.UOp UserOp.eq) (multSingleton t) (multSingleton u))
-      hBType (AbsCmpTypeAcc.eq _ _ nt nu htList huList) hTy
+      hBType (AbsCmpTypeAcc.eq _ _ _ _ _ _ htList huList) hTy
   · exact False.elim (false_of_typeof_stuck_bool hTy)
 
 theorem arith_mult_abs_comparison_has_smt_translation
@@ -2885,7 +4099,7 @@ private theorem l2_abs_comparison_true
     eo_interprets M (__eo_l_2___mk_arith_mult_abs_comparison_rec F rel) true := by
   intro _hFTrue hAcc hTy
   cases hAcc with
-  | gt a b na nb ha hb hLt =>
+  | gt a b ka kb va vb ha hb hLt =>
       cases F <;> try
         exact False.elim (false_of_typeof_stuck_bool
           (by simpa [__eo_l_2___mk_arith_mult_abs_comparison_rec] using hTy))
@@ -2895,8 +4109,10 @@ private theorem l2_abs_comparison_true
             (by simpa [__eo_l_2___mk_arith_mult_abs_comparison_rec] using hTy))
         · simpa [relTerm, __eo_l_2___mk_arith_mult_abs_comparison_rec] using
             (AbsCmpAcc.final_true (M := M)
-              (AbsCmpAcc.gt a b na nb ha hb hLt))
-  | eq a b na nb ha hb hEq =>
+              (AbsCmpAcc.gt a b ka kb va vb ha hb hLt)
+              (by simpa [relTerm, __eo_l_2___mk_arith_mult_abs_comparison_rec]
+                using hTy))
+  | eq a b ka kb va vb ha hb hEq =>
       cases F <;> try
         exact False.elim (false_of_typeof_stuck_bool
           (by simpa [__eo_l_2___mk_arith_mult_abs_comparison_rec] using hTy))
@@ -2906,7 +4122,9 @@ private theorem l2_abs_comparison_true
             (by simpa [__eo_l_2___mk_arith_mult_abs_comparison_rec] using hTy))
         · simpa [relTerm, __eo_l_2___mk_arith_mult_abs_comparison_rec] using
             (AbsCmpAcc.final_true (M := M)
-              (AbsCmpAcc.eq a b na nb ha hb hEq))
+              (AbsCmpAcc.eq a b ka kb va vb ha hb hEq)
+              (by simpa [relTerm, __eo_l_2___mk_arith_mult_abs_comparison_rec]
+                using hTy))
 
 private theorem facts_arith_mult_abs_comparison_rec
     (M : SmtModel) (hM : model_total_typed M)
@@ -2972,13 +4190,13 @@ private theorem facts_arith_mult_abs_comparison_rec
                 (Term.Apply (Term.UOp UserOp.not)
                   (relTerm (Term.UOp UserOp.eq) t z)) true :=
             RuleProofs.eo_interprets_and_left M _ _ hTailTrue
-          rcases abs_eq_factor M hM t u hEqAbsTrue with
+          rcases abs_eq_factor_factors M hM t u hEqAbsTrue with
             ⟨nt, nu, htTy, htEval, htList, huList, hEqAbs⟩
-          have htNe : t ≠ Term.Stuck := by
-            have htEoTy := eo_type_int_of_smt_type_int t htTy
-            intro htStuck
-            subst t
-            cases htEoTy
+          have htNe : t ≠ Term.Stuck :=
+            RuleProofs.term_ne_stuck_of_has_smt_translation t (by
+              unfold RuleProofs.eo_has_smt_translation
+              rw [htTy]
+              cases nt <;> simp [ArithValue.smtType])
           have hEqSelf : __eo_eq t t = Term.Boolean true :=
             eo_eq_self_of_ne_stuck htNe
           have hEqSelfRaw :
@@ -2989,13 +4207,13 @@ private theorem facts_arith_mult_abs_comparison_rec
                 Term.Boolean true := by
             cases t <;> simp at htNe ⊢
           cases hAcc with
-          | gt _ _ na nb ha hb hLt =>
-              have hPos := abs_factor_nonzero M t z nt htTy htEval hZero hNotEqTrue
-              have hLeft := MultListEval.concat ha htList
-              have hRight := MultListEval.concat hb huList
+          | gt _ _ ka kb va vb ha hb hLt =>
+              have hPos := abs_factor_nonzero_factors M t z nt htTy htEval hZero hNotEqTrue
+              have hLeft := MultListFactors.concat ha htList
+              have hRight := MultListFactors.concat hb huList
               have hNewLt :
-                  Int.natAbs (nb * nu) < Int.natAbs (na * nt) :=
-                natAbs_mul_lt_mul_of_lt_eq_pos hLt hEqAbs hPos
+                  factorMagnitude (vb ++ [nu]) < factorMagnitude (va ++ [nt]) :=
+                factorMagnitude_append_lt_append_of_lt_eq_pos hLt hEqAbs hPos
               have hRelEq :
                   __eo_mk_apply
                     (__eo_mk_apply (Term.UOp UserOp.gt)
@@ -3012,7 +4230,7 @@ private theorem facts_arith_mult_abs_comparison_rec
                     (__eo_list_concat multOp b (multSingleton u))) := by
                 rw [hRelEq]
                 exact
-                  AbsCmpAcc.gt _ _ (na * nt) (nb * nu) hLeft hRight hNewLt
+                  AbsCmpAcc.gt _ _ _ _ _ _ hLeft hRight hNewLt
               have hRec := ih hBTrue hAccNew (by
                 simpa [hEqSelfRaw] using hTy)
               simpa [hEqSelfRaw] using hRec
@@ -3056,14 +4274,14 @@ private theorem facts_arith_mult_abs_comparison_rec
         have hBTrue : eo_interprets M B true :=
           RuleProofs.eo_interprets_and_right M _ B hFTrue
         cases hAcc with
-        | gt _ _ na nb ha hb hLt =>
-            rcases abs_gt_factor M hM t u (by simpa [relTerm] using hHeadTrue)
+        | gt _ _ ka kb va vb ha hb hLt =>
+            rcases abs_gt_factor_factors M hM t u (by simpa [relTerm] using hHeadTrue)
               with ⟨nt, nu, htList, huList, hGt⟩
-            have hLeft := MultListEval.concat ha htList
-            have hRight := MultListEval.concat hb huList
+            have hLeft := MultListFactors.concat ha htList
+            have hRight := MultListFactors.concat hb huList
             have hNewLt :
-                Int.natAbs (nb * nu) < Int.natAbs (na * nt) :=
-              natAbs_mul_lt_mul_of_lt_lt hLt hGt
+                factorMagnitude (vb ++ [nu]) < factorMagnitude (va ++ [nt]) :=
+              factorMagnitude_append_lt_append_of_lt_lt hLt hGt
             have hRelEq :
                 __eo_mk_apply
                   (__eo_mk_apply (Term.UOp UserOp.gt)
@@ -3080,17 +4298,17 @@ private theorem facts_arith_mult_abs_comparison_rec
                   (__eo_list_concat multOp b (multSingleton u))) := by
               rw [hRelEq]
               exact
-                AbsCmpAcc.gt _ _ (na * nt) (nb * nu) hLeft hRight hNewLt
+                AbsCmpAcc.gt _ _ _ _ _ _ hLeft hRight hNewLt
             exact ihRec hBTrue
               hAccNew hTy
-        | eq _ _ na nb ha hb hEq =>
-            rcases abs_eq_factor M hM t u (by simpa [relTerm] using hHeadTrue)
+        | eq _ _ ka kb va vb ha hb hEq =>
+            rcases abs_eq_factor_factors M hM t u (by simpa [relTerm] using hHeadTrue)
               with ⟨nt, nu, _htTy, _htEval, htList, huList, hEqPrem⟩
-            have hLeft := MultListEval.concat ha htList
-            have hRight := MultListEval.concat hb huList
+            have hLeft := MultListFactors.concat ha htList
+            have hRight := MultListFactors.concat hb huList
             have hNewEq :
-                Int.natAbs (na * nt) = Int.natAbs (nb * nu) :=
-              natAbs_mul_eq_of_eq_eq hEq hEqPrem
+                factorMagnitude (va ++ [nt]) = factorMagnitude (vb ++ [nu]) :=
+              factorMagnitude_append_eq_append_of_eq_eq hEq hEqPrem
             have hRelEq :
                 __eo_mk_apply
                   (__eo_mk_apply (Term.UOp UserOp.eq)
@@ -3107,7 +4325,7 @@ private theorem facts_arith_mult_abs_comparison_rec
                   (__eo_list_concat multOp b (multSingleton u))) := by
               rw [hRelEq]
               exact
-                AbsCmpAcc.eq _ _ (na * nt) (nb * nu) hLeft hRight hNewEq
+                AbsCmpAcc.eq _ _ _ _ _ _ hLeft hRight hNewEq
             exact ihRec hBTrue
               hAccNew hTy
       · cases hCond : __eo_eq r r2 with
@@ -3141,7 +4359,7 @@ private theorem facts_arith_mult_abs_comparison_mk
       RuleProofs.eo_interprets_and_left M _ B hFTrue
     have hBTrue : eo_interprets M B true :=
       RuleProofs.eo_interprets_and_right M _ B hFTrue
-    rcases abs_gt_factor M hM t u hHeadTrue with
+    rcases abs_gt_factor_factors M hM t u hHeadTrue with
       ⟨nt, nu, htList, huList, hGt⟩
     have hRelEq :
         __eo_mk_apply
@@ -3152,7 +4370,7 @@ private theorem facts_arith_mult_abs_comparison_mk
     rw [hRelEq] at hTy ⊢
     exact facts_arith_mult_abs_comparison_rec M hM B
       (relTerm (Term.UOp UserOp.gt) (multSingleton t) (multSingleton u))
-      hBTrue (AbsCmpAcc.gt _ _ nt nu htList huList hGt) hTy
+      hBTrue (AbsCmpAcc.gt _ _ _ _ _ _ htList huList hGt) hTy
   · rename_i _ t u B
     have hHeadTrue :
         eo_interprets M (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u))
@@ -3160,7 +4378,7 @@ private theorem facts_arith_mult_abs_comparison_mk
       RuleProofs.eo_interprets_and_left M _ B hFTrue
     have hBTrue : eo_interprets M B true :=
       RuleProofs.eo_interprets_and_right M _ B hFTrue
-    rcases abs_eq_factor M hM t u hHeadTrue with
+    rcases abs_eq_factor_factors M hM t u hHeadTrue with
       ⟨nt, nu, _htTy, _htEval, htList, huList, hEq⟩
     have hRelEq :
         __eo_mk_apply
@@ -3171,7 +4389,7 @@ private theorem facts_arith_mult_abs_comparison_mk
     rw [hRelEq] at hTy ⊢
     exact facts_arith_mult_abs_comparison_rec M hM B
       (relTerm (Term.UOp UserOp.eq) (multSingleton t) (multSingleton u))
-      hBTrue (AbsCmpAcc.eq _ _ nt nu htList huList hEq) hTy
+      hBTrue (AbsCmpAcc.eq _ _ _ _ _ _ htList huList hEq) hTy
   · exact False.elim (false_of_typeof_stuck_bool hTy)
 
 theorem facts_arith_mult_abs_comparison

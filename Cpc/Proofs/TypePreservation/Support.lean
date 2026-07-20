@@ -1,4 +1,9 @@
-import Cpc.Proofs.TypePreservation.Common
+module
+
+public import Cpc.Proofs.TypePreservation.Common
+import all Cpc.Proofs.TypePreservation.Common
+
+public section
 
 open SmtEval
 open Smtm
@@ -128,9 +133,14 @@ inductive supported_preservation_term : SmtTerm -> Prop
       supported_preservation_term (SmtTerm.exists s T body)
   | forall (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_term (SmtTerm.forall s T body)
-  | choice (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat)
-      (ht : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
-      supported_preservation_term (SmtTerm.choice_nth s T body n)
+  | choice (s : native_String) (T : SmtType) (body : SmtTerm)
+      (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
+      supported_preservation_term (SmtTerm.choice s T body)
+  | bind (s : native_String) (T : SmtType) (x1 x2 : SmtTerm)
+      (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2))
+      (hs1 : supported_preservation_term x1)
+      (hs2 : supported_preservation_term x2) :
+      supported_preservation_term (SmtTerm.bind s T x1 x2)
   | not {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
@@ -231,12 +241,6 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.mod t1 t2)
-  | multmult {t1 t2 : SmtTerm}
-      (ht1 : term_has_non_none_type t1)
-      (hs1 : supported_preservation_term t1)
-      (ht2 : term_has_non_none_type t2)
-      (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.multmult t1 t2)
   | divisible {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
@@ -263,12 +267,6 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.mod_total t1 t2)
-  | multmult_total {t1 t2 : SmtTerm}
-      (ht1 : term_has_non_none_type t1)
-      (hs1 : supported_preservation_term t1)
-      (ht2 : term_has_non_none_type t2)
-      (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.multmult_total t1 t2)
   | qdiv {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
@@ -876,15 +874,25 @@ theorem supported_set_empty_of_non_none
     supported_preservation_term (SmtTerm.set_empty T) :=
   supported_preservation_term.set_empty T (set_empty_type_inhabited_of_non_none ht)
 
-/-- Builds support for `choice_nth` directly from a non-`None` typing judgment. -/
+/-- Builds support for `choice` directly from a non-`None` typing judgment. -/
 theorem supported_choice_of_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    {n : native_Nat}
-    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
-    supported_preservation_term (SmtTerm.choice_nth s T body n) :=
-  supported_preservation_term.choice s T body n ht
+    (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
+    supported_preservation_term (SmtTerm.choice s T body) :=
+  supported_preservation_term.choice s T body ht
+
+/-- Builds support for `bind` directly from a non-`None` typing judgment. -/
+theorem supported_bind_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    {x1 x2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2))
+    (hs1 : supported_preservation_term x1)
+    (hs2 : supported_preservation_term x2) :
+    supported_preservation_term (SmtTerm.bind s T x1 x2) :=
+  supported_preservation_term.bind s T x1 x2 ht hs1 hs2
 
 /-- Computes generic application typing for application heads that are not datatype selectors or testers. -/
 theorem generic_apply_type_of_non_datatype_head
@@ -893,7 +901,11 @@ theorem generic_apply_type_of_non_datatype_head
     (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     generic_apply_type f x := by
   unfold generic_apply_type
-  cases f <;> simp [__smtx_typeof]
+  cases f <;>
+    first
+    | exact absurd rfl (hSel _ _ _ _)
+    | exact absurd rfl (hTester _ _ _)
+    | simp [__smtx_typeof]
 
 /-- Computes generic application evaluation for application heads that are not datatype selectors or testers. -/
 theorem generic_apply_eval_of_non_datatype_head
@@ -903,7 +915,11 @@ theorem generic_apply_eval_of_non_datatype_head
     generic_apply_eval f x := by
   unfold generic_apply_eval
   intro M
-  cases f <;> simp [__smtx_model_eval]
+  cases f <;>
+    first
+    | exact absurd rfl (hSel _ _ _ _)
+    | exact absurd rfl (hTester _ _ _)
+    | simp [__smtx_model_eval]
 
 /-- Builds support for generic applications whose heads are not datatype selectors or testers. -/
 theorem supported_apply_of_non_datatype_head

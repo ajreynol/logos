@@ -1,8 +1,15 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.DatatypeSupport
-import Cpc.Proofs.Translation.Apply
-import Cpc.Proofs.Translation.Full
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.DatatypeSupport
+import all Cpc.Proofs.RuleSupport.DatatypeSupport
+public import Cpc.Proofs.Translation.Apply
+import all Cpc.Proofs.Translation.Apply
+public import Cpc.Proofs.Translation.Full
+import all Cpc.Proofs.Translation.Full
 
 open Eo
 open SmtEval
@@ -261,18 +268,6 @@ private theorem typed___eo_prog_dt_updater_elim_impl
     simpa [hProgEq] using hResultTy
   rw [hProgEq]
   exact RuleProofs.eo_typeof_bool_implies_has_bool_type a1 hA1Trans hA1Ty
-
-private theorem eq_rhs_stuck_not_bool (lhs : Term) :
-    ¬ RuleProofs.eo_has_bool_type
-      (Term.Apply (Term.Apply (Term.UOp UserOp.eq) lhs) Term.Stuck) := by
-  intro h
-  have hTypes :=
-    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-      lhs Term.Stuck h
-  have hNone : __smtx_typeof (__eo_to_smt lhs) = SmtType.None := by
-    rw [hTypes.1]
-    native_decide
-  exact hTypes.2 hNone
 
 private theorem eq_rhs_ite_then_stuck_not_bool
     (lhs cond elseTerm : Term) :
@@ -1568,7 +1563,7 @@ private theorem facts___eo_prog_dt_updater_elim_impl
             (by intro sel h; cases h)
             hMk hBool)
 
-theorem cmd_step_dt_updater_elim_properties
+public theorem cmd_step_dt_updater_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_updater_elim args premises) ->

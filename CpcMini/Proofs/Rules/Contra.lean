@@ -1,4 +1,7 @@
-import CpcMini.Proofs.RuleSupport.Support
+module
+
+public import CpcMini.Proofs.RuleSupport.Support
+import all CpcMini.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -132,7 +135,7 @@ by
   exact correct___eo_prog_contra_impl M hM x1 x2 hX1True hX2True hBool
 
 /-- Packages the properties required for the `contra` checker step. -/
-theorem cmd_step_contra_properties
+public theorem cmd_step_contra_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.contra args premises) ->

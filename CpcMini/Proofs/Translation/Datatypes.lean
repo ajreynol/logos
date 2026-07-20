@@ -1,4 +1,9 @@
-import CpcMini.Proofs.Translation.Base
+module
+
+public import CpcMini.Proofs.Translation.Base
+import all CpcMini.Proofs.Translation.Base
+
+public section
 
 open Eo
 open SmtEval

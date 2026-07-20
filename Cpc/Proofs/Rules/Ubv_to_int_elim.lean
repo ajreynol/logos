@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -376,7 +379,7 @@ private theorem ubvBitAddend_eval
         (SmtTerm.Numeral 0)) =
       SmtValue.Numeral (if n.toNat.testBit start then (2 ^ start : Int) else 0)
   rw [smtx_eval_ite_term_eq, smtx_eval_eq_term_eq,
-    __smtx_model_eval.eq_36, __smtx_model_eval.eq_2,
+    __smtx_model_eval.eq_34, __smtx_model_eval.eq_2,
     __smtx_model_eval.eq_2, hEvalB, __smtx_model_eval.eq_5,
     __smtx_model_eval.eq_2]
   have hWidth :
@@ -645,7 +648,7 @@ private theorem ubv_to_int_elim_shape_of_ne_stuck (A : Term) :
       exact hShape ⟨b, m, hEq⟩
     exact False.elim (h hStuck)
 
-theorem cmd_step_ubv_to_int_elim_properties
+public theorem cmd_step_ubv_to_int_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ubv_to_int_elim args premises) ->

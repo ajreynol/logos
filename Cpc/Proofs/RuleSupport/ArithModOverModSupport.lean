@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -124,30 +131,6 @@ private theorem get_nil_ne_stuck_of_is_list_true (f x : Term) :
     __eo_is_list f x = Term.Boolean true ->
     __eo_get_nil_rec f x ≠ Term.Stuck := by
   exact eo_get_nil_rec_ne_stuck_of_is_list_true f x
-
-private theorem tail_list_plus_of_cons_list (x xs : Term) :
-    __eo_is_list plusOp (plusTerm x xs) = Term.Boolean true ->
-    __eo_is_list plusOp xs = Term.Boolean true := by
-  intro h
-  have hTailNe : __eo_get_nil_rec plusOp xs ≠ Term.Stuck := by
-    intro hSt
-    have h' := h
-    unfold __eo_is_list __eo_is_ok at h'
-    simp [plusTerm, plusOp, __eo_get_nil_rec, __eo_requires, hSt,
-      native_ite, native_teq, native_not, SmtEval.native_not] at h'
-  exact is_list_true_of_get_nil_ne_stuck plusOp xs hTailNe
-
-private theorem tail_list_mult_of_cons_list (x xs : Term) :
-    __eo_is_list multOp (multTerm x xs) = Term.Boolean true ->
-    __eo_is_list multOp xs = Term.Boolean true := by
-  intro h
-  have hTailNe : __eo_get_nil_rec multOp xs ≠ Term.Stuck := by
-    intro hSt
-    have h' := h
-    unfold __eo_is_list __eo_is_ok at h'
-    simp [multTerm, multOp, __eo_get_nil_rec, __eo_requires, hSt,
-      native_ite, native_teq, native_not, SmtEval.native_not] at h'
-  exact is_list_true_of_get_nil_ne_stuck multOp xs hTailNe
 
 private theorem plus_args_int_of_type_int (x y : Term)
     (hTy : __smtx_typeof (__eo_to_smt (plusTerm x y)) = SmtType.Int) :

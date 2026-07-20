@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -151,10 +154,20 @@ private theorem typed___eo_prog_distinct_binary_elim_impl
     RuleProofs.eo_has_bool_type_eq_of_same_smt_type t1 s1 hSameSmt hT1Trans
   have hNotEqBool : RuleProofs.eo_has_bool_type notEq :=
     RuleProofs.eo_has_bool_type_not_of_bool_arg eqTerm hEqBool
+  have hNotEqSmtTy :
+      __smtx_typeof
+          (SmtTerm.not (SmtTerm.eq (__eo_to_smt t1) (__eo_to_smt s1))) =
+        SmtType.Bool := by
+    simpa [RuleProofs.eo_has_bool_type, notEq, eqTerm] using hNotEqBool
   have hEqSmtTy :
       __smtx_typeof (SmtTerm.eq (__eo_to_smt t1) (__eo_to_smt s1)) =
         SmtType.Bool := by
     simpa [RuleProofs.eo_has_bool_type, eqTerm] using hEqBool
+  have hEqSmtTy' :
+      __smtx_typeof_eq (__smtx_typeof (__eo_to_smt t1))
+          (__smtx_typeof (__eo_to_smt s1)) = SmtType.Bool := by
+    rw [← typeof_eq_eq]
+    exact hEqSmtTy
   have hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None := by
     have hTypesSymm := hTypes.symm
     have hTypeWf :
@@ -180,8 +193,10 @@ private theorem typed___eo_prog_distinct_binary_elim_impl
             (SmtTerm.Boolean true))
           (SmtTerm.and (SmtTerm.Boolean true) (SmtTerm.Boolean true))) =
         SmtType.Bool
-    simp [typeof_and_eq, typeof_not_eq, __smtx_typeof, hEqSmtTy, native_ite,
-      native_Teq]
+    have hTrueTy :
+        __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool := rfl
+    simp only [typeof_and_eq, hNotEqSmtTy, hTrueTy, native_Teq, native_ite]
+    simp
   rw [prog_distinct_binary_elim_eq t1 s1 hT1NotStuck hS1NotStuck hT1TypeNotStuck]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type distinctTerm notEq
     (by rw [hDistinctBool, hNotEqBool])
@@ -257,14 +272,13 @@ private theorem facts___eo_prog_distinct_binary_elim_impl
         (__smtx_model_eval M (__eo_to_smt s1)) with
       ⟨b, hEqEval⟩
     cases b <;>
-      simp [smtx_eval_and_term_eq, smtx_eval_not_term_eq,
-        smtx_eval_eq_term_eq, RuleProofs.smt_value_rel, __smtx_model_eval,
+      simp [RuleProofs.smt_value_rel, __smtx_model_eval,
         __smtx_model_eval_and, __smtx_model_eval_not,
         SmtEval.native_and, SmtEval.native_not, hEqEval]
     all_goals simp [__smtx_model_eval_eq]
     all_goals simp [native_veq]
 
-theorem cmd_step_distinct_binary_elim_properties
+public theorem cmd_step_distinct_binary_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.distinct_binary_elim args premises) ->

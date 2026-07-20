@@ -1,5 +1,10 @@
-import Cpc.Proofs.Rules.Str_replace_re_eval
-import Cpc.Proofs.RuleSupport.StrConcatSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrReplaceReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceReEvalSupport
+public import Cpc.Proofs.RuleSupport.StrConcatSupport
+import all Cpc.Proofs.RuleSupport.StrConcatSupport
+import all Cpc.SmtModel
 
 open Eo
 open SmtEval
@@ -254,7 +259,7 @@ private theorem str_concat_string_eval
       (SmtTerm.str_concat (SmtTerm.String x) (SmtTerm.String y)) =
     SmtValue.Seq (native_pack_string (x ++ y))
   simp [__smtx_model_eval, __smtx_model_eval_str_concat,
-    native_seq_concat, native_pack_string, native_unpack_pack_seq,
+    native_seq_concat, native_pack_string, Smtm.native_unpack_pack_seq,
     elem_typeof_pack_seq, List.map_append]
 
 private theorem str_concat_eval_string_left
@@ -271,7 +276,7 @@ private theorem str_concat_eval_string_left
       (SmtTerm.str_concat (SmtTerm.String sx) (__eo_to_smt y)) =
     SmtValue.Seq (native_pack_string (sx ++ sy))
   simp [__smtx_model_eval, __smtx_model_eval_str_concat, hy,
-    native_seq_concat, native_pack_string, native_unpack_pack_seq,
+    native_seq_concat, native_pack_string, Smtm.native_unpack_pack_seq,
     elem_typeof_pack_seq, List.map_append]
 
 private theorem str_concat_eval_replacement_left
@@ -290,7 +295,7 @@ private theorem str_concat_eval_replacement_left
   have hElem : __smtx_elem_typeof_seq_value repl = SmtType.Char :=
     elem_typeof_seq_value_of_typeof_seq_value hReplTy
   simp [__smtx_model_eval, __smtx_model_eval_str_concat, hTEval, hy,
-    native_seq_concat, native_pack_string, native_unpack_pack_seq, hElem]
+    native_seq_concat, native_pack_string, Smtm.native_unpack_pack_seq, hElem]
   simpa [native_pack_string, List.append_assoc] using
     native_pack_seq_char_append_unpack_string [] sy repl hReplTy
 
@@ -964,7 +969,7 @@ private theorem str_replace_re_all_eval_valid_properties
         (native_pack_string
           (native_str_replace_re_all (native_unpack_string src) rv
             (native_unpack_string repl)))
-    rw [__smtx_model_eval.eq_101, hSEval, hREval, hTEval]
+    rw [__smtx_model_eval.eq_99, hSEval, hREval, hTEval]
     simp [__smtx_model_eval_str_replace_re_all]
   rcases eo_is_str_eq_true_cases s hStrReq with ⟨str, rfl⟩
   change __smtx_model_eval M (SmtTerm.String str) = SmtValue.Seq src at hSEval
@@ -1155,7 +1160,7 @@ private theorem str_replace_re_all_eval_arg_properties
 
 end RuleProofs
 
-theorem cmd_step_str_replace_re_all_eval_properties
+public theorem cmd_step_str_replace_re_all_eval_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_replace_re_all_eval args premises) ->

@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -353,7 +358,7 @@ theorem smt_value_rel_str_concat_assoc_of_seq_eval
   rw [smtx_model_eval_str_concat_term_eq M y z]
   rw [hxEval, hyEval, hzEval]
   simp [__smtx_model_eval_str_concat, native_seq_concat,
-    native_unpack_pack_seq, elem_typeof_pack_seq, List.append_assoc,
+    Smtm.native_unpack_pack_seq, elem_typeof_pack_seq, List.append_assoc,
     RuleProofs.smtx_model_eval_eq_refl]
 
 theorem smt_value_rel_str_concat_list_nil_left_empty_eval
@@ -399,7 +404,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
       cases hA : __eo_to_smt_type A <;>
         simp [__eo_to_smt_seq_empty, hA] at hNilEval ⊢
       case Seq U =>
-        rw [__smtx_model_eval.eq_78] at hNilEval ⊢
+        rw [__smtx_model_eval.eq_76] at hNilEval ⊢
         simp [__smtx_model_eval_str_concat, native_seq_concat]
         rw [native_unpack_seq, List.append_nil]
         change RuleProofs.smt_seq_rel

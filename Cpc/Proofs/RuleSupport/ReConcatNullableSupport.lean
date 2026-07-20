@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.ReConcatStarSupport
-import Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReConcatStarSupport
+import all Cpc.Proofs.RuleSupport.ReConcatStarSupport
+public import Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
+import all Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
+
+public section
 
 open Eo
 open SmtEval
@@ -46,7 +52,29 @@ theorem mk_apply_ne_stuck_eq {a w : Term} (ha : a ≠ Term.Stuck) (hw : w ≠ Te
     __eo_mk_apply a w = Term.Apply a w := by
   cases a <;> cases w <;> simp_all [__eo_mk_apply]
 
+end RuleProofs
+end
+
+open Eo
+open SmtEval
+open Smtm
+
+namespace RuleProofs
+
 theorem mk_apply_left_stuck (b : Term) : __eo_mk_apply Term.Stuck b = Term.Stuck := rfl
+
+end RuleProofs
+
+public section
+
+open Eo
+open SmtEval
+open Smtm
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
+
+namespace RuleProofs
 
 theorem mk_apply_right_stuck (a : Term) : __eo_mk_apply a Term.Stuck = Term.Stuck := by
   cases a <;> rfl

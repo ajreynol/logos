@@ -1,4 +1,8 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.SmtModel
 
 open Eo
 open SmtEval
@@ -17,8 +21,8 @@ private theorem native_re_prefix_match_len?_empty_of_nullable
   native_re_prefix_match_len? r xs = some 0 := by
   rw [native_re_prefix_match_len?.eq_1]
   cases xs with
-  | nil => simp [native_re_prefix_match_len?.go.eq_1, h]
-  | cons c cs => simp [native_re_prefix_match_len?.go.eq_2, h]
+  | nil => unfold native_re_prefix_match_len?.go; simp [h]
+  | cons c cs => unfold native_re_prefix_match_len?.go; simp [h]
 
 private theorem native_re_find_idx_from_empty_of_nullable
     (r : native_RegLan) (xs : native_String) (start : Nat)
@@ -67,45 +71,6 @@ private theorem smtx_typeof_str_indexof_re
   rw [typeof_str_indexof_re_eq]
   simp [hs, hr, hn, native_ite, native_Teq]
 
-private theorem smtx_typeof_str_in_re
-    (s r : SmtTerm)
-    (hs : __smtx_typeof s = SmtType.Seq SmtType.Char)
-    (hr : __smtx_typeof r = SmtType.RegLan) :
-    __smtx_typeof (SmtTerm.str_in_re s r) = SmtType.Bool := by
-  rw [typeof_str_in_re_eq]
-  simp [hs, hr, native_ite, native_Teq]
-
-private theorem smtx_typeof_str_len
-    (s : SmtTerm)
-    (hs : __smtx_typeof s = SmtType.Seq SmtType.Char) :
-    __smtx_typeof (SmtTerm.str_len s) = SmtType.Int := by
-  rw [typeof_str_len_eq]
-  simp [hs, __smtx_typeof_seq_op_1_ret]
-
-private theorem smtx_typeof_geq_int
-    (x y : SmtTerm)
-    (hx : __smtx_typeof x = SmtType.Int)
-    (hy : __smtx_typeof y = SmtType.Int) :
-    __smtx_typeof (SmtTerm.geq x y) = SmtType.Bool := by
-  rw [typeof_geq_eq]
-  simp [hx, hy, __smtx_typeof_arith_overload_op_2_ret]
-
-private theorem smtx_typeof_eq_bool
-    (x y : SmtTerm)
-    (hx : __smtx_typeof x = SmtType.Bool)
-    (hy : __smtx_typeof y = SmtType.Bool) :
-    __smtx_typeof (SmtTerm.eq x y) = SmtType.Bool := by
-  rw [typeof_eq_eq]
-  simp [hx, hy, __smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq]
-
-private theorem smtx_typeof_eq_int
-    (x y : SmtTerm)
-    (hx : __smtx_typeof x = SmtType.Int)
-    (hy : __smtx_typeof y = SmtType.Int) :
-    __smtx_typeof (SmtTerm.eq x y) = SmtType.Bool := by
-  rw [typeof_eq_eq]
-  simp [hx, hy, __smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq]
-
 private theorem eo_typeof_str_indexof_re_args_of_ne_stuck
     (T R N : Term)
     (h : __eo_typeof_str_indexof_re T R N ≠ Term.Stuck) :
@@ -126,23 +91,6 @@ private theorem eo_typeof_str_indexof_re_args_of_ne_stuck
               cases N <;> simp at h ⊢
               case UOp opn =>
                 cases opn <;> simp at h ⊢
-
-private theorem eo_typeof_str_in_re_args_of_ne_stuck
-    (T R : Term)
-    (h : __eo_typeof_str_in_re T R ≠ Term.Stuck) :
-    T = Term.Apply Term.Seq Term.Char ∧ R = Term.RegLan := by
-  cases T <;> simp [__eo_typeof_str_in_re] at h ⊢
-  case Apply f x =>
-    cases f <;> simp at h ⊢
-    case UOp op =>
-      cases op <;> simp at h ⊢
-      case Seq =>
-        cases x <;> simp at h ⊢
-        case UOp opx =>
-          cases opx <;> simp at h ⊢
-          cases R <;> simp at h ⊢
-          case UOp opr =>
-            cases opr <;> simp at h ⊢
 
 private theorem smtx_typeof_of_eo_seq_char
     (a : Term)
@@ -478,7 +426,7 @@ private theorem str_indexof_re_emp_requires_eqs
   have hN₂ : lvN₂ = n := RuleProofs.eq_of_eo_eq_true n lvN₂ hTop.2
   exact ⟨hReqEq, hR, hT, hN₁, hN₂⟩
 
-theorem cmd_step_str_indexof_re_emp_re_properties
+public theorem cmd_step_str_indexof_re_emp_re_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_indexof_re_emp_re args premises) ->

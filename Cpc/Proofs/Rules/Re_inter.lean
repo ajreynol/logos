@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -89,7 +93,7 @@ private theorem re_inter_result_has_bool_type_of_premises_bool
         (SmtTerm.re_inter (__eo_to_smt r)
           (SmtTerm.re_inter (__eo_to_smt t) SmtTerm.re_all))) = SmtType.Bool
   rw [typeof_str_in_re_eq, typeof_re_inter_eq, typeof_re_inter_eq]
-  simp [hArgsXR.1, hArgsXR.2, hArgsXT.2, __smtx_typeof.eq_105,
+  simp [hArgsXR.1, hArgsXR.2, hArgsXT.2, __smtx_typeof.eq_103,
     native_ite, native_Teq]
 
 private theorem native_string_valid_of_str_in_re_true
@@ -119,15 +123,15 @@ private theorem facts_re_inter
                 (SmtTerm.re_inter (__eo_to_smt r)
                   (SmtTerm.re_inter (__eo_to_smt t) SmtTerm.re_all))) =
             SmtValue.Boolean true
-          rw [__smtx_model_eval.eq_118, __smtx_model_eval.eq_114,
-            __smtx_model_eval.eq_114, __smtx_model_eval.eq_105]
+          rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_112,
+            __smtx_model_eval.eq_112, __smtx_model_eval.eq_103]
           change __smtx_model_eval M
               (SmtTerm.str_in_re (__eo_to_smt x) (__eo_to_smt r)) =
             SmtValue.Boolean true at hEvalXR
           change __smtx_model_eval M
               (SmtTerm.str_in_re (__eo_to_smt x) (__eo_to_smt t)) =
             SmtValue.Boolean true at hEvalXT
-          rw [__smtx_model_eval.eq_118] at hEvalXR hEvalXT
+          rw [__smtx_model_eval.eq_116] at hEvalXR hEvalXT
           cases hx : __smtx_model_eval M (__eo_to_smt x) with
           | Seq ss =>
               cases hr : __smtx_model_eval M (__eo_to_smt r) with
@@ -154,7 +158,7 @@ private theorem facts_re_inter
               cases hr : __smtx_model_eval M (__eo_to_smt r) <;>
                 simp [hx, hr, __smtx_model_eval_str_in_re] at hEvalXR
 
-theorem cmd_step_re_inter_properties
+public theorem cmd_step_re_inter_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_inter args premises) ->

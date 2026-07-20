@@ -1,7 +1,15 @@
-import Cpc.Spec
-import Cpc.Logos
-import Cpc.Proofs.Assumptions
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Spec
+import all Cpc.Spec
+public import Cpc.Logos
+import all Cpc.Logos
+public import Cpc.Proofs.Assumptions
+import all Cpc.Proofs.Assumptions
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+
+public section
 
 open Eo
 open SmtEval
@@ -62,12 +70,6 @@ private theorem eo_to_smt_stuck_eq :
 private theorem eo_to_smt_and_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) =
       SmtTerm.and (__eo_to_smt A) (__eo_to_smt B) := by
-  rfl
-
-/-- Simplifies EO-to-SMT translation for `imp_eq`. -/
-private theorem eo_to_smt_imp_eq (A B : Term) :
-    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) =
-      SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B) := by
   rfl
 
 /-- Lemma about `eo_has_smt_translation_true`. -/

@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.StringSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
 
 open Eo
 open SmtEval
@@ -238,7 +242,7 @@ private theorem native_pack_string_unpack_string_of_typeof_seq_char
     ss
   rw [hMap]
   rw [← native_pack_unpack_seq ss, hElem]
-  simp [native_unpack_pack_seq]
+  simp [_root_.native_unpack_pack_seq]
 
 private theorem native_str_to_code_inj_of_ne_neg_one
     {xs ys : native_String}
@@ -351,7 +355,7 @@ private theorem facts_sciFormula
         __smtx_model_eval_eq, __smtx_model_eval_or, __smtx_model_eval_not,
         native_veq, SmtEval.native_or, SmtEval.native_not]
 
-theorem cmd_step_string_code_inj_properties
+public theorem cmd_step_string_code_inj_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.string_code_inj args premises) ->

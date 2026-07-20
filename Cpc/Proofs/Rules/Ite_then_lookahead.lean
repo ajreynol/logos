@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -12,27 +17,18 @@ private theorem eo_typeof_eq_bool_same (A B : Term) :
     __eo_typeof_eq A B = Term.Bool ->
     A = B ∧ A ≠ Term.Stuck := by
   intro hTy
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hTy ⊢
-  all_goals
-    simp [hTy]
+  exact RuleProofs.eo_typeof_eq_bool_same A B hTy
 
 private theorem eo_typeof_ite_args_of_ne_stuck
     (C X Y : Term) :
     __eo_typeof_ite C X Y ≠ Term.Stuck ->
       C = Term.Bool ∧ X = Y ∧ X ≠ Term.Stuck := by
   intro h
-  cases C <;> cases X <;> cases Y <;>
-    simp [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite,
-      native_not, native_teq] at h ⊢ <;>
-    simp_all
+  exact RuleProofs.eo_typeof_ite_args_of_ne_stuck C X Y h
 
 private theorem eo_typeof_ite_bool_self (X : Term) (hX : X ≠ Term.Stuck) :
     __eo_typeof_ite Term.Bool X X = X := by
-  cases X <;>
-    simp_all [__eo_typeof_ite, __eo_requires, __eo_eq, native_teq, native_ite,
-      native_not]
+  exact RuleProofs.eo_typeof_ite_bool_self X hX
 
 private theorem smt_type_ite_same_as_then
     (c x y : Term) :
@@ -61,23 +57,6 @@ private theorem smt_type_ite_same_as_then
   rw [typeof_ite_eq]
   simp [__smtx_typeof_ite, hCBool, hXSmtTy, hYSmtTy, ← hTypes, native_Teq,
     native_ite]
-
-private theorem smt_branches_eq_of_typeof_eq
-    (x y : Term) :
-  RuleProofs.eo_has_smt_translation x ->
-  RuleProofs.eo_has_smt_translation y ->
-  __eo_typeof x = __eo_typeof y ->
-  __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt y) := by
-  intro hXTrans hYTrans hTypes
-  have hXSmtTy :
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) :=
-    TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
-      x (__eo_typeof x) (__eo_to_smt x) rfl hXTrans rfl
-  have hYSmtTy :
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) :=
-    TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
-      y (__eo_typeof y) (__eo_to_smt y) rfl hYTrans rfl
-  rw [hXSmtTy, hYSmtTy, hTypes]
 
 private theorem prog_ite_then_lookahead_eq_of_ne_stuck (c1 x1 y1 z1 : Term) :
     c1 ≠ Term.Stuck ->
@@ -237,7 +216,7 @@ private theorem facts___eo_prog_ite_then_lookahead_impl
     · simpa [__smtx_model_eval_ite] using
         RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt x1))
 
-theorem cmd_step_ite_then_lookahead_properties
+public theorem cmd_step_ite_then_lookahead_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ite_then_lookahead args premises) ->

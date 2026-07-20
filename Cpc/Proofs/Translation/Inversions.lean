@@ -1,4 +1,10 @@
-import Cpc.Proofs.Translation.Base
+module
+
+public import Cpc.Proofs.Translation.Base
+import all Cpc.Spec
+import all Cpc.Logos
+
+public section
 
 open Eo
 open SmtEval
@@ -265,31 +271,13 @@ attribute [local simp] native_and
       SmtType.USort i := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
-/-- Field well-formedness for a `Datatype s d` occurring at a field position. Under the new
-(reflist-free) `__smtx_type_wf` algorithm, a nested `Datatype s d` occurrence is checked
-*independently* of any enclosing context via the diagonal self-check `wf_rec (Datatype s d)
-(Datatype s d)`, which unfolds to `dt_wf_rec (dt_substitute s d d) d`. There is no longer an
-"`s` not already in scope" (no-aliasing) conjunct to extract — aliasing is permitted. -/
-private theorem smtx_datatype_type_wf_rec_parts
-    {s : native_String} {d : SmtDatatype}
-    (h : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
-    __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true := by
-  simpa [__smtx_type_wf_rec] using h
-
 /-- Well-formedness of a type occurring at a *field* position (a datatype-constructor field,
 function argument, sequence/set/map element, …). Under the new algorithm this is exactly the
 diagonal self-check `__smtx_type_wf_rec T T`; the ambient `refs` parameter is now vestigial
 (kept only so existing call sites, many of which threaded a `RefList` that no longer carries any
 scoping information, continue to type-check). -/
-def smtx_type_field_wf_rec (T : SmtType) (_refs : RefList) : Prop :=
+@[expose] def smtx_type_field_wf_rec (T : SmtType) (_refs : RefList) : Prop :=
   __smtx_type_wf_rec T T = true
-
-private theorem smtx_datatype_field_wf_rec_parts
-    {s : native_String} {d : SmtDatatype} {refs : RefList}
-    (h : smtx_type_field_wf_rec (SmtType.Datatype s d) refs) :
-    __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true :=
-  smtx_datatype_type_wf_rec_parts (by
-    simpa [smtx_type_field_wf_rec] using h)
 
 theorem smtx_type_field_wf_rec_of_type_wf_rec
     {T : SmtType} {refs : RefList}
@@ -443,21 +431,6 @@ theorem smtx_dt_cons_wf_rec_tail_of_true
   · exfalso
     cases TF <;> cases TU <;>
       simp_all [__smtx_dt_cons_wf_rec, native_ite, native_and]
-
-private theorem smtx_dt_wf_tail_of_sum_wf_of_tail_ne_null
-    {CF C : SmtDatatypeCons}
-    {DtailF Dtail : SmtDatatype}
-    (hWF : __smtx_dt_wf_rec (SmtDatatype.sum CF DtailF) (SmtDatatype.sum C Dtail) = true)
-    (hTail : Dtail ≠ SmtDatatype.null) :
-    __smtx_dt_wf_rec DtailF Dtail = true := by
-  cases Dtail with
-  | null =>
-      exact False.elim (hTail rfl)
-  | sum Ctail DtailTail =>
-      have hCWF : __smtx_dt_cons_wf_rec CF C = true := by
-        cases hC : __smtx_dt_cons_wf_rec CF C <;>
-          cases DtailF <;> simp [__smtx_dt_wf_rec, native_ite, hC] at hWF ⊢
-      simpa [__smtx_dt_wf_rec, native_ite, hCWF] using hWF
 
 @[simp] private theorem eo_to_smt_type_bitvec_lit_ne_bool
     (n : native_Int) :
@@ -2463,15 +2436,15 @@ then rules out `None` everywhere (`noNone…`). Injectivity is proved directly o
 section AlignNoNone
 attribute [-simp] native_ite native_streq native_and
 mutual
-def alignTy : SmtType → SmtType → Bool
+@[expose] def alignTy : SmtType → SmtType → Bool
   | SmtType.Datatype _ dF, SmtType.Datatype _ dU => alignDt dF dU
   | _, SmtType.Datatype _ _ => false
   | _, _ => true
-def alignDt : SmtDatatype → SmtDatatype → Bool
+@[expose] def alignDt : SmtDatatype → SmtDatatype → Bool
   | SmtDatatype.sum cF dF, SmtDatatype.sum cU dU => native_and (alignDtc cF cU) (alignDt dF dU)
   | SmtDatatype.null, SmtDatatype.null => true
   | _, _ => false
-def alignDtc : SmtDatatypeCons → SmtDatatypeCons → Bool
+@[expose] def alignDtc : SmtDatatypeCons → SmtDatatypeCons → Bool
   | SmtDatatypeCons.cons TF cF, SmtDatatypeCons.cons TU cU =>
       native_and (alignTy TF TU) (alignDtc cF cU)
   | SmtDatatypeCons.unit, SmtDatatypeCons.unit => true

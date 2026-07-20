@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -116,14 +119,6 @@ private theorem smtx_typeof_neg_int
     __smtx_typeof (SmtTerm.neg x y) = SmtType.Int := by
   rw [typeof_neg_eq]
   simp [__smtx_typeof_arith_overload_op_2, hx, hy]
-
-private theorem smtx_typeof_geq_int
-    (x y : SmtTerm)
-    (hx : __smtx_typeof x = SmtType.Int)
-    (hy : __smtx_typeof y = SmtType.Int) :
-    __smtx_typeof (SmtTerm.geq x y) = SmtType.Bool := by
-  rw [typeof_geq_eq]
-  simp [hx, hy, __smtx_typeof_arith_overload_op_2_ret]
 
 private theorem smt_typeof_seq_empty_typeof_of_smt_type_seq
     (x : Term) (T : SmtType)
@@ -680,17 +675,6 @@ private theorem typed_string_decompose_true_body
       (sdAnd (sdEq (sdLen last) n) (Term.Boolean true))
       hEqMain hTail
 
-private theorem eo_and_eq_true_elim (x y : Term)
-    (h : __eo_and x y = Term.Boolean true) :
-    x = Term.Boolean true ∧ y = Term.Boolean true := by
-  cases x <;> cases y <;> simp [__eo_and] at h ⊢
-  case Boolean.Boolean b₁ b₂ =>
-    cases b₁ <;> cases b₂ <;> simp [native_and] at h ⊢
-  case Binary.Binary w₁ n₁ w₂ n₂ =>
-    by_cases hw : w₁ = w₂ <;>
-      simp [__eo_requires, native_ite, native_teq, native_not,
-        SmtEval.native_not, hw] at h
-
 private theorem eo_requires_true_eq (x body : Term)
     (h : x = Term.Boolean true) :
     __eo_requires x (Term.Boolean true) body = body := by
@@ -709,16 +693,6 @@ private theorem string_decompose_requires_eq
   rcases hReq' with ⟨hCond, _hBody⟩
   exact ⟨eo_requires_true_eq _ body hCond,
     eq_of_eo_eq_true_local n lv hCond⟩
-
-private theorem term_apply_ne_stuck (f x : Term) :
-    Term.Apply f x ≠ Term.Stuck := by
-  intro h
-  cases h
-
-private theorem term_uop_ne_stuck (op : UserOp) :
-    Term.UOp op ≠ Term.Stuck := by
-  intro h
-  cases h
 
 private theorem string_decompose_false_generated_eq_body
     (s n : Term) (T : SmtType)
@@ -833,7 +807,8 @@ private theorem facts_string_decompose_false_body
       __smtx_model_eval, hsEval, hnEval, hNilEval, __smtx_model_eval_str_substr,
       __smtx_model_eval_str_concat, __smtx_model_eval_str_len,
       __smtx_model_eval__at_purify, __smtx_model_eval__, native_seq_len,
-      native_seq_concat, native_zplus, native_zneg, native_unpack_pack_seq,
+      native_seq_concat, native_zplus, native_zneg,
+      _root_.native_unpack_pack_seq,
       elem_typeof_pack_seq, native_unpack_seq, hElem, Int.sub_eq_add_neg,
       List.append_assoc] using
       congrArg (fun ys => SmtValue.Seq (native_pack_seq T ys)) hSplit
@@ -858,7 +833,7 @@ private theorem facts_string_decompose_false_body
     simpa [pre, xs, stringDecomposePrefix, sdLen, sdPurify, sdSubstr,
       __smtx_model_eval, hsEval, hnEval, __smtx_model_eval_str_len,
       __smtx_model_eval_str_substr, __smtx_model_eval__at_purify,
-      native_seq_len, native_unpack_pack_seq] using
+      native_seq_len, _root_.native_unpack_pack_seq] using
       congrArg SmtValue.Numeral (native_seq_extract_prefix_length xs ni h0 hle)
   have hLenRel :
       RuleProofs.smt_value_rel
@@ -963,7 +938,7 @@ private theorem facts_string_decompose_true_body
       __smtx_model_eval_str_substr, __smtx_model_eval_str_concat,
       __smtx_model_eval_str_len, __smtx_model_eval__at_purify,
       __smtx_model_eval__, native_seq_len, native_seq_concat, native_zplus,
-      native_zneg, native_unpack_pack_seq, elem_typeof_pack_seq,
+      native_zneg, _root_.native_unpack_pack_seq, elem_typeof_pack_seq,
       native_unpack_seq, hElem, Int.sub_eq_add_neg, List.append_assoc] using
       congrArg (fun ys => SmtValue.Seq (native_pack_seq T ys)) hSplit
   have hEqRel :
@@ -990,7 +965,7 @@ private theorem facts_string_decompose_true_body
       sdLen, sdPurify, sdSubstr, sdMinus, __smtx_model_eval, hsEval, hnEval,
       __smtx_model_eval_str_len, __smtx_model_eval_str_substr,
       __smtx_model_eval__at_purify, __smtx_model_eval__, native_seq_len,
-      native_zplus, native_zneg, native_unpack_pack_seq,
+      native_zplus, native_zneg, _root_.native_unpack_pack_seq,
       Int.sub_eq_add_neg] using
       congrArg SmtValue.Numeral (native_seq_extract_last_length xs ni h0 hle)
   have hLenRel :
@@ -1010,7 +985,7 @@ private theorem facts_string_decompose_true_body
       (sdAnd (sdEq (sdLen last) n) (Term.Boolean true))
       hEqTrue hTailTrue
 
-theorem cmd_step_string_decompose_properties
+public theorem cmd_step_string_decompose_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.string_decompose args premises) ->

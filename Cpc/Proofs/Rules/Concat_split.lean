@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
 
 open Eo
 open SmtEval
@@ -100,46 +103,6 @@ private theorem eo_prog_concat_split_premise_shapes_of_ne_stuck
           cases rev <;> simp [__eo_prog_concat_split] at hProg
   | _ =>
       cases rev <;> simp [__eo_prog_concat_split] at hProg
-
-private theorem concat_split_lengths_ne_of_not_len_eq
-    (M : SmtModel) (hM : model_total_typed M)
-    (x y : Term) (T : SmtType)
-    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
-    (hyTy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
-    (hLenNe :
-      eo_interprets M (mkNot (mkEq (mkStrLen x) (mkStrLen y))) true) :
-    ∃ sx sy : SmtSeq,
-      __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx ∧
-      __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy ∧
-      (native_unpack_seq sx).length ≠ (native_unpack_seq sy).length := by
-  have hxValTy := smt_model_eval_preserves_type M hM (__eo_to_smt x)
-    (SmtType.Seq T) hxTy (seq_ne_none T) (type_inhabited_seq T)
-  have hyValTy := smt_model_eval_preserves_type M hM (__eo_to_smt y)
-    (SmtType.Seq T) hyTy (seq_ne_none T) (type_inhabited_seq T)
-  rcases seq_value_canonical hxValTy with ⟨sx, hxEval⟩
-  rcases seq_value_canonical hyValTy with ⟨sy, hyEval⟩
-  have hEqFalse :
-      eo_interprets M (mkEq (mkStrLen x) (mkStrLen y)) false :=
-    RuleProofs.eo_interprets_not_true_implies_false M
-      (mkEq (mkStrLen x) (mkStrLen y)) hLenNe
-  have hEval :
-      __smtx_model_eval M (__eo_to_smt (mkEq (mkStrLen x) (mkStrLen y))) =
-        SmtValue.Boolean false := by
-    cases (RuleProofs.eo_interprets_iff_smt_interprets M
-        (mkEq (mkStrLen x) (mkStrLen y)) false).mp hEqFalse with
-    | intro_false _ hEval => exact hEval
-  change
-    __smtx_model_eval M
-        (SmtTerm.eq (SmtTerm.str_len (__eo_to_smt x))
-          (SmtTerm.str_len (__eo_to_smt y))) =
-      SmtValue.Boolean false at hEval
-  rw [smtx_eval_eq_term_eq] at hEval
-  rw [smtx_eval_str_len_term_eq, smtx_eval_str_len_term_eq] at hEval
-  simp [hxEval, hyEval, __smtx_model_eval_str_len,
-    __smtx_model_eval_eq, native_seq_len, native_veq] at hEval
-  exact ⟨sx, sy, hxEval, hyEval, by
-    intro hLen
-    exact hEval (by exact_mod_cast hLen)⟩
 
 private theorem concat_split_lengths_ne_of_not_len_eq_eval
     (M : SmtModel) (x y : Term) (sx sy : SmtSeq)
@@ -285,7 +248,7 @@ private theorem facts_concat_split_false_formula
                   native_unpack_seq (SmtSeq.empty T))) := by
           simpa only [rhsT] using hNested
         _ = SmtValue.Seq (native_pack_seq T xs) := by
-          rw [native_unpack_pack_seq]
+          rw [_root_.native_unpack_pack_seq]
           change
             SmtValue.Seq
               (native_pack_seq T (ys ++ xs.drop ys.length ++ [])) =
@@ -358,7 +321,7 @@ private theorem facts_concat_split_false_formula
                   native_unpack_seq (SmtSeq.empty T))) := by
           simpa only [rhsS] using hNested
         _ = SmtValue.Seq (native_pack_seq T ys) := by
-          rw [native_unpack_pack_seq]
+          rw [_root_.native_unpack_pack_seq]
           change
             SmtValue.Seq
               (native_pack_seq T (xs ++ ys.drop xs.length ++ [])) =
@@ -513,7 +476,7 @@ private theorem facts_concat_split_true_formula
                   native_unpack_seq ss ++ native_unpack_seq (SmtSeq.empty T))) := by
           simpa only [rhsT] using hNested
         _ = SmtValue.Seq (native_pack_seq T xs) := by
-          rw [native_unpack_pack_seq]
+          rw [_root_.native_unpack_pack_seq]
           change
             SmtValue.Seq
               (native_pack_seq T
@@ -592,7 +555,7 @@ private theorem facts_concat_split_true_formula
                   native_unpack_seq st ++ native_unpack_seq (SmtSeq.empty T))) := by
           simpa only [rhsS] using hNested
         _ = SmtValue.Seq (native_pack_seq T ys) := by
-          rw [native_unpack_pack_seq]
+          rw [_root_.native_unpack_pack_seq]
           change
             SmtValue.Seq
               (native_pack_seq T
@@ -715,7 +678,7 @@ private theorem step_concat_split_core
       exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
         (concatSplitFalseFormula_has_bool_type tc sc T htcTy hscTy)
 
-theorem cmd_step_concat_split_properties
+public theorem cmd_step_concat_split_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.concat_split args premises) ->
@@ -825,4 +788,3 @@ by
       | cons _ _ =>
           change Term.Stuck ≠ Term.Stuck at hProg
           exact False.elim (hProg rfl)
-

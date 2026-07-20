@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.SetsMemberSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.SetsMemberSupport
+import all Cpc.Proofs.RuleSupport.SetsMemberSupport
 
 open Eo
 open SmtEval
@@ -226,7 +230,7 @@ private theorem facts___eo_prog_sets_is_singleton_elim_impl
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt (setsIsSingletonRhs x)))
 
-theorem cmd_step_sets_is_singleton_elim_properties
+public theorem cmd_step_sets_is_singleton_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_is_singleton_elim args premises) ->

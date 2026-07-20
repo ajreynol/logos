@@ -1,4 +1,8 @@
-import Cpc.Proofs.Translation.Full
+module
+
+public import Cpc.Proofs.Translation.Full
+
+public section
 
 open Eo
 open Smtm

@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -21,11 +26,7 @@ private theorem eo_typeof_eq_bool_same (A B : Term) :
     __eo_typeof_eq A B = Term.Bool ->
     A = B ∧ A ≠ Term.Stuck := by
   intro hTy
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hTy ⊢
-  all_goals
-    simp [hTy]
+  exact RuleProofs.eo_typeof_eq_bool_same A B hTy
 
 private theorem eo_typeof_not_nonstuck_bool_arg (A : Term) :
     __eo_typeof_not A ≠ Term.Stuck ->
@@ -169,7 +170,7 @@ private theorem facts___eo_prog_bool_not_eq_elim1_impl
     cases bx <;> cases bY <;> simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
       __smtx_model_eval_not, native_veq, SmtEval.native_not]
 
-theorem cmd_step_bool_not_eq_elim1_properties
+public theorem cmd_step_bool_not_eq_elim1_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_not_eq_elim1 args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -17,11 +20,11 @@ private theorem typed___eo_prog_re_star_none :
     (by
       change __smtx_typeof (SmtTerm.re_mult SmtTerm.re_none) =
         __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))
-      rw [typeof_re_mult_eq, __smtx_typeof.eq_104, typeof_str_to_re_eq, __smtx_typeof.eq_4]
+      rw [typeof_re_mult_eq, __smtx_typeof.eq_102, typeof_str_to_re_eq, __smtx_typeof.eq_4]
       native_decide)
     (by
       change __smtx_typeof (SmtTerm.re_mult SmtTerm.re_none) ≠ SmtType.None
-      rw [typeof_re_mult_eq, __smtx_typeof.eq_104]
+      rw [typeof_re_mult_eq, __smtx_typeof.eq_102]
       native_decide)
 
 private theorem facts___eo_prog_re_star_none (M : SmtModel) :
@@ -37,14 +40,14 @@ private theorem facts___eo_prog_re_star_none (M : SmtModel) :
           __smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))) := by
       change __smtx_model_eval M (SmtTerm.re_mult SmtTerm.re_none) =
         __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))
-      rw [__smtx_model_eval.eq_107, __smtx_model_eval.eq_104, __smtx_model_eval.eq_106,
+      rw [__smtx_model_eval.eq_105, __smtx_model_eval.eq_102, __smtx_model_eval.eq_104,
         __smtx_model_eval.eq_4]
       rfl
     rw [hEvalEq]
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))))
 
-theorem cmd_step_re_star_none_properties
+public theorem cmd_step_re_star_none_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_star_none args premises) ->

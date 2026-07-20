@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -194,8 +197,8 @@ private theorem facts___eo_prog_re_plus_elim_impl
               (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
                 (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))))) := by
     rw [hLhsTranslate, hRhsTranslate, hInnerConcatTranslate, hStarTranslate, hEmpTranslate]
-    rw [__smtx_model_eval.eq_108, __smtx_model_eval.eq_113,
-      __smtx_model_eval.eq_113, __smtx_model_eval.eq_107, __smtx_model_eval.eq_106]
+    rw [__smtx_model_eval.eq_106, __smtx_model_eval.eq_111,
+      __smtx_model_eval.eq_111, __smtx_model_eval.eq_105, __smtx_model_eval.eq_104]
     simpa [hEmptyStringEval] using
       smtx_model_eval_re_plus_elim (__smtx_model_eval M (__eo_to_smt a1))
   rw [hProg]
@@ -212,7 +215,7 @@ private theorem facts___eo_prog_re_plus_elim_impl
             (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
               (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))))))
 
-theorem cmd_step_re_plus_elim_properties
+public theorem cmd_step_re_plus_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_plus_elim args premises) ->

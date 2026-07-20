@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.Proofs.TypePreservation.BitVecCmp
 
 open Eo
 open SmtEval
@@ -197,7 +201,7 @@ private theorem facts___eo_prog_bv_ite_equal_children_impl
     rw [eval_bvite_same M c1 x1]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_bv_ite_equal_children_properties
+public theorem cmd_step_bv_ite_equal_children_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_ite_equal_children args premises) ->

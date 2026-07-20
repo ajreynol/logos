@@ -1,4 +1,9 @@
-import CpcMini.Proofs.Checker
+module
+
+public import CpcMini.Proofs.Checker
+import all CpcMini.Proofs.Checker
+
+public section
 
 open Eo
 open SmtEval

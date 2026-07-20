@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.ArraySupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArraySupport
+import all Cpc.Proofs.RuleSupport.ArraySupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -39,10 +44,7 @@ private theorem eo_typeof_ite_args_of_ne_stuck
     __eo_typeof_ite C X Y ≠ Term.Stuck ->
       C = Term.Bool ∧ X = Y ∧ X ≠ Term.Stuck := by
   intro h
-  cases C <;> cases X <;> cases Y <;>
-    simp [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite,
-      native_not, native_teq] at h ⊢ <;>
-    simp_all
+  exact RuleProofs.eo_typeof_ite_args_of_ne_stuck C X Y h
 
 private theorem typeof_args_of_prog_array_read_over_write_split_bool
     (t1 i1 e1 j1 : Term)
@@ -390,7 +392,7 @@ private theorem facts___eo_prog_array_read_over_write_split_impl
           (__smtx_model_eval M (__eo_to_smt e1))
           hT1Can hJ1Can hI1Can hE1Can hij)
 
-theorem cmd_step_array_read_over_write_split_properties
+public theorem cmd_step_array_read_over_write_split_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.array_read_over_write_split args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.BvConcatPullupSupport
+import all Cpc.Proofs.RuleSupport.BvConcatPullupSupport
 
 open Eo
 open SmtEval
@@ -7,7 +10,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-theorem cmd_step_bv_or_concat_pullup3_properties
+public theorem cmd_step_bv_or_concat_pullup3_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_or_concat_pullup3 args premises) ->
@@ -16,4 +19,5 @@ theorem cmd_step_bv_or_concat_pullup3_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bv_or_concat_pullup3 args premises) :=
 by
-  sorry
+  simpa [BvConcatPullupOp.pullup3Rule] using
+    (cmd_step_bvConcatPullup3_properties M hM .bor s args premises)

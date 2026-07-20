@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -202,7 +205,7 @@ private theorem facts___eo_prog_sets_insert_elim_impl
   rw [hResultEq]
   exact RuleProofs.eo_interprets_eq_of_rel M lhs t hBodyBool hRel
 
-theorem cmd_step_sets_insert_elim_properties
+public theorem cmd_step_sets_insert_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_insert_elim args premises) ->

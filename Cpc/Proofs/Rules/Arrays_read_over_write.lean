@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.Canonical.Maps
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.Canonical.Maps
+import all Cpc.Proofs.Canonical.Maps
 
 open Eo
 open SmtEval
@@ -172,8 +176,8 @@ private theorem eqs_of_requires_and_eq_true_not_stuck (x1 y1 x2 y2 B : Term) :
   exact ⟨eq_of_eo_eq_true x1 x2 hBoth.1, eq_of_eo_eq_true y1 y2 hBoth.2⟩
 
 private theorem smt_type_ne_none_of_wf_rec
-    {T : SmtType} {refs : RefList}
-    (h : __smtx_type_wf_rec T refs = true) :
+    {T : SmtType}
+    (h : __smtx_type_wf_rec T T = true) :
     T ≠ SmtType.None := by
   intro hNone
   subst T
@@ -511,7 +515,7 @@ private theorem facts___eo_prog_arrays_read_over_write_impl
         (__smtx_model_eval M (__eo_to_smt j))
         (__smtx_model_eval M (__eo_to_smt e)) hij)
 
-theorem cmd_step_arrays_read_over_write_properties
+public theorem cmd_step_arrays_read_over_write_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arrays_read_over_write args premises) ->

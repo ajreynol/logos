@@ -1,7 +1,13 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.StringSupport
-import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
+public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
 
 open Eo
 open SmtEval
@@ -195,11 +201,6 @@ private theorem smtx_typeof_eo_to_smt_exists_same_binders
       subst hxs
       simp [__eo_to_smt_exists] at hTy
 
-private theorem false_of_smtx_typeof_none_bool :
-    __smtx_typeof SmtTerm.None = SmtType.Bool -> False := by
-  intro h
-  exact TranslationProofs.smtx_typeof_none_ne_bool h
-
 private theorem qforall_non_nil_of_non_none
     (x F : Term) :
     __smtx_typeof (__eo_to_smt (qforall x F)) ≠ SmtType.None ->
@@ -223,43 +224,6 @@ private theorem qforall_exists_type_bool_of_non_none
     (__eo_to_smt_exists x (SmtTerm.not (__eo_to_smt F))) (by
       simpa [eo_to_smt_forall_eq x F hx, smtForall] using hNN)
 
-private theorem native_eval_texists_eq_of_body_eval_eq_same
-    {M : SmtModel} {s : native_String} {T : SmtType}
-    {body body' : SmtTerm}
-    (hBody : ∀ v : SmtValue,
-      __smtx_model_eval (native_model_push M s T v) body =
-        __smtx_model_eval (native_model_push M s T v) body') :
-    native_eval_texists M s T body =
-      native_eval_texists M s T body' := by
-  classical
-  let P : Prop :=
-    ∃ v : SmtValue,
-      __smtx_typeof_value v = T ∧
-        __smtx_value_canonical_bool v = true ∧
-        __smtx_model_eval (native_model_push M s T v) body =
-          SmtValue.Boolean true
-  let Q : Prop :=
-    ∃ v : SmtValue,
-      __smtx_typeof_value v = T ∧
-        __smtx_value_canonical_bool v = true ∧
-        __smtx_model_eval (native_model_push M s T v) body' =
-          SmtValue.Boolean true
-  change (if _ : P then SmtValue.Boolean true else SmtValue.Boolean false) =
-    (if _ : Q then SmtValue.Boolean true else SmtValue.Boolean false)
-  have hIff : P ↔ Q := by
-    constructor
-    · intro h
-      rcases h with ⟨v, hTy, hCanon, hEval⟩
-      exact ⟨v, hTy, hCanon, by simpa [hBody v] using hEval⟩
-    · intro h
-      rcases h with ⟨v, hTy, hCanon, hEval⟩
-      exact ⟨v, hTy, hCanon, by simpa [← hBody v] using hEval⟩
-  by_cases hP : P
-  · have hQ : Q := hIff.mp hP
-    simp [hP, hQ]
-  · have hQ : ¬ Q := fun h => hP (hIff.mpr h)
-    simp [hP, hQ]
-
 private theorem smtx_eval_exists_term_eq
     (M : SmtModel) (s : native_String) (T : SmtType)
     (body : SmtTerm) :
@@ -281,73 +245,6 @@ private theorem smtx_model_eval_or_eq_of_args_eq_same
     __smtx_model_eval M (SmtTerm.or x y) =
       __smtx_model_eval M (SmtTerm.or x' y') := by
   simp [__smtx_model_eval, hx, hy]
-
-private theorem smt_model_eval_eo_to_smt_exists_eq_of_body_eval_eq_same_mapped
-    {vs : Term} {binderVars : List EoVarKey}
-    {exceptVars : List SmtVarKey} {M N : SmtModel}
-    {body body' : SmtTerm}
-    (hEnv : EoVarEnv vs binderVars)
-    (hSub :
-      ∀ key, key ∈ binderVars.map EoVarKey.toSmt -> key ∈ exceptVars)
-    (hAgree : model_agrees_except_on_env exceptVars [] M N)
-    (hBody :
-      ∀ {M' : SmtModel},
-        model_agrees_except_on_env exceptVars [] M' N ->
-          __smtx_model_eval M' body =
-            __smtx_model_eval M' body') :
-  __smtx_model_eval M (__eo_to_smt_exists vs body) =
-    __smtx_model_eval M (__eo_to_smt_exists vs body') := by
-  induction hEnv generalizing M with
-  | nil =>
-      simpa [__eo_to_smt_exists] using hBody hAgree
-  | cons hTail ih =>
-      rename_i s T env tailVars
-      change
-        __smtx_model_eval M
-            (SmtTerm.exists s (__eo_to_smt_type T)
-              (__eo_to_smt_exists env body)) =
-          __smtx_model_eval M
-            (SmtTerm.exists s (__eo_to_smt_type T)
-              (__eo_to_smt_exists env body'))
-      rw [smtx_eval_exists_term_eq, smtx_eval_exists_term_eq]
-      apply native_eval_texists_eq_of_body_eval_eq_same
-      intro v
-      have hHeadMem :
-          (s, __eo_to_smt_type T) ∈ exceptVars :=
-        hSub (s, __eo_to_smt_type T) (by
-          simp [EoVarKey.toSmt])
-      have hAgreePush :
-          model_agrees_except_on_env exceptVars []
-            (native_model_push M s (__eo_to_smt_type T) v) N :=
-        model_agrees_except_on_env_push_left hAgree hHeadMem (by simp)
-      apply ih
-      · intro key hMem
-        apply hSub
-        rcases List.mem_map.1 hMem with ⟨eoKey, hEoMem, hKeyEq⟩
-        exact List.mem_map.2 ⟨eoKey, List.mem_cons_of_mem _ hEoMem, hKeyEq⟩
-      · exact hAgreePush
-
-private theorem smt_model_eval_smtForall_eq_of_body_eval_eq_same_mapped
-    {vs : Term} {binderVars : List EoVarKey}
-    {exceptVars : List SmtVarKey} {M N : SmtModel}
-    {body body' : SmtTerm}
-    (hEnv : EoVarEnv vs binderVars)
-    (hSub :
-      ∀ key, key ∈ binderVars.map EoVarKey.toSmt -> key ∈ exceptVars)
-    (hAgree : model_agrees_except_on_env exceptVars [] M N)
-    (hBody :
-      ∀ {M' : SmtModel},
-        model_agrees_except_on_env exceptVars [] M' N ->
-          __smtx_model_eval M' body =
-            __smtx_model_eval M' body') :
-  __smtx_model_eval M (smtForall vs body) =
-    __smtx_model_eval M (smtForall vs body') := by
-  unfold smtForall
-  apply smtx_model_eval_not_eq_of_arg_eq_same
-  apply smt_model_eval_eo_to_smt_exists_eq_of_body_eval_eq_same_mapped
-    hEnv hSub hAgree
-  intro M' hAgree'
-  exact smtx_model_eval_not_eq_of_arg_eq_same (hBody hAgree')
 
 private theorem native_eval_texists_eq_of_body_eval_eq_same_typed
     {M : SmtModel} {s : native_String} {T : SmtType}
@@ -942,36 +839,6 @@ private theorem miniToSmt_eq_eo_to_smt_of_has_smt_translation :
       | _ =>
           rfl
 termination_by t => sizeOf t
-
-private theorem miniToSmt_type_bool_of_has_bool_type
-    (t : Term) :
-    RuleProofs.eo_has_bool_type t ->
-    __smtx_typeof (miniToSmt t) = SmtType.Bool := by
-  intro hBool
-  have hTrans :
-      RuleProofs.eo_has_smt_translation t :=
-    RuleProofs.eo_has_smt_translation_of_has_bool_type t hBool
-  rw [miniToSmt_eq_eo_to_smt_of_has_smt_translation t hTrans]
-  exact hBool
-
-private theorem qeq_rhs_non_none_of_has_bool_type
-    (A B : Term) :
-    RuleProofs.eo_has_bool_type (qeq A B) ->
-    __smtx_typeof (__eo_to_smt B) ≠ SmtType.None := by
-  intro hBool hNone
-  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-      A B hBool with
-    ⟨hSame, hLeftNN⟩
-  apply hLeftNN
-  rw [hSame, hNone]
-
-private theorem qeq_lhs_non_none_of_has_bool_type
-    (A B : Term) :
-    RuleProofs.eo_has_bool_type (qeq A B) ->
-    __smtx_typeof (__eo_to_smt A) ≠ SmtType.None := by
-  intro hBool
-  exact (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-    A B hBool).2
 
 private theorem miniToSmt_fallback_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped
     {t except : Term} {exceptVars : List EoVarKey}
@@ -2040,7 +1907,7 @@ private theorem quant_miniscope_or_formula_true
   exact RuleProofs.smt_value_rel_refl
     (__smtx_model_eval M (__eo_to_smt G))
 
-theorem cmd_step_quant_miniscope_or_properties
+public theorem cmd_step_quant_miniscope_or_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.quant_miniscope_or args premises) ->

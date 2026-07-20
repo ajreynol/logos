@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+
+public section
 
 open Eo
 open SmtEval
@@ -46,7 +51,7 @@ theorem typeof_extract_bit_of_bv
                 (__eo_add (Term.Numeral (native_nat_to_int start))
                   (__eo_neg (Term.Numeral (native_nat_to_int start))))
                 (Term.Numeral 1))
-              (Term.Numeral (-1 : native_Int)))
+              (Term.Numeral 0))
             (Term.Boolean true)
             (__eo_add
               (__eo_add (Term.Numeral (native_nat_to_int start))
@@ -1075,4 +1080,3 @@ theorem bitvec_eval_nat_payload
       simpa [native_int_pow2_nat w] using hRange.2
     exact_mod_cast hLt
   exact ⟨n, hEvalNat, hBound⟩
-

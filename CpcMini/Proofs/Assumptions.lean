@@ -1,6 +1,13 @@
-import CpcMini.Spec
-import CpcMini.Logos
-import CpcMini.SmtModel
+module
+
+public import CpcMini.Spec
+import all CpcMini.Spec
+public import CpcMini.Logos
+import all CpcMini.Logos
+public import CpcMini.SmtModel
+import all CpcMini.SmtModel
+
+public section
 
 open Eo
 open Smtm

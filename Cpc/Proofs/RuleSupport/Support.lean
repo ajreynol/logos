@@ -1,6 +1,13 @@
-import Cpc.Proofs.Common
-import Cpc.Proofs.Assumptions
-import Cpc.Proofs.Closed.Support
+module
+
+public import Cpc.Proofs.Common
+import all Cpc.Proofs.Common
+public import Cpc.Proofs.Assumptions
+import all Cpc.Proofs.Assumptions
+public import Cpc.Proofs.Closed.Support
+import all Cpc.Proofs.Closed.Support
+
+@[expose] public section
 
 open Eo
 open SmtEval
@@ -87,6 +94,38 @@ theorem smtx_eval_int_to_bv_term_eq
         (__smtx_model_eval M w) (__smtx_model_eval M x) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
+/-- Stable rewrite for evaluating SMT bit-vector negation terms. -/
+theorem smtx_eval_bvnot_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.bvnot x) =
+      __smtx_model_eval_bvnot (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT bit-vector comparison terms. -/
+theorem smtx_eval_bvcomp_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.bvcomp x y) =
+      __smtx_model_eval_bvcomp
+        (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT bit-vector literals. -/
+theorem smtx_eval_binary_term_eq
+    (M : SmtModel) (w k : native_Int) :
+    __smtx_model_eval M (SmtTerm.Binary w k) = SmtValue.Binary w k := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+@[simp] theorem smtx_eval_int_to_bv_numerals
+    (M : SmtModel) (w k : native_Int) :
+    __smtx_model_eval M
+        (SmtTerm.int_to_bv (SmtTerm.Numeral w) (SmtTerm.Numeral k)) =
+      SmtValue.Binary w (native_mod_total k (native_int_pow2 w)) := by
+  rw [smtx_eval_int_to_bv_term_eq]
+  change
+    __smtx_model_eval_int_to_bv (SmtValue.Numeral w) (SmtValue.Numeral k) =
+      SmtValue.Binary w (native_mod_total k (native_int_pow2 w))
+  rfl
+
 theorem support_eo_requires_cond_eq_of_non_stuck {x y z : Term}
     (h : __eo_requires x y z ≠ Term.Stuck) :
     x = y := by
@@ -140,9 +179,9 @@ theorem bv_width_eq_of_typeof_bvand_at_bv_left_bool (n w : Term)
     (hTy :
       __eo_typeof_eq
         (__eo_typeof_bvand
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int))
           (Term.Apply (Term.UOp UserOp.BitVec) w))
-        (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n) =
+        (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int)) =
       Term.Bool) :
     w = n := by
   have hTy' :
@@ -154,7 +193,7 @@ theorem bv_width_eq_of_typeof_bvand_at_bv_left_bool (n w : Term)
         (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)) =
       Term.Bool := by
-    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+    simpa [__eo_typeof_int_to_bv, hNTy, hN] using hTy
   have hAtReqNN :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
@@ -199,7 +238,7 @@ theorem bv_width_eq_of_typeof_bvand_at_bv_right_bool (w n : Term)
     (hTy :
       __eo_typeof_eq
         (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int)))
         (Term.Apply (Term.UOp UserOp.BitVec) w) =
       Term.Bool) :
     n = w := by
@@ -210,7 +249,7 @@ theorem bv_width_eq_of_typeof_bvand_at_bv_right_bool (w n : Term)
             (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
         (Term.Apply (Term.UOp UserOp.BitVec) w) =
       Term.Bool := by
-    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+    simpa [__eo_typeof_int_to_bv, hNTy, hN] using hTy
   have hAtReqNN :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
@@ -253,8 +292,8 @@ theorem bv_width_eq_of_typeof_bvand_at_bv_right_at_bv_bool (w n : Term)
     (hTy :
       __eo_typeof_eq
         (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))
-        (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n) =
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int)))
+        (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int)) =
       Term.Bool) :
     n = w := by
   have hTy' :
@@ -265,7 +304,7 @@ theorem bv_width_eq_of_typeof_bvand_at_bv_right_at_bv_bool (w n : Term)
         (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)) =
       Term.Bool := by
-    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+    simpa [__eo_typeof_int_to_bv, hNTy, hN] using hTy
   have hAtReqNN :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
@@ -310,9 +349,9 @@ theorem bv_width_eq_of_typeof_bvand_at_bv_right_bvnot_at_bv_bool
     (hTy :
       __eo_typeof_eq
         (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int)))
         (__eo_typeof_bvnot
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)) =
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int))) =
       Term.Bool) :
     n = w := by
   have hTy' :
@@ -324,7 +363,7 @@ theorem bv_width_eq_of_typeof_bvand_at_bv_right_bvnot_at_bv_bool
           (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
             (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))) =
       Term.Bool := by
-    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+    simpa [__eo_typeof_int_to_bv, hNTy, hN] using hTy
   have hAtReqNN :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
@@ -369,7 +408,7 @@ theorem bv_width_eq_of_typeof_bvult_at_bv_left_bool (n w : Term)
     (hTy :
       __eo_typeof_eq
         (__eo_typeof_bvult
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int))
           (Term.Apply (Term.UOp UserOp.BitVec) w))
         Term.Bool =
       Term.Bool) :
@@ -382,7 +421,7 @@ theorem bv_width_eq_of_typeof_bvult_at_bv_left_bool (n w : Term)
           (Term.Apply (Term.UOp UserOp.BitVec) w))
         Term.Bool =
       Term.Bool := by
-    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+    simpa [__eo_typeof_int_to_bv, hNTy, hN] using hTy
   have hAtReqNN :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
@@ -424,7 +463,7 @@ theorem bv_width_eq_of_typeof_bvult_at_bv_right_bool (w n : Term)
     (hTy :
       __eo_typeof_eq
         (__eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) w)
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int)))
         Term.Bool =
       Term.Bool) :
     n = w := by
@@ -435,7 +474,7 @@ theorem bv_width_eq_of_typeof_bvult_at_bv_right_bool (w n : Term)
             (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
         Term.Bool =
       Term.Bool := by
-    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+    simpa [__eo_typeof_int_to_bv, hNTy, hN] using hTy
   have hAtReqNN :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
@@ -476,9 +515,9 @@ theorem bv_width_eq_of_typeof_bvult_at_bv_right_eq_bool (w n : Term)
     (hTy :
       __eo_typeof_eq
         (__eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) w)
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int)))
         (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)) =
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int))) =
       Term.Bool) :
     n = w := by
   have hTy' :
@@ -490,7 +529,7 @@ theorem bv_width_eq_of_typeof_bvult_at_bv_right_eq_bool (w n : Term)
           (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
             (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))) =
       Term.Bool := by
-    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+    simpa [__eo_typeof_int_to_bv, hNTy, hN] using hTy
   have hAtReqNN :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
@@ -539,7 +578,7 @@ theorem bv_width_eq_of_typeof_bvult_at_bv_right_eq_bool (w n : Term)
             (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
               (Term.Apply (Term.UOp UserOp.BitVec) n)) =
           Term.Bool := by
-      simpa [__eo_typeof__at_bv, hNTy, hN, hAtReqEq] using hTy
+      simpa [__eo_typeof_int_to_bv, hNTy, hN, hAtReqEq] using hTy
     rw [hLeftStuck, hRightStuck] at hTy''
     simp [__eo_typeof_eq] at hTy''
 
@@ -549,11 +588,11 @@ theorem bv_width_eq_of_typeof_bvult_at_bv_left_not_eq_bool (n w : Term)
     (hTy :
       __eo_typeof_eq
         (__eo_typeof_bvult
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int))
           (Term.Apply (Term.UOp UserOp.BitVec) w))
         (__eo_typeof_not
           (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
-            (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))) =
+            (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int)))) =
       Term.Bool) :
     n = w := by
   have hTy' :
@@ -567,7 +606,7 @@ theorem bv_width_eq_of_typeof_bvult_at_bv_left_not_eq_bool (n w : Term)
             (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
               (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))) =
       Term.Bool := by
-    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+    simpa [__eo_typeof_int_to_bv, hNTy, hN] using hTy
   have hAtReqNN :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
@@ -599,7 +638,7 @@ theorem bv_width_eq_of_typeof_bvult_at_bv_left_not_eq_bool (n w : Term)
               (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
                 (Term.Apply (Term.UOp UserOp.BitVec) n))) =
           Term.Bool := by
-      simpa [__eo_typeof__at_bv, hNTy, hN, hAtReqEq] using hTy
+      simpa [__eo_typeof_int_to_bv, hNTy, hN, hAtReqEq] using hTy
     rw [hLeftStuck] at hTy''
     simp [__eo_typeof_eq] at hTy''
 
@@ -710,12 +749,18 @@ theorem smtx_eval_qdiv_term_eq
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 /-- Stable rewrite for evaluating SMT choice witnesses. -/
-noncomputable def smtx_eval_choice_nth_term_eq
-    (M : SmtModel) (s : native_String) (T : SmtType)
-    (body : SmtTerm) (n : native_Nat) :
-    __smtx_model_eval M (SmtTerm.choice_nth s T body n) =
-      native_eval_tchoice_nth M s T body n := by
-  rfl
+theorem smtx_eval_choice_term_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.choice s T body) =
+      native_eval_tchoice M s T body := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT let-bindings. -/
+theorem smtx_eval_bind_term_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) (x1 x2 : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.bind s T x1 x2) =
+      __smtx_model_eval (native_model_push M s T (__smtx_model_eval M x1)) x2 := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
 
 /-- Stable rewrite for evaluating SMT variables. -/
 theorem smtx_eval_var_term_eq
@@ -725,10 +770,19 @@ theorem smtx_eval_var_term_eq
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 /-- Stable rewrite for typing SMT choice witnesses. -/
-theorem smtx_typeof_choice_nth_term_eq
-    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat) :
-    __smtx_typeof (SmtTerm.choice_nth s T body n) =
-      __smtx_typeof_choice_nth T body n := by
+theorem smtx_typeof_choice_term_eq
+    (s : native_String) (T : SmtType) (body : SmtTerm) :
+    __smtx_typeof (SmtTerm.choice s T body) =
+      native_ite (native_Teq (__smtx_typeof body) SmtType.Bool)
+        (__smtx_typeof_guard_wf T T) SmtType.None := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT let-bindings. -/
+theorem smtx_typeof_bind_term_eq
+    (s : native_String) (T : SmtType) (x1 x2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.bind s T x1 x2) =
+      native_ite (native_Teq (__smtx_typeof x1) T)
+        (__smtx_typeof_guard_wf T (__smtx_typeof x2)) SmtType.None := by
   rw [__smtx_typeof.eq_def] <;> simp only
 
 /-- Stable rewrite for typing SMT existential terms. -/
@@ -797,6 +851,33 @@ theorem smtx_typeof_int_to_bv_term_eq
     __smtx_typeof (SmtTerm.int_to_bv w x) =
       __smtx_typeof_int_to_bv w (__smtx_typeof x) := by
   rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT bit-vector negation terms. -/
+theorem smtx_typeof_bvnot_term_eq
+    (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.bvnot x) =
+      __smtx_typeof_bv_op_1 (__smtx_typeof x) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT bit-vector comparison terms. -/
+theorem smtx_typeof_bvcomp_term_eq
+    (x y : SmtTerm) :
+    __smtx_typeof (SmtTerm.bvcomp x y) =
+      __smtx_typeof_bv_op_2_ret
+        (__smtx_typeof x) (__smtx_typeof y) (SmtType.BitVec 1) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+@[simp] theorem smtx_typeof_int_to_bv_numerals
+    (w k : native_Int)
+    (hNonneg : native_zleq 0 w = true) :
+    __smtx_typeof
+        (SmtTerm.int_to_bv (SmtTerm.Numeral w) (SmtTerm.Numeral k)) =
+      SmtType.BitVec (native_int_to_nat w) := by
+  rw [smtx_typeof_int_to_bv_term_eq]
+  change
+    __smtx_typeof_int_to_bv (SmtTerm.Numeral w) SmtType.Int =
+      SmtType.BitVec (native_int_to_nat w)
+  simp [__smtx_typeof_int_to_bv, native_ite, hNonneg]
 
 /-- Builds the right-associated conjunction of a list of premise terms, using `true` as the empty case. -/
 def premiseAndFormulaList : List Term -> Term

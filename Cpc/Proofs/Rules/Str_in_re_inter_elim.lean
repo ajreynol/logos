@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ReInclusionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReInclusionSupport
+import all Cpc.Proofs.RuleSupport.ReInclusionSupport
 
 open Eo
 open SmtEval
@@ -117,24 +120,6 @@ private theorem smtx_typeof_of_eo_reglan
     TranslationProofs.eo_to_smt_typeof_matches_translation a hTrans
   rw [hTy] at hTyRaw
   simpa [TranslationProofs.eo_to_smt_type_reglan] using hTyRaw
-
-private theorem smtx_typeof_re_inter_args_of_reglan (x y : Term) :
-    __smtx_typeof (__eo_to_smt (mkReInter x y)) = SmtType.RegLan ->
-    __smtx_typeof (__eo_to_smt x) = SmtType.RegLan ∧
-      __smtx_typeof (__eo_to_smt y) = SmtType.RegLan := by
-  intro hTy
-  have hTy' :
-      __smtx_typeof (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt y)) =
-        SmtType.RegLan := by
-    simpa [mkReInter] using hTy
-  have hNN :
-      term_has_non_none_type
-        (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt y)) := by
-    unfold term_has_non_none_type
-    rw [hTy']
-    simp
-  exact reglan_binop_args_of_non_none (op := SmtTerm.re_inter)
-    (typeof_re_inter_eq (__eo_to_smt x) (__eo_to_smt y)) hNN
 
 private theorem smtx_typeof_re_inter_of_args (x y : Term) :
     __smtx_typeof (__eo_to_smt x) = SmtType.RegLan ->
@@ -313,7 +298,7 @@ private theorem facts
 
 end StrInReInterElimProof
 
-theorem cmd_step_str_in_re_inter_elim_properties
+public theorem cmd_step_str_in_re_inter_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_inter_elim args premises) ->

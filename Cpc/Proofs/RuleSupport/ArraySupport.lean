@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.Canonical.CardinalityAssumptions
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.Canonical.CardinalityAssumptions
+import all Cpc.Proofs.Canonical.CardinalityAssumptions
+
+public section
 
 open Eo
 open SmtEval
@@ -136,13 +142,6 @@ private theorem eq_of_native_veq_true {v1 v2 : SmtValue}
     (h : native_veq v1 v2 = true) :
     v1 = v2 := by
   simpa [native_veq] using h
-
-private theorem ne_of_native_veq_false {v1 v2 : SmtValue}
-    (h : native_veq v1 v2 = false) :
-    v1 ≠ v2 := by
-  intro hEq
-  subst v2
-  simp [native_veq] at h
 
 theorem smt_value_rel_store_overwrite
     (v i e f : SmtValue)

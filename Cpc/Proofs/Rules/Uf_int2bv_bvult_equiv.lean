@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.Proofs.TypePreservation.BitVecCmp
 
 open Eo
 open SmtEval
@@ -21,15 +25,6 @@ private abbrev ubvLtTerm (t s : Term) : Term :=
 
 private abbrev ufInt2bvBvultConclusion (t s : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) (bvultTerm t s)) (ubvLtTerm t s)
-
-private theorem eo_to_smt_ubv_to_int_eq (t : Term) :
-    __eo_to_smt (ubvToIntTerm t) = SmtTerm.ubv_to_int (__eo_to_smt t) := by
-  rfl
-
-private theorem eo_to_smt_lt_eq (a b : Term) :
-    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.lt) a) b) =
-      SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b) := by
-  rfl
 
 private theorem smtx_eval_lt_term_eq
     (M : SmtModel) (x y : SmtTerm) :
@@ -240,7 +235,7 @@ private theorem smt_typeof_bvult_term_eq
   cases hM
   change __smtx_typeof (SmtTerm.bvult (__eo_to_smt t1) (__eo_to_smt s1)) =
     SmtType.Bool
-  rw [__smtx_typeof.eq_55]
+  rw [__smtx_typeof.eq_53]
   simp [__smtx_typeof_bv_op_2_ret, hT1SmtTy, hS1SmtTy, native_nateq,
     native_ite]
 
@@ -327,7 +322,7 @@ private theorem eval_bvult_matches_ubv_lt
     __smtx_model_eval M
       (SmtTerm.lt (SmtTerm.ubv_to_int (__eo_to_smt t1))
         (SmtTerm.ubv_to_int (__eo_to_smt s1)))
-  rw [__smtx_model_eval.eq_55, smtx_eval_lt_term_eq,
+  rw [__smtx_model_eval.eq_53, smtx_eval_lt_term_eq,
     smtx_eval_ubv_to_int_term_eq, smtx_eval_ubv_to_int_term_eq, hEvalT,
     hEvalS]
   simp [__smtx_model_eval_bvult, __smtx_model_eval_bvugt,
@@ -356,7 +351,7 @@ private theorem facts___eo_prog_uf_int2bv_bvult_equiv_impl
     rw [eval_bvult_matches_ubv_lt M hM t1 s1 hT1Trans hS1Trans hResultTy]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_uf_int2bv_bvult_equiv_properties
+public theorem cmd_step_uf_int2bv_bvult_equiv_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.uf_int2bv_bvult_equiv args premises) ->

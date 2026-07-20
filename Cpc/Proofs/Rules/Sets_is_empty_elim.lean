@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.SetsMemberSupport
-import Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.SetsMemberSupport
+import all Cpc.Proofs.RuleSupport.SetsMemberSupport
+public import Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
+import all Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
 
 open Eo
 open SmtEval
@@ -191,7 +196,7 @@ private theorem facts___eo_prog_sets_is_empty_elim_impl
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt (setsIsEmptyRhs a1 T0)))
 
-theorem cmd_step_sets_is_empty_elim_properties
+public theorem cmd_step_sets_is_empty_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_is_empty_elim args premises) ->

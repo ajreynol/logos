@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -226,18 +230,6 @@ private theorem smt_value_rel_model_eval_str_to_upper_of_rel
   · have hEq := (RuleProofs.smt_value_rel_iff_eq a b hReg).mp hRel
     subst b
     exact RuleProofs.smt_value_rel_refl _
-
-private theorem map_native_ssm_char_of_value_char :
-    ∀ s : native_String,
-      List.map (native_ssm_char_of_value ∘ SmtValue.Char) s = s
-  | [] => rfl
-  | c :: cs => by
-      simp [Function.comp_def, native_ssm_char_of_value]
-
-private theorem native_unpack_string_pack_string (s : native_String) :
-    native_unpack_string (native_pack_string s) = s := by
-  simp [native_unpack_string, native_pack_string, Smtm.native_unpack_pack_seq,
-    map_native_ssm_char_of_value_char]
 
 private theorem native_str_to_upper_append (a b : native_String) :
     native_str_to_upper (a ++ b) =
@@ -620,7 +612,7 @@ private theorem facts___eo_prog_str_to_upper_concat_impl
   exact RuleProofs.eo_interprets_eq_of_rel M _ _ hBoolEq
     (RuleProofs.smt_value_rel_symm _ _ hRhsToLhs)
 
-theorem cmd_step_str_to_upper_concat_properties
+public theorem cmd_step_str_to_upper_concat_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_to_upper_concat args premises) ->

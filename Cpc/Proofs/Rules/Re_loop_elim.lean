@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ReLoopElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReLoopElimSupport
+import all Cpc.Proofs.RuleSupport.ReLoopElimSupport
 
 open Eo
 open SmtEval
@@ -46,17 +49,6 @@ private theorem eo_requires_arg_eq_of_ne_stuck
   · have hStuck : __eo_requires x y z = Term.Stuck := by
       simp [__eo_requires, native_teq, native_ite, hxy]
     exact False.elim (hReq hStuck)
-
-private theorem eo_requires_left_ne_stuck_of_ne_stuck
-    {x y z : Term} :
-    __eo_requires x y z ≠ Term.Stuck ->
-    x ≠ Term.Stuck := by
-  intro hReq hx
-  have hStuck : __eo_requires x y z = Term.Stuck := by
-    subst x
-    simp [__eo_requires, native_teq, native_ite, native_not,
-      SmtEval.native_not]
-  exact hReq hStuck
 
 private theorem re_loop_translation_types
     (lo hi : native_Int) (r rhs : Term)
@@ -263,7 +255,7 @@ private theorem re_loop_elim_canonical_true
           RuleProofs.eo_interprets_eq_of_rel M loopTerm rhs hOrigBool hRel
       simpa [orig] using hFact
 
-theorem cmd_step_re_loop_elim_properties
+public theorem cmd_step_re_loop_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_loop_elim args premises) ->

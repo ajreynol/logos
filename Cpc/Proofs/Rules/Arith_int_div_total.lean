@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -52,7 +55,7 @@ private theorem smtx_eval_div_total_term_eq
     __smtx_model_eval M (SmtTerm.div_total x y) =
       __smtx_model_eval_div_total
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
-  rw [__smtx_model_eval.eq_30]
+  rw [__smtx_model_eval.eq_29]
 
 private theorem smtx_typeof_of_eo_int
     (a : Term)
@@ -224,7 +227,7 @@ private theorem facts___eo_prog_arith_int_div_total_impl
       exact RuleProofs.smt_value_rel_refl
         (SmtValue.Numeral (native_div_total ti si))
 
-theorem cmd_step_arith_int_div_total_properties
+public theorem cmd_step_arith_int_div_total_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_int_div_total args premises) ->

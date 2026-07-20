@@ -1,9 +1,19 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.RuleSupport.CongSupport
-import Cpc.Proofs.RuleSupport.DatatypeSupport
-import Cpc.Proofs.Translation.Apply
-import Cpc.Proofs.TypePreservation.Helpers
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.CongSupport
+import all Cpc.Proofs.RuleSupport.CongSupport
+public import Cpc.Proofs.RuleSupport.DatatypeSupport
+import all Cpc.Proofs.RuleSupport.DatatypeSupport
+public import Cpc.Proofs.Translation.Apply
+import all Cpc.Proofs.Translation.Apply
+public import Cpc.Proofs.TypePreservation.Helpers
+import all Cpc.Proofs.TypePreservation.Helpers
+
+public section
 
 open Eo
 open SmtEval
@@ -301,7 +311,7 @@ private theorem vsm_apply_ext
     v = w :=
   vsm_apply_ext_aux (vsm_num_apply_args v) v w rfl hHead hCount hArgs
 
-private def tuplePrependValueRec
+def tuplePrependValueRec
     (tailD : SmtDatatype) (tailVal : SmtValue) : Nat -> SmtValue -> SmtValue
   | 0, acc => acc
   | Nat.succ k, acc =>
@@ -442,6 +452,8 @@ private theorem smtx_model_eval_apply_eq_apply_of_not_dt_ops
     __smtx_model_eval M (SmtTerm.Apply f x) =
       __smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x) := by
   cases f <;> simp [__smtx_model_eval]
+  case DtSel s d i j => exact False.elim (hSel s d i j rfl)
+  case DtTester s d i => exact False.elim (hTester s d i rfl)
 
 private theorem tuple_prepend_rec_ne_dt_sel
     (tailD : SmtDatatype) (tail acc : SmtTerm)
@@ -566,7 +578,7 @@ private theorem tuple_prepend_rec_eval_eq_value_rec
           (__smtx_dt_num_sels tailD native_nat_zero))
         hRecHead hArgNot
 
-private theorem tuple_prepend_eval_eq_value_rec
+theorem tuple_prepend_eval_eq_value_rec
     (M : SmtModel) (hM : model_total_typed M)
     (head tail : SmtTerm) (headTy : SmtType) (c : SmtDatatypeCons)
     (hHeadTy : __smtx_typeof head = headTy)
@@ -3789,24 +3801,6 @@ private theorem ctorSpineEq_root_cases
       exact Or.inr (Or.inr ⟨s, d, i, rfl⟩)
   | app x y hSp ih =>
       exact ih
-
-private theorem ctorSpineRoot_of_dt_cons_condition
-    (c : Term) :
-    __eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple)) (Term.Boolean true)
-      (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple_unit)) (Term.Boolean true)
-        (__eo_is_ok (__eo_dt_selectors c))) = Term.Boolean true ->
-    ∃ root, CtorSpineRoot c root := by
-  intro h
-  cases c <;>
-    simp [__eo_is_eq, __eo_ite, __eo_is_ok, __eo_dt_selectors,
-      __eo_dt_selectors_main, native_ite, native_teq, native_and, native_not,
-      SmtEval.native_and, SmtEval.native_not] at h
-  case UOp op =>
-    cases op <;> simp  at h
-    · exact ⟨Term.UOp UserOp.tuple_unit, CtorSpineRoot.tupleUnit⟩
-    · exact ⟨Term.UOp UserOp.tuple, CtorSpineRoot.tuple⟩
-  case DtCons s d i =>
-    exact ⟨Term.DtCons s d i, CtorSpineRoot.dtCons s d i⟩
 
 private theorem ctorSpineRoot_of_is_cons_app_true
     (t : Term) :

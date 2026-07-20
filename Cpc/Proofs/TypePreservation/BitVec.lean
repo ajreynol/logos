@@ -1,4 +1,10 @@
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.SmtModel
+import all Cpc.Proofs.TypePreservation.Common
+
+public section
 
 open SmtEval
 open Smtm
@@ -201,14 +207,14 @@ theorem typeof_value_model_eval_bvsrem_value
   have hn1 : __smtx_typeof_value (__smtx_model_eval_bvneg (__smtx_model_eval_bvurem v1 (SmtValue.Binary w n2))) =
       SmtType.BitVec (native_int_to_nat w) := by
     exact typeof_value_model_eval_bvneg_of_bitvec hu1
-  have hn2 : __smtx_typeof_value (__smtx_model_eval_bvneg (__smtx_model_eval_bvurem (SmtValue.Binary w n1) v0)) =
+  have hn3 : __smtx_typeof_value (__smtx_model_eval_bvneg (__smtx_model_eval_bvurem v1 v0)) =
       SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_model_eval_bvneg_of_bitvec hu2
+    exact typeof_value_model_eval_bvneg_of_bitvec hu3
   unfold __smtx_model_eval_bvsrem
   simpa [v0, v1, v3, v4, v5, v6, v7, v8] using
     (typeof_value_model_eval_ite_of_bool h78 hu0
       (typeof_value_model_eval_ite_of_bool h68 hn1
-        (typeof_value_model_eval_ite_of_bool h75 hn2 hu3)))
+        (typeof_value_model_eval_ite_of_bool h75 hu2 hn3)))
 
 /-- Shows that evaluating `bvsrem` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsrem

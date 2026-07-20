@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
 
 open Eo
 open SmtEval
@@ -253,21 +257,6 @@ private theorem smtExistsOfBinders_dup
   have hPropEq : P = Q := propext hPQ
   simp [smtExistsOfBinders, __smtx_model_eval, P, Q, rest, hPropEq]
 
-private theorem smtExistsOfBinders_cons_erase
-    (body : SmtTerm) {b : QuantBinder} {xs : List QuantBinder}
-    (hMem : b ∈ xs) :
-    ∀ M,
-      __smtx_model_eval M (smtExistsOfBinders (b :: xs) body) =
-        __smtx_model_eval M (smtExistsOfBinders xs body) := by
-  intro M
-  have hPerm : (b :: xs).Perm (b :: b :: xs.erase b) :=
-    List.Perm.cons b (List.perm_cons_erase hMem)
-  exact
-    (smtExistsOfBinders_eval_perm body hPerm M).trans
-      ((smtExistsOfBinders_dup M b (xs.erase b) body).trans
-        (smtExistsOfBinders_eval_perm body
-          (List.perm_cons_erase hMem).symm M))
-
 private theorem smtExistsOfBinders_append
     (xs ys : List QuantBinder) (body : SmtTerm) :
   smtExistsOfBinders xs (smtExistsOfBinders ys body) =
@@ -338,21 +327,6 @@ by
   | cons hTail ih =>
       rename_i s T env tailVars
       simp [smtExistsOfBinders, EoVarKey.toSmt, ih]
-
-private theorem smtx_model_eval_eo_to_smt_exists_perm
-    (M : SmtModel) (body : SmtTerm)
-    {xs ys : Term} {xVars yVars : List EoVarKey}
-    (hX : EoVarEnv xs xVars)
-    (hY : EoVarEnv ys yVars)
-    (hPerm :
-      (xVars.map EoVarKey.toSmt).Perm
-        (yVars.map EoVarKey.toSmt)) :
-  __smtx_model_eval M (__eo_to_smt_exists xs body) =
-    __smtx_model_eval M (__eo_to_smt_exists ys body) :=
-by
-  rw [eo_to_smt_exists_eq_smtExistsOfBinders hX body]
-  rw [eo_to_smt_exists_eq_smtExistsOfBinders hY body]
-  exact smtExistsOfBinders_eval_perm body hPerm M
 
 private theorem smtx_model_eval_eo_to_smt_exists_nested_of_subset
     (M : SmtModel) {xs ys : Term} {xVars yVars : List EoVarKey}
@@ -2092,53 +2066,6 @@ by
       rw [hBody w hwTy hwCanBool, hEvalBody]
     simp [__smtx_model_eval, hSat]
 
-private theorem smtx_model_eval_forall_eq_body_of_body_eval_eq
-    (M : SmtModel) (hM : model_total_typed M)
-    (s : native_String) (T : SmtType) (body : SmtTerm)
-    (hWF : __smtx_type_wf T = true)
-    (hBodyTy : __smtx_typeof body = SmtType.Bool)
-    (hBody :
-      ∀ v : SmtValue,
-        __smtx_typeof_value v = T ->
-          __smtx_value_canonical_bool v = true ->
-            __smtx_model_eval (native_model_push M s T v) body =
-              __smtx_model_eval M body) :
-  __smtx_model_eval M (SmtTerm.forall s T body) =
-    __smtx_model_eval M body :=
-by
-  classical
-  rcases smt_model_eval_bool_is_boolean M hM body hBodyTy with
-    ⟨b, hEvalBody⟩
-  rcases canonical_type_inhabited_of_type_wf T hWF with
-    ⟨w, hwTy, hwCan⟩
-  have hwCanBool : __smtx_value_canonical_bool w = true := by
-    simpa [__smtx_value_canonical] using hwCan
-  cases b
-  · rw [hEvalBody]
-    have hNotAll :
-        ¬ ∀ v : SmtValue,
-          __smtx_typeof_value v = T ->
-            __smtx_value_canonical_bool v = true ->
-              __smtx_model_eval (native_model_push M s T v) body =
-                SmtValue.Boolean true := by
-      intro hAll
-      have hConst := hBody w hwTy hwCanBool
-      rw [hEvalBody] at hConst
-      have hTrue := hAll w hwTy hwCanBool
-      rw [hConst] at hTrue
-      cases hTrue
-    simp [__smtx_model_eval, hNotAll]
-  · rw [hEvalBody]
-    have hAll :
-        ∀ v : SmtValue,
-          __smtx_typeof_value v = T ->
-            __smtx_value_canonical_bool v = true ->
-              __smtx_model_eval (native_model_push M s T v) body =
-        SmtValue.Boolean true := by
-      intro v hvTy hvCan
-      rw [hBody v hvTy hvCan, hEvalBody]
-    simpa [__smtx_model_eval] using hAll
-
 private theorem smtx_typeof_eo_to_smt_exists_eq_bool_of_eo_var_env
     {xs : Term} {vars : List EoVarKey} {body : SmtTerm}
     (hEnv : EoVarEnv xs vars)
@@ -3098,7 +3025,7 @@ by
         hYSubsetXSmt hFBodyTy hYWf
     exact hNested.symm.trans hDropOuter
 
-theorem cmd_step_quant_unused_vars_properties
+public theorem cmd_step_quant_unused_vars_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.quant_unused_vars args premises) ->

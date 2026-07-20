@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -235,7 +238,7 @@ private theorem facts___eo_prog_sets_singleton_inj_impl
   | _ =>
       simp [__eo_prog_sets_singleton_inj] at hProg
 
-theorem cmd_step_sets_singleton_inj_properties
+public theorem cmd_step_sets_singleton_inj_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_singleton_inj args premises) ->

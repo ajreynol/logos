@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -46,41 +50,6 @@ private theorem eo_requires_body_ne_stuck_of_ne_stuck (x y z : Term) :
   · subst z
     simp [__eo_requires, hxStuck, native_teq, native_ite, native_not,
       SmtEval.native_not] at hReq
-
-private theorem eo_requires_left_ne_stuck_of_ne_stuck (x y z : Term) :
-    __eo_requires x y z ≠ Term.Stuck ->
-    x ≠ Term.Stuck := by
-  intro hReq hx
-  subst x
-  simp [__eo_requires, native_teq, native_ite, native_not,
-    SmtEval.native_not] at hReq
-
-private theorem eo_ite_eq_true_cases (c t e : Term) :
-    __eo_ite c t e = Term.Boolean true ->
-    (c = Term.Boolean true ∧ t = Term.Boolean true) ∨
-      (c = Term.Boolean false ∧ e = Term.Boolean true) := by
-  intro h
-  cases c <;> simp [__eo_ite, native_ite, native_teq] at h
-  case Boolean b =>
-    cases b
-    · exact Or.inr ⟨rfl, h⟩
-    · exact Or.inl ⟨rfl, h⟩
-  all_goals
-    exact Or.inr ⟨rfl, h⟩
-
-private theorem eq_of_eo_eq_true_local (x y : Term) :
-    __eo_eq x y = Term.Boolean true ->
-    y = x := by
-  intro h
-  by_cases hx : x = Term.Stuck
-  · subst x
-    simp [__eo_eq] at h
-  · by_cases hy : y = Term.Stuck
-    · subst y
-      simp [__eo_eq] at h
-    · have hDec : native_teq y x = true := by
-        simpa [__eo_eq, hx, hy] using h
-      simpa [native_teq] using hDec
 
 private inductive AbsorbTree (f zero : Term) : Term -> Prop where
   | here : AbsorbTree f zero zero
@@ -679,7 +648,7 @@ private theorem bvand_args_of_bitvec_type (y x : Term) (w : native_Nat) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_39]) hNN with
+        rw [__smtx_typeof.eq_37]) hNN with
     ⟨w', hyTy, hxTy⟩
   have hWidth : w' = w := by
     have hResult :
@@ -689,7 +658,7 @@ private theorem bvand_args_of_bitvec_type (y x : Term) (w : native_Nat) :
             __smtx_typeof_bv_op_2
               (__smtx_typeof (__eo_to_smt y))
               (__smtx_typeof (__eo_to_smt x)) by
-          rw [__smtx_typeof.eq_39]] at hTy'
+          rw [__smtx_typeof.eq_37]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite,
         native_nateq, SmtEval.native_nateq] using hTy'
     cases hResult
@@ -718,7 +687,7 @@ private theorem bvor_args_of_bitvec_type (y x : Term) (w : native_Nat) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_40]) hNN with
+        rw [__smtx_typeof.eq_38]) hNN with
     ⟨w', hyTy, hxTy⟩
   have hWidth : w' = w := by
     have hResult :
@@ -728,7 +697,7 @@ private theorem bvor_args_of_bitvec_type (y x : Term) (w : native_Nat) :
             __smtx_typeof_bv_op_2
               (__smtx_typeof (__eo_to_smt y))
               (__smtx_typeof (__eo_to_smt x)) by
-          rw [__smtx_typeof.eq_40]] at hTy'
+          rw [__smtx_typeof.eq_38]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite,
         native_nateq, SmtEval.native_nateq] using hTy'
     cases hResult
@@ -754,12 +723,12 @@ private theorem bvand_result_type_of_non_none (y x : Term) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_39]) hNN with
+        rw [__smtx_typeof.eq_37]) hNN with
     ⟨w, hyTy, hxTy⟩
   refine ⟨w, ?_, hyTy, hxTy⟩
   change __smtx_typeof (SmtTerm.bvand (__eo_to_smt y) (__eo_to_smt x)) =
     SmtType.BitVec w
-  rw [__smtx_typeof.eq_39]
+  rw [__smtx_typeof.eq_37]
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
     SmtEval.native_nateq]
 
@@ -781,12 +750,12 @@ private theorem bvor_result_type_of_non_none (y x : Term) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_40]) hNN with
+        rw [__smtx_typeof.eq_38]) hNN with
     ⟨w, hyTy, hxTy⟩
   refine ⟨w, ?_, hyTy, hxTy⟩
   change __smtx_typeof (SmtTerm.bvor (__eo_to_smt y) (__eo_to_smt x)) =
     SmtType.BitVec w
-  rw [__smtx_typeof.eq_40]
+  rw [__smtx_typeof.eq_38]
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
     SmtEval.native_nateq]
 
@@ -821,15 +790,6 @@ private theorem native_int_pow2_nat (w : Nat) :
     native_int_pow2 (native_nat_to_int w) = (2 ^ w : Int) := by
   have h : ¬ (↑w : Int) < 0 := by simp
   simp [native_int_pow2, native_zexp_total, native_nat_to_int, h]
-
-private theorem native_mod_pow2_eq_bitvec_toNat (w : Nat) (n : Int) :
-    native_mod_total n (native_int_pow2 (native_nat_to_int w)) =
-      ((BitVec.ofInt w n).toNat : Int) := by
-  rw [native_int_pow2_nat]
-  change n % (2 ^ w : Int) = ((BitVec.ofInt w n).toNat : Int)
-  rw [BitVec.toNat_ofInt]
-  have hpow : 0 < (2 ^ w : Int) := by exact_mod_cast Nat.two_pow_pos w
-  exact (Int.toNat_of_nonneg (Int.emod_nonneg n (Int.ne_of_gt hpow))).symm
 
 private theorem native_binary_and_mod_eq_toNat
     (w : Nat) (n1 n2 : Int) :
@@ -1722,7 +1682,7 @@ private theorem eo_prog_absorb_interprets_true
         all_goals
           exact False.elim (eo_typeof_stuck_ne_bool hResultTy)
 
-theorem cmd_step_absorb_properties
+public theorem cmd_step_absorb_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.absorb args premises) ->

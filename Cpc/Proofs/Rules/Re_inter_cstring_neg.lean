@@ -1,4 +1,7 @@
-import Cpc.Proofs.Rules.Re_inter_cstring
+module
+
+public import Cpc.Proofs.RuleSupport.ReInterCstringSupport
+import all Cpc.Proofs.RuleSupport.ReInterCstringSupport
 
 open Eo
 open SmtEval
@@ -253,7 +256,7 @@ private theorem facts
 
 end ReInterCstringNegProof
 
-theorem cmd_step_re_inter_cstring_neg_properties
+public theorem cmd_step_re_inter_cstring_neg_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_inter_cstring_neg args premises) ->

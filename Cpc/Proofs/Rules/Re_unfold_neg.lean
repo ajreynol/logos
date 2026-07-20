@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -111,7 +115,7 @@ theorem smtx_typeof_idxVar :
   change __smtx_typeof (SmtTerm.Var idxName SmtType.Int) = SmtType.Int
   have hWF : __smtx_type_wf SmtType.Int = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and]
+      __smtx_type_no_alias_rec, native_and]
   simp [__smtx_typeof, __smtx_typeof_guard_wf, hWF, native_ite]
 
 theorem smtx_typeof_zero :
@@ -238,7 +242,8 @@ private theorem smtx_typeof_exists_int_bool_of_body_bool (body : SmtTerm) :
   have hGuard :
       __smtx_typeof_guard_wf SmtType.Int SmtType.Bool = SmtType.Bool := by
     simp [__smtx_typeof_guard_wf, __smtx_type_wf,
-      __smtx_type_wf_component, __smtx_type_wf_rec, native_and,
+      __smtx_type_wf_component, __smtx_type_wf_rec,
+      __smtx_type_no_alias_rec, native_and,
       native_ite]
   rw [typeof_exists_eq_local]
   simp [hBody, hGuard, native_ite, native_Teq]
@@ -414,12 +419,6 @@ private theorem native_unpack_seq_pack_seq (T : SmtType) :
     ∀ xs : List SmtValue, native_unpack_seq (native_pack_seq T xs) = xs
   | [] => rfl
   | _ :: xs => by simp [native_pack_seq, native_unpack_seq, native_unpack_seq_pack_seq T xs]
-
-private theorem native_unpack_string_pack_seq (T : SmtType)
-    (xs : List SmtValue) :
-    native_unpack_string (native_pack_seq T xs) =
-      xs.map native_ssm_char_of_value := by
-  simp [native_unpack_string, native_unpack_seq_pack_seq]
 
 theorem native_unpack_string_substr_split
     (ss : SmtSeq) (i : native_Int)
@@ -597,10 +596,6 @@ private theorem native_str_in_re_re_mult_empty (r : native_RegLan) :
 
 abbrev RegLanEval (M : SmtModel) (t : Term) : Prop :=
   ∃ r, __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r
-
-private theorem native_string_lit_empty :
-    native_string_lit "" = ([] : native_String) := by
-  simp [native_string_lit]
 
 theorem native_string_valid_of_str_in_re_true
     {str : native_String} {r : native_RegLan}
@@ -1689,7 +1684,7 @@ private theorem re_unfold_neg_star_qforall_eval_true
   let N := native_model_push M idxName SmtType.Int (SmtValue.Numeral i)
   have hWF : __smtx_type_wf SmtType.Int = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and]
+      __smtx_type_no_alias_rec, native_and]
   have hN : model_total_typed N := by
     exact model_total_typed_push hM idxName SmtType.Int
       (SmtValue.Numeral i) hWF rfl (by
@@ -1777,7 +1772,7 @@ theorem re_unfold_neg_concat_formula_eval_true
   let N := native_model_push M idxName SmtType.Int (SmtValue.Numeral i)
   have hWF : __smtx_type_wf SmtType.Int = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and]
+      __smtx_type_no_alias_rec, native_and]
   have hN : model_total_typed N := by
     exact model_total_typed_push hM idxName SmtType.Int
       (SmtValue.Numeral i) hWF rfl (by
@@ -1894,7 +1889,7 @@ private theorem re_unfold_neg_nonstuck_shape (p : Term) :
 
 end RuleProofs
 
-theorem cmd_step_re_unfold_neg_properties
+public theorem cmd_step_re_unfold_neg_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_unfold_neg args premises) ->

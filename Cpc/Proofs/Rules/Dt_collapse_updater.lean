@@ -1,8 +1,15 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.DatatypeSupport
-import Cpc.Proofs.Translation.Apply
-import Cpc.Proofs.Rules.Dt_collapse_selector
-import Cpc.Proofs.Rules.Dt_collapse_tester
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.DatatypeSupport
+import all Cpc.Proofs.RuleSupport.DatatypeSupport
+public import Cpc.Proofs.Translation.Apply
+import all Cpc.Proofs.Translation.Apply
+public import Cpc.Proofs.RuleSupport.DtCollapseSelectorSupport
+import all Cpc.Proofs.RuleSupport.DtCollapseSelectorSupport
+public import Cpc.Proofs.RuleSupport.DtCollapseTesterSupport
+import all Cpc.Proofs.RuleSupport.DtCollapseTesterSupport
 
 open Eo
 open SmtEval
@@ -280,18 +287,6 @@ private theorem smtx_ite_then_non_none
     simp [__smtx_typeof, __smtx_typeof_ite, native_ite, native_Teq,
       hc, hx, hy] at hX ⊢
 
-private theorem smtx_ite_else_non_none
-    (c x y : SmtTerm) :
-    __smtx_typeof (SmtTerm.ite c x y) ≠ SmtType.None ->
-    __smtx_typeof y ≠ SmtType.None := by
-  intro hNN hY
-  apply hNN
-  cases hc : __smtx_typeof c <;>
-    cases hx : __smtx_typeof x <;>
-    cases hy : __smtx_typeof y <;>
-    simp [__smtx_typeof, __smtx_typeof_ite, native_ite, native_Teq,
-      hc, hx, hy] at hY ⊢
-
 private theorem smtx_apply_arg_non_none_of_non_none
     (f x : SmtTerm)
     (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
@@ -361,7 +356,10 @@ private theorem smtx_model_eval_apply_eq_apply_of_not_dt_ops
     (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     __smtx_model_eval M (SmtTerm.Apply f x) =
       __smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x) := by
-  cases f <;> simp [__smtx_model_eval]
+  cases f with
+  | DtSel s d i j => exact False.elim (hSel s d i j rfl)
+  | DtTester s d i => exact False.elim (hTester s d i rfl)
+  | _ => simp [__smtx_model_eval]
 
 private theorem updater_rec_eval_components
     (M : SmtModel) (hM : model_total_typed M)
@@ -605,39 +603,6 @@ private theorem tuple_update_rec_non_none_of_shape
       SmtEval.native_zlt, native_nat_to_int, SmtEval.native_nat_to_int,
       hIdxProp] using hUpdaterNN
   exact smtx_ite_then_non_none _ _ _ hIteNN
-
-private theorem tuple_update_arg_type_of_non_none
-    (idx t a : Term) (d : SmtDatatype) (n : native_Int) :
-    __smtx_typeof (__eo_to_smt t) =
-        SmtType.Datatype (native_string_lit "@Tuple") d ->
-    idx = Term.Numeral n ->
-    0 ≤ n ->
-    native_int_to_nat n < __smtx_dt_num_sels d native_nat_zero ->
-    __smtx_typeof
-        (__eo_to_smt
-          (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) t) a)) ≠
-      SmtType.None ->
-    __smtx_typeof (__eo_to_smt a) =
-      __smtx_ret_typeof_sel (native_string_lit "@Tuple") d native_nat_zero
-        (native_int_to_nat n) := by
-  intro hT hIdx hNonneg hLt hNN
-  have hRecNN :=
-    tuple_update_rec_non_none_of_shape idx t a d n hT hIdx hNonneg hLt hNN
-  have hIdxBool :
-      native_zlt
-          (native_nat_to_int (native_int_to_nat n))
-          (native_nat_to_int (__smtx_dt_num_sels d native_nat_zero)) =
-        true := by
-    have hInt :
-        (native_int_to_nat n : Int) <
-          (__smtx_dt_num_sels d native_nat_zero : Int) :=
-      Int.ofNat_lt.mpr hLt
-    apply decide_eq_true hInt
-  exact
-    TranslationProofs.eo_to_smt_updater_rec_update_arg_type_of_non_none
-      (native_string_lit "@Tuple") d native_nat_zero (native_int_to_nat n)
-      (__smtx_dt_num_sels d native_nat_zero) (__eo_to_smt t) (__eo_to_smt a)
-      hIdxBool hRecNN
 
 private theorem tuple_value_count_of_type_local
     {v : SmtValue} {c : SmtDatatypeCons}
@@ -1973,8 +1938,11 @@ private theorem facts___eo_prog_dt_collapse_updater_impl
                           __smtx_model_eval M
                               (SmtTerm.ite cond recTerm (__eo_to_smt t)) =
                             __smtx_model_eval M (__eo_to_smt t) := by
-                        simp [cond, __smtx_model_eval,
-                          __smtx_model_eval_ite, hTesterFalse]
+                        rw [smtx_eval_ite_term_eq]
+                        rw [show __smtx_model_eval M cond =
+                            SmtValue.Boolean false by
+                          simpa [cond] using hTesterFalse]
+                        simp [__smtx_model_eval_ite]
                       rw [hSelSmt]
                       rw [hUpdaterEq]
                       rw [hEvalIte]
@@ -2027,7 +1995,7 @@ private theorem facts___eo_prog_dt_collapse_updater_impl
       subst rhs
       exact False.elim (eq_rhs_stuck_not_bool _ hBool)
 
-theorem cmd_step_dt_collapse_updater_properties
+public theorem cmd_step_dt_collapse_updater_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_collapse_updater args premises) ->

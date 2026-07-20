@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -21,11 +26,7 @@ private theorem eo_typeof_eq_bool_same (A B : Term) :
     __eo_typeof_eq A B = Term.Bool ->
     A = B ∧ A ≠ Term.Stuck := by
   intro hTy
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hTy ⊢
-  all_goals
-    simp [hTy]
+  exact RuleProofs.eo_typeof_eq_bool_same A B hTy
 
 private theorem branch_types_of_prog_ite_false_cond_bool (x1 y1 : Term) :
     x1 ≠ Term.Stuck ->
@@ -131,7 +132,7 @@ private theorem facts___eo_prog_ite_false_cond_impl
     simpa [__smtx_model_eval_ite] using
       RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt y1))
 
-theorem cmd_step_ite_false_cond_properties
+public theorem cmd_step_ite_false_cond_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ite_false_cond args premises) ->

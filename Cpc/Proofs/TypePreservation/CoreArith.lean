@@ -1,4 +1,10 @@
-import Cpc.Proofs.TypePreservation.Datatypes
+module
+
+public import Cpc.Proofs.TypePreservation.Datatypes
+import all Cpc.SmtModel
+import all Cpc.Proofs.TypePreservation.Common
+
+public section
 
 open SmtEval
 open Smtm
@@ -128,12 +134,6 @@ theorem typeof_mod_eq (t1 t2 : SmtTerm) :
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Int SmtType.None)
         SmtType.None := by
   rw [__smtx_typeof.eq_def] <;> simp only
-theorem typeof_multmult_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.multmult t1 t2) =
-      native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
-        (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Int SmtType.None)
-        SmtType.None := by
-  rw [__smtx_typeof.eq_def] <;> simp only
 theorem typeof_divisible_eq (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.divisible t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
@@ -156,12 +156,6 @@ theorem typeof_div_total_eq (t1 t2 : SmtTerm) :
   rw [__smtx_typeof.eq_def] <;> simp only
 theorem typeof_mod_total_eq (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.mod_total t1 t2) =
-      native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
-        (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Int SmtType.None)
-        SmtType.None := by
-  rw [__smtx_typeof.eq_def] <;> simp only
-theorem typeof_multmult_total_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.multmult_total t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Int SmtType.None)
         SmtType.None := by
@@ -1048,27 +1042,6 @@ theorem typeof_value_model_eval_mod_total
   rw [hn1, hn2]
   rfl
 
-/-- Shows that evaluating `multmult_total` terms produces values of the expected type. -/
-theorem typeof_value_model_eval_multmult_total
-    (M : SmtModel)
-    (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.multmult_total t1 t2))
-    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
-    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.multmult_total t1 t2)) =
-      __smtx_typeof (SmtTerm.multmult_total t1 t2) := by
-  have hArgs := int_binop_args_of_non_none (op := SmtTerm.multmult_total) (typeof_multmult_total_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.multmult_total t1 t2) =
-      SmtType.Int by
-    rw [typeof_multmult_total_eq]
-    simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_def] <;> simp only
-  rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
-  rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
-  rw [hn1, hn2]
-  rfl
-
 /-- Shows that evaluating `divisible` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_divisible
     (M : SmtModel)
@@ -1183,39 +1156,6 @@ theorem typeof_value_model_eval_mod
         (SmtValue.Numeral n1) rfl
   · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_mod_total,
       __smtx_typeof_value, native_veq, hZero]
-
-/-- Shows that evaluating `multmult` terms produces values of the expected type. -/
-theorem typeof_value_model_eval_multmult
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.multmult t1 t2))
-    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
-    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.multmult t1 t2)) =
-      __smtx_typeof (SmtTerm.multmult t1 t2) := by
-  have hArgs := int_binop_args_of_non_none (op := SmtTerm.multmult) (typeof_multmult_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.multmult t1 t2) = SmtType.Int by
-    rw [typeof_multmult_eq]
-    simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_def] <;> simp only
-  rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
-  rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
-  rw [hn1, hn2]
-  by_cases hNonneg : native_zleq 0 n2 = true
-  · simp [__smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval_ite,
-      __smtx_model_eval_multmult_total, __smtx_typeof_value, hNonneg]
-  · by_cases hZero : n1 = 0
-    · simpa [__smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval_ite,
-        __smtx_model_eval_eq, __smtx_model_eval_div_total, __smtx_model_eval_multmult_total,
-        __smtx_model_eval__, native_veq, hNonneg, hZero] using
-        typeof_value_model_eval_apply_lookup_ifun M hM
-          native_div_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int ifun_type_wf_int_int
-          (SmtValue.Numeral 1) rfl
-    · simp [__smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval_ite,
-        __smtx_model_eval_eq, __smtx_model_eval_div_total, __smtx_model_eval_multmult_total,
-        __smtx_model_eval__, __smtx_typeof_value, native_veq, hNonneg, hZero]
 
 /-- Shows that evaluating `qdiv_total` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_qdiv_total

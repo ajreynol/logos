@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ArithStringEntailSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithStringEntailSupport
+import all Cpc.Proofs.RuleSupport.ArithStringEntailSupport
 
 open Eo
 open SmtEval
@@ -167,7 +170,7 @@ private theorem arith_string_pred_safe_approx_shape_of_ne_stuck
   | _ =>
       simp [__eo_prog_arith_string_pred_safe_approx] at hProg
 
-theorem cmd_step_arith_string_pred_safe_approx_properties
+public theorem cmd_step_arith_string_pred_safe_approx_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_string_pred_safe_approx args premises) ->

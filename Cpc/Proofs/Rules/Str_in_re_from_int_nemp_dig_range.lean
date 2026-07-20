@@ -1,4 +1,8 @@
-import Cpc.Proofs.Rules.Str_in_re_from_int_dig_range
+module
+
+public import Cpc.Proofs.RuleSupport.StrInReFromIntDigRangeSupport
+import all Cpc.Proofs.RuleSupport.StrInReFromIntDigRangeSupport
+import all Init.Data.Repr
 
 open Eo
 open SmtEval
@@ -233,14 +237,14 @@ theorem native_str_in_re_from_int_nonempty_digit_range_star
     StrInReFromIntDigRangeProof.native_str_in_re_digit_range_singleton c
       hParts.1
   have hCsList :
-      nativeListInRe cs (native_re_mult digitRange) = true :=
+      _root_.nativeListInRe cs (native_re_mult digitRange) = true :=
     StrInReFromIntDigRangeProof.nativeListInRe_digit_star_of_all_digits cs
       hParts.2
   have hCsValid : native_string_valid cs = true :=
     native_string_valid_of_all_digits cs hParts.2
   have hCs :
       native_str_in_re cs (native_re_mult digitRange) = true := by
-    simpa [native_str_in_re, hCsValid, nativeListInRe] using hCsList
+    simpa [native_str_in_re, hCsValid, _root_.nativeListInRe] using hCsList
   have hTail :
       native_str_in_re cs
         (native_re_concat (native_re_mult digitRange) (native_str_to_re [])) =
@@ -353,6 +357,13 @@ theorem eval_smt_numeral (M : SmtModel) (n : Int) :
     __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
+theorem smtx_eval_re_concat_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.re_concat x y) =
+      __smtx_model_eval_re_concat
+        (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
 theorem smtx_eval_empty_str_to_re
     (M : SmtModel) :
     __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String [])) =
@@ -367,8 +378,9 @@ theorem smtx_eval_star_range
           (SmtTerm.re_range (SmtTerm.String StrInReFromIntDigRangeProof.zeroStr)
             (SmtTerm.String StrInReFromIntDigRangeProof.nineStr))) =
       SmtValue.RegLan (native_re_mult digitRange) := by
-  simp [__smtx_model_eval, __smtx_model_eval_re_mult,
-    StrInReFromIntDigRangeProof.smtx_eval_digit_range, digitRange]
+  rw [StrInReFromIntDigRangeProof.smtx_eval_re_mult_term_eq]
+  rw [StrInReFromIntDigRangeProof.smtx_eval_digit_range]
+  rfl
 
 theorem smtx_eval_concat_range
     (M : SmtModel) :
@@ -385,9 +397,11 @@ theorem smtx_eval_concat_range
       SmtValue.RegLan
         (native_re_concat digitRange
           (native_re_concat (native_re_mult digitRange) (native_str_to_re []))) := by
-  simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-    StrInReFromIntDigRangeProof.smtx_eval_digit_range,
-    smtx_eval_star_range, smtx_eval_empty_str_to_re, digitRange]
+  rw [smtx_eval_re_concat_term_eq]
+  rw [StrInReFromIntDigRangeProof.smtx_eval_digit_range]
+  rw [smtx_eval_re_concat_term_eq]
+  rw [smtx_eval_star_range, smtx_eval_empty_str_to_re]
+  rfl
 
 theorem nonneg_of_premise
     (M : SmtModel) (hM : model_total_typed M) (n : Term)
@@ -470,8 +484,10 @@ theorem facts
                   (SmtTerm.String StrInReFromIntDigRangeProof.nineStr)))
               (SmtTerm.str_to_re (SmtTerm.String []))))) =
       SmtValue.Boolean true
-    simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hFromEval,
-      smtx_eval_concat_range, RuleProofs.native_unpack_string_pack_string,
+    rw [StrInReFromIntDigRangeProof.smtx_eval_str_in_re_term_eq]
+    rw [hFromEval, smtx_eval_concat_range]
+    simp [__smtx_model_eval_str_in_re,
+      RuleProofs.native_unpack_string_pack_string,
       native_str_in_re_from_int_nonempty_digit_range_star z hz]
   exact RuleProofs.eo_interprets_eq_of_rel M (lhs n) (Term.Boolean true)
     hBool <| by
@@ -486,7 +502,7 @@ theorem facts
 
 end StrInReFromIntNempDigRangeProof
 
-theorem cmd_step_str_in_re_from_int_nemp_dig_range_properties
+public theorem cmd_step_str_in_re_from_int_nemp_dig_range_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_from_int_nemp_dig_range args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -6,10 +9,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-
-private theorem native_string_lit_empty :
-    native_string_lit "" = ([] : native_String) := by
-  simp [native_string_lit]
 
 private abbrev mkStrInRe (s r : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r
@@ -144,15 +143,15 @@ private theorem facts_str_in_re_concat
                 (SmtTerm.str_concat (__eo_to_smt s) (__eo_to_smt accS))
                 (SmtTerm.re_concat (__eo_to_smt r) (__eo_to_smt accR))) =
             SmtValue.Boolean true
-          rw [__smtx_model_eval.eq_118, __smtx_model_eval.eq_80,
-            __smtx_model_eval.eq_113]
+          rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_78,
+            __smtx_model_eval.eq_111]
           change __smtx_model_eval M
               (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)) =
             SmtValue.Boolean true at hEvalSR
           change __smtx_model_eval M
               (SmtTerm.str_in_re (__eo_to_smt accS) (__eo_to_smt accR)) =
             SmtValue.Boolean true at hEvalAcc
-          rw [__smtx_model_eval.eq_118] at hEvalSR hEvalAcc
+          rw [__smtx_model_eval.eq_116] at hEvalSR hEvalAcc
           cases hs : __smtx_model_eval M (__eo_to_smt s) with
           | Seq ss =>
               cases hr : __smtx_model_eval M (__eo_to_smt r) with
@@ -298,7 +297,7 @@ private theorem mk_re_concat_premises_true
           (mkStrConcat s accS) (mkReConcat r accR)
           hTailBool hTailTrue hNewBool hNewTrue hTailNe
 
-theorem cmd_step_re_concat_properties
+public theorem cmd_step_re_concat_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_concat args premises) ->

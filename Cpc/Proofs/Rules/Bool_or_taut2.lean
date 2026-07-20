@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
 
 open Eo
 open SmtEval
@@ -135,7 +138,7 @@ private theorem facts___eo_prog_bool_or_taut2_impl
     (orTaut2Outer xs w ys zs) (Term.Boolean true)
     hOuterTrue (RuleProofs.eo_interprets_true M)
 
-theorem cmd_step_bool_or_taut2_properties
+public theorem cmd_step_bool_or_taut2_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_or_taut2 args premises) ->

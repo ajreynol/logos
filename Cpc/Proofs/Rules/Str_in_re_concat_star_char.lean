@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -231,20 +234,9 @@ private theorem native_re_nullable_mk_concat (r s : native_RegLan) :
   cases r <;> cases s <;>
     simp [native_re_mk_concat, native_re_nullable]
 
-private theorem nativeListInRe_mk_concat_empty_left
-    (xs : List native_Char) (r : native_RegLan) :
-    nativeListInRe xs (native_re_mk_concat SmtRegLan.empty r) = false := by
-  simp [native_re_mk_concat, nativeListInRe_empty]
-
 private theorem nativeListInRe_mk_concat_empty_right
     (xs : List native_Char) (r : native_RegLan) :
     nativeListInRe xs (native_re_mk_concat r SmtRegLan.empty) = false := by
-  cases r <;> simp [native_re_mk_concat, nativeListInRe_empty]
-
-private theorem nativeListInRe_mk_concat_epsilon_left
-    (xs : List native_Char) (r : native_RegLan) :
-    nativeListInRe xs (native_re_mk_concat SmtRegLan.epsilon r) =
-      nativeListInRe xs r := by
   cases r <;> simp [native_re_mk_concat, nativeListInRe_empty]
 
 private theorem nativeListInRe_mk_concat_epsilon_right
@@ -547,20 +539,6 @@ private theorem nativeListInRe_re_mult_empty :
       simpa [native_re_mult, native_re_mk_star, nativeListInRe, native_re_deriv,
         nativeListInRe_empty] using nativeListInRe_empty cs
 
-private theorem nativeListInRe_re_mult_epsilon :
-    (xs : List native_Char) ->
-      nativeListInRe xs (native_re_mult SmtRegLan.epsilon) = decide (xs = [])
-  | [] => by
-      simp [native_re_mult, native_re_mk_star, nativeListInRe, native_re_nullable]
-  | c :: cs => by
-      simpa [native_re_mult, native_re_mk_star, nativeListInRe, native_re_deriv,
-        nativeListInRe_empty] using nativeListInRe_empty cs
-
-private theorem nativeListInRe_re_mult_empty_string (r : native_RegLan) :
-    nativeListInRe [] (native_re_mult r) = true := by
-  cases r <;> simp [native_re_mult, native_re_mk_star, nativeListInRe,
-    native_re_nullable]
-
 private theorem nativeListInRe_re_mult_raw_eq_all_singletons
     (r : native_RegLan)
     (hLen : ∀ xs : List native_Char, nativeListInRe xs r = true -> xs.length = 1)
@@ -778,7 +756,7 @@ private theorem fixed_len_re_sound
       simp [__str_fixed_len_re] at hFixed
       subst n
       change __smtx_model_eval M SmtTerm.re_allchar = SmtValue.RegLan rv at hEval
-      rw [__smtx_model_eval.eq_103] at hEval
+      rw [__smtx_model_eval.eq_101] at hEval
       simp at hEval
       subst rv
       have hLen := nativeListInRe_allchar_true_length xs hIn
@@ -789,7 +767,7 @@ private theorem fixed_len_re_sound
       subst n
       change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String pat)) =
         SmtValue.RegLan rv at hEval
-      rw [__smtx_model_eval.eq_106, __smtx_model_eval.eq_4] at hEval
+      rw [__smtx_model_eval.eq_104, __smtx_model_eval.eq_4] at hEval
       simp [__smtx_model_eval_str_to_re, native_pack_string, native_unpack_string,
         native_unpack_seq_pack] at hEval
       subst rv
@@ -809,7 +787,7 @@ private theorem fixed_len_re_sound
       subst n
       change __smtx_model_eval M (SmtTerm.re_range (__eo_to_smt lo) (__eo_to_smt hi)) =
         SmtValue.RegLan rv at hEval
-      rw [__smtx_model_eval.eq_112] at hEval
+      rw [__smtx_model_eval.eq_110] at hEval
       cases hlo : __smtx_model_eval M (__eo_to_smt lo) with
       | Seq slo =>
           cases hhi : __smtx_model_eval M (__eo_to_smt hi) with
@@ -834,7 +812,7 @@ private theorem fixed_len_re_sound
       change __smtx_model_eval M
           (SmtTerm.re_concat (__eo_to_smt r₁) (__eo_to_smt r₂)) =
         SmtValue.RegLan rv at hEval
-      rw [__smtx_model_eval.eq_113] at hEval
+      rw [__smtx_model_eval.eq_111] at hEval
       cases hEval₁ : __smtx_model_eval M (__eo_to_smt r₁) with
       | RegLan rv₁ =>
           cases hEval₂ : __smtx_model_eval M (__eo_to_smt r₂) with
@@ -869,7 +847,7 @@ private theorem fixed_len_re_sound
         change __smtx_model_eval M
             (SmtTerm.re_union (__eo_to_smt r₁) SmtTerm.re_none) =
           SmtValue.RegLan rv at hEval
-        rw [__smtx_model_eval.eq_115, __smtx_model_eval.eq_104] at hEval
+        rw [__smtx_model_eval.eq_113, __smtx_model_eval.eq_102] at hEval
         cases hEval₁ : __smtx_model_eval M (__eo_to_smt r₁) with
         | RegLan rv₁ =>
             simp [__smtx_model_eval_re_union, hEval₁] at hEval
@@ -903,7 +881,7 @@ private theorem fixed_len_re_sound
         change __smtx_model_eval M
             (SmtTerm.re_union (__eo_to_smt r₁) (__eo_to_smt r₂)) =
           SmtValue.RegLan rv at hEval
-        rw [__smtx_model_eval.eq_115] at hEval
+        rw [__smtx_model_eval.eq_113] at hEval
         cases hEval₁ : __smtx_model_eval M (__eo_to_smt r₁) with
         | RegLan rv₁ =>
             cases hEval₂ : __smtx_model_eval M (__eo_to_smt r₂) with
@@ -931,7 +909,7 @@ private theorem fixed_len_re_sound
         change __smtx_model_eval M
             (SmtTerm.re_inter (__eo_to_smt r₁) SmtTerm.re_all) =
           SmtValue.RegLan rv at hEval
-        rw [__smtx_model_eval.eq_114, __smtx_model_eval.eq_105] at hEval
+        rw [__smtx_model_eval.eq_112, __smtx_model_eval.eq_103] at hEval
         cases hEval₁ : __smtx_model_eval M (__eo_to_smt r₁) with
         | RegLan rv₁ =>
             simp [__smtx_model_eval_re_inter, hEval₁] at hEval
@@ -967,7 +945,7 @@ private theorem fixed_len_re_sound
         change __smtx_model_eval M
             (SmtTerm.re_inter (__eo_to_smt r₁) (__eo_to_smt r₂)) =
           SmtValue.RegLan rv at hEval
-        rw [__smtx_model_eval.eq_114] at hEval
+        rw [__smtx_model_eval.eq_112] at hEval
         cases hEval₁ : __smtx_model_eval M (__eo_to_smt r₁) with
         | RegLan rv₁ =>
             cases hEval₂ : __smtx_model_eval M (__eo_to_smt r₂) with
@@ -994,7 +972,7 @@ private theorem fixed_len_re_sound
           case re_allchar =>
             subst n
             change __smtx_model_eval M SmtTerm.re_allchar = SmtValue.RegLan rv at hEval
-            rw [__smtx_model_eval.eq_103] at hEval
+            rw [__smtx_model_eval.eq_101] at hEval
             simp at hEval
             subst rv
             have hLen := nativeListInRe_allchar_true_length xs hIn
@@ -1010,7 +988,7 @@ private theorem fixed_len_re_sound
                   subst n
                   change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String pat)) =
                     SmtValue.RegLan rv at hEval
-                  rw [__smtx_model_eval.eq_106, __smtx_model_eval.eq_4] at hEval
+                  rw [__smtx_model_eval.eq_104, __smtx_model_eval.eq_4] at hEval
                   simp [__smtx_model_eval_str_to_re, native_pack_string,
                     native_unpack_string, native_unpack_seq_pack] at hEval
                   subst rv
@@ -1030,7 +1008,7 @@ private theorem fixed_len_re_sound
                   change __smtx_model_eval M
                       (SmtTerm.str_to_re (SmtTerm.Binary w bits)) =
                     SmtValue.RegLan rv at hEval
-                  rw [__smtx_model_eval.eq_106, __smtx_model_eval.eq_5] at hEval
+                  rw [__smtx_model_eval.eq_104, __smtx_model_eval.eq_5] at hEval
                   simp [__smtx_model_eval_str_to_re] at hEval
           | Apply g y =>
               cases g with
@@ -1041,7 +1019,7 @@ private theorem fixed_len_re_sound
                     change __smtx_model_eval M
                         (SmtTerm.re_range (__eo_to_smt y) (__eo_to_smt x)) =
                       SmtValue.RegLan rv at hEval
-                    rw [__smtx_model_eval.eq_112] at hEval
+                    rw [__smtx_model_eval.eq_110] at hEval
                     cases hlo : __smtx_model_eval M (__eo_to_smt y) with
                     | Seq slo =>
                         cases hhi : __smtx_model_eval M (__eo_to_smt x) with
@@ -1066,7 +1044,7 @@ private theorem fixed_len_re_sound
                     change __smtx_model_eval M
                         (SmtTerm.re_concat (__eo_to_smt y) (__eo_to_smt x)) =
                       SmtValue.RegLan rv at hEval
-                    rw [__smtx_model_eval.eq_113] at hEval
+                    rw [__smtx_model_eval.eq_111] at hEval
                     cases hEval₁ : __smtx_model_eval M (__eo_to_smt y) with
                     | RegLan rv₁ =>
                         cases hEval₂ : __smtx_model_eval M (__eo_to_smt x) with
@@ -1101,7 +1079,7 @@ private theorem fixed_len_re_sound
                       change __smtx_model_eval M
                           (SmtTerm.re_union (__eo_to_smt y) SmtTerm.re_none) =
                         SmtValue.RegLan rv at hEval
-                      rw [__smtx_model_eval.eq_115, __smtx_model_eval.eq_104] at hEval
+                      rw [__smtx_model_eval.eq_113, __smtx_model_eval.eq_102] at hEval
                       cases hEval₁ : __smtx_model_eval M (__eo_to_smt y) with
                       | RegLan rv₁ =>
                           simp [__smtx_model_eval_re_union, hEval₁] at hEval
@@ -1134,7 +1112,7 @@ private theorem fixed_len_re_sound
                       change __smtx_model_eval M
                           (SmtTerm.re_union (__eo_to_smt y) (__eo_to_smt x)) =
                         SmtValue.RegLan rv at hEval
-                      rw [__smtx_model_eval.eq_115] at hEval
+                      rw [__smtx_model_eval.eq_113] at hEval
                       cases hEval₁ : __smtx_model_eval M (__eo_to_smt y) with
                       | RegLan rv₁ =>
                           cases hEval₂ : __smtx_model_eval M (__eo_to_smt x) with
@@ -1162,7 +1140,7 @@ private theorem fixed_len_re_sound
                       change __smtx_model_eval M
                           (SmtTerm.re_inter (__eo_to_smt y) SmtTerm.re_all) =
                         SmtValue.RegLan rv at hEval
-                      rw [__smtx_model_eval.eq_114, __smtx_model_eval.eq_105] at hEval
+                      rw [__smtx_model_eval.eq_112, __smtx_model_eval.eq_103] at hEval
                       cases hEval₁ : __smtx_model_eval M (__eo_to_smt y) with
                       | RegLan rv₁ =>
                           simp [__smtx_model_eval_re_inter, hEval₁] at hEval
@@ -1198,7 +1176,7 @@ private theorem fixed_len_re_sound
                       change __smtx_model_eval M
                           (SmtTerm.re_inter (__eo_to_smt y) (__eo_to_smt x)) =
                         SmtValue.RegLan rv at hEval
-                      rw [__smtx_model_eval.eq_114] at hEval
+                      rw [__smtx_model_eval.eq_112] at hEval
                       cases hEval₁ : __smtx_model_eval M (__eo_to_smt y) with
                       | RegLan rv₁ =>
                           cases hEval₂ : __smtx_model_eval M (__eo_to_smt x) with
@@ -1264,8 +1242,8 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
               (SmtTerm.str_in_re (SmtTerm.String [])
                 (SmtTerm.re_mult (__eo_to_smt r))) =
             __smtx_model_eval M (SmtTerm.Boolean true)
-          rw [__smtx_model_eval.eq_118, __smtx_model_eval.eq_4,
-            __smtx_model_eval.eq_107, __smtx_model_eval.eq_1, hREval]
+          rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_4,
+            __smtx_model_eval.eq_105, __smtx_model_eval.eq_1, hREval]
           simp [__smtx_model_eval_str_in_re, __smtx_model_eval_re_mult,
             native_str_in_re, native_pack_string, native_unpack_string,
             native_pack_seq, native_unpack_seq, native_string_valid
@@ -1320,7 +1298,7 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                   change __smtx_model_eval M
                       (SmtTerm.str_concat (__eo_to_smt s1) (__eo_to_smt s2)) =
                     SmtValue.Seq ss at hSEval
-                  rw [__smtx_model_eval.eq_80] at hSEval
+                  rw [__smtx_model_eval.eq_78] at hSEval
                   cases hS1Eval : __smtx_model_eval M (__eo_to_smt s1) with
                   | Seq ss1 =>
                       cases hS2Eval : __smtx_model_eval M (__eo_to_smt s2) with
@@ -1360,7 +1338,7 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                               SmtValue.Boolean
                                 (native_str_in_re (native_unpack_string ss1)
                                   (native_re_mult rv))
-                            rw [__smtx_model_eval.eq_118, __smtx_model_eval.eq_107,
+                            rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_105,
                               hS1Eval, hREval]
                             simp [__smtx_model_eval_str_in_re, __smtx_model_eval_re_mult]
                           have hTailEq :
@@ -1384,7 +1362,7 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                               SmtValue.Boolean
                                 (native_str_in_re (native_unpack_string ss2)
                                   (native_re_mult rv))
-                            rw [__smtx_model_eval.eq_118, __smtx_model_eval.eq_107,
+                            rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_105,
                               hS2Eval, hREval]
                             simp [__smtx_model_eval_str_in_re, __smtx_model_eval_re_mult]
                           have hSideEval :
@@ -1420,8 +1398,8 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                                 (__eo_mk_apply
                                   (Term.Apply (Term.UOp UserOp.and) leftIn) tail))
                           rw [hSideEval]
-                          rw [__smtx_model_eval.eq_118, __smtx_model_eval.eq_80,
-                            __smtx_model_eval.eq_107, hS1Eval, hS2Eval, hREval]
+                          rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_78,
+                            __smtx_model_eval.eq_105, hS1Eval, hS2Eval, hREval]
                           simp [__smtx_model_eval_str_concat, __smtx_model_eval_str_in_re,
                             __smtx_model_eval_re_mult, native_unpack_string_pack_concat]
                           exact native_str_in_re_re_mult_append rv hLen
@@ -1631,7 +1609,7 @@ private theorem str_in_re_concat_star_char_valid_properties
 
 end RuleProofs
 
-theorem cmd_step_str_in_re_concat_star_char_properties
+public theorem cmd_step_str_in_re_concat_star_char_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_concat_star_char args premises) ->

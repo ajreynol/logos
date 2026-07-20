@@ -1,4 +1,4 @@
-import Cpc.Parser
+import Cpc.Parser.Parser
 
 def main (args : List String) : IO UInt32 := do
   let path := args[0]!

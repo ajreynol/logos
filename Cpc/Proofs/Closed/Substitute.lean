@@ -1,4 +1,9 @@
-import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+module
+
+public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
+
+public section
 
 open Eo
 open SmtEval
@@ -75,10 +80,6 @@ theorem EoVarEnvPerm.cons
   rw [hEquiv key]
 
 namespace SubstituteSupport
-
-/-- `(v :: vs)` as an EO cons-list term, the binder-list shape. -/
-private abbrev consTerm (v vs : Term) : Term :=
-  Term.Apply (Term.Apply Term.__eo_List_cons v) vs
 
 /-! ## `Stuck` propagation (mode-independent)
 
@@ -170,7 +171,8 @@ theorem substitute_simul_rec_apply
     (isr f a xs ss bvs : Term)
     (hisr : isr ≠ Term.Stuck) (hxs : xs ≠ Term.Stuck)
     (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck)
-    (hNotBinder : ∀ q v vs, f ≠ Term.Apply q (consTerm v vs)) :
+    (hNotBinder : ∀ q v vs,
+      f ≠ Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) :
     __substitute_simul_rec isr (Term.Apply f a) xs ss bvs =
       __eo_mk_apply
         (__substitute_simul_rec isr f xs ss bvs)
@@ -205,14 +207,18 @@ theorem substFalse_quant
     (q v vs a xs ss bvs : Term)
     (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck) :
     __substitute_simul_rec (Term.Boolean false)
-        (Term.Apply (Term.Apply q (consTerm v vs)) a) xs ss bvs =
+        (Term.Apply (Term.Apply q
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a) xs ss bvs =
       __eo_requires
-        (__contains_atomic_term_list_free_rec ss (consTerm v vs) Term.__eo_List_nil)
+        (__contains_atomic_term_list_free_rec ss
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) Term.__eo_List_nil)
         (Term.Boolean false)
-        (__eo_mk_apply (Term.Apply q (consTerm v vs))
+        (__eo_mk_apply
+          (Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
           (__substitute_simul_rec (Term.Boolean false) a xs ss
-            (__eo_list_concat Term.__eo_List_cons (consTerm v vs) bvs))) := by
-  simp [__substitute_simul_rec, consTerm, __eo_ite, native_ite, native_teq]
+            (__eo_list_concat Term.__eo_List_cons
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) bvs))) := by
+  simp [__substitute_simul_rec, __eo_ite, native_ite, native_teq]
 
 /-- **Rename mode** (`isr = true`): substitution applied to the binder list too,
 bound vars *not* pushed, body substituted under the unchanged `bvs`. -/
@@ -220,15 +226,18 @@ theorem substTrue_quant
     (q v vs a xs ss bvs : Term)
     (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck) :
     __substitute_simul_rec (Term.Boolean true)
-        (Term.Apply (Term.Apply q (consTerm v vs)) a) xs ss bvs =
+        (Term.Apply (Term.Apply q
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a) xs ss bvs =
       __eo_requires
-        (__contains_atomic_term_list_free_rec ss (consTerm v vs) Term.__eo_List_nil)
+        (__contains_atomic_term_list_free_rec ss
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) Term.__eo_List_nil)
         (Term.Boolean false)
         (__eo_mk_apply
           (__eo_mk_apply q
-            (__substitute_simul_rec (Term.Boolean true) (consTerm v vs) xs ss bvs))
+            (__substitute_simul_rec (Term.Boolean true)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) xs ss bvs))
           (__substitute_simul_rec (Term.Boolean true) a xs ss bvs)) := by
-  simp [__substitute_simul_rec, consTerm, __eo_ite, native_ite, native_teq]
+  simp [__substitute_simul_rec, __eo_ite, native_ite, native_teq]
 
 /-! ## Substitution-mode semantics (`isr = false`)
 
@@ -335,7 +344,8 @@ succeed (`substitute_simul_rec_atom` wraps it in `__eo_requires (closed …) …
 the substituted term translates (is non-`None`, hence non-`Stuck`) the closedness
 guard fired, so the term is unchanged and closed, and a closed term evaluates the
 same under any two models agreeing on globals. -/
-theorem substFalse_eval_atom
+theorem substitute_simul_eval_atom
+    {isRename : Bool}
     (M N : SmtModel) (F xs ss bvs : Term)
     (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck)
     (hNotApply : ∀ f a, F ≠ Term.Apply f a)
@@ -344,16 +354,17 @@ theorem substFalse_eval_atom
     (hF : eoHasSmtTranslation F)
     (hSubstTrans :
       eoHasSmtTranslation
-        (__substitute_simul_rec (Term.Boolean false) F xs ss bvs))
+        (__substitute_simul_rec (Term.Boolean isRename) F xs ss bvs))
     (hGlobals : model_agrees_on_globals M N) :
     __smtx_model_eval M
-        (__eo_to_smt (__substitute_simul_rec (Term.Boolean false) F xs ss bvs)) =
+        (__eo_to_smt (__substitute_simul_rec (Term.Boolean isRename) F xs ss bvs)) =
       __smtx_model_eval N (__eo_to_smt F) := by
-  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by
+    cases isRename <;> decide
   have hSubstEq :
-      __substitute_simul_rec (Term.Boolean false) F xs ss bvs =
+      __substitute_simul_rec (Term.Boolean isRename) F xs ss bvs =
         __eo_requires (__is_closed_rec F Term.__eo_List_nil) (Term.Boolean true) F :=
-    substitute_simul_rec_atom (Term.Boolean false) F xs ss bvs
+    substitute_simul_rec_atom (Term.Boolean isRename) F xs ss bvs
       hisr hxs hss hbvs hNotApply hNotVar hNotStuck
   -- The substitution translates, so the `requires` did not collapse to `Stuck`.
   rw [hSubstEq] at hSubstTrans ⊢
@@ -380,6 +391,24 @@ theorem substFalse_eval_atom
     unfold eoHasSmtTranslation at hSubstTrans
     change __smtx_typeof SmtTerm.None ≠ SmtType.None at hSubstTrans
     exact hSubstTrans TranslationProofs.smtx_typeof_none
+
+/-- Backwards-compatible substitution-mode specialization. -/
+theorem substFalse_eval_atom
+    (M N : SmtModel) (F xs ss bvs : Term)
+    (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck)
+    (hNotApply : ∀ f a, F ≠ Term.Apply f a)
+    (hNotVar : ∀ s S, F ≠ Term.Var s S)
+    (hNotStuck : F ≠ Term.Stuck)
+    (hF : eoHasSmtTranslation F)
+    (hSubstTrans :
+      eoHasSmtTranslation
+        (__substitute_simul_rec (Term.Boolean false) F xs ss bvs))
+    (hGlobals : model_agrees_on_globals M N) :
+    __smtx_model_eval M
+        (__eo_to_smt (__substitute_simul_rec (Term.Boolean false) F xs ss bvs)) =
+      __smtx_model_eval N (__eo_to_smt F) :=
+  substitute_simul_eval_atom (isRename := false) M N F xs ss bvs
+    hxs hss hbvs hNotApply hNotVar hNotStuck hF hSubstTrans hGlobals
 
 /-! ### Capture avoidance: substitute values are push-invariant
 

@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.RegexSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.RegexSupport
+import all Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -141,7 +145,7 @@ private theorem typed___eo_prog_re_diff_elim_impl
         (SmtTerm.re_inter (__eo_to_smt comp) SmtTerm.re_all) =
       SmtType.RegLan
     rw [typeof_re_inter_eq]
-    simp [hCompTy, __smtx_typeof.eq_105, native_ite, native_Teq]
+    simp [hCompTy, __smtx_typeof.eq_103, native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.RegLan := by
     change __smtx_typeof
         (SmtTerm.re_inter (__eo_to_smt a1) (__eo_to_smt inner)) =
@@ -264,7 +268,7 @@ private theorem facts___eo_prog_re_diff_elim_impl
     simp [__smtx_model_eval, hEval1, hEval2]
     exact smt_value_rel_re_diff_elim r s
 
-theorem cmd_step_re_diff_elim_properties
+public theorem cmd_step_re_diff_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_diff_elim args premises) ->

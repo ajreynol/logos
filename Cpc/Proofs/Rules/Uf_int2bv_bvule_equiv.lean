@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.Proofs.TypePreservation.BitVecCmp
 
 open Eo
 open SmtEval
@@ -231,7 +235,7 @@ private theorem smt_typeof_bvule_term_eq
   cases hM
   change __smtx_typeof (SmtTerm.bvule (__eo_to_smt t1) (__eo_to_smt s1)) =
     SmtType.Bool
-  rw [__smtx_typeof.eq_56]
+  rw [__smtx_typeof.eq_54]
   simp [__smtx_typeof_bv_op_2_ret, hT1SmtTy, hS1SmtTy, native_nateq,
     native_ite]
 
@@ -318,7 +322,7 @@ private theorem eval_bvule_matches_ubv_leq
     __smtx_model_eval M
       (SmtTerm.leq (SmtTerm.ubv_to_int (__eo_to_smt t1))
         (SmtTerm.ubv_to_int (__eo_to_smt s1)))
-  rw [__smtx_model_eval.eq_56, smtx_eval_leq_term_eq,
+  rw [__smtx_model_eval.eq_54, smtx_eval_leq_term_eq,
     smtx_eval_ubv_to_int_term_eq, smtx_eval_ubv_to_int_term_eq, hEvalT,
     hEvalS]
   by_cases hLe : tPayload <= sPayload
@@ -374,7 +378,7 @@ private theorem facts___eo_prog_uf_int2bv_bvule_equiv_impl
     rw [eval_bvule_matches_ubv_leq M hM t1 s1 hT1Trans hS1Trans hResultTy]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_uf_int2bv_bvule_equiv_properties
+public theorem cmd_step_uf_int2bv_bvule_equiv_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.uf_int2bv_bvule_equiv args premises) ->

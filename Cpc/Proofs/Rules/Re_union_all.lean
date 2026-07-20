@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ReInclusionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReInclusionSupport
+import all Cpc.Proofs.RuleSupport.ReInclusionSupport
 
 open Eo
 open SmtEval
@@ -116,7 +119,7 @@ private theorem smtx_typeof_sigma :
     __smtx_typeof (__eo_to_smt sigma) = SmtType.RegLan := by
   change __smtx_typeof (SmtTerm.re_mult SmtTerm.re_allchar) =
     SmtType.RegLan
-  rw [typeof_re_mult_eq, __smtx_typeof.eq_103]
+  rw [typeof_re_mult_eq, __smtx_typeof.eq_101]
   native_decide
 
 private theorem smtx_model_eval_sigma (M : SmtModel) :
@@ -216,7 +219,7 @@ private theorem type_and_facts
 
 end ReUnionAllProof
 
-theorem cmd_step_re_union_all_properties
+public theorem cmd_step_re_union_all_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_union_all args premises) ->

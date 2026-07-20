@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.Canonical.Seq
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.Canonical.Seq
+import all Cpc.Proofs.Canonical.Seq
 
 open Eo
 open SmtEval
@@ -47,55 +51,6 @@ private theorem eo_requires_result_ne_stuck_of_non_stuck {x y z : Term}
   intro hz
   exact h (by rw [eo_requires_result_eq_of_non_stuck h, hz])
 
-private theorem typeof_eq_args_same {A B : Term}
-    (h : __eo_typeof_eq A B = Term.Bool) :
-    A = B := by
-  by_cases hA : A = Term.Stuck
-  · subst A
-    simp [__eo_typeof_eq] at h
-  · by_cases hB : B = Term.Stuck
-    · subst B
-      simp [__eo_typeof_eq] at h
-    · have hReqNe :
-        __eo_requires (__eo_eq A B) (Term.Boolean true) Term.Bool ≠ Term.Stuck := by
-        intro hStuck
-        simp [__eo_typeof_eq, hStuck] at h
-      have hEqBool : __eo_eq A B = Term.Boolean true :=
-        eo_requires_cond_eq_of_non_stuck hReqNe
-      cases A <;> cases B <;> simp [__eo_eq, native_teq] at hEqBool ⊢ <;>
-        simp_all
-
-private theorem typeof_str_len_arg_seq {x : Term}
-    (h : __eo_typeof (Term.Apply (Term.UOp UserOp.str_len) x) =
-      Term.UOp UserOp.Int) :
-    ∃ T, __eo_typeof x = Term.Apply (Term.UOp UserOp.Seq) T := by
-  change __eo_typeof_str_len (__eo_typeof x) = Term.UOp UserOp.Int at h
-  cases hX : __eo_typeof x <;> simp [__eo_typeof_str_len, hX] at h
-  case Apply f a =>
-    cases f <;> try simp at h
-    case UOp op =>
-      cases op <;> simp at h
-      case Seq =>
-        exact ⟨a, rfl⟩
-
-private theorem witness_string_length_id_int
-    {U id T : Term} {k : native_Int}
-    (hWitTy :
-      __eo_typeof (Term.UOp3 UserOp3._at_witness_string_length
-        (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id) =
-        Term.Apply (Term.UOp UserOp.Seq) T) :
-    __eo_typeof id = Term.UOp UserOp.Int := by
-  change
-    __eo_typeof__at_witness_string_length
-      (__eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U))
-      (Term.Apply (Term.UOp UserOp.Seq) U)
-      (Term.UOp UserOp.Int) (__eo_typeof id) =
-      Term.Apply (Term.UOp UserOp.Seq) T at hWitTy
-  cases hId : __eo_typeof id <;>
-    simp [__eo_typeof__at_witness_string_length, hId] at hWitTy ⊢
-  case UOp op =>
-    cases op <;> simp at hWitTy ⊢
-
 private theorem eo_gt_numeral_neg_one_eq_true {n : Term} :
     __eo_gt n (Term.Numeral (-1 : native_Int)) = Term.Boolean true ->
     ∃ k : native_Int, n = Term.Numeral k ∧
@@ -104,41 +59,6 @@ private theorem eo_gt_numeral_neg_one_eq_true {n : Term} :
   cases n <;> simp [__eo_gt] at h
   case Numeral k =>
     exact ⟨k, rfl, by simpa [__eo_gt] using h⟩
-
-private theorem prog_exists_string_length_id_int
-    {U id : Term} {k : native_Int}
-    (hgt : native_zlt (-1 : native_Int) k = true)
-    (hTy : __eo_typeof (__eo_prog_exists_string_length
-      (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id) = Term.Bool) :
-    __eo_typeof id = Term.UOp UserOp.Int := by
-  have hIdNe : id ≠ Term.Stuck := by
-    intro hid
-    subst id
-    have hNo : __eo_typeof Term.Stuck ≠ Term.Bool := by native_decide
-    exact hNo hTy
-  have hProgNe :
-      __eo_prog_exists_string_length
-        (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id ≠
-        Term.Stuck :=
-    term_ne_stuck_of_typeof_bool hTy
-  have hOuterReqNe :
-      __eo_requires
-        (__eo_gt (Term.Numeral k) (Term.Numeral (-1 : native_Int)))
-        (Term.Boolean true)
-        (__eo_requires (__eo_gt id (Term.Numeral (-1 : native_Int)))
-          (Term.Boolean true)
-          (eslFormula U (Term.Numeral k) id)) ≠ Term.Stuck := by
-    simpa [eslFormula, __eo_prog_exists_string_length, hIdNe] using hProgNe
-  have hInnerReqNe :
-      __eo_requires (__eo_gt id (Term.Numeral (-1 : native_Int)))
-        (Term.Boolean true)
-        (eslFormula U (Term.Numeral k) id) ≠ Term.Stuck :=
-    eo_requires_result_ne_stuck_of_non_stuck hOuterReqNe
-  have hIdGt : __eo_gt id (Term.Numeral (-1 : native_Int)) =
-      Term.Boolean true := by
-    exact eo_requires_cond_eq_of_non_stuck hInnerReqNe
-  rcases eo_gt_numeral_neg_one_eq_true hIdGt with ⟨i, rfl, _hiGt⟩
-  rfl
 
 private theorem eo_to_smt_nat_is_valid_numeral_of_gt_neg_one
     {k : native_Int}
@@ -220,8 +140,14 @@ private theorem seq_elem_native_inhabited_of_seq_wf {A : SmtType} :
   intro h
   have hParts : native_inhabited_type A = true ∧
       __smtx_type_wf_rec A A = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and] using h
+    have hAll :
+        ((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil (SmtType.Seq A) = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] using h
+    exact hAll.1.1
   exact hParts.1
 
 private theorem list_typed_replicate_type_default
@@ -321,11 +247,10 @@ private theorem eslFormula_has_bool_type
     eslSmtBody_type A k hSeqWF
   have hChoiceTy :
       __smtx_typeof
-        (SmtTerm.choice_nth (native_string_lit "@x") (SmtType.Seq A)
-          (eslSmtBody A k) native_nat_zero) = SmtType.Seq A := by
-    rw [smtx_typeof_choice_nth_term_eq]
-    simp [__smtx_typeof_choice_nth, hBodyTy, __smtx_typeof_guard_wf,
-      hSeqWF, native_Teq, native_ite]
+        (SmtTerm.choice (native_string_lit "@x") (SmtType.Seq A)
+          (eslSmtBody A k)) = SmtType.Seq A := by
+    rw [__smtx_typeof.eq_def]
+    simp [hBodyTy, __smtx_typeof_guard_wf, hSeqWF, native_Teq, native_ite]
   let wit : Term :=
     Term.UOp3 UserOp3._at_witness_string_length
       (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id
@@ -334,12 +259,12 @@ private theorem eslFormula_has_bool_type
       __smtx_typeof
         (native_ite (__eo_to_smt_nat_is_valid (Term.Numeral k))
           (native_ite (__eo_to_smt_nat_is_valid id)
-            (SmtTerm.choice_nth (native_string_lit "@x")
+            (SmtTerm.choice (native_string_lit "@x")
               (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))
               (SmtTerm.eq
                 (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x")
                   (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))))
-                (SmtTerm.Numeral k)) native_nat_zero)
+                (SmtTerm.Numeral k)))
             SmtTerm.None)
           SmtTerm.None) = SmtType.Seq A
     simpa [hKValid, hIdValid, hSeqTy, native_ite, eslSmtBody] using hChoiceTy
@@ -442,24 +367,24 @@ private theorem eslFormula_true
               (__eo_to_smt_nat_is_valid (Term.Numeral k))
               (native_ite
                 (__eo_to_smt_nat_is_valid id)
-                (SmtTerm.choice_nth (native_string_lit "@x")
+                (SmtTerm.choice (native_string_lit "@x")
                   (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))
                   (SmtTerm.eq
                     (SmtTerm.str_len
                       (SmtTerm.Var (native_string_lit "@x")
                         (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))))
-                    (SmtTerm.Numeral k)) native_nat_zero)
+                    (SmtTerm.Numeral k)))
                 SmtTerm.None)
               SmtTerm.None))
           (SmtTerm.Numeral k)) = SmtValue.Boolean true
     rw [smtx_eval_eq_term_eq, smtx_eval_str_len_term_eq,
       __smtx_model_eval.eq_2]
     simp [hKValid, hIdValid, hSeqTy, native_ite,
-      smtx_model_eval_choice_nth_eq_aux, nativeEvalTChoiceNthAux,
+      smtx_model_eval_choice_eq,
       hChoiceLen', __smtx_model_eval_eq, native_veq]
   exact RuleProofs.eo_interprets_of_bool_eval M _ true hBool hEval
 
-theorem cmd_step_exists_string_length_properties
+public theorem cmd_step_exists_string_length_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.exists_string_length args premises) ->

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ArithStringEntailSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithStringEntailSupport
+import all Cpc.Proofs.RuleSupport.ArithStringEntailSupport
 
 open Eo
 open SmtEval
@@ -100,7 +103,7 @@ private theorem arith_string_pred_entail_shape_of_ne_stuck
   | _ =>
       simp [__eo_prog_arith_string_pred_entail] at hProg
 
-theorem cmd_step_arith_string_pred_entail_properties
+public theorem cmd_step_arith_string_pred_entail_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_string_pred_entail args premises) ->

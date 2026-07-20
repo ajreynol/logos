@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.NativeSeqSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.NativeSeqSupport
+import all Cpc.Proofs.RuleSupport.NativeSeqSupport
 
 open Eo
 open SmtEval
@@ -55,11 +59,6 @@ private theorem smtx_eval_str_leq_term_eq
       __smtx_model_eval_str_leq (__smtx_model_eval M x)
         (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
-
-private theorem smtx_eval_boolean_term_eq
-    (M : SmtModel) (b : Bool) :
-    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
-  rw [__smtx_model_eval.eq_def]
 
 private theorem prog_str_leq_empty_eq_eq_of_ne_stuck (s : Term)
     (hs : s ≠ Term.Stuck) :
@@ -201,7 +200,7 @@ private theorem facts___eo_prog_str_leq_empty_eq_impl
   rw [smtx_model_eval_str_leq_pack_string_empty_eq]
   exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_str_leq_empty_eq_properties
+public theorem cmd_step_str_leq_empty_eq_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_leq_empty_eq args premises) ->

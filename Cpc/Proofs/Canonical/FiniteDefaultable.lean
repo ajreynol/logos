@@ -1,4 +1,9 @@
-import Cpc.Proofs.Canonical.TypeDefaultBasic
+module
+
+public import Cpc.Proofs.Canonical.TypeDefaultBasic
+import all Cpc.Proofs.Canonical.TypeDefaultBasic
+
+public section
 open SmtEval Smtm
 namespace Smtm
 set_option linter.unusedVariables false

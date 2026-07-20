@@ -1,4 +1,10 @@
-import Cpc.Proofs.TypePreservation.Helpers
+module
+
+public import Cpc.Proofs.TypePreservation.Helpers
+import all Cpc.SmtModel
+import all Cpc.Proofs.TypePreservation.Common
+
+public section
 
 open SmtEval
 open Smtm
@@ -87,7 +93,7 @@ theorem extract_args_of_non_none
         t2 = SmtTerm.Numeral j ∧
         __smtx_typeof t3 = SmtType.BitVec w ∧
         native_zleq 0 j = true ∧
-        native_zleq 0 (native_zplus (native_zplus i 1) (native_zneg j)) = true ∧
+        native_zlt 0 (native_zplus (native_zplus i 1) (native_zneg j)) = true ∧
         native_zlt i (native_nat_to_int w) = true := by
   have ht' : __smtx_typeof_extract t1 t2 (__smtx_typeof t3) ≠ SmtType.None := by
     rw [← typeof_extract_eq t1 t2 t3]
@@ -101,7 +107,7 @@ theorem extract_args_of_non_none
               by_cases hj0 : native_zleq 0 j = true
               · by_cases hiw : native_zlt i (native_nat_to_int w) = true
                 · by_cases hwidth :
-                    native_zleq 0 (native_zplus (native_zplus i 1) (native_zneg j)) = true
+                    native_zlt 0 (native_zplus (native_zplus i 1) (native_zneg j)) = true
                   · exact ⟨i, j, w, rfl, rfl, rfl, hj0, hwidth, hiw⟩
                   · exfalso
                     exact ht' (by

@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ArithSimpleSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArithSimpleSupport
+import all Cpc.Proofs.RuleSupport.ArithSimpleSupport
 
 open Eo
 open SmtEval
@@ -7,7 +10,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-theorem cmd_step_arith_elim_gt_properties
+public theorem cmd_step_arith_elim_gt_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_elim_gt args premises) ->

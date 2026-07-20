@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -133,28 +136,12 @@ private theorem eo_eq_self_true_of_ne_stuck (x : Term)
 private theorem eo_and_eq_true_left {x y : Term}
     (h : __eo_and x y = Term.Boolean true) :
     x = Term.Boolean true := by
-  cases x <;> cases y <;> simp [__eo_and, native_and] at h ⊢
-  case Boolean.Boolean b c =>
-    cases b <;> cases c <;> simp [__eo_and, native_and] at h ⊢
-  case Binary.Binary w1 n1 w2 n2 =>
-    unfold __eo_requires at h
-    cases hEq : native_teq (Term.Numeral w1) (Term.Numeral w2) <;>
-      simp [native_ite, hEq] at h
-    cases hOk : native_not (native_teq (Term.Numeral w1) Term.Stuck) <;>
-      simp [native_ite, hOk] at h
+  exact (RuleProofs.eo_and_eq_true_args x y h).1
 
 private theorem eo_and_eq_true_right {x y : Term}
     (h : __eo_and x y = Term.Boolean true) :
     y = Term.Boolean true := by
-  cases x <;> cases y <;> simp [__eo_and, native_and] at h ⊢
-  case Boolean.Boolean b c =>
-    cases b <;> cases c <;> simp [__eo_and, native_and] at h ⊢
-  case Binary.Binary w1 n1 w2 n2 =>
-    unfold __eo_requires at h
-    cases hEq : native_teq (Term.Numeral w1) (Term.Numeral w2) <;>
-      simp [native_ite, hEq] at h
-    cases hOk : native_not (native_teq (Term.Numeral w1) Term.Stuck) <;>
-      simp [native_ite, hOk] at h
+  exact (RuleProofs.eo_and_eq_true_args x y h).2
 
 private theorem eqs_of_requires4_and_eq_true_not_stuck
     (x1 y1 x2 y2 x3 y3 x4 y4 B : Term) :
@@ -238,11 +225,6 @@ private theorem typeof_eq_bool_inv (A B : Term)
         SmtEval.native_not] at hReq'
       exact eq_of_eo_eq_true A B hReq'.1
 
-private theorem typeof_int_to_bv_stuck_of_arg_stuck (A w : Term) :
-    __eo_typeof_int_to_bv A w Term.Stuck = Term.Stuck := by
-  unfold __eo_typeof_int_to_bv
-  split <;> simp_all
-
 private theorem typeof_int_to_bv_stuck_of_width_ty_ne_int (A w B : Term)
     (hA : A ≠ Term.UOp UserOp.Int) :
     __eo_typeof_int_to_bv A w B = Term.Stuck := by
@@ -254,36 +236,6 @@ private theorem typeof_int_to_bv_stuck_of_arg_ty_ne_int (A w B : Term)
     __eo_typeof_int_to_bv A w B = Term.Stuck := by
   unfold __eo_typeof_int_to_bv
   split <;> simp_all
-
-private theorem int_to_bv_type_bitvec_inv (A w m : Term)
-    (h : __eo_typeof_int_to_bv A w (Term.UOp UserOp.Int) =
-      Term.Apply (Term.UOp UserOp.BitVec) m) :
-    A = Term.UOp UserOp.Int ∧
-      ∃ n, w = Term.Numeral n ∧ native_zlt (-1 : native_Int) n = true ∧
-        m = Term.Numeral n := by
-  by_cases hA : A = Term.UOp UserOp.Int
-  · subst A
-    refine ⟨rfl, ?_⟩
-    cases hw : w <;> rw [hw] at h <;>
-      first
-      | (rename_i n
-         have hRed :
-             __eo_typeof_int_to_bv (Term.UOp UserOp.Int) (Term.Numeral n)
-                 (Term.UOp UserOp.Int) =
-               native_ite (native_zlt (-1 : native_Int) n)
-                 (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n)) Term.Stuck := by
-           simp [__eo_typeof_int_to_bv, __eo_requires, __eo_gt, native_ite,
-             native_teq, native_not, SmtEval.native_not]
-         rw [hRed] at h
-         cases hPos : native_zlt (-1 : native_Int) n <;>
-           simp [native_ite, hPos] at h
-         exact ⟨n, rfl, hPos, h.symm⟩)
-      | (exfalso
-         simp [__eo_typeof_int_to_bv, __eo_requires, __eo_gt, native_ite,
-           native_teq, native_not, SmtEval.native_not] at h)
-  · exfalso
-    rw [typeof_int_to_bv_stuck_of_width_ty_ne_int A w (Term.UOp UserOp.Int) hA] at h
-    simp at h
 
 private theorem int_to_bv_type_nonstuck_inv (A w B : Term)
     (h : __eo_typeof_int_to_bv A w B ≠ Term.Stuck) :
@@ -334,7 +286,7 @@ private theorem typeof_extract_zero_numeral (wmv tw : native_Int) :
         (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral tw))
       =
         native_ite (native_zlt wmv tw)
-          (native_ite (native_zlt (-1 : native_Int) (native_zplus wmv 1))
+          (native_ite (native_zlt 0 (native_zplus wmv 1))
             (Term.Apply (Term.UOp UserOp.BitVec)
               (Term.Numeral (native_zplus wmv 1)))
             Term.Stuck)
@@ -346,7 +298,7 @@ private theorem typeof_extract_zero_numeral (wmv tw : native_Int) :
     native_ite, native_teq, native_not, SmtEval.native_not, native_zplus,
     SmtEval.native_zplus, native_zneg, SmtEval.native_zneg, hLo]
   · by_cases hHi : native_zlt wmv tw = true
-    · by_cases hWidth : native_zlt (-1 : native_Int) (wmv + 1) = true
+    · by_cases hWidth : native_zlt 0 (wmv + 1) = true
       · simp [native_ite, hHi, hWidth]
       · simp [native_ite, hHi, hWidth]
     · simp [native_ite, hHi]
@@ -402,7 +354,7 @@ private theorem typeof_extract_zero_bitvec_inv (wm t : Term) (m : Term)
       wm = Term.Numeral wmv ∧
       __eo_typeof t = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral tw) ∧
       native_zlt wmv tw = true ∧
-      native_zlt (-1 : native_Int) (native_zplus wmv 1) = true ∧
+      native_zlt 0 (native_zplus wmv 1) = true ∧
       m = Term.Numeral (native_zplus wmv 1) := by
   by_cases hWmNum : ∃ wmv, wm = Term.Numeral wmv
   · rcases hWmNum with ⟨wmv, hWm⟩
@@ -417,7 +369,7 @@ private theorem typeof_extract_zero_bitvec_inv (wm t : Term) (m : Term)
         Term.Apply (Term.UOp UserOp.BitVec) m at h
       rw [typeof_extract_zero_numeral] at h
       by_cases hHi : native_zlt wmv tw = true
-      · by_cases hWidth : native_zlt (-1 : native_Int) (native_zplus wmv 1) = true
+      · by_cases hWidth : native_zlt 0 (native_zplus wmv 1) = true
         · simp [native_ite, hHi, hWidth] at h
           exact ⟨wmv, tw, rfl, hT, hHi, hWidth, h.symm⟩
         · simp [native_ite, hHi, hWidth] at h
@@ -472,7 +424,7 @@ private theorem typeof_args_of_conclusion_bool (w t wm : Term) :
       __eo_typeof t = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral tw) ∧
       native_zleq 0 wi = true ∧ native_zleq 0 tw = true ∧
       native_zlt wmv tw = true ∧
-      native_zlt (-1 : native_Int) (native_zplus wmv 1) = true ∧
+      native_zlt 0 (native_zplus wmv 1) = true ∧
       wi = native_zplus wmv 1 := by
   intro hTy
   rw [typeof_ufBv2natInt2bvExtractConclusion_eq] at hTy
@@ -527,28 +479,12 @@ private theorem typeof_args_of_conclusion_bool (w t wm : Term) :
   exact ⟨wi, wmv, tw, rfl, rfl, hTty, hWiNonneg, hTwNonneg,
     hHi, hWidth, hWiEq⟩
 
-private theorem smt_typeof_lhs_eq
-    (wi : native_Int) (t : Term) :
-    native_zleq 0 wi = true ->
-    __smtx_typeof (__eo_to_smt t) = SmtType.BitVec (native_int_to_nat wi) ->
-    __smtx_typeof
-        (__eo_to_smt (intToBvTerm (Term.Numeral wi) (ubvToIntTerm t))) =
-      SmtType.BitVec (native_int_to_nat wi) := by
-  intro hNonneg hTSmtTy
-  change __smtx_typeof
-      (SmtTerm.int_to_bv (SmtTerm.Numeral wi)
-        (SmtTerm.ubv_to_int (__eo_to_smt t))) =
-    SmtType.BitVec (native_int_to_nat wi)
-  rw [smtx_typeof_int_to_bv_term_eq, smtx_typeof_ubv_to_int_term_eq]
-  simp [__smtx_typeof_int_to_bv, __smtx_typeof_bv_op_1_ret, native_ite,
-    hTSmtTy, hNonneg]
-
 private theorem smt_typeof_rhs_eq
     (wmv wi tw : native_Int) (t : Term)
     (hWiEq : wi = native_zplus wmv 1)
     (hTwNonneg : native_zleq 0 tw = true)
     (hHi : native_zlt wmv tw = true)
-    (hWidth : native_zlt (-1 : native_Int) (native_zplus wmv 1) = true)
+    (hWidth : native_zlt 0 (native_zplus wmv 1) = true)
     (hTSmtTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec (native_int_to_nat tw)) :
     __smtx_typeof
         (__eo_to_smt (extractTerm (Term.Numeral wmv) (Term.Numeral 0) t)) =
@@ -564,21 +500,15 @@ private theorem smt_typeof_rhs_eq
   have hHi' : native_zlt wmv (native_nat_to_int (native_int_to_nat tw)) = true := by
     rw [hTwFit]
     exact hHi
-  have hWidthNonneg :
-      native_zleq 0 (native_zplus (native_zplus wmv 1) (native_zneg 0)) = true := by
-    have hlt : (-1 : native_Int) < native_zplus wmv 1 := by
-      simpa [native_zlt, SmtEval.native_zlt] using hWidth
-    have hnonneg : (0 : native_Int) <= native_zplus wmv 1 := by
-      have hStep : (-1 : native_Int) + 1 <= native_zplus wmv 1 :=
-        (Int.add_one_le_iff).2 hlt
-      simpa using hStep
-    simpa [native_zleq, SmtEval.native_zleq, native_zplus, native_zneg] using hnonneg
+  have hWidthPos :
+      native_zlt 0 (native_zplus (native_zplus wmv 1) (native_zneg 0)) = true := by
+    simpa [native_zplus, native_zneg] using hWidth
   have hWidthNat :
       native_int_to_nat (native_zplus (native_zplus wmv 1) (native_zneg 0)) =
         native_int_to_nat wi := by
     rw [hWiEq]
     simp [native_zplus, native_zneg]
-  simp [__smtx_typeof_extract, native_ite, hLo, hHi', hWidthNonneg, hWidthNat]
+  simp [__smtx_typeof_extract, native_ite, hLo, hHi', hWidthPos, hWidthNat]
 
 private theorem typed_conclusion_impl
     (w t wm : Term) :
@@ -692,7 +622,7 @@ private theorem facts_conclusion_impl
     hWiNonneg hTwNonneg hWiEq hTSmtTy]
   exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_uf_bv2nat_int2bv_extract_properties
+public theorem cmd_step_uf_bv2nat_int2bv_extract_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.uf_bv2nat_int2bv_extract args premises) ->

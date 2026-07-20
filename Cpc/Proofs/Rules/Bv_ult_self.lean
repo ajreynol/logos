@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.StringSupport
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.Proofs.TypePreservation.BitVecCmp
 
 open Eo
 open SmtEval
@@ -82,7 +87,7 @@ private theorem eo_has_bool_type_bvult_self
   rcases smt_bitvec_type_of_eo_bitvec_type x1 w hX1Trans hX1Type with ⟨n, hSmtTy⟩
   unfold RuleProofs.eo_has_bool_type
   change __smtx_typeof (SmtTerm.bvult (__eo_to_smt x1) (__eo_to_smt x1)) = SmtType.Bool
-  rw [__smtx_typeof.eq_55]
+  rw [__smtx_typeof.eq_53]
   simp [__smtx_typeof_bv_op_2_ret, hSmtTy, native_nateq, native_ite]
 
 private theorem typed___eo_prog_bv_ult_self_impl (x1 : Term) :
@@ -121,7 +126,7 @@ private theorem eval_bvult_self_false
   rcases bitvec_value_canonical hEvalTy with ⟨k, hEvalX1⟩
   change __smtx_model_eval M (SmtTerm.bvult (__eo_to_smt x1) (__eo_to_smt x1)) =
     SmtValue.Boolean false
-  rw [__smtx_model_eval.eq_55, hEvalX1]
+  rw [__smtx_model_eval.eq_53, hEvalX1]
   simp [__smtx_model_eval_bvult, __smtx_model_eval_bvugt, native_zlt]
 
 private theorem facts___eo_prog_bv_ult_self_impl
@@ -149,7 +154,7 @@ private theorem facts___eo_prog_bv_ult_self_impl
     rw [eval_bvult_self_false M hM x1 hX1Trans hResultTy, hFalseEval]
     exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean false)
 
-theorem cmd_step_bv_ult_self_properties
+public theorem cmd_step_bv_ult_self_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_ult_self args premises) ->

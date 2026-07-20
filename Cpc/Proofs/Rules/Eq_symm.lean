@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -21,21 +26,13 @@ private theorem eo_typeof_eq_bool_same (A B : Term) :
     __eo_typeof_eq A B = Term.Bool ->
     A = B ∧ A ≠ Term.Stuck := by
   intro hTy
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hTy ⊢
-  all_goals
-    simp [hTy]
+  exact RuleProofs.eo_typeof_eq_bool_same A B hTy
 
 private theorem eo_typeof_eq_nonstuck_bool (A B : Term) :
     __eo_typeof_eq A B ≠ Term.Stuck ->
     __eo_typeof_eq A B = Term.Bool := by
   intro hNonStuck
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hNonStuck ⊢
-  all_goals
-    assumption
+  exact RuleProofs.eo_typeof_eq_eq_bool_of_ne_stuck A B hNonStuck
 
 private theorem operand_types_of_prog_eq_symm_bool (t1 s1 : Term) :
     t1 ≠ Term.Stuck ->
@@ -168,7 +165,7 @@ private theorem facts___eo_prog_eq_symm_impl
       (__smtx_model_eval M (__eo_to_smt t1))
       (__smtx_model_eval M (__eo_to_smt s1))
 
-theorem cmd_step_eq_symm_properties
+public theorem cmd_step_eq_symm_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.eq_symm args premises) ->
