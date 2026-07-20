@@ -5489,46 +5489,60 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_stoi_resul
         (__eo_to_smt (Term.Apply (Term._at_strings_stoi_result y) x)) =
       __eo_to_smt_type
         (__eo_typeof (Term.Apply (Term._at_strings_stoi_result y) x)) := by
-  let sub := SmtTerm.str_substr (__eo_to_smt y) (SmtTerm.Numeral 0) (__eo_to_smt x)
+  let zero := SmtTerm.Numeral 0
+  let prefixTerm := SmtTerm.str_substr (__eo_to_smt y) zero (__eo_to_smt x)
+  let parsed := SmtTerm.str_to_int prefixTerm
+  let rhs := SmtTerm.ite (SmtTerm.eq (__eo_to_smt x) zero) zero parsed
   have hTranslate :
       __eo_to_smt (Term.Apply (Term._at_strings_stoi_result y) x) =
-        SmtTerm.str_to_int sub := by
+        rhs := by
     rfl
-  have hApplyNN : term_has_non_none_type (SmtTerm.str_to_int sub) := by
+  have hApplyNN : term_has_non_none_type rhs := by
     unfold term_has_non_none_type
     rw [← hTranslate]
     exact hNonNone
-  have hSubSeqChar : __smtx_typeof sub = SmtType.Seq SmtType.Char :=
-    seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
-      (typeof_str_to_int_eq sub) hApplyNN
+  rcases ite_args_of_non_none hApplyNN with
+    ⟨T, hCond, hZero, hParsed, hTNonNone⟩
+  have hZeroInt : __smtx_typeof zero = SmtType.Int := by
+    rfl
+  have hTInt : T = SmtType.Int := hZero.symm.trans hZeroInt
   have hSmt :
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term._at_strings_stoi_result y) x)) =
         SmtType.Int := by
-    rw [hTranslate, typeof_str_to_int_eq sub, hSubSeqChar]
-    simp [native_ite, native_Teq]
-  have hSubNN : term_has_non_none_type sub := by
+    rw [hTranslate, typeof_ite_eq, hCond, hZero, hParsed]
+    simp [__smtx_typeof_ite, native_ite, native_Teq, hTInt]
+  have hParsedNN : term_has_non_none_type parsed := by
     unfold term_has_non_none_type
-    rw [hSubSeqChar]
+    rw [hParsed, hTInt]
     simp
-  rcases str_substr_args_of_non_none hSubNN with ⟨T, hYSeq, hStart, hLen⟩
-  have hSubSeqT : __smtx_typeof sub = SmtType.Seq T := by
-    rw [show sub =
-        SmtTerm.str_substr (__eo_to_smt y) (SmtTerm.Numeral 0) (__eo_to_smt x) by rfl]
-    rw [typeof_str_substr_eq (__eo_to_smt y) (SmtTerm.Numeral 0) (__eo_to_smt x),
-      hYSeq, hStart, hLen]
+  have hPrefixSeqChar :
+      __smtx_typeof prefixTerm = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
+      (typeof_str_to_int_eq prefixTerm) hParsedNN
+  have hPrefixNN : term_has_non_none_type prefixTerm := by
+    unfold term_has_non_none_type
+    rw [hPrefixSeqChar]
+    simp
+  rcases str_substr_args_of_non_none hPrefixNN with
+    ⟨U, hYSeq, hStart, hXInt⟩
+  have hPrefixSeqU : __smtx_typeof prefixTerm = SmtType.Seq U := by
+    rw [show prefixTerm =
+        SmtTerm.str_substr (__eo_to_smt y) zero (__eo_to_smt x) by rfl]
+    rw [typeof_str_substr_eq (__eo_to_smt y) zero (__eo_to_smt x),
+      hYSeq, hStart, hXInt]
     simp [__smtx_typeof_str_substr]
-  have hT : T = SmtType.Char := by
-    have hSeqEq : SmtType.Seq T = SmtType.Seq SmtType.Char :=
-      hSubSeqT.symm.trans hSubSeqChar
+  have hUChar : U = SmtType.Char := by
+    have hSeqEq : SmtType.Seq U = SmtType.Seq SmtType.Char :=
+      hPrefixSeqU.symm.trans hPrefixSeqChar
     cases hSeqEq
     rfl
-  subst T
+  subst U
   have hYEo :
       __eo_typeof y = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) :=
     eo_typeof_eq_seq_char_of_smt_seq_char_from_ih y ihY hYSeq
   have hXEo : __eo_typeof x = Term.UOp UserOp.Int :=
-    eo_typeof_eq_int_of_smt_int_from_ih x ihX hLen
+    eo_typeof_eq_int_of_smt_int_from_ih x ihX hXInt
   exact hSmt.trans
     (eo_to_smt_type_typeof_apply_apply_at_strings_stoi_result_of_seq_char_int
       x y hYEo hXEo).symm

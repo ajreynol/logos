@@ -898,9 +898,12 @@ theorem substitute_simul_strings_stoi_result_preserves_type_and_translation_of_t
         unfold RuleProofs.eo_has_smt_translation
         change
           __smtx_typeof
-              (SmtTerm.str_to_int
-                (SmtTerm.str_substr (__eo_to_smt X) (SmtTerm.Numeral 0)
-                  (__eo_to_smt Y))) ≠
+              (SmtTerm.ite
+                (SmtTerm.eq (__eo_to_smt Y) (SmtTerm.Numeral 0))
+                (SmtTerm.Numeral 0)
+                (SmtTerm.str_to_int
+                  (SmtTerm.str_substr (__eo_to_smt X) (SmtTerm.Numeral 0)
+                    (__eo_to_smt Y)))) ≠
             SmtType.None
         change
           __eo_typeof__at_strings_stoi_result (__eo_typeof X) (__eo_typeof Y) ≠

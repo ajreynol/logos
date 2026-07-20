@@ -1567,10 +1567,12 @@ theorem smtTermClosedIn_eo_to_smt_strings_stoi_result
       (Term.Apply (Term._at_strings_stoi_result x) y)) :=
 by
   change SmtTermClosedIn vars
-    (SmtTerm.str_to_int
-      (SmtTerm.str_substr (__eo_to_smt x)
-        (SmtTerm.Numeral 0) (__eo_to_smt y)))
-  exact ⟨hx, trivial, hy⟩
+    (SmtTerm.ite (SmtTerm.eq (__eo_to_smt y) (SmtTerm.Numeral 0))
+      (SmtTerm.Numeral 0)
+      (SmtTerm.str_to_int
+        (SmtTerm.str_substr (__eo_to_smt x)
+          (SmtTerm.Numeral 0) (__eo_to_smt y))))
+  exact ⟨⟨hy, trivial⟩, trivial, ⟨hx, trivial, hy⟩⟩
 
 theorem smtTermClosedIn_eo_to_smt_strings_stoi_non_digit
     {vars : List SmtVarKey} {x : Term}
