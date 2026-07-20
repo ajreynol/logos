@@ -8,8 +8,8 @@ public import Cpc.Proofs.RuleSupport.CnfSupport
 import all Cpc.Proofs.RuleSupport.CnfSupport
 public import Cpc.Proofs.RuleSupport.RelCoincidenceSupport
 import all Cpc.Proofs.RuleSupport.RelCoincidenceSupport
-public import Cpc.Proofs.Rules.Instantiate
-import all Cpc.Proofs.Rules.Instantiate
+public import Cpc.Proofs.RuleSupport.InstantiateSupport
+import all Cpc.Proofs.RuleSupport.InstantiateSupport
 
 open Eo
 open SmtEval

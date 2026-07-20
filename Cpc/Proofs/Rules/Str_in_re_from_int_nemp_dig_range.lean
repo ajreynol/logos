@@ -1,7 +1,7 @@
 module
 
-public import Cpc.Proofs.Rules.Str_in_re_from_int_dig_range
-import all Cpc.Proofs.Rules.Str_in_re_from_int_dig_range
+public import Cpc.Proofs.RuleSupport.StrInReFromIntDigRangeSupport
+import all Cpc.Proofs.RuleSupport.StrInReFromIntDigRangeSupport
 import all Init.Data.Repr
 
 open Eo

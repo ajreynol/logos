@@ -1,7 +1,7 @@
 module
 
 public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Evaluate.Proof
+import all Cpc.Proofs.RuleSupport.Evaluate.SoundFinal
 
 open Eo
 open SmtEval
@@ -26,7 +26,8 @@ public theorem smtx_model_eval_bvsgt_binary_eq_uts_public
       SmtValue.Boolean
         (native_zlt (native_binary_uts w n2)
           (native_binary_uts w n1)) :=
-  smtx_model_eval_bvsgt_binary_eq_uts hw0 hCanon1 hCanon2
+  EvaluateProofInternal.smtx_model_eval_bvsgt_binary_eq_uts
+    hw0 hCanon1 hCanon2
 
 public theorem cmd_step_evaluate_properties
     (M : SmtModel) (hM : model_total_typed M)

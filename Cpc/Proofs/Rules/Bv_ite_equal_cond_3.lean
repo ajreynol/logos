@@ -1,7 +1,7 @@
 module
 
-public import Cpc.Proofs.Rules.Bv_ite_equal_cond_1
-import all Cpc.Proofs.Rules.Bv_ite_equal_cond_1
+public import Cpc.Proofs.RuleSupport.BvIteEqualCond1Support
+import all Cpc.Proofs.RuleSupport.BvIteEqualCond1Support
 
 open Eo
 open SmtEval

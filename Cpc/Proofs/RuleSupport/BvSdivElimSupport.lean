@@ -4,8 +4,8 @@ public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
 import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
 public import Cpc.Proofs.RuleSupport.TypeInversionSupport
 import all Cpc.Proofs.RuleSupport.TypeInversionSupport
-public import Cpc.Proofs.Rules.Bv_nego_eliminate
-import all Cpc.Proofs.Rules.Bv_nego_eliminate
+public import Cpc.Proofs.RuleSupport.BvNegoEliminateSupport
+import all Cpc.Proofs.RuleSupport.BvNegoEliminateSupport
 
 public section
 

@@ -1,7 +1,7 @@
 module
 
-public import Cpc.Proofs.Rules.Re_inter_cstring
-import all Cpc.Proofs.Rules.Re_inter_cstring
+public import Cpc.Proofs.RuleSupport.ReInterCstringSupport
+import all Cpc.Proofs.RuleSupport.ReInterCstringSupport
 
 open Eo
 open SmtEval

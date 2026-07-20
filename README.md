@@ -26,6 +26,19 @@ To run the same checks as CI locally, use:
 bash scripts/run-ci.sh
 ```
 
+To build every CPC proof rule, use:
+
+```bash
+scripts/build-all-cpc-rules.sh
+```
+
+To remove Lake build artifacts, use either of these equivalent commands:
+
+```bash
+scripts/clean-build.sh
+lake clean
+```
+
 ## Using the Logos checker
 
 ```bash
