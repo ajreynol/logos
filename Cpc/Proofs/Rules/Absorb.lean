@@ -51,41 +51,6 @@ private theorem eo_requires_body_ne_stuck_of_ne_stuck (x y z : Term) :
     simp [__eo_requires, hxStuck, native_teq, native_ite, native_not,
       SmtEval.native_not] at hReq
 
-private theorem eo_requires_left_ne_stuck_of_ne_stuck (x y z : Term) :
-    __eo_requires x y z ≠ Term.Stuck ->
-    x ≠ Term.Stuck := by
-  intro hReq hx
-  subst x
-  simp [__eo_requires, native_teq, native_ite, native_not,
-    SmtEval.native_not] at hReq
-
-private theorem eo_ite_eq_true_cases (c t e : Term) :
-    __eo_ite c t e = Term.Boolean true ->
-    (c = Term.Boolean true ∧ t = Term.Boolean true) ∨
-      (c = Term.Boolean false ∧ e = Term.Boolean true) := by
-  intro h
-  cases c <;> simp [__eo_ite, native_ite, native_teq] at h
-  case Boolean b =>
-    cases b
-    · exact Or.inr ⟨rfl, h⟩
-    · exact Or.inl ⟨rfl, h⟩
-  all_goals
-    exact Or.inr ⟨rfl, h⟩
-
-private theorem eq_of_eo_eq_true_local (x y : Term) :
-    __eo_eq x y = Term.Boolean true ->
-    y = x := by
-  intro h
-  by_cases hx : x = Term.Stuck
-  · subst x
-    simp [__eo_eq] at h
-  · by_cases hy : y = Term.Stuck
-    · subst y
-      simp [__eo_eq] at h
-    · have hDec : native_teq y x = true := by
-        simpa [__eo_eq, hx, hy] using h
-      simpa [native_teq] using hDec
-
 private inductive AbsorbTree (f zero : Term) : Term -> Prop where
   | here : AbsorbTree f zero zero
   | left (a b : Term) :
@@ -825,15 +790,6 @@ private theorem native_int_pow2_nat (w : Nat) :
     native_int_pow2 (native_nat_to_int w) = (2 ^ w : Int) := by
   have h : ¬ (↑w : Int) < 0 := by simp
   simp [native_int_pow2, native_zexp_total, native_nat_to_int, h]
-
-private theorem native_mod_pow2_eq_bitvec_toNat (w : Nat) (n : Int) :
-    native_mod_total n (native_int_pow2 (native_nat_to_int w)) =
-      ((BitVec.ofInt w n).toNat : Int) := by
-  rw [native_int_pow2_nat]
-  change n % (2 ^ w : Int) = ((BitVec.ofInt w n).toNat : Int)
-  rw [BitVec.toNat_ofInt]
-  have hpow : 0 < (2 ^ w : Int) := by exact_mod_cast Nat.two_pow_pos w
-  exact (Int.toNat_of_nonneg (Int.emod_nonneg n (Int.ne_of_gt hpow))).symm
 
 private theorem native_binary_and_mod_eq_toNat
     (w : Nat) (n1 n2 : Int) :

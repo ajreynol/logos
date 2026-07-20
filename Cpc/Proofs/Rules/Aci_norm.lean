@@ -85,17 +85,6 @@ private theorem aci_norm_guard_true_of_type_bool (a b : Term) :
   all_goals
     exact False.elim (eo_typeof_stuck_ne_bool hTy)
 
-private theorem smt_value_rel_of_eo_eq_true
-    (M : SmtModel) (x y : Term) :
-    __eo_eq x y = Term.Boolean true ->
-    RuleProofs.smt_value_rel
-      (__smtx_model_eval M (__eo_to_smt x))
-      (__smtx_model_eval M (__eo_to_smt y)) := by
-  intro hEq
-  have hyx : y = x := eq_of_eo_eq_true_local x y hEq
-  subst y
-  exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt x))
-
 private theorem eo_ite_eq_true_cases (c t e : Term) :
     __eo_ite c t e = Term.Boolean true ->
     (c = Term.Boolean true ∧ t = Term.Boolean true) ∨
@@ -257,13 +246,6 @@ private theorem aci_norm_eq_true_right_ne_stuck (x y : Term) :
   subst y
   cases x <;> simp [__aci_norm_eq] at hEq
 
-private theorem aci_norm_l3_nonstuck_eq_false (x y : Term) :
-    x ≠ Term.Stuck ->
-    y ≠ Term.Stuck ->
-    __eo_l_3___aci_norm_eq x y = Term.Boolean false := by
-  intro hx hy
-  cases x <;> cases y <;> simp [__eo_l_3___aci_norm_eq] at hx hy ⊢
-
 private theorem aci_norm_l2_marker_right_translation_ne_true
     (f payload y : Term) :
     RuleProofs.eo_has_smt_translation y ->
@@ -340,61 +322,6 @@ private theorem aci_norm_l1_marker_eq_true_cases
       hIte with hThen | hElse
   · exact Or.inl hThen.1
   · exact Or.inr hElse.2
-
-private theorem aci_norm_same_marker_eq_true_cases_of_payload_translation
-    (f payload rhsPayload : Term) :
-    RuleProofs.eo_has_smt_translation payload ->
-    __aci_norm_eq
-        (Term.Apply
-          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
-        (Term.Apply
-          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) rhsPayload) =
-      Term.Boolean true ->
-    rhsPayload = payload ∨
-      __eo_list_meq f payload rhsPayload = Term.Boolean true := by
-  intro hPayloadTrans hEq
-  let leftMarker :=
-    Term.Apply
-      (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload
-  let rightMarker :=
-    Term.Apply
-      (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) rhsPayload
-  have hEqMarkers :
-      __aci_norm_eq leftMarker rightMarker = Term.Boolean true := by
-    simpa [leftMarker, rightMarker] using hEq
-  have hEqIte := hEqMarkers
-  have hLeftMarkerNe : leftMarker ≠ Term.Stuck := by
-    dsimp [leftMarker]
-    simp
-  have hRightMarkerNe : rightMarker ≠ Term.Stuck := by
-    dsimp [rightMarker]
-    simp
-  rw [aci_norm_eq_nonstuck leftMarker rightMarker hLeftMarkerNe
-    hRightMarkerNe] at hEqIte
-  rcases eo_ite_eq_true_cases (__eo_eq leftMarker rightMarker)
-      (Term.Boolean true) (__eo_l_1___aci_norm_eq leftMarker rightMarker)
-      hEqIte with hFullEq | hL1
-  · have hMarkerEq : rightMarker = leftMarker :=
-      eq_of_eo_eq_true_local leftMarker rightMarker hFullEq.1
-    have hPayloadEq : rhsPayload = payload := by
-      dsimp [leftMarker, rightMarker] at hMarkerEq
-      injection hMarkerEq with _ hPayloadEq
-    exact Or.inl hPayloadEq
-  · have hL1' :
-        __eo_l_1___aci_norm_eq leftMarker rightMarker = Term.Boolean true :=
-      hL1.2
-    rcases aci_norm_l1_marker_eq_true_cases f payload rightMarker hL1' with
-      hPayloadEq | hL2
-    · have hRightEq : rightMarker = payload :=
-        eq_of_eo_eq_true_local payload rightMarker hPayloadEq
-      have hRightTrans : RuleProofs.eo_has_smt_translation rightMarker := by
-        rw [hRightEq]
-        exact hPayloadTrans
-      exact False.elim
-        (aci_sorted_marker_not_has_smt_translation f rhsPayload hRightTrans)
-    · have hSplit :=
-        aci_norm_l2_marker_marker_eq_true f payload f rhsPayload hL2
-      exact Or.inr hSplit.2
 
 private theorem aci_norm_marker_marker_eq_true_false_of_heads_ne
     (f g payload rhsPayload : Term) :
@@ -479,26 +406,6 @@ private theorem aci_norm_marker_marker_eq_true_false_of_heads_ne_payload_transla
           exact hPayloadTrans))
     hHeadNe hHeadEqNe hEq
 
-private theorem aci_norm_l2_nonmarker_left_eq_false
-    (x y : Term) :
-    (∀ f payload,
-      x ≠ Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload) ->
-    x ≠ Term.Stuck ->
-    y ≠ Term.Stuck ->
-    __eo_l_2___aci_norm_eq x y = Term.Boolean false := by
-  intro hNotMarker hx hy
-  cases x <;> cases y <;>
-    simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hx hy ⊢
-  case Apply.Apply f payload yf yPayload =>
-    cases f <;>
-      simp  at hNotMarker ⊢
-    case Apply g markerArg =>
-      cases g <;>
-        simp  at hNotMarker ⊢
-      case UOp op =>
-        cases op <;>
-          simp  at hNotMarker ⊢
-
 private theorem aci_norm_l1_nonmarker_left_eq_false
     (x y : Term) :
     (∀ f payload,
@@ -577,20 +484,6 @@ private def aciNormPayload : Term -> Term
   | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) _) t => t
   | t => t
 
-private theorem aciNormPayload_has_smt_translation_of_has_smt_translation
-    (t : Term) :
-  RuleProofs.eo_has_smt_translation t ->
-  RuleProofs.eo_has_smt_translation (aciNormPayload t) := by
-  intro hEq
-  cases t <;> try exact hEq
-  case Apply f x =>
-    cases f <;> try exact hEq
-    case Apply g y =>
-      cases g <;> try exact hEq
-      case UOp op =>
-        cases op <;> try exact hEq
-        exact False.elim (aci_sorted_marker_not_has_smt_translation y x hEq)
-
 private theorem aciNormPayload_eq_self_of_has_smt_translation
     (t : Term) :
   RuleProofs.eo_has_smt_translation t ->
@@ -611,37 +504,6 @@ private theorem aciNormPayload_eq_self_of_has_smt_translation
           (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload) =
       payload := by
   cases payload <;> simp [aciNormPayload, __eo_mk_apply]
-
-private theorem aciNormPayload_eq_self_of_eval_seq
-    (M : SmtModel) (t : Term) :
-  (∃ s, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq s) ->
-  aciNormPayload t = t := by
-  intro hSeq
-  cases t <;> try rfl
-  case Apply f x =>
-    cases f <;> try rfl
-    case Apply g y =>
-      cases g <;> try rfl
-      case UOp op =>
-        cases op <;> try rfl
-        case _at__at_aci_sorted =>
-          rcases hSeq with ⟨s, hEval⟩
-          have hMarkerEval :
-              __smtx_model_eval M
-                  (__eo_to_smt
-                    (Term.Apply
-                      (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) y) x)) =
-                SmtValue.NotValue := by
-            change __smtx_model_eval M
-                (SmtTerm.Apply
-                  (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
-                  (__eo_to_smt x)) =
-              SmtValue.NotValue
-            cases hy : __smtx_model_eval M (__eo_to_smt y) <;>
-              cases hx : __smtx_model_eval M (__eo_to_smt x) <;>
-                simp [__smtx_model_eval, __smtx_model_eval_apply, hy, hx]
-          rw [hMarkerEval] at hEval
-          cases hEval
 
 private theorem aciNormPayload_eq_self_of_eval_not_notvalue
     (M : SmtModel) (t : Term) :
@@ -853,32 +715,6 @@ private theorem eo_typeof_and_eq_bool_of_has_smt_translation (y x : Term) :
   have hMatch := TranslationProofs.eo_to_smt_typeof_matches_translation
     (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) hTrans
   exact TranslationProofs.eo_to_smt_type_eq_bool (hMatch.symm.trans hSmtTy)
-
-private theorem eo_has_bool_type_or_args_of_has_smt_translation (y x : Term) :
-    RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) ->
-    RuleProofs.eo_has_bool_type y ∧ RuleProofs.eo_has_bool_type x := by
-  intro hTrans
-  let s := SmtTerm.or (__eo_to_smt y) (__eo_to_smt x)
-  have hNN : term_has_non_none_type s := by
-    unfold term_has_non_none_type
-    unfold RuleProofs.eo_has_smt_translation at hTrans
-    simpa [s] using hTrans
-  exact bool_binop_args_bool_of_non_none (op := SmtTerm.or)
-    (typeof_or_eq (__eo_to_smt y) (__eo_to_smt x)) hNN
-
-private theorem eo_has_bool_type_and_args_of_has_smt_translation (y x : Term) :
-    RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) ->
-    RuleProofs.eo_has_bool_type y ∧ RuleProofs.eo_has_bool_type x := by
-  intro hTrans
-  let s := SmtTerm.and (__eo_to_smt y) (__eo_to_smt x)
-  have hNN : term_has_non_none_type s := by
-    unfold term_has_non_none_type
-    unfold RuleProofs.eo_has_smt_translation at hTrans
-    simpa [s] using hTrans
-  exact bool_binop_args_bool_of_non_none (op := SmtTerm.and)
-    (typeof_and_eq (__eo_to_smt y) (__eo_to_smt x)) hNN
 
 private theorem eo_has_bool_type_false_local :
     RuleProofs.eo_has_bool_type (Term.Boolean false) := by
@@ -1368,40 +1204,6 @@ private theorem aciOr_concat_true_of_right_true
   rw [aciOrClause_is_list_true hC1, aciOrClause_is_list_true hC2]
   simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
   exact aciOr_concat_rec_true_of_right_true M hM hC1 hC1Bool hC2Bool hC2True
-
-private theorem aciOr_concat_false_implies_left_false
-    (M : SmtModel) (hM : model_total_typed M) {c1 c2 : Term} :
-    AciOrClause c1 ->
-    AciOrClause c2 ->
-    RuleProofs.eo_has_bool_type c1 ->
-    RuleProofs.eo_has_bool_type c2 ->
-    eo_interprets M (__eo_list_concat (Term.UOp UserOp.or) c1 c2) false ->
-    eo_interprets M c1 false := by
-  intro hC1 hC2 hC1Bool hC2Bool hConcatFalse
-  rcases eo_interprets_bool_cases_local M hM c1 hC1Bool with hC1True | hC1False
-  · have hConcatTrue :
-        eo_interprets M (__eo_list_concat (Term.UOp UserOp.or) c1 c2) true :=
-      aciOr_concat_true_of_left_true M hM hC1 hC2 hC1Bool hC2Bool hC1True
-    exact False.elim
-      ((RuleProofs.eo_interprets_true_not_false M _ hConcatTrue) hConcatFalse)
-  · exact hC1False
-
-private theorem aciOr_concat_false_implies_right_false
-    (M : SmtModel) (hM : model_total_typed M) {c1 c2 : Term} :
-    AciOrClause c1 ->
-    AciOrClause c2 ->
-    RuleProofs.eo_has_bool_type c1 ->
-    RuleProofs.eo_has_bool_type c2 ->
-    eo_interprets M (__eo_list_concat (Term.UOp UserOp.or) c1 c2) false ->
-    eo_interprets M c2 false := by
-  intro hC1 hC2 hC1Bool hC2Bool hConcatFalse
-  rcases eo_interprets_bool_cases_local M hM c2 hC2Bool with hC2True | hC2False
-  · have hConcatTrue :
-        eo_interprets M (__eo_list_concat (Term.UOp UserOp.or) c1 c2) true :=
-      aciOr_concat_true_of_right_true M hM hC1 hC2 hC1Bool hC2Bool hC2True
-    exact False.elim
-      ((RuleProofs.eo_interprets_true_not_false M _ hConcatTrue) hConcatFalse)
-  · exact hC2False
 
 private theorem aciOr_concat_rec_false_of_both_false
     (M : SmtModel) (hM : model_total_typed M) {c1 c2 : Term} :
@@ -3716,50 +3518,6 @@ private theorem aci_norm_l1_and_true_eq_of_ne_true (t : Term) :
   case Boolean b =>
     cases b <;> simp at hTrue ⊢
 
-private theorem smt_value_rel_l1_or_false
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
-  RuleProofs.eo_has_bool_type t ->
-  RuleProofs.smt_value_rel
-    (__smtx_model_eval M (__eo_to_smt t))
-    (__smtx_model_eval M
-      (__eo_to_smt
-        (__eo_l_1___get_ai_norm_rec (Term.UOp UserOp.or)
-          (Term.Boolean false) t))) := by
-  intro hBool
-  by_cases hFalse : t = Term.Boolean false
-  · subst t
-    simp [__eo_l_1___get_ai_norm_rec, __eo_ite, __eo_eq, native_ite, native_teq,
-      RuleProofs.smt_value_rel_refl]
-  · have hNe : t ≠ Term.Stuck := RuleProofs.term_ne_stuck_of_has_bool_type t hBool
-    rw [aci_norm_l1_or_false_eq_of_ne_false t hNe hFalse]
-    apply smt_value_rel_of_bool_interprets_iff M hM
-    · exact hBool
-    · exact eo_has_bool_type_or_of_bool_args_local _ _ hBool
-        eo_has_bool_type_false_local
-    · exact (eo_interprets_or_false_iff M hM t hBool).symm
-
-private theorem smt_value_rel_l1_and_true
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
-  RuleProofs.eo_has_bool_type t ->
-  RuleProofs.smt_value_rel
-    (__smtx_model_eval M (__eo_to_smt t))
-    (__smtx_model_eval M
-      (__eo_to_smt
-        (__eo_l_1___get_ai_norm_rec (Term.UOp UserOp.and)
-          (Term.Boolean true) t))) := by
-  intro hBool
-  by_cases hTrue : t = Term.Boolean true
-  · subst t
-    simp [__eo_l_1___get_ai_norm_rec, __eo_ite, __eo_eq, native_ite, native_teq,
-      RuleProofs.smt_value_rel_refl]
-  · have hNe : t ≠ Term.Stuck := RuleProofs.term_ne_stuck_of_has_bool_type t hBool
-    rw [aci_norm_l1_and_true_eq_of_ne_true t hNe hTrue]
-    apply smt_value_rel_of_bool_interprets_iff M hM
-    · exact hBool
-    · exact RuleProofs.eo_has_bool_type_and_of_bool_args _ _ hBool
-        RuleProofs.eo_has_bool_type_true
-    · exact (eo_interprets_and_true_iff M t hBool).symm
-
 private theorem get_ai_norm_rec_or_eq_l1_of_not_or (t : Term) :
   RuleProofs.eo_has_bool_type t ->
   (∀ y x, t ≠ Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) ->
@@ -3817,32 +3575,6 @@ private theorem get_ai_norm_rec_and_eq_l1_of_not_and (t : Term) :
         cases op <;> simp 
         case and =>
           exact False.elim (hNotAnd y x rfl)
-
-private theorem smt_value_rel_get_ai_norm_rec_or_non_or
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
-  RuleProofs.eo_has_bool_type t ->
-  (∀ y x, t ≠ Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) ->
-  RuleProofs.smt_value_rel
-    (__smtx_model_eval M (__eo_to_smt t))
-    (__smtx_model_eval M
-      (__eo_to_smt
-        (__get_ai_norm_rec (Term.UOp UserOp.or) (Term.Boolean false) t))) := by
-  intro hBool hNotOr
-  rw [get_ai_norm_rec_or_eq_l1_of_not_or t hBool hNotOr]
-  exact smt_value_rel_l1_or_false M hM t hBool
-
-private theorem smt_value_rel_get_ai_norm_rec_and_non_and
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
-  RuleProofs.eo_has_bool_type t ->
-  (∀ y x, t ≠ Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) ->
-  RuleProofs.smt_value_rel
-    (__smtx_model_eval M (__eo_to_smt t))
-    (__smtx_model_eval M
-      (__eo_to_smt
-        (__get_ai_norm_rec (Term.UOp UserOp.and) (Term.Boolean true) t))) := by
-  intro hBool hNotAnd
-  rw [get_ai_norm_rec_and_eq_l1_of_not_and t hBool hNotAnd]
-  exact smt_value_rel_l1_and_true M hM t hBool
 
 private theorem aciOr_l1_or_false_structural (t : Term) :
     RuleProofs.eo_has_bool_type t ->
@@ -5128,94 +4860,6 @@ private theorem strConcat_l1_rel_struct
       strConcat_smt_value_rel_list_nil_right_empty M hM t id T
         hTy hIdNil hIdTy⟩
 
-private theorem strConcat_l1_rel_eval_empty
-    (M : SmtModel) (hM : model_total_typed M) (id : Term) (T : SmtType)
-    (hIdList :
-      __eo_is_list (Term.UOp UserOp.str_concat) id = Term.Boolean true)
-    (hIdEval :
-      __smtx_model_eval M (__eo_to_smt id) =
-        SmtValue.Seq (SmtSeq.empty T))
-    (hIdNe : id ≠ Term.Stuck)
-    (t : Term) :
-    __smtx_typeof (__eo_to_smt t) = SmtType.Seq T ->
-    __eo_is_list (Term.UOp UserOp.str_concat)
-        (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.str_concat) id t) =
-        Term.Boolean true ∧
-      RuleProofs.smt_value_rel
-        (__smtx_model_eval M
-          (__eo_to_smt
-            (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.str_concat) id t)))
-        (__smtx_model_eval M (__eo_to_smt t)) := by
-  intro hTy
-  have hTNe : t ≠ Term.Stuck := term_ne_stuck_of_smt_seq_type hTy
-  by_cases hEq : t = id
-  · subst t
-    rw [strConcat_l1_eq_self_of_eq id hIdNe]
-    exact ⟨hIdList, RuleProofs.smt_value_rel_refl _⟩
-  · rw [strConcat_l1_eq_concat_of_ne_id id t hIdNe hTNe hEq]
-    exact ⟨
-      strConcat_is_list_cons_true_of_tail_list t id hIdList,
-      strConcat_smt_value_rel_right_eval_empty M hM t id T hTy hIdEval⟩
-
-private theorem strConcat_singleton_elim_rel
-    (M : SmtModel) (hM : model_total_typed M) (c : Term) (T : SmtType) :
-    __eo_is_list (Term.UOp UserOp.str_concat) c = Term.Boolean true ->
-    __smtx_typeof (__eo_to_smt c) = SmtType.Seq T ->
-    RuleProofs.smt_value_rel
-      (__smtx_model_eval M
-        (__eo_to_smt (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) c)))
-      (__smtx_model_eval M (__eo_to_smt c)) := by
-  intro hList hcTy
-  change RuleProofs.smt_value_rel
-    (__smtx_model_eval M
-      (__eo_to_smt
-        (__eo_requires (__eo_is_list (Term.UOp UserOp.str_concat) c)
-          (Term.Boolean true) (__eo_list_singleton_elim_2 c))))
-    (__smtx_model_eval M (__eo_to_smt c))
-  rw [hList]
-  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
-  cases c with
-  | Apply f tail =>
-      cases f with
-      | Apply g head =>
-          have hg :
-              g = Term.UOp UserOp.str_concat :=
-            strConcat_is_list_cons_head_eq_of_true g head tail hList
-          subst g
-          have hTailList :
-              __eo_is_list (Term.UOp UserOp.str_concat) tail =
-                Term.Boolean true :=
-            strConcat_is_list_tail_true_of_cons_self head tail hList
-          have hTypes := strConcat_args_of_seq_type head tail T hcTy
-          cases hNil : __eo_is_list_nil (Term.UOp UserOp.str_concat) tail
-          all_goals
-            simp [__eo_list_singleton_elim_2, hNil, __eo_ite, native_ite,
-              native_teq]
-          case Boolean b =>
-            cases b
-            · exact RuleProofs.smt_value_rel_refl
-                (__smtx_model_eval M (__eo_to_smt (mkStrConcat head tail)))
-            · exact RuleProofs.smt_value_rel_symm
-                (__smtx_model_eval M (__eo_to_smt (mkStrConcat head tail)))
-                (__smtx_model_eval M (__eo_to_smt head))
-                (strConcat_smt_value_rel_list_nil_right_empty M hM
-                  head tail T hTypes.1 hNil hTypes.2)
-          all_goals
-            have hTailNe : tail ≠ Term.Stuck :=
-              term_ne_stuck_of_smt_seq_type hTypes.2
-            cases tail <;>
-              simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
-                __eo_eq, native_teq] at hNil hTailNe
-            case UOp1 op A =>
-              cases op <;>
-                simp  at hNil
-      | _ =>
-          simpa [__eo_list_singleton_elim_2] using
-            RuleProofs.smt_value_rel_refl _
-  | _ =>
-      simpa [__eo_list_singleton_elim_2] using
-        RuleProofs.smt_value_rel_refl _
-
 private theorem smt_seq_ne_none (T : SmtType) : SmtType.Seq T ≠ SmtType.None := by
   intro h
   cases h
@@ -5662,23 +5306,6 @@ private theorem smt_eval_seq_of_smt_type_seq
       smt_model_eval_preserves_type_of_non_none M hM t hNN
   exact seq_value_canonical hValTy
 
-private theorem smt_eval_binary_of_smt_type_bitvec
-    (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm)
-    (w : native_Nat) :
-    __smtx_typeof t = SmtType.BitVec w ->
-    ∃ n, __smtx_model_eval M t =
-      SmtValue.Binary (native_nat_to_int w) n := by
-  intro hTy
-  have hNN : term_has_non_none_type t := by
-    unfold term_has_non_none_type
-    rw [hTy]
-    exact smt_bitvec_ne_none w
-  have hValTy :
-      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.BitVec w := by
-    simpa [hTy] using
-      smt_model_eval_preserves_type_of_non_none M hM t hNN
-  exact bitvec_value_canonical hValTy
-
 private theorem smt_eval_reglan_of_smt_type_reglan
     (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm) :
     __smtx_typeof t = SmtType.RegLan ->
@@ -5703,15 +5330,6 @@ private theorem smt_value_rel_eval_seq_left
   rcases hSeq with ⟨s, rfl⟩
   cases v <;>
     simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, native_veq] at hRel ⊢
-
-private theorem smt_value_rel_eval_seq_right
-    {v w : SmtValue} :
-    RuleProofs.smt_value_rel v w ->
-    (∃ s, v = SmtValue.Seq s) ->
-    ∃ s, w = SmtValue.Seq s := by
-  intro hRel hSeq
-  exact smt_value_rel_eval_seq_left
-    (RuleProofs.smt_value_rel_symm v w hRel) hSeq
 
 private theorem smt_value_rel_eval_binary_left
     {v w : SmtValue} {bw : native_Int} :
@@ -5776,15 +5394,6 @@ private theorem smt_value_rel_ne_notvalue_right
   cases v <;>
     simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, native_veq] at hRel hvNe
 
-private theorem smt_value_rel_ne_notvalue_left
-    {v w : SmtValue} :
-    RuleProofs.smt_value_rel v w ->
-    w ≠ SmtValue.NotValue ->
-    v ≠ SmtValue.NotValue := by
-  intro hRel hwNe
-  exact smt_value_rel_ne_notvalue_right
-    (RuleProofs.smt_value_rel_symm v w hRel) hwNe
-
 private theorem smt_value_rel_aciNormPayload_right_of_rel_has_translation
     (M : SmtModel) (hM : model_total_typed M) (t norm : Term) :
     RuleProofs.eo_has_smt_translation t ->
@@ -5848,29 +5457,6 @@ private theorem bvConcat_smt_value_rel_right_empty_eval
     SmtEval.native_zmult, hPow0, Int.add_zero, Int.mul_one]
   rw [hModEq]
   simp [__smtx_model_eval_eq, native_veq]
-
-private theorem bvConcat_eval_concat_binary_of_args_eval_binary
-    (M : SmtModel) (x y : Term) (wx wy : native_Int) :
-    (∃ nx,
-      __smtx_model_eval M (__eo_to_smt x) = SmtValue.Binary wx nx) ->
-    (∃ ny,
-      __smtx_model_eval M (__eo_to_smt y) = SmtValue.Binary wy ny) ->
-    ∃ n,
-      __smtx_model_eval M
-          (__eo_to_smt
-            (Term.Apply (Term.Apply (Term.UOp UserOp.concat) x) y)) =
-        SmtValue.Binary (native_zplus wx wy) n := by
-  intro hxBin hyBin
-  rcases hxBin with ⟨nx, hxEval⟩
-  rcases hyBin with ⟨ny, hyEval⟩
-  refine ⟨native_mod_total (native_binary_concat wx nx wy ny)
-      (native_int_pow2 (native_zplus wx wy)), ?_⟩
-  change __smtx_model_eval M
-      (SmtTerm.concat (__eo_to_smt x) (__eo_to_smt y)) =
-    SmtValue.Binary (native_zplus wx wy)
-      (native_mod_total (native_binary_concat wx nx wy ny)
-        (native_int_pow2 (native_zplus wx wy)))
-  simp [__smtx_model_eval, __smtx_model_eval_concat, hxEval, hyEval]
 
 private theorem bvConcat_smt_value_rel_congr_eval
     (M : SmtModel) (x x' y y' : Term) (wx wy : native_Int) :
@@ -6763,19 +6349,6 @@ private theorem bvEvalCanonicalWidth_of_smt_value_rel_left
   | Apply f x =>
       rw [hBEval] at hRel
       simp [__smtx_model_eval_eq, native_veq] at hRel
-
-private theorem bvEvalCanonicalWidth_of_smt_value_rel_right
-    (M : SmtModel) (w : Nat) (a b : Term) :
-    BvEvalCanonicalWidth M w b ->
-    RuleProofs.smt_value_rel
-      (__smtx_model_eval M (__eo_to_smt a))
-      (__smtx_model_eval M (__eo_to_smt b)) ->
-    BvEvalCanonicalWidth M w a := by
-  intro hBCan hRel
-  exact bvEvalCanonicalWidth_of_smt_value_rel_left M w b a hBCan
-    (RuleProofs.smt_value_rel_symm
-      (__smtx_model_eval M (__eo_to_smt a))
-      (__smtx_model_eval M (__eo_to_smt b)) hRel)
 
 private theorem bvAnd_is_list_true_ne_stuck {t : Term} :
     __eo_is_list (Term.UOp UserOp.bvand) t = Term.Boolean true ->
@@ -15744,43 +15317,6 @@ private theorem reConcat_l1_eq_concat_of_ne_id (id t : Term) :
   cases id <;> cases t <;>
     simp [__eo_l_2___get_a_norm_rec, __eo_ite, native_ite, native_teq] at hId hT ⊢ <;>
     contradiction
-
-private theorem reConcat_l1_norm_rec_rel_eval
-    (M : SmtModel) (hM : model_total_typed M) (id : Term)
-    (hIdList :
-      __eo_is_list (Term.UOp UserOp.re_concat) id = Term.Boolean true)
-    (hIdEval :
-      __smtx_model_eval M (__eo_to_smt id) =
-        SmtValue.RegLan (native_str_to_re (native_string_lit "")))
-    (hIdNe : id ≠ Term.Stuck)
-    (t : Term) :
-    __smtx_typeof (__eo_to_smt t) = SmtType.RegLan ->
-    __eo_is_list (Term.UOp UserOp.re_concat)
-        (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.re_concat) id t) =
-        Term.Boolean true ∧
-      RegLanEval M
-        (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.re_concat) id t) ∧
-      RuleProofs.smt_value_rel
-        (__smtx_model_eval M
-          (__eo_to_smt
-            (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.re_concat) id t)))
-        (__smtx_model_eval M (__eo_to_smt t)) := by
-  intro hTy
-  have hTNe : t ≠ Term.Stuck := term_ne_stuck_of_smt_reglan_type hTy
-  by_cases hEq : t = id
-  · subst t
-    rw [reConcat_l1_eq_self_of_eq id hIdNe]
-    exact ⟨hIdList, ⟨native_str_to_re (native_string_lit ""), hIdEval⟩,
-      RuleProofs.smt_value_rel_refl _⟩
-  · rw [reConcat_l1_eq_concat_of_ne_id id t hIdNe hTNe hEq]
-    rcases smt_eval_reglan_of_smt_type_reglan M hM (__eo_to_smt t) hTy with
-      ⟨rt, htEval⟩
-    exact ⟨
-      eo_is_list_cons_self_true_of_tail_list
-        (Term.UOp UserOp.re_concat) t id (by decide) hIdList,
-      reConcat_eval_reglan_of_reglan_args M t id
-        ⟨rt, htEval⟩ ⟨native_str_to_re (native_string_lit ""), hIdEval⟩,
-      reConcat_smt_value_rel_right_empty_eval M t id rt htEval hIdEval⟩
 
 private def ReUnionListCanonical (M : SmtModel) : Term -> Prop
   | Term.Apply (Term.Apply (Term.UOp UserOp.re_union) x) xs =>

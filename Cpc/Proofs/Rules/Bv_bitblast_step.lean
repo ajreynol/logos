@@ -64,23 +64,6 @@ private def bitblastMulCounterResult : Term :=
     (bitblastCounterApp2 (Term.UOp UserOp.bvmul)
       (bitblastCounterBit true) (bitblastCounterBit false))
 
-/-- Mechanically checked closed counterexamples to the current helper. -/
-private theorem bv_bitblast_step_closed_counterexamples (M : SmtModel) :
-    __eo_typeof bitblastUleCounterResult = Term.Bool ∧
-      __eo_typeof bitblastAndCounterResult = Term.Bool ∧
-      __eo_typeof bitblastAddCounterResult = Term.Bool ∧
-      __eo_typeof bitblastMulCounterResult = Term.Bool ∧
-      __smtx_model_eval M (__eo_to_smt bitblastUleCounterResult) =
-        SmtValue.Boolean false ∧
-      __smtx_model_eval M (__eo_to_smt bitblastAndCounterResult) =
-        SmtValue.Boolean false ∧
-      __smtx_model_eval M (__eo_to_smt bitblastAddCounterResult) =
-        SmtValue.Boolean false ∧
-      __smtx_model_eval M (__eo_to_smt bitblastMulCounterResult) =
-        SmtValue.Boolean false := by
-  refine ⟨by native_decide, by native_decide, by native_decide,
-    by native_decide, rfl, rfl, rfl, rfl⟩
-
 public theorem cmd_step_bv_bitblast_step_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :

@@ -231,18 +231,6 @@ private theorem smt_value_rel_model_eval_str_to_lower_of_rel
     subst b
     exact RuleProofs.smt_value_rel_refl _
 
-private theorem map_native_ssm_char_of_value_char :
-    ∀ s : native_String,
-      List.map (native_ssm_char_of_value ∘ SmtValue.Char) s = s
-  | [] => rfl
-  | c :: cs => by
-      simp [Function.comp_def, native_ssm_char_of_value]
-
-private theorem native_unpack_string_pack_string (s : native_String) :
-    native_unpack_string (native_pack_string s) = s := by
-  simp [native_unpack_string, native_pack_string, Smtm.native_unpack_pack_seq,
-    map_native_ssm_char_of_value_char]
-
 private theorem native_str_to_lower_append (a b : native_String) :
     native_str_to_lower (a ++ b) =
       native_str_to_lower a ++ native_str_to_lower b := by

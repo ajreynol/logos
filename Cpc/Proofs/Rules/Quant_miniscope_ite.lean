@@ -391,26 +391,6 @@ private theorem smtx_model_eval_quant_miniscope_ite
     smtx_model_eval_qforall_ite_eq M hM xVars x A F1 F2
       hLeftTrans' hXEnv hATrans hABool hNoFree
 
-private theorem eq_of_requires_same_not_stuck {x y B : Term} :
-    __eo_requires x y B ≠ Term.Stuck ->
-    x = y := by
-  intro hReq
-  by_cases hxy : x = y
-  · exact hxy
-  · exfalso
-    apply hReq
-    simp [__eo_requires, native_ite, native_teq, hxy]
-
-private theorem requires_same_eq_body
-    {x y B : Term} :
-    x = y ->
-    x ≠ Term.Stuck ->
-    __eo_requires x y B = B := by
-  intro hxy hx
-  subst y
-  simp [__eo_requires, native_ite, native_teq, hx, native_not,
-    SmtEval.native_not]
-
 private theorem quant_miniscope_ite_shape_of_not_stuck
     (a1 : Term) :
     __eo_prog_quant_miniscope_ite a1 ≠ Term.Stuck ->

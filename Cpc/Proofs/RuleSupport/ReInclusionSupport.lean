@@ -2060,19 +2060,6 @@ private theorem str_re_includes_sound_mutual
     unfold __str_re_includes_rhs_inter at hSide
     simp_all
 
-private theorem str_re_includes_lhs_union_sound
-    (M : SmtModel) (hM : model_total_typed M) :
-    (sup sub : Term) -> (rvSup rvSub : native_RegLan) ->
-      __smtx_typeof (__eo_to_smt sup) = SmtType.RegLan ->
-      __smtx_typeof (__eo_to_smt sub) = SmtType.RegLan ->
-      __smtx_model_eval M (__eo_to_smt sup) = SmtValue.RegLan rvSup ->
-      __smtx_model_eval M (__eo_to_smt sub) = SmtValue.RegLan rvSub ->
-      __str_re_includes_lhs_union sup sub = Term.Boolean true ->
-        NativeIncludes rvSup rvSub
-  | sup, sub, rvSup, rvSub, hSupTy, hSubTy, hSupEval, hSubEval, hSide =>
-      (str_re_includes_sound_mutual M hM).1 sup sub rvSup rvSub hSupTy
-        hSubTy hSupEval hSubEval hSide
-
 private theorem str_re_includes_rec_sound
     (M : SmtModel) (hM : model_total_typed M) :
     (sup sub : Term) -> (rvSup rvSub : native_RegLan) ->
@@ -2085,45 +2072,6 @@ private theorem str_re_includes_rec_sound
   | sup, sub, rvSup, rvSub, hSupTy, hSubTy, hSupEval, hSubEval, hSide =>
       (str_re_includes_sound_mutual M hM).2.1 sup sub rvSup rvSub hSupTy
         hSubTy hSupEval hSubEval hSide
-
-private theorem str_re_includes_base_sound
-    (M : SmtModel) (hM : model_total_typed M) :
-    (sup sub : Term) -> (rvSup rvSub : native_RegLan) ->
-      __smtx_typeof (__eo_to_smt sup) = SmtType.RegLan ->
-      __smtx_typeof (__eo_to_smt sub) = SmtType.RegLan ->
-      __smtx_model_eval M (__eo_to_smt sup) = SmtValue.RegLan rvSup ->
-      __smtx_model_eval M (__eo_to_smt sub) = SmtValue.RegLan rvSub ->
-      __str_re_includes_base_rec sup sub = Term.Boolean true ->
-        NativeIncludes rvSup rvSub
-  | sup, sub, rvSup, rvSub, hSupTy, hSubTy, hSupEval, hSubEval, hSide =>
-      (str_re_includes_sound_mutual M hM).2.2.1 sup sub rvSup rvSub
-        hSupTy hSubTy hSupEval hSubEval hSide
-
-private theorem str_re_includes_lhs_star_sound
-    (M : SmtModel) (hM : model_total_typed M) :
-    (sup sub : Term) -> (rvSup rvSub : native_RegLan) ->
-      __smtx_typeof (__eo_to_smt sup) = SmtType.RegLan ->
-      __smtx_typeof (__eo_to_smt sub) = SmtType.RegLan ->
-      __smtx_model_eval M (__eo_to_smt sup) = SmtValue.RegLan rvSup ->
-      __smtx_model_eval M (__eo_to_smt sub) = SmtValue.RegLan rvSub ->
-      __str_re_includes_lhs_star sup sub = Term.Boolean true ->
-        NativeIncludes rvSup rvSub
-  | sup, sub, rvSup, rvSub, hSupTy, hSubTy, hSupEval, hSubEval, hSide =>
-      (str_re_includes_sound_mutual M hM).2.2.2.1 sup sub rvSup rvSub
-        hSupTy hSubTy hSupEval hSubEval hSide
-
-private theorem str_re_includes_rhs_inter_sound
-    (M : SmtModel) (hM : model_total_typed M) :
-    (sup sub : Term) -> (rvSup rvSub : native_RegLan) ->
-      __smtx_typeof (__eo_to_smt sup) = SmtType.RegLan ->
-      __smtx_typeof (__eo_to_smt sub) = SmtType.RegLan ->
-      __smtx_model_eval M (__eo_to_smt sup) = SmtValue.RegLan rvSup ->
-      __smtx_model_eval M (__eo_to_smt sub) = SmtValue.RegLan rvSub ->
-      __str_re_includes_rhs_inter sup sub = Term.Boolean true ->
-        NativeIncludes rvSup rvSub
-  | sup, sub, rvSup, rvSub, hSupTy, hSubTy, hSupEval, hSubEval, hSide =>
-      (str_re_includes_sound_mutual M hM).2.2.2.2 sup sub rvSup rvSub
-        hSupTy hSubTy hSupEval hSubEval hSide
 
 private theorem smt_value_rel_re_concat_local
     {r r' s s' : native_RegLan}
@@ -3491,16 +3439,6 @@ private theorem re_split_str_to_re_tail_ne_stuck
   intro ht
   subst tail
   cases parts <;> simp [__re_split_str_to_re] at h
-
-private theorem term_ne_stuck_of_smt_type_reglan_local
-    (t : Term)
-    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.RegLan) :
-    t ≠ Term.Stuck := by
-  intro ht
-  subst t
-  change __smtx_typeof SmtTerm.None = SmtType.RegLan at hTy
-  rw [TranslationProofs.smtx_typeof_none] at hTy
-  cases hTy
 
 private theorem smt_typeof_re_union_of_reglan_local
     (a b : Term)

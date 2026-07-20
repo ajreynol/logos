@@ -57,21 +57,6 @@ private theorem native_seq_extract_one_nat (xs : List SmtValue) (j : Nat)
   rw [e1, e2, e3, htake, htn]
   simp
 
-/-- Out of bounds (negative or `≥ len`), `native_seq_extract` of length 1 is empty. -/
-private theorem native_seq_extract_one_oob (xs : List SmtValue) (i : native_Int)
-    (h : i < 0 ∨ i ≥ Int.ofNat xs.length) :
-    native_seq_extract xs i 1 = [] := by
-  simp only [native_seq_extract]
-  split
-  · rfl
-  · rename_i hc
-    exfalso
-    simp only [Bool.not_eq_true, Bool.or_eq_false_iff, decide_eq_false_iff_not] at hc
-    obtain ⟨⟨hlt0, _⟩, hge⟩ := hc
-    rcases h with h | h
-    · exact hlt0 h
-    · exact hge h
-
 private theorem cmd_step_string_ext_one_eq
     (s : CState) (n : CIndex) :
     __eo_cmd_step_proven s CRule.string_ext CArgList.nil (CIndexList.cons n CIndexList.nil) =

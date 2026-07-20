@@ -23,14 +23,6 @@ private abbrev rhsTerm (c ts r ss : Term) : Term :=
     (__eo_list_singleton_elim plusOp
       (__eo_list_concat plusOp ts (plusTerm r ss))) c
 
-private theorem requires_guard_true_of_not_stuck (A B : Term) :
-    __eo_requires A (Term.Boolean true) B ≠ Term.Stuck ->
-    A = Term.Boolean true := by
-  intro h
-  simp [__eo_requires, native_ite, native_teq, native_not,
-    SmtEval.native_not] at h
-  exact h.1
-
 private theorem smtx_typeof_mod_total_int
     (r c : Term)
     (hR : __smtx_typeof (__eo_to_smt r) = SmtType.Int)

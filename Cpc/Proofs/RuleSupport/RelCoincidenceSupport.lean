@@ -51,13 +51,6 @@ private theorem rel_of_eq {a b : SmtValue} (h : a = b) :
   rw [h]
   exact RuleProofs.smt_value_rel_refl b
 
-private theorem eq_of_rel_of_value_ne_reglan {a b : SmtValue}
-    (h : RuleProofs.smt_value_rel a b)
-    (ha : ∀ r, a ≠ SmtValue.RegLan r) : a = b := by
-  rcases CongSupport.smt_value_rel_cases h with rfl | ⟨r, r', rfl, rfl⟩
-  · rfl
-  · exact absurd rfl (ha r)
-
 /-- Rel-related values with a common non-`RegLan` type are equal. -/
 private theorem eval_eq_of_rel_of_ty_ne_reglan
     {M N : SmtModel} (hM : model_total_typed M) (hN : model_total_typed N)
@@ -77,50 +70,6 @@ Rel-related values are equal unless both are `RegLan` values.  An operator
 that cannot distinguish two `RegLan` inputs therefore maps rel-related
 argument tuples to equal results.
 -/
-
-private theorem blind1_eq {h : SmtValue -> SmtValue}
-    (hB : ∀ r r', h (SmtValue.RegLan r) = h (SmtValue.RegLan r'))
-    {a c : SmtValue} (hAC : RuleProofs.smt_value_rel a c) : h a = h c := by
-  rcases CongSupport.smt_value_rel_cases hAC with rfl | ⟨r, r', rfl, rfl⟩
-  · rfl
-  · exact hB r r'
-
-private theorem blind2_eq {h : SmtValue -> SmtValue -> SmtValue}
-    (hL : ∀ r r' x, h (SmtValue.RegLan r) x = h (SmtValue.RegLan r') x)
-    (hR : ∀ x r r', h x (SmtValue.RegLan r) = h x (SmtValue.RegLan r'))
-    {a b c d : SmtValue}
-    (hAC : RuleProofs.smt_value_rel a c) (hBD : RuleProofs.smt_value_rel b d) :
-    h a b = h c d := by
-  rcases CongSupport.smt_value_rel_cases hAC with rfl | ⟨r1, r1', rfl, rfl⟩
-  · rcases CongSupport.smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
-    · rfl
-    · exact hR a r2 r2'
-  · rcases CongSupport.smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
-    · exact hL r1 r1' b
-    · exact (hL r1 r1' (SmtValue.RegLan r2)).trans
-        (hR (SmtValue.RegLan r1') r2 r2')
-
-private theorem blind3_eq {h : SmtValue -> SmtValue -> SmtValue -> SmtValue}
-    (h1 : ∀ r r' y z, h (SmtValue.RegLan r) y z = h (SmtValue.RegLan r') y z)
-    (h2 : ∀ x r r' z, h x (SmtValue.RegLan r) z = h x (SmtValue.RegLan r') z)
-    (h3 : ∀ x y r r', h x y (SmtValue.RegLan r) = h x y (SmtValue.RegLan r'))
-    {a b c d e f : SmtValue}
-    (hAD : RuleProofs.smt_value_rel a d) (hBE : RuleProofs.smt_value_rel b e)
-    (hCF : RuleProofs.smt_value_rel c f) :
-    h a b c = h d e f := by
-  have step1 : h a b c = h d b c := by
-    rcases CongSupport.smt_value_rel_cases hAD with rfl | ⟨r, r', rfl, rfl⟩
-    · rfl
-    · exact h1 r r' b c
-  have step2 : h d b c = h d e c := by
-    rcases CongSupport.smt_value_rel_cases hBE with rfl | ⟨r, r', rfl, rfl⟩
-    · rfl
-    · exact h2 d r r' c
-  have step3 : h d e c = h d e f := by
-    rcases CongSupport.smt_value_rel_cases hCF with rfl | ⟨r, r', rfl, rfl⟩
-    · rfl
-    · exact h3 d e r r'
-  exact (step1.trans step2).trans step3
 
 /-! ## Clean types
 
@@ -258,11 +207,6 @@ private theorem cleanOrNone_guard' {g : native_Bool} {C : SmtType}
   · exact Or.inl rfl
   · exact hC
 
-private theorem cleanOrNone_atom {C : SmtType}
-    (hC : cleanType C) {g : native_Bool} :
-    cleanOrNone (native_ite g C SmtType.None) :=
-  cleanOrNone_guard' (Or.inr hC)
-
 private theorem cleanOrNone_typeof_guard {T U : SmtType}
     (hU : cleanOrNone U) : cleanOrNone (__smtx_typeof_guard T U) := by
   unfold __smtx_typeof_guard
@@ -282,10 +226,6 @@ private theorem cleanOrNone_typeof_guard_wf {T U : SmtType}
 private theorem cleanOrNone_typeof_guard_wf_self (T : SmtType) :
     cleanOrNone (__smtx_typeof_guard_wf T T) :=
   cleanOrNone_typeof_guard_wf (fun hw => Or.inr (cleanType_of_wf hw))
-
-private theorem cleanOrNone_resolve {T : SmtType}
-    (h : cleanOrNone T) (hNe : T ≠ SmtType.None) : cleanType T :=
-  h.resolve_left hNe
 
 /-! ## Typing extraction helpers -/
 
@@ -539,83 +479,6 @@ private theorem concat_args {A B : SmtType}
   unfold __smtx_typeof_concat at h
   split at h
   · exact ⟨⟨by simp, by simp⟩, ⟨by simp, by simp⟩⟩
-  · exact absurd rfl h
-
-private theorem extract_arg {i j : SmtTerm} {C : SmtType}
-    (h : __smtx_typeof_extract i j C ≠ SmtType.None) :
-    C ≠ SmtType.None ∧ C ≠ SmtType.RegLan := by
-  unfold __smtx_typeof_extract at h
-  split at h
-  · exact ⟨by simp, by simp⟩
-  · exact absurd rfl h
-
-private theorem indexed_bv_arg {i : SmtTerm} {C : SmtType}
-    {f : SmtTerm -> SmtType -> SmtType}
-    (hf : ∀ n T, f (SmtTerm.Numeral n) (SmtType.BitVec T) ≠ SmtType.None ->
-      True) : True := True.intro
-
-private theorem repeat_arg {i : SmtTerm} {C : SmtType}
-    (h : __smtx_typeof_repeat i C ≠ SmtType.None) :
-    C ≠ SmtType.None ∧ C ≠ SmtType.RegLan := by
-  unfold __smtx_typeof_repeat at h
-  split at h
-  · exact ⟨by simp, by simp⟩
-  · exact absurd rfl h
-
-private theorem zero_extend_arg {i : SmtTerm} {C : SmtType}
-    (h : __smtx_typeof_zero_extend i C ≠ SmtType.None) :
-    C ≠ SmtType.None ∧ C ≠ SmtType.RegLan := by
-  unfold __smtx_typeof_zero_extend at h
-  split at h
-  · exact ⟨by simp, by simp⟩
-  · exact absurd rfl h
-
-private theorem sign_extend_arg {i : SmtTerm} {C : SmtType}
-    (h : __smtx_typeof_sign_extend i C ≠ SmtType.None) :
-    C ≠ SmtType.None ∧ C ≠ SmtType.RegLan := by
-  unfold __smtx_typeof_sign_extend at h
-  split at h
-  · exact ⟨by simp, by simp⟩
-  · exact absurd rfl h
-
-private theorem rotate_left_arg {i : SmtTerm} {C : SmtType}
-    (h : __smtx_typeof_rotate_left i C ≠ SmtType.None) :
-    C ≠ SmtType.None ∧ C ≠ SmtType.RegLan := by
-  unfold __smtx_typeof_rotate_left at h
-  split at h
-  · exact ⟨by simp, by simp⟩
-  · exact absurd rfl h
-
-private theorem rotate_right_arg {i : SmtTerm} {C : SmtType}
-    (h : __smtx_typeof_rotate_right i C ≠ SmtType.None) :
-    C ≠ SmtType.None ∧ C ≠ SmtType.RegLan := by
-  unfold __smtx_typeof_rotate_right at h
-  split at h
-  · exact ⟨by simp, by simp⟩
-  · exact absurd rfl h
-
-private theorem int_to_bv_arg {i : SmtTerm} {C : SmtType}
-    (h : __smtx_typeof_int_to_bv i C ≠ SmtType.None) :
-    C = SmtType.Int := by
-  unfold __smtx_typeof_int_to_bv at h
-  split at h
-  · rfl
-  · exact absurd rfl h
-
-private theorem re_exp_arg {i : SmtTerm} {C : SmtType}
-    (h : __smtx_typeof_re_exp i C ≠ SmtType.None) :
-    C = SmtType.RegLan := by
-  unfold __smtx_typeof_re_exp at h
-  split at h
-  · rfl
-  · exact absurd rfl h
-
-private theorem re_loop_arg {i j : SmtTerm} {C : SmtType}
-    (h : __smtx_typeof_re_loop i j C ≠ SmtType.None) :
-    C = SmtType.RegLan := by
-  unfold __smtx_typeof_re_loop at h
-  split at h
-  · rfl
   · exact absurd rfl h
 
 private theorem select_types {A B : SmtType}

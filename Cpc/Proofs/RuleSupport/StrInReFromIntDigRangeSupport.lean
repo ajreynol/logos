@@ -39,13 +39,6 @@ private abbrev lhs (n : Term) : Term :=
 private abbrev concl (n : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) (lhs n)) (Term.Boolean true)
 
-private theorem prog_eq_of_ne_stuck (n : Term) :
-    n ≠ Term.Stuck ->
-    __eo_prog_str_in_re_from_int_dig_range n = concl n := by
-  intro hN
-  cases n <;> simp [__eo_prog_str_in_re_from_int_dig_range, concl, lhs,
-    starRangeTerm, rangeTerm] at hN ⊢
-
 private theorem native_char_is_digit_digitChar_lt10
     (n : Nat) (hn : n < 10) :
     native_char_is_digit (Char.toNat (Nat.digitChar n)) = true := by
@@ -196,21 +189,6 @@ theorem nativeListInRe_digit_star_of_all_digits
           hCStar hCsStar
       simpa [native_re_mult] using hAppend
 
-private theorem native_str_in_re_from_int_digit_range_star
-    (i : native_Int) :
-    native_str_in_re (native_str_from_int i) (native_re_mult digitRange) = true := by
-  have hValid : native_string_valid (native_str_from_int i) = true :=
-    native_str_from_int_valid i
-  have hDigits : (native_str_from_int i).all native_char_is_digit = true :=
-    native_str_from_int_all_digits i
-  have hList :=
-    nativeListInRe_digit_star_of_all_digits (native_str_from_int i) hDigits
-  simpa [native_str_in_re, hValid, _root_.nativeListInRe] using hList
-
-private theorem eo_typeof_star_range_term :
-    __eo_typeof starRangeTerm = Term.UOp UserOp.RegLan := by
-  native_decide
-
 theorem eo_typeof_str_in_re_reglan_eq_seq_char_of_ne_stuck (T : Term)
     (h : __eo_typeof_str_in_re T (Term.UOp UserOp.RegLan) ≠ Term.Stuck) :
     T = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
@@ -239,40 +217,6 @@ theorem eo_typeof_str_from_code_eq_seq_char_arg_int
   case UOp op =>
     cases op <;> simp [__eo_typeof_str_from_code] at hNe ⊢
 
-private theorem typeof_arg_of_prog_bool (n : Term) :
-    __eo_typeof (__eo_prog_str_in_re_from_int_dig_range n) = Term.Bool ->
-    __eo_typeof n = Term.UOp UserOp.Int := by
-  intro hTy
-  by_cases hN : n = Term.Stuck
-  · subst n
-    change __eo_typeof Term.Stuck = Term.Bool at hTy
-    have hBad : __eo_typeof Term.Stuck ≠ Term.Bool := by native_decide
-    exact False.elim (hBad hTy)
-  · rw [prog_eq_of_ne_stuck n hN] at hTy
-    change __eo_typeof_eq (__eo_typeof (lhs n)) (__eo_typeof (Term.Boolean true)) =
-      Term.Bool at hTy
-    have hLhsNotStuck : __eo_typeof (lhs n) ≠ Term.Stuck :=
-      (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
-        (__eo_typeof (lhs n)) (__eo_typeof (Term.Boolean true)) hTy).1
-    have hFromTy :
-        __eo_typeof (Term.Apply (Term.UOp UserOp.str_from_int) n) =
-          Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
-      have hTypeNotStuck :
-          __eo_typeof_str_in_re
-              (__eo_typeof (Term.Apply (Term.UOp UserOp.str_from_int) n))
-              (Term.UOp UserOp.RegLan) ≠ Term.Stuck := by
-        change __eo_typeof_str_in_re
-            (__eo_typeof (Term.Apply (Term.UOp UserOp.str_from_int) n))
-            (__eo_typeof starRangeTerm) ≠ Term.Stuck at hLhsNotStuck
-        rw [eo_typeof_star_range_term] at hLhsNotStuck
-        exact hLhsNotStuck
-      exact eo_typeof_str_in_re_reglan_eq_seq_char_of_ne_stuck
-        (__eo_typeof (Term.Apply (Term.UOp UserOp.str_from_int) n))
-        hTypeNotStuck
-    change __eo_typeof_str_from_code (__eo_typeof n) =
-      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) at hFromTy
-    exact eo_typeof_str_from_code_eq_seq_char_arg_int (__eo_typeof n) hFromTy
-
 theorem smtx_typeof_of_eo_int
     (n : Term)
     (hTrans : RuleProofs.eo_has_smt_translation n)
@@ -300,51 +244,6 @@ theorem smtx_typeof_digit_range :
   simp [smtx_typeof_zero_string, smtx_typeof_nine_string, native_ite,
     native_Teq]
 
-private theorem smtx_typeof_star_range :
-    __smtx_typeof
-        (SmtTerm.re_mult
-          (SmtTerm.re_range (SmtTerm.String zeroStr) (SmtTerm.String nineStr))) =
-      SmtType.RegLan := by
-  rw [typeof_re_mult_eq]
-  simp [smtx_typeof_digit_range, native_ite, native_Teq]
-
-private theorem typed_concl
-    (n : Term)
-    (hNTrans : RuleProofs.eo_has_smt_translation n)
-    (hNTy : __eo_typeof n = Term.UOp UserOp.Int) :
-    RuleProofs.eo_has_bool_type (concl n) := by
-  have hNSmtTy : __smtx_typeof (__eo_to_smt n) = SmtType.Int :=
-    smtx_typeof_of_eo_int n hNTrans hNTy
-  have hFromTy :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_from_int) n)) =
-        SmtType.Seq SmtType.Char := by
-    change __smtx_typeof (SmtTerm.str_from_int (__eo_to_smt n)) =
-      SmtType.Seq SmtType.Char
-    rw [typeof_str_from_int_eq, hNSmtTy]
-    simp [native_ite, native_Teq]
-  have hLhsTy : __smtx_typeof (__eo_to_smt (lhs n)) = SmtType.Bool := by
-    change __smtx_typeof
-        (SmtTerm.str_in_re
-          (SmtTerm.str_from_int (__eo_to_smt n))
-          (SmtTerm.re_mult
-            (SmtTerm.re_range (SmtTerm.String zeroStr)
-              (SmtTerm.String nineStr)))) =
-      SmtType.Bool
-    have hFromTy' :
-        __smtx_typeof (SmtTerm.str_from_int (__eo_to_smt n)) =
-          SmtType.Seq SmtType.Char := by
-      simpa using hFromTy
-    rw [typeof_str_in_re_eq]
-    simp [hFromTy', smtx_typeof_star_range, native_ite, native_Teq]
-  have hRhsTy :
-      __smtx_typeof (__eo_to_smt (Term.Boolean true)) = SmtType.Bool := by
-    change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
-    rw [__smtx_typeof.eq_def] <;> simp only
-  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type (lhs n)
-    (Term.Boolean true) (by rw [hLhsTy, hRhsTy])
-    (by rw [hLhsTy]; simp)
-
 theorem smtx_eval_str_from_int_term_eq
     (M : SmtModel) (x : SmtTerm) :
     __smtx_model_eval M (SmtTerm.str_from_int x) =
@@ -371,64 +270,5 @@ theorem smtx_eval_digit_range
       SmtValue.RegLan digitRange := by
   simp [__smtx_model_eval, __smtx_model_eval_re_range,
     RuleProofs.native_unpack_string_pack_string, digitRange, zeroStr, nineStr]
-
-private theorem smtx_eval_star_range
-    (M : SmtModel) :
-    __smtx_model_eval M
-        (SmtTerm.re_mult
-          (SmtTerm.re_range (SmtTerm.String zeroStr) (SmtTerm.String nineStr))) =
-      SmtValue.RegLan (native_re_mult digitRange) := by
-  rw [smtx_eval_re_mult_term_eq]
-  rw [smtx_eval_digit_range]
-  rfl
-
-private theorem facts
-    (M : SmtModel) (hM : model_total_typed M) (n : Term)
-    (hNTrans : RuleProofs.eo_has_smt_translation n)
-    (hNTy : __eo_typeof n = Term.UOp UserOp.Int) :
-    eo_interprets M (concl n) true := by
-  have hBool : RuleProofs.eo_has_bool_type (concl n) :=
-    typed_concl n hNTrans hNTy
-  have hNSmtTy : __smtx_typeof (__eo_to_smt n) = SmtType.Int :=
-    smtx_typeof_of_eo_int n hNTrans hNTy
-  have hNEvalTy :
-      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt n)) =
-        SmtType.Int := by
-    simpa [hNSmtTy] using
-      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt n) (by
-        unfold term_has_non_none_type
-        rw [hNSmtTy]
-        simp)
-  rcases int_value_canonical hNEvalTy with ⟨z, hNEval⟩
-  have hFromEval :
-      __smtx_model_eval M (SmtTerm.str_from_int (__eo_to_smt n)) =
-        SmtValue.Seq (native_pack_string (native_str_from_int z)) := by
-    rw [smtx_eval_str_from_int_term_eq, hNEval]
-    rfl
-  have hLhsEval :
-      __smtx_model_eval M (__eo_to_smt (lhs n)) =
-        SmtValue.Boolean true := by
-    change __smtx_model_eval M
-        (SmtTerm.str_in_re
-          (SmtTerm.str_from_int (__eo_to_smt n))
-          (SmtTerm.re_mult
-            (SmtTerm.re_range (SmtTerm.String zeroStr)
-              (SmtTerm.String nineStr)))) =
-      SmtValue.Boolean true
-    rw [smtx_eval_str_in_re_term_eq]
-    rw [hFromEval, smtx_eval_star_range]
-    simp [__smtx_model_eval_str_in_re,
-      RuleProofs.native_unpack_string_pack_string,
-      native_str_in_re_from_int_digit_range_star]
-  exact RuleProofs.eo_interprets_eq_of_rel M (lhs n) (Term.Boolean true)
-    hBool <| by
-      have hTrueEval :
-          __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) =
-            SmtValue.Boolean true := by
-        change __smtx_model_eval M (SmtTerm.Boolean true) =
-          SmtValue.Boolean true
-        rw [__smtx_model_eval.eq_def] <;> simp only
-      rw [hLhsEval, hTrueEval]
-      exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean true)
 
 end StrInReFromIntDigRangeProof

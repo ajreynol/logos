@@ -714,37 +714,6 @@ private theorem mult_int_args_of_int_type (n m : Term) :
     rw [hTy] at hRet
     cases hRet
 
-private theorem neg_int_args_of_int_type (n m : Term) :
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) n) m)) =
-      SmtType.Int ->
-    __smtx_typeof (__eo_to_smt n) = SmtType.Int ∧
-      __smtx_typeof (__eo_to_smt m) = SmtType.Int := by
-  intro hTy
-  have hTy' :
-      __smtx_typeof (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m)) =
-        SmtType.Int := by
-    simpa using hTy
-  have hNN :
-      term_has_non_none_type (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m)) := by
-    unfold term_has_non_none_type
-    rw [hTy']
-    simp
-  rcases arith_binop_args_of_non_none (op := SmtTerm.neg)
-      (typeof_neg_eq (__eo_to_smt n) (__eo_to_smt m)) hNN with hInt | hReal
-  · exact hInt
-  · have hRet :
-        __smtx_typeof
-            (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m)) =
-          SmtType.Real := by
-      rw [typeof_neg_eq]
-      simp [__smtx_typeof_arith_overload_op_2, hReal.1, hReal.2]
-    rw [show
-        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) n) m) =
-          SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m) by rfl] at hTy
-    rw [hTy] at hRet
-    cases hRet
-
 private theorem plus_int_eval_decomp
     (M : SmtModel) (hM : model_total_typed M)
     (n m : Term) (z : native_Int) :
@@ -796,33 +765,6 @@ private theorem mult_int_eval_decomp
         SmtTerm.mult (__eo_to_smt n) (__eo_to_smt m) by rfl] at hEval
   rw [__smtx_model_eval.eq_14, hNEval, hMEval] at hEval
   simpa [__smtx_model_eval_mult, native_zmult] using hEval.symm
-
-private theorem neg_int_eval_decomp
-    (M : SmtModel) (hM : model_total_typed M)
-    (n m : Term) (z : native_Int) :
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) n) m)) =
-      SmtType.Int ->
-    __smtx_model_eval M
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) n) m)) =
-      SmtValue.Numeral z ->
-    ∃ zn zm,
-      __smtx_typeof (__eo_to_smt n) = SmtType.Int ∧
-      __smtx_typeof (__eo_to_smt m) = SmtType.Int ∧
-      __smtx_model_eval M (__eo_to_smt n) = SmtValue.Numeral zn ∧
-      __smtx_model_eval M (__eo_to_smt m) = SmtValue.Numeral zm ∧
-      z = zn - zm := by
-  intro hTy hEval
-  rcases neg_int_args_of_int_type n m hTy with ⟨hNInt, hMInt⟩
-  rcases int_eval_of_int_type M hM n hNInt with ⟨zn, hNEval⟩
-  rcases int_eval_of_int_type M hM m hMInt with ⟨zm, hMEval⟩
-  refine ⟨zn, zm, hNInt, hMInt, hNEval, hMEval, ?_⟩
-  rw [show
-      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) n) m) =
-        SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m) by rfl] at hEval
-  rw [__smtx_model_eval.eq_13, hNEval, hMEval] at hEval
-  simpa [__smtx_model_eval__, native_zplus, native_zneg, Int.sub_eq_add_neg] using
-    hEval.symm
 
 private theorem seq_eval_of_seq_type
     (M : SmtModel) (hM : model_total_typed M) (t : Term) (T : SmtType) :
@@ -1173,11 +1115,6 @@ private theorem int_pos_of_simple_gt_zero_true
       hSimpleGeq
   exact Int.lt_of_lt_of_le (by decide : (0 : Int) < 1) hOneLe
 
-private theorem numeral_int_type (z : native_Int) :
-    __smtx_typeof (__eo_to_smt (Term.Numeral z)) = SmtType.Int := by
-  change __smtx_typeof (SmtTerm.Numeral z) = SmtType.Int
-  rw [__smtx_typeof.eq_2]
-
 private theorem numeral_int_eval (M : SmtModel) (z : native_Int) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral z)) = SmtValue.Numeral z := by
   change __smtx_model_eval M (SmtTerm.Numeral z) = SmtValue.Numeral z
@@ -1226,17 +1163,6 @@ private theorem plus_trailing_zero_int_eval
   rw [__smtx_model_eval.eq_12, __smtx_model_eval.eq_12, hNEval, hMEval,
     __smtx_model_eval.eq_2]
   simp [__smtx_model_eval_plus, native_zplus]
-
-private theorem neg_int_type_of_args (n m : Term) :
-    __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
-    __smtx_typeof (__eo_to_smt m) = SmtType.Int ->
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) n) m)) =
-      SmtType.Int := by
-  intro hNInt hMInt
-  change __smtx_typeof (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m)) = SmtType.Int
-  rw [typeof_neg_eq]
-  simp [__smtx_typeof_arith_overload_op_2, hNInt, hMInt]
 
 private theorem neg_int_eval_of_args
     (M : SmtModel) (n m : Term) (zn zm : native_Int) :
@@ -1372,24 +1298,6 @@ private theorem eo_or_true
     by_cases hw : w1 = w2 <;> simp [hw] at h
   case Boolean.Boolean b1 b2 =>
     cases b1 <;> cases b2 <;> simp at h ⊢
-
-private theorem eo_not_true_eq_false
-    {x : Term} :
-    __eo_not x = Term.Boolean true ->
-    x = Term.Boolean false := by
-  intro h
-  cases x <;> simp [__eo_not, native_not, SmtEval.native_not] at h
-  case Boolean b =>
-    cases b <;> simp at h ⊢
-
-private theorem eo_not_false_eq_true
-    {x : Term} :
-    __eo_not x = Term.Boolean false ->
-    x = Term.Boolean true := by
-  intro h
-  cases x <;> simp [__eo_not, native_not, SmtEval.native_not] at h
-  case Boolean b =>
-    cases b <;> simp at h ⊢
 
 private theorem eo_eq_true_eq
     {x y : Term} :

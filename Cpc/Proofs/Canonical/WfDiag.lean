@@ -733,41 +733,6 @@ private theorem defpres_dt :
 
 end
 
-/-- Chain images of inhabited datatypes are inhabited: the constructor
-selection witnessing the source's default avoids every reference spot, and
-chain substitutions only alter reference spots and datatype-node bodies. -/
-private theorem inhabited_chain_image
-    (t : native_String) (B : SmtDatatype) (ρ : SubstChain)
-    (hInh : native_inhabited_type (SmtType.Datatype t B) = true) :
-    native_inhabited_type (SmtType.Datatype t (chain_dt ρ B)) = true := by
-  have hOldNe :
-      __smtx_type_default (SmtType.Datatype t B) ≠ SmtValue.NotValue := by
-    intro hEq
-    have hTeq :
-        native_Teq
-          (__smtx_typeof_value (__smtx_type_default (SmtType.Datatype t B)))
-          (SmtType.Datatype t B) = true := by
-      simpa [native_inhabited_type, native_and, native_not, native_Teq]
-        using hInh
-    rw [hEq] at hTeq
-    simp [__smtx_typeof_value, native_Teq] at hTeq
-  have hOld :
-      __smtx_datatype_default t B native_nat_zero
-        (chain_dt [(t, B)] B) B ≠ SmtValue.NotValue := by
-    simpa [__smtx_type_default, __smtx_type_default_rec, chain_dt]
-      using hOldNe
-  have hNew := defpres_dt B [(t, B)] (ρ ++ [(t, chain_dt ρ B)]) ρ
-    t B native_nat_zero t (chain_dt ρ B) native_nat_zero hOld
-  rw [chain_dt_append_one] at hNew
-  have hNewNe :
-      __smtx_type_default (SmtType.Datatype t (chain_dt ρ B)) ≠
-        SmtValue.NotValue := by
-    simpa [__smtx_type_default, __smtx_type_default_rec] using hNew
-  rcases type_default_notvalue_or_typed (SmtType.Datatype t (chain_dt ρ B))
-    with h | h
-  · exact absurd h hNewNe
-  · simp [native_inhabited_type, native_and, native_not, native_Teq, h]
-
 /-! ## Reference-excused defaultability
 
 `refDef S T` is default-success with `TypeRef` positions whose name lies in

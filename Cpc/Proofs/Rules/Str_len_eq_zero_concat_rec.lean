@@ -183,13 +183,6 @@ private theorem smtx_typeof_seq_empty_typeof_of_smt_type_seq
       (smt_seq_component_wf_of_non_none_type (__eo_to_smt x) T hxTy).1
       (smt_seq_component_wf_of_non_none_type (__eo_to_smt x) T hxTy).2)
 
-private theorem smtx_eval_plus_term_eq
-    (M : SmtModel) (x y : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.plus x y) =
-      __smtx_model_eval_plus
-        (__smtx_model_eval M x) (__smtx_model_eval M y) := by
-  rw [__smtx_model_eval.eq_def] <;> simp only
-
 private theorem smtx_eval_str_concat_term_eq_raw
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.str_concat x y) =

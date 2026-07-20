@@ -661,16 +661,6 @@ private theorem false_of_typeof_str_indexof_re_split_eq_dtcapp_full
   repeat (first | split at hTy)
   all_goals cases hTy
 
-private theorem false_of_typeof_re_unfold_pos_component_eq_dtcapp_full
-    {z y x A B : Term}
-    (hTy :
-      __eo_typeof__at_re_unfold_pos_component (__eo_typeof z) (__eo_typeof y) (__eo_typeof x) =
-        Term.DtcAppType A B) :
-    False := by
-  unfold __eo_typeof__at_re_unfold_pos_component at hTy
-  repeat (first | split at hTy)
-  all_goals cases hTy
-
 private theorem eo_type_valid_of_requires_eq_dtcapp_full
     {T V U A B : Term}
     (hU : eo_type_valid U)

@@ -1580,94 +1580,6 @@ theorem typeof_apply_eo_to_smt_set_empty_eq_none
       simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard_wf,
         native_ite, hWf]
 
-private theorem eo_to_smt_array_deq_diff_ne_dt_sel_term
-    (a : SmtTerm) (aT : SmtType) (b : SmtTerm) (bT : SmtType) :
-    ∀ s d i j, __eo_to_smt_array_deq_diff a aT b bT ≠
-      SmtTerm.DtSel s d i j := by
-  intro s d i j h
-  cases aT <;> cases bT <;> simp [__eo_to_smt_array_deq_diff] at h
-
-private theorem eo_to_smt_array_deq_diff_ne_dt_tester_term
-    (a : SmtTerm) (aT : SmtType) (b : SmtTerm) (bT : SmtType) :
-    ∀ s d i, __eo_to_smt_array_deq_diff a aT b bT ≠
-      SmtTerm.DtTester s d i := by
-  intro s d i h
-  cases aT <;> cases bT <;> simp [__eo_to_smt_array_deq_diff] at h
-
-private theorem eo_to_smt_sets_deq_diff_ne_dt_sel_term
-    (a : SmtTerm) (aT : SmtType) (b : SmtTerm) (bT : SmtType) :
-    ∀ s d i j, __eo_to_smt_sets_deq_diff a aT b bT ≠
-      SmtTerm.DtSel s d i j := by
-  intro s d i j h
-  cases aT <;> cases bT <;> simp [__eo_to_smt_sets_deq_diff] at h
-
-private theorem eo_to_smt_sets_deq_diff_ne_dt_tester_term
-    (a : SmtTerm) (aT : SmtType) (b : SmtTerm) (bT : SmtType) :
-    ∀ s d i, __eo_to_smt_sets_deq_diff a aT b bT ≠
-      SmtTerm.DtTester s d i := by
-  intro s d i h
-  cases aT <;> cases bT <;> simp [__eo_to_smt_sets_deq_diff] at h
-
-private theorem eo_to_smt_array_deq_diff_ne_dt_sel
-    (a b : Term) :
-    ∀ s d i j,
-      __eo_to_smt (Term._at_array_deq_diff a b) ≠
-        SmtTerm.DtSel s d i j := by
-  intro s d i j h
-  change
-    __eo_to_smt_array_deq_diff (__eo_to_smt a)
-        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-        (__smtx_typeof (__eo_to_smt b)) =
-      SmtTerm.DtSel s d i j at h
-  exact eo_to_smt_array_deq_diff_ne_dt_sel_term
-    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-    (__smtx_typeof (__eo_to_smt b)) s d i j h
-
-private theorem eo_to_smt_array_deq_diff_ne_dt_tester
-    (a b : Term) :
-    ∀ s d i,
-      __eo_to_smt (Term._at_array_deq_diff a b) ≠
-        SmtTerm.DtTester s d i := by
-  intro s d i h
-  change
-    __eo_to_smt_array_deq_diff (__eo_to_smt a)
-        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-        (__smtx_typeof (__eo_to_smt b)) =
-      SmtTerm.DtTester s d i at h
-  exact eo_to_smt_array_deq_diff_ne_dt_tester_term
-    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-    (__smtx_typeof (__eo_to_smt b)) s d i h
-
-private theorem eo_to_smt_sets_deq_diff_ne_dt_sel
-    (a b : Term) :
-    ∀ s d i j,
-      __eo_to_smt (Term._at_sets_deq_diff a b) ≠
-        SmtTerm.DtSel s d i j := by
-  intro s d i j h
-  change
-    __eo_to_smt_sets_deq_diff (__eo_to_smt a)
-        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-        (__smtx_typeof (__eo_to_smt b)) =
-      SmtTerm.DtSel s d i j at h
-  exact eo_to_smt_sets_deq_diff_ne_dt_sel_term
-    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-    (__smtx_typeof (__eo_to_smt b)) s d i j h
-
-private theorem eo_to_smt_sets_deq_diff_ne_dt_tester
-    (a b : Term) :
-    ∀ s d i,
-      __eo_to_smt (Term._at_sets_deq_diff a b) ≠
-        SmtTerm.DtTester s d i := by
-  intro s d i h
-  change
-    __eo_to_smt_sets_deq_diff (__eo_to_smt a)
-        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-        (__smtx_typeof (__eo_to_smt b)) =
-      SmtTerm.DtTester s d i at h
-  exact eo_to_smt_sets_deq_diff_ne_dt_tester_term
-    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-    (__smtx_typeof (__eo_to_smt b)) s d i h
-
 theorem eo_to_smt_at_bv_ne_dt_sel
     (a b : SmtTerm) :
     ∀ s d i j, SmtTerm.int_to_bv b a ≠ SmtTerm.DtSel s d i j := by
@@ -1678,28 +1590,6 @@ theorem eo_to_smt_at_bv_ne_dt_tester
     (a b : SmtTerm) :
     ∀ s d i, SmtTerm.int_to_bv b a ≠ SmtTerm.DtTester s d i := by
   intro s d i h
-  cases h
-
-private theorem eo_to_smt_strings_deq_diff_ne_dt_sel
-    (a b : Term) :
-    ∀ s d i j,
-      __eo_to_smt (Term._at_strings_deq_diff a b) ≠
-        SmtTerm.DtSel s d i j := by
-  intro s d i j h
-  change
-    SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b) =
-      SmtTerm.DtSel s d i j at h
-  cases h
-
-private theorem eo_to_smt_strings_deq_diff_ne_dt_tester
-    (a b : Term) :
-    ∀ s d i,
-      __eo_to_smt (Term._at_strings_deq_diff a b) ≠
-        SmtTerm.DtTester s d i := by
-  intro s d i h
-  change
-    SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b) =
-      SmtTerm.DtTester s d i at h
   cases h
 
 private theorem eo_to_smt_quant_skolemize_ne_dt_sel
@@ -1819,46 +1709,6 @@ private theorem eo_to_smt_re_unfold_ne_dt_tester
       cases re <;> simp [__eo_to_smt_re_unfold_pos_component] at h
       case re_concat r1 r2 =>
         exact ih _ _ s d i h
-
-private theorem eo_to_smt_re_unfold_top_ne_dt_sel
-    (str re idx : Term) :
-    ∀ s d i j,
-      __eo_to_smt
-          (Term._at_re_unfold_pos_component str re idx) ≠
-        SmtTerm.DtSel s d i j := by
-  intro s d i j h
-  change
-    native_ite (__eo_to_smt_nat_is_valid idx)
-        (__eo_to_smt_re_unfold_pos_component
-          (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
-        SmtTerm.None =
-      SmtTerm.DtSel s d i j at h
-  unfold native_ite at h
-  split at h <;> try cases h
-  exact
-    eo_to_smt_re_unfold_ne_dt_sel
-      (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx)
-      s d i j h
-
-private theorem eo_to_smt_re_unfold_top_ne_dt_tester
-    (str re idx : Term) :
-    ∀ s d i,
-      __eo_to_smt
-          (Term._at_re_unfold_pos_component str re idx) ≠
-        SmtTerm.DtTester s d i := by
-  intro s d i h
-  change
-    native_ite (__eo_to_smt_nat_is_valid idx)
-        (__eo_to_smt_re_unfold_pos_component
-          (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
-        SmtTerm.None =
-      SmtTerm.DtTester s d i at h
-  unfold native_ite at h
-  split at h <;> try cases h
-  exact
-      eo_to_smt_re_unfold_ne_dt_tester
-        (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx)
-        s d i h
 
 private theorem smt_apply_type_none_of_non_function_head
     (f x : SmtTerm)

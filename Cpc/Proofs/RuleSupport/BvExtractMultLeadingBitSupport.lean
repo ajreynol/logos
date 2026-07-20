@@ -300,21 +300,6 @@ private theorem extractLead_int_to_bv_context
     simp [__eo_typeof_int_to_bv, __eo_requires, __eo_gt, hGt,
       native_ite, native_teq, native_not]
 
-private theorem extractLead_smt_type_of_eo_bv
-    (z : Term) (W : native_Int) :
-    RuleProofs.eo_has_smt_translation z ->
-    __eo_typeof z =
-      Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral W) ->
-    native_zleq 0 W = true ->
-    __smtx_typeof (__eo_to_smt z) =
-      SmtType.BitVec (native_int_to_nat W) := by
-  intro hTrans hTy hW0
-  have hExpected :=
-    RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
-      z (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral W))
-      (__eo_to_smt z) rfl hTrans hTy
-  simpa [__eo_to_smt_type, hW0, native_ite] using hExpected
-
 private theorem extractLead_operand_context
     (i n tail width : Term) :
     RuleProofs.eo_has_smt_translation i ->

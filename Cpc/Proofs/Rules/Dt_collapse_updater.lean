@@ -287,18 +287,6 @@ private theorem smtx_ite_then_non_none
     simp [__smtx_typeof, __smtx_typeof_ite, native_ite, native_Teq,
       hc, hx, hy] at hX ⊢
 
-private theorem smtx_ite_else_non_none
-    (c x y : SmtTerm) :
-    __smtx_typeof (SmtTerm.ite c x y) ≠ SmtType.None ->
-    __smtx_typeof y ≠ SmtType.None := by
-  intro hNN hY
-  apply hNN
-  cases hc : __smtx_typeof c <;>
-    cases hx : __smtx_typeof x <;>
-    cases hy : __smtx_typeof y <;>
-    simp [__smtx_typeof, __smtx_typeof_ite, native_ite, native_Teq,
-      hc, hx, hy] at hY ⊢
-
 private theorem smtx_apply_arg_non_none_of_non_none
     (f x : SmtTerm)
     (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
@@ -615,39 +603,6 @@ private theorem tuple_update_rec_non_none_of_shape
       SmtEval.native_zlt, native_nat_to_int, SmtEval.native_nat_to_int,
       hIdxProp] using hUpdaterNN
   exact smtx_ite_then_non_none _ _ _ hIteNN
-
-private theorem tuple_update_arg_type_of_non_none
-    (idx t a : Term) (d : SmtDatatype) (n : native_Int) :
-    __smtx_typeof (__eo_to_smt t) =
-        SmtType.Datatype (native_string_lit "@Tuple") d ->
-    idx = Term.Numeral n ->
-    0 ≤ n ->
-    native_int_to_nat n < __smtx_dt_num_sels d native_nat_zero ->
-    __smtx_typeof
-        (__eo_to_smt
-          (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) t) a)) ≠
-      SmtType.None ->
-    __smtx_typeof (__eo_to_smt a) =
-      __smtx_ret_typeof_sel (native_string_lit "@Tuple") d native_nat_zero
-        (native_int_to_nat n) := by
-  intro hT hIdx hNonneg hLt hNN
-  have hRecNN :=
-    tuple_update_rec_non_none_of_shape idx t a d n hT hIdx hNonneg hLt hNN
-  have hIdxBool :
-      native_zlt
-          (native_nat_to_int (native_int_to_nat n))
-          (native_nat_to_int (__smtx_dt_num_sels d native_nat_zero)) =
-        true := by
-    have hInt :
-        (native_int_to_nat n : Int) <
-          (__smtx_dt_num_sels d native_nat_zero : Int) :=
-      Int.ofNat_lt.mpr hLt
-    apply decide_eq_true hInt
-  exact
-    TranslationProofs.eo_to_smt_updater_rec_update_arg_type_of_non_none
-      (native_string_lit "@Tuple") d native_nat_zero (native_int_to_nat n)
-      (__smtx_dt_num_sels d native_nat_zero) (__eo_to_smt t) (__eo_to_smt a)
-      hIdxBool hRecNN
 
 private theorem tuple_value_count_of_type_local
     {v : SmtValue} {c : SmtDatatypeCons}

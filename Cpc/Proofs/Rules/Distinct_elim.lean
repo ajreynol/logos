@@ -20,18 +20,6 @@ private theorem smt_eval_and_assoc_bool
   cases a <;> cases b <;> cases c <;>
     simp [__smtx_model_eval_and, SmtEval.native_and]
 
-private theorem smt_eval_and_true_left_bool
-    {b : Bool} :
-    __smtx_model_eval_and (SmtValue.Boolean true) (SmtValue.Boolean b) =
-      SmtValue.Boolean b := by
-  cases b <;> simp [__smtx_model_eval_and, SmtEval.native_and]
-
-private theorem smt_eval_and_true_right_bool
-    {b : Bool} :
-    __smtx_model_eval_and (SmtValue.Boolean b) (SmtValue.Boolean true) =
-      SmtValue.Boolean b := by
-  cases b <;> simp [__smtx_model_eval_and, SmtEval.native_and]
-
 private theorem smt_eval_and_true_right_eq_of_boolean
     {v : SmtValue} {b : Bool} :
     __smtx_model_eval_and v (SmtValue.Boolean true) = SmtValue.Boolean b ->

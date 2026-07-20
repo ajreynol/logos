@@ -81,21 +81,9 @@ private theorem smtx_eval_str_substr_term_eq
         (__smtx_model_eval M y) (__smtx_model_eval M z) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem smtx_eval_geq_term_eq
-    (M : SmtModel) (x y : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.geq x y) =
-      __smtx_model_eval_geq
-        (__smtx_model_eval M x) (__smtx_model_eval M y) := by
-  rw [__smtx_model_eval.eq_def] <;> simp only
-
 private theorem smtx_eval_numeral_term_eq
     (M : SmtModel) (n : native_Int) :
     __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n := by
-  rw [__smtx_model_eval.eq_def]
-
-private theorem smtx_eval_boolean_term_eq
-    (M : SmtModel) (b : Bool) :
-    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
   rw [__smtx_model_eval.eq_def]
 
 private theorem native_seq_extract_zero_nat_any

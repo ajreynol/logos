@@ -51,55 +51,6 @@ private theorem eo_requires_result_ne_stuck_of_non_stuck {x y z : Term}
   intro hz
   exact h (by rw [eo_requires_result_eq_of_non_stuck h, hz])
 
-private theorem typeof_eq_args_same {A B : Term}
-    (h : __eo_typeof_eq A B = Term.Bool) :
-    A = B := by
-  by_cases hA : A = Term.Stuck
-  · subst A
-    simp [__eo_typeof_eq] at h
-  · by_cases hB : B = Term.Stuck
-    · subst B
-      simp [__eo_typeof_eq] at h
-    · have hReqNe :
-        __eo_requires (__eo_eq A B) (Term.Boolean true) Term.Bool ≠ Term.Stuck := by
-        intro hStuck
-        simp [__eo_typeof_eq, hStuck] at h
-      have hEqBool : __eo_eq A B = Term.Boolean true :=
-        eo_requires_cond_eq_of_non_stuck hReqNe
-      cases A <;> cases B <;> simp [__eo_eq, native_teq] at hEqBool ⊢ <;>
-        simp_all
-
-private theorem typeof_str_len_arg_seq {x : Term}
-    (h : __eo_typeof (Term.Apply (Term.UOp UserOp.str_len) x) =
-      Term.UOp UserOp.Int) :
-    ∃ T, __eo_typeof x = Term.Apply (Term.UOp UserOp.Seq) T := by
-  change __eo_typeof_str_len (__eo_typeof x) = Term.UOp UserOp.Int at h
-  cases hX : __eo_typeof x <;> simp [__eo_typeof_str_len, hX] at h
-  case Apply f a =>
-    cases f <;> try simp at h
-    case UOp op =>
-      cases op <;> simp at h
-      case Seq =>
-        exact ⟨a, rfl⟩
-
-private theorem witness_string_length_id_int
-    {U id T : Term} {k : native_Int}
-    (hWitTy :
-      __eo_typeof (Term.UOp3 UserOp3._at_witness_string_length
-        (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id) =
-        Term.Apply (Term.UOp UserOp.Seq) T) :
-    __eo_typeof id = Term.UOp UserOp.Int := by
-  change
-    __eo_typeof__at_witness_string_length
-      (__eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U))
-      (Term.Apply (Term.UOp UserOp.Seq) U)
-      (Term.UOp UserOp.Int) (__eo_typeof id) =
-      Term.Apply (Term.UOp UserOp.Seq) T at hWitTy
-  cases hId : __eo_typeof id <;>
-    simp [__eo_typeof__at_witness_string_length, hId] at hWitTy ⊢
-  case UOp op =>
-    cases op <;> simp at hWitTy ⊢
-
 private theorem eo_gt_numeral_neg_one_eq_true {n : Term} :
     __eo_gt n (Term.Numeral (-1 : native_Int)) = Term.Boolean true ->
     ∃ k : native_Int, n = Term.Numeral k ∧
@@ -108,41 +59,6 @@ private theorem eo_gt_numeral_neg_one_eq_true {n : Term} :
   cases n <;> simp [__eo_gt] at h
   case Numeral k =>
     exact ⟨k, rfl, by simpa [__eo_gt] using h⟩
-
-private theorem prog_exists_string_length_id_int
-    {U id : Term} {k : native_Int}
-    (hgt : native_zlt (-1 : native_Int) k = true)
-    (hTy : __eo_typeof (__eo_prog_exists_string_length
-      (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id) = Term.Bool) :
-    __eo_typeof id = Term.UOp UserOp.Int := by
-  have hIdNe : id ≠ Term.Stuck := by
-    intro hid
-    subst id
-    have hNo : __eo_typeof Term.Stuck ≠ Term.Bool := by native_decide
-    exact hNo hTy
-  have hProgNe :
-      __eo_prog_exists_string_length
-        (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id ≠
-        Term.Stuck :=
-    term_ne_stuck_of_typeof_bool hTy
-  have hOuterReqNe :
-      __eo_requires
-        (__eo_gt (Term.Numeral k) (Term.Numeral (-1 : native_Int)))
-        (Term.Boolean true)
-        (__eo_requires (__eo_gt id (Term.Numeral (-1 : native_Int)))
-          (Term.Boolean true)
-          (eslFormula U (Term.Numeral k) id)) ≠ Term.Stuck := by
-    simpa [eslFormula, __eo_prog_exists_string_length, hIdNe] using hProgNe
-  have hInnerReqNe :
-      __eo_requires (__eo_gt id (Term.Numeral (-1 : native_Int)))
-        (Term.Boolean true)
-        (eslFormula U (Term.Numeral k) id) ≠ Term.Stuck :=
-    eo_requires_result_ne_stuck_of_non_stuck hOuterReqNe
-  have hIdGt : __eo_gt id (Term.Numeral (-1 : native_Int)) =
-      Term.Boolean true := by
-    exact eo_requires_cond_eq_of_non_stuck hInnerReqNe
-  rcases eo_gt_numeral_neg_one_eq_true hIdGt with ⟨i, rfl, _hiGt⟩
-  rfl
 
 private theorem eo_to_smt_nat_is_valid_numeral_of_gt_neg_one
     {k : native_Int}

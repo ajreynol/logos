@@ -28,52 +28,6 @@ private theorem smtx_model_eval_eq_false_of_ne_not_reglan_pair
     simp [__smtx_model_eval_eq, native_veq] at hNe hReg ⊢
   all_goals exact hNe
 
-private theorem smtx_model_eval_eq_false_of_type_ne
-    {v w : SmtValue} {T U : SmtType}
-    (hVT : __smtx_typeof_value v = T)
-    (hWU : __smtx_typeof_value w = U)
-    (hTNe : T ≠ U)
-    (hTReg : T ≠ SmtType.RegLan) :
-    __smtx_model_eval_eq v w = SmtValue.Boolean false := by
-  have hNe : v ≠ w := by
-    intro hEq
-    apply hTNe
-    rw [← hVT, ← hWU, hEq]
-  exact smtx_model_eval_eq_false_of_ne_not_reglan_pair hNe
-    (by
-      rintro ⟨r1, r2, hV, _hW⟩
-      apply hTReg
-      rw [← hVT, hV]
-      simp [__smtx_typeof_value])
-
-private theorem smt_type_ne_tuple_cons_self
-    (A : SmtType) (c : SmtDatatypeCons) :
-    A ≠
-      SmtType.Datatype (native_string_lit "@Tuple")
-        (SmtDatatype.sum (SmtDatatypeCons.cons A c) SmtDatatype.null) := by
-  intro h
-  have hSize := congrArg sizeOf h
-  simp at hSize
-  omega
-
-private theorem smt_datatype_cons_ne_cons_self
-    (A : SmtType) (c : SmtDatatypeCons) :
-    c ≠ SmtDatatypeCons.cons A c := by
-  intro h
-  have hSize := congrArg sizeOf h
-  simp at hSize
-
-private theorem smt_tuple_tail_type_ne_prepend_type
-    (A : SmtType) (c : SmtDatatypeCons) :
-    SmtType.Datatype (native_string_lit "@Tuple")
-        (SmtDatatype.sum c SmtDatatype.null) ≠
-      SmtType.Datatype (native_string_lit "@Tuple")
-        (SmtDatatype.sum (SmtDatatypeCons.cons A c) SmtDatatype.null) := by
-  intro h
-  injection h with _ hD
-  injection hD with hC _
-  exact smt_datatype_cons_ne_cons_self A c hC
-
 private theorem smt_model_eval_type_of_non_none
     (M : SmtModel) (hM : model_total_typed M) (x : SmtTerm)
     (hNN : __smtx_typeof x ≠ SmtType.None) :
@@ -135,56 +89,6 @@ private theorem generic_apply_arg_eval_proper
   rw [hEval]
   exact SmtValueProperSubterm.app_arg
 
-private theorem generic_apply_fun_eval_eq_false
-    (M : SmtModel) (hM : model_total_typed M) (f a : Term) :
-    __is_cons_app (Term.Apply f a) = Term.Boolean true ->
-    (∀ x, f ≠ Term.Apply (Term.UOp UserOp.tuple) x) ->
-    RuleProofs.eo_has_bool_type
-      (Term.Apply (Term.Apply Term.eq f) (Term.Apply f a)) ->
-    __smtx_model_eval M
-        (__eo_to_smt (Term.Apply (Term.Apply Term.eq f) (Term.Apply f a))) =
-      SmtValue.Boolean false := by
-  intro hCons hNotTuple hBool
-  rcases eval_types_of_eq_has_bool_type M hM f (Term.Apply f a) hBool with
-    ⟨_hFEvalTy, _hAppEvalTy, hTyEq, hFNN⟩
-  have hAppNN :
-      RuleProofs.eo_has_smt_translation (Term.Apply f a) := by
-    unfold RuleProofs.eo_has_smt_translation
-    rw [← hTyEq]
-    exact hFNN
-  have hEval :=
-    is_cons_app_apply_eval_eq_apply_of_not_tuple
-      M hM f a hCons hNotTuple hAppNN
-  rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
-  rw [hEval]
-  exact smtx_model_eval_eq_false_of_proper_subterm
-    SmtValueProperSubterm.app_fun_self
-
-private theorem generic_apply_arg_eval_eq_false
-    (M : SmtModel) (hM : model_total_typed M) (f a : Term) :
-    __is_cons_app (Term.Apply f a) = Term.Boolean true ->
-    (∀ x, f ≠ Term.Apply (Term.UOp UserOp.tuple) x) ->
-    RuleProofs.eo_has_bool_type
-      (Term.Apply (Term.Apply Term.eq a) (Term.Apply f a)) ->
-    __smtx_model_eval M
-        (__eo_to_smt (Term.Apply (Term.Apply Term.eq a) (Term.Apply f a))) =
-      SmtValue.Boolean false := by
-  intro hCons hNotTuple hBool
-  rcases eval_types_of_eq_has_bool_type M hM a (Term.Apply f a) hBool with
-    ⟨_hAEvalTy, _hAppEvalTy, hTyEq, hANN⟩
-  have hAppNN :
-      RuleProofs.eo_has_smt_translation (Term.Apply f a) := by
-    unfold RuleProofs.eo_has_smt_translation
-    rw [← hTyEq]
-    exact hANN
-  have hEval :=
-    is_cons_app_apply_eval_eq_apply_of_not_tuple
-      M hM f a hCons hNotTuple hAppNN
-  rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
-  rw [hEval]
-  exact smtx_model_eval_eq_false_of_proper_subterm
-    SmtValueProperSubterm.app_arg
-
 private theorem tuple_apply_partial_type_none
     (head : Term) :
     __smtx_typeof
@@ -194,137 +98,6 @@ private theorem tuple_apply_partial_type_none
     __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt head)) =
       SmtType.None
   exact TranslationProofs.typeof_apply_none_eq (__eo_to_smt head)
-
-private theorem tuple_apply_head_eval_eq_false
-    (M : SmtModel) (hM : model_total_typed M) (head tail : Term) :
-    RuleProofs.eo_has_bool_type
-      (Term.Apply (Term.Apply Term.eq head)
-        (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail)) ->
-    __smtx_model_eval M
-        (__eo_to_smt
-          (Term.Apply (Term.Apply Term.eq head)
-            (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail))) =
-      SmtValue.Boolean false := by
-  intro hBool
-  let tupleTerm := Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail
-  rcases eval_types_of_eq_has_bool_type M hM head tupleTerm hBool with
-    ⟨_hHeadEvalTy, _hTupleEvalTy, hTyEq, hHeadNN⟩
-  have hTupleNN :
-      __smtx_typeof (__eo_to_smt tupleTerm) ≠ SmtType.None := by
-    rw [← hTyEq]
-    exact hHeadNN
-  change
-    __smtx_typeof
-        (__eo_to_smt_tuple_prepend (__eo_to_smt head)
-          (__smtx_typeof (__eo_to_smt head)) (__eo_to_smt tail)) ≠
-      SmtType.None at hTupleNN
-  rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
-      tail head hTupleNN with
-    ⟨c, hTailTy⟩
-  have hFullTy :=
-    TranslationProofs.smtx_tuple_prepend_typeof_of_tail_tuple_type
-      (__eo_to_smt tail) (__eo_to_smt head)
-      (__smtx_typeof (__eo_to_smt head)) c hTailTy hTupleNN
-  have hTyNe :
-      __smtx_typeof (__eo_to_smt head) ≠
-        __smtx_typeof (__eo_to_smt tupleTerm) := by
-    intro hEq
-    change
-      __smtx_typeof (__eo_to_smt head) =
-        __smtx_typeof
-          (__eo_to_smt_tuple_prepend (__eo_to_smt head)
-            (__smtx_typeof (__eo_to_smt head)) (__eo_to_smt tail)) at hEq
-    rw [hFullTy] at hEq
-    exact smt_type_ne_tuple_cons_self
-      (__smtx_typeof (__eo_to_smt head)) c hEq
-  exact False.elim (hTyNe hTyEq)
-
-private theorem tuple_apply_tail_eval_eq_false
-    (M : SmtModel) (hM : model_total_typed M) (head tail : Term) :
-    RuleProofs.eo_has_bool_type
-      (Term.Apply (Term.Apply Term.eq tail)
-        (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail)) ->
-    __smtx_model_eval M
-        (__eo_to_smt
-          (Term.Apply (Term.Apply Term.eq tail)
-            (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail))) =
-      SmtValue.Boolean false := by
-  intro hBool
-  let tupleTerm := Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail
-  rcases eval_types_of_eq_has_bool_type M hM tail tupleTerm hBool with
-    ⟨_hTailEvalTy, _hTupleEvalTy, hTyEq, hTailNN⟩
-  have hTupleNN :
-      __smtx_typeof (__eo_to_smt tupleTerm) ≠ SmtType.None := by
-    rw [← hTyEq]
-    exact hTailNN
-  change
-    __smtx_typeof
-        (__eo_to_smt_tuple_prepend (__eo_to_smt head)
-          (__smtx_typeof (__eo_to_smt head)) (__eo_to_smt tail)) ≠
-      SmtType.None at hTupleNN
-  rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
-      tail head hTupleNN with
-    ⟨c, hTailTy⟩
-  have hFullTy :=
-    TranslationProofs.smtx_tuple_prepend_typeof_of_tail_tuple_type
-      (__eo_to_smt tail) (__eo_to_smt head)
-      (__smtx_typeof (__eo_to_smt head)) c hTailTy hTupleNN
-  have hTyNe :
-      __smtx_typeof (__eo_to_smt tail) ≠
-        __smtx_typeof (__eo_to_smt tupleTerm) := by
-    intro hEq
-    change
-      __smtx_typeof (__eo_to_smt tail) =
-        __smtx_typeof
-          (__eo_to_smt_tuple_prepend (__eo_to_smt head)
-            (__smtx_typeof (__eo_to_smt head)) (__eo_to_smt tail)) at hEq
-    rw [hTailTy, hFullTy] at hEq
-    exact smt_tuple_tail_type_ne_prepend_type
-      (__smtx_typeof (__eo_to_smt head)) c hEq
-  exact False.elim (hTyNe hTyEq)
-
-private theorem smt_type_ne_fun_self
-    (A B : SmtType) :
-    B ≠ SmtType.FunType A B := by
-  intro h
-  have hSize := congrArg sizeOf h
-  simp at hSize
-
-private theorem smt_type_ne_dtc_app_self
-    (A B : SmtType) :
-    B ≠ SmtType.DtcAppType A B := by
-  intro h
-  have hSize := congrArg sizeOf h
-  simp at hSize
-
-private theorem smt_apply_head_type_ne_result
-    {F X : SmtTerm}
-    (hGen : generic_apply_type F X)
-    (hNN : __smtx_typeof (SmtTerm.Apply F X) ≠ SmtType.None) :
-    __smtx_typeof F ≠ __smtx_typeof (SmtTerm.Apply F X) := by
-  intro hEq
-  have hApplyNN :
-      __smtx_typeof_apply (__smtx_typeof F) (__smtx_typeof X) ≠
-        SmtType.None := by
-    rw [← hGen]
-    exact hNN
-  rcases typeof_apply_non_none_cases hApplyNN with
-    ⟨A, B, hHead, hX, hA, _hB⟩
-  have hApplyTy :
-      __smtx_typeof (SmtTerm.Apply F X) = B := by
-    rw [hGen]
-    rcases hHead with hHead | hHead
-    · rw [hHead, hX]
-      simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
-        native_Teq, hA]
-    · rw [hHead, hX]
-      simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
-        native_Teq, hA]
-  have hFB : __smtx_typeof F = B :=
-    hEq.trans hApplyTy
-  rcases hHead with hHead | hHead
-  · exact smt_type_ne_fun_self A B (hFB.symm.trans hHead)
-  · exact smt_type_ne_dtc_app_self A B (hFB.symm.trans hHead)
 
 private inductive CtorSpineRoot : Term -> Term -> Prop where
   | tuple :
@@ -870,18 +643,6 @@ decreasing_by
   all_goals
     simp_wf
     omega
-
-private theorem dt_find_cycle_path_of_false_rec
-    (c s : Term) :
-    __dt_find_cycle c s (__is_cons_app c) (Term.Boolean false) =
-      Term.Boolean true ->
-    DtCyclePath s c := by
-  intro h
-  rcases dt_find_cycle_path_or_eq_of_true
-      c s (__is_cons_app c) (Term.Boolean false) h with
-    hEq | hPath
-  · cases hEq.2
-  · exact hPath.2
 
 private theorem dt_find_cycle_cons_path_of_false_rec
     (c s : Term) :

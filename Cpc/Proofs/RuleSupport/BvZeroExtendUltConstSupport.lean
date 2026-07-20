@@ -3275,47 +3275,6 @@ private theorem eval_bvnot_term_local (M : SmtModel) (x : Term) :
   change __smtx_model_eval M (SmtTerm.bvnot (__eo_to_smt x)) = _
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem eval_sign_extend_eq_characterization_rev
-    (x : BitVec W) (c : BitVec (W + A)) (hW : 0 < W) :
-    __smtx_model_eval_eq
-        (SmtValue.Binary (↑(W + A) : Int) (↑c.toNat : Int))
-        (SmtValue.Binary (↑(W + A) : Int)
-          (↑(x.signExtend (W + A)).toNat : Int)) =
-      __smtx_model_eval_and
-        (__smtx_model_eval_or
-          (__smtx_model_eval_eq
-            (SmtValue.Binary (↑(A + 1) : Int)
-              (↑(c.extractLsb' (W - 1) (A + 1)).toNat : Int))
-            (SmtValue.Binary (↑(A + 1) : Int)
-              (↑(0#(A + 1)).toNat : Int)))
-          (__smtx_model_eval_or
-            (__smtx_model_eval_eq
-              (SmtValue.Binary (↑(A + 1) : Int)
-                (↑(c.extractLsb' (W - 1) (A + 1)).toNat : Int))
-              (__smtx_model_eval_bvnot
-                (SmtValue.Binary (↑(A + 1) : Int) 0)))
-            (SmtValue.Boolean false)))
-        (__smtx_model_eval_and
-          (__smtx_model_eval_eq
-            (SmtValue.Binary (↑W : Int) (↑x.toNat : Int))
-            (SmtValue.Binary (↑W : Int)
-              (↑(c.extractLsb' 0 W).toNat : Int)))
-          (SmtValue.Boolean true)) := by
-  rw [smt_eval_eq_bitvec_values]
-  have hDec :
-      decide (c = x.signExtend (W + A)) =
-        decide (x.signExtend (W + A) = c) := by
-    by_cases h : c = x.signExtend (W + A)
-    · subst c
-      simp
-    · have h' : x.signExtend (W + A) ≠ c := by
-        intro hc
-        exact h hc.symm
-      simp [h, h']
-  rw [hDec]
-  rw [← smt_eval_eq_bitvec_values (x.signExtend (W + A)) c]
-  exact eval_sign_extend_eq_characterization x c hW
-
 private theorem eval_bv_sign_extend_eq_const_1_lhs_eq_rhs
     (M : SmtModel) (hM : model_total_typed M)
     (x c : Term) (W A P L H : native_Int) :
@@ -4601,9 +4560,6 @@ private theorem native_int_pow2_nat_cast_sign_ult (n : Nat) :
   unfold SmtEval.native_int_pow2 SmtEval.native_zexp_total
   rw [if_neg hn]
   simp
-
-private theorem nat_le_two_pow_sign_ult (n : Nat) : n ≤ 2 ^ n := by
-  exact Nat.le_of_lt Nat.lt_two_pow_self
 
 private theorem sign_ult_amount_lt_pow (W A : Nat) (hW : 0 < W) :
     (Int.ofNat (W - 1) : Int) < native_int_pow2 (Int.ofNat (W + A)) := by

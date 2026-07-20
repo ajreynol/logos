@@ -41,11 +41,6 @@ private theorem eo_to_smt_true_eq :
     __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
   rfl
 
-/-- Simplifies EO-to-SMT translation for `false`. -/
-private theorem eo_to_smt_false_eq :
-    __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false := by
-  rfl
-
 /-- Simplifies EO-to-SMT translation for `stuck`. -/
 private theorem eo_to_smt_stuck_eq :
     __eo_to_smt Term.Stuck = SmtTerm.None := by

@@ -420,12 +420,6 @@ private theorem native_unpack_seq_pack_seq (T : SmtType) :
   | [] => rfl
   | _ :: xs => by simp [native_pack_seq, native_unpack_seq, native_unpack_seq_pack_seq T xs]
 
-private theorem native_unpack_string_pack_seq (T : SmtType)
-    (xs : List SmtValue) :
-    native_unpack_string (native_pack_seq T xs) =
-      xs.map native_ssm_char_of_value := by
-  simp [native_unpack_string, native_unpack_seq_pack_seq]
-
 theorem native_unpack_string_substr_split
     (ss : SmtSeq) (i : native_Int)
     (hi0 : 0 <= i)
@@ -602,10 +596,6 @@ private theorem native_str_in_re_re_mult_empty (r : native_RegLan) :
 
 abbrev RegLanEval (M : SmtModel) (t : Term) : Prop :=
   ∃ r, __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r
-
-private theorem native_string_lit_empty :
-    native_string_lit "" = ([] : native_String) := by
-  simp [native_string_lit]
 
 theorem native_string_valid_of_str_in_re_true
     {str : native_String} {r : native_RegLan}

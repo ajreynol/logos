@@ -63,13 +63,6 @@ private abbrev concatCSplitBody (rev t s u : Term) : Term :=
       (Term.Boolean true) <|
         concatCSplitFormula rev u sc
 
-private theorem eq_of_eo_is_eq_true_local (a b : Term)
-    (h : __eo_is_eq a b = Term.Boolean true) :
-    a = b := by
-  simp [__eo_is_eq, native_teq, native_and, native_not,
-    SmtEval.native_and, SmtEval.native_not] at h
-  exact h.2.2.symm
-
 private theorem native_seq_extract_zero_nat_csplit
     (xs : List SmtValue) (n : Nat) (hle : n <= xs.length) :
     native_seq_extract xs 0 (Int.ofNat n) = xs.take n := by

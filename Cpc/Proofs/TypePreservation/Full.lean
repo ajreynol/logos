@@ -2318,10 +2318,6 @@ private theorem tp_type_wf_parts_of_wf_ne_reglan
     exact False.elim (hNeFun A B rfl)
   all_goals first | contradiction | exact hWf | exact hWf.1 | exact ⟨hWf, rfl⟩ | exact ⟨hWf.1, rfl⟩
 
-private theorem tp_int_inhabited :
-    native_inhabited_type SmtType.Int = true :=
-  native_inhabited_type_int
-
 private theorem tp_map_type_inhabited
     {A B : SmtType}
     (hB : type_inhabited B) :

@@ -64,14 +64,6 @@ private theorem eo_typeof_bvand_arg_types_of_ne_stuck_local
           (support_eo_requires_cond_eq_of_non_stuck hReq)
       exact hm.symm
 
-private theorem eo_typeof_bvnot_arg_ne_stuck_of_ne_stuck
-    {A : Term}
-    (h : __eo_typeof_bvnot A ≠ Term.Stuck) :
-    A ≠ Term.Stuck := by
-  intro hA
-  subst A
-  exact h rfl
-
 theorem bv_bitwise_elim_args_type_of_bool
     (k : BvBitwiseElimKind) (x y : Term) :
     __eo_typeof (bvBitwiseElimTerm k x y) = Term.Bool ->
@@ -191,17 +183,6 @@ private theorem smt_bitvec_type_of_eo_bitvec_type_with_width
     · exact ⟨n, rfl, hNonneg, hSmtType⟩
   all_goals
     exact False.elim (hXTrans hSmtType)
-
-private theorem native_nat_to_int_of_int_to_nat_of_nonneg (n : native_Int) :
-    native_zleq 0 n = true ->
-    native_nat_to_int (native_int_to_nat n) = n := by
-  intro hNonneg
-  have hn : 0 <= n := by
-    simpa [SmtEval.native_zleq] using hNonneg
-  have hInt : (Int.ofNat (Int.toNat n) : Int) = n :=
-    Int.toNat_of_nonneg hn
-  simpa [SmtEval.native_nat_to_int, SmtEval.native_int_to_nat,
-    native_nat_to_int, native_int_to_nat] using hInt
 
 private theorem native_int_pow2_nat (w : Nat) :
     native_int_pow2 (native_nat_to_int w) = (2 ^ w : Int) := by

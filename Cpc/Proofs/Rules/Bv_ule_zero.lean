@@ -26,28 +26,6 @@ private theorem prog_bv_ule_zero_eq_of_ne_stuck (x1 n1 : Term) :
   intro hX1 hN1
   cases x1 <;> cases n1 <;> simp [__eo_prog_bv_ule_zero] at hX1 hN1 ⊢
 
-private theorem eq_of_requires_eq_true_not_stuck (x y B : Term) :
-    __eo_requires (__eo_eq x y) (Term.Boolean true) B ≠ Term.Stuck ->
-    y = x := by
-  intro hProg
-  have hProg' := hProg
-  simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
-    SmtEval.native_not] at hProg'
-  have hEq : __eo_eq x y = Term.Boolean true := hProg'.1
-  by_cases hx : x = Term.Stuck
-  · subst x
-    simp [__eo_eq] at hEq
-  · by_cases hy : y = Term.Stuck
-    · subst y
-      simp [__eo_eq] at hEq
-    · have hDec : native_teq y x = true := by
-        simpa [__eo_eq, hx, hy] using hEq
-      simpa [native_teq] using hDec
-
-private theorem eo_typeof_eq_right_stuck (T : Term) :
-    __eo_typeof_eq T Term.Stuck = Term.Stuck := by
-  cases T <;> rfl
-
 private theorem typeof_args_of_prog_bv_ule_zero_bool (x1 n1 : Term) :
     __eo_typeof (__eo_prog_bv_ule_zero x1 n1) = Term.Bool ->
     ∃ w, __eo_typeof x1 = Term.Apply (Term.UOp UserOp.BitVec) w ∧

@@ -226,11 +226,6 @@ private theorem requires5_and_eq_self_true_body
     eo_eq_self_true_of_ne_stuck n hNNotStuck, native_ite, native_teq,
     native_not, SmtEval.native_not, SmtEval.native_and]
 
-private theorem typeof_int_to_bv_stuck_of_arg_stuck (A w : Term) :
-    __eo_typeof_int_to_bv A w Term.Stuck = Term.Stuck := by
-  unfold __eo_typeof_int_to_bv
-  split <;> simp_all
-
 private theorem typeof_int_to_bv_stuck_of_width_ty_ne_int (A w B : Term)
     (hA : A ≠ Term.UOp UserOp.Int) :
     __eo_typeof_int_to_bv A w B = Term.Stuck := by
@@ -266,18 +261,6 @@ private theorem int_to_bv_type_bitvec_inv (A w m : Term)
   · exfalso
     rw [typeof_int_to_bv_stuck_of_width_ty_ne_int A w (Term.UOp UserOp.Int) hA] at h
     simp at h
-
-private theorem bvsize_stuck_of_not_bitvec (T : Term) :
-    (∀ m, T ≠ Term.Apply (Term.UOp UserOp.BitVec) m) ->
-    __eo_typeof__at_bvsize T = Term.Stuck := by
-  intro hNotBv
-  cases T with
-  | Apply f m =>
-      cases f with
-      | UOp op =>
-          cases op <;> first | rfl | (exact absurd rfl (hNotBv m))
-      | _ => rfl
-  | _ => rfl
 
 private theorem typeof_eq_bool_inv (A B : Term)
     (h : __eo_typeof_eq A B = Term.Bool) :

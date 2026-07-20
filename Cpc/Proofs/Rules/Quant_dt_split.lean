@@ -31,16 +31,6 @@ private theorem eo_requires_eq_of_ne_stuck (x y z : Term) :
   · simpa [native_teq] using hxy
   · simp [__eo_requires, hxy, SmtEval.native_ite] at h
 
-private theorem eo_requires_eq_result_of_ne_stuck (x y z : Term) :
-    __eo_requires x y z ≠ Term.Stuck ->
-    __eo_requires x y z = z := by
-  intro h
-  by_cases hxy : native_teq x y = true
-  · by_cases hxOk : native_not (native_teq x Term.Stuck) = true
-    · simp [__eo_requires, hxy, hxOk, SmtEval.native_ite]
-    · simp [__eo_requires, hxy, hxOk, SmtEval.native_ite] at h
-  · simp [__eo_requires, hxy, SmtEval.native_ite] at h
-
 private theorem quant_dt_split_shape_of_non_stuck (a : Term) :
     __eo_prog_quant_dt_split a ≠ Term.Stuck ->
     ∃ x ys F G,

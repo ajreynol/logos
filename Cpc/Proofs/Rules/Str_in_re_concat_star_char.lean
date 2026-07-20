@@ -234,20 +234,9 @@ private theorem native_re_nullable_mk_concat (r s : native_RegLan) :
   cases r <;> cases s <;>
     simp [native_re_mk_concat, native_re_nullable]
 
-private theorem nativeListInRe_mk_concat_empty_left
-    (xs : List native_Char) (r : native_RegLan) :
-    nativeListInRe xs (native_re_mk_concat SmtRegLan.empty r) = false := by
-  simp [native_re_mk_concat, nativeListInRe_empty]
-
 private theorem nativeListInRe_mk_concat_empty_right
     (xs : List native_Char) (r : native_RegLan) :
     nativeListInRe xs (native_re_mk_concat r SmtRegLan.empty) = false := by
-  cases r <;> simp [native_re_mk_concat, nativeListInRe_empty]
-
-private theorem nativeListInRe_mk_concat_epsilon_left
-    (xs : List native_Char) (r : native_RegLan) :
-    nativeListInRe xs (native_re_mk_concat SmtRegLan.epsilon r) =
-      nativeListInRe xs r := by
   cases r <;> simp [native_re_mk_concat, nativeListInRe_empty]
 
 private theorem nativeListInRe_mk_concat_epsilon_right
@@ -549,20 +538,6 @@ private theorem nativeListInRe_re_mult_empty :
   | c :: cs => by
       simpa [native_re_mult, native_re_mk_star, nativeListInRe, native_re_deriv,
         nativeListInRe_empty] using nativeListInRe_empty cs
-
-private theorem nativeListInRe_re_mult_epsilon :
-    (xs : List native_Char) ->
-      nativeListInRe xs (native_re_mult SmtRegLan.epsilon) = decide (xs = [])
-  | [] => by
-      simp [native_re_mult, native_re_mk_star, nativeListInRe, native_re_nullable]
-  | c :: cs => by
-      simpa [native_re_mult, native_re_mk_star, nativeListInRe, native_re_deriv,
-        nativeListInRe_empty] using nativeListInRe_empty cs
-
-private theorem nativeListInRe_re_mult_empty_string (r : native_RegLan) :
-    nativeListInRe [] (native_re_mult r) = true := by
-  cases r <;> simp [native_re_mult, native_re_mk_star, nativeListInRe,
-    native_re_nullable]
 
 private theorem nativeListInRe_re_mult_raw_eq_all_singletons
     (r : native_RegLan)

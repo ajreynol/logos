@@ -246,12 +246,6 @@ private theorem native_seq_indexof_nil_zero (xs : List SmtValue) :
   unfold native_seq_indexof
   simp [native_seq_indexof_rec_nil]
 
-private theorem native_seq_contains_nil (xs : List SmtValue) :
-    native_seq_contains xs [] = true := by
-  unfold native_seq_contains
-  rw [native_seq_indexof_nil_zero]
-  simp
-
 private theorem native_seq_replace_eq_self_of_indexof_neg
     (xs pat repl : List SmtValue)
     (hIdxNeg : native_seq_indexof xs pat 0 < 0) :

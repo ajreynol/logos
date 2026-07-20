@@ -22,16 +22,6 @@ private abbrev lenZeroBaseRhs (x A : Term) : Term :=
 private abbrev lenZeroBaseConclusion (x A : Term) : Term :=
   Term.Apply (Term.Apply Term.eq (lenZeroBaseLhs x)) (lenZeroBaseRhs x A)
 
-private theorem eo_typeof_str_len_arg_seq_of_ne_stuck
-    (T : Term)
-    (h : __eo_typeof_str_len T ≠ Term.Stuck) :
-    ∃ U, T = Term.Apply Term.Seq U := by
-  cases T <;> simp [__eo_typeof_str_len] at h ⊢
-  case Apply f x =>
-    cases f <;> simp at h ⊢
-    case UOp op =>
-      cases op <;> simp at h ⊢
-
 private theorem eo_typeof_seq_empty_seq_of_ne_stuck
     (T : Term)
     (h : __eo_typeof (__seq_empty (Term.Apply Term.Seq T)) ≠ Term.Stuck) :

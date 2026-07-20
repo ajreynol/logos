@@ -342,10 +342,6 @@ private theorem native_unpack_string_length_eq (ss : SmtSeq) :
     (native_unpack_string ss).length = (native_unpack_seq ss).length := by
   simp [native_unpack_string]
 
-private theorem native_unpack_string_strlen_eq (ss : SmtSeq) :
-    (native_unpack_string ss).length = (native_unpack_seq ss).length := by
-  simpa using native_unpack_string_length_eq ss
-
 private theorem str_in_re_sigma_star_rec_empty_ne_zero
     (s : Term) (n : Nat) (hSNe : s ≠ Term.Stuck) :
     __str_mk_str_in_re_sigma_star_rec s

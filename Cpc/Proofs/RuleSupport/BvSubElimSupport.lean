@@ -134,20 +134,6 @@ private theorem native_nat_to_int_of_int_to_nat_of_nonneg (n : native_Int) :
   simpa [SmtEval.native_nat_to_int, SmtEval.native_int_to_nat,
     native_nat_to_int, native_int_to_nat] using hInt
 
-private theorem native_mod_total_zero_pow2_of_nonneg (n : native_Int) :
-    native_zleq 0 n = true ->
-    native_mod_total 0 (native_int_pow2 n) = 0 := by
-  intro hNonneg
-  have hn : 0 <= n := by
-    simpa [SmtEval.native_zleq] using hNonneg
-  have hPowPos : 0 < native_int_pow2 n := by
-    have hnot : ¬ n < 0 := Int.not_lt_of_ge hn
-    rw [native_int_pow2, native_zexp_total]
-    simp [hnot]
-    exact Int.pow_pos (by decide : (0 : Int) < 2)
-  simpa [SmtEval.native_mod_total] using
-    Int.emod_eq_of_lt (by decide : (0 : Int) <= 0) hPowPos
-
 private theorem smt_typeof_binary_nat_to_int_zero_local (w : native_Nat) :
     __smtx_typeof (SmtTerm.Binary (native_nat_to_int w) 0) =
       SmtType.BitVec w := by
