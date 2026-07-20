@@ -6585,7 +6585,7 @@ private theorem smt_bvsgt_formula_eq_signed_gt
     subst n2
     native_decide
 
-private theorem smtx_model_eval_bvsgt_binary_eq_uts
+theorem smtx_model_eval_bvsgt_binary_eq_uts
     {w n1 n2 : native_Int}
     (hw0 : native_zleq 0 w = true)
     (hCanon1 :
@@ -39029,4 +39029,3 @@ by
       hEqBool hEvalRel
   · rw [hProgEq]
     exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hEqBool
-
