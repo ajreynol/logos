@@ -6,10 +6,10 @@ public import Cpc.Proofs.RuleSupport.DatatypeSupport
 import all Cpc.Proofs.RuleSupport.DatatypeSupport
 public import Cpc.Proofs.Translation.Apply
 import all Cpc.Proofs.Translation.Apply
-public import Cpc.Proofs.Rules.Dt_collapse_selector
-import all Cpc.Proofs.Rules.Dt_collapse_selector
-public import Cpc.Proofs.Rules.Dt_collapse_tester
-import all Cpc.Proofs.Rules.Dt_collapse_tester
+public import Cpc.Proofs.RuleSupport.DtCollapseSelectorSupport
+import all Cpc.Proofs.RuleSupport.DtCollapseSelectorSupport
+public import Cpc.Proofs.RuleSupport.DtCollapseTesterSupport
+import all Cpc.Proofs.RuleSupport.DtCollapseTesterSupport
 
 open Eo
 open SmtEval

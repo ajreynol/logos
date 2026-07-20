@@ -4,8 +4,8 @@ public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
 import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
 public import Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
 import all Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
-public import Cpc.Proofs.Rules.String_eager_reduction
-import all Cpc.Proofs.Rules.String_eager_reduction
+public import Cpc.Proofs.RuleSupport.StringEagerReductionSupport
+import all Cpc.Proofs.RuleSupport.StringEagerReductionSupport
 
 open Eo
 open SmtEval

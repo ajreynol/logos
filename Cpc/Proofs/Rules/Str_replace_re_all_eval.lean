@@ -1,7 +1,7 @@
 module
 
-public import Cpc.Proofs.Rules.Str_replace_re_eval
-import all Cpc.Proofs.Rules.Str_replace_re_eval
+public import Cpc.Proofs.RuleSupport.StrReplaceReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceReEvalSupport
 public import Cpc.Proofs.RuleSupport.StrConcatSupport
 import all Cpc.Proofs.RuleSupport.StrConcatSupport
 import all Cpc.SmtModel

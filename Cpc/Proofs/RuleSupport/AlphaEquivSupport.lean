@@ -1,6 +1,6 @@
 module
 
-public import Cpc.Proofs.Rules.Skolemize
+public import Cpc.Proofs.RuleSupport.SkolemizeSupport
 public import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
 import all Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
 

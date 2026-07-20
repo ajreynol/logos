@@ -1,7 +1,7 @@
 module
 
-public import Cpc.Proofs.Rules.Bv_nego_eliminate
-import all Cpc.Proofs.Rules.Bv_nego_eliminate
+public import Cpc.Proofs.RuleSupport.BvNegoEliminateSupport
+import all Cpc.Proofs.RuleSupport.BvNegoEliminateSupport
 public import Cpc.Proofs.RuleSupport.TypeInversionSupport
 import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 
