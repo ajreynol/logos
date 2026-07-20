@@ -133,6 +133,26 @@ def dt_cons_type_num_args : SmtType -> Nat
   | SmtType.DtcAppType _ U => Nat.succ (dt_cons_type_num_args U)
   | _ => 0
 
+/-- A completed datatype constructor type has no remaining arguments. -/
+theorem dt_cons_type_num_args_datatype
+    (s : native_String) (d : SmtDatatype) :
+    dt_cons_type_num_args (SmtType.Datatype s d) = 0 := by
+  rfl
+
+/-- A function constructor type has one more argument than its result. -/
+theorem dt_cons_type_num_args_fun_type
+    (T U : SmtType) :
+    dt_cons_type_num_args (SmtType.FunType T U) =
+      Nat.succ (dt_cons_type_num_args U) := by
+  rfl
+
+/-- A datatype-constructor application type has one more argument than its result. -/
+theorem dt_cons_type_num_args_dtc_app_type
+    (T U : SmtType) :
+    dt_cons_type_num_args (SmtType.DtcAppType T U) =
+      Nat.succ (dt_cons_type_num_args U) := by
+  rfl
+
 /-- Definition used in the proof development for `dt_cons_applied_type_rec`. -/
 def dt_cons_applied_type_rec
     (s : native_String)
@@ -144,6 +164,30 @@ def dt_cons_applied_type_rec
   | SmtDatatype.sum c d, Nat.succ i, n =>
       dt_cons_applied_type_rec s d0 d i n
   | _, _, _ => SmtType.None
+
+/-- Applying no constructor arguments leaves the original constructor-value type. -/
+theorem dt_cons_applied_type_rec_zero
+    (s : native_String) (d0 d : SmtDatatype) (i : Nat) :
+    dt_cons_applied_type_rec s d0 d i 0 =
+      __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0) d i := by
+  cases d <;> cases i <;>
+    simp [dt_cons_applied_type_rec, __smtx_typeof_dt_cons_value_rec]
+
+/-- Applying one argument consumes the leading field of a constructor. -/
+theorem dt_cons_applied_type_rec_cons_succ
+    (s : native_String) (d0 : SmtDatatype) (T : SmtType)
+    (c : SmtDatatypeCons) (d : SmtDatatype) (n : Nat) :
+    dt_cons_applied_type_rec s d0
+        (SmtDatatype.sum (SmtDatatypeCons.cons T c) d) 0 (Nat.succ n) =
+      dt_cons_applied_type_rec s d0 (SmtDatatype.sum c d) 0 n := by
+  simp [dt_cons_applied_type_rec]
+
+/-- Constructor lookup in an empty datatype always fails. -/
+theorem dt_cons_applied_type_rec_null
+    (s : native_String) (d0 : SmtDatatype) (i n : Nat) :
+    dt_cons_applied_type_rec s d0 SmtDatatype.null i n = SmtType.None := by
+  cases i <;> cases n <;>
+    simp [dt_cons_applied_type_rec, __smtx_typeof_dt_cons_value_rec]
 
 /-- Rewrites constructor-type lookup past an outer constructor when the index is positive. -/
 theorem dt_cons_applied_type_rec_succ
@@ -331,6 +375,18 @@ theorem dt_cons_applied_type_rec_eq_bare_type_implies_zero
 def vsm_num_apply_args : SmtValue -> Nat
   | SmtValue.Apply f _ => Nat.succ (vsm_num_apply_args f)
   | _ => 0
+
+/-- A bare datatype constructor value has no applied arguments. -/
+theorem vsm_num_apply_args_dt_cons
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    vsm_num_apply_args (SmtValue.DtCons s d i) = 0 := by
+  rfl
+
+/-- An application value has one more applied argument than its head. -/
+theorem vsm_num_apply_args_apply (f x : SmtValue) :
+    vsm_num_apply_args (SmtValue.Apply f x) =
+      Nat.succ (vsm_num_apply_args f) := by
+  rfl
 
 /-- Lemma about `dtc_num_sels_substitute`. -/
 theorem dtc_num_sels_substitute

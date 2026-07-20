@@ -701,7 +701,7 @@ private theorem smtx_typeof_apply_none_head (x : SmtTerm) :
 private theorem smtx_typeof_apply_not_head_none (f x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.not f) x) = SmtType.None := by
   cases hTy : __smtx_typeof f <;>
-    simp [__smtx_typeof, __smtx_typeof_apply, typeof_not_eq,
+    simp [__smtx_typeof, __smtx_typeof_apply,
       hTy, native_ite, native_Teq]
 
 private theorem smtx_typeof_apply_exists_head_none
@@ -711,7 +711,7 @@ private theorem smtx_typeof_apply_exists_head_none
   cases hTy : __smtx_typeof f <;>
     cases hWf : __smtx_type_wf T <;>
     simp [__smtx_typeof, __smtx_typeof_apply,
-      typeof_exists_eq_local, hTy, native_ite, native_Teq,
+      hTy, native_ite, native_Teq,
       __smtx_typeof_guard_wf, hWf]
 
 theorem smtx_typeof_apply_forall_top_none (xs body x : Term) :

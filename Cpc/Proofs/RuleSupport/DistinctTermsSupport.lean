@@ -1455,7 +1455,7 @@ private theorem seq_unit_arg_translation_of_translation (e : Term) :
   change __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt e)) = SmtType.None
   simp [__smtx_typeof, __smtx_typeof_guard_wf, __smtx_type_wf,
     __smtx_type_wf_component, __smtx_type_wf_rec, native_inhabited_type,
-    __smtx_type_default, __smtx_value_canonical_bool, native_and, native_ite,
+    __smtx_type_default, native_and, native_ite,
     hArgNone]
 
 private theorem set_singleton_arg_translation_of_translation (e : Term) :
@@ -1467,7 +1467,7 @@ private theorem set_singleton_arg_translation_of_translation (e : Term) :
   change __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt e)) = SmtType.None
   simp [__smtx_typeof, __smtx_typeof_guard_wf, __smtx_type_wf,
     __smtx_type_wf_component, __smtx_type_wf_rec, native_inhabited_type,
-    __smtx_type_default, __smtx_value_canonical_bool, native_and, native_ite,
+    __smtx_type_default, native_and, native_ite,
     hArgNone]
 
 private theorem set_union_arg_translations_of_translation (x y : Term) :

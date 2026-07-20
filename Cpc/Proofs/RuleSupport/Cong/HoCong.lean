@@ -108,8 +108,7 @@ private theorem hoAppSpine_typeof_apply_eq
                 __smtx_typeof
                     (SmtTerm.Apply SmtTerm.None (__eo_to_smt p₂)) =
                   SmtType.None
-              simp [__smtx_typeof, __smtx_typeof_apply,
-                TranslationProofs.smtx_typeof_none]) hBase hPrev)
+              simp [__smtx_typeof, __smtx_typeof_apply]) hBase hPrev)
 
 theorem eo_apply_apply_head_has_translation_of_generic_apply_translation
     (f z x : Term)
@@ -348,7 +347,7 @@ private theorem mk_ho_cong_bad_head_stuck
     rfl
   by_cases hr : r = Term.Stuck
   · subst r
-    simp [__mk_ho_cong, hl]
+    simp [__mk_ho_cong]
   cases a with
   | Apply pf y =>
       cases pf with
@@ -358,10 +357,10 @@ private theorem mk_ho_cong_bad_head_stuck
               cases op <;>
                 first
                 | exact (hBad x y rfl).elim
-                | simp [__mk_ho_cong, hl, hr]
-          | _ => simp [__mk_ho_cong, hl, hr]
-      | _ => simp [__mk_ho_cong, hl, hr]
-  | _ => simp [__mk_ho_cong, hl, hr]
+                | simp [__mk_ho_cong]
+          | _ => simp [__mk_ho_cong]
+      | _ => simp [__mk_ho_cong]
+  | _ => simp [__mk_ho_cong]
 
 private theorem mk_ho_cong_type_spine_of_list
     (f g : Term) :

@@ -2988,7 +2988,7 @@ theorem scratch_flatSeqValueCount_list_concat (M : SmtModel) (v : SmtValue) :
               | SmtValue.Seq s => valueCount v (native_unpack_seq s)
               | _ => 0) = 0
             cases hTy : __eo_to_smt_type A <;>
-              simp [__eo_to_smt_seq_empty, hTy, __smtx_model_eval,
+              simp [__eo_to_smt_seq_empty, __smtx_model_eval,
                 native_unpack_seq, valueCount]
           by_cases hEmpty :
               __str_is_empty (Term.UOp1 UserOp1.seq_empty A) =
