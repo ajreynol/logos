@@ -16,6 +16,8 @@ public import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
 import all Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
 public import Cpc.Proofs.RuleSupport.RegexIndexofSupport
 import all Cpc.Proofs.RuleSupport.RegexIndexofSupport
+public import Cpc.Proofs.RuleSupport.StrInReFromIntDigRangeSupport
+import all Cpc.Proofs.RuleSupport.StrInReFromIntDigRangeSupport
 public import Cpc.Proofs.Closed.IsClosedRec
 import all Cpc.Proofs.Closed.IsClosedRec
 
@@ -861,6 +863,465 @@ private theorem sr_native_str_substr_zero_nat
   simp [native_str_substr, native_str_len, hj0, hs0]
   omega
 
+private theorem sr_digitChar_toNat_sub (n : Nat) (h : n < 10) :
+    Char.toNat (Nat.digitChar n) - 48 = n := by
+  match n with
+  | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 => native_decide
+  | n + 10 => omega
+
+private theorem sr_decimal_append (xs : native_String) (c : native_Char) :
+    native_decimal_digits_to_nat (xs ++ [c]) =
+      10 * native_decimal_digits_to_nat xs + (c - 48) := by
+  simp [native_decimal_digits_to_nat, List.foldl_append]
+
+private theorem sr_all_digits_take (xs : native_String) (j : Nat)
+    (h : xs.all native_char_is_digit = true) :
+    (xs.take j).all native_char_is_digit = true := by
+  rw [List.all_eq_true] at h ⊢
+  intro c hc
+  exact h c (List.mem_of_mem_take hc)
+
+private theorem sr_all_digits_drop (xs : native_String) (j : Nat)
+    (h : xs.all native_char_is_digit = true) :
+    (xs.drop j).all native_char_is_digit = true := by
+  rw [List.all_eq_true] at h ⊢
+  intro c hc
+  exact h c (List.mem_of_mem_drop hc)
+
+private theorem sr_fold_digits_ge (acc : Nat) : ∀ xs : native_String,
+    xs.all native_char_is_digit = true →
+    acc ≤ xs.foldl (fun a c => 10 * a + (c - 48)) acc
+  | [], _ => by simp
+  | c :: cs, h => by
+      have hp : native_char_is_digit c = true ∧
+          cs.all native_char_is_digit = true := by
+        simpa [Bool.and_eq_true] using h
+      have hbounds : 48 ≤ c ∧ c ≤ 57 := by
+        unfold native_char_is_digit at hp
+        simpa [Bool.and_eq_true] using hp.1
+      simp only [List.foldl]
+      exact Nat.le_trans (by omega)
+        (sr_fold_digits_ge (10 * acc + (c - 48)) cs hp.2)
+
+private theorem sr_decimal_take_le (xs : native_String) (j : Nat)
+    (h : xs.all native_char_is_digit = true) :
+    native_decimal_digits_to_nat (xs.take j) ≤
+      native_decimal_digits_to_nat xs := by
+  let acc := native_decimal_digits_to_nat (xs.take j)
+  calc
+    native_decimal_digits_to_nat (xs.take j) = acc := rfl
+    _ ≤ (xs.drop j).foldl (fun a c => 10 * a + (c - 48)) acc :=
+      sr_fold_digits_ge acc (xs.drop j) (sr_all_digits_drop xs j h)
+    _ = native_decimal_digits_to_nat (xs.take j ++ xs.drop j) := by
+      rw [show acc = (xs.take j).foldl
+        (fun a c => 10 * a + (c - 48)) 0 by rfl]
+      rw [← List.foldl_append]
+      rfl
+    _ = native_decimal_digits_to_nat xs := by rw [List.take_append_drop]
+
+private theorem sr_decimal_take_succ (xs : native_String) (j : Nat)
+    (hj : j < xs.length) :
+    native_decimal_digits_to_nat (xs.take (j + 1)) =
+      10 * native_decimal_digits_to_nat (xs.take j) + (xs[j] - 48) := by
+  rw [List.take_succ_eq_append_getElem hj, sr_decimal_append]
+
+private theorem sr_decimal_toDigits (n : Nat) :
+    native_decimal_digits_to_nat ((Nat.toDigits 10 n).map Char.toNat) = n := by
+  induction n using Nat.strongRecOn with
+  | ind n ih =>
+      rw [Nat.toDigits_eq_if (by omega)]
+      split
+      · rename_i hn
+        simp only [List.map_cons, List.map_nil, native_decimal_digits_to_nat,
+          List.foldl]
+        simpa using sr_digitChar_toNat_sub n hn
+      · rename_i hn
+        simp only [List.map_append, List.map_cons, List.map_nil]
+        rw [sr_decimal_append,
+          ih (n / 10) (Nat.div_lt_self (by omega) (by omega))]
+        rw [sr_digitChar_toNat_sub (n % 10) (Nat.mod_lt n (by omega))]
+        exact Nat.div_add_mod n 10
+
+private theorem sr_digitChar_toNat_bounds (n : Nat)
+    (hpos : 0 < n) (hlt : n < 10) :
+    49 ≤ Char.toNat (Nat.digitChar n) ∧
+      Char.toNat (Nat.digitChar n) ≤ 57 := by
+  match n with
+  | 0 => omega
+  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 => native_decide
+  | n + 10 => omega
+
+private theorem sr_toDigits_head_nonzero (n : Nat) (hn : 0 < n) :
+    ∃ c cs,
+      (Nat.toDigits 10 n).map Char.toNat = c :: cs ∧
+        49 ≤ c ∧ c ≤ 57 := by
+  induction n using Nat.strongRecOn with
+  | ind n ih =>
+      rw [Nat.toDigits_eq_if (by omega)]
+      split
+      · rename_i hlt
+        refine ⟨Char.toNat (Nat.digitChar n), [], rfl, ?_⟩
+        exact sr_digitChar_toNat_bounds n hn hlt
+      · rename_i hlt
+        have hqPos : 0 < n / 10 := Nat.div_pos (by omega) (by omega)
+        have hqLt : n / 10 < n := Nat.div_lt_self hn (by omega)
+        rcases ih (n / 10) hqLt hqPos with ⟨c, cs, hrepr, hc⟩
+        simp only [List.map_append, List.map_cons, List.map_nil]
+        rw [hrepr]
+        exact ⟨c, cs ++ [Char.toNat (Nat.digitChar (n % 10))], rfl, hc⟩
+
+private theorem sr_decimal_string_toNat (n : Nat) :
+    native_decimal_digits_to_nat (native_string_lit (toString n)) = n := by
+  unfold native_string_lit
+  rw [Nat.toString_eq_ofList_toDigits, String.toList_ofList]
+  exact sr_decimal_toDigits n
+
+private theorem sr_native_string_lit_nat_toString_ne_nil (n : Nat) :
+    native_string_lit (toString n) ≠ [] := by
+  intro h
+  have hlen : 0 < (Nat.toDigits 10 n).length := Nat.length_toDigits_pos
+  unfold native_string_lit at h
+  rw [Nat.toString_eq_ofList_toDigits, String.toList_ofList] at h
+  have hlen0 : ((Nat.toDigits 10 n).map Char.toNat).length = 0 := by
+    simp [h]
+  simp only [List.length_map] at hlen0
+  omega
+
+private theorem sr_native_str_to_int_of_ne_nil_all (s : native_String)
+    (hs : s ≠ []) (hAll : s.all native_char_is_digit = true) :
+    native_str_to_int s = Int.ofNat (native_decimal_digits_to_nat s) := by
+  cases s with
+  | nil => contradiction
+  | cons c cs => simp [native_str_to_int, hAll]
+
+private theorem sr_native_str_to_int_from_int (i : native_Int)
+    (hi : 0 ≤ i) :
+    native_str_to_int (native_str_from_int i) = i := by
+  cases i with
+  | negSucc n => simp at hi
+  | ofNat n =>
+      have hNonneg : ¬ (Int.ofNat n < 0) := Int.not_lt_of_ge hi
+      have hAll : (native_string_lit (toString n)).all
+          native_char_is_digit = true := by
+        simpa [native_str_from_int, hNonneg] using
+          (StrInReFromIntDigRangeProof.native_str_from_int_all_digits
+            (Int.ofNat n))
+      rw [native_str_from_int, if_neg hNonneg]
+      change native_str_to_int (native_string_lit (toString n)) = Int.ofNat n
+      rw [sr_native_str_to_int_of_ne_nil_all _
+        (sr_native_string_lit_nat_toString_ne_nil n) hAll]
+      exact congrArg Int.ofNat (sr_decimal_string_toNat n)
+
+private theorem sr_native_str_from_int_ne_nil (i : native_Int)
+    (hi : 0 ≤ i) :
+    native_str_from_int i ≠ [] := by
+  cases i with
+  | negSucc n => simp at hi
+  | ofNat n =>
+      have hNonneg : ¬ (Int.ofNat n < 0) := Int.not_lt_of_ge hi
+      simpa [native_str_from_int, hNonneg] using
+        sr_native_string_lit_nat_toString_ne_nil n
+
+private theorem sr_native_str_from_int_head_pos (i : native_Int)
+    (hi : 0 ≤ i) (hLen : 1 < (native_str_from_int i).length) :
+    (1 : native_Int) ≤ Int.ofNat (native_str_from_int i)[0] - 48 := by
+  cases i with
+  | negSucc n => simp at hi
+  | ofNat n =>
+      have hNonneg : ¬ (Int.ofNat n < 0) := Int.not_lt_of_ge hi
+      have hnPos : 0 < n := by
+        by_cases hn : n = 0
+        · subst n
+          have hOne : (native_str_from_int (Int.ofNat 0)).length = 1 := by
+            native_decide
+          rw [hOne] at hLen
+          omega
+        · exact Nat.pos_of_ne_zero hn
+      rcases sr_toDigits_head_nonzero n hnPos with ⟨c, cs, hrepr, hc⟩
+      have hString : native_str_from_int (Int.ofNat n) = c :: cs := by
+        simp only [native_str_from_int, if_neg hNonneg]
+        change native_string_lit (toString n) = c :: cs
+        unfold native_string_lit
+        rw [Nat.toString_eq_ofList_toDigits, String.toList_ofList, hrepr]
+      have hcLower : (49 : Int) ≤ Int.ofNat c := Int.ofNat_le.mpr hc.1
+      have hBound : (1 : Int) ≤ Int.ofNat c - 48 := by omega
+      simpa only [hString, List.getElem_cons_zero] using hBound
+
+private def sr_native_stoi_result
+    (s : native_String) (k : native_Int) : native_Int :=
+  if k = 0 then 0 else native_str_to_int (native_str_substr s 0 k)
+
+private theorem sr_take_ne_nil (s : native_String) (j : Nat)
+    (hjPos : 0 < j) (hj : j ≤ s.length) : s.take j ≠ [] := by
+  intro h
+  have hlen : (s.take j).length = j := by
+    simp [List.length_take, Nat.min_eq_left hj]
+  simp [h] at hlen
+  omega
+
+private theorem sr_native_stoi_result_ofNat (s : native_String) (j : Nat)
+    (hj : j ≤ s.length)
+    (hAll : s.all native_char_is_digit = true) :
+    sr_native_stoi_result s (Int.ofNat j) =
+      Int.ofNat (native_decimal_digits_to_nat (s.take j)) := by
+  by_cases hj0 : j = 0
+  · subst j
+    simp [sr_native_stoi_result, native_decimal_digits_to_nat]
+  have hjPos : 0 < j := Nat.pos_of_ne_zero hj0
+  have hInt : (Int.ofNat j : native_Int) ≠ 0 :=
+    Int.ofNat_ne_zero.mpr hj0
+  rw [sr_native_stoi_result, if_neg hInt]
+  rw [sr_native_str_substr_zero_nat s j hj]
+  exact sr_native_str_to_int_of_ne_nil_all _
+    (sr_take_ne_nil s j hjPos hj) (sr_all_digits_take s j hAll)
+
+private theorem sr_native_stoi_result_recurrence
+    (s : native_String) (j : Nat) (hj : j < s.length)
+    (hAll : s.all native_char_is_digit = true) :
+    sr_native_stoi_result s (Int.ofNat (j + 1)) =
+      Int.ofNat (s[j] - 48) +
+        10 * sr_native_stoi_result s (Int.ofNat j) := by
+  rw [sr_native_stoi_result_ofNat s (j + 1) (by omega) hAll]
+  rw [sr_native_stoi_result_ofNat s j (by omega) hAll]
+  rw [sr_decimal_take_succ s j hj]
+  let a := native_decimal_digits_to_nat (s.take j)
+  let b := s[j] - 48
+  change Int.ofNat (10 * a + b) = Int.ofNat b + 10 * Int.ofNat a
+  rw [show Int.ofNat (10 * a + b) =
+      Int.ofNat (10 * a) + Int.ofNat b from Int.natCast_add _ _]
+  rw [show Int.ofNat (10 * a) =
+      Int.ofNat 10 * Int.ofNat a from Int.natCast_mul _ _]
+  change 10 * Int.ofNat a + Int.ofNat b =
+    Int.ofNat b + 10 * Int.ofNat a
+  omega
+
+private theorem sr_native_stoi_result_le_total
+    (s : native_String) (j : Nat) (hj : j ≤ s.length)
+    (hAll : s.all native_char_is_digit = true) :
+    sr_native_stoi_result s (Int.ofNat j) ≤
+      Int.ofNat (native_decimal_digits_to_nat s) := by
+  rw [sr_native_stoi_result_ofNat s j hj hAll]
+  exact Int.ofNat_le.mpr (sr_decimal_take_le s j hAll)
+
+private theorem sr_digit_at (s : native_String) (j : Nat)
+    (hj : j < s.length) (hAll : s.all native_char_is_digit = true) :
+    native_char_is_digit s[j] = true := by
+  rw [List.all_eq_true] at hAll
+  exact hAll s[j] (List.getElem_mem hj)
+
+private theorem sr_str_to_int_nonneg_data (s : native_String)
+    (hNonneg : 0 ≤ native_str_to_int s) :
+    s ≠ [] ∧ s.all native_char_is_digit = true ∧
+      native_str_to_int s = Int.ofNat (native_decimal_digits_to_nat s) := by
+  have hs : s ≠ [] := by
+    intro hs
+    subst s
+    simp [native_str_to_int] at hNonneg
+  have hAll : s.all native_char_is_digit = true := by
+    cases s with
+    | nil => contradiction
+    | cons c cs =>
+        simp only [native_str_to_int] at hNonneg
+        by_cases hAll : (c :: cs).all native_char_is_digit = true
+        · exact hAll
+        · rw [if_neg hAll] at hNonneg
+          simp at hNonneg
+  refine ⟨hs, hAll, ?_⟩
+  exact sr_native_str_to_int_of_ne_nil_all s hs hAll
+
+private theorem sr_str_to_int_neg_data (s : native_String)
+    (hNeg : native_str_to_int s < 0) :
+    native_str_to_int s = -1 ∧
+      (s = [] ∨ s.all native_char_is_digit ≠ true) := by
+  by_cases hs : s = []
+  · subst s
+    simp [native_str_to_int]
+  · by_cases hAll : s.all native_char_is_digit = true
+    · have hEq := sr_native_str_to_int_of_ne_nil_all s hs hAll
+      rw [hEq] at hNeg
+      exact False.elim (Int.not_lt_of_ge (Int.ofNat_nonneg _) hNeg)
+    · simp [native_str_to_int, hs, hAll]
+
+private theorem sr_str_to_code_at (s : native_String) (j : Nat)
+    (hValid : native_string_valid s = true) (hj : j < s.length) :
+    native_str_to_code (native_str_substr s (Int.ofNat j) 1) =
+      Int.ofNat s[j] := by
+  have hc : native_char_valid s[j] = true := by
+    rw [native_string_valid, List.all_eq_true] at hValid
+    exact hValid s[j] (List.getElem_mem hj)
+  rw [sr_native_str_substr_one_nat s j hj]
+  simp [native_str_to_code, hc]
+
+private theorem sr_digit_code_value (s : native_String) (j : Nat)
+    (hValid : native_string_valid s = true) (hj : j < s.length)
+    (hAll : s.all native_char_is_digit = true) :
+    Int.ofNat (s[j] - 48) =
+      native_str_to_code (native_str_substr s (Int.ofNat j) 1) - 48 := by
+  have hd : native_char_is_digit s[j] = true := sr_digit_at s j hj hAll
+  have hb := StrInReFromIntDigRangeProof.native_digit_bounds s[j] hd
+  rw [sr_str_to_code_at s j hValid hj]
+  simpa using Int.ofNat_sub hb.1
+
+private theorem sr_digit_code_bounds (s : native_String) (j : Nat)
+    (hValid : native_string_valid s = true) (hj : j < s.length)
+    (hAll : s.all native_char_is_digit = true) :
+    0 ≤ native_str_to_code
+          (native_str_substr s (Int.ofNat j) 1) - 48 ∧
+      native_str_to_code
+          (native_str_substr s (Int.ofNat j) 1) - 48 < 10 := by
+  let c := s[j]
+  have hd : native_char_is_digit c = true := by
+    simpa [c] using sr_digit_at s j hj hAll
+  have hb := StrInReFromIntDigRangeProof.native_digit_bounds c hd
+  have hCode :
+      native_str_to_code (native_str_substr s (Int.ofNat j) 1) =
+        Int.ofNat c := by
+    simpa [c] using sr_str_to_code_at s j hValid hj
+  rw [hCode]
+  constructor
+  · have hb' : (48 : Int) ≤ Int.ofNat c := Int.ofNat_le.mpr hb.1
+    exact Int.sub_nonneg.mpr hb'
+  · have hb' : Int.ofNat c ≤ (57 : Int) := Int.ofNat_le.mpr hb.2
+    apply (Int.add_lt_add_iff_right (a := Int.ofNat c - 48)
+      (b := 10) 48).mp
+    rw [Int.sub_add_cancel]
+    simpa using Int.lt_add_one_iff.mpr hb'
+
+private theorem sr_nondigit_code_outside (s : native_String) (j : Nat)
+    (hValid : native_string_valid s = true) (hj : j < s.length)
+    (hNotDigit : native_char_is_digit s[j] ≠ true) :
+    native_str_to_code (native_str_substr s (Int.ofNat j) 1) - 48 < 0 ∨
+      10 ≤ native_str_to_code
+        (native_str_substr s (Int.ofNat j) 1) - 48 := by
+  let c := s[j]
+  have hNotDigit' : native_char_is_digit c ≠ true := by
+    simpa [c] using hNotDigit
+  have hOutside : ¬ (48 ≤ c ∧ c ≤ 57) := by
+    intro h
+    apply hNotDigit'
+    unfold native_char_is_digit
+    simpa [Bool.and_eq_true] using h
+  have hCode :
+      native_str_to_code (native_str_substr s (Int.ofNat j) 1) =
+        Int.ofNat c := by
+    simpa [c] using sr_str_to_code_at s j hValid hj
+  rw [hCode]
+  by_cases hLo : c < 48
+  · left
+    have hLo' : Int.ofNat c < 48 := Int.ofNat_lt.mpr hLo
+    apply (Int.add_lt_add_iff_right (a := Int.ofNat c - 48)
+      (b := 0) 48).mp
+    rw [Int.sub_add_cancel]
+    simpa using hLo'
+  · right
+    have hHi : 57 < c := by
+      apply Nat.lt_of_not_ge
+      intro hc
+      exact hOutside ⟨Nat.le_of_not_gt hLo, hc⟩
+    have hHi' : (57 : Int) < Int.ofNat c := Int.ofNat_lt.mpr hHi
+    apply (Int.add_le_add_iff_right (a := 10)
+      (b := Int.ofNat c - 48) 48).mp
+    rw [Int.sub_add_cancel]
+    simpa using Int.add_one_le_iff.mpr hHi'
+
+private def sr_nondigit_re : native_RegLan :=
+  native_re_inter native_re_allchar
+    (native_re_comp
+      (native_re_range (native_string_lit "0") (native_string_lit "9")))
+
+private theorem sr_prefix_empty (xs : native_String) (n : Nat) :
+    native_re_prefix_match_len?.go SmtRegLan.empty xs n = none := by
+  induction xs generalizing n with
+  | nil => rfl
+  | cons c cs ih =>
+      rw [native_re_prefix_match_len?.go.eq_2]
+      change (if false then some n else if native_char_valid c then
+        native_re_prefix_match_len?.go SmtRegLan.empty cs (n + 1) else none) =
+          none
+      simp [ih]
+
+private theorem sr_prefix_digit_dead (xs : native_String) (n : Nat) :
+    native_re_prefix_match_len?.go
+        (SmtRegLan.inter SmtRegLan.epsilon (SmtRegLan.comp SmtRegLan.epsilon))
+        xs n = none := by
+  cases xs with
+  | nil => simp [native_re_prefix_match_len?.go, native_re_nullable]
+  | cons c cs =>
+      rw [native_re_prefix_match_len?.go.eq_2]
+      simp [native_re_nullable, native_re_deriv, native_re_mk_inter,
+        native_re_mk_comp, sr_prefix_empty]
+
+private theorem sr_prefix_nondigit_live (xs : native_String) (n : Nat) :
+    native_re_prefix_match_len?.go
+        (SmtRegLan.inter SmtRegLan.epsilon (SmtRegLan.comp SmtRegLan.empty))
+        xs n = some n := by
+  cases xs <;> simp [native_re_prefix_match_len?.go, native_re_nullable]
+
+private theorem sr_nondigit_prefix (c : native_Char) (cs : native_String)
+    (hc : native_char_valid c = true) :
+    native_re_prefix_match_len? sr_nondigit_re (c :: cs) =
+      if native_char_is_digit c then none else some 1 := by
+  unfold sr_nondigit_re native_re_prefix_match_len? native_re_allchar
+    native_re_comp native_re_inter native_re_range native_string_lit
+  rw [native_re_prefix_match_len?.go.eq_2]
+  by_cases hd : 48 ≤ c ∧ c ≤ 57
+  · have h48 : native_char_valid 48 = true := by native_decide
+    have h57 : native_char_valid 57 = true := by native_decide
+    simp [native_re_nullable, native_re_deriv, native_re_mk_inter,
+      native_re_mk_comp, hc, h48, h57, hd, native_char_is_digit,
+      sr_prefix_digit_dead]
+  · have h48 : native_char_valid 48 = true := by native_decide
+    have h57 : native_char_valid 57 = true := by native_decide
+    simp [native_re_nullable, native_re_deriv, native_re_mk_inter,
+      native_re_mk_comp, hc, h48, h57, hd, native_char_is_digit,
+      sr_prefix_nondigit_live]
+
+private theorem sr_nondigit_find_aux :
+    ∀ (xs : native_String) (idx : Nat),
+      native_string_valid xs = true →
+      xs.all native_char_is_digit ≠ true →
+      ∃ j : Nat, ∃ c : native_Char, ∃ pre post : native_String,
+        xs = pre ++ (c :: post) ∧ pre.length = j ∧
+        native_char_is_digit c ≠ true ∧
+        native_re_find_idx_aux sr_nondigit_re xs idx = some (idx + j, 1)
+  | [], idx, _hv, h => by simp at h
+  | c :: cs, idx, hv, h => by
+      have hp : native_char_valid c = true ∧
+          native_string_valid cs = true := by
+        simpa [native_string_valid, Bool.and_eq_true] using hv
+      rw [native_re_find_idx_aux.eq_def, sr_nondigit_prefix c cs hp.1]
+      by_cases hc : native_char_is_digit c = true
+      · simp [hc]
+        have htail : cs.all native_char_is_digit ≠ true := by
+          intro ht
+          apply h
+          simpa [hc, ht]
+        rcases sr_nondigit_find_aux cs (idx + 1) hp.2 htail with
+          ⟨j, d, pre, post, hcs, hlen, hd, hfind⟩
+        refine ⟨j + 1, d, c :: pre, ?_⟩
+        refine ⟨⟨post, by simp [hcs]⟩, by simpa using hlen,
+          by simpa using hd, ?_⟩
+        simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hfind
+      · simp [hc]
+        exact ⟨0, c, [], ⟨⟨cs, by simp⟩, by simp,
+          by simpa using hc, by simp⟩⟩
+
+private theorem sr_nondigit_index_data (s : native_String)
+    (hValid : native_string_valid s = true)
+    (hNotAll : s.all native_char_is_digit ≠ true) :
+    ∃ j c pre post,
+      s = pre ++ c :: post ∧ pre.length = j ∧
+      native_char_is_digit c ≠ true ∧
+      native_str_indexof_re s sr_nondigit_re 0 = Int.ofNat j ∧
+      j < s.length := by
+  rcases sr_nondigit_find_aux s 0 hValid hNotAll with
+    ⟨j, c, pre, post, hs, hlen, hc, hfind⟩
+  refine ⟨j, c, pre, post, hs, hlen, hc, ?_, ?_⟩
+  · simp [native_str_indexof_re, hValid, native_re_find_idx_from, hfind]
+  · subst s
+    simp only [List.length_append, List.length_cons]
+    omega
+
 /-- An update at an invalid index leaves the source sequence unchanged. -/
 private theorem sr_native_seq_update_eq_self_of_invalid
     (xs ys : List SmtValue) (i : native_Int)
@@ -1429,12 +1890,969 @@ private theorem string_reduction_pred_true
         (change Term.Stuck = Term.Bool at hBodyTy
          exact False.elim (Term.noConfusion hBodyTy))
       case str_to_int =>
-        -- The current concrete translation of `stoi_result s 0` is
-        -- `str.to_int (str.substr s 0 0) = -1`, while this predicate requires
-        -- it to equal `0` on every successful conversion.
-        sorry
+        have hToNN : term_has_non_none_type
+            (SmtTerm.str_to_int (__eo_to_smt x)) := by
+          simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hxTy : __smtx_typeof (__eo_to_smt x) =
+            SmtType.Seq SmtType.Char :=
+          seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
+            (typeof_str_to_int_eq (__eo_to_smt x)) hToNN
+        have hXNN : term_has_non_none_type (__eo_to_smt x) := by
+          unfold term_has_non_none_type
+          rw [hxTy]
+          exact seq_ne_none SmtType.Char
+        let tx := __eo_to_smt x
+        let idxName := native_string_lit "@var.str_index"
+        let idx := SmtTerm.Var idxName SmtType.Int
+        let result := SmtTerm._at_purify (SmtTerm.str_to_int tx)
+        let sourceLen := SmtTerm.str_len tx
+        let prefixAt := fun k => SmtTerm.ite
+          (SmtTerm.eq k (SmtTerm.Numeral 0)) (SmtTerm.Numeral 0)
+          (SmtTerm.str_to_int
+            (SmtTerm.str_substr tx (SmtTerm.Numeral 0) k))
+        let nextIdx := SmtTerm.plus idx
+          (SmtTerm.plus (SmtTerm.Numeral 1) (SmtTerm.Numeral 0))
+        let digit := SmtTerm.neg
+          (SmtTerm.str_to_code
+            (SmtTerm.str_substr tx idx (SmtTerm.Numeral 1)))
+          (SmtTerm.Numeral 48)
+        let recurrence := SmtTerm.eq (prefixAt nextIdx)
+          (SmtTerm.plus digit
+            (SmtTerm.plus
+              (SmtTerm.mult (SmtTerm.Numeral 10)
+                (SmtTerm.mult (prefixAt idx) (SmtTerm.Numeral 1)))
+              (SmtTerm.Numeral 0)))
+        let digitBounds := SmtTerm.and
+          (SmtTerm.geq digit (SmtTerm.Numeral 0))
+          (SmtTerm.and (SmtTerm.lt digit (SmtTerm.Numeral 10))
+            (SmtTerm.Boolean true))
+        let validClause := SmtTerm.and recurrence
+          (SmtTerm.and digitBounds
+            (SmtTerm.and (SmtTerm.geq result (prefixAt nextIdx))
+              (SmtTerm.Boolean true)))
+        let qBody := SmtTerm.or
+          (SmtTerm.not (SmtTerm.geq idx (SmtTerm.Numeral 0)))
+          (SmtTerm.or (SmtTerm.not (SmtTerm.lt idx sourceLen))
+            (SmtTerm.or validClause (SmtTerm.Boolean false)))
+        let forallPart := SmtTerm.not
+          (SmtTerm.exists idxName SmtType.Int (SmtTerm.not qBody))
+        let success := SmtTerm.and
+          (SmtTerm.eq result (prefixAt sourceLen))
+          (SmtTerm.and
+            (SmtTerm.eq (SmtTerm.Numeral 0)
+              (prefixAt (SmtTerm.Numeral 0)))
+            (SmtTerm.and (SmtTerm.gt sourceLen (SmtTerm.Numeral 0))
+              (SmtTerm.and forallPart (SmtTerm.Boolean true))))
+        let nondigitRegex := SmtTerm.re_inter SmtTerm.re_allchar
+          (SmtTerm.re_comp
+            (SmtTerm.re_range
+              (SmtTerm.String (native_string_lit "0"))
+              (SmtTerm.String (native_string_lit "9"))))
+        let nonDigit := SmtTerm.str_indexof_re tx nondigitRegex
+          (SmtTerm.Numeral 0)
+        let badDigit := SmtTerm.neg
+          (SmtTerm.str_to_code
+            (SmtTerm.str_substr tx nonDigit (SmtTerm.Numeral 1)))
+          (SmtTerm.Numeral 48)
+        let badBounds := SmtTerm.or
+          (SmtTerm.lt badDigit (SmtTerm.Numeral 0))
+          (SmtTerm.or (SmtTerm.geq badDigit (SmtTerm.Numeral 10))
+            (SmtTerm.Boolean false))
+        let badWitness := SmtTerm.and
+          (SmtTerm.geq nonDigit (SmtTerm.Numeral 0))
+          (SmtTerm.and (SmtTerm.lt nonDigit sourceLen)
+            (SmtTerm.and badBounds (SmtTerm.Boolean true)))
+        let failure := SmtTerm.and
+          (SmtTerm.eq result (SmtTerm.Numeral (-1)))
+          (SmtTerm.and
+            (SmtTerm.or (SmtTerm.eq tx (SmtTerm.String []))
+              (SmtTerm.or badWitness (SmtTerm.Boolean false)))
+            (SmtTerm.Boolean true))
+        let formula := SmtTerm.ite
+          (SmtTerm.lt result (SmtTerm.Numeral 0)) failure success
+        have hResultTy : __smtx_typeof result = SmtType.Int := by
+          simp [result, tx, typeof_str_to_int_eq, hxTy,
+            __smtx_typeof, native_ite, native_Teq]
+        have hSourceLenTy : __smtx_typeof sourceLen = SmtType.Int := by
+          simp [sourceLen, tx, typeof_str_len_eq, hxTy,
+            __smtx_typeof_seq_op_1_ret]
+        have hPrefixTy : ∀ k, __smtx_typeof k = SmtType.Int →
+            __smtx_typeof (prefixAt k) = SmtType.Int := by
+          intro k hk
+          simp [prefixAt, tx, typeof_ite_eq, typeof_eq_eq,
+            typeof_str_to_int_eq, typeof_str_substr_eq, hxTy, hk,
+            sr_smt_type_wf_int, __smtx_typeof_ite,
+            __smtx_typeof_eq, __smtx_typeof_str_substr,
+            __smtx_typeof_seq_op_1_ret, __smtx_typeof_guard_wf,
+            __smtx_typeof_guard, __smtx_typeof, native_ite, native_Teq]
+        have hNextTy : __smtx_typeof nextIdx = SmtType.Int := by
+          simp [nextIdx, idx, typeof_plus_eq,
+            __smtx_typeof_arith_overload_op_2,
+            __smtx_typeof_arith_overload_op_2_ret,
+            __smtx_typeof_guard_wf, __smtx_typeof_guard,
+            sr_smt_type_wf_int, __smtx_typeof, native_ite, native_Teq]
+        have hDigitTy : __smtx_typeof digit = SmtType.Int := by
+          simp [digit, idx, tx, typeof_str_to_code_eq,
+            typeof_str_substr_eq, hxTy,
+            __smtx_typeof_arith_overload_op_2,
+            __smtx_typeof_arith_overload_op_2_ret,
+            __smtx_typeof_str_substr, __smtx_typeof_seq_op_1_ret,
+            __smtx_typeof_guard_wf, __smtx_typeof_guard,
+            sr_smt_type_wf_int, __smtx_typeof, native_ite, native_Teq]
+        have hIdxTy : __smtx_typeof idx = SmtType.Int := by
+          simp [idx, __smtx_typeof, __smtx_typeof_guard_wf,
+            sr_smt_type_wf_int, native_ite]
+        have hPrefixIdxTy : __smtx_typeof (prefixAt idx) = SmtType.Int :=
+          hPrefixTy idx hIdxTy
+        have hPrefixNextTy : __smtx_typeof (prefixAt nextIdx) = SmtType.Int :=
+          hPrefixTy nextIdx hNextTy
+        have hRecurrenceTy : __smtx_typeof recurrence = SmtType.Bool := by
+          simp [recurrence, typeof_eq_eq, typeof_plus_eq, typeof_mult_eq,
+            hPrefixIdxTy, hPrefixNextTy, hDigitTy,
+            __smtx_typeof_arith_overload_op_2,
+            __smtx_typeof_arith_overload_op_2_ret,
+            __smtx_typeof_guard_wf, __smtx_typeof_guard,
+            sr_smt_type_wf_int, __smtx_typeof_eq, __smtx_typeof,
+            native_ite, native_Teq]
+        have hDigitBoundsTy : __smtx_typeof digitBounds = SmtType.Bool := by
+          simp [digitBounds, typeof_and_eq, typeof_geq_eq, typeof_lt_eq,
+            hDigitTy, __smtx_typeof_arith_overload_op_2,
+            __smtx_typeof_arith_overload_op_2_ret,
+            __smtx_typeof, native_ite, native_Teq]
+        have hValidClauseTy : __smtx_typeof validClause = SmtType.Bool := by
+          simp [validClause, typeof_and_eq, typeof_geq_eq,
+            hRecurrenceTy, hDigitBoundsTy, hResultTy, hPrefixNextTy,
+            __smtx_typeof_arith_overload_op_2,
+            __smtx_typeof_arith_overload_op_2_ret,
+            __smtx_typeof, native_ite, native_Teq]
+        have hBadWitnessTy : __smtx_typeof badWitness = SmtType.Bool := by
+          have hZeroValid :
+              native_string_valid (native_string_lit "0") = true := by
+            native_decide
+          have hNineValid :
+              native_string_valid (native_string_lit "9") = true := by
+            native_decide
+          simp [badWitness, badBounds, badDigit, nonDigit,
+            nondigitRegex, sourceLen, tx, typeof_and_eq, typeof_or_eq,
+            typeof_geq_eq, typeof_lt_eq, typeof_str_len_eq,
+            typeof_str_to_code_eq, typeof_str_substr_eq,
+            typeof_str_indexof_re_eq, typeof_re_inter_eq,
+            typeof_re_comp_eq, typeof_re_range_eq, hxTy,
+            __smtx_typeof_arith_overload_op_2,
+            __smtx_typeof_arith_overload_op_2_ret,
+            __smtx_typeof_str_substr, __smtx_typeof_seq_op_1_ret,
+            __smtx_typeof_guard_wf, __smtx_typeof_guard,
+            sr_smt_type_wf_int, __smtx_typeof, native_ite, native_Teq,
+            hZeroValid, hNineValid]
+        have hFormulaEq :
+            __eo_to_smt
+                (__str_reduction_pred
+                  (Term.Apply (Term.UOp UserOp.str_to_int) x)) = formula := by
+          simp only [__str_reduction_pred, __eo_mk_apply]
+          rfl
+        change eo_interprets M
+          (__str_reduction_pred
+            (Term.Apply (Term.UOp UserOp.str_to_int) x)) true
+        apply RuleProofs.eo_interprets_of_bool_eval M _ true
+        · unfold RuleProofs.eo_has_bool_type
+          rw [hFormulaEq]
+          have hEmptyValid : native_string_valid [] = true := by
+            native_decide
+          have hZeroValid : native_string_valid (native_string_lit "0") = true := by
+            native_decide
+          have hNineValid : native_string_valid (native_string_lit "9") = true := by
+            native_decide
+          simp [formula, failure, badWitness, badBounds, badDigit,
+            nonDigit, nondigitRegex, success, forallPart, qBody,
+            validClause, digitBounds, recurrence, digit, nextIdx, idx,
+            sourceLen, result, prefixAt, tx, typeof_ite_eq,
+            typeof_and_eq, typeof_or_eq, typeof_not_eq, typeof_eq_eq,
+            typeof_geq_eq, typeof_gt_eq, typeof_lt_eq, typeof_plus_eq,
+            typeof_mult_eq, typeof_str_len_eq, typeof_str_to_code_eq,
+            typeof_str_substr_eq, typeof_str_to_int_eq,
+            typeof_str_indexof_re_eq, typeof_re_inter_eq,
+            typeof_re_comp_eq, typeof_re_range_eq,
+            smtx_typeof_exists_term_eq, hxTy, hResultTy, hSourceLenTy,
+            hPrefixTy, sr_smt_type_wf_int, __smtx_typeof_ite,
+            __smtx_typeof_arith_overload_op_2,
+            __smtx_typeof_arith_overload_op_2_ret,
+            __smtx_typeof_str_substr, __smtx_typeof_seq_op_1_ret,
+            __smtx_typeof_eq, __smtx_typeof_guard_wf,
+            __smtx_typeof_guard, __smtx_typeof, native_ite,
+            native_Teq, hEmptyValid, hZeroValid, hNineValid]
+        · rw [hFormulaEq]
+          have hXValTy :
+              __smtx_typeof_value (__smtx_model_eval M tx) =
+                SmtType.Seq SmtType.Char := by
+            simpa [tx, hxTy] using
+              smt_model_eval_preserves_type_of_non_none M hM
+                (__eo_to_smt x) hXNN
+          rcases seq_value_canonical hXValTy with ⟨sx, hXEval⟩
+          have hSxTy : __smtx_typeof_seq_value sx =
+              SmtType.Seq SmtType.Char := by
+            simpa [hXEval, __smtx_typeof_value] using hXValTy
+          let w := native_unpack_string sx
+          have hValid : native_string_valid w = true :=
+            native_unpack_string_valid_of_typeof_seq_char hSxTy
+          have hPack : native_pack_string w = sx :=
+            sr_native_pack_unpack_string sx hSxTy
+          have hXEvalString : __smtx_model_eval M tx =
+              SmtValue.Seq (native_pack_string w) := by
+            rw [hPack]
+            exact hXEval
+          have hXClosed : __eo_is_closed x = Term.Boolean true := by
+            apply sr_eo_is_closed_apply_uop_arg UserOp.str_to_int x
+            · apply RuleProofs.term_ne_stuck_of_has_smt_translation
+              simpa [RuleProofs.eo_has_smt_translation] using hXNN
+            · exact hClosed
+          let r := native_str_to_int w
+          have hResultEval : __smtx_model_eval M result =
+              SmtValue.Numeral r := by
+            simp [result, tx, r, __smtx_model_eval,
+              __smtx_model_eval_str_to_int,
+              __smtx_model_eval__at_purify, hXEvalString,
+              sr_native_unpack_pack_string]
+          have hSourceLenEval : __smtx_model_eval M sourceLen =
+              SmtValue.Numeral (Int.ofNat w.length) := by
+            simp [sourceLen, tx, __smtx_model_eval,
+              __smtx_model_eval_str_len, hXEvalString, native_seq_len,
+              sr_native_unpack_pack_string_length]
+          have hPrefixEval : ∀ (N : SmtModel) (kTerm : SmtTerm) (k : Int),
+              __smtx_model_eval N tx =
+                  SmtValue.Seq (native_pack_string w) →
+              __smtx_model_eval N kTerm = SmtValue.Numeral k →
+              __smtx_model_eval N (prefixAt kTerm) =
+                SmtValue.Numeral (sr_native_stoi_result w k) := by
+            intro N kTerm k hTxEval hkEval
+            by_cases hk : k = 0 <;>
+            simp [prefixAt, tx, sr_native_stoi_result, hk,
+              __smtx_model_eval, __smtx_model_eval_eq,
+              __smtx_model_eval_ite, __smtx_model_eval_str_substr,
+              __smtx_model_eval_str_to_int, native_ite, native_veq,
+              hTxEval, hkEval, sr_native_seq_extract_pack_string_eval,
+              sr_native_unpack_extract_pack_string,
+              sr_native_unpack_pack_string]
+          by_cases hr : 0 ≤ r
+          · rcases sr_str_to_int_nonneg_data w hr with
+              ⟨hNonempty, hAllDigits, hResultEq⟩
+            have hLenPos : 0 < w.length := by
+              apply Nat.pos_of_ne_zero
+              intro hLen
+              apply hNonempty
+              exact List.eq_nil_of_length_eq_zero hLen
+            have hPrefixLen :
+                sr_native_stoi_result w (Int.ofNat w.length) = r := by
+              rw [sr_native_stoi_result_ofNat w w.length (by simp)
+                hAllDigits]
+              simpa [r] using hResultEq.symm
+            have hForallEval : __smtx_model_eval M forallPart =
+                SmtValue.Boolean true := by
+              change __smtx_model_eval M
+                (SmtTerm.not
+                  (SmtTerm.exists idxName SmtType.Int
+                    (SmtTerm.not qBody))) = SmtValue.Boolean true
+              have hAll : ∀ v : SmtValue,
+                  __smtx_typeof_value v = SmtType.Int →
+                  __smtx_value_canonical_bool v = true →
+                  __smtx_model_eval
+                      (native_model_push M idxName SmtType.Int v) qBody =
+                    SmtValue.Boolean true := by
+                intro v hvTy hvCanonical
+                rcases int_value_canonical hvTy with ⟨k, rfl⟩
+                let Mk := native_model_push M idxName SmtType.Int
+                  (SmtValue.Numeral k)
+                have hIdxEval : native_model_var_lookup Mk idxName
+                    SmtType.Int = SmtValue.Numeral k := by
+                  simp [Mk, native_model_var_lookup, native_model_push]
+                have hTxEvalPush : __smtx_model_eval Mk tx =
+                    SmtValue.Seq (native_pack_string w) := by
+                  rw [← hXEvalString]
+                  simpa [tx] using
+                    (smt_model_eval_eq_of_eo_closed x hXClosed M Mk
+                      (model_agrees_on_globals_push M idxName SmtType.Int
+                        (SmtValue.Numeral k))).symm
+                have hResultEvalPush : __smtx_model_eval Mk result =
+                    SmtValue.Numeral r := by
+                  simp [result, tx, r, __smtx_model_eval,
+                    __smtx_model_eval_str_to_int,
+                    __smtx_model_eval__at_purify, hTxEvalPush,
+                    sr_native_unpack_pack_string]
+                have hSourceLenEvalPush : __smtx_model_eval Mk sourceLen =
+                    SmtValue.Numeral (Int.ofNat w.length) := by
+                  simp [sourceLen, tx, __smtx_model_eval,
+                    __smtx_model_eval_str_len, hTxEvalPush, native_seq_len,
+                    sr_native_unpack_pack_string_length]
+                have hMkTotal : model_total_typed Mk :=
+                  model_total_typed_push hM idxName SmtType.Int
+                    (SmtValue.Numeral k) sr_smt_type_wf_int hvTy hvCanonical
+                change __smtx_model_eval Mk qBody = SmtValue.Boolean true
+                by_cases hk0 : 0 ≤ k
+                · by_cases hklt : k < Int.ofNat w.length
+                  · let j := Int.toNat k
+                    have hCast : Int.ofNat j = k := by
+                      simpa only [j] using Int.toNat_of_nonneg hk0
+                    have hj : j < w.length := by
+                      rw [← hCast] at hklt
+                      exact Int.ofNat_lt.mp hklt
+                    have hIdxTermEval : __smtx_model_eval Mk idx =
+                        SmtValue.Numeral k := by
+                      simp [idx, __smtx_model_eval, hIdxEval]
+                    have hNextEval : __smtx_model_eval Mk nextIdx =
+                        SmtValue.Numeral (Int.ofNat (j + 1)) := by
+                      simp [nextIdx, idx, __smtx_model_eval,
+                        __smtx_model_eval_plus, hIdxEval, native_zplus]
+                      exact hCast.symm
+                    have hPrefixNext := hPrefixEval Mk nextIdx
+                      (Int.ofNat (j + 1)) hTxEvalPush hNextEval
+                    have hPrefixIdx := hPrefixEval Mk idx k hTxEvalPush
+                      hIdxTermEval
+                    have hRec := sr_native_stoi_result_recurrence
+                      w j hj hAllDigits
+                    rw [hCast] at hRec
+                    have hBounds := sr_digit_code_bounds
+                      w j hValid hj hAllDigits
+                    have hDigitValue := sr_digit_code_value
+                      w j hValid hj hAllDigits
+                    rw [hCast] at hBounds hDigitValue
+                    have hTotal :
+                        sr_native_stoi_result w (Int.ofNat (j + 1)) ≤ r := by
+                      have hLe := sr_native_stoi_result_le_total w (j + 1)
+                        (by omega) hAllDigits
+                      rw [← hResultEq] at hLe
+                      exact hLe
+                    have hDigitEval : __smtx_model_eval Mk digit =
+                        SmtValue.Numeral
+                          (native_str_to_code
+                            (native_str_substr w k 1) - 48) := by
+                      simp [digit, tx, __smtx_model_eval,
+                        __smtx_model_eval__, __smtx_model_eval_str_substr,
+                        __smtx_model_eval_str_to_code, hTxEvalPush,
+                        hIdxTermEval, sr_native_seq_extract_pack_string_eval,
+                        sr_native_unpack_extract_pack_string,
+                        sr_native_unpack_pack_string, native_zplus,
+                        native_zneg, Int.sub_eq_add_neg]
+                    have hRecEval : __smtx_model_eval Mk recurrence =
+                        SmtValue.Boolean true := by
+                      rw [hDigitValue] at hRec
+                      simp [recurrence, __smtx_model_eval,
+                        __smtx_model_eval_eq, __smtx_model_eval_plus,
+                        __smtx_model_eval_mult, hPrefixNext, hPrefixIdx,
+                        hDigitEval, native_zplus, native_zmult, native_veq]
+                      simpa using hRec
+                    have hBoundsEval : __smtx_model_eval Mk digitBounds =
+                        SmtValue.Boolean true := by
+                      have hLower : (48 : Int) ≤
+                          native_str_to_code
+                            (native_str_substr w k 1) := by
+                        exact Int.sub_nonneg.mp hBounds.1
+                      simp [digitBounds, __smtx_model_eval,
+                        __smtx_model_eval_geq, __smtx_model_eval_leq,
+                        __smtx_model_eval_lt, __smtx_model_eval_and,
+                        hDigitEval, native_zleq, native_zlt, native_and,
+                        hBounds, hLower]
+                    have hTotalEval : __smtx_model_eval Mk
+                        (SmtTerm.geq result (prefixAt nextIdx)) =
+                          SmtValue.Boolean true := by
+                      simp [__smtx_model_eval, __smtx_model_eval_geq,
+                        __smtx_model_eval_leq, hResultEvalPush,
+                        hPrefixNext, native_zleq, hTotal]
+                      exact hTotal
+                    have hValidEval : __smtx_model_eval Mk validClause =
+                        SmtValue.Boolean true := by
+                      change __smtx_model_eval_and
+                        (__smtx_model_eval Mk recurrence)
+                        (__smtx_model_eval_and
+                          (__smtx_model_eval Mk digitBounds)
+                          (__smtx_model_eval_and
+                            (__smtx_model_eval Mk
+                              (SmtTerm.geq result (prefixAt nextIdx)))
+                            (SmtValue.Boolean true))) =
+                        SmtValue.Boolean true
+                      rw [hRecEval, hBoundsEval, hTotalEval]
+                      rfl
+                    simp [qBody, __smtx_model_eval,
+                      __smtx_model_eval_or, __smtx_model_eval_not,
+                      __smtx_model_eval_geq, __smtx_model_eval_leq,
+                      __smtx_model_eval_lt, hIdxTermEval,
+                      hSourceLenEvalPush, hValidEval, native_zlt,
+                      native_zleq, native_or, native_not, hk0, hklt]
+                  · have hLenLe : Int.ofNat w.length ≤ k :=
+                      Int.le_of_not_gt hklt
+                    rcases smt_model_eval_bool_is_boolean Mk hMkTotal
+                      validClause hValidClauseTy with ⟨b, hValidBool⟩
+                    simp [qBody, idx, sourceLen, __smtx_model_eval,
+                      __smtx_model_eval_or, __smtx_model_eval_not,
+                      __smtx_model_eval_geq, __smtx_model_eval_lt,
+                      __smtx_model_eval_leq, hValidBool, hIdxEval,
+                      hSourceLenEvalPush, hTxEvalPush,
+                      __smtx_model_eval_str_len, native_seq_len,
+                      sr_native_unpack_pack_string_length,
+                      native_zlt, native_zleq,
+                      native_or, native_not, hk0, hklt, hLenLe]
+                    exact Or.inl hLenLe
+                · have hkNeg : k < 0 := Int.lt_of_not_ge hk0
+                  rcases smt_model_eval_bool_is_boolean Mk hMkTotal
+                    validClause hValidClauseTy with ⟨b, hValidBool⟩
+                  simp [qBody, idx, sourceLen, __smtx_model_eval,
+                    __smtx_model_eval_or, __smtx_model_eval_not,
+                    __smtx_model_eval_geq, __smtx_model_eval_lt,
+                    __smtx_model_eval_leq, hValidBool, hIdxEval,
+                    hSourceLenEvalPush, hTxEvalPush,
+                    __smtx_model_eval_str_len, native_seq_len,
+                    sr_native_unpack_pack_string_length,
+                    native_zlt, native_zleq,
+                    native_or, native_not, hk0, hkNeg]
+              exact sr_eval_forall_encoding_true M idxName SmtType.Int
+                qBody hAll
+            have hPrefixLenEval := hPrefixEval M sourceLen
+              (Int.ofNat w.length) hXEvalString hSourceLenEval
+            have hPrefixZeroEval := hPrefixEval M (SmtTerm.Numeral 0) 0
+              hXEvalString (by simp [__smtx_model_eval])
+            have hrNot : ¬ r < 0 := Int.not_lt_of_ge hr
+            have hPrefixEq :
+                r = if w = [] then 0
+                  else native_str_to_int
+                    (native_str_substr w 0 (Int.ofNat w.length)) := by
+              simpa [sr_native_stoi_result, hNonempty] using hPrefixLen.symm
+            have hPrefixEvalEq :
+                (if w = [] then 0
+                  else native_str_to_int
+                    (native_str_substr w 0 (Int.ofNat w.length))) = r :=
+              hPrefixEq.symm
+            simp [formula, success,
+              __smtx_model_eval, __smtx_model_eval_ite,
+              __smtx_model_eval_lt, __smtx_model_eval_eq,
+              __smtx_model_eval_gt, __smtx_model_eval_and,
+              hResultEval, hSourceLenEval, hPrefixLenEval,
+              hPrefixZeroEval, hForallEval, native_zlt, native_veq,
+              native_and, hr, hrNot, hLenPos, hPrefixLen, hPrefixEvalEq,
+              sr_native_stoi_result]
+            exact hPrefixEq
+          · have hrNeg : r < 0 := Int.lt_of_not_ge hr
+            rcases sr_str_to_int_neg_data w hrNeg with
+              ⟨hResultNegOne, hEmptyOrBad⟩
+            have hResultNeg : r < 0 := hrNeg
+            rcases hEmptyOrBad with hEmpty | hNotAll
+            · rcases smt_model_eval_bool_is_boolean M hM
+                  badWitness hBadWitnessTy with ⟨b, hBadBool⟩
+              simp [formula, failure,
+                __smtx_model_eval, __smtx_model_eval_ite,
+                __smtx_model_eval_lt, __smtx_model_eval_eq,
+                __smtx_model_eval_and, __smtx_model_eval_or,
+                hResultEval, hXEvalString, hBadBool,
+                sr_native_pack_string_eq_iff,
+                native_zlt, native_veq, native_and, native_or,
+                hResultNeg, hResultNegOne, hEmpty]
+              exact hResultNegOne
+            · rcases sr_nondigit_index_data w hValid hNotAll with
+                ⟨j, c, pre, post, hw, hpreLen, hc, hIndex, hj⟩
+              have hAt : w[j] = c := by
+                have hGet : w[j]? = some c := by
+                  rw [hw, ← hpreLen]
+                  simp
+                exact Option.some.inj
+                  ((List.getElem?_eq_getElem hj).symm.trans hGet)
+              have hNotDigitAt : native_char_is_digit w[j] ≠ true := by
+                simpa [hAt] using hc
+              have hOutside := sr_nondigit_code_outside
+                w j hValid hj hNotDigitAt
+              have hNonDigitEval : __smtx_model_eval M nonDigit =
+                  SmtValue.Numeral (Int.ofNat j) := by
+                simp [nonDigit, nondigitRegex, tx, __smtx_model_eval,
+                  __smtx_model_eval_str_indexof_re,
+                  __smtx_model_eval_re_inter,
+                  __smtx_model_eval_re_comp,
+                  __smtx_model_eval_re_range, hXEvalString,
+                  sr_native_unpack_pack_string, sr_nondigit_re]
+                simpa [sr_nondigit_re] using hIndex
+              have hBadDigitEval : __smtx_model_eval M badDigit =
+                  SmtValue.Numeral
+                    (native_str_to_code
+                      (native_str_substr w (Int.ofNat j) 1) - 48) := by
+                simp [badDigit, tx, __smtx_model_eval,
+                  __smtx_model_eval__, __smtx_model_eval_str_substr,
+                  __smtx_model_eval_str_to_code, hXEvalString,
+                  hNonDigitEval, sr_native_seq_extract_pack_string_eval,
+                  sr_native_unpack_extract_pack_string,
+                  sr_native_unpack_pack_string, native_zplus,
+                  native_zneg, Int.sub_eq_add_neg]
+              simp [formula, failure, badWitness, badBounds,
+                __smtx_model_eval, __smtx_model_eval_ite,
+                __smtx_model_eval_lt, __smtx_model_eval_eq,
+                __smtx_model_eval_and, __smtx_model_eval_or,
+                __smtx_model_eval_geq, __smtx_model_eval_leq,
+                hResultEval, hSourceLenEval, hNonDigitEval,
+                hBadDigitEval, native_zlt, native_zleq, native_veq,
+                native_and, native_or, hResultNeg, hResultNegOne, hj]
+              exact ⟨hResultNegOne, Or.inr hOutside⟩
       case str_from_int =>
-        sorry
+        have hFromNN : term_has_non_none_type
+            (SmtTerm.str_from_int (__eo_to_smt x)) := by
+          simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
+          int_arg_of_non_none_ret (op := SmtTerm.str_from_int)
+            (typeof_str_from_int_eq (__eo_to_smt x)) hFromNN
+        have hXNN : term_has_non_none_type (__eo_to_smt x) := by
+          unfold term_has_non_none_type
+          rw [hxTy]
+          decide
+        let tx := __eo_to_smt x
+        let idxName := native_string_lit "@var.str_index"
+        let idx := SmtTerm.Var idxName SmtType.Int
+        let output := SmtTerm._at_purify (SmtTerm.str_from_int tx)
+        let outputLen := SmtTerm.str_len output
+        let prefixAt := fun k => SmtTerm.ite
+          (SmtTerm.eq k (SmtTerm.Numeral 0)) (SmtTerm.Numeral 0)
+          (SmtTerm.str_to_int
+            (SmtTerm.str_substr (SmtTerm.str_from_int tx)
+              (SmtTerm.Numeral 0) k))
+        let nextIdx := SmtTerm.plus idx
+          (SmtTerm.plus (SmtTerm.Numeral 1) (SmtTerm.Numeral 0))
+        let digit := SmtTerm.neg
+          (SmtTerm.str_to_code
+            (SmtTerm.str_substr output idx (SmtTerm.Numeral 1)))
+          (SmtTerm.Numeral 48)
+        let nonneg := fun k => SmtTerm.geq tx k
+        let leadingCond := SmtTerm.and
+          (SmtTerm.eq idx (SmtTerm.Numeral 0))
+          (SmtTerm.and (SmtTerm.gt outputLen (SmtTerm.Numeral 1))
+            (SmtTerm.Boolean true))
+        let digitMin := SmtTerm.ite leadingCond
+          (SmtTerm.Numeral 1) (SmtTerm.Numeral 0)
+        let recurrence := SmtTerm.eq (prefixAt nextIdx)
+          (SmtTerm.plus digit
+            (SmtTerm.plus
+                (SmtTerm.mult (SmtTerm.Numeral 10)
+                (SmtTerm.mult (prefixAt idx) (SmtTerm.Numeral 1)))
+              (SmtTerm.Numeral 0)))
+        let digitBounds := SmtTerm.and
+          (SmtTerm.geq digit digitMin)
+          (SmtTerm.and (SmtTerm.lt digit (SmtTerm.Numeral 10))
+            (SmtTerm.Boolean true))
+        let validClause := SmtTerm.and recurrence
+          (SmtTerm.and digitBounds
+            (SmtTerm.and (nonneg (prefixAt nextIdx))
+              (SmtTerm.Boolean true)))
+        let qBody := SmtTerm.or
+          (SmtTerm.not (SmtTerm.geq idx (SmtTerm.Numeral 0)))
+          (SmtTerm.or (SmtTerm.not (SmtTerm.lt idx outputLen))
+            (SmtTerm.or validClause (SmtTerm.Boolean false)))
+        let forallPart := SmtTerm.not
+          (SmtTerm.exists idxName SmtType.Int (SmtTerm.not qBody))
+        let success := SmtTerm.and
+          (SmtTerm.geq outputLen (SmtTerm.Numeral 1))
+          (SmtTerm.and (SmtTerm.eq tx (prefixAt outputLen))
+            (SmtTerm.and
+              (SmtTerm.eq (SmtTerm.Numeral 0)
+                (prefixAt (SmtTerm.Numeral 0)))
+              (SmtTerm.and forallPart (SmtTerm.Boolean true))))
+        let formula := SmtTerm.ite (nonneg (SmtTerm.Numeral 0)) success
+          (SmtTerm.eq output (SmtTerm.String []))
+        have hOutputTy : __smtx_typeof output =
+            SmtType.Seq SmtType.Char := by
+          simp [output, tx, typeof_str_from_int_eq, hxTy,
+            __smtx_typeof, __smtx_typeof_seq_op_1_ret,
+            native_ite, native_Teq]
+        have hOutputLenTy : __smtx_typeof outputLen = SmtType.Int := by
+          simp [outputLen, typeof_str_len_eq, hOutputTy,
+            __smtx_typeof_seq_op_1_ret]
+        have hPrefixTy : ∀ k, __smtx_typeof k = SmtType.Int →
+            __smtx_typeof (prefixAt k) = SmtType.Int := by
+          intro k hk
+          simp [prefixAt, tx, typeof_ite_eq, typeof_eq_eq,
+            typeof_str_to_int_eq, typeof_str_substr_eq,
+            typeof_str_from_int_eq, hxTy, hk, sr_smt_type_wf_int,
+            __smtx_typeof_ite, __smtx_typeof_eq,
+            __smtx_typeof_str_substr, __smtx_typeof_seq_op_1_ret,
+            __smtx_typeof_guard_wf, __smtx_typeof_guard,
+            __smtx_typeof, native_ite, native_Teq]
+        have hValidClauseTy :
+            __smtx_typeof validClause = SmtType.Bool := by
+          simp [validClause, recurrence, digitBounds, digitMin,
+            leadingCond, nonneg, digit, nextIdx, idx, outputLen,
+            output, prefixAt, tx, typeof_ite_eq, typeof_and_eq,
+            typeof_eq_eq, typeof_geq_eq, typeof_gt_eq, typeof_lt_eq,
+            typeof_plus_eq, typeof_mult_eq, typeof_str_len_eq,
+            typeof_str_to_code_eq, typeof_str_substr_eq,
+            typeof_str_to_int_eq, typeof_str_from_int_eq, hxTy,
+            hOutputTy, hOutputLenTy, hPrefixTy, sr_smt_type_wf_int,
+            __smtx_typeof_ite, __smtx_typeof_arith_overload_op_2,
+            __smtx_typeof_arith_overload_op_2_ret,
+            __smtx_typeof_str_substr, __smtx_typeof_seq_op_1_ret,
+            __smtx_typeof_eq, __smtx_typeof_guard_wf,
+            __smtx_typeof_guard, __smtx_typeof, native_ite,
+            native_Teq]
+        have hFormulaEq :
+            __eo_to_smt
+                (__str_reduction_pred
+                  (Term.Apply (Term.UOp UserOp.str_from_int) x)) = formula := by
+          simp only [__str_reduction_pred, __eo_mk_apply]
+          rfl
+        change eo_interprets M
+          (__str_reduction_pred
+            (Term.Apply (Term.UOp UserOp.str_from_int) x)) true
+        apply RuleProofs.eo_interprets_of_bool_eval M _ true
+        · unfold RuleProofs.eo_has_bool_type
+          rw [hFormulaEq]
+          have hEmptyValid : native_string_valid [] = true := by
+            native_decide
+          simp [formula, success, forallPart, qBody, validClause, digitBounds,
+            recurrence, digitMin, leadingCond, nonneg, digit, nextIdx,
+            idx, outputLen, output, prefixAt, tx, typeof_ite_eq,
+            typeof_and_eq, typeof_or_eq, typeof_not_eq, typeof_eq_eq,
+            typeof_geq_eq, typeof_gt_eq, typeof_lt_eq, typeof_plus_eq,
+            typeof_mult_eq, typeof_str_len_eq, typeof_str_to_code_eq,
+            typeof_str_substr_eq, typeof_str_to_int_eq,
+            typeof_str_from_int_eq, smtx_typeof_exists_term_eq,
+            hxTy, hOutputTy, hOutputLenTy, hPrefixTy,
+            sr_smt_type_wf_int, __smtx_typeof_ite,
+            __smtx_typeof_arith_overload_op_2,
+            __smtx_typeof_arith_overload_op_2_ret,
+            __smtx_typeof_str_substr, __smtx_typeof_seq_op_1_ret,
+            __smtx_typeof_eq, __smtx_typeof_guard_wf,
+            __smtx_typeof_guard, __smtx_typeof, native_ite,
+            native_Teq, hEmptyValid]
+        · rw [hFormulaEq]
+          have hXValTy :
+              __smtx_typeof_value (__smtx_model_eval M tx) = SmtType.Int := by
+            simpa [tx, hxTy] using
+              smt_model_eval_preserves_type_of_non_none M hM
+                (__eo_to_smt x) hXNN
+          rcases int_value_canonical hXValTy with ⟨n, hXEval⟩
+          have hXClosed : __eo_is_closed x = Term.Boolean true := by
+            apply sr_eo_is_closed_apply_uop_arg UserOp.str_from_int x
+            · apply RuleProofs.term_ne_stuck_of_has_smt_translation
+              simpa [RuleProofs.eo_has_smt_translation] using hXNN
+            · exact hClosed
+          let w := native_str_from_int n
+          have hValid : native_string_valid w = true := by
+            exact native_str_from_int_valid n
+          have hAllDigits : w.all native_char_is_digit = true := by
+            exact StrInReFromIntDigRangeProof.native_str_from_int_all_digits n
+          have hOutputEval :
+              __smtx_model_eval M output =
+                SmtValue.Seq (native_pack_string w) := by
+            simp [output, tx, w, __smtx_model_eval,
+              __smtx_model_eval_str_from_int,
+              __smtx_model_eval__at_purify, hXEval]
+          have hPrefixEval : ∀ (N : SmtModel) (kTerm : SmtTerm) (k : Int),
+              __smtx_model_eval N tx = SmtValue.Numeral n →
+              __smtx_model_eval N kTerm = SmtValue.Numeral k →
+              __smtx_model_eval N (prefixAt kTerm) =
+                SmtValue.Numeral (sr_native_stoi_result w k) := by
+            intro N kTerm k hTxEval hkEval
+            by_cases hk : k = 0 <;>
+            simp [prefixAt, tx, w, sr_native_stoi_result, hk,
+              __smtx_model_eval, __smtx_model_eval_eq,
+              __smtx_model_eval_ite, __smtx_model_eval_str_from_int,
+              __smtx_model_eval_str_substr, __smtx_model_eval_str_to_int,
+              native_ite, native_veq, hTxEval, hkEval,
+              sr_native_seq_extract_pack_string_eval,
+              sr_native_unpack_extract_pack_string,
+              sr_native_unpack_pack_string]
+          by_cases hn : 0 ≤ n
+          · have hNonempty := sr_native_str_from_int_ne_nil n hn
+            have hNonemptyW : w ≠ [] := by simpa [w] using hNonempty
+            have hLenPos : 0 < w.length := by
+              apply Nat.pos_of_ne_zero
+              intro hLen
+              apply hNonemptyW
+              exact List.eq_nil_of_length_eq_zero hLen
+            have hLenOne : (1 : Int) ≤ Int.ofNat w.length := by
+              exact Int.ofNat_le.mpr hLenPos
+            have hTotalEq :
+                Int.ofNat (native_decimal_digits_to_nat w) = n := by
+              have hRound := sr_native_str_to_int_from_int n hn
+              have hDecimal := sr_native_str_to_int_of_ne_nil_all
+                w hNonempty hAllDigits
+              simpa [w, hDecimal] using hRound
+            have hPrefixLen :
+                sr_native_stoi_result w (Int.ofNat w.length) = n := by
+              rw [sr_native_stoi_result_ofNat w w.length (by simp)
+                hAllDigits]
+              simpa [hTotalEq]
+            have hForallEval :
+                __smtx_model_eval M forallPart = SmtValue.Boolean true := by
+              change __smtx_model_eval M
+                (SmtTerm.not
+                  (SmtTerm.exists idxName SmtType.Int
+                    (SmtTerm.not qBody))) = SmtValue.Boolean true
+              have hAll : ∀ v : SmtValue,
+                  __smtx_typeof_value v = SmtType.Int →
+                  __smtx_value_canonical_bool v = true →
+                  __smtx_model_eval
+                      (native_model_push M idxName SmtType.Int v) qBody =
+                    SmtValue.Boolean true := by
+                intro v hvTy _hvCanonical
+                rcases int_value_canonical hvTy with ⟨k, rfl⟩
+                let Mk := native_model_push M idxName SmtType.Int
+                  (SmtValue.Numeral k)
+                have hIdxEval :
+                    native_model_var_lookup Mk idxName SmtType.Int =
+                      SmtValue.Numeral k := by
+                  simp [Mk, native_model_var_lookup, native_model_push]
+                have hTxEvalPush :
+                    __smtx_model_eval Mk tx = SmtValue.Numeral n := by
+                  rw [← hXEval]
+                  simpa [tx] using
+                    (smt_model_eval_eq_of_eo_closed x hXClosed M Mk
+                      (model_agrees_on_globals_push M idxName SmtType.Int
+                        (SmtValue.Numeral k))).symm
+                have hOutputEvalPush :
+                    __smtx_model_eval Mk output =
+                      SmtValue.Seq (native_pack_string w) := by
+                  simp [output, tx, w, __smtx_model_eval,
+                    __smtx_model_eval_str_from_int,
+                    __smtx_model_eval__at_purify, hTxEvalPush]
+                have hOutputLenEvalPush :
+                    __smtx_model_eval Mk outputLen =
+                      SmtValue.Numeral (Int.ofNat w.length) := by
+                  simp [outputLen, __smtx_model_eval,
+                    __smtx_model_eval_str_len, hOutputEvalPush,
+                    native_seq_len, sr_native_unpack_pack_string_length]
+                have hMkTotal : model_total_typed Mk :=
+                  model_total_typed_push hM idxName SmtType.Int
+                    (SmtValue.Numeral k) sr_smt_type_wf_int hvTy
+                    _hvCanonical
+                change __smtx_model_eval Mk qBody = SmtValue.Boolean true
+                by_cases hk0 : 0 ≤ k
+                · by_cases hklt : k < Int.ofNat w.length
+                  · let j := Int.toNat k
+                    have hCast : Int.ofNat j = k := by
+                      simpa [j] using Int.toNat_of_nonneg hk0
+                    have hj : j < w.length := by
+                      rw [← hCast] at hklt
+                      exact Int.ofNat_lt.mp hklt
+                    have hNextEval :
+                        __smtx_model_eval Mk nextIdx =
+                          SmtValue.Numeral (Int.ofNat (j + 1)) := by
+                      simp [nextIdx, idx, __smtx_model_eval,
+                        __smtx_model_eval_plus, hIdxEval,
+                        native_zplus]
+                      exact hCast.symm
+                    have hIdxTermEval :
+                        __smtx_model_eval Mk idx = SmtValue.Numeral k := by
+                      simp [idx, __smtx_model_eval, hIdxEval]
+                    have hPrefixNext := hPrefixEval Mk nextIdx
+                      (Int.ofNat (j + 1)) hTxEvalPush hNextEval
+                    have hPrefixIdx := hPrefixEval Mk idx k hTxEvalPush
+                      hIdxTermEval
+                    have hRec := sr_native_stoi_result_recurrence
+                      w j hj hAllDigits
+                    rw [hCast] at hRec
+                    have hBounds := sr_digit_code_bounds
+                      w j hValid hj hAllDigits
+                    have hTotal :
+                        sr_native_stoi_result w (Int.ofNat (j + 1)) ≤ n := by
+                      have hLe := sr_native_stoi_result_le_total w (j + 1)
+                        (by omega) hAllDigits
+                      rw [hTotalEq] at hLe
+                      exact hLe
+                    have hCode := sr_str_to_code_at w j hValid hj
+                    rw [hCast] at hCode hBounds
+                    have hDigitValue := sr_digit_code_value
+                      w j hValid hj hAllDigits
+                    rw [hCast] at hDigitValue
+                    have hLeading :
+                        (if k = 0 ∧ 1 < w.length then 1 else 0) ≤
+                          native_str_to_code
+                            (native_str_substr w k 1) - 48 := by
+                      split
+                      · rename_i hLead
+                        have hj0 : j = 0 := by
+                          rw [← hCast] at hLead
+                          exact Int.ofNat_eq_zero.mp hLead.1
+                        subst j
+                        have hkZero : k = (0 : Int) := hLead.1
+                        have hCodeZero :
+                            native_str_to_code
+                                (native_str_substr w 0 1) =
+                              Int.ofNat w[0] := by
+                          simpa [hkZero] using hCode
+                        rw [hkZero, hCodeZero]
+                        have hHead :=
+                          sr_native_str_from_int_head_pos n hn hLead.2
+                        change (1 : Int) ≤ Int.ofNat w[0] - 48 at hHead
+                        exact hHead
+                      · exact hBounds.1
+                    have hDigitEval : __smtx_model_eval Mk digit =
+                        SmtValue.Numeral
+                          (native_str_to_code (native_str_substr w k 1) -
+                            48) := by
+                      simp [digit, __smtx_model_eval,
+                        __smtx_model_eval__,
+                        __smtx_model_eval_str_substr,
+                        __smtx_model_eval_str_to_code, hOutputEvalPush,
+                        hIdxTermEval, sr_native_seq_extract_pack_string_eval,
+                        sr_native_unpack_extract_pack_string,
+                        sr_native_unpack_pack_string,
+                        native_zplus, native_zneg, Int.sub_eq_add_neg]
+                    have hRecEval :
+                        __smtx_model_eval Mk recurrence =
+                          SmtValue.Boolean true := by
+                      rw [hDigitValue] at hRec
+                      simp [recurrence, __smtx_model_eval,
+                        __smtx_model_eval_eq, __smtx_model_eval_plus,
+                        __smtx_model_eval_mult, hPrefixNext, hPrefixIdx,
+                        hDigitEval, native_zplus, native_zmult, native_veq]
+                      simpa using hRec
+                    have hDigitMinEval :
+                        __smtx_model_eval Mk digitMin =
+                          SmtValue.Numeral
+                            (if k = 0 ∧ 1 < w.length then 1 else 0) := by
+                      have hLeadingCondEval :
+                          __smtx_model_eval Mk leadingCond =
+                            SmtValue.Boolean
+                              (decide (k = 0) &&
+                                decide ((1 : Int) < Int.ofNat w.length)) := by
+                        simp [leadingCond, __smtx_model_eval,
+                          __smtx_model_eval_and, __smtx_model_eval_eq,
+                          __smtx_model_eval_gt, __smtx_model_eval_lt,
+                          hIdxTermEval,
+                          hOutputLenEvalPush, native_and, native_veq,
+                          native_zlt]
+                      by_cases hkZero : k = 0
+                      · by_cases hLong : 1 < w.length
+                        · have hLongInt :
+                              (1 : Int) < Int.ofNat w.length :=
+                            Int.ofNat_lt.mpr hLong
+                          have hkDec : decide (k = 0) = true :=
+                            decide_eq_true hkZero
+                          have hLongDec :
+                              decide ((1 : Int) < Int.ofNat w.length) =
+                                true := decide_eq_true hLongInt
+                          have hCondTrue :
+                              (decide (k = 0) &&
+                                  decide ((1 : Int) < Int.ofNat w.length)) =
+                                true := by
+                            rw [hkDec, hLongDec]
+                            rfl
+                          have hLeadTrue := hLeadingCondEval
+                          rw [hCondTrue] at hLeadTrue
+                          simp [digitMin, __smtx_model_eval,
+                            __smtx_model_eval_ite, hLeadTrue,
+                            native_ite, hkZero, hLong, hLongInt]
+                        · have hLongInt :
+                              ¬ ((1 : Int) < Int.ofNat w.length) := by
+                            intro h
+                            exact hLong (Int.ofNat_lt.mp h)
+                          have hkDec : decide (k = 0) = true :=
+                            decide_eq_true hkZero
+                          have hLongDec :
+                              decide ((1 : Int) < Int.ofNat w.length) =
+                                false := decide_eq_false hLongInt
+                          have hCondFalse :
+                              (decide (k = 0) &&
+                                  decide ((1 : Int) < Int.ofNat w.length)) =
+                                false := by
+                            rw [hkDec, hLongDec]
+                            rfl
+                          have hLeadFalse := hLeadingCondEval
+                          rw [hCondFalse] at hLeadFalse
+                          simp [digitMin, __smtx_model_eval,
+                            __smtx_model_eval_ite, hLeadFalse,
+                            native_ite, hkZero, hLong, hLongInt]
+                      · have hCondFalse :
+                            (decide (k = 0) &&
+                                decide ((1 : Int) < Int.ofNat w.length)) =
+                              false := by
+                          rw [decide_eq_false hkZero]
+                          rfl
+                        have hLeadFalse := hLeadingCondEval
+                        rw [hCondFalse] at hLeadFalse
+                        simp [digitMin, __smtx_model_eval,
+                          __smtx_model_eval_ite, hLeadFalse,
+                          native_ite, hkZero]
+                    have hBoundsEval :
+                        __smtx_model_eval Mk digitBounds =
+                          SmtValue.Boolean true := by
+                      simp [digitBounds, __smtx_model_eval,
+                        __smtx_model_eval_geq, __smtx_model_eval_leq,
+                        __smtx_model_eval_lt, __smtx_model_eval_and,
+                        hDigitEval, hDigitMinEval, native_zleq, native_zlt,
+                        native_and, hLeading, hBounds]
+                    have hTotalEval :
+                        __smtx_model_eval Mk (nonneg (prefixAt nextIdx)) =
+                          SmtValue.Boolean true := by
+                      simp [nonneg, __smtx_model_eval,
+                        __smtx_model_eval_geq, __smtx_model_eval_leq,
+                        hTxEvalPush, hPrefixNext, native_zleq, hTotal]
+                      exact hTotal
+                    have hValidEval :
+                        __smtx_model_eval Mk validClause =
+                          SmtValue.Boolean true := by
+                      simp [validClause, __smtx_model_eval,
+                        __smtx_model_eval_and, hRecEval, hBoundsEval,
+                        hTotalEval, native_and]
+                    simp [qBody, __smtx_model_eval,
+                      __smtx_model_eval_or, __smtx_model_eval_not,
+                      __smtx_model_eval_geq, __smtx_model_eval_leq,
+                      __smtx_model_eval_lt, hIdxTermEval, hOutputEvalPush,
+                      hOutputLenEvalPush, hValidEval,
+                      sr_native_unpack_pack_string_length,
+                      native_seq_len, native_zlt, native_zleq,
+                      native_or, native_not, hk0, hklt]
+                  · have hLenLe : Int.ofNat w.length ≤ k :=
+                      Int.le_of_not_gt hklt
+                    rcases smt_model_eval_bool_is_boolean Mk hMkTotal
+                      validClause hValidClauseTy with ⟨b, hValidBool⟩
+                    simp [qBody, idx, outputLen, __smtx_model_eval,
+                      __smtx_model_eval_or, __smtx_model_eval_not,
+                      __smtx_model_eval_geq, __smtx_model_eval_lt,
+                      __smtx_model_eval_leq,
+                      __smtx_model_eval_str_len, hValidBool,
+                      hIdxEval, hOutputEvalPush, hOutputLenEvalPush,
+                      sr_native_unpack_pack_string_length,
+                      native_seq_len, native_zlt, native_zleq,
+                      native_or, native_not, hk0, hklt, hLenLe]
+                    exact Or.inl hLenLe
+                · have hkNeg : k < 0 := Int.lt_of_not_ge hk0
+                  rcases smt_model_eval_bool_is_boolean Mk hMkTotal
+                    validClause hValidClauseTy with ⟨b, hValidBool⟩
+                  simp [qBody, idx, outputLen, __smtx_model_eval,
+                    __smtx_model_eval_or, __smtx_model_eval_not,
+                    __smtx_model_eval_geq, __smtx_model_eval_lt,
+                    __smtx_model_eval_leq,
+                    __smtx_model_eval_str_len, hValidBool,
+                    hIdxEval, hOutputEvalPush, hOutputLenEvalPush,
+                    sr_native_unpack_pack_string_length, native_seq_len,
+                    native_zlt, native_zleq, native_or, native_not,
+                    hk0, hkNeg]
+              exact sr_eval_forall_encoding_true M idxName SmtType.Int
+                qBody hAll
+            have hPrefixLenEval := hPrefixEval M outputLen
+              (Int.ofNat w.length) hXEval (by
+                simp [outputLen, hOutputEval, __smtx_model_eval,
+                  __smtx_model_eval_str_len, native_seq_len,
+                  sr_native_unpack_pack_string_length])
+            have hPrefixZeroEval := hPrefixEval M (SmtTerm.Numeral 0) 0
+              hXEval (by simp [__smtx_model_eval])
+            simp [formula, success, nonneg, outputLen, output, tx,
+              __smtx_model_eval, __smtx_model_eval_ite,
+              __smtx_model_eval_geq, __smtx_model_eval_leq,
+              __smtx_model_eval_and,
+              __smtx_model_eval_eq, __smtx_model_eval_str_len,
+              __smtx_model_eval_str_from_int,
+              __smtx_model_eval__at_purify, hXEval, hOutputEval,
+              hPrefixLenEval, hPrefixZeroEval, hForallEval,
+              sr_native_unpack_pack_string_length, native_seq_len,
+              native_zleq, native_and, native_veq, hn, hLenPos,
+              hLenOne, hPrefixLen, sr_native_stoi_result]
+            constructor
+            · simpa [w] using hLenOne
+            · simpa [sr_native_stoi_result, hNonemptyW] using hPrefixLen.symm
+          · have hnNeg : n < 0 := Int.lt_of_not_ge hn
+            have hEmpty : w = [] := by
+              simp [w, native_str_from_int, native_string_lit, hnNeg]
+            simp [formula, success, nonneg, outputLen, output, tx,
+              __smtx_model_eval, __smtx_model_eval_ite,
+              __smtx_model_eval_geq, __smtx_model_eval_leq,
+              __smtx_model_eval_eq,
+              __smtx_model_eval_str_from_int,
+              __smtx_model_eval__at_purify, hXEval, hOutputEval,
+              native_zleq, native_veq, hn, hnNeg, hEmpty,
+              sr_native_unpack_pack_string]
+            simpa [w] using congrArg native_pack_string hEmpty
       case str_to_lower =>
         have hOrigNN :
             term_has_non_none_type
@@ -2038,7 +3456,7 @@ private theorem string_reduction_pred_true
                     right
                     let j := Int.toNat k
                     have hCast : Int.ofNat j = k := by
-                      simpa [j] using Int.toNat_of_nonneg hk0
+                      simpa only [j] using Int.toNat_of_nonneg hk0
                     have hj : j < (native_unpack_seq sx).length := by
                       have h := hklt
                       rw [← hCast] at h
