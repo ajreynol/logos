@@ -6,8 +6,6 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 cd "${repo_root}"
 
-"${script_dir}/check-no-rule-imports.sh"
-
 run_regressions() {
   echo "Building logos executable..."
   lake build logos

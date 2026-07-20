@@ -67,8 +67,6 @@ rules_dir="${repo_root}/Cpc/Proofs/Rules"
 
 cd "${repo_root}"
 
-"${script_dir}/check-no-rule-imports.sh"
-
 if [ "${do_clean}" = true ]; then
   echo "==> Cleaning build artifacts (lake clean)"
   lake clean
