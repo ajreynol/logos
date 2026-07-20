@@ -1247,3 +1247,760 @@ private theorem bvAshrByConst2_extract_self_eo_type
   simp [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt,
     __eo_requires, __eo_mk_apply, native_ite, native_teq, native_not,
     hGtN, hNW, hGtD, hD, hGtD', hD', hGtOne, hPosOne]
+
+private theorem eo_typeof_repeat_arg_bitvec_of_ne_stuck_local2
+    {A idx C : Term}
+    (h : __eo_typeof_repeat A idx C ≠ Term.Stuck) :
+    ∃ w, C = Term.Apply (Term.UOp UserOp.BitVec) w := by
+  unfold __eo_typeof_repeat at h
+  split at h <;> simp at h ⊢
+
+private theorem repeat_amount_context_local2
+    (inner rn widthTerm : Term) :
+    __eo_typeof inner =
+        Term.Apply (Term.UOp UserOp.BitVec) widthTerm ->
+    __eo_typeof (Term.Apply (Term.UOp1 UserOp1.repeat rn) inner) ≠
+      Term.Stuck ->
+    ∃ r : native_Int,
+      rn = Term.Numeral r ∧ native_zlt 0 r = true := by
+  intro hInnerTy hRepeatNe
+  change __eo_typeof_repeat (__eo_typeof rn) rn (__eo_typeof inner) ≠
+      Term.Stuck at hRepeatNe
+  rw [hInnerTy] at hRepeatNe
+  have hParts :
+      __eo_typeof rn = Term.UOp UserOp.Int ∧
+      __eo_requires (__eo_gt rn (Term.Numeral 0))
+          (Term.Boolean true)
+          (__eo_mk_apply (Term.UOp UserOp.BitVec)
+            (__eo_mul rn widthTerm)) ≠ Term.Stuck := by
+    unfold __eo_typeof_repeat at hRepeatNe
+    split at hRepeatNe <;> simp_all
+  have hGuard :
+      __eo_gt rn (Term.Numeral 0) = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hParts.2
+  cases rn <;> simp [__eo_gt] at hGuard
+  case Numeral r =>
+    exact ⟨r, rfl, by simpa [__eo_gt] using hGuard⟩
+
+private theorem bv_ashr_by_const_2_context
+    (x amount sz nm rn : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation amount ->
+    RuleProofs.eo_has_smt_translation sz ->
+    RuleProofs.eo_has_smt_translation nm ->
+    RuleProofs.eo_has_smt_translation rn ->
+    __eo_typeof (bvAshrByConst2Term x amount sz nm rn) = Term.Bool ->
+    ∃ W N R : native_Int,
+      sz = Term.Numeral W ∧ nm = Term.Numeral N ∧
+      rn = Term.Numeral R ∧
+      native_zleq 0 W = true ∧ native_zleq 0 N = true ∧
+      native_zlt N W = true ∧ native_zlt 0 R = true ∧
+      __smtx_typeof (__eo_to_smt x) =
+        SmtType.BitVec (native_int_to_nat W) ∧
+      __smtx_typeof (__eo_to_smt amount) = SmtType.Int := by
+  intro hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hResultTy
+  change __eo_typeof_eq
+      (__eo_typeof_bvand (__eo_typeof x)
+        (__eo_typeof (bvShiftByConst2Const amount sz)))
+      (__eo_typeof (bvAshrByConst2Rhs x nm rn)) = Term.Bool at hResultTy
+  rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hResultTy with
+    ⟨hLhsNe, hRhsNe⟩
+  rcases shift_operand_context x amount sz hXTrans hAmountTrans
+      hSzTrans hLhsNe with
+    ⟨W, hSz, hW0, hXTy, _hAmountTy, _hConstTy,
+      hXSmtTy, hAmountSmtTy⟩
+  have hRepeatNe :
+      __eo_typeof_repeat (__eo_typeof rn) rn
+          (__eo_typeof (bvExtractTerm x nm nm)) ≠ Term.Stuck := by
+    simpa [bvAshrByConst2Rhs] using hRhsNe
+  rcases eo_typeof_repeat_arg_bitvec_of_ne_stuck_local2 hRepeatNe with
+    ⟨signWidth, hSignTy⟩
+  have hSignNe : __eo_typeof (bvExtractTerm x nm nm) ≠ Term.Stuck := by
+    rw [hSignTy]
+    intro h
+    cases h
+  rcases bv_extract_context_of_non_stuck x nm nm hXTrans hSignNe with
+    ⟨W', NHigh, NLow, hXTy', hNmHigh, hNmLow, _hW'0,
+      hN0, hNW, _hD0, _hXSmtTy'⟩
+  have hWW' : W' = W := by
+    rw [hXTy] at hXTy'
+    injection hXTy' with _ hNum
+    injection hNum with hEq
+    exact hEq.symm
+  subst W'
+  have hNHighLow : NHigh = NLow := by
+    rw [hNmHigh] at hNmLow
+    injection hNmLow
+  subst NHigh
+  subst nm
+  rcases repeat_amount_context_local2
+      (bvExtractTerm x (Term.Numeral NLow) (Term.Numeral NLow)) rn
+      signWidth hSignTy hRhsNe with ⟨R, hRn, hRPos⟩
+  exact ⟨W, NLow, R, hSz, rfl, hRn, hW0, hN0, hNW, hRPos,
+    hXSmtTy, hAmountSmtTy⟩
+
+private theorem typed_bv_ashr_by_const_2_term
+    (x amount sz nm rn : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation amount ->
+    RuleProofs.eo_has_smt_translation sz ->
+    RuleProofs.eo_has_smt_translation nm ->
+    RuleProofs.eo_has_smt_translation rn ->
+    __eo_typeof (bvAshrByConst2Term x amount sz nm rn) = Term.Bool ->
+    RuleProofs.eo_has_bool_type
+      (bvAshrByConst2Term x amount sz nm rn) := by
+  intro hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hResultTy
+  rcases bv_ashr_by_const_2_context x amount sz nm rn hXTrans
+      hAmountTrans hSzTrans hNmTrans hRnTrans hResultTy with
+    ⟨W, N, R, rfl, rfl, rfl, hW0, hN0, hNW, hRPos,
+      hXSmtTy, hAmountSmtTy⟩
+  have hLhsTy := smt_typeof_bvashr_same x amount W
+    hXSmtTy hAmountSmtTy hW0
+  have hOne : native_zplus (native_zplus N 1) (native_zneg N) = 1 := by
+    simp [SmtEval.native_zplus, SmtEval.native_zneg]
+    grind
+  have hSignTy :
+      __smtx_typeof
+          (__eo_to_smt (bvExtractTerm x (Term.Numeral N)
+            (Term.Numeral N))) = SmtType.BitVec 1 := by
+    have hD0 : native_zlt 0
+        (native_zplus (native_zplus N 1) (native_zneg N)) = true := by
+      rw [hOne]
+      native_decide
+    have hRaw := smt_typeof_extract_of_context x W N N hXSmtTy
+      hW0 hN0 hNW hD0
+    simpa [hOne, native_int_to_nat, SmtEval.native_int_to_nat] using hRaw
+  have hROne : native_zleq 1 R = true := by
+    have hRInt : (0 : Int) < R := by
+      simpa [SmtEval.native_zlt] using hRPos
+    simpa [SmtEval.native_zleq] using hRInt
+  have hRhsTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (bvAshrByConst2Rhs x (Term.Numeral N)
+              (Term.Numeral R))) =
+        SmtType.BitVec (native_int_to_nat R) := by
+    unfold bvAshrByConst2Rhs
+    change __smtx_typeof
+      (SmtTerm.repeat (SmtTerm.Numeral R)
+        (__eo_to_smt (bvExtractTerm x (Term.Numeral N)
+          (Term.Numeral N)))) = _
+    rw [typeof_repeat_eq, hSignTy]
+    simp [__smtx_typeof_repeat, native_ite, hROne,
+      SmtEval.native_zmult, native_nat_to_int, SmtEval.native_nat_to_int]
+  have hLhsTrans : RuleProofs.eo_has_smt_translation
+      (bvAshrByConst2Lhs x amount (Term.Numeral W)) := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hLhsTy]
+    intro h
+    cases h
+  have hRhsTrans : RuleProofs.eo_has_smt_translation
+      (bvAshrByConst2Rhs x (Term.Numeral N) (Term.Numeral R)) := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hRhsTy]
+    intro h
+    cases h
+  have hEOTypeEq := RuleProofs.eo_typeof_eq_bool_operands_eq _ _ hResultTy
+  have hLhsBridge :=
+    RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+      (bvAshrByConst2Lhs x amount (Term.Numeral W))
+      (__eo_typeof
+        (bvAshrByConst2Lhs x amount (Term.Numeral W)))
+      (__eo_to_smt
+        (bvAshrByConst2Lhs x amount (Term.Numeral W)))
+      rfl hLhsTrans rfl
+  have hRhsBridge :=
+    RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+      (bvAshrByConst2Rhs x (Term.Numeral N) (Term.Numeral R))
+      (__eo_typeof
+        (bvAshrByConst2Rhs x (Term.Numeral N) (Term.Numeral R)))
+      (__eo_to_smt
+        (bvAshrByConst2Rhs x (Term.Numeral N) (Term.Numeral R)))
+      rfl hRhsTrans rfl
+  unfold bvAshrByConst2Term
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type _ _
+    (by rw [hLhsBridge, hRhsBridge, hEOTypeEq])
+    (by rw [hLhsTy]; intro h; cases h)
+
+private theorem eval_repeat_bit_local2 (A : Nat) (b : Bool) :
+    __smtx_model_eval_repeat (SmtValue.Numeral (↑A : Int))
+        (SmtValue.Binary 1 (↑b.toNat : Int)) =
+      SmtValue.Binary (↑A : Int) (↑(BitVec.fill A b).toNat : Int) := by
+  have hAToNat : native_int_to_nat (↑A : Int) = A := by
+    simp [native_int_to_nat, SmtEval.native_int_to_nat]
+  have hPowOne : 1 ≤ (2 : Nat) ^ A :=
+    Nat.one_le_pow A 2 (by decide)
+  have hOnesCast : Int.ofNat ((2 : Nat) ^ A - 1) =
+      (2 : Int) ^ A - 1 := by
+    simpa using (Int.ofNat_sub hPowOne)
+  cases b with
+  | false =>
+      simp [__smtx_model_eval_repeat, hAToNat,
+        eval_repeat_rec_zero_bit, BitVec.fill_toNat,
+        native_nat_to_int, SmtEval.native_nat_to_int]
+  | true =>
+      simp [__smtx_model_eval_repeat, hAToNat,
+        eval_repeat_rec_one_bit, BitVec.fill_toNat,
+        native_nat_to_int, SmtEval.native_nat_to_int, natpow2_eq]
+      exact hOnesCast.symm
+
+private theorem bvlshr_bitvec_value_local2 (x : BitVec W) (A : Nat) :
+    __smtx_model_eval_bvlshr
+        (SmtValue.Binary (↑W : Int) (↑x.toNat : Int))
+        (SmtValue.Binary (↑W : Int) (↑A : Int)) =
+      SmtValue.Binary (↑W : Int) (↑(x >>> A).toNat : Int) := by
+  simp only [__smtx_model_eval_bvlshr, SmtEval.native_mod_total,
+    SmtEval.native_div_total, BitVec.toNat_ushiftRight,
+    Nat.shiftRight_eq_div_pow]
+  rw [natpow2_eq A, natpow2_eq W]
+  norm_cast
+  rw [Nat.mod_eq_of_lt]
+  simpa [BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow] using
+    (x >>> A).isLt
+
+private theorem bvnot_bitvec_value_local2 (x : BitVec W) :
+    __smtx_model_eval_bvnot
+        (SmtValue.Binary (↑W : Int) (↑x.toNat : Int)) =
+      SmtValue.Binary (↑W : Int) (↑(~~~x).toNat : Int) := by
+  simp only [__smtx_model_eval_bvnot, native_binary_not,
+    SmtEval.native_zplus, SmtEval.native_zneg,
+    SmtEval.native_mod_total]
+  rw [natpow2_eq W]
+  have hx : x.toNat + 1 ≤ 2 ^ W := by omega
+  have hRaw :
+      (2 ^ W : Int) + -((x.toNat : Int) + 1) =
+        (↑(~~~x).toNat : Int) := by
+    rw [BitVec.toNat_not]
+    have hSub : 2 ^ W - 1 - x.toNat = 2 ^ W - (x.toNat + 1) := by
+      omega
+    rw [hSub, Int.ofNat_sub hx]
+    push_cast
+    omega
+  rw [hRaw]
+  norm_cast
+  rw [Nat.mod_eq_of_lt]
+  exact (~~~x).isLt
+
+private theorem extractLsb_sign_bit_local2
+    {x : BitVec W} (hWPos : 0 < W) :
+    x.extractLsb' (W - 1) 1 = BitVec.fill 1 x.msb := by
+  apply BitVec.eq_of_getElem_eq
+  intro i hi
+  have hi0 : i = 0 := by omega
+  subst i
+  rw [BitVec.getElem_extractLsb', BitVec.getElem_fill]
+  simp only [Nat.add_zero]
+  exact (BitVec.msb_eq_getLsbD_last x).symm
+
+private theorem eval_extract_msb_bitvec_local2
+    (x : BitVec W) (hW : 0 < W) :
+    __smtx_model_eval_extract
+        (SmtValue.Numeral (↑(W - 1) : Int))
+        (SmtValue.Numeral (↑(W - 1) : Int))
+        (SmtValue.Binary (↑W : Int) (↑x.toNat : Int)) =
+      SmtValue.Binary 1 (↑x.msb.toNat : Int) := by
+  rw [extract_val_bitvec_start_len W (W - 1) 1 (↑x.toNat : Int)
+    (↑(W - 1) : Int) (↑(W - 1) : Int)
+    (by exact Int.natCast_nonneg _)
+    (by norm_cast; exact x.isLt) rfl (by push_cast; omega)]
+  rw [bitvec_ofInt_natCast_toNat, extractLsb_sign_bit_local2 hW]
+  cases x.msb <;> native_decide
+
+private theorem bvashr_bitvec_value_local2
+    (x : BitVec W) (A : Nat) (hW : 0 < W) :
+    __smtx_model_eval_bvashr
+        (SmtValue.Binary (↑W : Int) (↑x.toNat : Int))
+        (SmtValue.Binary (↑W : Int) (↑A : Int)) =
+      SmtValue.Binary (↑W : Int) (↑(x.sshiftRight A).toNat : Int) := by
+  unfold __smtx_model_eval_bvashr
+  simp only [__smtx_bv_sizeof_value, __smtx_model_eval__,
+    SmtEval.native_zplus, SmtEval.native_zneg]
+  have hSub : (↑W : Int) + -1 = (↑(W - 1) : Int) := by omega
+  rw [hSub, eval_extract_msb_bitvec_local2 x hW]
+  cases hmsb : x.msb with
+  | false =>
+      simp [__smtx_model_eval_eq, native_veq, __smtx_model_eval_ite]
+      rw [bvlshr_bitvec_value_local2]
+      rw [BitVec.sshiftRight_eq_of_msb_false hmsb]
+  | true =>
+      simp [__smtx_model_eval_eq, native_veq, __smtx_model_eval_ite]
+      rw [bvnot_bitvec_value_local2 x, bvlshr_bitvec_value_local2,
+        bvnot_bitvec_value_local2]
+      rw [BitVec.sshiftRight_eq_of_msb_true hmsb]
+
+private theorem ashr_saturated_bitvec_local2
+    (x : BitVec W) (A : Nat) (hWA : W ≤ A) :
+    x.sshiftRight A = BitVec.fill W x.msb := by
+  apply BitVec.eq_of_getElem_eq
+  intro i hi
+  rw [BitVec.getElem_sshiftRight hi, BitVec.getElem_fill]
+  have hNot : ¬ A + i < W := by omega
+  simp [hNot]
+
+private theorem ashr_const2_value_local2
+    (W A N R p : native_Int)
+    (hW0 : 0 ≤ W) (hWPos : 0 < W) (hA0 : 0 ≤ A)
+    (hWA : W ≤ A) (hN : N = W - 1) (hR : R = W)
+    (hp0 : 0 ≤ p) (hpW : p < native_int_pow2 W) :
+    __smtx_model_eval_bvashr
+        (SmtValue.Binary W p) (SmtValue.Binary W A) =
+      __smtx_model_eval_repeat (SmtValue.Numeral R)
+        (__smtx_model_eval_extract (SmtValue.Numeral N)
+          (SmtValue.Numeral N) (SmtValue.Binary W p)) := by
+  let WN := Int.toNat W
+  let AN := Int.toNat A
+  let xBV := BitVec.ofInt WN p
+  have hWRound : (↑WN : Int) = W := by
+    simpa [WN] using Int.toNat_of_nonneg hW0
+  have hARound : (↑AN : Int) = A := by
+    simpa [AN] using Int.toNat_of_nonneg hA0
+  have hWNPos : 0 < WN := by
+    have : (0 : Int) < (↑WN : Int) := by simpa [hWRound] using hWPos
+    exact_mod_cast this
+  have hWNAN : WN ≤ AN := by
+    have : (↑WN : Int) ≤ (↑AN : Int) := by
+      simpa [hWRound, hARound] using hWA
+    exact_mod_cast this
+  have hNCast : N = (↑(WN - 1) : Int) := by
+    calc
+      N = W - 1 := hN
+      _ = (↑WN : Int) - 1 := by simpa only [hWRound]
+      _ = (↑(WN - 1) : Int) := by omega
+  have hpW' : p < (2 : Int) ^ WN := by
+    simpa [← hWRound, natpow2_eq] using hpW
+  have hXToNat : (↑xBV.toNat : Int) = p := by
+    have hToNat := ofInt_toNat_canonical WN p hp0 hpW'
+    rw [show xBV.toNat = Int.toNat p by simpa [xBV] using hToNat]
+    exact Int.toNat_of_nonneg hp0
+  have hSignEval :
+      __smtx_model_eval_extract (SmtValue.Numeral N)
+          (SmtValue.Numeral N) (SmtValue.Binary W p) =
+        SmtValue.Binary 1 (↑xBV.msb.toNat : Int) := by
+    rw [show W = (↑WN : Int) by exact hWRound.symm,
+      show p = (↑xBV.toNat : Int) by exact hXToNat.symm, hNCast]
+    exact eval_extract_msb_bitvec_local2 xBV hWNPos
+  have hRepeatEval :
+      __smtx_model_eval_repeat (SmtValue.Numeral R)
+          (__smtx_model_eval_extract (SmtValue.Numeral N)
+            (SmtValue.Numeral N) (SmtValue.Binary W p)) =
+        SmtValue.Binary (↑WN : Int)
+          (↑(BitVec.fill WN xBV.msb).toNat : Int) := by
+    rw [hSignEval, hR, ← hWRound]
+    exact eval_repeat_bit_local2 WN xBV.msb
+  rw [hRepeatEval]
+  rw [show W = (↑WN : Int) by exact hWRound.symm,
+    show A = (↑AN : Int) by exact hARound.symm,
+    show p = (↑xBV.toNat : Int) by exact hXToNat.symm]
+  rw [bvashr_bitvec_value_local2 xBV AN hWNPos,
+    ashr_saturated_bitvec_local2 xBV AN hWNAN]
+
+private theorem eval_bvsize_minus_one_local2
+    (M : SmtModel) (x : Term) (W : native_Int) :
+    native_zleq 0 W = true ->
+    __smtx_typeof (__eo_to_smt x) =
+      SmtType.BitVec (native_int_to_nat W) ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.neg)
+            (bvShiftByConst2Bvsize x)) (Term.Numeral 1))) =
+      SmtValue.Numeral (native_zplus W (native_zneg 1)) := by
+  intro hW0 hXTy
+  change __smtx_model_eval M
+      (SmtTerm.neg (__eo_to_smt (bvShiftByConst2Bvsize x))
+        (SmtTerm.Numeral 1)) = _
+  rw [__smtx_model_eval.eq_def] <;> simp only
+  rw [eval_bvsize_local M x W hW0 hXTy]
+  simp [__smtx_model_eval, __smtx_model_eval__, native_zplus, native_zneg]
+
+private theorem bv_ashr_by_const_2_premises_numeric
+    (M : SmtModel) (x amount : Term) (A N R W : native_Int) :
+    __smtx_model_eval M (__eo_to_smt amount) = SmtValue.Numeral A ->
+    native_zleq 0 W = true ->
+    __smtx_typeof (__eo_to_smt x) =
+      SmtType.BitVec (native_int_to_nat W) ->
+    eo_interprets M (bvShiftByConst2GePrem x amount) true ->
+    eo_interprets M (bvShiftByConst2LtPrem x amount) true ->
+    eo_interprets M (bvAshrByConst2NmPrem x (Term.Numeral N)) true ->
+    eo_interprets M (bvAshrByConst2RnPrem x (Term.Numeral R)) true ->
+    native_zleq W A = true ∧
+      native_zlt A (native_int_pow2 W) = true ∧
+      N = native_zplus W (native_zneg 1) ∧ R = W := by
+  intro hAmountEval hW0 hXTy hGePrem hLtPrem hNmPrem hRnPrem
+  rcases shift_premises_numeric M x amount A W hAmountEval hW0 hXTy
+      hGePrem hLtPrem with ⟨hWA, hAPow⟩
+  have hNmEq := model_eval_eq_true_of_eo_eq_true M
+    (Term.Numeral N)
+    (Term.Apply (Term.Apply (Term.UOp UserOp.neg)
+      (bvShiftByConst2Bvsize x)) (Term.Numeral 1))
+    (by simpa [bvAshrByConst2NmPrem] using hNmPrem)
+  have hRnEq := model_eval_eq_true_of_eo_eq_true M
+    (Term.Numeral R) (bvShiftByConst2Bvsize x)
+    (by simpa [bvAshrByConst2RnPrem, bvShiftByConst2WidthPrem]
+      using hRnPrem)
+  rw [eval_bvsize_minus_one_local2 M x W hW0 hXTy] at hNmEq
+  rw [eval_bvsize_local M x W hW0 hXTy] at hRnEq
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M (SmtTerm.Numeral N))
+      (SmtValue.Numeral (native_zplus W (native_zneg 1))) =
+    SmtValue.Boolean true at hNmEq
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M (SmtTerm.Numeral R))
+      (SmtValue.Numeral W) = SmtValue.Boolean true at hRnEq
+  rw [__smtx_model_eval.eq_def] at hNmEq hRnEq
+  simp [__smtx_model_eval, __smtx_model_eval_eq, native_veq,
+    SmtEval.native_zeq] at hNmEq hRnEq
+  exact ⟨hWA, hAPow, hNmEq, hRnEq⟩
+
+private theorem eval_bv_ashr_by_const_2_term
+    (M : SmtModel) (hM : model_total_typed M)
+    (x amount sz nm rn : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation amount ->
+    RuleProofs.eo_has_smt_translation sz ->
+    RuleProofs.eo_has_smt_translation nm ->
+    RuleProofs.eo_has_smt_translation rn ->
+    __eo_typeof (bvAshrByConst2Term x amount sz nm rn) = Term.Bool ->
+    eo_interprets M (bvShiftByConst2GePrem x amount) true ->
+    eo_interprets M (bvShiftByConst2LtPrem x amount) true ->
+    eo_interprets M (bvAshrByConst2NmPrem x nm) true ->
+    eo_interprets M (bvAshrByConst2RnPrem x rn) true ->
+    __smtx_model_eval M (__eo_to_smt (bvAshrByConst2Lhs x amount sz)) =
+      __smtx_model_eval M (__eo_to_smt (bvAshrByConst2Rhs x nm rn)) := by
+  intro hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hResultTy
+    hGePrem hLtPrem hNmPrem hRnPrem
+  rcases bv_ashr_by_const_2_context x amount sz nm rn hXTrans
+      hAmountTrans hSzTrans hNmTrans hRnTrans hResultTy with
+    ⟨W, N, R, rfl, rfl, rfl, hW0, hN0, hNW, _hRPos,
+      hXSmtTy, hAmountSmtTy⟩
+  rcases eval_int_term_local M hM amount hAmountSmtTy with
+    ⟨A, hAmountEval⟩
+  rcases bv_ashr_by_const_2_premises_numeric M x amount A N R W
+      hAmountEval hW0 hXSmtTy hGePrem hLtPrem hNmPrem hRnPrem with
+    ⟨hWA, hAPow, hN, hR⟩
+  have hw0 : (0 : Int) ≤ W := by
+    simpa [SmtEval.native_zleq] using hW0
+  have hwa : W ≤ A := by
+    simpa [SmtEval.native_zleq] using hWA
+  have ha0 : (0 : Int) ≤ A := Int.le_trans hw0 hwa
+  have haPow : A < native_int_pow2 W := by
+    simpa [SmtEval.native_zlt] using hAPow
+  have hn0 : (0 : Int) ≤ N := by
+    simpa [SmtEval.native_zleq] using hN0
+  have hnw : N < W := by
+    simpa [SmtEval.native_zlt] using hNW
+  have hwPos : (0 : Int) < W := Int.lt_of_le_of_lt hn0 hnw
+  have hAmountMod : native_mod_total A (native_int_pow2 W) = A := by
+    simpa [SmtEval.native_mod_total] using Int.emod_eq_of_lt ha0 haPow
+  have hBvAmountEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (bvShiftByConst2Const amount (Term.Numeral W))) =
+        SmtValue.Binary W A := by
+    change __smtx_model_eval M
+        (SmtTerm.int_to_bv (SmtTerm.Numeral W) (__eo_to_smt amount)) = _
+    rw [smtx_eval_int_to_bv_term_eq]
+    rw [hAmountEval]
+    change __smtx_model_eval_int_to_bv
+        (SmtValue.Numeral W) (SmtValue.Numeral A) = _
+    simp [__smtx_model_eval_int_to_bv, hAmountMod]
+  rcases eval_bv_term_local M hM x W hW0 hXSmtTy with
+    ⟨p, hXEval, hCanonical⟩
+  have hRange := bitvec_payload_range_of_canonical hW0 hCanonical
+  have hLhsEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (bvAshrByConst2Lhs x amount (Term.Numeral W))) =
+        __smtx_model_eval_bvashr
+          (SmtValue.Binary W p) (SmtValue.Binary W A) := by
+    change __smtx_model_eval M
+        (SmtTerm.bvashr (__eo_to_smt x)
+          (__eo_to_smt
+            (bvShiftByConst2Const amount (Term.Numeral W)))) = _
+    rw [__smtx_model_eval.eq_def] <;> simp only
+    rw [hXEval, hBvAmountEval]
+  have hSignEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (bvExtractTerm x (Term.Numeral N) (Term.Numeral N))) =
+        __smtx_model_eval_extract (SmtValue.Numeral N)
+          (SmtValue.Numeral N) (SmtValue.Binary W p) := by
+    rw [eval_extract_term, hXEval]
+  have hRhsEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (bvAshrByConst2Rhs x (Term.Numeral N)
+              (Term.Numeral R))) =
+        __smtx_model_eval_repeat (SmtValue.Numeral R)
+          (__smtx_model_eval_extract (SmtValue.Numeral N)
+            (SmtValue.Numeral N) (SmtValue.Binary W p)) := by
+    change __smtx_model_eval M
+        (SmtTerm.repeat (SmtTerm.Numeral R)
+          (__eo_to_smt
+            (bvExtractTerm x (Term.Numeral N) (Term.Numeral N)))) = _
+    rw [__smtx_model_eval.eq_def] <;> simp only
+    change __smtx_model_eval_repeat (SmtValue.Numeral R)
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (bvExtractTerm x (Term.Numeral N) (Term.Numeral N)))) = _
+    rw [hSignEval]
+  rw [hLhsEval, hRhsEval]
+  exact ashr_const2_value_local2 W A N R p hw0 hwPos ha0 hwa
+    (by simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hN)
+    hR hRange.1 hRange.2
+
+private theorem facts_bv_ashr_by_const_2_term
+    (M : SmtModel) (hM : model_total_typed M)
+    (x amount sz nm rn : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation amount ->
+    RuleProofs.eo_has_smt_translation sz ->
+    RuleProofs.eo_has_smt_translation nm ->
+    RuleProofs.eo_has_smt_translation rn ->
+    __eo_typeof (bvAshrByConst2Term x amount sz nm rn) = Term.Bool ->
+    eo_interprets M (bvShiftByConst2GePrem x amount) true ->
+    eo_interprets M (bvShiftByConst2LtPrem x amount) true ->
+    eo_interprets M (bvAshrByConst2NmPrem x nm) true ->
+    eo_interprets M (bvAshrByConst2RnPrem x rn) true ->
+    eo_interprets M (bvAshrByConst2Term x amount sz nm rn) true := by
+  intro hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hResultTy
+    hGePrem hLtPrem hNmPrem hRnPrem
+  have hBool := typed_bv_ashr_by_const_2_term x amount sz nm rn
+    hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hResultTy
+  unfold bvAshrByConst2Term
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · simpa [bvAshrByConst2Term] using hBool
+  · change RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (bvAshrByConst2Lhs x amount sz)))
+      (__smtx_model_eval M (__eo_to_smt (bvAshrByConst2Rhs x nm rn)))
+    rw [eval_bv_ashr_by_const_2_term M hM x amount sz nm rn
+      hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hResultTy
+      hGePrem hLtPrem hNmPrem hRnPrem]
+    exact RuleProofs.smt_value_rel_refl _
+
+def bvAshrByConst2Program
+    (x amount sz nm rn P1 P2 P3 P4 : Term) : Term :=
+  __eo_prog_bv_ashr_by_const_2 x amount sz nm rn
+    (Proof.pf P1) (Proof.pf P2) (Proof.pf P3) (Proof.pf P4)
+
+private def bvAshrByConst2Guard
+    (x amount nm rn amountRef1 xRef1 amountRef2 xRef2 nmRef xRef3
+      rnRef xRef4 : Term) : Term :=
+  __eo_and
+    (__eo_and
+      (__eo_and
+        (__eo_and
+          (__eo_and
+            (__eo_and
+              (__eo_and (__eo_eq amount amountRef1) (__eo_eq x xRef1))
+              (__eo_eq amount amountRef2))
+            (__eo_eq x xRef2))
+          (__eo_eq nm nmRef))
+        (__eo_eq x xRef3))
+      (__eo_eq rn rnRef))
+    (__eo_eq x xRef4)
+
+private theorem bv_ashr_by_const_2_guard_refs
+    {x amount nm rn amountRef1 xRef1 amountRef2 xRef2 nmRef xRef3
+      rnRef xRef4 body : Term} :
+    __eo_requires
+        (bvAshrByConst2Guard x amount nm rn amountRef1 xRef1
+          amountRef2 xRef2 nmRef xRef3 rnRef xRef4)
+        (Term.Boolean true) body ≠ Term.Stuck ->
+    amountRef1 = amount ∧ xRef1 = x ∧ amountRef2 = amount ∧
+      xRef2 = x ∧ nmRef = nm ∧ xRef3 = x ∧ rnRef = rn ∧
+      xRef4 = x := by
+  intro hReq
+  have hGuard := support_eo_requires_cond_eq_of_non_stuck hReq
+  unfold bvAshrByConst2Guard at hGuard
+  rcases shift_and_true hGuard with ⟨hG7, hX4⟩
+  rcases shift_and_true hG7 with ⟨hG6, hRn⟩
+  rcases shift_and_true hG6 with ⟨hG5, hX3⟩
+  rcases shift_and_true hG5 with ⟨hG4, hNm⟩
+  rcases shift_and_true hG4 with ⟨hG3, hX2⟩
+  rcases shift_and_true hG3 with ⟨hG2, hAmount2⟩
+  rcases shift_and_true hG2 with ⟨hAmount1, hX1⟩
+  exact ⟨support_eq_of_eo_eq_true amount amountRef1 hAmount1,
+    support_eq_of_eo_eq_true x xRef1 hX1,
+    support_eq_of_eo_eq_true amount amountRef2 hAmount2,
+    support_eq_of_eo_eq_true x xRef2 hX2,
+    support_eq_of_eo_eq_true nm nmRef hNm,
+    support_eq_of_eo_eq_true x xRef3 hX3,
+    support_eq_of_eo_eq_true rn rnRef hRn,
+    support_eq_of_eo_eq_true x xRef4 hX4⟩
+
+private theorem bv_ashr_by_const_2_premise_shape
+    (x amount sz nm rn P1 P2 P3 P4 : Term) :
+    x ≠ Term.Stuck -> amount ≠ Term.Stuck -> sz ≠ Term.Stuck ->
+    nm ≠ Term.Stuck -> rn ≠ Term.Stuck ->
+    bvAshrByConst2Program x amount sz nm rn P1 P2 P3 P4 ≠
+      Term.Stuck ->
+    ∃ amountRef1 xRef1 amountRef2 xRef2 nmRef xRef3 rnRef xRef4,
+      P1 = bvShiftByConst2GePrem xRef1 amountRef1 ∧
+      P2 = bvShiftByConst2LtPrem xRef2 amountRef2 ∧
+      P3 = bvAshrByConst2NmPrem xRef3 nmRef ∧
+      P4 = bvAshrByConst2RnPrem xRef4 rnRef := by
+  intro hX hAmount hSz hNm hRn hProg
+  by_cases hShape :
+      ∃ amountRef1 xRef1 amountRef2 xRef2 nmRef xRef3 rnRef xRef4,
+        P1 = bvShiftByConst2GePrem xRef1 amountRef1 ∧
+        P2 = bvShiftByConst2LtPrem xRef2 amountRef2 ∧
+        P3 = bvAshrByConst2NmPrem xRef3 nmRef ∧
+        P4 = bvAshrByConst2RnPrem xRef4 rnRef
+  · exact hShape
+  · exfalso
+    apply hProg
+    exact __eo_prog_bv_ashr_by_const_2.eq_7 x amount sz nm rn
+      (Proof.pf P1) (Proof.pf P2) (Proof.pf P3) (Proof.pf P4)
+      hX hAmount hSz hNm hRn (by
+        intro amountRef1 xRef1 amountRef2 xRef2 nmRef xRef3 rnRef xRef4
+          hP1 hP2 hP3 hP4
+        cases hP1
+        cases hP2
+        cases hP3
+        cases hP4
+        exact hShape
+          ⟨amountRef1, xRef1, amountRef2, xRef2, nmRef, xRef3,
+            rnRef, xRef4, rfl, rfl, rfl, rfl⟩)
+
+private theorem bv_ashr_by_const_2_program_canonical
+    (x amount sz nm rn : Term) :
+    x ≠ Term.Stuck -> amount ≠ Term.Stuck -> sz ≠ Term.Stuck ->
+    nm ≠ Term.Stuck -> rn ≠ Term.Stuck ->
+    bvAshrByConst2Program x amount sz nm rn
+        (bvShiftByConst2GePrem x amount)
+        (bvShiftByConst2LtPrem x amount)
+        (bvAshrByConst2NmPrem x nm)
+        (bvAshrByConst2RnPrem x rn) =
+      bvAshrByConst2Term x amount sz nm rn := by
+  intro hX hAmount hSz hNm hRn
+  unfold bvAshrByConst2Program bvShiftByConst2GePrem
+    bvShiftByConst2LtPrem bvAshrByConst2NmPrem bvAshrByConst2RnPrem
+    bvShiftByConst2WidthPrem bvShiftByConst2Bvsize
+  rw [__eo_prog_bv_ashr_by_const_2.eq_6 x amount sz nm rn
+    amount x amount x nm x rn x hX hAmount hSz hNm hRn]
+  simp [bvAshrByConst2Term, bvAshrByConst2Lhs, bvAshrByConst2Rhs,
+    bvShiftByConst2Const, bvExtractTerm, __eo_requires, __eo_and,
+    __eo_eq, native_ite, native_teq, native_not, native_and,
+    hX, hAmount, hNm, hRn]
+
+private theorem bvAshrByConst2Program_normalize
+    (x amount sz nm rn P1 P2 P3 P4 : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation amount ->
+    RuleProofs.eo_has_smt_translation sz ->
+    RuleProofs.eo_has_smt_translation nm ->
+    RuleProofs.eo_has_smt_translation rn ->
+    bvAshrByConst2Program x amount sz nm rn P1 P2 P3 P4 ≠
+      Term.Stuck ->
+    P1 = bvShiftByConst2GePrem x amount ∧
+      P2 = bvShiftByConst2LtPrem x amount ∧
+      P3 = bvAshrByConst2NmPrem x nm ∧
+      P4 = bvAshrByConst2RnPrem x rn ∧
+      bvAshrByConst2Program x amount sz nm rn P1 P2 P3 P4 =
+        bvAshrByConst2Term x amount sz nm rn := by
+  intro hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hProg
+  have hX := RuleProofs.term_ne_stuck_of_has_smt_translation x hXTrans
+  have hAmount :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation amount hAmountTrans
+  have hSz := RuleProofs.term_ne_stuck_of_has_smt_translation sz hSzTrans
+  have hNm := RuleProofs.term_ne_stuck_of_has_smt_translation nm hNmTrans
+  have hRn := RuleProofs.term_ne_stuck_of_has_smt_translation rn hRnTrans
+  rcases bv_ashr_by_const_2_premise_shape x amount sz nm rn P1 P2 P3 P4
+      hX hAmount hSz hNm hRn hProg with
+    ⟨amountRef1, xRef1, amountRef2, xRef2, nmRef, xRef3,
+      rnRef, xRef4, hP1, hP2, hP3, hP4⟩
+  have hReq := hProg
+  rw [hP1, hP2, hP3, hP4] at hReq
+  unfold bvAshrByConst2Program bvShiftByConst2GePrem
+    bvShiftByConst2LtPrem bvAshrByConst2NmPrem bvAshrByConst2RnPrem
+    bvShiftByConst2WidthPrem bvShiftByConst2Bvsize at hReq
+  rw [__eo_prog_bv_ashr_by_const_2.eq_6 x amount sz nm rn
+    amountRef1 xRef1 amountRef2 xRef2 nmRef xRef3 rnRef xRef4
+    hX hAmount hSz hNm hRn] at hReq
+  have hRefs := bv_ashr_by_const_2_guard_refs
+    (x := x) (amount := amount) (nm := nm) (rn := rn)
+    (amountRef1 := amountRef1) (xRef1 := xRef1)
+    (amountRef2 := amountRef2) (xRef2 := xRef2)
+    (nmRef := nmRef) (xRef3 := xRef3) (rnRef := rnRef)
+    (xRef4 := xRef4)
+    (by simpa [bvAshrByConst2Guard] using hReq)
+  rcases hRefs with
+    ⟨hAmountRef1, hXRef1, hAmountRef2, hXRef2, hNmRef,
+      hXRef3, hRnRef, hXRef4⟩
+  subst amountRef1
+  subst xRef1
+  subst amountRef2
+  subst xRef2
+  subst nmRef
+  subst xRef3
+  subst rnRef
+  subst xRef4
+  refine ⟨hP1, hP2, hP3, hP4, ?_⟩
+  rw [hP1, hP2, hP3, hP4]
+  exact bv_ashr_by_const_2_program_canonical x amount sz nm rn
+    hX hAmount hSz hNm hRn
+
+theorem typed_bv_ashr_by_const_2_program
+    (x amount sz nm rn P1 P2 P3 P4 : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation amount ->
+    RuleProofs.eo_has_smt_translation sz ->
+    RuleProofs.eo_has_smt_translation nm ->
+    RuleProofs.eo_has_smt_translation rn ->
+    __eo_typeof
+        (bvAshrByConst2Program x amount sz nm rn P1 P2 P3 P4) =
+      Term.Bool ->
+    RuleProofs.eo_has_bool_type
+      (bvAshrByConst2Program x amount sz nm rn P1 P2 P3 P4) := by
+  intro hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hResultTy
+  have hProg := term_ne_stuck_of_typeof_bool hResultTy
+  rcases bvAshrByConst2Program_normalize x amount sz nm rn P1 P2 P3 P4
+      hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hProg with
+    ⟨_hP1, _hP2, _hP3, _hP4, hProgramEq⟩
+  have hTermTy :
+      __eo_typeof (bvAshrByConst2Term x amount sz nm rn) = Term.Bool := by
+    rw [← hProgramEq]
+    exact hResultTy
+  rw [hProgramEq]
+  exact typed_bv_ashr_by_const_2_term x amount sz nm rn
+    hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hTermTy
+
+theorem facts_bv_ashr_by_const_2_program
+    (M : SmtModel) (hM : model_total_typed M)
+    (x amount sz nm rn P1 P2 P3 P4 : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation amount ->
+    RuleProofs.eo_has_smt_translation sz ->
+    RuleProofs.eo_has_smt_translation nm ->
+    RuleProofs.eo_has_smt_translation rn ->
+    __eo_typeof
+        (bvAshrByConst2Program x amount sz nm rn P1 P2 P3 P4) =
+      Term.Bool ->
+    eo_interprets M P1 true -> eo_interprets M P2 true ->
+    eo_interprets M P3 true -> eo_interprets M P4 true ->
+    eo_interprets M
+      (bvAshrByConst2Program x amount sz nm rn P1 P2 P3 P4) true := by
+  intro hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hResultTy
+    hP1True hP2True hP3True hP4True
+  have hProg := term_ne_stuck_of_typeof_bool hResultTy
+  rcases bvAshrByConst2Program_normalize x amount sz nm rn P1 P2 P3 P4
+      hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hProg with
+    ⟨hP1, hP2, hP3, hP4, hProgramEq⟩
+  have hTermTy :
+      __eo_typeof (bvAshrByConst2Term x amount sz nm rn) = Term.Bool := by
+    rw [← hProgramEq]
+    exact hResultTy
+  have hGePrem : eo_interprets M
+      (bvShiftByConst2GePrem x amount) true := by
+    simpa [hP1] using hP1True
+  have hLtPrem : eo_interprets M
+      (bvShiftByConst2LtPrem x amount) true := by
+    simpa [hP2] using hP2True
+  have hNmPrem : eo_interprets M (bvAshrByConst2NmPrem x nm) true := by
+    simpa [hP3] using hP3True
+  have hRnPrem : eo_interprets M (bvAshrByConst2RnPrem x rn) true := by
+    simpa [hP4] using hP4True
+  rw [hProgramEq]
+  exact facts_bv_ashr_by_const_2_term M hM x amount sz nm rn
+    hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hTermTy
+    hGePrem hLtPrem hNmPrem hRnPrem
