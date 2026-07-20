@@ -394,6 +394,13 @@ private theorem bvmul_bitvec_values_local {W : Nat} (x y : BitVec W) :
         (native_int_pow2 (W : Int))) = _
   congr 2
 
+theorem bvMultSlt_bvmul_bitvec_values {W : Nat} (x y : BitVec W) :
+    __smtx_model_eval_bvmul
+        (SmtValue.Binary (W : Int) (x.toNat : Int))
+        (SmtValue.Binary (W : Int) (y.toNat : Int)) =
+      SmtValue.Binary (W : Int) ((x * y).toNat : Int) :=
+  bvmul_bitvec_values_local x y
+
 private theorem signed_mult_smt_values
     {T U W : Nat} (hWPos : 0 < W) (hWidth : T + U ≤ W)
     (x y : BitVec T) (a : BitVec U) :
@@ -1289,6 +1296,18 @@ private theorem mult_nil_bvmul_bitvec
       simpa [Nat.succ_eq_add_one] using
         nil_bvmul_bitvec_succ_of_ne_stuck w (by
           simpa [Nat.succ_eq_add_one] using hNe)
+
+theorem bvMultSlt_nil_bvmul_bitvec
+    (W : Nat)
+    (hNe :
+      __eo_nil (Term.UOp UserOp.bvmul)
+          (Term.Apply (Term.UOp UserOp.BitVec)
+            (Term.Numeral (native_nat_to_int W))) ≠ Term.Stuck) :
+    __eo_nil (Term.UOp UserOp.bvmul)
+        (Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int W))) =
+      Term.Binary (native_nat_to_int W) ((1#W).toNat : Int) :=
+  mult_nil_bvmul_bitvec W hNe
 
 private theorem mult_eval_zero_extend_term
     (M : SmtModel) (z : Term) (K : native_Int) :
