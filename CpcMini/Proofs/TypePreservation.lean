@@ -313,32 +313,20 @@ private theorem mini_model_eval_dt_sel_wrong_canonical
     (d : SmtDatatype)
     (n m : native_Nat)
     (v : SmtValue)
+    (hMapWF :
+      __smtx_type_wf
+        (SmtType.Map SmtType.Int
+          (SmtType.Map SmtType.Int
+            (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)))) = true)
     (hvTy : __smtx_typeof_value v = SmtType.Datatype s d) :
     __smtx_value_canonical
       (__smtx_model_eval_apply M
         (native_model_lookup M (native_wrong_apply_sel_id n m)
           (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)))
         v) := by
-  by_cases hFunWF :
-      __smtx_type_wf
-        (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)) = true
-  · exact mini_model_eval_apply_lookup_fun_canonical M hM (native_wrong_apply_sel_id n m)
-      (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m) v hFunWF hvTy
-  · have hFunWFFalse :
-        __smtx_type_wf
-          (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)) = false := by
-      cases hWF :
-          __smtx_type_wf
-            (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)) <;>
-        simp [hWF] at hFunWF ⊢
-    have hLookup :
-        native_model_lookup M (native_wrong_apply_sel_id n m)
-            (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)) =
-          SmtValue.NotValue :=
-      model_total_typed_lookup_not_wf hM (native_wrong_apply_sel_id n m)
-        (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)) hFunWFFalse
-    rw [hLookup]
-    exact mini_model_eval_apply_not_value_canonical M v
+  exact mini_model_eval_apply_lookup_fun_canonical M hM (native_wrong_apply_sel_id n m)
+    (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m) v
+    (dt_sel_wrong_fun_type_wf_of_map_wf s d n m hMapWF) hvTy
 
 /-- Value-level `dt_sel` preserves canonicality. -/
 private theorem mini_model_eval_dt_sel_canonical
@@ -348,13 +336,18 @@ private theorem mini_model_eval_dt_sel_canonical
     (d : SmtDatatype)
     (n m : native_Nat)
     {v : SmtValue}
+    (hMapWF :
+      __smtx_type_wf
+        (SmtType.Map SmtType.Int
+          (SmtType.Map SmtType.Int
+            (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)))) = true)
     (hvTy : __smtx_typeof_value v = SmtType.Datatype s d)
     (hv : __smtx_value_canonical v) :
     __smtx_value_canonical (__smtx_model_eval_dt_sel M s d n m v) := by
   unfold __smtx_model_eval_dt_sel
   cases hEq : native_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)
   · simpa [native_ite, hEq] using
-      mini_model_eval_dt_sel_wrong_canonical M hM s d n m v hvTy
+      mini_model_eval_dt_sel_wrong_canonical M hM s d n m v hMapWF hvTy
   · simpa [native_ite, hEq] using
       mini_vsm_apply_arg_nth_canonical (v := v) (n := m)
         (npos := __smtx_dt_num_sels d n) hv
@@ -511,21 +504,17 @@ private theorem canonical_of_supported
             native_and, SmtEval.native_and,
             native_ite, hw, hn] at ht ⊢
   case var s T hT =>
-      by_cases hWF : __smtx_type_wf T = true
-      · simpa [__smtx_model_eval] using model_total_typed_var_lookup_canonical hM s T hWF
-      · have hWF' : __smtx_type_wf T = false := by
-          cases hb : __smtx_type_wf T <;> simp [hb] at hWF ⊢
-        have hLookup : native_model_var_lookup M s T = SmtValue.NotValue :=
-          model_total_typed_var_lookup_uninhabited hM s T hWF'
-        simpa [__smtx_model_eval, hLookup] using mini_value_canonical_notValue
+      have hWF : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T (by
+          simpa [term_has_non_none_type, __smtx_typeof] using ht)
+      simpa [__smtx_model_eval] using
+        model_total_typed_var_lookup_canonical hM s T hWF
   case uconst s T hT =>
-      by_cases hWF : __smtx_type_wf T = true
-      · simpa [__smtx_model_eval] using model_total_typed_lookup_canonical hM s T hWF
-      · have hWF' : __smtx_type_wf T = false := by
-          cases hb : __smtx_type_wf T <;> simp [hb] at hWF ⊢
-        have hLookup : native_model_lookup M s T = SmtValue.NotValue :=
-          model_total_typed_lookup_not_wf hM s T hWF'
-        simpa [__smtx_model_eval, hLookup] using mini_value_canonical_notValue
+      have hWF : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T (by
+          simpa [term_has_non_none_type, __smtx_typeof] using ht)
+      simpa [__smtx_model_eval] using
+        model_total_typed_lookup_canonical hM s T hWF
   case ite htc hsc ht1 hs1 ht2 hs2 =>
       simpa [__smtx_model_eval] using
         mini_model_eval_ite_canonical
@@ -572,7 +561,7 @@ private theorem canonical_of_supported
         (supported_type_preservation M hM _ htx hsx).trans
           (dt_sel_arg_datatype_of_non_none htSel)
       simpa [__smtx_model_eval] using
-        mini_model_eval_dt_sel_canonical M hM s d i j hxTy
+        mini_model_eval_dt_sel_canonical M hM s d i j hWrongMapWF hxTy
           (canonical_of_supported M hM _ htx hsx)
   case dt_tester s d i x =>
       simp [__smtx_model_eval, __smtx_model_eval_dt_tester, __smtx_value_canonical,

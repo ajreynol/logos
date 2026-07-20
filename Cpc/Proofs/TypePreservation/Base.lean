@@ -141,28 +141,6 @@ theorem typeof_value_model_eval_uconst
   rw [model_total_typed_lookup hM s T hWF]
   exact hGuard.symm
 
-/-- Derives `model_eval_var` from non-well-formedness. -/
-theorem model_eval_var_of_not_wf
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    (s : native_String)
-    (T : SmtType)
-    (hT : __smtx_type_wf T = false) :
-    __smtx_model_eval M (SmtTerm.Var s T) = SmtValue.NotValue := by
-  unfold __smtx_model_eval
-  simpa using model_total_typed_var_lookup_uninhabited hM s T hT
-
-/-- Derives `model_eval_uconst` from non-well-formedness. -/
-theorem model_eval_uconst_of_not_wf
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    (s : native_String)
-    (T : SmtType)
-    (hT : __smtx_type_wf T = false) :
-    __smtx_model_eval M (SmtTerm.UConst s T) = SmtValue.NotValue := by
-  unfold __smtx_model_eval
-  simpa using model_total_typed_lookup_uninhabited hM s T hT
-
 /-- If a variable has sequence type `Seq A`, then `A` is non-`None`. -/
 theorem var_type_eq_seq_component_non_none
     {s : native_String}
