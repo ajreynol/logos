@@ -1,9 +1,12 @@
 module
 
 public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
 public import Cpc.Proofs.RuleSupport.StringSupport
-import all Cpc.Proofs.RuleSupport.StringSupport
+-- CNF normalization unfolds the semantic predicates and generated EO/SMT
+-- programs directly. Its dependencies on Support and StringSupport are API-only.
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
 
 public section
 

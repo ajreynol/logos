@@ -1,7 +1,10 @@
 module
 
 public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
+import all Cpc.Proofs.Assumptions
 public import Cpc.Proofs.RuleSupport.ReConcatStarSupport
 import all Cpc.Proofs.RuleSupport.ReConcatStarSupport
 public import Cpc.Proofs.Closed.IsClosedRec

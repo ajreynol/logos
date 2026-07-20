@@ -10,6 +10,8 @@ public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
 import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
 public import Cpc.Proofs.Closed.Substitute
 import all Cpc.Proofs.Closed.Substitute
+-- This proof reduces `__eo_to_smt` applications definitionally.
+import all Cpc.Spec
 
 public section
 
@@ -9406,13 +9408,19 @@ theorem substitute_simul_eval_nonbinder
                                                                                                                                                                                                                         (fun {s t} h => strings_stoi_result_args_have_smt_translation_of_has_smt_translation h)
                                                                                                                                                                                                                         (fun X1 Y1 X2 Y2 h1 h2 => by
                                                                                                                                                                                                                           show __smtx_model_eval M
-                                                                                                                                                                                                                              (SmtTerm.str_to_int
-                                                                                                                                                                                                                                (SmtTerm.str_substr (__eo_to_smt X1)
-                                                                                                                                                                                                                                  (SmtTerm.Numeral 0) (__eo_to_smt X2))) =
+                                                                                                                                                                                                                              (SmtTerm.ite
+                                                                                                                                                                                                                                (SmtTerm.eq (__eo_to_smt X2) (SmtTerm.Numeral 0))
+                                                                                                                                                                                                                                (SmtTerm.Numeral 0)
+                                                                                                                                                                                                                                (SmtTerm.str_to_int
+                                                                                                                                                                                                                                  (SmtTerm.str_substr (__eo_to_smt X1)
+                                                                                                                                                                                                                                    (SmtTerm.Numeral 0) (__eo_to_smt X2)))) =
                                                                                                                                                                                                                             __smtx_model_eval N
-                                                                                                                                                                                                                              (SmtTerm.str_to_int
-                                                                                                                                                                                                                                (SmtTerm.str_substr (__eo_to_smt Y1)
-                                                                                                                                                                                                                                  (SmtTerm.Numeral 0) (__eo_to_smt Y2)))
+                                                                                                                                                                                                                              (SmtTerm.ite
+                                                                                                                                                                                                                                (SmtTerm.eq (__eo_to_smt Y2) (SmtTerm.Numeral 0))
+                                                                                                                                                                                                                                (SmtTerm.Numeral 0)
+                                                                                                                                                                                                                                (SmtTerm.str_to_int
+                                                                                                                                                                                                                                  (SmtTerm.str_substr (__eo_to_smt Y1)
+                                                                                                                                                                                                                                    (SmtTerm.Numeral 0) (__eo_to_smt Y2))))
                                                                                                                                                                                                                           simp only [__smtx_model_eval]
                                                                                                                                                                                                                           rw [h1, h2])
                                                                                                                                                                                                                         (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)

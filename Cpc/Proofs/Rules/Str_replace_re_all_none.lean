@@ -1,8 +1,11 @@
 module
 
 public import Cpc.Proofs.RuleSupport.CoreSupport
-import all Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Logos
+import all Cpc.Proofs.Common
+import all Cpc.Proofs.Assumptions
 import all Cpc.SmtModel
+import all Cpc.Proofs.TypePreservation.Helpers
 
 open Eo
 open SmtEval

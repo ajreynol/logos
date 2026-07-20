@@ -35,6 +35,31 @@ check_no_rule_imports() {
   fi
 }
 
+check_no_broad_support_imports() {
+  local import_pattern
+  local violations
+
+  import_pattern='^[[:space:]]*import[[:space:]]+all[[:space:]]+Cpc\.Proofs\.RuleSupport\.(Support|CoreSupport|CnfSupport)[[:space:]]*$'
+
+  if command -v rg >/dev/null 2>&1; then
+    mapfile -t violations < <(
+      rg -n "${import_pattern}" "${rules_dir}"/*.lean || true
+    )
+  else
+    mapfile -t violations < <(
+      grep -nHE "${import_pattern}" "${rules_dir}"/*.lean || true
+    )
+  fi
+
+  if [ "${#violations[@]}" -ne 0 ]; then
+    echo "error: CPC rules must consume shared support modules through their public APIs:" >&2
+    printf '  %s\n' "${violations[@]}" >&2
+    echo "Import full generated/semantic implementation owners directly when reduction is required." >&2
+    return 1
+  fi
+}
+
 check_no_rule_imports
+check_no_broad_support_imports
 
 echo "Rule style checks passed."

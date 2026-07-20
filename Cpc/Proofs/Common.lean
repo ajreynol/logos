@@ -6,6 +6,9 @@ public import Cpc.Proofs.Translation
 import all Cpc.Proofs.Translation
 public import Cpc.Proofs.TypePreservation
 import all Cpc.Proofs.TypePreservation
+-- Common remains the full semantic/translation implementation boundary for
+-- specialized support modules. Declare the generated SMT dependency directly.
+import all Cpc.SmtModel
 import all Cpc.Proofs.TypePreservation.Common
 
 public section
@@ -88,6 +91,12 @@ theorem eo_interprets_true (M : SmtModel) :
 /-- Predicate asserting that translating an EO term yields a non-`None` SMT term. -/
 def eo_has_smt_translation (t : Term) : Prop :=
   __smtx_typeof (__eo_to_smt t) ≠ SmtType.None
+
+/-- Re-expresses EO translatability using the shared SMT non-`None` predicate. -/
+theorem term_has_non_none_type_of_has_smt_translation {t : Term}
+    (h : eo_has_smt_translation t) :
+    term_has_non_none_type (__eo_to_smt t) := by
+  exact h
 
 /-- Predicate asserting that an EO term translates to SMT Boolean type. -/
 def eo_has_bool_type (t : Term) : Prop :=

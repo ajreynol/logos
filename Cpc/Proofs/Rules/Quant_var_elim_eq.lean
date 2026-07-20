@@ -1,11 +1,13 @@
 module
 
 public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
 public import Cpc.Proofs.RuleSupport.CongSupport
 import all Cpc.Proofs.RuleSupport.CongSupport
 public import Cpc.Proofs.RuleSupport.CnfSupport
-import all Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
+import all Cpc.Proofs.Assumptions
 public import Cpc.Proofs.RuleSupport.RelCoincidenceSupport
 import all Cpc.Proofs.RuleSupport.RelCoincidenceSupport
 public import Cpc.Proofs.RuleSupport.InstantiateSupport

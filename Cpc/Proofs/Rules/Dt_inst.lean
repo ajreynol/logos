@@ -1,7 +1,10 @@
 module
 
 public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
+import all Cpc.Proofs.Assumptions
 public import Cpc.Proofs.RuleSupport.SequenceSupport
 import all Cpc.Proofs.RuleSupport.SequenceSupport
 public import Cpc.Proofs.RuleSupport.DatatypeSupport

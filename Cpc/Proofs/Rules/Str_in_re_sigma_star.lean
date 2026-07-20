@@ -3,7 +3,10 @@ module
 public import Cpc.Proofs.RuleSupport.RegexSupport
 import all Cpc.Proofs.RuleSupport.RegexSupport
 public import Cpc.Proofs.RuleSupport.CoreSupport
-import all Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
+import all Cpc.Proofs.Assumptions
 
 open Eo
 open SmtEval

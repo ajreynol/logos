@@ -6,6 +6,10 @@ public import Cpc.Proofs.Assumptions
 import all Cpc.Proofs.Assumptions
 public import Cpc.Proofs.Closed.Support
 import all Cpc.Proofs.Closed.Support
+-- This is the shared implementation boundary for rule proofs that normalize
+-- generated EO programs and SMT evaluation/typechecking definitions.
+import all Cpc.Logos
+import all Cpc.SmtModel
 
 @[expose] public section
 

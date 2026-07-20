@@ -1,7 +1,12 @@
 module
 
 public import Cpc.Proofs.RuleSupport.CnfSupport
-import all Cpc.Proofs.RuleSupport.CnfSupport
+-- The rule consumes CnfSupport's public lemmas. Full access is needed only for
+-- the generated program and semantic predicates unfolded in this proof.
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
+import all Cpc.Proofs.Assumptions
 
 open Eo
 open SmtEval

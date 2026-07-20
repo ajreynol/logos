@@ -1,7 +1,11 @@
 module
 
 public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
+-- This module unfolds the shared semantic predicates and generated EO/SMT
+-- definitions, but only uses Support through its public declarations.
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
 
 public section
 

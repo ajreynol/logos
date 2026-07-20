@@ -1,6 +1,9 @@
 module
 
 public import Cpc.Proofs.Translation.EoTypeofCore
+-- This module proves specialized equations by reducing the generated
+-- `typeof` definition directly.
+import all Cpc.Logos
 import all Cpc.Proofs.TypePreservation.Common
 
 public section

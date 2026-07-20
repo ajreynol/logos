@@ -1,7 +1,10 @@
 module
 
 public import Cpc.Proofs.RuleSupport.CoreSupport
-import all Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
+import all Cpc.Proofs.Assumptions
 public import Cpc.Proofs.TypePreservation.SeqStringRegex
 import all Cpc.Proofs.TypePreservation.SeqStringRegex
 

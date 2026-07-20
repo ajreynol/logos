@@ -1,6 +1,10 @@
 module
 
 public import Cpc.Proofs.Translation.Apply
+-- Full translation still reasons directly about several generated `typeof`
+-- definitions. Keep that private dependency local to this implementation
+-- module instead of inheriting it from `TermCompat`.
+import all Cpc.Logos
 import all Cpc.Proofs.TypePreservation.Common
 
 public section

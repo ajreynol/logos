@@ -1,13 +1,15 @@
 module
 
 public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
 public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
 import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
 public import Cpc.Proofs.RuleSupport.TypeInversionSupport
 import all Cpc.Proofs.RuleSupport.TypeInversionSupport
 public import Cpc.Proofs.RuleSupport.CnfSupport
-import all Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
+import all Cpc.Proofs.Assumptions
 
 open Eo
 open SmtEval

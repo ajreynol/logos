@@ -1,7 +1,6 @@
 module
 
 public import Cpc.Logos
-import all Cpc.Logos
 public import Cpc.SmtModel
 import all Cpc.SmtModel
 

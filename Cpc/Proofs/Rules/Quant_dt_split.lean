@@ -1,9 +1,11 @@
 module
 
 public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
+import all Cpc.Proofs.Assumptions
 public import Cpc.Proofs.RuleSupport.CoreSupport
-import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.QuantDtSplitSupport
 import all Cpc.Proofs.RuleSupport.QuantDtSplitSupport
 

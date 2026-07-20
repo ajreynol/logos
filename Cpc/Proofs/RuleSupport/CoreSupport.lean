@@ -6,6 +6,11 @@ public import Cpc.Proofs.Canonical
 import all Cpc.Proofs.Canonical
 public import Cpc.Proofs.TypePreservation.Helpers
 import all Cpc.Proofs.TypePreservation.Helpers
+-- Core rule proofs reduce generated EO and SMT definitions directly. Declare
+-- those generated dependencies here even though this module remains the
+-- full-access boundary for specialized support implementations.
+import all Cpc.Logos
+import all Cpc.SmtModel
 
 public section
 
@@ -40,7 +45,7 @@ theorem model_eval_eo_to_smt_canonical
     (hTrans : eo_has_smt_translation t) :
     __smtx_value_canonical (__smtx_model_eval M (__eo_to_smt t)) := by
   exact Smtm.model_eval_canonical M hM (__eo_to_smt t) (by
-    simpa [eo_has_smt_translation, term_has_non_none_type] using hTrans)
+    exact term_has_non_none_type_of_has_smt_translation hTrans)
 
 theorem eo_typeof_eq_bool_operands_not_stuck (A B : Term)
     (h : __eo_typeof_eq A B = Term.Bool) :

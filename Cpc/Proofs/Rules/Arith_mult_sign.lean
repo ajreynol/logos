@@ -3,7 +3,10 @@ module
 public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
 import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
 public import Cpc.Proofs.RuleSupport.CnfSupport
-import all Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Logos
+import all Cpc.SmtModel
+import all Cpc.Proofs.Common
+import all Cpc.Proofs.Assumptions
 
 open Eo
 open SmtEval
