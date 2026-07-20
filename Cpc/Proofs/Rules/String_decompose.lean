@@ -120,14 +120,6 @@ private theorem smtx_typeof_neg_int
   rw [typeof_neg_eq]
   simp [__smtx_typeof_arith_overload_op_2, hx, hy]
 
-private theorem smtx_typeof_geq_int
-    (x y : SmtTerm)
-    (hx : __smtx_typeof x = SmtType.Int)
-    (hy : __smtx_typeof y = SmtType.Int) :
-    __smtx_typeof (SmtTerm.geq x y) = SmtType.Bool := by
-  rw [typeof_geq_eq]
-  simp [hx, hy, __smtx_typeof_arith_overload_op_2_ret]
-
 private theorem smt_typeof_seq_empty_typeof_of_smt_type_seq
     (x : Term) (T : SmtType)
     (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
@@ -683,17 +675,6 @@ private theorem typed_string_decompose_true_body
       (sdAnd (sdEq (sdLen last) n) (Term.Boolean true))
       hEqMain hTail
 
-private theorem eo_and_eq_true_elim (x y : Term)
-    (h : __eo_and x y = Term.Boolean true) :
-    x = Term.Boolean true ∧ y = Term.Boolean true := by
-  cases x <;> cases y <;> simp [__eo_and] at h ⊢
-  case Boolean.Boolean b₁ b₂ =>
-    cases b₁ <;> cases b₂ <;> simp [native_and] at h ⊢
-  case Binary.Binary w₁ n₁ w₂ n₂ =>
-    by_cases hw : w₁ = w₂ <;>
-      simp [__eo_requires, native_ite, native_teq, native_not,
-        SmtEval.native_not, hw] at h
-
 private theorem eo_requires_true_eq (x body : Term)
     (h : x = Term.Boolean true) :
     __eo_requires x (Term.Boolean true) body = body := by
@@ -712,16 +693,6 @@ private theorem string_decompose_requires_eq
   rcases hReq' with ⟨hCond, _hBody⟩
   exact ⟨eo_requires_true_eq _ body hCond,
     eq_of_eo_eq_true_local n lv hCond⟩
-
-private theorem term_apply_ne_stuck (f x : Term) :
-    Term.Apply f x ≠ Term.Stuck := by
-  intro h
-  cases h
-
-private theorem term_uop_ne_stuck (op : UserOp) :
-    Term.UOp op ≠ Term.Stuck := by
-  intro h
-  cases h
 
 private theorem string_decompose_false_generated_eq_body
     (s n : Term) (T : SmtType)

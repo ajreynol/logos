@@ -72,57 +72,6 @@ private theorem eval_eo_var_lookup (M : SmtModel) (s : native_String) (T : Term)
   rw [__smtx_model_eval.eq_def]
   rfl
 
-private theorem l1_quant_var_elim_eq_or_eq
-    (x t tail : Term)
-    (hx : x ≠ Term.Stuck)
-    (hNoFree :
-      __contains_atomic_term_list_free_rec t (qsingle x) Term.__eo_List_nil =
-        Term.Boolean false) :
-    __eo_l_1___mk_quant_var_elim_eq x (qor (qnot (qeq x t)) tail) =
-      qsubst (__eo_list_singleton_elim (Term.UOp UserOp.or) tail) x t := by
-  have hEq : __eo_eq x x = Term.Boolean true :=
-    eo_eq_self_true x hx
-  have hNoFree' :
-      __contains_atomic_term_list_free_rec t
-          ((Term.__eo_List_cons.Apply x).Apply Term.__eo_List_nil)
-          Term.__eo_List_nil =
-        Term.Boolean false := by
-    simpa [qsingle, qcons] using hNoFree
-  simp [__eo_l_1___mk_quant_var_elim_eq, qeq, qnot, qor, qsingle, qcons,
-    qsubst, hEq, hNoFree', __eo_requires, native_ite, native_teq, native_not,
-    SmtEval.native_not]
-
-private theorem mk_quant_var_elim_eq_diseq_eq
-    (x t : Term)
-    (hx : x ≠ Term.Stuck)
-    (hNoFree :
-      __contains_atomic_term_list_free_rec t (qsingle x) Term.__eo_List_nil =
-        Term.Boolean false) :
-    __mk_quant_var_elim_eq x (qnot (qeq x t)) =
-      qsubst (Term.Boolean false) x t := by
-  have hEq : __eo_eq x x = Term.Boolean true :=
-    eo_eq_self_true x hx
-  have hNoFree' :
-      __contains_atomic_term_list_free_rec t
-          ((Term.__eo_List_cons.Apply x).Apply Term.__eo_List_nil)
-          Term.__eo_List_nil =
-        Term.Boolean false := by
-    simpa [qsingle, qcons] using hNoFree
-  simp [__mk_quant_var_elim_eq, qeq, qnot, qsingle, qcons, qsubst, hEq,
-    hNoFree', __eo_ite, __eo_requires, native_ite, native_teq, native_not,
-    SmtEval.native_not]
-
-private theorem mk_quant_var_elim_eq_or_eq
-    (x t tail : Term)
-    (hx : x ≠ Term.Stuck)
-    (hNoFree :
-      __contains_atomic_term_list_free_rec t (qsingle x) Term.__eo_List_nil =
-        Term.Boolean false) :
-    __mk_quant_var_elim_eq x (qor (qnot (qeq x t)) tail) =
-      qsubst (__eo_list_singleton_elim (Term.UOp UserOp.or) tail) x t := by
-  simpa [__mk_quant_var_elim_eq, qeq, qnot, qor] using
-    l1_quant_var_elim_eq_or_eq x t tail hx hNoFree
-
 private theorem singleton_subst_actuals_of_eq_bool
     (x t F : Term)
     (hForallTrans :
@@ -344,10 +293,6 @@ private theorem or_eval_true_right_of_left_false {b : SmtValue}
     b = SmtValue.Boolean true := by
   cases b <;> simp_all [__smtx_model_eval_or, SmtEval.native_or]
 
-private theorem not_eval_true_iff (a : SmtValue) :
-    __smtx_model_eval_not a = SmtValue.Boolean true ↔ a = SmtValue.Boolean false := by
-  cases a <;> simp [__smtx_model_eval_not, SmtEval.native_not]
-
 private theorem eval_eq_is_boolean (v w : SmtValue) :
     ∃ b, __smtx_model_eval_eq v w = SmtValue.Boolean b := by
   unfold __smtx_model_eval_eq
@@ -374,10 +319,6 @@ private theorem eo_ite_eq_true_branch {c : Term} (a b : Term)
 private theorem eo_ite_eq_false_branch {c : Term} (a b : Term)
     (hc : c = Term.Boolean false) : __eo_ite c a b = b := by
   subst hc
-  simp [native_ite, native_teq]
-
-private theorem eo_ite_stuck_cond (a b : Term) :
-    __eo_ite Term.Stuck a b = Term.Stuck := by
   simp [native_ite, native_teq]
 
 /- The `eq_of_eo_ite_*` variants are applied (rather than used as rewrite

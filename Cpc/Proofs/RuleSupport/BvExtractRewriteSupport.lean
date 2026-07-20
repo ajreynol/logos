@@ -195,34 +195,6 @@ theorem bitvec_ofInt_natCast_toNat {w : Nat} (x : BitVec w) :
   rw [BitVec.ofInt_natCast, BitVec.ofNat_toNat]
   simp
 
-private theorem extract_valN (W : Nat) (p : Int) (hi lo : Nat)
-    (hp0 : 0 ≤ p) (hlo : lo ≤ hi + 1) :
-    __smtx_model_eval_extract (SmtValue.Numeral ↑hi) (SmtValue.Numeral ↑lo)
-        (SmtValue.Binary ↑W p) =
-      SmtValue.Binary ↑(hi + 1 - lo)
-        ↑((p.toNat / 2 ^ lo) % 2 ^ (hi + 1 - lo)) := by
-  obtain ⟨N, rfl⟩ : ∃ N : Nat, p = (↑N : Int) :=
-    ⟨p.toNat, (Int.toNat_of_nonneg hp0).symm⟩
-  simp only [__smtx_model_eval_extract, native_zplus, native_zneg,
-    native_mod_total, native_binary_extract, native_div_total, Int.toNat_natCast]
-  have hw : (↑hi + 1 + -↑lo : Int) = ↑(hi + 1 - lo) := by omega
-  rw [hw, natpow2_eq lo, natpow2_eq (hi + 1 - lo),
-    show ((2 : Int) ^ lo) = ((2 ^ lo : Nat) : Int) by norm_cast,
-    show ((2 : Int) ^ (hi + 1 - lo)) = ((2 ^ (hi + 1 - lo) : Nat) : Int) by
-      norm_cast]
-  norm_cast
-
-private theorem extract_val_bitvec (W : Nat) (p : Int) (hi lo : Nat)
-    (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W) (hlo : lo ≤ hi + 1) :
-    __smtx_model_eval_extract (SmtValue.Numeral ↑hi) (SmtValue.Numeral ↑lo)
-        (SmtValue.Binary ↑W p) =
-      SmtValue.Binary ↑(hi + 1 - lo)
-        ↑((BitVec.ofInt W p).extractLsb' lo (hi + 1 - lo)).toNat := by
-  rw [extract_valN W p hi lo hp0 hlo]
-  congr 2
-  simp [BitVec.extractLsb'_toNat, ofInt_toNat_canonical W p hp0 hp1,
-    Nat.shiftRight_eq_div_pow]
-
 private theorem bvnot_val_bitvec (W : Nat) (p : Int)
     (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W) :
     __smtx_model_eval_bvnot (SmtValue.Binary ↑W p) =

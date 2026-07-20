@@ -208,10 +208,6 @@ theorem native_unpack_string_substr_split
 abbrev RegLanEval (M : SmtModel) (t : Term) : Prop :=
   ∃ r, __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r
 
-private theorem native_string_lit_empty :
-    native_string_lit "" = ([] : native_String) := by
-  simp [native_string_lit]
-
 theorem native_string_valid_of_str_in_re_true
     {str : native_String} {r : native_RegLan}
     (h : native_str_in_re str r = true) :

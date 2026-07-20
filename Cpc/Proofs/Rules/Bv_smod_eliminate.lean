@@ -818,30 +818,6 @@ private theorem smt_bitvec_type_of_eo_bitvec_type_with_width
   all_goals
     exact False.elim (hXTrans hSmtType)
 
-private theorem smt_typeof_bvsize_eq_int (x : Term) (n : native_Int) :
-    native_zleq 0 n = true ->
-    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec (native_int_to_nat n) ->
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x)) =
-      SmtType.Int := by
-  intro hNonneg hXSmt
-  change __smtx_typeof
-      (native_ite
-        (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
-        (SmtTerm._at_purify
-          (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
-        SmtTerm.None) =
-    SmtType.Int
-  rw [hXSmt]
-  have hSize : __smtx_bv_sizeof_type (SmtType.BitVec (native_int_to_nat n)) =
-      native_nat_to_int (native_int_to_nat n) := rfl
-  have hNN :
-      native_zleq 0 (native_nat_to_int (native_int_to_nat n)) = true := by
-    simp [native_zleq, SmtEval.native_zleq, native_nat_to_int]
-  rw [hSize]
-  simp [native_ite, hNN]
-  simp [__smtx_typeof]
-
 private theorem eval_bvsize_eq (M : SmtModel) (x : Term) (n : native_Int)
     (hNonneg : native_zleq 0 n = true)
     (hXSmt : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec (native_int_to_nat n)) :
@@ -980,18 +956,6 @@ private theorem eo_to_smt_int_to_bv_num (k n : native_Int) :
     __eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k)) =
       SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k) := by
   rfl
-
-private theorem eval_bv_const
-    (M : SmtModel) (k n : native_Int) :
-    native_zleq 0 n = true ->
-    __smtx_model_eval M
-        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k))) =
-      SmtValue.Binary n (native_mod_total k (native_int_pow2 n)) := by
-  intro hNonneg
-  change __smtx_model_eval M
-      (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
-    SmtValue.Binary n (native_mod_total k (native_int_pow2 n))
-  simp [native_ite, hNonneg]
 
 private theorem eval_smt_eq (M : SmtModel) (a b : SmtTerm) :
     __smtx_model_eval M (SmtTerm.eq a b) =

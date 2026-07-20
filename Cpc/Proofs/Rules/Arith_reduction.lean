@@ -10,11 +10,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-private theorem smt_eval_to_real_idem (v : SmtValue) :
-    __smtx_model_eval_to_real (__smtx_model_eval_to_real v) =
-      __smtx_model_eval_to_real v := by
-  cases v <;> rfl
-
 private theorem smt_qdiv_eval_reduction_self
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.qdiv x y) =
@@ -31,48 +26,6 @@ private theorem smt_qdiv_eval_reduction_self
          (__smtx_model_eval_qdiv_total xr yr)) := by
   rw [smtx_eval_qdiv_term_eq]
 
-private theorem smt_qdiv_eval_reduction_rel
-    (M : SmtModel) (x y : SmtTerm) :
-    RuleProofs.smt_value_rel
-      (__smtx_model_eval M (SmtTerm.qdiv x y))
-      (let yv := __smtx_model_eval M y
-       let xv := __smtx_model_eval M x
-       let yr := __smtx_model_eval_to_real yv
-       let xr := __smtx_model_eval_to_real xv
-       __smtx_model_eval_ite
-         (__smtx_model_eval_eq yr (SmtValue.Rational (native_mk_rational 0 1)))
-         (__smtx_model_eval_apply M
-           (native_model_lookup M native_qdiv_by_zero_id
-             (SmtType.FunType SmtType.Real SmtType.Real))
-           xr)
-         (__smtx_model_eval_qdiv_total xr yr)) := by
-  rw [smt_qdiv_eval_reduction_self]
-  exact RuleProofs.smt_value_rel_refl _
-
-private theorem smt_qdiv_eval_reduction_normalized_term_rel
-    (M : SmtModel) (x y : SmtTerm) :
-    RuleProofs.smt_value_rel
-      (__smtx_model_eval M (SmtTerm.qdiv x y))
-      (__smtx_model_eval M
-        (SmtTerm.ite
-          (SmtTerm.eq
-            (SmtTerm.to_real y)
-            (SmtTerm.Rational (native_mk_rational 0 1)))
-          (SmtTerm.qdiv
-            (SmtTerm.to_real x)
-            (SmtTerm.Rational (native_mk_rational 0 1)))
-          (SmtTerm.qdiv_total (SmtTerm.to_real x) (SmtTerm.to_real y)))) := by
-  rw [smt_qdiv_eval_reduction_self, smtx_eval_ite_term_eq,
-    smtx_eval_eq_term_eq, __smtx_model_eval.eq_19,
-    __smtx_model_eval.eq_3, smtx_eval_qdiv_term_eq,
-    smtx_eval_qdiv_total_term_eq]
-  rw [__smtx_model_eval.eq_19, __smtx_model_eval.eq_3]
-  rw [__smtx_model_eval.eq_19]
-  rw [smt_eval_to_real_idem (__smtx_model_eval M x)]
-  simp [__smtx_model_eval_to_real, __smtx_model_eval_ite, __smtx_model_eval_eq,
-    native_veq]
-  exact RuleProofs.smt_value_rel_refl _
-
 private theorem smt_div_eval_reduction_self
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.div x y) =
@@ -86,22 +39,6 @@ private theorem smt_div_eval_reduction_self
            xv)
          (__smtx_model_eval_div_total xv yv)) := by
   rw [__smtx_model_eval.eq_24]
-
-private theorem smt_div_eval_reduction_rel
-    (M : SmtModel) (x y : SmtTerm) :
-    RuleProofs.smt_value_rel
-      (__smtx_model_eval M (SmtTerm.div x y))
-      (let yv := __smtx_model_eval M y
-       let xv := __smtx_model_eval M x
-       __smtx_model_eval_ite
-         (__smtx_model_eval_eq yv (SmtValue.Numeral 0))
-         (__smtx_model_eval_apply M
-           (native_model_lookup M native_div_by_zero_id
-             (SmtType.FunType SmtType.Int SmtType.Int))
-           xv)
-         (__smtx_model_eval_div_total xv yv)) := by
-  rw [smt_div_eval_reduction_self]
-  exact RuleProofs.smt_value_rel_refl _
 
 private theorem smt_div_eval_reduction_term_rel
     (M : SmtModel) (x y : SmtTerm) :
@@ -133,22 +70,6 @@ private theorem smt_mod_eval_reduction_self
            xv)
          (__smtx_model_eval_mod_total xv yv)) := by
   rw [__smtx_model_eval.eq_25]
-
-private theorem smt_mod_eval_reduction_rel
-    (M : SmtModel) (x y : SmtTerm) :
-    RuleProofs.smt_value_rel
-      (__smtx_model_eval M (SmtTerm.mod x y))
-      (let yv := __smtx_model_eval M y
-       let xv := __smtx_model_eval M x
-       __smtx_model_eval_ite
-         (__smtx_model_eval_eq yv (SmtValue.Numeral 0))
-         (__smtx_model_eval_apply M
-           (native_model_lookup M native_mod_by_zero_id
-             (SmtType.FunType SmtType.Int SmtType.Int))
-           xv)
-         (__smtx_model_eval_mod_total xv yv)) := by
-  rw [smt_mod_eval_reduction_self]
-  exact RuleProofs.smt_value_rel_refl _
 
 private theorem smt_mod_eval_reduction_term_rel
     (M : SmtModel) (x y : SmtTerm) :
@@ -3024,94 +2945,6 @@ private theorem facts_arith_reduction_of_trans
   | _ =>
       simp [__arith_reduction_pred] at hTy
       exact False.elim (false_of_typeof_stuck_bool hTy)
-
-private theorem facts_arith_reduction_qdiv_of_trans
-    (M : SmtModel) (hM : model_total_typed M) (u v : Term)
-    (hTrans :
-      RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) u) v)) :
-    eo_interprets M
-      (__arith_reduction_pred
-        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) u) v))
-      true := by
-  exact facts_arith_reduction_qdiv M hM u v hTrans
-
-private theorem facts_arith_reduction_qdiv_total_of_trans
-    (M : SmtModel) (hM : model_total_typed M) (u v : Term)
-    (hTrans :
-      RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) u) v)) :
-    eo_interprets M
-      (__arith_reduction_pred
-        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) u) v))
-      true := by
-  exact facts_arith_reduction_qdiv_total M hM u v hTrans
-
-private theorem facts_arith_reduction_div_of_trans
-    (M : SmtModel) (a b : Term)
-    (hTrans :
-      RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.Apply (Term.UOp UserOp.div) a) b)) :
-    eo_interprets M
-      (__arith_reduction_pred
-        (Term.Apply (Term.Apply (Term.UOp UserOp.div) a) b))
-      true := by
-  change eo_interprets M
-    (Term.Apply
-      (Term.Apply (Term.UOp UserOp.eq)
-        (Term.Apply (Term.Apply (Term.UOp UserOp.div) a) b))
-      (Term.Apply
-        (Term.Apply
-          (Term.Apply (Term.UOp UserOp.ite)
-            (Term.Apply (Term.Apply (Term.UOp UserOp.eq) b) (Term.Numeral 0)))
-          (Term.Apply (Term.UOp UserOp._at_int_div_by_zero) a))
-        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b)))
-    true
-  exact facts_arith_reduction_div M a b
-    (typed_arith_reduction_div a b hTrans)
-
-private theorem facts_arith_reduction_mod_of_trans
-    (M : SmtModel) (a b : Term)
-    (hTrans :
-      RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.Apply (Term.UOp UserOp.mod) a) b)) :
-    eo_interprets M
-      (__arith_reduction_pred
-        (Term.Apply (Term.Apply (Term.UOp UserOp.mod) a) b))
-      true := by
-  change eo_interprets M
-    (Term.Apply
-      (Term.Apply (Term.UOp UserOp.eq)
-        (Term.Apply (Term.Apply (Term.UOp UserOp.mod) a) b))
-      (Term.Apply
-        (Term.Apply
-          (Term.Apply (Term.UOp UserOp.ite)
-            (Term.Apply (Term.Apply (Term.UOp UserOp.eq) b) (Term.Numeral 0)))
-          (Term.Apply (Term.UOp UserOp._at_mod_by_zero) a))
-        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b)))
-    true
-  exact facts_arith_reduction_mod M a b
-    (typed_arith_reduction_mod a b hTrans)
-
-private theorem facts_arith_reduction_abs_of_trans
-    (M : SmtModel) (hM : model_total_typed M) (u : Term)
-    (hTrans :
-      RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.UOp UserOp.abs) u)) :
-    eo_interprets M
-      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.abs) u))
-      true := by
-  exact facts_arith_reduction_abs_from_trans M hM u hTrans
-
-private theorem facts_arith_reduction_int_log2_of_trans
-    (M : SmtModel) (hM : model_total_typed M) (u : Term)
-    (hTrans :
-      RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.UOp UserOp.int_log2) u)) :
-    eo_interprets M
-      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.int_log2) u))
-      true := by
-  exact facts_arith_reduction_int_log2 M hM u hTrans
 
 private theorem arith_reduction_prog_eq_pred (t : Term) :
     __eo_prog_arith_reduction t = __arith_reduction_pred t := by

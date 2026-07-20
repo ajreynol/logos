@@ -1868,11 +1868,6 @@ private theorem strConcatDrop_rev_substrWord_eq_rev_take
   rw [hDropEq]
   rw [← eo_list_rev_substrWord_local (s.take (s.length - d))]
 
-private theorem native_unpack_seq_pack_string (s : native_String) :
-    native_unpack_seq (native_pack_string s) =
-      s.map SmtValue.Char := by
-  simp [native_pack_string, RuleProofs.native_unpack_seq_pack_seq]
-
 private theorem string_eval_unpack_eq
     (M : SmtModel) (s : native_String) (ss : SmtSeq)
     (hEval :
@@ -2773,50 +2768,6 @@ private theorem str_is_compatible_full_word_flatten_ne_false_of_append_eval
                 rcases h with ⟨head, tail, hEq⟩
                 cases hEq)
 
-private theorem str_is_empty_seq_empty_seq_local (U : Term) :
-    __str_is_empty (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) =
-      Term.Boolean true := by
-  cases U <;> simp [__seq_empty, __str_is_empty]
-  case UOp op =>
-    cases op <;> simp
-
-private theorem eo_list_rev_seq_empty_seq_eq (U : Term) :
-    __eo_list_rev (Term.UOp UserOp.str_concat)
-        (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) =
-      __seq_empty (Term.Apply (Term.UOp UserOp.Seq) U) := by
-  cases U <;>
-    simp [__seq_empty, __eo_list_rev, __eo_is_list, __eo_get_nil_rec,
-      __eo_requires, native_teq, native_ite, native_not,
-      __eo_is_ok, SmtEval.native_not,
-      __eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_list_rev_rec]
-  case UOp op =>
-    cases op <;>
-      simp [__eo_get_nil_rec,
-        __eo_requires, native_teq, native_ite, native_not, __eo_eq, SmtEval.native_not,
-        __eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_list_rev_rec]
-
-private theorem str_is_compatible_rev_seq_empty_typeof_right_ne_false
-    (a x : Term) (T : SmtType)
-    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
-    __str_is_compatible a
-        (__eo_list_rev (Term.UOp UserOp.str_concat)
-          (__seq_empty (__eo_typeof x))) ≠
-      Term.Boolean false := by
-  have hTrans : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-    rw [hxTy]
-    exact seq_ne_none T
-  have hTypeMatch :=
-    TranslationProofs.eo_to_smt_typeof_matches_translation x hTrans
-  have hA : __eo_to_smt_type (__eo_typeof x) = SmtType.Seq T := by
-    rw [← hTypeMatch, hxTy]
-  rcases TranslationProofs.eo_to_smt_type_eq_seq hA with
-    ⟨U, hType, _hU⟩
-  rw [hType]
-  rw [eo_list_rev_seq_empty_seq_eq U]
-  exact str_is_compatible_str_is_empty_right_ne_false a
-    (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))
-    (str_is_empty_seq_empty_seq_local U)
-
 private theorem str_flatten_seq_empty_seq_of_type_eq
     (U : Term)
     (hUType : __eo_typeof U = Term.Type) :
@@ -2972,41 +2923,6 @@ private theorem str_nary_intro_eq_singleton_of_is_list_false_seq
     (by decide)]
   rw [hApplyEq, hEmptyEq]
 
-private theorem str_flatten_str_nary_intro_of_is_list_false_non_string_seq
-    (x : Term) (T : SmtType)
-    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
-    (hxNotString : ¬ ∃ s : native_String, x = Term.String s)
-    (hNotConcat : ¬ ∃ h t : Term, x = mkConcat h t)
-    (hList :
-      __eo_is_list (Term.UOp UserOp.str_concat) x = Term.Boolean false) :
-    __str_flatten (__str_nary_intro x) = __str_nary_intro x := by
-  have hxNe : x ≠ Term.Stuck :=
-    term_ne_stuck_of_smt_type_seq x T hxTy
-  have hIntroEq :=
-    str_nary_intro_eq_singleton_of_is_list_false_seq x T hxTy hList
-  have hIsStr : __eo_is_str x = Term.Boolean false :=
-    eo_is_str_false_of_not_string_ne_stuck x hxNotString hxNe
-  have hFlatEmpty :
-      __str_flatten (__seq_empty (__eo_typeof x)) =
-        __seq_empty (__eo_typeof x) :=
-    str_flatten_seq_empty_typeof_eq x T hxTy
-  have hEmptyNe :
-      __seq_empty (__eo_typeof x) ≠ Term.Stuck :=
-    seq_empty_typeof_ne_stuck_of_smt_type_seq x T hxTy
-  have hApplySeq :
-      __eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) x)
-          (__seq_empty (__eo_typeof x)) =
-        mkConcat x (__seq_empty (__eo_typeof x)) := by
-    apply eo_mk_apply_eq_apply_of_ne_stuck
-    cases hEmpty : __seq_empty (__eo_typeof x) <;>
-      simp [__eo_mk_apply, hEmpty] at hEmptyNe ⊢
-  rw [hIntroEq]
-  have hXNotConcat : ∀ h t : Term, x ≠ mkConcat h t := by
-    intro h t hEq
-    exact hNotConcat ⟨h, t, hEq⟩
-  rw [__str_flatten.eq_3 x (__seq_empty (__eo_typeof x)) hXNotConcat,
-    hIsStr, eo_ite_false, hFlatEmpty, hApplySeq]
-
 private theorem eo_list_rev_str_flatten_intro_non_concat_non_string_eq
     (x : Term) (T : SmtType)
     (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
@@ -3108,42 +3024,6 @@ private theorem str_is_compatible_rev_word_flatten_intro_non_concat_non_string_n
       exact
         str_is_compatible_full_word_flatten_intro_non_concat_non_string_ne_false
           x T rc rcs hxTy hNotConcat hxNotString
-
-private theorem str_is_compatible_rev_word_flatten_non_concat_ne_false
-    (x : Term) (T : SmtType) (wc : native_Char) (wcs : native_String)
-    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
-    (hNotConcat : ¬ ∃ head tail : Term, x = mkConcat head tail) :
-    __str_is_compatible
-        (__eo_list_rev (Term.UOp UserOp.str_concat)
-          (RuleProofs.substrWord (wc :: wcs) 0 ((wc :: wcs).length)))
-        (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten x)) ≠
-      Term.Boolean false := by
-  rw [str_flatten_eq_default_of_not_str_concat x hNotConcat]
-  by_cases hReq :
-      __eo_requires x (__seq_empty (__eo_typeof x)) x = Term.Stuck
-  · rw [hReq]
-    have hRevStuck :
-        __eo_list_rev (Term.UOp UserOp.str_concat) Term.Stuck =
-          Term.Stuck := by
-      simp [__eo_list_rev, __eo_is_list, __eo_requires,
-        native_teq, native_ite]
-    rw [hRevStuck]
-    cases hLeft :
-        __eo_list_rev (Term.UOp UserOp.str_concat)
-          (RuleProofs.substrWord (wc :: wcs) 0 ((wc :: wcs).length)) <;>
-      simp [__str_is_compatible]
-  · have hReqEq :
-        __eo_requires x (__seq_empty (__eo_typeof x)) x = x :=
-      RuleProofs.eo_requires_result_eq_of_ne_stuck x
-        (__seq_empty (__eo_typeof x)) x hReq
-    have hEmptyEq : x = __seq_empty (__eo_typeof x) :=
-      RuleProofs.eo_requires_eq_of_ne_stuck x
-        (__seq_empty (__eo_typeof x)) x hReq
-    rw [hReqEq, hEmptyEq]
-    exact str_is_compatible_rev_seq_empty_typeof_right_ne_false
-      (__eo_list_rev (Term.UOp UserOp.str_concat)
-        (RuleProofs.substrWord (wc :: wcs) 0 ((wc :: wcs).length))) x T
-      hxTy
 
 private theorem str_is_compatible_rev_rec_flatten_non_concat_ne_false_of_append_eval
     (M : SmtModel) (x : Term) (T : SmtType) (sx : SmtSeq)

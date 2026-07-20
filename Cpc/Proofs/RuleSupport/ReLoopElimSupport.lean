@@ -144,20 +144,9 @@ private theorem native_re_nullable_mk_concat (r s : native_RegLan) :
   cases r <;> cases s <;>
     simp [native_re_mk_concat, native_re_nullable]
 
-private theorem nativeListInRe_mk_concat_empty_left
-    (xs : List native_Char) (r : native_RegLan) :
-    nativeListInRe xs (native_re_mk_concat SmtRegLan.empty r) = false := by
-  simp [native_re_mk_concat, nativeListInRe_empty]
-
 private theorem nativeListInRe_mk_concat_empty_right
     (xs : List native_Char) (r : native_RegLan) :
     nativeListInRe xs (native_re_mk_concat r SmtRegLan.empty) = false := by
-  cases r <;> simp [native_re_mk_concat, nativeListInRe_empty]
-
-private theorem nativeListInRe_mk_concat_epsilon_left
-    (xs : List native_Char) (r : native_RegLan) :
-    nativeListInRe xs (native_re_mk_concat SmtRegLan.epsilon r) =
-      nativeListInRe xs r := by
   cases r <;> simp [native_re_mk_concat, nativeListInRe_empty]
 
 private theorem nativeListInRe_mk_concat_epsilon_right
@@ -316,31 +305,6 @@ private theorem nativeListInRe_mk_concat_true_iff_exists_append
           nativeListInRe xs₂ s = true := by
   rw [nativeListInRe_mk_concat xs r s]
   exact nativeListInReConcat_true_iff_exists_append xs r s
-
-private theorem nativeListInRe_mk_concat_congr
-    (xs : List native_Char) (r r' s s' : native_RegLan)
-    (hr : ∀ ys : List native_Char, nativeListInRe ys r = nativeListInRe ys r')
-    (hs : ∀ ys : List native_Char, nativeListInRe ys s = nativeListInRe ys s') :
-    nativeListInRe xs (native_re_mk_concat r s) =
-      nativeListInRe xs (native_re_mk_concat r' s') := by
-  apply Bool.eq_iff_iff.mpr
-  constructor
-  · intro h
-    rcases
-      (nativeListInRe_mk_concat_true_iff_exists_append xs r s).1 h
-        with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
-    apply (nativeListInRe_mk_concat_true_iff_exists_append xs r' s').2
-    refine ⟨xs₁, xs₂, hAppend, ?_, ?_⟩
-    · rwa [← hr xs₁]
-    · rwa [← hs xs₂]
-  · intro h
-    rcases
-      (nativeListInRe_mk_concat_true_iff_exists_append xs r' s').1 h
-        with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
-    apply (nativeListInRe_mk_concat_true_iff_exists_append xs r s).2
-    refine ⟨xs₁, xs₂, hAppend, ?_, ?_⟩
-    · rwa [hr xs₁]
-    · rwa [hs xs₂]
 
 private theorem native_string_valid_append_left
     (xs ys : List native_Char) :

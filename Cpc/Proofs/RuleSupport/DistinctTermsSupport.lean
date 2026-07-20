@@ -281,156 +281,6 @@ private theorem smtx_model_eval_eq_false_of_type_ne
       rw [← hxTy, ← hyTy, hxReg, hyReg]
       rfl)
 
-private theorem set_singleton_value_model_eval_eq_false_of_elem
-    {v₁ v₂ : SmtValue} :
-    __smtx_model_eval_eq v₁ v₂ = SmtValue.Boolean false ->
-    __smtx_model_eval_eq (__smtx_model_eval_set_singleton v₁)
-        (__smtx_model_eval_set_singleton v₂) =
-      SmtValue.Boolean false := by
-  intro hElemEqFalse
-  have hElemNe : v₁ ≠ v₂ := by
-    intro hSame
-    subst v₂
-    have hRefl : __smtx_model_eval_eq v₁ v₁ = SmtValue.Boolean true :=
-      RuleProofs.smtx_model_eval_eq_refl v₁
-    rw [hRefl] at hElemEqFalse
-    cases hElemEqFalse
-  apply smtx_model_eval_eq_false_of_ne_not_reglan
-  · intro hEq
-    simp [__smtx_model_eval_set_singleton] at hEq
-    exact hElemNe hEq.1
-  · rintro ⟨r₁, r₂, hReg₁, _hReg₂⟩
-    simp [__smtx_model_eval_set_singleton] at hReg₁
-
-private theorem set_singleton_value_set_empty_value_model_eval_eq_false
-    (v : SmtValue) (T : SmtType) :
-    __smtx_model_eval_eq (__smtx_model_eval_set_singleton v)
-        (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false))) =
-      SmtValue.Boolean false := by
-  apply smtx_model_eval_eq_false_of_ne_not_reglan
-  · intro hEq
-    simp [__smtx_model_eval_set_singleton] at hEq
-  · rintro ⟨r₁, r₂, hReg₁, _hReg₂⟩
-    simp [__smtx_model_eval_set_singleton] at hReg₁
-
-private theorem set_empty_value_set_singleton_value_model_eval_eq_false
-    (T : SmtType) (v : SmtValue) :
-    __smtx_model_eval_eq (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
-        (__smtx_model_eval_set_singleton v) =
-      SmtValue.Boolean false := by
-  apply smtx_model_eval_eq_false_of_ne_not_reglan
-  · intro hEq
-    simp [__smtx_model_eval_set_singleton] at hEq
-  · rintro ⟨r₁, r₂, hReg₁, _hReg₂⟩
-    cases hReg₁
-
-private theorem set_singleton_set_singleton_model_eval_eq_false_of_head
-    (M : SmtModel) (e₁ e₂ : Term) :
-    __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt e₁))
-        (__smtx_model_eval M (__eo_to_smt e₂)) =
-      SmtValue.Boolean false ->
-    __smtx_model_eval_eq
-        (__smtx_model_eval M
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) e₁)))
-        (__smtx_model_eval M
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) e₂))) =
-      SmtValue.Boolean false := by
-  intro hHeadEqFalse
-  change __smtx_model_eval_eq
-      (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt e₁)))
-      (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt e₂))) =
-    SmtValue.Boolean false
-  rw [smtx_eval_set_singleton_term_eq, smtx_eval_set_singleton_term_eq]
-  exact set_singleton_value_model_eval_eq_false_of_elem hHeadEqFalse
-
-private theorem set_singleton_set_empty_model_eval_eq_false
-    (M : SmtModel) (e U : Term) :
-    RuleProofs.eo_has_smt_translation
-      (Term.UOp1 UserOp1.set_empty (Term.Apply (Term.UOp UserOp.Set) U)) ->
-    __smtx_model_eval_eq
-        (__smtx_model_eval M
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) e)))
-        (__smtx_model_eval M
-          (__eo_to_smt
-            (Term.UOp1 UserOp1.set_empty
-              (Term.Apply (Term.UOp UserOp.Set) U)))) =
-      SmtValue.Boolean false := by
-  intro hEmptyTrans
-  have hSetTy :
-      ∃ T, __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) U) =
-        SmtType.Set T := by
-    cases hTy : __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) U)
-    case Set T =>
-      exact ⟨T, rfl⟩
-    all_goals
-      exfalso
-      apply hEmptyTrans
-      change __smtx_typeof
-          (__eo_to_smt_set_empty
-            (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) U))) =
-        SmtType.None
-      rw [hTy]
-      simp [__eo_to_smt_set_empty]
-  rcases hSetTy with ⟨T, hTy⟩
-  change __smtx_model_eval_eq
-      (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt e)))
-      (__smtx_model_eval M
-        (__eo_to_smt_set_empty
-          (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) U)))) =
-    SmtValue.Boolean false
-  rw [hTy, smtx_eval_set_singleton_term_eq]
-  change __smtx_model_eval_eq
-      (__smtx_model_eval_set_singleton (__smtx_model_eval M (__eo_to_smt e)))
-      (__smtx_model_eval M (SmtTerm.set_empty T)) =
-    SmtValue.Boolean false
-  rw [smtx_eval_set_empty_term_eq]
-  exact set_singleton_value_set_empty_value_model_eval_eq_false
-    (__smtx_model_eval M (__eo_to_smt e)) T
-
-private theorem set_empty_set_singleton_model_eval_eq_false
-    (M : SmtModel) (U e : Term) :
-    RuleProofs.eo_has_smt_translation
-      (Term.UOp1 UserOp1.set_empty (Term.Apply (Term.UOp UserOp.Set) U)) ->
-    __smtx_model_eval_eq
-        (__smtx_model_eval M
-          (__eo_to_smt
-            (Term.UOp1 UserOp1.set_empty
-              (Term.Apply (Term.UOp UserOp.Set) U))))
-        (__smtx_model_eval M
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) e))) =
-      SmtValue.Boolean false := by
-  intro hEmptyTrans
-  have hSetTy :
-      ∃ T, __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) U) =
-        SmtType.Set T := by
-    cases hTy : __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) U)
-    case Set T =>
-      exact ⟨T, rfl⟩
-    all_goals
-      exfalso
-      apply hEmptyTrans
-      change __smtx_typeof
-          (__eo_to_smt_set_empty
-            (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) U))) =
-        SmtType.None
-      rw [hTy]
-      simp [__eo_to_smt_set_empty]
-  rcases hSetTy with ⟨T, hTy⟩
-  change __smtx_model_eval_eq
-      (__smtx_model_eval M
-        (__eo_to_smt_set_empty
-          (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) U))))
-      (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt e))) =
-    SmtValue.Boolean false
-  rw [hTy, smtx_eval_set_singleton_term_eq]
-  change __smtx_model_eval_eq
-      (__smtx_model_eval M (SmtTerm.set_empty T))
-      (__smtx_model_eval_set_singleton (__smtx_model_eval M (__eo_to_smt e))) =
-    SmtValue.Boolean false
-  rw [smtx_eval_set_empty_term_eq]
-  exact set_empty_value_set_singleton_value_model_eval_eq_false T
-    (__smtx_model_eval M (__eo_to_smt e))
-
 private theorem set_value_model_eval_eq_false_of_lookup_witness
     {v₁ v₂ : SmtValue} :
     (∃ m₁ m₂ w,
@@ -792,16 +642,6 @@ private theorem seq_is_non_empty_shape {t : Term} :
               cases op <;> simp at h
               exact Or.inr ⟨e, x, rfl⟩
 
-private theorem native_pack_seq_ne_empty_of_length_pos
-    (T : SmtType) {xs : List SmtValue} (hPos : 0 < xs.length) :
-    native_pack_seq T xs ≠ SmtSeq.empty T := by
-  intro hEq
-  have hUnpack := congrArg native_unpack_seq hEq
-  have hLenZero : xs.length = 0 := by
-    have hLen := congrArg List.length hUnpack
-    simpa [Smtm.native_unpack_pack_seq, native_unpack_seq] using hLen
-  omega
-
 private theorem native_pack_seq_ne_empty_of_length_pos_any
     (T U : SmtType) {xs : List SmtValue} (hPos : 0 < xs.length) :
     native_pack_seq T xs ≠ SmtSeq.empty U := by
@@ -1156,18 +996,6 @@ private theorem are_distinct_terms_type_seq_true_seq_distinct
     split <;> simp_all
   rwa [hSeq] at hDistinct
 
-private theorem eo_eq_false_left_ne_stuck {a b : Term} :
-    __eo_eq a b = Term.Boolean false -> a ≠ Term.Stuck := by
-  intro hEq hStuck
-  subst a
-  simp [__eo_eq] at hEq
-
-private theorem eo_eq_false_right_ne_stuck {a b : Term} :
-    __eo_eq a b = Term.Boolean false -> b ≠ Term.Stuck := by
-  intro hEq hStuck
-  subst b
-  cases a <;> simp [__eo_eq] at hEq
-
 private theorem are_distinct_terms_type_set_true_not_subset
     {a b U : Term} :
     __are_distinct_terms_type a b
@@ -1195,97 +1023,6 @@ private theorem are_distinct_terms_type_set_true_not_subset
       split <;> simp_all
     rwa [hSet] at hDistinct
   exact eo_or_true hOr
-
-private theorem set_is_not_subset_singleton_singleton_model_eval_eq_false
-    (M : SmtModel) (e₁ e₂ U : Term) :
-    (__eo_eq e₁ e₂ = Term.Boolean false ->
-      __are_distinct_terms_type e₁ e₂ U = Term.Boolean true ->
-      __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt e₁))
-          (__smtx_model_eval M (__eo_to_smt e₂)) =
-        SmtValue.Boolean false) ->
-    __set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e₁)
-        (Term.Apply (Term.UOp UserOp.set_singleton) e₂) U =
-      Term.Boolean true ->
-    __smtx_model_eval_eq
-        (__smtx_model_eval M
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) e₁)))
-        (__smtx_model_eval M
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) e₂))) =
-      SmtValue.Boolean false := by
-  intro hHeadSound hNotSubset
-  have hBranch :
-      __eo_ite (__eo_eq e₁ e₂) (Term.Boolean false)
-          (__are_distinct_terms_type e₁ e₂ U) =
-        Term.Boolean true := by
-    change __set_is_not_subset
-        (Term.Apply (Term.UOp UserOp.set_singleton) e₁)
-        (Term.Apply (Term.UOp UserOp.set_singleton) e₂) U =
-      Term.Boolean true at hNotSubset
-    cases U <;>
-      (rw [__set_is_not_subset.eq_def] at hNotSubset
-       simp only at hNotSubset)
-    all_goals first | exact hNotSubset | cases hNotSubset
-  rcases eo_ite_eq_false_guard_true hBranch with
-    ⟨hHeadEqFalse, hHeadDistinct⟩
-  exact set_singleton_set_singleton_model_eval_eq_false_of_head M e₁ e₂
-    (hHeadSound hHeadEqFalse hHeadDistinct)
-
-private theorem set_is_not_subset_singleton_singleton_model_eval_eq_false_symm
-    (M : SmtModel) (e₁ e₂ U : Term) :
-    (__eo_eq e₂ e₁ = Term.Boolean false ->
-      __are_distinct_terms_type e₂ e₁ U = Term.Boolean true ->
-      __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt e₂))
-          (__smtx_model_eval M (__eo_to_smt e₁)) =
-        SmtValue.Boolean false) ->
-    __set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e₂)
-        (Term.Apply (Term.UOp UserOp.set_singleton) e₁) U =
-      Term.Boolean true ->
-    __smtx_model_eval_eq
-        (__smtx_model_eval M
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) e₁)))
-        (__smtx_model_eval M
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) e₂))) =
-      SmtValue.Boolean false := by
-  intro hHeadSound hNotSubset
-  exact smtx_model_eval_eq_false_symm
-    (set_is_not_subset_singleton_singleton_model_eval_eq_false
-      M e₂ e₁ U hHeadSound hNotSubset)
-
-private theorem set_is_not_subset_singleton_empty_model_eval_eq_false
-    (M : SmtModel) (e U T : Term) :
-    RuleProofs.eo_has_smt_translation
-      (Term.UOp1 UserOp1.set_empty (Term.Apply (Term.UOp UserOp.Set) U)) ->
-    __set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e)
-        (Term.UOp1 UserOp1.set_empty (Term.Apply (Term.UOp UserOp.Set) U)) T =
-      Term.Boolean true ->
-    __smtx_model_eval_eq
-        (__smtx_model_eval M
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) e)))
-        (__smtx_model_eval M
-          (__eo_to_smt
-            (Term.UOp1 UserOp1.set_empty
-              (Term.Apply (Term.UOp UserOp.Set) U)))) =
-      SmtValue.Boolean false := by
-  intro hEmptyTrans _hNotSubset
-  exact set_singleton_set_empty_model_eval_eq_false M e U hEmptyTrans
-
-private theorem set_is_not_subset_singleton_empty_model_eval_eq_false_symm
-    (M : SmtModel) (e U T : Term) :
-    RuleProofs.eo_has_smt_translation
-      (Term.UOp1 UserOp1.set_empty (Term.Apply (Term.UOp UserOp.Set) U)) ->
-    __set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e)
-        (Term.UOp1 UserOp1.set_empty (Term.Apply (Term.UOp UserOp.Set) U)) T =
-      Term.Boolean true ->
-    __smtx_model_eval_eq
-        (__smtx_model_eval M
-          (__eo_to_smt
-            (Term.UOp1 UserOp1.set_empty
-              (Term.Apply (Term.UOp UserOp.Set) U))))
-        (__smtx_model_eval M
-          (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) e))) =
-      SmtValue.Boolean false := by
-  intro hEmptyTrans _hNotSubset
-  exact set_empty_set_singleton_model_eval_eq_false M U e hEmptyTrans
 
 private theorem native_pack_seq_ne_of_length_ne
     (T U : SmtType) {xs ys : List SmtValue}
@@ -2542,20 +2279,6 @@ private theorem tuple_ctor_head_no_smt_translation :
   change __smtx_typeof SmtTerm.None ≠ SmtType.None at h
   exact h TranslationProofs.smtx_typeof_none
 
-private theorem dtcons_reserved_no_smt_translation
-    {s : native_String} {d : Datatype} {i : native_Nat} :
-    native_reserved_datatype_name s = true ->
-    ¬ RuleProofs.eo_has_smt_translation (Term.DtCons s d i) := by
-  intro hReserved hTrans
-  unfold RuleProofs.eo_has_smt_translation at hTrans
-  change
-    __smtx_typeof
-        (native_ite (native_reserved_datatype_name s) SmtTerm.None
-          (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)) ≠
-      SmtType.None at hTrans
-  rw [hReserved] at hTrans
-  simp [native_ite] at hTrans
-
 private theorem native_reserved_datatype_name_tuple :
     native_reserved_datatype_name (native_string_lit "@Tuple") = true := by
   native_decide
@@ -2782,26 +2505,6 @@ private theorem dt_distinct_terms_apply_apply_true_cases
   · rcases eo_ite_eq_false_guard_true hTail.2 with
       ⟨hEqFalse, hArgDistinct⟩
     exact Or.inr ⟨hTail.1, hEqFalse, hArgDistinct⟩
-
-private theorem dt_distinct_terms_apply_left_true_of_non_apply
-    {f a c : Term} :
-    (∀ g y, c ≠ Term.Apply g y) ->
-    __dt_distinct_terms (Term.Apply f a) c = Term.Boolean true ->
-    __dt_distinct_terms f c = Term.Boolean true := by
-  intro hcNotApply hDistinct
-  cases c <;> try simpa [__dt_distinct_terms] using hDistinct
-  case Apply g y =>
-    exact False.elim (hcNotApply g y rfl)
-
-private theorem dt_distinct_terms_apply_right_true_of_non_apply
-    {c g b : Term} :
-    (∀ f x, c ≠ Term.Apply f x) ->
-    __dt_distinct_terms c (Term.Apply g b) = Term.Boolean true ->
-    __dt_distinct_terms c g = Term.Boolean true := by
-  intro hcNotApply hDistinct
-  cases c <;> try simpa [__dt_distinct_terms] using hDistinct
-  case Apply f x =>
-    exact False.elim (hcNotApply f x rfl)
 
 private theorem tuple_apply_components_have_translation
     {a as : Term} :

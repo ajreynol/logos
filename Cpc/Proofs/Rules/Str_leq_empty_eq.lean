@@ -60,11 +60,6 @@ private theorem smtx_eval_str_leq_term_eq
         (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem smtx_eval_boolean_term_eq
-    (M : SmtModel) (b : Bool) :
-    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
-  rw [__smtx_model_eval.eq_def]
-
 private theorem prog_str_leq_empty_eq_eq_of_ne_stuck (s : Term)
     (hs : s ≠ Term.Stuck) :
     __eo_prog_str_leq_empty_eq s =

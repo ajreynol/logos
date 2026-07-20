@@ -143,13 +143,6 @@ private theorem eq_of_native_veq_true {v1 v2 : SmtValue}
     v1 = v2 := by
   simpa [native_veq] using h
 
-private theorem ne_of_native_veq_false {v1 v2 : SmtValue}
-    (h : native_veq v1 v2 = false) :
-    v1 ≠ v2 := by
-  intro hEq
-  subst v2
-  simp [native_veq] at h
-
 theorem smt_value_rel_store_overwrite
     (v i e f : SmtValue)
     (hv : __smtx_value_canonical v)

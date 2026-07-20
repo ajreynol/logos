@@ -10,10 +10,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-private theorem native_string_lit_empty :
-    native_string_lit "" = ([] : native_String) := by
-  simp [native_string_lit]
-
 private abbrev mkStrInRe (s r : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r
 

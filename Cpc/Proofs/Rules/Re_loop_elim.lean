@@ -50,17 +50,6 @@ private theorem eo_requires_arg_eq_of_ne_stuck
       simp [__eo_requires, native_teq, native_ite, hxy]
     exact False.elim (hReq hStuck)
 
-private theorem eo_requires_left_ne_stuck_of_ne_stuck
-    {x y z : Term} :
-    __eo_requires x y z ≠ Term.Stuck ->
-    x ≠ Term.Stuck := by
-  intro hReq hx
-  have hStuck : __eo_requires x y z = Term.Stuck := by
-    subst x
-    simp [__eo_requires, native_teq, native_ite, native_not,
-      SmtEval.native_not]
-  exact hReq hStuck
-
 private theorem re_loop_translation_types
     (lo hi : native_Int) (r rhs : Term)
     (hTrans :

@@ -10,11 +10,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-private theorem eo_to_smt_not_eq (t : Term) :
-    __eo_to_smt (Term.Apply (Term.UOp UserOp.not) t) =
-      SmtTerm.not (__eo_to_smt t) := by
-  rfl
-
 private theorem term_ne_stuck_of_int_or_real_smt_type (t : Term) :
     (__smtx_typeof (__eo_to_smt t) = SmtType.Int ∨
       __smtx_typeof (__eo_to_smt t) = SmtType.Real) ->
@@ -208,23 +203,6 @@ private theorem eo_has_bool_type_lt_of_arith
     rw [eo_to_smt_lt_eq, typeof_lt_eq]
     simp [__smtx_typeof_arith_overload_op_2_ret, hReal.1, hReal.2]
 
-private theorem eo_has_bool_type_leq_of_arith
-    (a b : Term)
-    (hTy :
-      (__smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
-        __smtx_typeof (__eo_to_smt b) = SmtType.Int) ∨
-      (__smtx_typeof (__eo_to_smt a) = SmtType.Real ∧
-        __smtx_typeof (__eo_to_smt b) = SmtType.Real)) :
-    RuleProofs.eo_has_bool_type
-      (Term.Apply (Term.Apply (Term.UOp UserOp.leq) a) b) := by
-  rcases hTy with hInt | hReal
-  · unfold RuleProofs.eo_has_bool_type
-    rw [eo_to_smt_leq_eq, typeof_leq_eq]
-    simp [__smtx_typeof_arith_overload_op_2_ret, hInt.1, hInt.2]
-  · unfold RuleProofs.eo_has_bool_type
-    rw [eo_to_smt_leq_eq, typeof_leq_eq]
-    simp [__smtx_typeof_arith_overload_op_2_ret, hReal.1, hReal.2]
-
 private theorem eo_has_bool_type_gt_of_arith
     (a b : Term)
     (hTy :
@@ -240,23 +218,6 @@ private theorem eo_has_bool_type_gt_of_arith
     simp [__smtx_typeof_arith_overload_op_2_ret, hInt.1, hInt.2]
   · unfold RuleProofs.eo_has_bool_type
     rw [eo_to_smt_gt_eq, typeof_gt_eq]
-    simp [__smtx_typeof_arith_overload_op_2_ret, hReal.1, hReal.2]
-
-private theorem eo_has_bool_type_geq_of_arith
-    (a b : Term)
-    (hTy :
-      (__smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
-        __smtx_typeof (__eo_to_smt b) = SmtType.Int) ∨
-      (__smtx_typeof (__eo_to_smt a) = SmtType.Real ∧
-        __smtx_typeof (__eo_to_smt b) = SmtType.Real)) :
-    RuleProofs.eo_has_bool_type
-      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) a) b) := by
-  rcases hTy with hInt | hReal
-  · unfold RuleProofs.eo_has_bool_type
-    rw [eo_to_smt_geq_eq, typeof_geq_eq]
-    simp [__smtx_typeof_arith_overload_op_2_ret, hInt.1, hInt.2]
-  · unfold RuleProofs.eo_has_bool_type
-    rw [eo_to_smt_geq_eq, typeof_geq_eq]
     simp [__smtx_typeof_arith_overload_op_2_ret, hReal.1, hReal.2]
 
 private theorem eo_has_bool_type_eq_of_arith
@@ -409,124 +370,6 @@ private theorem native_qgt_false_of_qleq_true {a b : native_Rat} :
     simpa [native_qleq, SmtEval.native_qleq] using hLe
   have hNotGt : ¬ b < a := Rat.not_lt.mpr hLe'
   simpa [native_qlt, SmtEval.native_qlt] using hNotGt
-
-private theorem int_eq_eval_of_eq_false
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
-    (hA : __smtx_typeof (__eo_to_smt a) = SmtType.Int)
-    (hB : __smtx_typeof (__eo_to_smt b) = SmtType.Int) :
-    eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) false ->
-    ∃ n m : native_Int,
-      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Numeral n ∧
-      __smtx_model_eval M (__eo_to_smt b) = SmtValue.Numeral m ∧
-      native_zeq n m = false := by
-  intro h
-  rcases smt_eval_int_of_type M hM a hA with ⟨n, ha⟩
-  rcases smt_eval_int_of_type M hM b hB with ⟨m, hb⟩
-  rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_eq_eq] at h
-  cases h with
-  | intro_false _ hEval =>
-      rw [smtx_eval_eq_term_eq, ha, hb] at hEval
-      simp [__smtx_model_eval_eq, native_veq] at hEval
-      have hEqFalse : native_zeq n m = false := by
-        simp [native_zeq, SmtEval.native_zeq, hEval]
-      exact ⟨n, m, ha, hb, hEqFalse⟩
-
-private theorem int_lt_eval_of_lt_false
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
-    (hA : __smtx_typeof (__eo_to_smt a) = SmtType.Int)
-    (hB : __smtx_typeof (__eo_to_smt b) = SmtType.Int) :
-    eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.lt) a) b) false ->
-    ∃ n m : native_Int,
-      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Numeral n ∧
-      __smtx_model_eval M (__eo_to_smt b) = SmtValue.Numeral m ∧
-      native_zlt n m = false := by
-  intro h
-  rcases smt_eval_int_of_type M hM a hA with ⟨n, ha⟩
-  rcases smt_eval_int_of_type M hM b hB with ⟨m, hb⟩
-  rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_lt_eq] at h
-  cases h with
-  | intro_false _ hEval =>
-      rw [__smtx_model_eval.eq_15, ha, hb] at hEval
-      simp [__smtx_model_eval_lt] at hEval
-      exact ⟨n, m, ha, hb, hEval⟩
-
-private theorem int_gt_eval_of_gt_false
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
-    (hA : __smtx_typeof (__eo_to_smt a) = SmtType.Int)
-    (hB : __smtx_typeof (__eo_to_smt b) = SmtType.Int) :
-    eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.gt) a) b) false ->
-    ∃ n m : native_Int,
-      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Numeral n ∧
-      __smtx_model_eval M (__eo_to_smt b) = SmtValue.Numeral m ∧
-      native_zlt m n = false := by
-  intro h
-  rcases smt_eval_int_of_type M hM a hA with ⟨n, ha⟩
-  rcases smt_eval_int_of_type M hM b hB with ⟨m, hb⟩
-  rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_gt_eq] at h
-  cases h with
-  | intro_false _ hEval =>
-      rw [__smtx_model_eval.eq_17, ha, hb] at hEval
-      simp [__smtx_model_eval_gt, __smtx_model_eval_lt] at hEval
-      exact ⟨n, m, ha, hb, hEval⟩
-
-private theorem real_eq_eval_of_eq_false
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
-    (hA : __smtx_typeof (__eo_to_smt a) = SmtType.Real)
-    (hB : __smtx_typeof (__eo_to_smt b) = SmtType.Real) :
-    eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) false ->
-    ∃ q r : native_Rat,
-      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Rational q ∧
-      __smtx_model_eval M (__eo_to_smt b) = SmtValue.Rational r ∧
-      native_qeq q r = false := by
-  intro h
-  rcases smt_eval_real_of_type M hM a hA with ⟨q, ha⟩
-  rcases smt_eval_real_of_type M hM b hB with ⟨r, hb⟩
-  rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_eq_eq] at h
-  cases h with
-  | intro_false _ hEval =>
-      rw [smtx_eval_eq_term_eq, ha, hb] at hEval
-      simp [__smtx_model_eval_eq, native_veq] at hEval
-      have hEqFalse : native_qeq q r = false := by
-        simp [native_qeq, SmtEval.native_qeq, hEval]
-      exact ⟨q, r, ha, hb, hEqFalse⟩
-
-private theorem real_lt_eval_of_lt_false
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
-    (hA : __smtx_typeof (__eo_to_smt a) = SmtType.Real)
-    (hB : __smtx_typeof (__eo_to_smt b) = SmtType.Real) :
-    eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.lt) a) b) false ->
-    ∃ q r : native_Rat,
-      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Rational q ∧
-      __smtx_model_eval M (__eo_to_smt b) = SmtValue.Rational r ∧
-      native_qlt q r = false := by
-  intro h
-  rcases smt_eval_real_of_type M hM a hA with ⟨q, ha⟩
-  rcases smt_eval_real_of_type M hM b hB with ⟨r, hb⟩
-  rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_lt_eq] at h
-  cases h with
-  | intro_false _ hEval =>
-      rw [__smtx_model_eval.eq_15, ha, hb] at hEval
-      simp [__smtx_model_eval_lt] at hEval
-      exact ⟨q, r, ha, hb, hEval⟩
-
-private theorem real_gt_eval_of_gt_false
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
-    (hA : __smtx_typeof (__eo_to_smt a) = SmtType.Real)
-    (hB : __smtx_typeof (__eo_to_smt b) = SmtType.Real) :
-    eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.gt) a) b) false ->
-    ∃ q r : native_Rat,
-      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Rational q ∧
-      __smtx_model_eval M (__eo_to_smt b) = SmtValue.Rational r ∧
-      native_qlt r q = false := by
-  intro h
-  rcases smt_eval_real_of_type M hM a hA with ⟨q, ha⟩
-  rcases smt_eval_real_of_type M hM b hB with ⟨r, hb⟩
-  rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_gt_eq] at h
-  cases h with
-  | intro_false _ hEval =>
-      rw [__smtx_model_eval.eq_17, ha, hb] at hEval
-      simp [__smtx_model_eval_gt, __smtx_model_eval_lt] at hEval
-      exact ⟨q, r, ha, hb, hEval⟩
 
 private theorem int_eq_false_of_eval
     (M : SmtModel) (a b : Term) {n m : native_Int}
@@ -771,39 +614,6 @@ private theorem eq_true_of_lt_false_gt_false
         simpa [native_qeq, SmtEval.native_qeq] using
           native_qeq_of_not_lt_not_gt hLtB hGtB
       simp [__smtx_model_eval_eq, native_veq, hEqVal]
-
-private theorem arith_normalize_lit_not_eq_has_bool_type
-    (F a b : Term) :
-    RuleProofs.eo_has_bool_type F ->
-    __arith_normalize_lit (Term.Apply (Term.UOp UserOp.not) F) =
-      Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b ->
-    RuleProofs.eo_has_bool_type
-      (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) := by
-  intro hF hNorm
-  cases F with
-  | Apply f x =>
-      cases f with
-      | UOp op =>
-          cases op with
-          | not =>
-              cases x <;> simp [__arith_normalize_lit] at hNorm
-              case Apply g y =>
-                cases g <;> simp at hNorm
-                case Apply r x =>
-                  have hXBool :
-                      RuleProofs.eo_has_bool_type
-                        (Term.Apply (Term.Apply r x) y) :=
-                    RuleProofs.eo_has_bool_type_not_arg _ hF
-                  simpa [hNorm] using hXBool
-          | _ =>
-              cases x <;> simp [__arith_normalize_lit] at hNorm
-      | Apply g y =>
-          simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
-          split at hNorm <;> simp at hNorm
-      | _ =>
-          simp [__arith_normalize_lit] at hNorm
-  | _ =>
-      simp [__arith_normalize_lit] at hNorm
 
 private theorem arith_normalize_lit_not_lt_has_bool_type
     (F a b : Term) :

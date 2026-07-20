@@ -921,22 +921,6 @@ theorem program2_shape_of_ne_stuck
           exact hShape ⟨pw, px, rfl⟩)
     exact False.elim (hProg hStuck)
 
-private theorem typeof_bvnot_arg_of_result_bitvec
-    (t width : Term) :
-    __eo_typeof (bvnot t) =
-      Term.Apply (Term.UOp UserOp.BitVec) width ->
-    __eo_typeof t = Term.Apply (Term.UOp UserOp.BitVec) width := by
-  intro hTy
-  change __eo_typeof_bvnot (__eo_typeof t) = _ at hTy
-  cases ht : __eo_typeof t <;>
-    simp [__eo_typeof_bvnot, ht] at hTy ⊢
-  case Apply f arg =>
-    cases f <;> simp [__eo_typeof_bvnot, ht] at hTy ⊢
-    case UOp u =>
-      cases u <;> simp [__eo_typeof_bvnot, ht] at hTy ⊢
-      cases hTy
-      rfl
-
 private theorem inferred_argument_types
     (xs ys zs first second x w result : Term) :
     result = eqTerm (lhs xs ys zs first second) (zeroConst w) ->

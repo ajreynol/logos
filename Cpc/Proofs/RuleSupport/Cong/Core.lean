@@ -141,13 +141,6 @@ theorem smtx_model_eval_set_minus_term_eq
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem smtx_model_eval_set_member_term_eq
-    (M : SmtModel) (x y : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.set_member x y) =
-      __smtx_model_eval_set_member
-        (__smtx_model_eval M x) (__smtx_model_eval M y) := by
-  rw [__smtx_model_eval.eq_def] <;> simp only
-
 theorem smtx_model_eval_set_subset_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.set_subset x y) =
@@ -217,15 +210,6 @@ theorem eo_requires_arg_eq_of_ne_stuck {x y z : Term} :
   by_cases hxy : native_teq x y = true
   · simpa [native_teq] using hxy
   · simp [hxy, native_ite] at h
-
-private theorem eo_requires_result_ne_stuck_of_ne_stuck {x y z : Term} :
-    __eo_requires x y z ≠ Term.Stuck ->
-    z ≠ Term.Stuck := by
-  intro h hz
-  have hxy : x = y := eo_requires_arg_eq_of_ne_stuck h
-  subst y
-  subst z
-  simp [__eo_requires, native_ite, native_not, native_teq] at h
 
 theorem eq_of_eo_eq_true (x y : Term) :
     __eo_eq x y = Term.Boolean true ->
@@ -386,23 +370,6 @@ theorem congStableSpine_rebase
       CongStableSpine.app
         (congStableSpine_rebase hAgreeMN hRec)
         (stableInAnyVarModel_rebase hAgreeMN hArgStable)
-
-private theorem congStableSpine_of_congEvidenceSpine
-    (M : SmtModel) (premises : List Term) :
-    RulePremiseEvidence M premises ->
-    ∀ {t rhs : Term},
-      CongEvidenceSpine M premises t rhs ->
-      CongStableSpine M t rhs
-:=
-by
-  intro hEvidence t rhs hSpine
-  induction hSpine with
-  | refl t =>
-      exact CongStableSpine.refl t
-  | app hRec hMem _hArg ih =>
-      exact CongStableSpine.app ih (by
-        intro N hN hAgree
-        exact hEvidence.true_in_var_model N hN hAgree _ hMem)
 
 private theorem congEvidenceSpine_mono
     (M : SmtModel) {premises premises' : List Term} :
@@ -1002,38 +969,6 @@ theorem congTypeSpine_binary_uop_inv
       subst hHeadEq
       exact ⟨y₁, _, rfl, hArg₁, Or.inr hArg₂⟩
 
-private theorem congTrueSpine_unary_uop_stable_inv
-    (M : SmtModel) (op : UserOp) (x rhs : Term) :
-    CongTrueSpine M (Term.Apply (Term.UOp op) x) rhs ->
-    ∃ y,
-      rhs = Term.Apply (Term.UOp op) y ∧
-        EqTrueStableOrSame M x y := by
-  intro h
-  cases h with
-  | refl _ =>
-      exact ⟨x, rfl, Or.inl rfl⟩
-  | app hHead hArg hStable =>
-      have hg : _ := congTrueSpine_uop_eq M op _ hHead
-      subst hg
-      exact ⟨_, rfl, Or.inr ⟨hArg, hStable⟩⟩
-
-private theorem congTrueSpine_binary_uop_stable_inv
-    (M : SmtModel) (op : UserOp) (x₁ x₂ rhs : Term) :
-    CongTrueSpine M
-      (Term.Apply (Term.Apply (Term.UOp op) x₁) x₂) rhs ->
-    ∃ y₁ y₂,
-      rhs = Term.Apply (Term.Apply (Term.UOp op) y₁) y₂ ∧
-        EqTrueStableOrSame M x₁ y₁ ∧ EqTrueStableOrSame M x₂ y₂ := by
-  intro h
-  cases h with
-  | refl _ =>
-      exact ⟨x₁, x₂, rfl, Or.inl rfl, Or.inl rfl⟩
-  | app hHead hArg₂ hStable₂ =>
-      rcases congTrueSpine_unary_uop_stable_inv M op x₁ _ hHead with
-        ⟨y₁, hHeadEq, hArg₁⟩
-      subst hHeadEq
-      exact ⟨y₁, _, rfl, hArg₁, Or.inr ⟨hArg₂, hStable₂⟩⟩
-
 theorem congTrueSpine_ternary_uop_inv
     (M : SmtModel) (op : UserOp) (x₁ x₂ x₃ rhs : Term) :
     CongTrueSpine M
@@ -1206,127 +1141,6 @@ private theorem mk_cong_rhs_step_eq_of_eo_eq_true
   intro hEq
   simp [__mk_cong_rhs, __eo_ite, hEq,
     native_teq, native_ite]
-
-private theorem mk_cong_rhs_false_branch_stuck
-    (f x y z tail : Term) :
-    __eo_l_1___mk_cong_rhs (Term.Apply f x)
-        (Term.Apply (Term.Apply (Term.UOp UserOp.and) (mkEq y z)) tail) =
-      Term.Stuck := by
-  simp [__eo_l_1___mk_cong_rhs]
-
-private theorem mk_cong_rhs_congTrueSpine_of_list
-    (M : SmtModel) :
-    ∀ (ps : List Term) (t : Term),
-      RulePremiseEvidence M ps ->
-      __mk_cong_rhs t (premiseAndFormulaList ps) ≠ Term.Stuck ->
-      CongTrueSpine M t (__mk_cong_rhs t (premiseAndFormulaList ps)) := by
-  intro ps
-  induction ps with
-  | nil =>
-      intro t _ hProg
-      cases t <;>
-        simp [premiseAndFormulaList, __mk_cong_rhs, __eo_l_1___mk_cong_rhs] at hProg ⊢
-      all_goals exact CongTrueSpine.refl _
-  | cons p ps ih =>
-      intro t hEvidence hProg
-      cases p with
-      | Apply pf tail =>
-          cases pf with
-          | Apply pg lhs =>
-              cases pg with
-              | UOp op =>
-                  cases op
-                  case eq =>
-                    cases t with
-                    | Apply f x =>
-                        have hHeadTrue :
-                            eo_interprets M (mkEq lhs tail) true := by
-                          simpa [premiseAndFormulaList, mkEq] using
-                            hEvidence.true_here (mkEq lhs tail) (by simp [mkEq])
-                        have hHeadStable :
-                            StableInAnyVarModel M (mkEq lhs tail) := by
-                          intro N hN hAgree
-                          exact hEvidence.true_in_var_model N hN hAgree
-                            (mkEq lhs tail) (by simp [mkEq])
-                        have hRestEvidence : RulePremiseEvidence M ps := by
-                          refine ⟨?_, ?_⟩
-                          · intro q hq
-                            exact hEvidence.true_here q (by simp [hq])
-                          · intro N hN hAgree q hq
-                            exact hEvidence.true_in_var_model N hN hAgree
-                              q (by simp [hq])
-                        have hRestTrue : AllInterpretedTrue M ps := by
-                          intro q hq
-                          exact hRestEvidence.true_here q hq
-                        have hCond :
-                            __eo_eq x lhs = Term.Boolean true := by
-                          cases hEq : __eo_eq x lhs <;>
-                            simp [premiseAndFormulaList, __mk_cong_rhs,
-                              __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
-                              native_teq, native_ite] at hProg
-                          case Boolean b =>
-                            cases b with
-                            | false =>
-                                simp  at hProg
-                            | true =>
-                                rfl
-                        have hStepEq :=
-                          mk_cong_rhs_step_eq_of_eo_eq_true f x lhs tail
-                            (premiseAndFormulaList ps) hCond
-                        have hMkApplyNN :
-                            __eo_mk_apply
-                                (__mk_cong_rhs f (premiseAndFormulaList ps)) tail ≠
-                              Term.Stuck := by
-                          rw [← hStepEq]
-                          exact hProg
-                        have hRecNN :
-                            __mk_cong_rhs f (premiseAndFormulaList ps) ≠
-                              Term.Stuck :=
-                          eo_mk_apply_left_ne_stuck_of_ne_stuck
-                            (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
-                            hMkApplyNN
-                        have hTailNN : tail ≠ Term.Stuck :=
-                          eo_mk_apply_right_ne_stuck_of_ne_stuck
-                            (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
-                            hMkApplyNN
-                        have hRec :=
-                          ih f hRestEvidence hRecNN
-                        have hLhs : lhs = x :=
-                          eq_of_eo_eq_true x lhs hCond
-                        subst lhs
-                        change CongTrueSpine M (Term.Apply f x)
-                          (__mk_cong_rhs (Term.Apply f x)
-                            (Term.Apply (Term.Apply (Term.UOp UserOp.and)
-                              (mkEq x tail)) (premiseAndFormulaList ps)))
-                        rw [hStepEq]
-                        rw [eo_mk_apply_eq_of_ne_stuck
-                          (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
-                          hRecNN hTailNN]
-                        exact CongTrueSpine.app hRec hHeadTrue hHeadStable
-                    | _ =>
-                        exact False.elim (hProg (by
-                          simp [premiseAndFormulaList, __mk_cong_rhs,
-                            __eo_l_1___mk_cong_rhs]))
-                  all_goals
-                    exact False.elim (hProg (by
-                      cases t <;>
-                        simp [premiseAndFormulaList, __mk_cong_rhs,
-                          __eo_l_1___mk_cong_rhs]))
-              | _ =>
-                  exact False.elim (hProg (by
-                    cases t <;>
-                      simp [premiseAndFormulaList, __mk_cong_rhs,
-                        __eo_l_1___mk_cong_rhs]))
-          | _ =>
-              exact False.elim (hProg (by
-                cases t <;>
-                  simp [premiseAndFormulaList, __mk_cong_rhs,
-                    __eo_l_1___mk_cong_rhs]))
-      | _ =>
-          exact False.elim (hProg (by
-            cases t <;>
-              simp [premiseAndFormulaList, __mk_cong_rhs,
-                __eo_l_1___mk_cong_rhs]))
 
 theorem mk_cong_rhs_congEvidenceSpine_of_list
     (M : SmtModel) :
@@ -1769,37 +1583,6 @@ theorem cong_smtx_typeof_eq_non_none
         simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq,
           hNone, hEq])
 
-private theorem cong_smt_type_ne_set_self
-    (T : SmtType) :
-    T ≠ SmtType.Set T := by
-  cases T <;> intro h <;> cases h
-
-private theorem cong_smt_type_ne_guard_wf_set_self
-    {T : SmtType}
-    (hT : T ≠ SmtType.None) :
-    T ≠ __smtx_typeof_guard_wf T (SmtType.Set T) := by
-  intro h
-  by_cases hWf : __smtx_type_wf T = true
-  · have hSet : T = SmtType.Set T := by
-      simpa [__smtx_typeof_guard_wf, hWf, native_ite] using h
-    exact cong_smt_type_ne_set_self T hSet
-  · have hNone : T = SmtType.None := by
-      simpa [__smtx_typeof_guard_wf, hWf, native_ite] using h
-    exact hT hNone
-
-private theorem cong_smt_type_ne_guard_wf_set_full_self
-    {T : SmtType}
-    (hT : T ≠ SmtType.None) :
-    T ≠ __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) := by
-  intro h
-  by_cases hWf : __smtx_type_wf (SmtType.Set T) = true
-  · have hSet : T = SmtType.Set T := by
-      simpa [__smtx_typeof_guard_wf, hWf, native_ite] using h
-    exact cong_smt_type_ne_set_self T hSet
-  · have hNone : T = SmtType.None := by
-      simpa [__smtx_typeof_guard_wf, hWf, native_ite] using h
-    exact hT hNone
-
 theorem smt_eval_seq_of_smt_type_seq
     (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm)
     (T : SmtType) :
@@ -1983,20 +1766,9 @@ private theorem native_re_nullable_mk_concat (r s : native_RegLan) :
   cases r <;> cases s <;>
     simp [native_re_mk_concat, native_re_nullable]
 
-private theorem native_list_in_re_mk_concat_empty_left
-    (xs : List native_Char) (r : native_RegLan) :
-    native_list_in_re xs (native_re_mk_concat SmtRegLan.empty r) = false := by
-  simp [native_re_mk_concat, native_list_in_re_empty]
-
 private theorem native_list_in_re_mk_concat_empty_right
     (xs : List native_Char) (r : native_RegLan) :
     native_list_in_re xs (native_re_mk_concat r SmtRegLan.empty) = false := by
-  cases r <;> simp [native_re_mk_concat, native_list_in_re_empty]
-
-private theorem native_list_in_re_mk_concat_epsilon_left
-    (xs : List native_Char) (r : native_RegLan) :
-    native_list_in_re xs (native_re_mk_concat SmtRegLan.epsilon r) =
-      native_list_in_re xs r := by
   cases r <;> simp [native_re_mk_concat, native_list_in_re_empty]
 
 private theorem native_list_in_re_mk_concat_epsilon_right
@@ -2154,31 +1926,6 @@ theorem native_list_in_re_mk_concat_true_iff_exists_append
           native_list_in_re xs₂ s = true := by
   rw [native_list_in_re_mk_concat xs r s]
   exact native_list_in_re_concat_true_iff_exists_append xs r s
-
-private theorem native_list_in_re_mk_concat_congr
-    (xs : List native_Char) (r r' s s' : native_RegLan)
-    (hr : ∀ ys : List native_Char, native_list_in_re ys r = native_list_in_re ys r')
-    (hs : ∀ ys : List native_Char, native_list_in_re ys s = native_list_in_re ys s') :
-    native_list_in_re xs (native_re_mk_concat r s) =
-      native_list_in_re xs (native_re_mk_concat r' s') := by
-  apply Bool.eq_iff_iff.mpr
-  constructor
-  · intro h
-    rcases
-      (native_list_in_re_mk_concat_true_iff_exists_append xs r s).1 h
-        with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
-    apply (native_list_in_re_mk_concat_true_iff_exists_append xs r' s').2
-    refine ⟨xs₁, xs₂, hAppend, ?_, ?_⟩
-    · rwa [← hr xs₁]
-    · rwa [← hs xs₂]
-  · intro h
-    rcases
-      (native_list_in_re_mk_concat_true_iff_exists_append xs r' s').1 h
-        with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
-    apply (native_list_in_re_mk_concat_true_iff_exists_append xs r s).2
-    refine ⟨xs₁, xs₂, hAppend, ?_, ?_⟩
-    · rwa [hr xs₁]
-    · rwa [hs xs₂]
 
 private theorem native_list_in_re_mk_concat_congr_valid
     (xs : List native_Char) (r r' s s' : native_RegLan)

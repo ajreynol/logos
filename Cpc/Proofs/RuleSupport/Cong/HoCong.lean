@@ -159,38 +159,6 @@ theorem congTypeSpine_generic_apply_eq_has_bool_type
       rw [hGenF, hGenG, hFnTypes.1, hArgTypes.1])
     hTrans
 
-private theorem ho_cong_app_eq_has_bool_type_of_type
-    (f g x y : Term)
-    (hFn : RuleProofs.eo_has_bool_type (mkEq f g))
-    (hArg : RuleProofs.eo_has_bool_type (mkEq x y))
-    (hTy :
-      __eo_typeof (mkEq (Term.Apply f x) (Term.Apply g y)) = Term.Bool) :
-    RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply f x) (Term.Apply g y)) := by
-  have hFnTypes :=
-    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type f g hFn
-  have hFTrans : RuleProofs.eo_has_smt_translation f := hFnTypes.2
-  have hGTrans : RuleProofs.eo_has_smt_translation g := by
-    intro hNone
-    exact hFnTypes.2 (hFnTypes.1.trans hNone)
-  have hArgTypes :=
-    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type x y hArg
-  have hXTrans : RuleProofs.eo_has_smt_translation x := hArgTypes.2
-  have hLeftTy : __eo_typeof (Term.Apply f x) ≠ Term.Stuck :=
-    eq_typeof_bool_left_ne_stuck (Term.Apply f x) (Term.Apply g y) hTy
-  have hLeftTrans :
-      RuleProofs.eo_has_smt_translation (Term.Apply f x) :=
-    eo_has_smt_translation_apply_of_head_arg_translation_and_type
-      f x hFTrans hXTrans hLeftTy
-  exact
-    congTypeSpine_generic_apply_eq_has_bool_type
-      f g x y hLeftTrans
-      (eo_to_smt_apply_generic_of_has_smt_translation f x hFTrans)
-      (eo_to_smt_apply_generic_of_has_smt_translation g y hGTrans)
-      (generic_apply_type_of_has_smt_translation f x hFTrans)
-      (generic_apply_type_of_has_smt_translation g y hGTrans)
-      hFn hArg
-
 private inductive HoCongTypeSpine (f g : Term) : Term -> Term -> Prop where
   | base :
       RuleProofs.eo_has_bool_type (mkEq f g) ->

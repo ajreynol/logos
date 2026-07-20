@@ -931,39 +931,6 @@ theorem qds_typeof_tuple_eq_of_wf
     exact False.elim (qds_stuck_type_not_wf hWf)
   · exact hTuple
 
-private theorem qds_smt_type_tuple_datatype_of_wf
-    {A B : SmtType}
-    (hWf : __smtx_type_wf (__eo_to_smt_type_tuple A B) = true) :
-    ∃ d, __eo_to_smt_type_tuple A B =
-      SmtType.Datatype (native_string_lit "@Tuple") d := by
-  cases B <;> simp [__eo_to_smt_type_tuple, __smtx_type_wf,
-    __smtx_type_wf_rec, native_and] at hWf ⊢
-  case Datatype s d =>
-    by_cases hs : s = native_string_lit "@Tuple"
-    · subst s
-      cases d with
-      | null => simp [__smtx_type_wf_rec] at hWf
-      | sum c rest =>
-          cases rest with
-          | null =>
-              by_cases hComp :
-                  (native_inhabited_type A = true ∧
-                    __smtx_type_wf_rec A A = true) ∧
-                      __smtx_type_no_alias_rec native_reflist_nil A = true
-              · exact ⟨
-                  SmtDatatype.sum (SmtDatatypeCons.cons A c) SmtDatatype.null,
-                  by
-                    simp [hComp.1.1, hComp.1.2, hComp.2,
-                      native_streq, native_ite]⟩
-              · exfalso
-                simp [hComp, __smtx_type_wf_rec, native_ite] at hWf
-          | sum c' rest' => simp [__smtx_type_wf_rec] at hWf
-    · cases d with
-      | null => simp [__smtx_type_wf_rec] at hWf
-      | sum c rest =>
-          cases rest <;>
-            simp [hs, __smtx_type_wf_rec, native_streq, native_ite] at hWf
-
 private theorem qds_smt_type_tuple_shape_of_wf
     {A B : SmtType}
     (hWf : __smtx_type_wf (__eo_to_smt_type_tuple A B) = true) :

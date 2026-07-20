@@ -188,33 +188,6 @@ theorem datatype_type_default_typed_canonical_of_inhabited
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) :=
   type_default_typed_canonical_of_native_inhabited_type (SmtType.Datatype s d) _hInh
 
-private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
-    (s : native_String)
-    (d : SmtDatatype)
-    (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
-    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
-    __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
-        SmtType.Datatype s d ∧
-      __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
-  exact datatype_type_default_typed_canonical_of_inhabited s d _hInh _hRec
-
-private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype
-    (T : SmtType) (hInh : native_inhabited_type T = true)
-    (_hRec : __smtx_type_wf_rec T T = true) :
-    __smtx_typeof_value (__smtx_type_default T) = T ∧
-      __smtx_value_canonical (__smtx_type_default T) :=
-  type_default_typed_canonical_of_native_inhabited_type T hInh
-
-private theorem datatype_type_default_typed_canonical_of_wf_rec
-    (s : native_String)
-    (d : SmtDatatype)
-    (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
-    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
-    __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
-        SmtType.Datatype s d ∧
-      __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
-  exact datatype_type_default_typed_canonical_of_wf_rec_deferred s d _hInh _hRec
-
 private theorem type_default_typed_canonical_of_wf_rec
     (T : SmtType) (hInh : native_inhabited_type T = true)
     (_hRec : __smtx_type_wf_rec T T = true) :

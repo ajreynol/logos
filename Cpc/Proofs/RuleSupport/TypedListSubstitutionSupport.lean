@@ -198,36 +198,6 @@ private theorem substitute_simul_rec_apply_eq_apply_of_parts
   rw [hF, hA]
   cases f <;> cases a <;> simp [__eo_mk_apply] at hFNe hANe ⊢
 
-private theorem substitute_simul_rec_apply_eq_apply_of_sub_parts
-    {isRename : Bool}
-    (f a f' a' xs ss bvs : Term)
-    {xsVars bvsVars : List EoVarKey}
-    (hXsEnv : EoVarEnvPerm xs xsVars)
-    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
-    (hSs : EoListAllHaveSmtTranslation ss)
-    (hNotBinder :
-      ∀ q v vs,
-        f ≠
-          Term.Apply q
-            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
-    (hF :
-      __substitute_simul_rec (Term.Boolean isRename) f xs ss bvs = f')
-    (hA :
-      __substitute_simul_rec (Term.Boolean isRename) a xs ss bvs = a')
-    (hFNe : f' ≠ Term.Stuck)
-    (hANe : a' ≠ Term.Stuck) :
-    __substitute_simul_rec (Term.Boolean isRename) (Term.Apply f a) xs ss bvs =
-      Term.Apply f' a' := by
-  have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by cases isRename <;> decide
-  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
-  have hss : ss ≠ Term.Stuck :=
-    SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hSs
-  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
-  rw [SubstituteSupport.substitute_simul_rec_apply
-    (Term.Boolean isRename) f a xs ss bvs hisr hxs hss hbvs hNotBinder]
-  rw [hF, hA]
-  cases f' <;> cases a' <;> simp [__eo_mk_apply] at hFNe hANe ⊢
-
 theorem substitute_simul_rec_eo_type_valid_rec_eq_self
     {isRename : Bool}
     (T xs ss bvs : Term)

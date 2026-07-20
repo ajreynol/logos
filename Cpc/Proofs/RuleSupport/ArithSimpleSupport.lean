@@ -57,16 +57,6 @@ private theorem eo_to_smt_plus_eq (x y : Term) :
       SmtTerm.plus (__eo_to_smt x) (__eo_to_smt y) := by
   rfl
 
-private theorem eo_to_smt_to_real_eq (x : Term) :
-    __eo_to_smt (Term.Apply (Term.UOp UserOp.to_real) x) =
-      SmtTerm.to_real (__eo_to_smt x) := by
-  rfl
-
-private theorem eo_to_smt_to_int_eq (x : Term) :
-    __eo_to_smt (Term.Apply (Term.UOp UserOp.to_int) x) =
-      SmtTerm.to_int (__eo_to_smt x) := by
-  rfl
-
 private theorem eo_to_smt_qdiv_total_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) x) y) =
       SmtTerm.qdiv_total (__eo_to_smt x) (__eo_to_smt y) := by
@@ -400,16 +390,6 @@ private theorem native_qleq_false_leq_swap (a b : native_Rat) :
   · have hlt' : b < a := Rat.not_le.mp hle
     have hle' : b ≤ a := Rat.le_of_lt hlt'
     simp [hle, hle']
-
-private theorem intSucc_typeof_eq_int
-    (t : Term)
-    (hTInt : __eo_typeof t = Term.Int) :
-    __eo_typeof (intSuccTerm t) = Term.Int := by
-  change __eo_typeof_plus (__eo_typeof t)
-      (__eo_typeof_plus Term.Int Term.Int) = Term.Int
-  rw [hTInt]
-  simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
-    native_ite, native_teq, native_not, SmtEval.native_not]
 
 private theorem intSucc_typeof_eq_stuck_of_real
     (t : Term)
@@ -2571,35 +2551,6 @@ private theorem arith_div_total_zero_int_arg_type_of_result
       simp [__eo_typeof_qdiv, __eo_requires, __eo_eq,
         __is_arith_type, native_ite, native_teq, native_not,
         SmtEval.native_not, hTy] at hSame hQdivNonStuck
-
-private theorem qdiv_total_has_smt_translation_real_zero
-    (t : Term)
-    (hTTrans : RuleProofs.eo_has_smt_translation t)
-    (hTReal : __eo_typeof t = Term.Real) :
-    RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t)
-        (Term.Rational (native_mk_rational 0 1))) := by
-  have hSmtT : __smtx_typeof (__eo_to_smt t) = SmtType.Real :=
-    RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
-      t Term.Real (__eo_to_smt t) rfl hTTrans hTReal
-  unfold RuleProofs.eo_has_smt_translation
-  rw [eo_to_smt_qdiv_total_eq, typeof_qdiv_total_eq]
-  simp [__smtx_typeof_arith_overload_op_2_ret, hSmtT,
-    rational_smt_type (native_mk_rational 0 1)]
-
-private theorem qdiv_total_has_smt_translation_int_zero
-    (t : Term)
-    (hTTrans : RuleProofs.eo_has_smt_translation t)
-    (hTInt : __eo_typeof t = Term.Int) :
-    RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t)
-        (Term.Numeral 0)) := by
-  have hSmtT : __smtx_typeof (__eo_to_smt t) = SmtType.Int :=
-    RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
-      t Term.Int (__eo_to_smt t) rfl hTTrans hTInt
-  unfold RuleProofs.eo_has_smt_translation
-  rw [eo_to_smt_qdiv_total_eq, typeof_qdiv_total_eq]
-  simp [__smtx_typeof_arith_overload_op_2_ret, hSmtT, numeral_smt_type 0]
 
 private theorem eval_qdiv_total_real_zero_rel
     (M : SmtModel) (hM : model_total_typed M)

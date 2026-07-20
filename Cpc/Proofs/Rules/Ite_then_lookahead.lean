@@ -58,23 +58,6 @@ private theorem smt_type_ite_same_as_then
   simp [__smtx_typeof_ite, hCBool, hXSmtTy, hYSmtTy, ← hTypes, native_Teq,
     native_ite]
 
-private theorem smt_branches_eq_of_typeof_eq
-    (x y : Term) :
-  RuleProofs.eo_has_smt_translation x ->
-  RuleProofs.eo_has_smt_translation y ->
-  __eo_typeof x = __eo_typeof y ->
-  __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt y) := by
-  intro hXTrans hYTrans hTypes
-  have hXSmtTy :
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) :=
-    TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
-      x (__eo_typeof x) (__eo_to_smt x) rfl hXTrans rfl
-  have hYSmtTy :
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) :=
-    TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
-      y (__eo_typeof y) (__eo_to_smt y) rfl hYTrans rfl
-  rw [hXSmtTy, hYSmtTy, hTypes]
-
 private theorem prog_ite_then_lookahead_eq_of_ne_stuck (c1 x1 y1 z1 : Term) :
     c1 ≠ Term.Stuck ->
     x1 ≠ Term.Stuck ->

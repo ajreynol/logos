@@ -471,18 +471,6 @@ private theorem concat_empty_bv_eq_extract_elim_value (a : BitVec A) :
       SmtValue.Binary (↑A : Int) (↑a.toNat : Int) := by
   simpa using concat_bv_eq_extract_elim_values a (0#0)
 
-private theorem eval_concat_bv_eq_extract_elim
-    (M : SmtModel) (a b : Term) :
-    __smtx_model_eval M
-        (__eo_to_smt
-          (Term.Apply (Term.Apply (Term.UOp UserOp.concat) a) b)) =
-      __smtx_model_eval_concat
-        (__smtx_model_eval M (__eo_to_smt a))
-        (__smtx_model_eval M (__eo_to_smt b)) := by
-  change __smtx_model_eval M
-      (SmtTerm.concat (__eo_to_smt a) (__eo_to_smt b)) = _
-  rw [__smtx_model_eval.eq_def] <;> simp only
-
 private theorem low_extract_eq_iff_rebuild
     (x : BitVec W) (y : BitVec D) (hD : D ≤ W) :
     x.extractLsb' 0 D = y ↔

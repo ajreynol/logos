@@ -103,12 +103,6 @@ private theorem typeof_arg_of_prog_bv_ite_width_one_not_bool (c1 : Term) :
         (__eo_typeof (Term.Apply (Term.UOp UserOp.bvnot) c1)) hTy).1
     exact typeof_width_one_not_ite_not_stuck_implies_cond (__eo_typeof c1) hLeftNN
 
-private theorem smt_typeof_binary_one_one :
-    __smtx_typeof (SmtTerm.Binary 1 1) = SmtType.BitVec 1 := by
-  have hNN : __smtx_typeof (SmtTerm.Binary 1 1) ≠ SmtType.None := by
-    native_decide
-  simpa using TranslationProofs.smtx_typeof_binary_of_non_none 1 1 hNN
-
 private theorem smt_typeof_binary_zero_one :
     __smtx_typeof (SmtTerm.Binary 1 0) = SmtType.BitVec 1 := by
   have hNN : __smtx_typeof (SmtTerm.Binary 1 0) ≠ SmtType.None := by
@@ -136,11 +130,6 @@ private theorem smt_eval_bv_one_one (M : SmtModel) :
     SmtValue.Binary 1 1
   simp [native_ite, SmtEval.native_zleq]
   native_decide
-
-private theorem smt_eval_binary_one_one (M : SmtModel) :
-    __smtx_model_eval M (SmtTerm.Binary 1 1) =
-      SmtValue.Binary 1 1 := by
-  rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem smt_eval_binary_zero_one (M : SmtModel) :
     __smtx_model_eval M (SmtTerm.Binary 1 0) =

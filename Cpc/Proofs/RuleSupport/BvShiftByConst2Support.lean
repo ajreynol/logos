@@ -1189,65 +1189,6 @@ private theorem smt_typeof_bvashr_same
   simp [__smtx_typeof_bv_op_2, hXTy, hConstTy',
     native_nateq, native_ite]
 
-private theorem bvAshrByConst2_lhs_eo_type
-    (x amount : Term) (W : native_Int) :
-    __eo_typeof x =
-        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral W) ->
-    __eo_typeof (bvShiftByConst2Const amount (Term.Numeral W)) =
-        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral W) ->
-    __eo_typeof (bvAshrByConst2Lhs x amount (Term.Numeral W)) =
-      Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral W) := by
-  intro hXTy hConstTy
-  change __eo_typeof_bvand (__eo_typeof x)
-      (__eo_typeof (bvShiftByConst2Const amount (Term.Numeral W))) =
-    Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral W)
-  rw [hXTy, hConstTy]
-  simp [__eo_typeof_bvand, __eo_requires, __eo_eq, native_ite,
-    native_teq, native_not]
-
-private theorem bvAshrByConst2_extract_self_eo_type
-    (x : Term) (W N : native_Int) :
-    __eo_typeof x =
-        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral W) ->
-    native_zleq 0 N = true ->
-    native_zlt N W = true ->
-    __eo_typeof (bvExtractTerm x (Term.Numeral N) (Term.Numeral N)) =
-      Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1) := by
-  intro hXTy hN0 hNW
-  have hD :
-      native_zplus (native_zplus N 1) (native_zneg N) = 1 := by
-    simp [SmtEval.native_zplus, SmtEval.native_zneg]
-    grind
-  have hGtN : native_zlt (-1 : native_Int) N = true := by
-    have hN0Int : (0 : Int) <= N := by
-      simpa [SmtEval.native_zleq] using hN0
-    have h : (-1 : Int) < N := by omega
-    simpa [SmtEval.native_zlt] using h
-  have hGtD : native_zlt (-1 : native_Int)
-      (native_zplus (native_zplus N 1) (native_zneg N)) = true := by
-    rw [hD]
-    native_decide
-  have hD' :
-      native_zplus (native_zplus N (native_zneg N)) 1 = 1 := by
-    simp [SmtEval.native_zplus, SmtEval.native_zneg]
-    grind
-  have hGtD' : native_zlt (-1 : native_Int)
-      (native_zplus (native_zplus N (native_zneg N)) 1) = true := by
-    rw [hD']
-    native_decide
-  have hGtOne : native_zlt (-1 : native_Int) 1 = true := by
-    native_decide
-  have hPosOne : native_zlt (0 : native_Int) 1 = true := by
-    native_decide
-  change __eo_typeof_extract (Term.UOp UserOp.Int)
-      (Term.Numeral N) (Term.UOp UserOp.Int) (Term.Numeral N)
-      (__eo_typeof x) =
-    Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1)
-  rw [hXTy]
-  simp [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt,
-    __eo_requires, __eo_mk_apply, native_ite, native_teq, native_not,
-    hGtN, hNW, hGtD, hD, hGtD', hD', hGtOne, hPosOne]
-
 private theorem eo_typeof_repeat_arg_bitvec_of_ne_stuck_local2
     {A idx C : Term}
     (h : __eo_typeof_repeat A idx C ≠ Term.Stuck) :

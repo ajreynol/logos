@@ -74,34 +74,6 @@ private theorem typeof_prog_uf_int2bv_bv2nat_eq_of_ne_stuck (w t : Term) :
       ubvToIntTerm, intToBvTerm, modTotalTerm, intPow2Term,
       typeof_ufInt2bvBv2natConclusion_eq] at hW hT ⊢
 
-private theorem eq_of_requires_eq_true_not_stuck (x y B : Term) :
-    __eo_requires (__eo_eq x y) (Term.Boolean true) B ≠ Term.Stuck ->
-    y = x := by
-  intro hProg
-  have hProg' := hProg
-  simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
-    SmtEval.native_not] at hProg'
-  have hEq : __eo_eq x y = Term.Boolean true := hProg'.1
-  by_cases hx : x = Term.Stuck
-  · subst x
-    simp [__eo_eq] at hEq
-  · by_cases hy : y = Term.Stuck
-    · subst y
-      simp [__eo_eq] at hEq
-    · have hDec : native_teq y x = true := by
-        simpa [__eo_eq, hx, hy] using hEq
-      simpa [native_teq] using hDec
-
-private theorem requires_eq_true_stuck_of_ne (x y B : Term) :
-    x ≠ y ->
-    __eo_requires (__eo_eq x y) (Term.Boolean true) B = Term.Stuck := by
-  intro hNe
-  by_cases hReq :
-      __eo_requires (__eo_eq x y) (Term.Boolean true) B = Term.Stuck
-  · exact hReq
-  · have hEq : y = x := eq_of_requires_eq_true_not_stuck x y B hReq
-    exact False.elim (hNe hEq.symm)
-
 private theorem nonneg_of_width_guard (n : native_Int) :
     native_zlt (-1 : native_Int) n = true ->
     native_zleq 0 n = true := by

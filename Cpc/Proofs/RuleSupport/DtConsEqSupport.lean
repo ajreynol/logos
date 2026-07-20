@@ -3802,24 +3802,6 @@ private theorem ctorSpineEq_root_cases
   | app x y hSp ih =>
       exact ih
 
-private theorem ctorSpineRoot_of_dt_cons_condition
-    (c : Term) :
-    __eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple)) (Term.Boolean true)
-      (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple_unit)) (Term.Boolean true)
-        (__eo_is_ok (__eo_dt_selectors c))) = Term.Boolean true ->
-    ∃ root, CtorSpineRoot c root := by
-  intro h
-  cases c <;>
-    simp [__eo_is_eq, __eo_ite, __eo_is_ok, __eo_dt_selectors,
-      __eo_dt_selectors_main, native_ite, native_teq, native_and, native_not,
-      SmtEval.native_and, SmtEval.native_not] at h
-  case UOp op =>
-    cases op <;> simp  at h
-    · exact ⟨Term.UOp UserOp.tuple_unit, CtorSpineRoot.tupleUnit⟩
-    · exact ⟨Term.UOp UserOp.tuple, CtorSpineRoot.tuple⟩
-  case DtCons s d i =>
-    exact ⟨Term.DtCons s d i, CtorSpineRoot.dtCons s d i⟩
-
 private theorem ctorSpineRoot_of_is_cons_app_true
     (t : Term) :
     __is_cons_app t = Term.Boolean true ->

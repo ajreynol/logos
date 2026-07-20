@@ -37,41 +37,6 @@ def bvNegoTerm (x n : Term) : Term :=
       (Term.Apply (Term.UOp UserOp.bvnego) x))
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) (bvNegoMin n))
 
-private theorem prog_bv_nego_eliminate_eq_of_ne_stuck (x n : Term) :
-    x ≠ Term.Stuck ->
-    n ≠ Term.Stuck ->
-    __eo_prog_bv_nego_eliminate x n (Proof.pf (bvNegoPrem x n)) =
-      bvNegoTerm x n := by
-  intro hX hN
-  unfold bvNegoPrem
-  rw [__eo_prog_bv_nego_eliminate.eq_3 x n n x hX hN]
-  unfold bvNegoTerm bvNegoMin
-  cases x <;> cases n <;>
-    simp [__eo_requires, __eo_and, __eo_eq, native_ite, native_teq,
-      native_not, SmtEval.native_not, SmtEval.native_and] at hX hN ⊢
-
-private theorem bv_nego_shape_of_ne_stuck (x n P : Term) :
-    __eo_prog_bv_nego_eliminate x n (Proof.pf P) ≠ Term.Stuck ->
-    x ≠ Term.Stuck ∧ n ≠ Term.Stuck ∧
-      ∃ px pn, P = bvNegoPrem px pn := by
-  intro hProg
-  have hXNe : x ≠ Term.Stuck := by
-    intro hX
-    subst x
-    exact hProg (__eo_prog_bv_nego_eliminate.eq_1 n (Proof.pf P))
-  have hNNe : n ≠ Term.Stuck := by
-    intro hN
-    subst n
-    exact hProg (__eo_prog_bv_nego_eliminate.eq_2 x (Proof.pf P) hXNe)
-  refine ⟨hXNe, hNNe, ?_⟩
-  by_cases hShape : ∃ px pn, P = bvNegoPrem px pn
-  · exact hShape
-  · exact False.elim (hProg
-      (__eo_prog_bv_nego_eliminate.eq_4 x n (Proof.pf P) hXNe hNNe (by
-        intro pn px hP
-        cases hP
-        exact hShape ⟨px, pn, rfl⟩)))
-
 private theorem mk_apply_bitvec_eq_inv (x m : Term)
     (h : __eo_mk_apply (Term.UOp UserOp.BitVec) x =
       Term.Apply (Term.UOp UserOp.BitVec) m) :
@@ -588,4 +553,3 @@ theorem facts_bv_nego_term
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) (bvNegoMin n))))
     rw [eval_bvnego_matches_eq_min M hM x n hXTrans hResultTy]
     exact RuleProofs.smt_value_rel_refl _
-

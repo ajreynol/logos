@@ -19,29 +19,6 @@ and the dropped `native_inhabited_type` gate in `__smtx_dt_cons_wf_rec` required
 the now-absent inhabited conjunct in the wf-extraction lemmas.
 -/
 
-private theorem dt_cons_wf_rec_tail_of_true {TF TU : SmtType} {cF cU : SmtDatatypeCons}
-    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TF cF) (SmtDatatypeCons.cons TU cU) = true) :
-    __smtx_dt_cons_wf_rec cF cU = true := by
-  by_cases hc : __smtx_dt_cons_wf_rec cF cU = true
-  · exact hc
-  · exfalso
-    cases TF <;> cases TU <;>
-      simp_all [__smtx_dt_cons_wf_rec, native_ite, native_and]
-
-private theorem dt_wf_cons_of_wf {cF cU : SmtDatatypeCons} {dF dU : SmtDatatype}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum cF dF) (SmtDatatype.sum cU dU) = true) :
-    __smtx_dt_cons_wf_rec cF cU = true := by
-  cases hc : __smtx_dt_cons_wf_rec cF cU <;>
-    simp [__smtx_dt_wf_rec, native_ite, hc] at h ⊢
-
-private theorem dt_wf_tail_of_nonempty_tail_wf
-    {cF cU cTailF cTailU : SmtDatatypeCons} {dTailF dTailU : SmtDatatype}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum cF (SmtDatatype.sum cTailF dTailF))
-        (SmtDatatype.sum cU (SmtDatatype.sum cTailU dTailU)) = true) :
-    __smtx_dt_wf_rec (SmtDatatype.sum cTailF dTailF) (SmtDatatype.sum cTailU dTailU) = true := by
-  have hc : __smtx_dt_cons_wf_rec cF cU = true := dt_wf_cons_of_wf h
-  simpa [__smtx_dt_wf_rec, native_ite, hc] using h
-
 mutual
 
 private def smt_type_unref (s : native_String) : SmtType -> Bool
@@ -328,20 +305,6 @@ end
    plain-data notion independent of the smt-wf algorithm), with the wf hypothesis
    changed to the diagonal self-check.  Left as `sorry` per the "rewrite from
    scratch, sorry the hard parts" directive. -/
-
-private theorem type_unref_of_wf_not_contains
-    (t : native_String) (T : SmtType) (refs : RefList)
-    (hNot : native_reflist_contains refs t = false)
-    (hWf : __smtx_type_wf_rec T T = true) :
-    smt_type_unref t T = true := by
-  sorry
-
-private theorem dtc_unref_of_wf_not_contains
-    (t : native_String) (c : SmtDatatypeCons) (refs : RefList)
-    (hNot : native_reflist_contains refs t = false)
-    (hWf : __smtx_dt_cons_wf_rec c c = true) :
-    smt_dtc_unref t c = true := by
-  sorry
 
 private theorem dt_unref_of_wf_not_contains
     (t : native_String) (d0 : SmtDatatype) (refs : RefList)

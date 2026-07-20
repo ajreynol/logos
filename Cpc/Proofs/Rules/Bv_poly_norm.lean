@@ -64,13 +64,6 @@ private theorem native_to_int_qplus_to_real
   rw [← native_to_real_add]
   exact native_to_int_to_real _
 
-private theorem native_to_int_qmult_to_real
-    (m n : native_Int) :
-  native_to_int (native_qmult (native_to_real m) (native_to_real n)) =
-    native_zmult m n := by
-  rw [← native_to_real_mul]
-  exact native_to_int_to_real _
-
 private theorem native_qplus_to_real_eq_zero_iff
     (m n : native_Int) :
   native_qplus (native_to_real m) (native_to_real n) = native_mk_rational 0 1 ↔

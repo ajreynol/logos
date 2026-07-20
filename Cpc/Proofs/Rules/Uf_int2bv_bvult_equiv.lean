@@ -26,15 +26,6 @@ private abbrev ubvLtTerm (t s : Term) : Term :=
 private abbrev ufInt2bvBvultConclusion (t s : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) (bvultTerm t s)) (ubvLtTerm t s)
 
-private theorem eo_to_smt_ubv_to_int_eq (t : Term) :
-    __eo_to_smt (ubvToIntTerm t) = SmtTerm.ubv_to_int (__eo_to_smt t) := by
-  rfl
-
-private theorem eo_to_smt_lt_eq (a b : Term) :
-    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.lt) a) b) =
-      SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b) := by
-  rfl
-
 private theorem smtx_eval_lt_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.lt x y) =

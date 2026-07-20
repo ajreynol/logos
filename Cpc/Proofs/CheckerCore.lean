@@ -72,12 +72,6 @@ private theorem eo_to_smt_and_eq (A B : Term) :
       SmtTerm.and (__eo_to_smt A) (__eo_to_smt B) := by
   rfl
 
-/-- Simplifies EO-to-SMT translation for `imp_eq`. -/
-private theorem eo_to_smt_imp_eq (A B : Term) :
-    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) =
-      SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B) := by
-  rfl
-
 /-- Lemma about `eo_has_smt_translation_true`. -/
 private theorem eo_has_smt_translation_true :
     RuleProofs.eo_has_smt_translation (Term.Boolean true) := by

@@ -445,10 +445,6 @@ private theorem pullup_list_concat_parts_of_ne_stuck
   have hTail := eo_requires_result_ne_stuck_of_ne_stuck _ _ _ hReq
   exact ⟨hA, support_eo_requires_cond_eq_of_non_stuck hTail⟩
 
-private theorem pullup_op_term_ne_stuck (op : BvConcatPullupOp) :
-    op.term ≠ Term.Stuck := by
-  cases op <;> intro h <;> cases h
-
 private theorem pullup_term_ne_stuck_of_is_list_true (f t : Term) :
     __eo_is_list f t = Term.Boolean true -> t ≠ Term.Stuck := by
   intro hList h

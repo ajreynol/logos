@@ -48,19 +48,6 @@ private theorem smtx_type_wf_rec_of_type_wf
     exact False.elim (hNotFun A B rfl)
   all_goals first | exact h | exact h.1 | exact h.2 | exact h.2.2 | exact h.1.2
 
-private theorem smtx_datatype_type_wf_rec_parts_local
-    {s : native_String} {d : SmtDatatype}
-    (h : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
-    __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true := by
-  simpa [__smtx_type_wf_rec] using h
-
-private theorem smtx_datatype_field_wf_rec_parts_local
-    {s : native_String} {d : SmtDatatype} {refs : RefList}
-    (h : smtx_type_field_wf_rec (SmtType.Datatype s d) refs) :
-    __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true :=
-  smtx_datatype_type_wf_rec_parts_local (by
-    simpa [smtx_type_field_wf_rec] using h)
-
 /-- Computes `__smtx_typeof_guard` under a non-`None` premise. -/
 theorem smtx_typeof_guard_of_non_none
     (T U : SmtType) (h : T ≠ SmtType.None) :
@@ -2628,15 +2615,6 @@ private theorem eo_to_smt_set_empty_ne_numeral
   intro h
   cases T <;> simp [__eo_to_smt_set_empty] at h
 
-private theorem eo_to_smt_map_diff_guard_ne_numeral
-    (T : SmtType) (a b : SmtTerm) (n : native_Int) :
-    native_ite (native_Teq T SmtType.None) SmtTerm.None
-        (SmtTerm.map_diff a b) ≠
-      SmtTerm.Numeral n := by
-  intro h
-  cases hT : native_Teq T SmtType.None <;>
-    simp [native_ite, hT] at h
-
 private theorem eo_to_smt_array_deq_diff_ne_numeral
     (a b : SmtTerm) (n : native_Int) :
     __eo_to_smt_array_deq_diff a (__smtx_typeof a) b (__smtx_typeof b) ≠
@@ -2654,12 +2632,6 @@ private theorem eo_to_smt_sets_deq_diff_ne_numeral
   cases ha : __smtx_typeof a <;> cases hb : __smtx_typeof b <;>
     simp [__eo_to_smt_sets_deq_diff, ha, hb] at h <;>
     cases h
-
-private theorem eo_to_smt_at_bv_ne_numeral
-    (a b : SmtTerm) (n : native_Int) :
-    SmtTerm.int_to_bv b a ≠ SmtTerm.Numeral n := by
-  intro h
-  cases h
 
 /-- A non-`None` `_at_bv` translation has a numeral width and an integer value. -/
 theorem eo_to_smt_at_bv_of_non_none
@@ -2851,23 +2823,6 @@ private theorem eo_to_smt_tuple_prepend_ne_numeral
   exact
     eo_to_smt_tuple_prepend_of_type_ne_numeral
       (__smtx_typeof tail) head headTy tail n h
-
-private theorem eo_to_smt_set_insert_ne_numeral_of_not_typed_nil
-    (xs : Term) (base : SmtTerm) (n : native_Int)
-    (hxs : ∀ T, xs ≠ Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) :
-    __eo_to_smt_set_insert xs base ≠ SmtTerm.Numeral n := by
-  intro h
-  cases xs <;> try cases h
-  case Apply f a =>
-    cases f <;> try cases h
-    case UOp op =>
-      cases op <;> try cases h
-      case _at__at_TypedList_nil =>
-        exact False.elim (hxs a rfl)
-    case Apply g x =>
-      cases g <;> try cases h
-      case UOp op =>
-        cases op <;> cases h
 
 private theorem eo_to_smt_exists_ne_numeral_of_not_nil
     (xs : Term) (body : SmtTerm) (n : native_Int)
@@ -3077,42 +3032,6 @@ theorem eo_to_smt_eq_numeral
 section DeferredTypeRecovery
 
 
-/-- Computes the type of the one-bit literal used by `bvite`. -/
-private theorem typeof_binary_one_eq :
-    __smtx_typeof (SmtTerm.Binary 1 1) = SmtType.BitVec 1 := by
-  have hNN : __smtx_typeof (SmtTerm.Binary 1 1) ≠ SmtType.None := by
-    unfold __smtx_typeof
-    simp [native_ite, SmtEval.native_and, native_zleq, native_zeq, native_mod_total,
-      native_int_pow2]
-    rfl
-  simpa using smtx_typeof_binary_of_non_none 1 1 hNN
-
-/-- Computes `__smtx_typeof_apply` for function-like apply heads. -/
-private theorem smtx_typeof_apply_of_head_cases
-    {F X A B : SmtType}
-    (hHead : F = SmtType.FunType A B ∨ F = SmtType.DtcAppType A B)
-    (hX : X = A)
-    (hA : A ≠ SmtType.None) :
-    __smtx_typeof_apply F X = B := by
-  rcases hHead with hHead | hHead
-  · rw [hHead, hX]
-    simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-  · rw [hHead, hX]
-    simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-
-/-- Rewrites `generic_apply_type` for heads that are not datatype selectors/testers. -/
-private theorem generic_apply_type_of_non_special_head
-    (f x : SmtTerm)
-    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
-    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
-    generic_apply_type f x := by
-  unfold generic_apply_type
-  cases f <;>
-    first
-    | exact absurd rfl (hSel _ _ _ _)
-    | exact absurd rfl (hTester _ _ _)
-    | simp [__smtx_typeof]
-
 /-- Simplifies EO-to-SMT type translation for `typeof_numeral`. -/
 theorem eo_to_smt_type_typeof_numeral
     (n : native_Int) :
@@ -3235,11 +3154,6 @@ private def smtx_type_substitute_top (sub : native_String) (d0 : SmtDatatype) : 
       native_ite (native_streq sub s2) (SmtType.Datatype sub d0) (SmtType.TypeRef s2)
   | T => T
 
-private theorem smtx_type_substitute_eq_top
-    (sub : native_String) (d0 : SmtDatatype) (T : SmtType) :
-    __smtx_type_substitute sub d0 T = smtx_type_substitute_top sub d0 T := by
-  cases T <;> rfl
-
 -- (Removed: the old reflist-scoped `smtx_{type_substitute_top,dtc_substitute,dt_substitute}_of_wf_rec`
 -- cluster — "substituting a name absent from the ambient scope is a no-op on any well-formed
 -- structure." Under the new algorithm `__smtx_type_wf_rec` tracks no ambient scope and permits
@@ -3247,44 +3161,6 @@ private theorem smtx_type_substitute_eq_top
 -- is well-formed yet substituting `"sub"` is not a no-op. The sound, scope-free replacement is the
 -- syntactic `Smtm.subst_noop_no_free_{ty,dt,dtc}` (SmtFreeRefs), keyed on `hasFree… = false` rather
 -- than on well-formedness. The cluster had no callers, so it is simply deleted.)
-
-private theorem smtx_dtc_substitute_cons_eq
-    (sub : native_String) (d0 : SmtDatatype) (T : SmtType) (c : SmtDatatypeCons) :
-    __smtx_dtc_substitute sub d0 (SmtDatatypeCons.cons T c) =
-      SmtDatatypeCons.cons (smtx_type_substitute_top sub d0 T)
-        (__smtx_dtc_substitute sub d0 c) := by
-  cases T <;> rfl
-
-private theorem smtx_type_substitute_top_of_guard
-    (sub : native_String) (d0 : SmtDatatype) (T U : SmtType)
-    (hU : smtx_type_substitute_top sub d0 U = U) :
-    smtx_type_substitute_top sub d0 (__smtx_typeof_guard T U) = __smtx_typeof_guard T U := by
-  cases T
-  · simp [__smtx_typeof_guard, smtx_type_substitute_top, native_ite, native_Teq]
-  all_goals
-    simpa [__smtx_typeof_guard, native_ite, native_Teq] using hU
-
-/- RESIDUAL ASSUMPTION (introduced by the `dtMutual` `__smtx_dt_lift` addition).
-
-The `lift` re-folding commutes with the EO→SMT translation:
-`translate (lift_eo s dRef d) = lift_smt s (translate dRef) (translate d)`.
-
-This is **false in general**, due to a structural asymmetry between the two `lift`s:
-* EO `__eo_type_lift` is SHALLOW on tuples — a tuple is a `Term.Apply (UOp Tuple) …`, which
-  hits the catch-all `| T => T` and is left untouched.
-* SMT `__smtx_type_lift` is DEEP — tuples translate to `SmtType.Datatype "@Tuple" body`
-  (`__eo_to_smt_type`), and the SMT lift recurses into every `Datatype` body via
-  `__smtx_dt_lift`.
-So if a tuple field carries an inlined datatype equal to the re-fold target, the SMT side
-folds it (→ `TypeRef`) while the EO side cannot reach it. The non-`Datatype` (`DatatypeType`)
-case IS provable: only `dRef` needs SMT-wf, and `eo_to_smt_datatype_injective_of_wf_rec`
-rules out a translation collision against the common image `translate dRef`.
-
-Note the *substitute* commutation avoids this only on the valid/well-formed fragment:
-substitute re-targets free `TypeRef`s, which a wf closed tuple has none of; lift re-targets
-inlined `Datatype`s, which a wf tuple can contain. So SMT-wf is insufficient for a universal
-lift theorem. The usable replacement below is `eo_to_smt_dt_lift_of_wf`, whose extra
-free-reference premise rules out the bad tuple-folding case. -/
 
 /-! ### Concrete refutation of `eo_to_smt_datatype_lift`
 
@@ -3922,58 +3798,6 @@ theorem eo_dtc_substitute_noop (sub : native_String) (d0 : Datatype) :
         rw [eo_dtc_substitute_noop sub d0 c h.2]
         try simp_all [native_ite, native_teq])
 end
-
-private theorem eo_to_smt_datatype_substitute_no_free
-    (sub : native_String) (d0 W : Datatype) (refs : RefList)
-    (hNot : native_reflist_contains refs sub = false)
-    (hValid : eo_datatype_valid_rec refs W)
-    (hFree : hasFreeDt sub refs (__eo_to_smt_datatype W) = false) :
-    __eo_to_smt_datatype (__eo_dt_substitute sub d0 W) =
-      __smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype W) := by
-  have hNoRef : noRefSubDt sub W = true :=
-    noRefSubDt_of_valid_no_free sub W refs hNot hValid hFree
-  rw [eo_dt_substitute_noop sub d0 W hNoRef]
-  exact (subst_noop_no_free_dt sub (__eo_to_smt_datatype W) (__eo_to_smt_datatype d0)
-    refs hNot hFree).symm
-
-private theorem eo_to_smt_datatype_cons_substitute_no_free
-    (sub : native_String) (d0 : Datatype) (c : DatatypeCons) (refs : RefList)
-    (hNot : native_reflist_contains refs sub = false)
-    (hValid : eo_datatype_cons_valid_rec refs c)
-    (hFree : hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false) :
-    __eo_to_smt_datatype_cons (__eo_dtc_substitute sub d0 c) =
-      __smtx_dtc_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype_cons c) := by
-  have hNoRef : noRefSubDtc sub c = true :=
-    noRefSubDtc_of_valid_no_free sub c refs hNot hValid hFree
-  rw [eo_dtc_substitute_noop sub d0 c hNoRef]
-  exact (subst_noop_no_free_dtc sub (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d0)
-    refs hNot hFree).symm
-
-private theorem eo_to_smt_datatype_substitute_cons_no_free
-    (sub : native_String) (d0 W : Datatype) (refs : RefList)
-    (hNot : native_reflist_contains refs sub = false)
-    (hValid : eo_datatype_valid_rec (sub :: refs) W)
-    (hFree : hasFreeDt sub refs (__eo_to_smt_datatype W) = false) :
-    __eo_to_smt_datatype (__eo_dt_substitute sub d0 W) =
-      __smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype W) := by
-  have hNoRef : noRefSubDt sub W = true :=
-    noRefSubDt_of_valid_cons_no_free sub W refs hNot hValid hFree
-  rw [eo_dt_substitute_noop sub d0 W hNoRef]
-  exact (subst_noop_no_free_dt sub (__eo_to_smt_datatype W) (__eo_to_smt_datatype d0)
-    refs hNot hFree).symm
-
-private theorem eo_to_smt_datatype_cons_substitute_cons_no_free
-    (sub : native_String) (d0 : Datatype) (c : DatatypeCons) (refs : RefList)
-    (hNot : native_reflist_contains refs sub = false)
-    (hValid : eo_datatype_cons_valid_rec (sub :: refs) c)
-    (hFree : hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false) :
-    __eo_to_smt_datatype_cons (__eo_dtc_substitute sub d0 c) =
-      __smtx_dtc_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype_cons c) := by
-  have hNoRef : noRefSubDtc sub c = true :=
-    noRefSubDtc_of_valid_cons_no_free sub c refs hNot hValid hFree
-  rw [eo_dtc_substitute_noop sub d0 c hNoRef]
-  exact (subst_noop_no_free_dtc sub (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d0)
-    refs hNot hFree).symm
 
 private def eo_type_substitute_field (sub : native_String) (d0 : Datatype) : Term -> Term
   | Term.DatatypeType s2 d2 =>
@@ -4930,46 +4754,6 @@ theorem eo_to_smt_type_typeof_dt_cons_of_valid
       eo_type_valid_rec []
         (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
     exact hRec.2
-
-private theorem eo_typeof_dt_cons_rec_null (T : Term) (i : native_Nat) :
-    __eo_typeof_dt_cons_rec T Datatype.null i = Term.Stuck := by
-  rw [__eo_typeof_dt_cons_rec.eq_def]
-  cases T <;> cases i <;> simp
-
-private theorem eo_typeof_dt_cons_rec_unit (T : Term) (d : Datatype) (hT : T ≠ Term.Stuck) :
-    __eo_typeof_dt_cons_rec T (Datatype.sum DatatypeCons.unit d) native_nat_zero = T := by
-  rw [__eo_typeof_dt_cons_rec.eq_def]
-  cases T <;> simp at hT ⊢
-
-private theorem eo_typeof_dt_cons_rec_cons (T U : Term) (c : DatatypeCons) (d : Datatype) (hT : T ≠ Term.Stuck) :
-    __eo_typeof_dt_cons_rec T (Datatype.sum (DatatypeCons.cons U c) d) native_nat_zero =
-      Term.DtcAppType U (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero) := by
-  rw [__eo_typeof_dt_cons_rec.eq_def]
-  cases T <;> simp at hT ⊢
-
-private theorem eo_typeof_dt_cons_rec_succ (T : Term) (c : DatatypeCons) (d : Datatype) (n : native_Nat) (hT : T ≠ Term.Stuck) :
-    __eo_typeof_dt_cons_rec T (Datatype.sum c d) (native_nat_succ n) =
-      __eo_typeof_dt_cons_rec T d n := by
-  rw [__eo_typeof_dt_cons_rec.eq_def]
-  cases T <;> simp at hT ⊢
-
-private theorem smtx_typeof_dt_cons_rec_null (T : SmtType) (i : native_Nat) :
-    __smtx_typeof_dt_cons_rec T SmtDatatype.null i = SmtType.None := by
-  rw [__smtx_typeof_dt_cons_rec.eq_def]
-
-private theorem smtx_typeof_dt_cons_rec_unit (T : SmtType) (d : SmtDatatype) :
-    __smtx_typeof_dt_cons_rec T (SmtDatatype.sum SmtDatatypeCons.unit d) native_nat_zero = T := by
-  rw [__smtx_typeof_dt_cons_rec.eq_1]
-
-private theorem smtx_typeof_dt_cons_rec_cons (T U : SmtType) (c : SmtDatatypeCons) (d : SmtDatatype) :
-    __smtx_typeof_dt_cons_rec T (SmtDatatype.sum (SmtDatatypeCons.cons U c) d) native_nat_zero =
-      SmtType.DtcAppType U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero) := by
-  rw [__smtx_typeof_dt_cons_rec.eq_2]
-
-private theorem smtx_typeof_dt_cons_rec_succ (T : SmtType) (c : SmtDatatypeCons) (d : SmtDatatype) (n : native_Nat) :
-    __smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) (native_nat_succ n) =
-      __smtx_typeof_dt_cons_rec T d n := by
-  rw [__smtx_typeof_dt_cons_rec.eq_3]
 
 theorem eo_to_smt_type_typeof_dt_cons
     (s : native_String) (d : Datatype) (i : native_Nat)

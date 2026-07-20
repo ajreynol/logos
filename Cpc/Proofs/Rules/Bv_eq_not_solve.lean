@@ -149,10 +149,6 @@ private theorem eo_to_smt_bvnot_term (a : Term) :
       SmtTerm.bvnot (__eo_to_smt a) := by
   rfl
 
-private theorem eo_to_smt_boolean (b : Bool) :
-    __eo_to_smt (Term.Boolean b) = SmtTerm.Boolean b := by
-  rfl
-
 private theorem smt_typeof_eq_same_non_none
     (a b : SmtTerm) (T : SmtType) :
     __smtx_typeof a = T ->

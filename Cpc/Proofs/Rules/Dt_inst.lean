@@ -507,13 +507,6 @@ private theorem dtConsSpineRoot_ne_stuck
   intro h
   cases hSp <;> cases h
 
-private theorem eo_to_smt_dtCons_eq
-    (s : native_String) (d : Datatype) (i : native_Nat) :
-    __eo_to_smt (Term.DtCons s d i) =
-      native_ite (native_reserved_datatype_name s) SmtTerm.None
-        (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) := by
-  rfl
-
 private theorem smtx_typeof_eo_to_smt_stuck_none :
     __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.None := by
   native_decide
