@@ -4,6 +4,7 @@ defaultTargets = ["Cpc", "CpcMini"]
 
 [[lean_lib]]
 name = "Cpc"
+moreLeanArgs = ["-DmaxHeartbeats=10000000"]
 
 [[lean_lib]]
 name = "CpcMini"
