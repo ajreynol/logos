@@ -4,6 +4,8 @@ import Cpc.Proofs.RuleSupport.ConcatSplitSupport
 import Cpc.Proofs.RuleSupport.SequenceSupport
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.StrOverlapSupport
+import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+import Cpc.Proofs.RuleSupport.RegexIndexofSupport
 import Cpc.Proofs.Closed.IsClosedRec
 
 open Eo
@@ -13,6 +15,98 @@ open Smtm
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
+set_option maxRecDepth 12000
+
+private theorem sr_eval_boolean_term_eq (M : SmtModel) (b : native_Bool) :
+    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_numeral_term_eq (M : SmtModel) (n : native_Int) :
+    __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_var_term_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) :
+    __smtx_model_eval M (SmtTerm.Var s T) =
+      native_model_var_lookup M s T := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_purify_term_eq (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm._at_purify x) =
+      __smtx_model_eval__at_purify (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_neg_term_eq (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.neg x y) =
+      __smtx_model_eval__ (__smtx_model_eval M x)
+        (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_gt_term_eq (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.gt x y) =
+      __smtx_model_eval_gt (__smtx_model_eval M x)
+        (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_lt_term_eq (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.lt x y) =
+      __smtx_model_eval_lt (__smtx_model_eval M x)
+        (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_leq_term_eq (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.leq x y) =
+      __smtx_model_eval_leq (__smtx_model_eval M x)
+        (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_geq_term_eq (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.geq x y) =
+      __smtx_model_eval_geq (__smtx_model_eval M x)
+        (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_str_contains_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.str_contains x y) =
+      __smtx_model_eval_str_contains (__smtx_model_eval M x)
+        (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_str_indexof_term_eq
+    (M : SmtModel) (x y z : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.str_indexof x y z) =
+      __smtx_model_eval_str_indexof (__smtx_model_eval M x)
+        (__smtx_model_eval M y) (__smtx_model_eval M z) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_str_replace_term_eq
+    (M : SmtModel) (x y z : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.str_replace x y z) =
+      __smtx_model_eval_str_replace (__smtx_model_eval M x)
+        (__smtx_model_eval M y) (__smtx_model_eval M z) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_str_update_term_eq
+    (M : SmtModel) (x y z : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.str_update x y z) =
+      __smtx_model_eval_str_update (__smtx_model_eval M x)
+        (__smtx_model_eval M y) (__smtx_model_eval M z) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_str_indexof_re_term_eq
+    (M : SmtModel) (x y z : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.str_indexof_re x y z) =
+      __smtx_model_eval_str_indexof_re (__smtx_model_eval M x)
+        (__smtx_model_eval M y) (__smtx_model_eval M z) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem sr_eval_str_in_re_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.str_in_re x y) =
+      __smtx_model_eval_str_in_re (__smtx_model_eval M x)
+        (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
 
 /-- `seq.nth` at a natural index agrees with list `getD`. -/
 private theorem sr_ssm_seq_nth_ofNat (d : SmtValue) :
@@ -81,6 +175,22 @@ private theorem sr_native_pack_string_eq_iff
 private theorem sr_smt_type_wf_int :
     __smtx_type_wf SmtType.Int = true := by
   native_decide
+
+private theorem sr_not_decide_le_eq_decide_lt (a b : Int) :
+    Bool.not (decide (a ≤ b)) = decide (b < a) := by
+  by_cases h : a ≤ b
+  · have hn : ¬ b < a := Int.not_lt_of_ge h
+    simp [h, hn]
+  · have hlt : b < a := Int.lt_of_not_ge h
+    simp [h, hlt]
+
+private theorem sr_not_decide_lt_eq_decide_le (a b : Int) :
+    Bool.not (decide (a < b)) = decide (b ≤ a) := by
+  by_cases h : a < b
+  · have hn : ¬ b ≤ a := Int.not_le_of_gt h
+    simp [h, hn]
+  · have hle : b ≤ a := Int.le_of_not_gt h
+    simp [h, hle]
 
 /-- A well-typed character sequence is exactly the packing of its string view. -/
 private theorem sr_native_pack_unpack_string
@@ -442,11 +552,11 @@ private theorem sr_native_seq_replace_eq_extracts_of_indexof_nonneg
           (Int.ofNat xs.length - (idx + Int.ofNat pat.length)) =
         xs.drop (j + pat.length) := by
     rw [hStart]
-    simpa only [Int.ofNat_sub hBounds] using
-      native_seq_extract_to_end_nat xs (j + pat.length) hBounds
+    have h := native_seq_extract_to_end_nat xs (j + pat.length) hBounds
+    simpa [Int.ofNat_eq_natCast, Int.ofNat_sub hBounds] using h
   rw [StrEqReplSupport.native_seq_replace_of_indexof_nonneg
     xs pat repl hIdxNonneg]
-  simpa only [idx, j, hPre] using hSuf.symm
+  rw [hPre, hSuf]
 
 /-- Search in a dropped suffix, with a successful result shifted back by the
     suffix offset, agrees with search in the original sequence at that offset. -/
@@ -519,11 +629,12 @@ private theorem sr_native_seq_extract_to_end_of_bounds
   have hCast : Int.ofNat j = i := Int.toNat_of_nonneg hi
   have hJLe : j ≤ xs.length := by
     apply Int.ofNat_le.mp
-    rw [hCast]
-    exact hiLen
+    calc
+      Int.ofNat j = i := hCast
+      _ ≤ Int.ofNat xs.length := hiLen
   rw [← hCast]
-  simpa only [Int.ofNat_sub hJLe, Int.toNat_ofNat] using
-    native_seq_extract_to_end_nat xs j hJLe
+  have h := native_seq_extract_to_end_nat xs j hJLe
+  simpa [Int.ofNat_eq_natCast, Int.ofNat_sub hJLe] using h
 
 /-- Reversing a sequence maps an in-bounds one-element slice to its mirrored
     one-element slice. -/
@@ -746,11 +857,14 @@ private theorem sr_native_seq_update_eq_self_of_invalid
     native_seq_update xs i ys = xs := by
   unfold native_seq_update
   rcases hInvalid with hNeg | hHigh
-  · rw [show decide (i < 0) = true from decide_eq_true hNeg]
-    simp
-  · rw [show decide (Int.ofNat xs.length ≤ i) = true from
-      decide_eq_true hHigh]
-    simp
+  · change (if (decide (i < 0) ||
+        decide (Int.ofNat xs.length ≤ i)) = true then xs else _) = xs
+    simp [hNeg]
+  · change (if (decide (i < 0) ||
+        decide (Int.ofNat xs.length ≤ i)) = true then xs else _) = xs
+    have hHigh' : (xs.length : Int) ≤ i := by
+      simpa [Int.ofNat_eq_natCast] using hHigh
+    simp [hHigh']
 
 /-- Extracting a natural number of elements at an in-bounds integer offset is
     the corresponding list slice, including the zero-length case. -/
@@ -793,11 +907,13 @@ private theorem sr_native_seq_update_active_facts
   have hCast : Int.ofNat (Int.toNat i) = i := Int.toNat_of_nonneg hNonneg
   have hJlt : Int.toNat i < xs.length := by
     apply Int.ofNat_lt.mp
-    simpa [hCast] using hLt
+    calc
+      Int.ofNat (Int.toNat i) = i := hCast
+      _ < Int.ofNat xs.length := hLt
   have hJle : Int.toNat i ≤ xs.length := Nat.le_of_lt hJlt
   have hSelectedLe :
       (ys.take (xs.length - Int.toNat i)).length ≤ xs.length - Int.toNat i := by
-    simp
+    exact List.length_take_le _ _
   have hDropLen : (xs.drop (Int.toNat i)).length =
       xs.length - Int.toNat i := by simp
   have hSource :
@@ -806,25 +922,33 @@ private theorem sr_native_seq_update_active_facts
             (ys.take (xs.length - Int.toNat i)).length ++
           xs.drop
             (Int.toNat i + (ys.take (xs.length - Int.toNat i)).length) := by
-    rw [← List.take_append_drop (Int.toNat i) xs]
-    rw [← List.take_append_drop
-      (ys.take (xs.length - Int.toNat i)).length
-      (xs.drop (Int.toNat i))]
-    rw [List.drop_drop]
-    simp [List.append_assoc]
+    let j := Int.toNat i
+    let k := (ys.take (xs.length - Int.toNat i)).length
+    calc
+      xs = xs.take j ++ xs.drop j := (List.take_append_drop j xs).symm
+      _ = xs.take j ++
+          ((xs.drop j).take k ++ (xs.drop j).drop k) := by
+        exact congrArg (fun tail => xs.take j ++ tail)
+          (List.take_append_drop k (xs.drop j)).symm
+      _ = xs.take j ++ (xs.drop j).take k ++ xs.drop (j + k) := by
+        rw [List.drop_drop]
+        simp only [List.append_assoc]
   have hUpdate :
       native_seq_update xs i ys =
         xs.take (Int.toNat i) ++ ys.take (xs.length - Int.toNat i) ++
           xs.drop
             (Int.toNat i + (ys.take (xs.length - Int.toNat i)).length) := by
     unfold native_seq_update
+    change (if (decide (i < 0) ||
+        decide (Int.ofNat xs.length ≤ i)) = true then xs
+      else xs.take (Int.toNat i) ++ ys.take (xs.length - Int.toNat i) ++
+        xs.drop (Int.toNat i + ys.length)) = _
     rw [show decide (i < 0) = false from decide_eq_false hNotNeg]
     rw [show decide (Int.ofNat xs.length ≤ i) = false from
       decide_eq_false hNotHigh]
     simp only [Bool.false_or, Bool.false_eq_true, if_false]
     by_cases hFits : ys.length ≤ xs.length - Int.toNat i
     · rw [List.take_of_length_le hFits]
-      simp [hFits]
     · have hRemLe : xs.length - Int.toNat i ≤ ys.length := by omega
       have hDropYs : xs.drop (Int.toNat i + ys.length) = [] := by
         apply List.drop_eq_nil_of_le
@@ -840,8 +964,8 @@ private theorem sr_native_seq_update_active_facts
       rw [hDropYs, hDropSelected]
   refine ⟨hUpdate, hSource, ?_, ?_⟩
   · simp [hJle]
-  · rw [List.length_take, Nat.min_eq_right]
-    simpa [hDropLen] using hSelectedLe
+  · exact (List.length_take_of_le (by
+      simpa [hDropLen] using hSelectedLe)).symm
 
 /-- The syntactic constant-length shortcut used by `str_update` is sound with
     respect to model evaluation in its only special case, length one. -/
@@ -857,7 +981,10 @@ private theorem sr_str_value_len_one_eval_length
     rw [__smtx_model_eval.eq_4] at hxEval
     injection hxEval with hsx
     rw [← hsx, RuleProofs.unpack_pack_string_map, List.length_map]
-    simpa [__str_value_len, __eo_len] using congrArg Term.numeral hLen
+    simp [__str_value_len, __eo_is_str, __eo_is_str_internal, __eo_ite,
+      __eo_len, native_teq, native_and, native_not, native_ite,
+      SmtEval.native_ite] at hLen
+    exact Int.ofNat_inj.mp hLen
   · let head := Term.Apply (Term.UOp UserOp.seq_unit) e
     obtain ⟨⟨shead, hHeadEval⟩, ⟨stail, hTailEval⟩⟩ :=
       strConcat_args_eval_seq_of_concat_eval_seq M head ss ⟨sx, by simpa [head] using hxEval⟩
@@ -1054,6 +1181,28 @@ private theorem sr_eo_is_closed_binary_uop_args
   exact ⟨sr_eo_is_closed_of_rec_nil x hXNe hArgsRec.1,
     sr_eo_is_closed_of_rec_nil y hYNe hArgsRec.2⟩
 
+/-- Closedness of a ternary operator application splits over its arguments. -/
+private theorem sr_eo_is_closed_ternary_uop_args
+    (op : UserOp) (x y z : Term)
+    (hNotForall : op ≠ UserOp.forall)
+    (hNotExists : op ≠ UserOp.exists)
+    (hXNe : x ≠ Term.Stuck) (hYNe : y ≠ Term.Stuck)
+    (hZNe : z ≠ Term.Stuck)
+    (hClosed :
+      __eo_is_closed
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) =
+        Term.Boolean true) :
+    __eo_is_closed x = Term.Boolean true ∧
+      __eo_is_closed y = Term.Boolean true ∧
+        __eo_is_closed z = Term.Boolean true := by
+  have hParentRec := eo_is_closed_eq_true_rec_nil hClosed
+  have hArgsRec := eo_is_closed_rec_ternary_uop_eq_true_cases
+    hNotForall hNotExists
+    (hEnv := EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hParentRec
+  exact ⟨sr_eo_is_closed_of_rec_nil x hXNe hArgsRec.1,
+    sr_eo_is_closed_of_rec_nil y hYNe hArgsRec.2.1,
+    sr_eo_is_closed_of_rec_nil z hZNe hArgsRec.2.2⟩
+
 /-- The SMT encoding used for EO `forall` is true when its body is true
 for every typed canonical value. -/
 private theorem sr_eval_forall_encoding_true
@@ -1093,6 +1242,73 @@ private theorem sr_eval_forall_encoding_true
   change __smtx_model_eval_not
       (native_eval_texists M s T (SmtTerm.not body)) =
         SmtValue.Boolean true
+  rw [hExistsEval]
+  rfl
+
+/-- The two-variable SMT encoding emitted for an EO `forall` list is true
+when its body is true for every pair of typed canonical values. -/
+private theorem sr_eval_forall2_encoding_true
+    (M : SmtModel) (s₁ s₂ : native_String) (T₁ T₂ : SmtType)
+    (body : SmtTerm)
+    (hAll :
+      ∀ v₁ v₂ : SmtValue,
+        __smtx_typeof_value v₁ = T₁ →
+        __smtx_value_canonical_bool v₁ = true →
+        __smtx_typeof_value v₂ = T₂ →
+        __smtx_value_canonical_bool v₂ = true →
+        __smtx_model_eval
+            (native_model_push (native_model_push M s₁ T₁ v₁) s₂ T₂ v₂)
+            body = SmtValue.Boolean true) :
+    __smtx_model_eval M
+        (SmtTerm.not
+          (SmtTerm.exists s₁ T₁
+            (SmtTerm.exists s₂ T₂ (SmtTerm.not body)))) =
+      SmtValue.Boolean true := by
+  classical
+  have hNoSat :
+      ¬ ∃ v₁ : SmtValue,
+        __smtx_typeof_value v₁ = T₁ ∧
+        __smtx_value_canonical_bool v₁ = true ∧
+        __smtx_model_eval (native_model_push M s₁ T₁ v₁)
+            (SmtTerm.exists s₂ T₂ (SmtTerm.not body)) =
+          SmtValue.Boolean true := by
+    rintro ⟨v₁, hv₁Ty, hv₁Canonical, hv₁Exists⟩
+    change (if _h :
+        ∃ v₂ : SmtValue,
+          __smtx_typeof_value v₂ = T₂ ∧
+          __smtx_value_canonical_bool v₂ = true ∧
+          __smtx_model_eval
+              (native_model_push (native_model_push M s₁ T₁ v₁)
+                s₂ T₂ v₂) (SmtTerm.not body) =
+            SmtValue.Boolean true then
+        SmtValue.Boolean true else SmtValue.Boolean false) =
+      SmtValue.Boolean true at hv₁Exists
+    split at hv₁Exists
+    · rename_i hWitness
+      rcases hWitness with ⟨v₂, hv₂Ty, hv₂Canonical, hv₂Not⟩
+      have hvBody := hAll v₁ v₂ hv₁Ty hv₁Canonical
+        hv₂Ty hv₂Canonical
+      simp [__smtx_model_eval, __smtx_model_eval_not, native_not,
+        hvBody] at hv₂Not
+    · simp at hv₁Exists
+  have hExistsEval :
+      native_eval_texists M s₁ T₁
+          (SmtTerm.exists s₂ T₂ (SmtTerm.not body)) =
+        SmtValue.Boolean false := by
+    change (if _h :
+        ∃ v₁ : SmtValue,
+          __smtx_typeof_value v₁ = T₁ ∧
+          __smtx_value_canonical_bool v₁ = true ∧
+          __smtx_model_eval (native_model_push M s₁ T₁ v₁)
+              (SmtTerm.exists s₂ T₂ (SmtTerm.not body)) =
+            SmtValue.Boolean true then
+        SmtValue.Boolean true else SmtValue.Boolean false) =
+      SmtValue.Boolean false
+    rw [dif_neg hNoSat]
+  change __smtx_model_eval_not
+      (native_eval_texists M s₁ T₁
+        (SmtTerm.exists s₂ T₂ (SmtTerm.not body))) =
+      SmtValue.Boolean true
   rw [hExistsEval]
   rfl
 
@@ -1202,6 +1418,9 @@ private theorem string_reduction_pred_true
         (change Term.Stuck = Term.Bool at hBodyTy
          exact False.elim (Term.noConfusion hBodyTy))
       case str_to_int =>
+        -- The current concrete translation of `stoi_result s 0` is
+        -- `str.to_int (str.substr s 0 0) = -1`, while this predicate requires
+        -- it to equal `0` on every successful conversion.
         sorry
       case str_from_int =>
         sorry
@@ -2983,6 +3202,15 @@ private theorem string_reduction_pred_true
               unfold term_has_non_none_type
               rw [hxTy]
               exact seq_ne_none T
+            have hZTermNe : z ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation z (by
+                simpa [tz, RuleProofs.eo_has_smt_translation] using hZNN)
+            have hYTermNe : y ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation y (by
+                simpa [ty, RuleProofs.eo_has_smt_translation] using hYNN)
+            have hXTermNe : x ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation x (by
+                simpa [tx, RuleProofs.eo_has_smt_translation] using hXNN)
             have hTWf : __smtx_type_wf T = true :=
               (smt_seq_component_wf_of_non_none_type tz T hzTy).2
             have hTInh : type_inhabited T :=
@@ -3039,7 +3267,7 @@ private theorem string_reduction_pred_true
                 __seq_empty (__eo_typeof y) ≠ Term.Stuck :=
               seq_empty_typeof_ne_stuck_of_smt_type_seq y T
                 (by simpa [ty] using hyTy)
-            simp [hNilPreNe', hNilReplNe, hEmptyNe, __eo_mk_apply] at hBodyTy ⊢
+            simp [hNilPreNe', hNilReplNe, hEmptyNe, __eo_mk_apply] at hBodyTy
             let result := SmtTerm._at_purify (SmtTerm.str_replace tz ty tx)
             let nilPreS := __eo_to_smt
               (__eo_nil (Term.UOp UserOp.str_concat) (__eo_typeof pre))
@@ -3154,13 +3382,14 @@ private theorem string_reduction_pred_true
                     (SmtTerm.and
                       (SmtTerm.not (SmtTerm.str_contains priorHay ty))
                       (SmtTerm.Boolean true)) = SmtType.Bool := by
-              simp [typeof_and_eq, hNoPriorTy, __smtx_typeof_guard,
-                __smtx_typeof, native_ite]
+              rw [typeof_and_eq, hNoPriorTy]
+              simp [__smtx_typeof, native_ite]
             have hResultEqTy :
                 __smtx_typeof (SmtTerm.eq result resultDecomp) =
                   SmtType.Bool := by
-              simp [typeof_eq_eq, hResultTy, hResultDecompTy,
-                __smtx_typeof_eq, native_ite]
+              rw [typeof_eq_eq, hResultTy, hResultDecompTy]
+              simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
+                native_Teq]
             have hResultTailTy :
                 __smtx_typeof
                     (SmtTerm.and (SmtTerm.eq result resultDecomp)
@@ -3172,8 +3401,9 @@ private theorem string_reduction_pred_true
             have hSourceEqTy :
                 __smtx_typeof (SmtTerm.eq tz sourceDecomp) =
                   SmtType.Bool := by
-              simp [typeof_eq_eq, hzTy, hSourceDecompTy, __smtx_typeof_eq,
-                native_ite]
+              rw [typeof_eq_eq, hzTy, hSourceDecompTy]
+              simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
+                native_Teq]
             have hFoundTy : __smtx_typeof foundCase = SmtType.Bool := by
               simp [foundCase, typeof_and_eq, hSourceEqTy, hResultTailTy,
                 __smtx_typeof_guard, native_ite]
@@ -3184,12 +3414,14 @@ private theorem string_reduction_pred_true
                         (Term.Apply
                           (Term.Apply (Term.UOp UserOp.str_replace) z) y) x)) =
                   formula := by
-              unfold __str_reduction_pred at hPredNe ⊢
-              split <;>
-                simp_all [formula, result, emptyResult, contains, foundCase,
-                  sourceDecomp, resultDecomp, priorHay, needlePre, suffix, cut,
-                  sourceLen, needleLen, nilPreS, nilReplS, emptyS, preS, idx,
-                  tz, ty, tx, pre, __eo_mk_apply]
+              simp only [__str_reduction_pred, __eo_mk_apply, hZTermNe,
+                hYTermNe, hXTermNe, hNilPreNe', hNilReplNe, hEmptyNe]
+              rfl
+            change eo_interprets M
+              (__str_reduction_pred
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_replace) z) y) x)) true
             apply RuleProofs.eo_interprets_of_bool_eval M _ true
             · unfold RuleProofs.eo_has_bool_type
               rw [hFormulaEq]
@@ -3238,6 +3470,15 @@ private theorem string_reduction_pred_true
                 simpa [zs, hElemZ] using native_pack_unpack_seq sz
               have hYPack : native_pack_seq T ys = sy := by
                 simpa [ys, hElemY] using native_pack_unpack_seq sy
+              have hSyEmptyIff : sy = SmtSeq.empty T ↔ ys = [] := by
+                constructor
+                · intro hEmpty
+                  dsimp [ys]
+                  rw [hEmpty]
+                  rfl
+                · intro hEmpty
+                  rw [← hYPack, hEmpty]
+                  rfl
               have hXPack : native_pack_seq T rs = sx := by
                 simpa [rs, hElemX] using native_pack_unpack_seq sx
               have hNilPreEval :
@@ -3259,7 +3500,16 @@ private theorem string_reduction_pred_true
               by_cases hYs : ys = []
               · simp [formula, result, emptyResult, contains, foundCase,
                   sourceDecomp, resultDecomp, priorHay, needlePre, suffix, cut,
-                  sourceLen, needleLen, preS, idx, __smtx_model_eval,
+                  sourceLen, needleLen, preS, idx, sr_eval_boolean_term_eq,
+                  sr_eval_numeral_term_eq, smtx_eval_ite_term_eq,
+                  smtx_eval_and_term_eq, smtx_eval_eq_term_eq,
+                  smtx_eval_not_term_eq, sr_eval_str_replace_term_eq,
+                  sr_eval_str_contains_term_eq, sr_eval_str_indexof_term_eq,
+                  StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                  StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                  smtx_eval_str_len_term_eq, sr_eval_purify_term_eq,
+                  StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                  sr_eval_neg_term_eq,
                   __smtx_model_eval_ite, __smtx_model_eval_and,
                   __smtx_model_eval_eq, __smtx_model_eval_not,
                   __smtx_model_eval_str_replace,
@@ -3274,7 +3524,8 @@ private theorem string_reduction_pred_true
                   native_and, native_not, native_zplus, native_zneg,
                   Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
                   native_unpack_seq, zs, ys, rs, hElemZ, hElemY, hElemX,
-                  hZPack, hYPack, hXPack, hYs, native_veq, native_pack_seq]
+                  hZPack, hYPack, hXPack, hSyEmptyIff, hYs, native_veq,
+                  native_pack_seq]
               · by_cases hContains : native_seq_contains zs ys = true
                 · have hIdxNonneg :
                       0 ≤ native_seq_indexof zs ys 0 := by
@@ -3290,9 +3541,70 @@ private theorem string_reduction_pred_true
                   have hReplace :=
                     sr_native_seq_replace_eq_extracts_of_indexof_nonneg
                       zs ys rs hIdxNonneg
+                  have hSourcePacked :
+                      native_pack_seq T
+                          (native_seq_extract zs 0
+                              (native_seq_indexof zs ys 0) ++
+                            (ys ++
+                              native_seq_extract zs
+                                (Int.ofNat
+                                    (native_seq_extract zs 0
+                                      (native_seq_indexof zs ys 0)).length +
+                                  Int.ofNat ys.length)
+                                (Int.ofNat zs.length +
+                                  -(Int.ofNat
+                                      (native_seq_extract zs 0
+                                        (native_seq_indexof zs ys 0)).length +
+                                    Int.ofNat ys.length)))) =
+                        sz := by
+                    rw [hPreLen, ← List.append_assoc,
+                      ← Int.sub_eq_add_neg]
+                    rw [hDecomp, hZPack]
+                  dsimp [zs, ys, rs] at hSourcePacked hPreLen hMinimal hReplace
+                  have hPreLen' :
+                      ((native_seq_extract zs 0
+                          (native_seq_indexof zs ys 0)).length : native_Int) =
+                        native_seq_indexof zs ys 0 := by
+                    simpa [Int.ofNat_eq_natCast] using hPreLen
+                  have hSourcePacked' :
+                      sz =
+                        native_pack_seq T
+                          (native_seq_extract zs 0
+                              (native_seq_indexof zs ys 0) ++
+                            (ys ++
+                              native_seq_extract zs
+                                (((native_seq_extract zs 0
+                                    (native_seq_indexof zs ys 0)).length :
+                                    native_Int) +
+                                  (ys.length : native_Int))
+                                ((zs.length : native_Int) +
+                                  -(((native_seq_extract zs 0
+                                      (native_seq_indexof zs ys 0)).length :
+                                      native_Int) +
+                                    (ys.length : native_Int))))) := by
+                    simpa [Int.ofNat_eq_natCast] using hSourcePacked.symm
+                  have hMinimal' :
+                      native_seq_contains
+                          (native_seq_extract zs 0
+                              (native_seq_indexof zs ys 0) ++
+                            native_seq_extract ys 0
+                              ((ys.length : native_Int) + -1)) ys = false := by
+                    simpa [Int.ofNat_eq_natCast, Int.sub_eq_add_neg] using
+                      hMinimal
                   simp [formula, result, emptyResult, contains, foundCase,
                     sourceDecomp, resultDecomp, priorHay, needlePre, suffix,
-                    cut, sourceLen, needleLen, preS, idx, __smtx_model_eval,
+                    cut, sourceLen, needleLen, preS, idx,
+                    sr_eval_boolean_term_eq, sr_eval_numeral_term_eq,
+                    smtx_eval_ite_term_eq, smtx_eval_and_term_eq,
+                    smtx_eval_eq_term_eq, smtx_eval_not_term_eq,
+                    sr_eval_str_replace_term_eq,
+                    sr_eval_str_contains_term_eq,
+                    sr_eval_str_indexof_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                    smtx_eval_str_len_term_eq, sr_eval_purify_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                    sr_eval_neg_term_eq,
                     __smtx_model_eval_ite, __smtx_model_eval_and,
                     __smtx_model_eval_eq, __smtx_model_eval_not,
                     __smtx_model_eval_str_replace,
@@ -3307,9 +3619,13 @@ private theorem string_reduction_pred_true
                     native_zneg, Smtm.native_unpack_pack_seq,
                     elem_typeof_pack_seq, native_unpack_seq, zs, ys, rs,
                     hElemZ, hElemY, hElemX, hZPack, hYPack, hXPack, hYs,
-                    hContains, hIdxNonneg, hDecomp, hPreLen, hMinimal,
-                    hReplace, native_veq, native_pack_seq,
+                    hSyEmptyIff, hContains, hIdxNonneg, hDecomp,
+                    hPreLen, hPreLen',
+                    hMinimal, hMinimal', hReplace, native_veq,
+                    native_pack_seq,
+                    Int.ofNat_eq_natCast, Int.sub_eq_add_neg,
                     List.append_assoc]
+                  simpa [hPreLen] using hSourcePacked.symm
                 · have hContainsFalse : native_seq_contains zs ys = false := by
                     cases h : native_seq_contains zs ys
                     · rfl
@@ -3319,7 +3635,18 @@ private theorem string_reduction_pred_true
                       zs ys rs hContainsFalse
                   simp [formula, result, emptyResult, contains, foundCase,
                     sourceDecomp, resultDecomp, priorHay, needlePre, suffix,
-                    cut, sourceLen, needleLen, preS, idx, __smtx_model_eval,
+                    cut, sourceLen, needleLen, preS, idx,
+                    sr_eval_boolean_term_eq, sr_eval_numeral_term_eq,
+                    smtx_eval_ite_term_eq, smtx_eval_and_term_eq,
+                    smtx_eval_eq_term_eq, smtx_eval_not_term_eq,
+                    sr_eval_str_replace_term_eq,
+                    sr_eval_str_contains_term_eq,
+                    sr_eval_str_indexof_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                    smtx_eval_str_len_term_eq, sr_eval_purify_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                    sr_eval_neg_term_eq,
                     __smtx_model_eval_ite, __smtx_model_eval_and,
                     __smtx_model_eval_eq, __smtx_model_eval_not,
                     __smtx_model_eval_str_replace,
@@ -3334,7 +3661,7 @@ private theorem string_reduction_pred_true
                     native_zneg, Smtm.native_unpack_pack_seq,
                     elem_typeof_pack_seq, native_unpack_seq, zs, ys, rs,
                     hElemZ, hElemY, hElemX, hZPack, hYPack, hXPack, hYs,
-                    hContains, hContainsFalse, hReplace, native_veq,
+                    hSyEmptyIff, hContains, hContainsFalse, hReplace, native_veq,
                     native_pack_seq]
           case str_indexof =>
             let tz := __eo_to_smt z
@@ -3357,6 +3684,15 @@ private theorem string_reduction_pred_true
               unfold term_has_non_none_type
               rw [hxTy]
               decide
+            have hZTermNe : z ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation z (by
+                simpa [tz, RuleProofs.eo_has_smt_translation] using hZNN)
+            have hYTermNe : y ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation y (by
+                simpa [ty, RuleProofs.eo_has_smt_translation] using hYNN)
+            have hXTermNe : x ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation x (by
+                simpa [tx, RuleProofs.eo_has_smt_translation] using hXNN)
             have hTWf : __smtx_type_wf T = true :=
               (smt_seq_component_wf_of_non_none_type tz T hzTy).2
             have hTInh : type_inhabited T :=
@@ -3447,7 +3783,7 @@ private theorem string_reduction_pred_true
                 __seq_empty (__eo_typeof z) ≠ Term.Stuck :=
               seq_empty_typeof_ne_stuck_of_smt_type_seq z T
                 (by simpa [tz] using hzTy)
-            simp [hNilNe', hEmptyNe, __eo_mk_apply] at hBodyTy ⊢
+            simp [hNilNe', hEmptyNe, __eo_mk_apply] at hBodyTy
             let result := SmtTerm._at_purify
               (SmtTerm.str_indexof tz ty tx)
             let nilS := __eo_to_smt
@@ -3536,12 +3872,16 @@ private theorem string_reduction_pred_true
             have hResultEqNegTy :
                 __smtx_typeof (resultEq (SmtTerm.Numeral (-1))) =
                   SmtType.Bool := by
-              simp [resultEq, typeof_eq_eq, hResultTy, __smtx_typeof_eq,
-                __smtx_typeof, native_ite]
+              dsimp [resultEq]
+              rw [typeof_eq_eq, hResultTy]
+              simp [__smtx_typeof_eq, __smtx_typeof_guard,
+                __smtx_typeof, native_ite, native_Teq]
             have hResultEqStartTy : __smtx_typeof (resultEq tx) =
                 SmtType.Bool := by
-              simp [resultEq, typeof_eq_eq, hResultTy, tx, hxTy,
-                __smtx_typeof_eq, native_ite]
+              dsimp [resultEq]
+              rw [typeof_eq_eq, hResultTy, hxTy]
+              simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
+                native_Teq]
             have hResultFoundTy : __smtx_typeof resultFound = SmtType.Int := by
               simp [resultFound, typeof_plus_eq, tx, hxTy, typeof_str_len_eq,
                 hPreTy, __smtx_typeof_seq_op_1_ret,
@@ -3559,13 +3899,34 @@ private theorem string_reduction_pred_true
               simp [__smtx_typeof_guard, native_ite]
             have hResultFoundEqTy :
                 __smtx_typeof (resultEq resultFound) = SmtType.Bool := by
-              simp [resultEq, typeof_eq_eq, hResultTy, hResultFoundTy,
-                __smtx_typeof_eq, native_ite]
+              dsimp [resultEq]
+              rw [typeof_eq_eq, hResultTy, hResultFoundTy]
+              simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
+                native_Teq]
+            have hTailEqTy :
+                __smtx_typeof (SmtTerm.eq tail tailDecomp) =
+                  SmtType.Bool := by
+              rw [typeof_eq_eq, hTailTy, hTailDecompTy]
+              simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
+                native_Teq]
+            have hResultFoundTailTy :
+                __smtx_typeof
+                    (SmtTerm.and (resultEq resultFound)
+                      (SmtTerm.Boolean true)) = SmtType.Bool := by
+              rw [typeof_and_eq, hResultFoundEqTy]
+              simp [__smtx_typeof, native_ite]
+            have hNoPriorTailTy :
+                __smtx_typeof
+                    (SmtTerm.and
+                      (SmtTerm.not (SmtTerm.str_contains priorHay ty))
+                      (SmtTerm.and (resultEq resultFound)
+                        (SmtTerm.Boolean true))) = SmtType.Bool := by
+              rw [typeof_and_eq, hNoPriorTy, hResultFoundTailTy]
+              simp [native_ite]
             have hFoundTy : __smtx_typeof foundCase = SmtType.Bool := by
-              simp [foundCase, typeof_and_eq, typeof_eq_eq, hTailTy,
-                hTailDecompTy, hNoPriorTy, hResultFoundEqTy,
-                __smtx_typeof_eq, __smtx_typeof_guard, __smtx_typeof,
-                native_ite, native_Teq]
+              dsimp [foundCase]
+              rw [typeof_and_eq, hTailEqTy, hNoPriorTailTy]
+              simp [native_ite]
             have hFormulaEq :
                 __eo_to_smt
                     (__str_reduction_pred
@@ -3573,12 +3934,14 @@ private theorem string_reduction_pred_true
                         (Term.Apply
                           (Term.Apply (Term.UOp UserOp.str_indexof) z) y) x)) =
                   formula := by
-              unfold __str_reduction_pred at hPredNe ⊢
-              split <;>
-                simp_all [formula, invalid, resultEq, result, resultFound,
-                  foundCase, tailDecomp, priorHay, needlePre, suffix, cut,
-                  needleLen, preS, tailIdx, tailLen, tail, sourceLen, contains,
-                  nilS, emptyS, tz, ty, tx, pre, __eo_mk_apply]
+              simp only [__str_reduction_pred, __eo_mk_apply, hZTermNe,
+                hYTermNe, hXTermNe, hNilNe', hEmptyNe]
+              rfl
+            change eo_interprets M
+              (__str_reduction_pred
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_indexof) z) y) x)) true
             apply RuleProofs.eo_interprets_of_bool_eval M _ true
             · unfold RuleProofs.eo_has_bool_type
               rw [hFormulaEq]
@@ -3622,6 +3985,15 @@ private theorem string_reduction_pred_true
                 simpa [zs, hElemZ] using native_pack_unpack_seq sz
               have hYPack : native_pack_seq T ys = sy := by
                 simpa [ys, hElemY] using native_pack_unpack_seq sy
+              have hSyEmptyIff : sy = SmtSeq.empty T ↔ ys = [] := by
+                constructor
+                · intro hEmpty
+                  dsimp [ys]
+                  rw [hEmpty]
+                  rfl
+                · intro hEmpty
+                  rw [← hYPack, hEmpty]
+                  rfl
               have hNilEval :
                   __smtx_model_eval M nilS =
                     SmtValue.Seq (SmtSeq.empty T) := by
@@ -3638,10 +4010,20 @@ private theorem string_reduction_pred_true
                 simp [formula, invalid, resultEq, result, resultFound,
                   foundCase, tailDecomp, priorHay, needlePre, suffix, cut,
                   needleLen, preS, tailIdx, tailLen, tail, sourceLen, contains,
-                  __smtx_model_eval, __smtx_model_eval_ite,
+                  sr_eval_boolean_term_eq, sr_eval_numeral_term_eq,
+                  smtx_eval_ite_term_eq, smtx_eval_or_term_eq,
+                  smtx_eval_and_term_eq, smtx_eval_eq_term_eq,
+                  smtx_eval_not_term_eq, sr_eval_gt_term_eq,
+                  sr_eval_str_contains_term_eq, sr_eval_str_indexof_term_eq,
+                  StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                  StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                  smtx_eval_str_len_term_eq, sr_eval_purify_term_eq,
+                  StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                  sr_eval_neg_term_eq, __smtx_model_eval_ite,
                   __smtx_model_eval_or, __smtx_model_eval_and,
                   __smtx_model_eval_eq, __smtx_model_eval_not,
-                  __smtx_model_eval_gt, __smtx_model_eval_str_contains,
+                  __smtx_model_eval_gt, __smtx_model_eval_lt,
+                  __smtx_model_eval_str_contains,
                   __smtx_model_eval_str_indexof,
                   __smtx_model_eval_str_substr,
                   __smtx_model_eval_str_concat, __smtx_model_eval_str_len,
@@ -3651,8 +4033,8 @@ private theorem string_reduction_pred_true
                   native_and, native_not, native_zlt, native_zplus,
                   native_zneg, Smtm.native_unpack_pack_seq,
                   elem_typeof_pack_seq, native_unpack_seq, zs, ys, hElemZ,
-                  hElemY, hZPack, hYPack, hnNeg, hIndex, native_veq,
-                  native_pack_seq]
+                  hElemY, hZPack, hYPack, hSyEmptyIff, hnNeg, hIndex, native_veq,
+                  native_pack_seq, Int.ofNat_eq_natCast]
               · have hnNonneg : 0 ≤ n := int_nonneg_of_not_neg hnNeg
                 by_cases hnGt : Int.ofNat zs.length < n
                 · have hIndex : native_seq_indexof zs ys n = -1 := by
@@ -3664,13 +4046,26 @@ private theorem string_reduction_pred_true
                       apply Int.ofNat_lt.mp
                       simpa [hCast] using hnGt
                     rw [dif_neg (by omega)]
+                  have hnGt' : (zs.length : native_Int) < n := by
+                    simpa [Int.ofNat_eq_natCast] using hnGt
                   simp [formula, invalid, resultEq, result, resultFound,
                     foundCase, tailDecomp, priorHay, needlePre, suffix, cut,
                     needleLen, preS, tailIdx, tailLen, tail, sourceLen,
-                    contains, __smtx_model_eval, __smtx_model_eval_ite,
+                    contains, sr_eval_boolean_term_eq,
+                    sr_eval_numeral_term_eq, smtx_eval_ite_term_eq,
+                    smtx_eval_or_term_eq, smtx_eval_and_term_eq,
+                    smtx_eval_eq_term_eq, smtx_eval_not_term_eq,
+                    sr_eval_gt_term_eq, sr_eval_str_contains_term_eq,
+                    sr_eval_str_indexof_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                    smtx_eval_str_len_term_eq, sr_eval_purify_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                    sr_eval_neg_term_eq, __smtx_model_eval_ite,
                     __smtx_model_eval_or, __smtx_model_eval_and,
                     __smtx_model_eval_eq, __smtx_model_eval_not,
-                    __smtx_model_eval_gt, __smtx_model_eval_str_contains,
+                    __smtx_model_eval_gt, __smtx_model_eval_lt,
+                    __smtx_model_eval_str_contains,
                     __smtx_model_eval_str_indexof,
                     __smtx_model_eval_str_substr,
                     __smtx_model_eval_str_concat, __smtx_model_eval_str_len,
@@ -3680,21 +4075,33 @@ private theorem string_reduction_pred_true
                     native_and, native_not, native_zlt, native_zplus,
                     native_zneg, Smtm.native_unpack_pack_seq,
                     elem_typeof_pack_seq, native_unpack_seq, zs, ys, hElemZ,
-                    hElemY, hZPack, hYPack, hnNeg, hnNonneg, hnGt, hIndex,
-                    native_veq, native_pack_seq]
-                · have hnLe : n ≤ Int.ofNat zs.length := by omega
+                    hElemY, hZPack, hYPack, hSyEmptyIff, hnNeg, hnNonneg,
+                    hnGt, hnGt', hIndex,
+                    native_veq, native_pack_seq, Int.ofNat_eq_natCast]
+                · have hnLe : n ≤ Int.ofNat zs.length :=
+                    Int.le_of_not_gt hnGt
+                  have hnLe' : n ≤ (zs.length : native_Int) := by
+                    simpa [Int.ofNat_eq_natCast] using hnLe
                   let j := Int.toNat n
                   have hCast : Int.ofNat j = n :=
                     Int.toNat_of_nonneg hnNonneg
+                  have hCast' : (j : native_Int) = n := by
+                    simpa [Int.ofNat_eq_natCast] using hCast
                   have hJLe : j ≤ zs.length := by
                     apply Int.ofNat_le.mp
-                    simpa [hCast] using hnLe
+                    calc
+                      Int.ofNat j = n := hCast
+                      _ ≤ Int.ofNat zs.length := hnLe
                   let ts := zs.drop j
                   have hTail :
                       native_seq_extract zs n (Int.ofNat zs.length - n) =
                         ts := by
                     simpa [ts, j] using
                       sr_native_seq_extract_to_end_of_bounds zs n hnNonneg hnLe
+                  have hTail' :
+                      native_seq_extract zs n ((zs.length : native_Int) + -n) =
+                        ts := by
+                    simpa [Int.ofNat_eq_natCast, Int.sub_eq_add_neg] using hTail
                   have hOffset :=
                     sr_native_seq_indexof_offset_drop_eq zs ys j hJLe
                   by_cases hContains : native_seq_contains ts ys = true
@@ -3702,6 +4109,9 @@ private theorem string_reduction_pred_true
                     · have hTailIndex : native_seq_indexof ts ys 0 = 0 := by
                         simpa [hYs] using
                           StrEqReplSupport.native_seq_indexof_nil_zero ts
+                      have hContains' :
+                          native_seq_contains (List.drop j zs) ys = true := by
+                        simpa [ts] using hContains
                       have hIndex : native_seq_indexof zs ys n = n := by
                         calc
                           native_seq_indexof zs ys n =
@@ -3709,16 +4119,42 @@ private theorem string_reduction_pred_true
                                 rw [hCast]
                           _ = sr_native_seq_indexof_offset ts ys j := by
                             simpa [ts] using hOffset.symm
-                          _ = n := by
-                            simp [sr_native_seq_indexof_offset, hTailIndex,
-                              hCast]
+                          _ = Int.ofNat j := by
+                            simp [sr_native_seq_indexof_offset, hTailIndex]
+                          _ = n := hCast
+                      have hInvalidFalse :
+                          (!native_seq_contains (List.drop j zs) ys ||
+                              decide ((zs.length : native_Int) < n)) = false := by
+                        rw [hContains']
+                        simp [hnLe']
+                      have hInvalidFalse' :
+                          (!native_seq_contains
+                                (List.drop j (native_unpack_seq sz)) [] ||
+                              decide
+                                (((native_unpack_seq sz).length : native_Int) <
+                                  n)) = false := by
+                        simpa [zs, ys, hYs] using hInvalidFalse
+                      have hIndex' :
+                          native_seq_indexof (native_unpack_seq sz) [] n = n := by
+                        simpa [zs, ys, hYs] using hIndex
                       simp [formula, invalid, resultEq, result, resultFound,
                         foundCase, tailDecomp, priorHay, needlePre, suffix, cut,
                         needleLen, preS, tailIdx, tailLen, tail, sourceLen,
-                        contains, __smtx_model_eval, __smtx_model_eval_ite,
+                        contains, sr_eval_boolean_term_eq,
+                        sr_eval_numeral_term_eq, smtx_eval_ite_term_eq,
+                        smtx_eval_or_term_eq, smtx_eval_and_term_eq,
+                        smtx_eval_eq_term_eq, smtx_eval_not_term_eq,
+                        sr_eval_gt_term_eq, sr_eval_str_contains_term_eq,
+                        sr_eval_str_indexof_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                        smtx_eval_str_len_term_eq, sr_eval_purify_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                        sr_eval_neg_term_eq, __smtx_model_eval_ite,
                         __smtx_model_eval_or, __smtx_model_eval_and,
                         __smtx_model_eval_eq, __smtx_model_eval_not,
-                        __smtx_model_eval_gt, __smtx_model_eval_str_contains,
+                        __smtx_model_eval_gt, __smtx_model_eval_lt,
+                        __smtx_model_eval_str_contains,
                         __smtx_model_eval_str_indexof,
                         __smtx_model_eval_str_substr,
                         __smtx_model_eval_str_concat,
@@ -3730,13 +4166,22 @@ private theorem string_reduction_pred_true
                         native_zlt, native_zplus, native_zneg,
                         Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
                         native_unpack_seq, zs, ys, ts, hElemZ, hElemY, hZPack,
-                        hYPack, hnNeg, hnNonneg, hnGt, hnLe, hTail, hContains,
-                        hYs, hTailIndex, hIndex, native_veq, native_pack_seq]
+                        hYPack, hSyEmptyIff, hnNeg, hnNonneg, hnGt, hnLe,
+                        hnLe', hCast', hTail, hTail', hContains, hContains',
+                        hInvalidFalse, hInvalidFalse',
+                        hYs, hTailIndex, hIndex, hIndex', native_veq,
+                        native_pack_seq,
+                        Int.ofNat_eq_natCast]
                     · have hTailIdxNonneg :
                           0 ≤ native_seq_indexof ts ys 0 := by
                         simpa [native_seq_contains] using hContains
                       have hTailIndexNe :
-                          native_seq_indexof ts ys 0 ≠ -1 := by omega
+                          native_seq_indexof ts ys 0 ≠ -1 := by
+                        intro hEq
+                        have hBad : (0 : native_Int) ≤ -1 := by
+                          rw [← hEq]
+                          exact hTailIdxNonneg
+                        exact (by decide : ¬ ((0 : native_Int) ≤ -1)) hBad
                       have hIndex :
                           native_seq_indexof zs ys n =
                             native_seq_indexof ts ys 0 + n := by
@@ -3746,9 +4191,9 @@ private theorem string_reduction_pred_true
                                 rw [hCast]
                           _ = sr_native_seq_indexof_offset ts ys j := by
                             simpa [ts] using hOffset.symm
-                          _ = native_seq_indexof ts ys 0 + n := by
-                            simp [sr_native_seq_indexof_offset, hTailIndexNe,
-                              hCast]
+                          _ = native_seq_indexof ts ys 0 + Int.ofNat j := by
+                            simp [sr_native_seq_indexof_offset, hTailIndexNe]
+                          _ = native_seq_indexof ts ys 0 + n := by rw [hCast]
                       have hDecomp := native_seq_indexof_zero_decomp
                         ts ys hTailIdxNonneg
                       have hPreLen :=
@@ -3757,13 +4202,165 @@ private theorem string_reduction_pred_true
                       have hMinimal :=
                         sr_native_seq_first_prefix_no_contains
                           ts ys hYs hTailIdxNonneg
+                      have hContains' :
+                          native_seq_contains (List.drop j zs) ys = true := by
+                        simpa [ts] using hContains
+                      have hDecomp' :
+                          native_seq_extract (List.drop j zs) 0
+                                (native_seq_indexof (List.drop j zs) ys 0) ++
+                              ys ++
+                              native_seq_extract (List.drop j zs)
+                                (native_seq_indexof (List.drop j zs) ys 0 +
+                                  Int.ofNat ys.length)
+                                (Int.ofNat (List.drop j zs).length -
+                                  (native_seq_indexof (List.drop j zs) ys 0 +
+                                    Int.ofNat ys.length)) =
+                            List.drop j zs := by
+                        simpa [ts] using hDecomp
+                      have hResultFound :
+                          native_seq_indexof ts ys 0 + n =
+                            n + Int.ofNat
+                              (native_seq_extract ts 0
+                                (native_seq_indexof ts ys 0)).length := by
+                        rw [hPreLen]
+                        exact Int.add_comm _ _
+                      have hResultNonneg :
+                          0 ≤ n + Int.ofNat
+                            (native_seq_extract ts 0
+                              (native_seq_indexof ts ys 0)).length :=
+                        Int.add_nonneg hnNonneg (Int.ofNat_zero_le _)
+                      have hResultNe :
+                          n + Int.ofNat
+                              (native_seq_extract ts 0
+                                (native_seq_indexof ts ys 0)).length ≠ -1 := by
+                        intro hEq
+                        have hBad : (0 : native_Int) ≤ -1 := by
+                          rw [← hEq]
+                          exact hResultNonneg
+                        exact (by decide : ¬ ((0 : native_Int) ≤ -1)) hBad
+                      have hInvalidFalse :
+                          (!native_seq_contains (List.drop j zs) ys ||
+                              decide ((zs.length : native_Int) < n)) = false := by
+                        rw [hContains']
+                        simp [hnLe']
+                      have hTailPacked :
+                          native_pack_seq T (List.drop j zs) =
+                            native_pack_seq T
+                              (native_seq_extract (List.drop j zs) 0
+                                  (native_seq_indexof (List.drop j zs) ys 0) ++
+                                (ys ++
+                                  native_seq_extract (List.drop j zs)
+                                    (((native_seq_extract (List.drop j zs) 0
+                                        (native_seq_indexof (List.drop j zs) ys
+                                          0)).length : native_Int) +
+                                      (ys.length : native_Int))
+                                    (((List.drop j zs).length : native_Int) +
+                                      -(((native_seq_extract (List.drop j zs) 0
+                                          (native_seq_indexof (List.drop j zs)
+                                            ys 0)).length : native_Int) +
+                                        (ys.length : native_Int))))) := by
+                        have hPreLenDrop :
+                            ((native_seq_extract (List.drop j zs) 0
+                                (native_seq_indexof (List.drop j zs) ys 0)).length :
+                                native_Int) =
+                              native_seq_indexof (List.drop j zs) ys 0 := by
+                          simpa [ts, Int.ofNat_eq_natCast] using hPreLen
+                        apply congrArg (native_pack_seq T)
+                        rw [hPreLenDrop, ← List.append_assoc,
+                          ← Int.sub_eq_add_neg]
+                        exact hDecomp'.symm
+                      have hMinimal' :
+                          native_seq_contains
+                              (native_seq_extract (List.drop j zs) 0
+                                  (native_seq_indexof (List.drop j zs) ys 0) ++
+                                native_seq_extract ys 0
+                                  ((ys.length : native_Int) + -1)) ys =
+                            false := by
+                        simpa [Int.ofNat_eq_natCast, Int.sub_eq_add_neg] using
+                          hMinimal
+                      have hInvalidFalse' :
+                          (!native_seq_contains
+                                (List.drop j (native_unpack_seq sz))
+                                (native_unpack_seq sy) ||
+                              decide
+                                (((native_unpack_seq sz).length : native_Int) <
+                                  n)) = false := by
+                        simpa [zs, ys] using hInvalidFalse
+                      have hTailPacked' :
+                          native_pack_seq T
+                              (List.drop j (native_unpack_seq sz)) =
+                            native_pack_seq T
+                              (native_seq_extract
+                                  (List.drop j (native_unpack_seq sz)) 0
+                                  (native_seq_indexof
+                                    (List.drop j (native_unpack_seq sz))
+                                    (native_unpack_seq sy) 0) ++
+                                ((native_unpack_seq sy) ++
+                                  native_seq_extract
+                                    (List.drop j (native_unpack_seq sz))
+                                    (((native_seq_extract
+                                        (List.drop j (native_unpack_seq sz)) 0
+                                        (native_seq_indexof
+                                          (List.drop j (native_unpack_seq sz))
+                                          (native_unpack_seq sy) 0)).length :
+                                        native_Int) +
+                                      ((native_unpack_seq sy).length :
+                                        native_Int))
+                                    (((List.drop j
+                                        (native_unpack_seq sz)).length :
+                                        native_Int) +
+                                      -(((native_seq_extract
+                                          (List.drop j (native_unpack_seq sz)) 0
+                                          (native_seq_indexof
+                                            (List.drop j (native_unpack_seq sz))
+                                            (native_unpack_seq sy) 0)).length :
+                                          native_Int) +
+                                        ((native_unpack_seq sy).length :
+                                          native_Int))))) := by
+                        simpa [zs, ys] using hTailPacked
+                      have hMinimal'' :
+                          native_seq_contains
+                              (native_seq_extract
+                                  (List.drop j (native_unpack_seq sz)) 0
+                                  (native_seq_indexof
+                                    (List.drop j (native_unpack_seq sz))
+                                    (native_unpack_seq sy) 0) ++
+                                native_seq_extract (native_unpack_seq sy) 0
+                                  (((native_unpack_seq sy).length :
+                                    native_Int) + -1))
+                              (native_unpack_seq sy) = false := by
+                        simpa [zs, ys] using hMinimal'
+                      have hnNotLtNative :
+                          ¬ (((native_unpack_seq sz).length : native_Int) < n) := by
+                        simpa [zs] using Int.not_lt_of_ge hnLe'
+                      have hResultNeNative :
+                          n +
+                              ((native_seq_extract
+                                (List.drop j (native_unpack_seq sz)) 0
+                                (native_seq_indexof
+                                  (List.drop j (native_unpack_seq sz))
+                                  (native_unpack_seq sy) 0)).length :
+                                native_Int) ≠ -1 := by
+                        simpa [zs, ys, ts, Int.ofNat_eq_natCast] using
+                          hResultNe
                       simp [formula, invalid, resultEq, result, resultFound,
                         foundCase, tailDecomp, priorHay, needlePre, suffix, cut,
                         needleLen, preS, tailIdx, tailLen, tail, sourceLen,
-                        contains, __smtx_model_eval, __smtx_model_eval_ite,
+                        contains, sr_eval_boolean_term_eq,
+                        sr_eval_numeral_term_eq, smtx_eval_ite_term_eq,
+                        smtx_eval_or_term_eq, smtx_eval_and_term_eq,
+                        smtx_eval_eq_term_eq, smtx_eval_not_term_eq,
+                        sr_eval_gt_term_eq, sr_eval_str_contains_term_eq,
+                        sr_eval_str_indexof_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                        smtx_eval_str_len_term_eq, sr_eval_purify_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                        sr_eval_neg_term_eq, __smtx_model_eval_ite,
                         __smtx_model_eval_or, __smtx_model_eval_and,
                         __smtx_model_eval_eq, __smtx_model_eval_not,
-                        __smtx_model_eval_gt, __smtx_model_eval_str_contains,
+                        __smtx_model_eval_gt, __smtx_model_eval_lt,
+                        __smtx_model_eval_str_contains,
                         __smtx_model_eval_str_indexof,
                         __smtx_model_eval_str_substr,
                         __smtx_model_eval_str_concat,
@@ -3775,10 +4372,16 @@ private theorem string_reduction_pred_true
                         native_zlt, native_zplus, native_zneg,
                         Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
                         native_unpack_seq, zs, ys, ts, hElemZ, hElemY, hZPack,
-                        hYPack, hnNeg, hnNonneg, hnGt, hnLe, hTail, hContains,
-                        hYs, hTailIdxNonneg, hIndex, hDecomp, hPreLen,
-                        hMinimal, native_veq, native_pack_seq,
+                        hYPack, hSyEmptyIff, hnNeg, hnNonneg, hnGt, hnLe,
+                        hnLe', hCast', hTail, hTail', hContains, hContains',
+                        hInvalidFalse, hInvalidFalse',
+                        hYs, hTailIdxNonneg, hIndex, hDecomp, hDecomp',
+                        hPreLen, hResultFound, hResultNonneg, hResultNe,
+                        hMinimal, hMinimal', hMinimal'', native_veq,
+                        native_pack_seq,
+                        Int.ofNat_eq_natCast, Int.sub_eq_add_neg,
                         List.append_assoc]
+                      simp [hnNotLtNative, hResultNeNative, hTailPacked']
                   · have hContainsFalse : native_seq_contains ts ys = false := by
                       cases h : native_seq_contains ts ys
                       · rfl
@@ -3805,10 +4408,21 @@ private theorem string_reduction_pred_true
                     simp [formula, invalid, resultEq, result, resultFound,
                       foundCase, tailDecomp, priorHay, needlePre, suffix, cut,
                       needleLen, preS, tailIdx, tailLen, tail, sourceLen,
-                      contains, __smtx_model_eval, __smtx_model_eval_ite,
+                      contains, sr_eval_boolean_term_eq,
+                      sr_eval_numeral_term_eq, smtx_eval_ite_term_eq,
+                      smtx_eval_or_term_eq, smtx_eval_and_term_eq,
+                      smtx_eval_eq_term_eq, smtx_eval_not_term_eq,
+                      sr_eval_gt_term_eq, sr_eval_str_contains_term_eq,
+                      sr_eval_str_indexof_term_eq,
+                      StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                      StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                      smtx_eval_str_len_term_eq, sr_eval_purify_term_eq,
+                      StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                      sr_eval_neg_term_eq, __smtx_model_eval_ite,
                       __smtx_model_eval_or, __smtx_model_eval_and,
                       __smtx_model_eval_eq, __smtx_model_eval_not,
-                      __smtx_model_eval_gt, __smtx_model_eval_str_contains,
+                      __smtx_model_eval_gt, __smtx_model_eval_lt,
+                      __smtx_model_eval_str_contains,
                       __smtx_model_eval_str_indexof,
                       __smtx_model_eval_str_substr,
                       __smtx_model_eval_str_concat, __smtx_model_eval_str_len,
@@ -3818,9 +4432,12 @@ private theorem string_reduction_pred_true
                       native_and, native_not, native_zlt, native_zplus,
                       native_zneg, Smtm.native_unpack_pack_seq,
                       elem_typeof_pack_seq, native_unpack_seq, zs, ys, ts,
-                      hElemZ, hElemY, hZPack, hYPack, hnNeg, hnNonneg, hnGt,
-                      hnLe, hTail, hContains, hContainsFalse, hTailIndex,
-                      hIndex, native_veq, native_pack_seq]
+                      hElemZ, hElemY, hZPack, hYPack, hSyEmptyIff, hnNeg, hnNonneg, hnGt,
+                      hnLe, hnLe', hCast', hTail, hTail', hContains,
+                      hContainsFalse,
+                      hTailIndex,
+                      hIndex, native_veq, native_pack_seq,
+                      Int.ofNat_eq_natCast, Int.sub_eq_add_neg]
           case str_update =>
             let selectedEo :=
               __eo_ite (__eo_is_eq (__str_value_len x) (Term.Numeral 1)) x
@@ -3834,10 +4451,8 @@ private theorem string_reduction_pred_true
             have hSelectedNe : selectedEo ≠ Term.Stuck := by
               intro hSelected
               apply hPredNe
-              unfold __str_reduction_pred
-              change selectedEo = Term.Stuck at hSelected
-              rw [hSelected]
-              rfl
+              simp [__str_reduction_pred, selectedEo, hSelected,
+                __eo_mk_apply]
             obtain ⟨shortcut, hShortcut⟩ :
                 ∃ b : Bool,
                   __eo_is_eq (__str_value_len x) (Term.Numeral 1) =
@@ -3875,6 +4490,15 @@ private theorem string_reduction_pred_true
               unfold term_has_non_none_type
               rw [hxTy]
               exact seq_ne_none T
+            have hZTermNe : z ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation z (by
+                simpa [tz, RuleProofs.eo_has_smt_translation] using hZNN)
+            have hYTermNe : y ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation y (by
+                simpa [tn, RuleProofs.eo_has_smt_translation] using hYNN)
+            have hXTermNe : x ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation x (by
+                simpa [tr, RuleProofs.eo_has_smt_translation] using hXNN)
             have hTWf : __smtx_type_wf T = true :=
               (smt_seq_component_wf_of_non_none_type tz T hzTy).2
             have hTInh : type_inhabited T :=
@@ -3944,11 +4568,29 @@ private theorem string_reduction_pred_true
               simp [remaining, hSourceLenTy, tn, hyTy, typeof_neg_eq,
                 __smtx_typeof_arith_overload_op_2]
             have hSelectedTy : __smtx_typeof selectedS = SmtType.Seq T := by
-              cases shortcut <;>
-                simp [selectedS, selectedEo, hShortcut, tr, tz, tn, hxTy,
-                  hzTy, hyTy, hRemainingTy, typeof_str_substr_eq,
-                  __smtx_typeof_str_substr, __eo_ite, native_ite,
-                  native_teq, SmtEval.native_ite]
+              cases shortcut
+              · have hSelectedEoEq :
+                    selectedEo =
+                      (Term.Apply
+                        (Term.Apply
+                          (Term.Apply (Term.UOp UserOp.str_substr) x)
+                          (Term.Numeral 0))
+                        (Term.Apply
+                          (Term.Apply (Term.UOp UserOp.neg)
+                            (Term.Apply (Term.UOp UserOp.str_len) z)) y)) := by
+                  simp [selectedEo, hShortcut, __eo_ite, native_ite,
+                    native_teq, SmtEval.native_ite]
+                have hSelectedSEq :
+                    selectedS =
+                      SmtTerm.str_substr tr (SmtTerm.Numeral 0) remaining := by
+                  rw [show selectedS = __eo_to_smt selectedEo from rfl,
+                    hSelectedEoEq]
+                  rfl
+                rw [hSelectedSEq]
+                rw [typeof_str_substr_eq, hxTy, hRemainingTy]
+                rfl
+              · simpa [selectedS, selectedEo, hShortcut, tr, __eo_ite,
+                  native_ite, native_teq, SmtEval.native_ite] using hxTy
             have hSelectedLenTy :
                 __smtx_typeof selectedLen = SmtType.Int := by
               simp [selectedLen, typeof_str_len_eq, hSelectedTy,
@@ -3998,18 +4640,44 @@ private theorem string_reduction_pred_true
                 tz, hzTy, hOriginalTy, hPreTy, tn, hyTy, hSelectedLenTy,
                 hMidTy, __smtx_typeof_seq_op_1_ret, __smtx_typeof_eq,
                 __smtx_typeof_guard, __smtx_typeof, native_ite, native_Teq]
+            have hSelectedRawNe :
+                __eo_ite (__eo_is_eq (__str_value_len x) (Term.Numeral 1)) x
+                    (Term.Apply
+                      (Term.Apply
+                        (Term.Apply (Term.UOp UserOp.str_substr) x)
+                        (Term.Numeral 0))
+                      (Term.Apply
+                        (Term.Apply (Term.UOp UserOp.neg)
+                          (Term.Apply (Term.UOp UserOp.str_len) z)) y)) ≠
+                  Term.Stuck := by
+              simpa [selectedEo] using hSelectedNe
+            have hFormulaEq :
+                __eo_to_smt
+                    (__str_reduction_pred
+                      (Term.Apply
+                        (Term.Apply
+                          (Term.Apply (Term.UOp UserOp.str_update) z) y) x)) =
+                  formula := by
+              simp only [__str_reduction_pred, __eo_mk_apply, hZTermNe,
+                hYTermNe, hXTermNe, hSelectedNe, hSelectedRawNe, hNilNe']
+              rfl
             cases shortcut
             all_goals
-              simp only [hNilNe', hShortcut, __eo_ite, native_ite,
-                native_teq, SmtEval.native_ite, __eo_mk_apply] at hBodyTy ⊢
+              simp [hNilNe', hShortcut, __eo_ite, native_ite,
+                native_teq, SmtEval.native_ite, __eo_mk_apply] at hBodyTy
+              change eo_interprets M
+                (__str_reduction_pred
+                  (Term.Apply
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.str_update) z) y) x)) true
               apply RuleProofs.eo_interprets_of_bool_eval M _ true
               · unfold RuleProofs.eo_has_bool_type
-                change __smtx_typeof formula = SmtType.Bool
+                rw [hFormulaEq]
                 simp [formula, typeof_ite_eq, typeof_eq_eq, hCondTy, hRhsTy,
                   hResultTy, tz, hzTy, __smtx_typeof_ite,
                   __smtx_typeof_eq, __smtx_typeof_guard, native_ite,
                   native_Teq]
-              · change __smtx_model_eval M formula = SmtValue.Boolean true
+              · rw [hFormulaEq]
                 have hZValTy :
                     __smtx_typeof_value (__smtx_model_eval M tz) =
                       SmtType.Seq T := by
@@ -4056,23 +4724,26 @@ private theorem string_reduction_pred_true
                       simpa [j] using Int.toNat_of_nonneg hn0
                     have hjLt : j < zs.length := by
                       apply Int.ofNat_lt.mp
-                      simpa [hCast] using hnLt
+                      calc
+                        Int.ofNat j = n := hCast
+                        _ < Int.ofNat zs.length := hnLt
                     have hRemaining :
                         Int.ofNat zs.length - n =
                           Int.ofNat (zs.length - j) := by
-                      rw [← hCast, Int.ofNat_sub (Nat.le_of_lt hjLt)]
+                      rw [← hCast]
+                      exact (Int.ofNat_sub (Nat.le_of_lt hjLt)).symm
                     rcases sr_native_seq_update_active_facts zs ys n hn0 hnLt
                         with ⟨hUpdate, hSource, hPreLen, hChosenMidLen⟩
                     change native_seq_update zs n ys =
-                        zs.take j ++ chosen ++ zs.drop (j + chosen.length) at
-                      hUpdate
+                        zs.take j ++ chosen ++ zs.drop (j + chosen.length)
+                      at hUpdate
                     change zs = zs.take j ++
                         (zs.drop j).take chosen.length ++
                         zs.drop (j + chosen.length) at hSource
                     change (zs.take j).length = j at hPreLen
                     change chosen.length =
-                        ((zs.drop j).take chosen.length).length at
-                      hChosenMidLen
+                        ((zs.drop j).take chosen.length).length
+                      at hChosenMidLen
                     have hChosenLenLe : j + chosen.length ≤ zs.length := by
                       dsimp [chosen]
                       simp only [List.length_take]
@@ -4080,7 +4751,6 @@ private theorem string_reduction_pred_true
                     have hPrefixExtract :
                         native_seq_extract zs 0 n = zs.take j := by
                       rw [native_seq_extract_zero_eq_take zs n hn0]
-                      rfl
                     have hMidExtract :
                         native_seq_extract zs n (Int.ofNat chosen.length) =
                           (zs.drop j).take chosen.length := by
@@ -4093,7 +4763,8 @@ private theorem string_reduction_pred_true
                               (n + Int.ofNat chosen.length)) =
                           zs.drop (j + chosen.length) := by
                       have hStartNonneg :
-                          0 ≤ n + Int.ofNat chosen.length := by omega
+                          0 ≤ n + Int.ofNat chosen.length :=
+                        Int.add_nonneg hn0 (Int.ofNat_zero_le _)
                       have hStartLe :
                           n + Int.ofNat chosen.length ≤
                             Int.ofNat zs.length := by
@@ -4102,9 +4773,21 @@ private theorem string_reduction_pred_true
                       rw [sr_native_seq_extract_to_end_of_bounds zs
                         (n + Int.ofNat chosen.length) hStartNonneg hStartLe]
                       congr 1
-                      rw [Int.toNat_add (by omega) (Int.natCast_nonneg _),
-                        Int.toNat_of_nonneg hn0]
-                      simp [j]
+                      have hSumCast :
+                          Int.ofNat (j + chosen.length) =
+                            n + Int.ofNat chosen.length := by
+                        calc
+                          Int.ofNat (j + chosen.length) =
+                              Int.ofNat j + Int.ofNat chosen.length :=
+                            (Int.ofNat_add_ofNat j chosen.length).symm
+                          _ = n + Int.ofNat chosen.length := by rw [hCast]
+                      apply Int.ofNat_inj.mp
+                      calc
+                        Int.ofNat
+                            (Int.toNat (n + Int.ofNat chosen.length)) =
+                            n + Int.ofNat chosen.length :=
+                          Int.toNat_of_nonneg hStartNonneg
+                        _ = Int.ofNat (j + chosen.length) := hSumCast.symm
                     have hSelectedEval :
                         __smtx_model_eval M selectedS =
                           SmtValue.Seq (native_pack_seq T chosen) := by
@@ -4125,76 +4808,909 @@ private theorem string_reduction_pred_true
                         simpa [selectedS, selectedEo, hShortcut, tr,
                           hChosenEq, hXPack, __eo_ite, native_ite,
                           native_teq, SmtEval.native_ite] using hXEval
-                      | change __smtx_model_eval M
+                      | have hSelectedEoEq :
+                            selectedEo =
+                              (Term.Apply
+                                (Term.Apply
+                                  (Term.Apply (Term.UOp UserOp.str_substr) x)
+                                  (Term.Numeral 0))
+                                (Term.Apply
+                                  (Term.Apply (Term.UOp UserOp.neg)
+                                    (Term.Apply (Term.UOp UserOp.str_len) z))
+                                  y)) := by
+                          simp [selectedEo, hShortcut, __eo_ite, native_ite,
+                            native_teq, SmtEval.native_ite]
+                        rw [show selectedS = __eo_to_smt selectedEo from rfl,
+                          hSelectedEoEq]
+                        have hXEval' :
+                            __smtx_model_eval M (__eo_to_smt x) =
+                              SmtValue.Seq sx := by
+                          simpa [tr] using hXEval
+                        have hZEval' :
+                            __smtx_model_eval M (__eo_to_smt z) =
+                              SmtValue.Seq sz := by
+                          simpa [tz] using hZEval
+                        have hNEval' :
+                            __smtx_model_eval M (__eo_to_smt y) =
+                              SmtValue.Numeral n := by
+                          simpa [tn] using hNEval
+                        have hRemaining' :
+                            (zs.length : native_Int) + -n =
+                              Int.ofNat (zs.length - j) := by
+                          simpa [Int.ofNat_eq_natCast, Int.sub_eq_add_neg]
+                            using hRemaining
+                        change __smtx_model_eval M
                             (SmtTerm.str_substr tr (SmtTerm.Numeral 0)
                               remaining) =
                           SmtValue.Seq (native_pack_seq T chosen)
+                        rw [StrSubstrContainsSupport.smtx_eval_str_substr_term_eq]
                         simp [remaining, sourceLen, tr, tz, tn, hXEval,
-                          hZEval, hNEval, __smtx_model_eval_str_substr,
-                          native_seq_extract_zero_eq_take, hRemaining,
-                          hElemX, chosen, Smtm.native_unpack_pack_seq]
-                    dsimp [zs, ys] at hnLt hUpdate hSource hPreLen
-                      hChosenMidLen hPrefixExtract hMidExtract hSuffixExtract
-                      hSelectedEval hZPack hXPack hChosenLenLe
-                    simp [formula, cond, rhs, updated, original, result,
-                      preS, mid, suffix, next, selectedLen, sourceLen,
-                      selectedS, nilS, __smtx_model_eval,
-                      __smtx_model_eval_ite, __smtx_model_eval_and,
-                      __smtx_model_eval_eq, __smtx_model_eval_geq,
-                      __smtx_model_eval_gt, __smtx_model_eval_str_update,
-                      __smtx_model_eval_str_substr,
-                      __smtx_model_eval_str_concat,
-                      __smtx_model_eval_str_len,
-                      __smtx_model_eval__at_purify,
-                      __smtx_model_eval_plus, hZEval, hNEval, hXEval,
-                      hNilEval, hSelectedEval, native_seq_len,
-                      native_seq_concat, native_and, native_zleq,
-                      native_zlt, native_zplus, native_zneg,
-                      Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
-                      native_unpack_seq, hElemZ, hElemX, hn0, hnLt,
-                      hUpdate, hSource, hPreLen, hChosenMidLen,
-                      hPrefixExtract, hMidExtract, hSuffixExtract, hZPack,
-                      native_veq, native_pack_seq, List.append_assoc]
+                          hZEval, hNEval, hXEval', hZEval', hNEval',
+                          __smtx_model_eval, __smtx_model_eval_str_substr,
+                          __smtx_model_eval__, __smtx_model_eval_str_len,
+                          native_seq_len, native_zplus, native_zneg,
+                          native_seq_extract_zero_eq_take, hRemaining',
+                          hElemX, chosen, zs, ys,
+                          Smtm.native_unpack_pack_seq]
+                    dsimp [zs, ys] at hnLt hUpdate hSource hPreLen hChosenMidLen hPrefixExtract hMidExtract hSuffixExtract hSelectedEval hZPack hXPack hChosenLenLe
+                    have hCondEval :
+                        __smtx_model_eval M cond = SmtValue.Boolean true := by
+                      simp [cond, sourceLen, sr_eval_boolean_term_eq,
+                        sr_eval_numeral_term_eq, smtx_eval_and_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_geq_term_eq,
+                        sr_eval_gt_term_eq, smtx_eval_str_len_term_eq,
+                        __smtx_model_eval_and, __smtx_model_eval_geq,
+                        __smtx_model_eval_leq, __smtx_model_eval_gt,
+                        __smtx_model_eval_lt, __smtx_model_eval_str_len,
+                        hZEval, hNEval, native_seq_len, native_and,
+                        native_zleq, native_zlt, hn0, hnLt,
+                        Int.ofNat_eq_natCast]
+                    change __smtx_model_eval M
+                        (SmtTerm.ite cond rhs (SmtTerm.eq result tz)) =
+                      SmtValue.Boolean true
+                    rw [smtx_eval_ite_term_eq, hCondEval]
+                    simp only [__smtx_model_eval_ite]
+                    have hPreEval :
+                        __smtx_model_eval M preS =
+                          SmtValue.Seq (native_pack_seq T (zs.take j)) := by
+                      simp [preS, sr_eval_purify_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                        sr_eval_numeral_term_eq, __smtx_model_eval__at_purify,
+                        __smtx_model_eval_str_substr, hZEval, hNEval,
+                        hPrefixExtract, hElemZ, zs]
+                    have hMidEval :
+                        __smtx_model_eval M mid =
+                          SmtValue.Seq
+                            (native_pack_seq T
+                              ((zs.drop j).take chosen.length)) := by
+                      simp [mid, selectedLen, sr_eval_purify_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                        smtx_eval_str_len_term_eq,
+                        __smtx_model_eval__at_purify,
+                        __smtx_model_eval_str_substr,
+                        __smtx_model_eval_str_len, hZEval, hNEval,
+                        hSelectedEval, hMidExtract, hElemZ, zs,
+                        native_seq_len, Smtm.native_unpack_pack_seq,
+                        elem_typeof_pack_seq]
+                    have hSuffixEval :
+                        __smtx_model_eval M suffix =
+                          SmtValue.Seq
+                            (native_pack_seq T
+                              (zs.drop (j + chosen.length))) := by
+                      simp [suffix, next, selectedLen, sourceLen,
+                        sr_eval_purify_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                        sr_eval_neg_term_eq, smtx_eval_str_len_term_eq,
+                        sr_eval_numeral_term_eq,
+                        __smtx_model_eval__at_purify,
+                        __smtx_model_eval_str_substr,
+                        __smtx_model_eval_plus, __smtx_model_eval__,
+                        __smtx_model_eval_str_len, hZEval, hNEval,
+                        hSelectedEval, hSuffixExtract, hElemZ, zs,
+                        native_seq_len, native_zplus, native_zneg,
+                        Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
+                        Int.ofNat_eq_natCast, Int.sub_eq_add_neg]
+                      apply congrArg (native_pack_seq T)
+                      simpa [Int.sub_eq_add_neg] using hSuffixExtract
+                    have hResultEval :
+                        __smtx_model_eval M result =
+                          SmtValue.Seq
+                            (native_pack_seq T
+                              (zs.take j ++ chosen ++
+                                zs.drop (j + chosen.length))) := by
+                      simp [result, sr_eval_purify_term_eq,
+                        sr_eval_str_update_term_eq,
+                        __smtx_model_eval__at_purify,
+                        __smtx_model_eval_str_update, hZEval, hNEval,
+                        hXEval, hUpdate, hElemZ, zs, ys]
+                    have hUpdatedEval :
+                        __smtx_model_eval M updated =
+                          SmtValue.Seq
+                            (native_pack_seq T
+                              (zs.take j ++ chosen ++
+                                zs.drop (j + chosen.length))) := by
+                      simp [updated,
+                        StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                        __smtx_model_eval_str_concat, hPreEval,
+                        hSelectedEval, hSuffixEval, hNilEval,
+                        Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
+                        native_unpack_seq, native_seq_concat,
+                        List.append_assoc]
+                    have hOriginalEval :
+                        __smtx_model_eval M original = SmtValue.Seq sz := by
+                      simp [original,
+                        StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                        __smtx_model_eval_str_concat, hPreEval, hMidEval,
+                        hSuffixEval, hNilEval, Smtm.native_unpack_pack_seq,
+                        elem_typeof_pack_seq, native_unpack_seq,
+                        native_seq_concat, hSource, hZPack,
+                        List.append_assoc]
+                      calc
+                        native_pack_seq T
+                            (zs.take j ++
+                              ((zs.drop j).take chosen.length ++
+                                zs.drop (j + chosen.length))) =
+                            native_pack_seq T zs := by
+                          apply congrArg (native_pack_seq T)
+                          simpa [List.append_assoc, zs] using hSource.symm
+                        _ = sz := hZPack
+                    have hPreLenEval :
+                        __smtx_model_eval M (SmtTerm.str_len preS) =
+                          SmtValue.Numeral n := by
+                      simp [smtx_eval_str_len_term_eq,
+                        __smtx_model_eval_str_len, hPreEval, native_seq_len,
+                        Smtm.native_unpack_pack_seq, hPreLen, hCast,
+                        Int.ofNat_eq_natCast]
+                      have hTakeLen :
+                          Int.ofNat (min j zs.length) = n := by
+                        calc
+                          Int.ofNat (min j zs.length) = Int.ofNat j := by
+                            exact congrArg Int.ofNat (by
+                              simpa [List.length_take] using hPreLen)
+                          _ = n := hCast
+                      exact hTakeLen
+                    have hSelectedLenEval :
+                        __smtx_model_eval M selectedLen =
+                          SmtValue.Numeral (Int.ofNat chosen.length) := by
+                      simp [selectedLen, smtx_eval_str_len_term_eq,
+                        __smtx_model_eval_str_len, hSelectedEval,
+                        native_seq_len, Smtm.native_unpack_pack_seq]
+                    have hMidLenEval :
+                        __smtx_model_eval M (SmtTerm.str_len mid) =
+                          SmtValue.Numeral (Int.ofNat chosen.length) := by
+                      rw [smtx_eval_str_len_term_eq, hMidEval]
+                      have hUnpack :
+                          native_unpack_seq
+                              (native_pack_seq T
+                                ((zs.drop j).take chosen.length)) =
+                            (zs.drop j).take chosen.length := by
+                        simp [Smtm.native_unpack_pack_seq,
+                          elem_typeof_pack_seq]
+                      simp only [__smtx_model_eval_str_len, hUnpack,
+                        native_seq_len]
+                      rw [← hChosenMidLen]
+                    have hResultEqEval :
+                        __smtx_model_eval M (SmtTerm.eq result updated) =
+                          SmtValue.Boolean true := by
+                      simp [smtx_eval_eq_term_eq, __smtx_model_eval_eq,
+                        hResultEval, hUpdatedEval, native_veq]
+                    have hSourceEqEval :
+                        __smtx_model_eval M (SmtTerm.eq tz original) =
+                          SmtValue.Boolean true := by
+                      simp [smtx_eval_eq_term_eq, __smtx_model_eval_eq,
+                        hZEval, hOriginalEval, native_veq]
+                    have hPreLenEqEval :
+                        __smtx_model_eval M
+                            (SmtTerm.eq (SmtTerm.str_len preS) tn) =
+                          SmtValue.Boolean true := by
+                      simp [smtx_eval_eq_term_eq, __smtx_model_eval_eq,
+                        hPreLenEval, hNEval, native_veq]
+                    have hMidLenEqEval :
+                        __smtx_model_eval M
+                            (SmtTerm.eq selectedLen (SmtTerm.str_len mid)) =
+                          SmtValue.Boolean true := by
+                      simp [smtx_eval_eq_term_eq, __smtx_model_eval_eq,
+                        hSelectedLenEval, hMidLenEval, native_veq]
+                    simp [rhs, smtx_eval_and_term_eq,
+                      sr_eval_boolean_term_eq, __smtx_model_eval_and,
+                      hResultEqEval, hSourceEqEval, hPreLenEqEval,
+                      hMidLenEqEval, native_and]
                   · have hHigh : Int.ofNat zs.length ≤ n :=
                       Int.le_of_not_gt hnLt
+                    have hHigh' : (zs.length : native_Int) ≤ n := by
+                      simpa [Int.ofNat_eq_natCast] using hHigh
                     have hUpdate :=
                       sr_native_seq_update_eq_self_of_invalid zs ys n
                         (Or.inr hHigh)
-                    dsimp [zs, ys] at hHigh hUpdate hZPack hXPack
-                    simp [formula, cond, rhs, updated, original, result,
+                    dsimp [zs, ys] at hHigh hHigh' hUpdate hZPack hXPack
+                    have hCondEval :
+                        __smtx_model_eval M cond = SmtValue.Boolean false := by
+                      simp [cond, sourceLen, sr_eval_boolean_term_eq,
+                        sr_eval_numeral_term_eq, smtx_eval_and_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_geq_term_eq,
+                        sr_eval_gt_term_eq, smtx_eval_str_len_term_eq,
+                        __smtx_model_eval_and, __smtx_model_eval_geq,
+                        __smtx_model_eval_leq, __smtx_model_eval_gt,
+                        __smtx_model_eval_lt, __smtx_model_eval_str_len,
+                        hZEval, hNEval, native_seq_len, native_and,
+                        native_zleq, native_zlt, hHigh',
+                        Int.ofNat_eq_natCast]
+                    change __smtx_model_eval M
+                        (SmtTerm.ite cond rhs (SmtTerm.eq result tz)) =
+                      SmtValue.Boolean true
+                    rw [smtx_eval_ite_term_eq, hCondEval]
+                    simp only [__smtx_model_eval_ite]
+                    simp [result,
                       preS, mid, suffix, next, selectedLen, sourceLen,
-                      selectedS, nilS, __smtx_model_eval,
+                      selectedS, nilS, sr_eval_boolean_term_eq,
+                      sr_eval_numeral_term_eq, smtx_eval_ite_term_eq,
+                      smtx_eval_and_term_eq, smtx_eval_eq_term_eq,
+                      StrSubstrContainsSupport.smtx_eval_geq_term_eq,
+                      sr_eval_gt_term_eq, sr_eval_str_update_term_eq,
+                      StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                      StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                      smtx_eval_str_len_term_eq, sr_eval_purify_term_eq,
+                      StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                      sr_eval_neg_term_eq,
                       __smtx_model_eval_ite, __smtx_model_eval_and,
                       __smtx_model_eval_eq, __smtx_model_eval_geq,
-                      __smtx_model_eval_gt, __smtx_model_eval_str_update,
+                      __smtx_model_eval_leq, __smtx_model_eval_gt,
+                      __smtx_model_eval_lt, __smtx_model_eval_str_update,
                       __smtx_model_eval_str_len,
                       __smtx_model_eval__at_purify, hZEval, hNEval, hXEval,
-                      hElemZ, hHigh, hUpdate, hZPack, native_seq_len,
-                      native_and, native_zleq, native_zlt, native_veq]
+                      hElemZ, hHigh, hHigh', hUpdate, hZPack, native_seq_len,
+                      native_and, native_zleq, native_zlt, native_veq,
+                      Int.ofNat_eq_natCast]
                 · have hnNeg : n < 0 := Int.lt_of_not_ge hn0
                   have hUpdate :=
                     sr_native_seq_update_eq_self_of_invalid zs ys n
                       (Or.inl hnNeg)
                   dsimp [zs, ys] at hUpdate hZPack hXPack
-                  simp [formula, cond, rhs, updated, original, result,
+                  have hCondEval :
+                      __smtx_model_eval M cond = SmtValue.Boolean false := by
+                    simp [cond, sourceLen, sr_eval_boolean_term_eq,
+                      sr_eval_numeral_term_eq, smtx_eval_and_term_eq,
+                      StrSubstrContainsSupport.smtx_eval_geq_term_eq,
+                      sr_eval_gt_term_eq, smtx_eval_str_len_term_eq,
+                      __smtx_model_eval_and, __smtx_model_eval_geq,
+                      __smtx_model_eval_leq, __smtx_model_eval_gt,
+                      __smtx_model_eval_lt, __smtx_model_eval_str_len,
+                      hZEval, hNEval, native_seq_len, native_and,
+                      native_zleq, native_zlt, hn0, hnNeg]
+                  change __smtx_model_eval M
+                      (SmtTerm.ite cond rhs (SmtTerm.eq result tz)) =
+                    SmtValue.Boolean true
+                  rw [smtx_eval_ite_term_eq, hCondEval]
+                  simp only [__smtx_model_eval_ite]
+                  simp [result,
                     preS, mid, suffix, next, selectedLen, sourceLen,
-                    selectedS, nilS, __smtx_model_eval,
+                    selectedS, nilS, sr_eval_boolean_term_eq,
+                    sr_eval_numeral_term_eq, smtx_eval_ite_term_eq,
+                    smtx_eval_and_term_eq, smtx_eval_eq_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_geq_term_eq,
+                    sr_eval_gt_term_eq, sr_eval_str_update_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_str_concat_term_eq,
+                    smtx_eval_str_len_term_eq, sr_eval_purify_term_eq,
+                    StrSubstrContainsSupport.smtx_eval_plus_term_eq,
+                    sr_eval_neg_term_eq,
                     __smtx_model_eval_ite, __smtx_model_eval_and,
                     __smtx_model_eval_eq, __smtx_model_eval_geq,
-                    __smtx_model_eval_gt, __smtx_model_eval_str_update,
+                    __smtx_model_eval_leq, __smtx_model_eval_gt,
+                    __smtx_model_eval_lt, __smtx_model_eval_str_update,
                     __smtx_model_eval_str_len,
                     __smtx_model_eval__at_purify, hZEval, hNEval, hXEval,
                     hElemZ, hnNeg, hUpdate, hZPack, native_seq_len,
-                    native_and, native_zleq, native_zlt, native_veq]
+                    native_and, native_zleq, native_zlt, native_veq,
+                    Int.ofNat_eq_natCast]
           case str_replace_all =>
+            -- Depends on `occur_index` and `replace_all_result`, whose current
+            -- EO-to-SMT translations are headed by `SmtTerm.None`.
             sorry
           case str_replace_re =>
+            -- Depends on `occur_index_re`, which currently has no SMT meaning.
             sorry
           case str_replace_re_all =>
+            -- Depends on `occur_index_re`, `num_occur_re`, and
+            -- `replace_all_result`, which currently have no SMT meaning.
             sorry
           case str_indexof_re =>
-            sorry
-
+            let ts := __eo_to_smt z
+            let tr := __eo_to_smt y
+            let tn := __eo_to_smt x
+            have hOrigNN :
+                term_has_non_none_type (SmtTerm.str_indexof_re ts tr tn) := by
+              simpa [ts, tr, tn, RuleProofs.eo_has_smt_translation] using hTrans
+            rcases str_indexof_re_args_of_non_none hOrigNN with
+              ⟨hsTy, hrTy, hnTy⟩
+            have hSNN : term_has_non_none_type ts := by
+              unfold term_has_non_none_type
+              rw [hsTy]
+              exact seq_ne_none SmtType.Char
+            have hRNN : term_has_non_none_type tr := by
+              unfold term_has_non_none_type
+              rw [hrTy]
+              decide
+            have hNNN : term_has_non_none_type tn := by
+              unfold term_has_non_none_type
+              rw [hnTy]
+              decide
+            have hSTermNe : z ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation z (by
+                simpa [ts, RuleProofs.eo_has_smt_translation] using hSNN)
+            have hRTermNe : y ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation y (by
+                simpa [tr, RuleProofs.eo_has_smt_translation] using hRNN)
+            have hNTermNe : x ≠ Term.Stuck :=
+              RuleProofs.term_ne_stuck_of_has_smt_translation x (by
+                simpa [tn, RuleProofs.eo_has_smt_translation] using hNNN)
+            have hClosedArgs :
+                __eo_is_closed z = Term.Boolean true ∧
+                  __eo_is_closed y = Term.Boolean true ∧
+                    __eo_is_closed x = Term.Boolean true := by
+              apply sr_eo_is_closed_ternary_uop_args UserOp.str_indexof_re z y x
+              · decide
+              · decide
+              · exact hSTermNe
+              · exact hRTermNe
+              · exact hNTermNe
+              · exact hClosed
+            let idxName := native_string_lit "@var.str_index"
+            let lenName := native_string_lit "@var.str_length"
+            let ivar := SmtTerm.Var idxName SmtType.Int
+            let lvar := SmtTerm.Var lenName SmtType.Int
+            let result := SmtTerm._at_purify
+              (SmtTerm.str_indexof_re ts tr tn)
+            let sourceLen := SmtTerm.str_len ts
+            let resultEq := SmtTerm.eq result
+            let notFound := resultEq (SmtTerm.Numeral (-1))
+            let endIndex := SmtTerm.ite notFound sourceLen result
+            let qMatch := SmtTerm.str_in_re
+              (SmtTerm.str_substr ts ivar lvar) tr
+            let qBody := SmtTerm.or (SmtTerm.not (SmtTerm.geq ivar tn))
+              (SmtTerm.or (SmtTerm.not (SmtTerm.lt ivar endIndex))
+                (SmtTerm.or (SmtTerm.not (SmtTerm.gt lvar (SmtTerm.Numeral 0)))
+                  (SmtTerm.or
+                    (SmtTerm.not
+                      (SmtTerm.leq lvar (SmtTerm.neg sourceLen ivar)))
+                    (SmtTerm.or (SmtTerm.not qMatch)
+                      (SmtTerm.Boolean false)))))
+            let minimal := SmtTerm.not
+              (SmtTerm.exists idxName SmtType.Int
+                (SmtTerm.exists lenName SmtType.Int (SmtTerm.not qBody)))
+            let foundMatch := SmtTerm.str_in_re
+              (SmtTerm.str_substr ts result lvar) tr
+            let foundBody := SmtTerm.or
+              (SmtTerm.not (SmtTerm.geq lvar (SmtTerm.Numeral 0)))
+              (SmtTerm.or
+                (SmtTerm.not
+                  (SmtTerm.leq lvar (SmtTerm.neg sourceLen result)))
+                (SmtTerm.or (SmtTerm.not foundMatch)
+                  (SmtTerm.Boolean false)))
+            let foundForall := SmtTerm.not
+              (SmtTerm.exists lenName SmtType.Int (SmtTerm.not foundBody))
+            let foundClause := SmtTerm.or notFound
+              (SmtTerm.or
+                (SmtTerm.and (SmtTerm.geq result tn)
+                  (SmtTerm.and (SmtTerm.not foundForall)
+                    (SmtTerm.Boolean true)))
+                (SmtTerm.Boolean false))
+            let characterized := SmtTerm.and minimal
+              (SmtTerm.and foundClause (SmtTerm.Boolean true))
+            let invalid := SmtTerm.or (SmtTerm.gt tn sourceLen)
+              (SmtTerm.or (SmtTerm.gt (SmtTerm.Numeral 0) tn)
+                (SmtTerm.Boolean false))
+            let emptyMatch := SmtTerm.str_in_re (SmtTerm.String []) tr
+            let formula := SmtTerm.ite invalid notFound
+              (SmtTerm.ite emptyMatch (resultEq tn) characterized)
+            have hResultTy : __smtx_typeof result = SmtType.Int := by
+              change __smtx_typeof (SmtTerm.str_indexof_re ts tr tn) =
+                SmtType.Int
+              simp [typeof_str_indexof_re_eq, hsTy, hrTy, hnTy,
+                native_ite, native_Teq]
+            have hSourceLenTy : __smtx_typeof sourceLen = SmtType.Int := by
+              simp [sourceLen, typeof_str_len_eq, hsTy,
+                __smtx_typeof_seq_op_1_ret]
+            have hNotFoundTy : __smtx_typeof notFound = SmtType.Bool := by
+              simp [notFound, resultEq, typeof_eq_eq, hResultTy,
+                __smtx_typeof_eq, __smtx_typeof_guard, __smtx_typeof,
+                native_ite, native_Teq]
+            have hEndIndexTy : __smtx_typeof endIndex = SmtType.Int := by
+              simp [endIndex, typeof_ite_eq, hNotFoundTy, hSourceLenTy,
+                hResultTy, __smtx_typeof_ite, native_ite, native_Teq]
+            have hQMatchTy : __smtx_typeof qMatch = SmtType.Bool := by
+              simp [qMatch, typeof_str_in_re_eq, typeof_str_substr_eq,
+                hsTy, hrTy, ivar, lvar, __smtx_typeof_str_substr,
+                __smtx_typeof_seq_op_2_ret, __smtx_typeof_guard_wf,
+                __smtx_type_wf, __smtx_type_wf_component,
+                __smtx_type_wf_rec, __smtx_type_no_alias_rec,
+                __smtx_typeof, native_and, native_ite, native_Teq]
+            have hQBodyTy : __smtx_typeof qBody = SmtType.Bool := by
+              simp [qBody, typeof_or_eq, typeof_not_eq, typeof_geq_eq,
+                typeof_lt_eq, typeof_gt_eq, typeof_leq_eq, typeof_neg_eq,
+                ivar, lvar, hnTy, hEndIndexTy, hSourceLenTy, hQMatchTy,
+                __smtx_typeof_arith_overload_op_2_ret,
+                __smtx_typeof_arith_overload_op_2, __smtx_typeof_guard,
+                __smtx_typeof_guard_wf, __smtx_type_wf,
+                __smtx_type_wf_component, __smtx_type_wf_rec,
+                __smtx_type_no_alias_rec, __smtx_typeof, native_and,
+                native_ite, native_Teq]
+            have hMinimalTy : __smtx_typeof minimal = SmtType.Bool := by
+              simp [minimal, typeof_not_eq, smtx_typeof_exists_term_eq,
+                typeof_not_eq, hQBodyTy, sr_smt_type_wf_int,
+                __smtx_typeof_guard_wf, __smtx_typeof_guard, native_ite]
+            have hFoundMatchTy : __smtx_typeof foundMatch = SmtType.Bool := by
+              simp [foundMatch, typeof_str_in_re_eq, typeof_str_substr_eq,
+                hsTy, hrTy, hResultTy, lvar, __smtx_typeof_str_substr,
+                __smtx_typeof_seq_op_2_ret, __smtx_typeof_guard_wf,
+                __smtx_type_wf, __smtx_type_wf_component,
+                __smtx_type_wf_rec, __smtx_type_no_alias_rec,
+                __smtx_typeof, native_and, native_ite, native_Teq]
+            have hFoundBodyTy : __smtx_typeof foundBody = SmtType.Bool := by
+              simp [foundBody, typeof_or_eq, typeof_not_eq, typeof_geq_eq,
+                typeof_leq_eq, typeof_neg_eq, lvar, hSourceLenTy, hResultTy,
+                hFoundMatchTy, __smtx_typeof_arith_overload_op_2_ret,
+                __smtx_typeof_arith_overload_op_2, __smtx_typeof_guard,
+                __smtx_typeof_guard_wf, __smtx_type_wf,
+                __smtx_type_wf_component, __smtx_type_wf_rec,
+                __smtx_type_no_alias_rec, __smtx_typeof, native_and,
+                native_ite, native_Teq]
+            have hFoundForallTy :
+                __smtx_typeof foundForall = SmtType.Bool := by
+              simp [foundForall, typeof_not_eq, smtx_typeof_exists_term_eq,
+                hFoundBodyTy, sr_smt_type_wf_int, __smtx_typeof_guard_wf,
+                __smtx_typeof_guard, native_ite]
+            have hFoundClauseTy :
+                __smtx_typeof foundClause = SmtType.Bool := by
+              simp [foundClause, typeof_or_eq, typeof_and_eq, typeof_not_eq,
+                typeof_geq_eq, hNotFoundTy, hResultTy, hnTy,
+                hFoundForallTy, __smtx_typeof_arith_overload_op_2_ret,
+                __smtx_typeof_guard, __smtx_typeof, native_ite, native_Teq]
+            have hCharacterizedTy :
+                __smtx_typeof characterized = SmtType.Bool := by
+              simp [characterized, typeof_and_eq, hMinimalTy,
+                hFoundClauseTy, __smtx_typeof, native_ite]
+            have hInvalidTy : __smtx_typeof invalid = SmtType.Bool := by
+              simp [invalid, typeof_or_eq, typeof_gt_eq, hnTy,
+                hSourceLenTy, __smtx_typeof_arith_overload_op_2_ret,
+                __smtx_typeof_guard, __smtx_typeof, native_ite, native_Teq]
+            have hEmptyMatchTy :
+                __smtx_typeof emptyMatch = SmtType.Bool := by
+              have hEmptyValid : native_string_valid [] = true := by
+                native_decide
+              simp [emptyMatch, typeof_str_in_re_eq, hrTy,
+                __smtx_typeof_seq_op_2_ret, __smtx_typeof, hEmptyValid,
+                native_ite, native_Teq]
+            have hResultStartTy :
+                __smtx_typeof (resultEq tn) = SmtType.Bool := by
+              simp [resultEq, typeof_eq_eq, hResultTy, hnTy,
+                __smtx_typeof_eq, __smtx_typeof_guard, native_ite,
+                native_Teq]
+            have hFormulaEq :
+                __eo_to_smt
+                    (__str_reduction_pred
+                      (Term.Apply
+                        (Term.Apply
+                          (Term.Apply (Term.UOp UserOp.str_indexof_re) z) y) x)) =
+                  formula := by
+              simp only [__str_reduction_pred, __eo_mk_apply, hSTermNe,
+                hRTermNe, hNTermNe]
+              rfl
+            change eo_interprets M
+              (__str_reduction_pred
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_indexof_re) z) y) x)) true
+            apply RuleProofs.eo_interprets_of_bool_eval M _ true
+            · unfold RuleProofs.eo_has_bool_type
+              rw [hFormulaEq]
+              simp [formula, typeof_ite_eq, hInvalidTy, hNotFoundTy,
+                hEmptyMatchTy, hResultStartTy, hCharacterizedTy,
+                __smtx_typeof_ite, native_ite, native_Teq]
+            · rw [hFormulaEq]
+              have hSValTy :
+                  __smtx_typeof_value (__smtx_model_eval M ts) =
+                    SmtType.Seq SmtType.Char := by
+                simpa [ts, hsTy] using
+                  smt_model_eval_preserves_type_of_non_none M hM ts hSNN
+              rcases seq_value_canonical hSValTy with ⟨ss, hSEval⟩
+              have hSsTy :
+                  __smtx_typeof_seq_value ss =
+                    SmtType.Seq SmtType.Char := by
+                simpa [hSEval, __smtx_typeof_value] using hSValTy
+              let source := native_unpack_string ss
+              have hSourceValid : native_string_valid source = true :=
+                native_unpack_string_valid_of_typeof_seq_char hSsTy
+              have hSourcePack : native_pack_string source = ss :=
+                sr_native_pack_unpack_string ss hSsTy
+              have hSEvalString :
+                  __smtx_model_eval M ts =
+                    SmtValue.Seq (native_pack_string source) := by
+                rw [hSourcePack]
+                exact hSEval
+              have hRValTy :
+                  __smtx_typeof_value (__smtx_model_eval M tr) =
+                    SmtType.RegLan := by
+                simpa [tr, hrTy] using
+                  smt_model_eval_preserves_type_of_non_none M hM tr hRNN
+              rcases reglan_value_canonical hRValTy with ⟨regex, hREval⟩
+              have hNValTy :
+                  __smtx_typeof_value (__smtx_model_eval M tn) =
+                    SmtType.Int := by
+                simpa [tn, hnTy] using
+                  smt_model_eval_preserves_type_of_non_none M hM tn hNNN
+              rcases int_value_canonical hNValTy with ⟨start, hNEval⟩
+              let nativeResult := native_str_indexof_re source regex start
+              have hResultEval :
+                  __smtx_model_eval M result =
+                    SmtValue.Numeral nativeResult := by
+                simp [result, nativeResult, sr_eval_purify_term_eq,
+                  sr_eval_str_indexof_re_term_eq,
+                  __smtx_model_eval__at_purify,
+                  __smtx_model_eval_str_indexof_re, hSEvalString, hREval,
+                  hNEval, sr_native_unpack_pack_string]
+              have hSourceLenEval :
+                  __smtx_model_eval M sourceLen =
+                    SmtValue.Numeral (source.length : Int) := by
+                simp [sourceLen, smtx_eval_str_len_term_eq,
+                  __smtx_model_eval_str_len, hSEvalString, native_seq_len,
+                  sr_native_unpack_pack_string_length, source]
+              have hEmptyMatchEval :
+                  __smtx_model_eval M emptyMatch =
+                    SmtValue.Boolean (native_str_in_re [] regex) := by
+                have hEmptyStringEval :
+                    __smtx_model_eval M (SmtTerm.String []) =
+                      SmtValue.Seq (native_pack_string []) := by
+                  rw [__smtx_model_eval.eq_def]
+                simp [emptyMatch, sr_eval_str_in_re_term_eq,
+                  __smtx_model_eval_str_in_re, hREval, hEmptyStringEval,
+                  sr_native_unpack_pack_string]
+              have hSem := StringReductionRegex.search_semantics_int
+                source regex start hSourceValid
+              change (if start > (source.length : Int) ∨ 0 > start then
+                  nativeResult = -1
+                else if native_str_in_re [] regex then
+                  nativeResult = start
+                else
+                  (∀ j k : Int,
+                    ¬ start ≤ j ∨
+                    ¬ j < (if nativeResult = -1 then
+                      (source.length : Int) else nativeResult) ∨
+                    ¬ 0 < k ∨
+                    ¬ k ≤ (source.length : Int) - j ∨
+                    native_str_in_re (native_str_substr source j k) regex =
+                      false) ∧
+                  (nativeResult = -1 ∨
+                    start ≤ nativeResult ∧
+                      ∃ k : Int, 0 ≤ k ∧
+                        k ≤ (source.length : Int) - nativeResult ∧
+                        native_str_in_re
+                          (native_str_substr source nativeResult k) regex =
+                            true)) at hSem
+              by_cases hInvalid :
+                  start > (source.length : Int) ∨ 0 > start
+              · rw [if_pos hInvalid] at hSem
+                have hInvalidEval :
+                    __smtx_model_eval M invalid = SmtValue.Boolean true := by
+                  rcases hInvalid with hHigh | hNeg
+                  · simp [invalid, sr_eval_gt_term_eq,
+                      smtx_eval_or_term_eq, sr_eval_numeral_term_eq,
+                      sr_eval_boolean_term_eq,
+                      __smtx_model_eval_gt, __smtx_model_eval_lt,
+                      __smtx_model_eval_or, hNEval, hSourceLenEval,
+                      native_zlt, native_or, hHigh]
+                  · simp [invalid, sr_eval_gt_term_eq,
+                      smtx_eval_or_term_eq, sr_eval_numeral_term_eq,
+                      sr_eval_boolean_term_eq,
+                      __smtx_model_eval_gt, __smtx_model_eval_lt,
+                      __smtx_model_eval_or, hNEval, hSourceLenEval,
+                      native_zlt, native_or, hNeg]
+                rw [smtx_eval_ite_term_eq, hInvalidEval]
+                simp [notFound, resultEq, smtx_eval_eq_term_eq,
+                  __smtx_model_eval_ite, __smtx_model_eval_eq,
+                  hResultEval, hSem, sr_eval_numeral_term_eq, native_veq,
+                  nativeResult]
+              · rw [if_neg hInvalid] at hSem
+                have hInvalidEval :
+                    __smtx_model_eval M invalid = SmtValue.Boolean false := by
+                  have hNotHigh : ¬ (source.length : Int) < start := by
+                    exact fun h => hInvalid (Or.inl h)
+                  have hNotNeg : ¬ start < 0 := by
+                    exact fun h => hInvalid (Or.inr h)
+                  simp [invalid, sr_eval_gt_term_eq,
+                    smtx_eval_or_term_eq, sr_eval_numeral_term_eq,
+                    sr_eval_boolean_term_eq,
+                    __smtx_model_eval_gt, __smtx_model_eval_lt,
+                    __smtx_model_eval_or, hNEval, hSourceLenEval,
+                    native_zlt, native_or, hNotHigh, hNotNeg]
+                rw [smtx_eval_ite_term_eq, hInvalidEval]
+                simp only [__smtx_model_eval_ite]
+                by_cases hEmpty : native_str_in_re [] regex = true
+                · rw [if_pos hEmpty] at hSem
+                  rw [smtx_eval_ite_term_eq, hEmptyMatchEval, hEmpty]
+                  simp [resultEq, smtx_eval_eq_term_eq,
+                    __smtx_model_eval_ite, __smtx_model_eval_eq,
+                    hResultEval, hNEval, hSem, native_veq, nativeResult]
+                · have hEmptyFalse : native_str_in_re [] regex = false := by
+                    cases hVal : native_str_in_re [] regex with
+                    | false => rfl
+                    | true => exact False.elim (hEmpty hVal)
+                  rw [if_neg hEmpty] at hSem
+                  rw [smtx_eval_ite_term_eq, hEmptyMatchEval, hEmptyFalse]
+                  simp only [__smtx_model_eval_ite]
+                  rcases hSem with ⟨hMinimalNative, hFoundNative⟩
+                  have hMinimalEval :
+                      __smtx_model_eval M minimal =
+                        SmtValue.Boolean true := by
+                    apply sr_eval_forall2_encoding_true M idxName lenName
+                      SmtType.Int SmtType.Int qBody
+                    intro vj vk hvjTy _hvjCanonical hvkTy _hvkCanonical
+                    rcases int_value_canonical hvjTy with ⟨j, rfl⟩
+                    rcases int_value_canonical hvkTy with ⟨k, rfl⟩
+                    let Mj := native_model_push M idxName SmtType.Int
+                      (SmtValue.Numeral j)
+                    let Mjk := native_model_push Mj lenName SmtType.Int
+                      (SmtValue.Numeral k)
+                    have hNames : idxName ≠ lenName := by
+                      native_decide
+                    have hIdxEval :
+                        native_model_var_lookup Mjk idxName SmtType.Int =
+                          SmtValue.Numeral j := by
+                      simp [Mj, Mjk, native_model_var_lookup,
+                        native_model_push, hNames]
+                    have hLenEval :
+                        native_model_var_lookup Mjk lenName SmtType.Int =
+                          SmtValue.Numeral k := by
+                      simp [Mjk, native_model_var_lookup, native_model_push]
+                    have hAgree : model_agrees_on_globals M Mjk :=
+                      model_agrees_on_globals_trans
+                        (model_agrees_on_globals_push M idxName SmtType.Int
+                          (SmtValue.Numeral j))
+                        (model_agrees_on_globals_push Mj lenName SmtType.Int
+                          (SmtValue.Numeral k))
+                    have hSEvalPush :
+                        __smtx_model_eval Mjk ts =
+                          SmtValue.Seq (native_pack_string source) := by
+                      rw [← hSEvalString]
+                      exact (smt_model_eval_eq_of_eo_closed z hClosedArgs.1
+                        M Mjk hAgree).symm
+                    have hREvalPush :
+                        __smtx_model_eval Mjk tr =
+                          SmtValue.RegLan regex := by
+                      rw [← hREval]
+                      exact (smt_model_eval_eq_of_eo_closed y
+                        hClosedArgs.2.1 M Mjk hAgree).symm
+                    have hNEvalPush :
+                        __smtx_model_eval Mjk tn =
+                          SmtValue.Numeral start := by
+                      rw [← hNEval]
+                      exact (smt_model_eval_eq_of_eo_closed x
+                        hClosedArgs.2.2 M Mjk hAgree).symm
+                    have hResultEvalPush :
+                        __smtx_model_eval Mjk result =
+                          SmtValue.Numeral nativeResult := by
+                      simp [result, nativeResult, sr_eval_purify_term_eq,
+                        sr_eval_str_indexof_re_term_eq,
+                        __smtx_model_eval__at_purify,
+                        __smtx_model_eval_str_indexof_re, hSEvalPush,
+                        hREvalPush, hNEvalPush,
+                        sr_native_unpack_pack_string]
+                    have hSourceLenEvalPush :
+                        __smtx_model_eval Mjk sourceLen =
+                          SmtValue.Numeral (source.length : Int) := by
+                      simp [sourceLen, smtx_eval_str_len_term_eq,
+                        __smtx_model_eval_str_len, hSEvalPush,
+                        native_seq_len, sr_native_unpack_pack_string_length]
+                    have hQMatchEval :
+                        __smtx_model_eval Mjk qMatch =
+                          SmtValue.Boolean
+                            (native_str_in_re
+                              (native_str_substr source j k) regex) := by
+                      simp [qMatch, sr_eval_str_in_re_term_eq,
+                        StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                        __smtx_model_eval_str_in_re,
+                        __smtx_model_eval_str_substr, ivar, lvar,
+                        hSEvalPush, hREvalPush, hIdxEval, hLenEval,
+                        sr_native_seq_extract_pack_string,
+                        sr_native_unpack_extract_pack_string,
+                        sr_native_unpack_pack_string, __smtx_model_eval]
+                    have hEndEval :
+                        __smtx_model_eval Mjk endIndex =
+                          SmtValue.Numeral
+                            (if nativeResult = -1 then
+                              (source.length : Int) else nativeResult) := by
+                      by_cases hResultNeg : nativeResult = -1
+                      · simp [endIndex, notFound, resultEq,
+                          smtx_eval_ite_term_eq, smtx_eval_eq_term_eq,
+                          __smtx_model_eval_ite, __smtx_model_eval_eq,
+                          hResultEvalPush, hSourceLenEvalPush,
+                          sr_eval_numeral_term_eq, native_veq, hResultNeg]
+                      · simp [endIndex, notFound, resultEq,
+                          smtx_eval_ite_term_eq, smtx_eval_eq_term_eq,
+                          __smtx_model_eval_ite, __smtx_model_eval_eq,
+                          hResultEvalPush, hSourceLenEvalPush,
+                          sr_eval_numeral_term_eq, native_veq, hResultNeg]
+                    have hQBodyNative :
+                        __smtx_model_eval Mjk qBody =
+                          SmtValue.Boolean
+                            (decide
+                              (¬ start ≤ j ∨
+                                ¬ j < (if nativeResult = -1 then
+                                  (source.length : Int) else nativeResult) ∨
+                                ¬ 0 < k ∨
+                                ¬ k ≤ (source.length : Int) - j ∨
+                                native_str_in_re
+                                    (native_str_substr source j k) regex =
+                                  false)) := by
+                      simp [qBody, ivar, lvar, sr_eval_boolean_term_eq,
+                        sr_eval_numeral_term_eq, sr_eval_var_term_eq,
+                        smtx_eval_or_term_eq,
+                        smtx_eval_not_term_eq,
+                        sr_eval_geq_term_eq, sr_eval_lt_term_eq,
+                        sr_eval_gt_term_eq, sr_eval_leq_term_eq,
+                        sr_eval_neg_term_eq, hIdxEval, hLenEval, hNEvalPush,
+                        hEndEval, hSourceLenEvalPush, hQMatchEval,
+                        __smtx_model_eval_or, __smtx_model_eval_not,
+                        __smtx_model_eval_geq, __smtx_model_eval_leq,
+                        __smtx_model_eval_lt, __smtx_model_eval_gt,
+                        __smtx_model_eval__, native_or, native_not,
+                        native_zleq, native_zlt, native_zneg,
+                        sr_not_decide_le_eq_decide_lt,
+                        sr_not_decide_lt_eq_decide_le,
+                        native_zplus, Int.sub_eq_add_neg]
+                    rw [hQBodyNative]
+                    have hMinimalOrder :
+                        j < start ∨
+                          (if nativeResult = -1 then
+                            (source.length : Int) else nativeResult) ≤ j ∨
+                          k ≤ 0 ∨
+                          (source.length : Int) - j < k ∨
+                          native_str_in_re
+                              (native_str_substr source j k) regex = false := by
+                      rcases hMinimalNative j k with hLo | hHi | hKPos | hKHi | hNo
+                      · exact Or.inl (Int.lt_of_not_ge hLo)
+                      · exact Or.inr (Or.inl (Int.le_of_not_gt hHi))
+                      · exact Or.inr (Or.inr (Or.inl (Int.le_of_not_gt hKPos)))
+                      · exact Or.inr (Or.inr (Or.inr
+                          (Or.inl (Int.lt_of_not_ge hKHi))))
+                      · exact Or.inr (Or.inr (Or.inr (Or.inr hNo)))
+                    simp [hMinimalOrder]
+                  have hFoundClauseEval :
+                      __smtx_model_eval M foundClause =
+                        SmtValue.Boolean true := by
+                    rcases hFoundNative with hNotFound |
+                      ⟨hResultLo, k, hkNonneg, hkBound, hkMatch⟩
+                    · have hFoundForallNN :
+                          term_has_non_none_type foundForall := by
+                        unfold term_has_non_none_type
+                        rw [hFoundForallTy]
+                        decide
+                      have hFoundForallValTy :
+                          __smtx_typeof_value
+                              (__smtx_model_eval M foundForall) =
+                            SmtType.Bool := by
+                        simpa [hFoundForallTy] using
+                          smt_model_eval_preserves_type_of_non_none M hM
+                            foundForall hFoundForallNN
+                      rcases bool_value_canonical hFoundForallValTy with
+                        ⟨b, hFoundForallEval⟩
+                      simp [foundClause, notFound, resultEq,
+                        smtx_eval_or_term_eq, smtx_eval_and_term_eq,
+                        smtx_eval_not_term_eq, smtx_eval_eq_term_eq,
+                        sr_eval_geq_term_eq, sr_eval_boolean_term_eq,
+                        sr_eval_numeral_term_eq, __smtx_model_eval_or,
+                        __smtx_model_eval_and, __smtx_model_eval_not,
+                        __smtx_model_eval_eq, __smtx_model_eval_geq,
+                        __smtx_model_eval_leq, hResultEval, hNEval,
+                        hFoundForallEval, hNotFound, native_or, native_and,
+                        native_not, native_veq, native_zleq]
+                    · let Mk := native_model_push M lenName SmtType.Int
+                          (SmtValue.Numeral k)
+                      have hLenEval :
+                          native_model_var_lookup Mk lenName SmtType.Int =
+                            SmtValue.Numeral k := by
+                        simp [Mk, native_model_var_lookup, native_model_push]
+                      have hAgree : model_agrees_on_globals M Mk :=
+                        model_agrees_on_globals_push M lenName SmtType.Int
+                          (SmtValue.Numeral k)
+                      have hSEvalPush :
+                          __smtx_model_eval Mk ts =
+                            SmtValue.Seq (native_pack_string source) := by
+                        rw [← hSEvalString]
+                        exact (smt_model_eval_eq_of_eo_closed z
+                          hClosedArgs.1 M Mk hAgree).symm
+                      have hREvalPush :
+                          __smtx_model_eval Mk tr =
+                            SmtValue.RegLan regex := by
+                        rw [← hREval]
+                        exact (smt_model_eval_eq_of_eo_closed y
+                          hClosedArgs.2.1 M Mk hAgree).symm
+                      have hNEvalPush :
+                          __smtx_model_eval Mk tn =
+                            SmtValue.Numeral start := by
+                        rw [← hNEval]
+                        exact (smt_model_eval_eq_of_eo_closed x
+                          hClosedArgs.2.2 M Mk hAgree).symm
+                      have hResultEvalPush :
+                          __smtx_model_eval Mk result =
+                            SmtValue.Numeral nativeResult := by
+                        simp [result, nativeResult, sr_eval_purify_term_eq,
+                          sr_eval_str_indexof_re_term_eq,
+                          __smtx_model_eval__at_purify,
+                          __smtx_model_eval_str_indexof_re, hSEvalPush,
+                          hREvalPush, hNEvalPush,
+                          sr_native_unpack_pack_string]
+                      have hSourceLenEvalPush :
+                          __smtx_model_eval Mk sourceLen =
+                            SmtValue.Numeral (source.length : Int) := by
+                        simp [sourceLen, smtx_eval_str_len_term_eq,
+                          __smtx_model_eval_str_len, hSEvalPush,
+                          native_seq_len,
+                          sr_native_unpack_pack_string_length]
+                      have hFoundMatchEval :
+                          __smtx_model_eval Mk foundMatch =
+                            SmtValue.Boolean
+                              (native_str_in_re
+                                (native_str_substr source nativeResult k)
+                                regex) := by
+                        simp [foundMatch, sr_eval_str_in_re_term_eq,
+                          StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
+                          __smtx_model_eval_str_in_re,
+                          __smtx_model_eval_str_substr, lvar, hSEvalPush,
+                          hREvalPush, hResultEvalPush, hLenEval,
+                          sr_native_seq_extract_pack_string,
+                          sr_native_unpack_extract_pack_string,
+                          sr_native_unpack_pack_string,
+                          __smtx_model_eval]
+                      have hFoundBodyFalse :
+                          __smtx_model_eval Mk foundBody =
+                            SmtValue.Boolean false := by
+                        have hkBound' :
+                            k ≤ (source.length : Int) + -nativeResult := by
+                          simpa [Int.sub_eq_add_neg] using hkBound
+                        simp [foundBody, lvar, sr_eval_boolean_term_eq,
+                          sr_eval_numeral_term_eq, sr_eval_var_term_eq,
+                          smtx_eval_or_term_eq, smtx_eval_not_term_eq,
+                          sr_eval_geq_term_eq, sr_eval_leq_term_eq,
+                          sr_eval_neg_term_eq, hLenEval, hResultEvalPush,
+                          hSourceLenEvalPush, hFoundMatchEval,
+                          __smtx_model_eval_or, __smtx_model_eval_not,
+                          __smtx_model_eval_geq, __smtx_model_eval_leq,
+                          __smtx_model_eval__, native_or, native_not,
+                          native_zleq, native_zneg, native_zplus,
+                          Int.sub_eq_add_neg, hkNonneg, hkBound', hkMatch]
+                      have hFoundForallFalse :
+                          __smtx_model_eval M foundForall =
+                            SmtValue.Boolean false := by
+                        simpa [foundForall] using
+                          sr_eval_forall_encoding_false M lenName SmtType.Int
+                            foundBody (SmtValue.Numeral k) rfl
+                            (by simp [__smtx_value_canonical_bool])
+                            hFoundBodyFalse
+                      have hResultNotFound : nativeResult ≠ -1 := by
+                        have hStartNonneg : 0 ≤ start :=
+                          Int.le_of_not_gt (fun hNeg => hInvalid (Or.inr hNeg))
+                        intro hEq
+                        have hBad : start ≤ -1 := by
+                          simpa [hEq] using hResultLo
+                        have hMinusOneLt : (-1 : Int) < start :=
+                          Int.lt_of_lt_of_le (by decide) hStartNonneg
+                        exact (Int.not_le_of_gt hMinusOneLt) hBad
+                      simp [foundClause, notFound, resultEq,
+                        smtx_eval_or_term_eq, smtx_eval_and_term_eq,
+                        smtx_eval_not_term_eq, smtx_eval_eq_term_eq,
+                        sr_eval_geq_term_eq, sr_eval_boolean_term_eq,
+                        sr_eval_numeral_term_eq, __smtx_model_eval_or,
+                        __smtx_model_eval_and, __smtx_model_eval_not,
+                        __smtx_model_eval_eq, __smtx_model_eval_geq,
+                        __smtx_model_eval_leq, hResultEval, hNEval,
+                        hFoundForallFalse, hResultNotFound, hResultLo,
+                        native_or, native_and, native_not, native_veq,
+                        native_zleq]
+                  simp [characterized, smtx_eval_and_term_eq,
+                    sr_eval_boolean_term_eq, __smtx_model_eval_and,
+                    hMinimalEval, hFoundClauseEval, native_and]
 /-- The complete generated result is true whenever its guard succeeds. -/
 private theorem string_reduction_true
     (M : SmtModel) (hM : model_total_typed M) (s : Term)
