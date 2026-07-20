@@ -12,6 +12,22 @@ set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
+/-- Bit-vector signed comparison on canonical binary payloads. -/
+public theorem smtx_model_eval_bvsgt_binary_eq_uts_public
+    {w n1 n2 : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon1 :
+      native_zeq n1
+          (native_mod_total n1 (native_int_pow2 w)) = true)
+    (hCanon2 :
+      native_zeq n2
+          (native_mod_total n2 (native_int_pow2 w)) = true) :
+    __smtx_model_eval_bvsgt (SmtValue.Binary w n1) (SmtValue.Binary w n2) =
+      SmtValue.Boolean
+        (native_zlt (native_binary_uts w n2)
+          (native_binary_uts w n1)) :=
+  smtx_model_eval_bvsgt_binary_eq_uts hw0 hCanon1 hCanon2
+
 public theorem cmd_step_evaluate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
