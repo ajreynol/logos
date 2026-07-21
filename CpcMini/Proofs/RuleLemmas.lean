@@ -43,8 +43,6 @@ by
   have hPremisesBool : AllHaveBoolType (premiseTermList s premises) :=
     premiseTermList_has_bool_type s premises hsTy hsTrans
   cases r with
-  | scope =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | contra =>
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
         intro N hN _hAgree
@@ -66,6 +64,8 @@ by
         exact cmd_step_trans_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
 
+  | _ =>
+      exact False.elim (hProg (by simp only [__eo_cmd_step_proven]))
 
 /-
 Central expansion point for `step_pop` rules.
@@ -106,12 +106,6 @@ by
       exact cmd_step_pop_facts_of_rule_properties M hM root tail A premises hsRoot hsRootStable hSuffix <|
         cmd_step_pop_scope_properties A root args premises
           hATrans hATy hPremisesTrans hPremisesTy hResultTy
-  | contra =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
-  | refl =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
-  | symm =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
-  | trans =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
 
+  | _ =>
+      exact False.elim (hProg (by simp only [__eo_cmd_step_pop_proven]))
