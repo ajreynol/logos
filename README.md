@@ -32,6 +32,11 @@ To build every CPC proof rule, use:
 scripts/build-all-cpc-rules.sh
 ```
 
+The script builds one rule target at a time by default to keep peak memory
+bounded. On machines with more RAM, `--batch-size 2` (or a larger value) trades
+memory for speed. `--all-at-once` enables the previous maximum-parallelism mode
+and may exhaust memory.
+
 To remove Lake build artifacts, use either of these equivalent commands:
 
 ```bash
