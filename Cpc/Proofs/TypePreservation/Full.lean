@@ -1521,21 +1521,17 @@ private theorem canonical_of_supported
       simpa [__smtx_model_eval, __smtx_model_eval__at_purify] using
         canonical_of_supported M hM _ ht1 hs1
   case var s T hT =>
-      by_cases hWF : __smtx_type_wf T = true
-      · simpa [__smtx_model_eval] using model_total_typed_var_lookup_canonical hM s T hWF
-      · have hWF' : __smtx_type_wf T = false := by
-          cases hWFBool : __smtx_type_wf T <;> simp [hWFBool] at hWF ⊢
-        have hLookup : native_model_var_lookup M s T = SmtValue.NotValue :=
-          model_total_typed_var_lookup_uninhabited hM s T hWF'
-        simpa [__smtx_model_eval, hLookup] using value_canonical_notValue
+      have hWF : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T (by
+          simpa [term_has_non_none_type, __smtx_typeof] using ht)
+      simpa [__smtx_model_eval] using
+        model_total_typed_var_lookup_canonical hM s T hWF
   case uconst s T hT =>
-      by_cases hWF : __smtx_type_wf T = true
-      · simpa [__smtx_model_eval] using model_total_typed_lookup_canonical hM s T hWF
-      · have hWF' : __smtx_type_wf T = false := by
-          cases hWFBool : __smtx_type_wf T <;> simp [hWFBool] at hWF ⊢
-        have hLookup : native_model_lookup M s T = SmtValue.NotValue :=
-          model_total_typed_lookup_not_wf hM s T hWF'
-        simpa [__smtx_model_eval, hLookup] using value_canonical_notValue
+      have hWF : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T (by
+          simpa [term_has_non_none_type, __smtx_typeof] using ht)
+      simpa [__smtx_model_eval] using
+        model_total_typed_lookup_canonical hM s T hWF
   case re_allchar =>
       simpa [__smtx_model_eval] using value_canonical_reglan_allchar
   case re_none =>
@@ -1555,10 +1551,26 @@ private theorem canonical_of_supported
         model_eval_set_singleton_value_canonical (v := __smtx_model_eval M _)
           (canonical_of_supported M hM _ ht1 hs1)
   case seq_nth ht1 hs1 ht2 hs2 hT hElemRec =>
+      rcases seq_nth_args_of_non_none ht with ⟨T, h1, h2⟩
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        unfold term_has_non_none_type at ht
+        rw [typeof_seq_nth_eq] at ht
+        simpa [__smtx_typeof_seq_nth, h1, h2] using ht
+      have hTWf : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+      have hRec : __smtx_type_wf_rec T T = true := hElemRec h1
+      have hTInh : native_inhabited_type T = true := by
+        cases T <;>
+          simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+            native_and] at hTWf hRec ⊢
+        all_goals first | exact hTWf | exact hTWf.1 | exact hTWf.1.1 | contradiction
+      have hMapWF := seq_nth_wrong_map_type_wf hTInh hRec
+        (type_no_alias_of_type_wf hTWf)
+      have hvTy := (supported_type_preservation M hM _ ht1 hs1).trans h1
       simpa [__smtx_model_eval] using
         model_eval_seq_nth_canonical (M := M) (hM := hM)
           (v := __smtx_model_eval M _) (i := __smtx_model_eval M _)
-          (canonical_of_supported M hM _ ht1 hs1)
+          (canonical_of_supported M hM _ ht1 hs1) T hvTy hMapWF
   case set_union ht1 hs1 ht2 hs2 =>
       simpa [__smtx_model_eval] using
         model_eval_set_union_canonical
@@ -2066,7 +2078,7 @@ private theorem canonical_of_supported
         (supported_type_preservation M hM _ htx hsx).trans
           (dt_sel_arg_datatype_of_non_none htSel)
       simpa [__smtx_model_eval] using
-        model_eval_dt_sel_canonical M hM _ _ _ _ hxTy
+        model_eval_dt_sel_canonical M hM _ _ _ _ hWrongMapWF hxTy
           (canonical_of_supported M hM _ htx hsx)
   case dt_tester s d i x =>
       simpa [__smtx_model_eval, __smtx_model_eval_dt_tester] using
