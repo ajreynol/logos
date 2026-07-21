@@ -21,9 +21,9 @@ set_option maxHeartbeats 10000000
 
 /- Central expansion point for plain `step` rules.
 
-   To add a new rule handled by `__eo_cmd_step_proven`, add its matching
-   pattern here and dispatch to the arity helper matching the rule shape.
-   The preservation theorems below then pick the new rule up automatically. -/
+   Generate one explicit branch for every rule handled by
+   `__eo_cmd_step_proven`. The wildcard branch discharges every remaining
+   rule using the generated dispatcher's default `Stuck` behavior. -/
 theorem cmd_step_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (_hNotStuck : s ≠ CState.Stuck)
@@ -43,8 +43,6 @@ by
   have hPremisesBool : AllHaveBoolType (premiseTermList s premises) :=
     premiseTermList_has_bool_type s premises hsTy hsTrans
   cases r with
-  | scope =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | contra =>
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
         intro N hN _hAgree
@@ -65,13 +63,16 @@ by
         intro N hN _hAgree
         exact cmd_step_trans_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
+  | _ =>
+      exact False.elim (hProg (by simp only [__eo_cmd_step_proven]))
 
 
 /-
 Central expansion point for `step_pop` rules.
 
-If `__eo_cmd_step_pop_proven` grows more supported rules, add a matching
-branch below and route it to the rule-specific helper.
+Generate one explicit branch for every rule handled by
+`__eo_cmd_step_pop_proven`. The wildcard branch discharges every remaining
+rule using the generated dispatcher's default `Stuck` behavior.
 -/
 theorem cmd_step_pop_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
@@ -106,12 +107,5 @@ by
       exact cmd_step_pop_facts_of_rule_properties M hM root tail A premises hsRoot hsRootStable hSuffix <|
         cmd_step_pop_scope_properties A root args premises
           hATrans hATy hPremisesTrans hPremisesTy hResultTy
-  | contra =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
-  | refl =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
-  | symm =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
-  | trans =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
-
+  | _ =>
+      exact False.elim (hProg (by simp only [__eo_cmd_step_pop_proven]))
