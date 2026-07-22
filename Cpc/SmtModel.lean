@@ -2385,8 +2385,6 @@ def model_total_typed (M : SmtModel) : Prop :=
   (∀ isVar s T, __smtx_type_wf T = true ->
     __smtx_value_canonical_bool
       (M.values { isVar := isVar, name := s, ty := T }) = true) ∧
-  (∀ isVar s T, __smtx_type_wf T = false ->
-    M.values { isVar := isVar, name := s, ty := T } = SmtValue.NotValue) ∧
   native_fun_typed M
 
 /-

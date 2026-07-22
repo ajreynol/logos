@@ -724,10 +724,7 @@ theorem substFalseRel_pushSubstModel
     SubstituteSupport.SubstFalseRel M (pushSubstModel M xs ts)
       xs ts Term.__eo_List_nil := by
   rcases SubstActualsHaveSmtTypes.env_wf hActuals with
-    ⟨vars, hEnv, _hVarsWf⟩
-  have hPushTotal :
-      model_total_typed (pushSubstModel M xs ts) :=
-    pushSubstModel_total_typed_of_smt_typed_actuals M hM hActuals
+    ⟨vars, hEnv, hVarsWf⟩
   refine ⟨pushSubstModel_globals M xs ts, ?_, ?_⟩
   · intro s T hAllowed
     rcases hAllowed with hBound | hUnmapped
@@ -756,10 +753,18 @@ theorem substFalseRel_pushSubstModel
             __smtx_type_wf (__eo_to_smt_type T) = false := by
           cases hWfBool : __smtx_type_wf (__eo_to_smt_type T) <;>
             simp [hWfBool] at hWf ⊢
-        rw [model_total_typed_var_lookup_uninhabited hM
-              s (__eo_to_smt_type T) hWfFalse,
-            model_total_typed_var_lookup_uninhabited hPushTotal
-              s (__eo_to_smt_type T) hWfFalse]
+        have hNotMem :
+            (s, __eo_to_smt_type T) ∉ vars.map EoVarKey.toSmt := by
+          intro hMem
+          rcases List.mem_map.1 hMem with ⟨⟨s', T'⟩, hKeyMem, hKeyEq⟩
+          have hKeyWf := hVarsWf s' T' hKeyMem
+          simp [EoVarKey.toSmt] at hKeyEq
+          rw [hKeyEq.2, hWfFalse] at hKeyWf
+          cases hKeyWf
+        have hAgree :=
+          (pushSubstModel_agrees_except M ts hEnv).vars_eq
+            s (__eo_to_smt_type T) (Or.inr hNotMem)
+        exact hAgree.symm
   · intro s T _hFree hMapped
     exact
       substActualsHaveSmtTypes_pushSubstModel_lookup_mapped
@@ -9406,13 +9411,19 @@ theorem substitute_simul_eval_nonbinder
                                                                                                                                                                                                                         (fun {s t} h => strings_stoi_result_args_have_smt_translation_of_has_smt_translation h)
                                                                                                                                                                                                                         (fun X1 Y1 X2 Y2 h1 h2 => by
                                                                                                                                                                                                                           show __smtx_model_eval M
-                                                                                                                                                                                                                              (SmtTerm.str_to_int
-                                                                                                                                                                                                                                (SmtTerm.str_substr (__eo_to_smt X1)
-                                                                                                                                                                                                                                  (SmtTerm.Numeral 0) (__eo_to_smt X2))) =
+                                                                                                                                                                                                                              (SmtTerm.ite
+                                                                                                                                                                                                                                (SmtTerm.eq (__eo_to_smt X2) (SmtTerm.Numeral 0))
+                                                                                                                                                                                                                                (SmtTerm.Numeral 0)
+                                                                                                                                                                                                                                (SmtTerm.str_to_int
+                                                                                                                                                                                                                                  (SmtTerm.str_substr (__eo_to_smt X1)
+                                                                                                                                                                                                                                    (SmtTerm.Numeral 0) (__eo_to_smt X2)))) =
                                                                                                                                                                                                                             __smtx_model_eval N
-                                                                                                                                                                                                                              (SmtTerm.str_to_int
-                                                                                                                                                                                                                                (SmtTerm.str_substr (__eo_to_smt Y1)
-                                                                                                                                                                                                                                  (SmtTerm.Numeral 0) (__eo_to_smt Y2)))
+                                                                                                                                                                                                                              (SmtTerm.ite
+                                                                                                                                                                                                                                (SmtTerm.eq (__eo_to_smt Y2) (SmtTerm.Numeral 0))
+                                                                                                                                                                                                                                (SmtTerm.Numeral 0)
+                                                                                                                                                                                                                                (SmtTerm.str_to_int
+                                                                                                                                                                                                                                  (SmtTerm.str_substr (__eo_to_smt Y1)
+                                                                                                                                                                                                                                    (SmtTerm.Numeral 0) (__eo_to_smt Y2))))
                                                                                                                                                                                                                           simp only [__smtx_model_eval]
                                                                                                                                                                                                                           rw [h1, h2])
                                                                                                                                                                                                                         (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
