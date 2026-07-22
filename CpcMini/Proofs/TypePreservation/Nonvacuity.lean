@@ -73,10 +73,7 @@ theorem exists_total_typed_model_of_canonical_type_inhabited
       have hSpec := Classical.choose_spec (hCan T hT)
       simpa [default_typed_model_of, hT, __smtx_value_canonical]
         using hSpec.2
-    · constructor
-      · intro isVar s T hT
-        simp [default_typed_model_of, hT]
-      · exact default_typed_model_of_native_fun_typed hCan
+    · exact default_typed_model_of_native_fun_typed hCan
 
 /-- Choice-based model that returns a canonical inhabitant for every well-formed SMT type. -/
 noncomputable def default_typed_model : SmtModel :=
@@ -96,10 +93,7 @@ theorem default_typed_model_total_typed :
       have hSpec := Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)
       simpa [default_typed_model_of, hT, __smtx_value_canonical]
         using hSpec.2
-    · constructor
-      · intro isVar s T hT
-        simp [default_typed_model_of, hT]
-      · exact default_typed_model_of_native_fun_typed canonical_type_inhabited_of_type_wf
+    · exact default_typed_model_of_native_fun_typed canonical_type_inhabited_of_type_wf
 
 /-- Constructs a total typed SMT model. -/
 theorem exists_total_typed_model :

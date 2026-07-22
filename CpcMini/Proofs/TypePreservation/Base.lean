@@ -118,26 +118,6 @@ theorem typeof_value_model_eval_uconst
   simpa [__smtx_model_eval, __smtx_typeof] using
     (Eq.trans (model_total_typed_lookup hM s T hWF) hGuard.symm)
 
-/-- Derives `model_eval_var` from `uninhabited`. -/
-theorem model_eval_var_of_uninhabited
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    (s : native_String)
-    (T : SmtType)
-    (hT : __smtx_type_wf T = false) :
-    __smtx_model_eval M (SmtTerm.Var s T) = SmtValue.NotValue := by
-  simpa [__smtx_model_eval] using model_total_typed_var_lookup_uninhabited hM s T hT
-
-/-- Derives `model_eval_uconst` from `uninhabited`. -/
-theorem model_eval_uconst_of_uninhabited
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    (s : native_String)
-    (T : SmtType)
-    (hT : __smtx_type_wf T = false) :
-    __smtx_model_eval M (SmtTerm.UConst s T) = SmtValue.NotValue := by
-  simpa [__smtx_model_eval] using model_total_typed_lookup_uninhabited hM s T hT
-
 /-- Derives `exists_body_bool` from `non_none`. -/
 theorem exists_body_bool_of_non_none
     {s : native_String}

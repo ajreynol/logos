@@ -900,6 +900,41 @@ theorem dt_sel_term_typeof_of_non_none
     _ = __smtx_ret_typeof_sel s d i j := by
       simp [inner, R, __smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hx]
 
+/-- The well-formed fallback map for a datatype selector induces a well-formed
+function type for its final lookup. -/
+theorem dt_sel_wrong_fun_type_wf_of_map_wf
+    (s : native_String)
+    (d : SmtDatatype)
+    (i j : native_Nat)
+    (hMapWF :
+      __smtx_type_wf
+        (SmtType.Map SmtType.Int
+          (SmtType.Map SmtType.Int
+            (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))) = true) :
+    __smtx_type_wf
+      (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)) = true := by
+  let D := SmtType.Datatype s d
+  let R := __smtx_ret_typeof_sel s d i j
+  have hM2WF :
+      __smtx_type_wf (SmtType.Map SmtType.Int (SmtType.Map D R)) = true :=
+    (map_type_wf_components_of_wf (A := SmtType.Int)
+      (B := SmtType.Map SmtType.Int (SmtType.Map D R))
+      (by simpa [D, R] using hMapWF)).2
+  have hM3WF : __smtx_type_wf (SmtType.Map D R) = true :=
+    (map_type_wf_components_of_wf (A := SmtType.Int)
+      (B := SmtType.Map D R) hM2WF).2
+  have hAll :
+      native_inhabited_type (SmtType.Map D R) = true ∧
+        (((native_inhabited_type D = true ∧ __smtx_type_wf_rec D D = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil D = true) ∧
+          ((native_inhabited_type R = true ∧ __smtx_type_wf_rec R R = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil R = true)) := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+      __smtx_type_no_alias_rec, native_and] using hM3WF
+  simp [D, R, __smtx_type_wf, __smtx_type_wf_component, native_and,
+    hAll.2.1.1.1, hAll.2.1.1.2, hAll.2.1.2,
+    hAll.2.2.1.1, hAll.2.2.1.2, hAll.2.2.2]
+
 /-- Shows that evaluating `dt_sel_wrong` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_sel_wrong
     (M : SmtModel)
