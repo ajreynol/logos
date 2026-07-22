@@ -1727,7 +1727,7 @@ theorem model_eval_dt_sel_wrong_canonical
     (M : SmtModel)
     (hM : model_total_typed M)
     (s : native_String)
-    (d : SmtDatatype)
+    (d : SmtDatatypeDecl)
     (n m : native_Nat)
     (v : SmtValue)
     (hvTy : __smtx_typeof_value v = SmtType.Datatype s d) :
@@ -1764,7 +1764,7 @@ theorem model_eval_dt_sel_canonical
     (M : SmtModel)
     (hM : model_total_typed M)
     (s : native_String)
-    (d : SmtDatatype)
+    (d : SmtDatatypeDecl)
     (n m : native_Nat)
     {v : SmtValue}
     (hvTy : __smtx_typeof_value v = SmtType.Datatype s d)
@@ -1776,7 +1776,7 @@ theorem model_eval_dt_sel_canonical
       model_eval_dt_sel_wrong_canonical M hM s d n m v hvTy
   · simpa [native_ite, hEq] using
       vsm_apply_arg_nth_canonical (v := v) (n := m)
-        (npos := __smtx_dt_num_sels d n) hv
+        (npos := __smtx_dt_num_sels (__smtx_dd_lookup s d) n) hv
 
 /--
 Store canonicality reduces to the map-update canonicality theorem. This isolates

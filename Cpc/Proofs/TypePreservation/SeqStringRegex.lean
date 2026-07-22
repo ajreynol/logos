@@ -513,7 +513,6 @@ theorem typeof_value_seq_nth_wrong
     (T : SmtType)
     (hTInh : native_inhabited_type T = true)
     (hRec : __smtx_type_wf_rec T T = true)
-    (hNA : __smtx_type_no_alias_rec native_reflist_nil T = true)
     (hss : __smtx_typeof_seq_value ss = SmtType.Seq T) :
     __smtx_typeof_value (__smtx_seq_nth_wrong M ss n (SmtType.Seq T)) = T := by
   change __smtx_typeof_value
@@ -530,7 +529,7 @@ theorem typeof_value_seq_nth_wrong
         SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T) :=
     model_total_typed_lookup hM native_oob_seq_nth_id
       (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T))
-      (seq_nth_wrong_map_type_wf hTInh hRec hNA)
+      (seq_nth_wrong_map_type_wf hTInh hRec)
   rcases map_value_canonical
       (A := SmtType.Seq T) (B := SmtType.Map SmtType.Int T) hLookup with ⟨m0, hm0⟩
   rw [hm0]
@@ -2116,8 +2115,7 @@ theorem typeof_value_model_eval_seq_nth
       __smtx_typeof_value
         (__smtx_seq_nth_wrong M ss n (__smtx_typeof_seq_value ss)) = T := by
     rw [hssTy]
-    exact typeof_value_seq_nth_wrong M hM ss n T hTInh hRec
-      (type_no_alias_of_type_wf hTWf) hssTy
+    exact typeof_value_seq_nth_wrong M hM ss n T hTInh hRec hssTy
   simpa using ssm_seq_nth_typed (ss := ss) (n := n)
     (d := __smtx_seq_nth_wrong M ss n (__smtx_typeof_seq_value ss)) (T := T) hssTy hd
 

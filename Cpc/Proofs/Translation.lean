@@ -1,10 +1,10 @@
 module
 
-public import Cpc.Proofs.Translation.EoTypeof
+public import Cpc.Proofs.Translation.TypeofBridge
 
 public section
 
 /-!
-Public bridge to the full translation proof stack and its exported wrapper
-theorems.
+ Public bridge to the declaration-based translation proof stack and its
+ exported wrapper theorems.
 -/
