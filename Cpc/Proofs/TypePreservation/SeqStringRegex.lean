@@ -512,7 +512,7 @@ theorem typeof_value_seq_nth_wrong
     (n : native_Int)
     (T : SmtType)
     (hTInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T T = true)
+    (hRec : __smtx_type_wf_rec T = true)
     (hss : __smtx_typeof_seq_value ss = SmtType.Seq T) :
     __smtx_typeof_value (__smtx_seq_nth_wrong M ss n (SmtType.Seq T)) = T := by
   change __smtx_typeof_value
@@ -2076,7 +2076,7 @@ theorem typeof_value_model_eval_seq_nth
     (hElemRec :
       ∀ {T : SmtType},
         __smtx_typeof t1 = SmtType.Seq T ->
-          __smtx_type_wf_rec T T = true)
+          __smtx_type_wf_rec T = true)
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
@@ -2102,7 +2102,7 @@ theorem typeof_value_model_eval_seq_nth
   unfold __smtx_seq_nth
   have hssTy : __smtx_typeof_seq_value ss = SmtType.Seq T := by
     simpa [hss, h1, __smtx_typeof_value] using hpres1
-  have hRec : __smtx_type_wf_rec T T = true := by
+  have hRec : __smtx_type_wf_rec T = true := by
     exact hElemRec h1
   have hTWf : __smtx_type_wf T = true :=
     smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN

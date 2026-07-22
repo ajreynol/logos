@@ -694,37 +694,37 @@ theorem no_value_of_empty_datatype
 /-- Walks the declaration list to extract dt-level well-formedness of the named datatype. -/
 theorem decl_wf_rec_lookup
     (s : native_String) (dd : SmtDatatypeDecl) :
-    ∀ dd2, __smtx_decl_wf_rec s dd dd2 dd2 = true →
-      __smtx_dt_wf_rec (__smtx_dt_resolve (__smtx_dd_lookup s dd2) dd)
-        (__smtx_dd_lookup s dd2) = true
-  | SmtDatatypeDecl.nil, h => by
-      simp [__smtx_dd_lookup, __smtx_dt_resolve, __smtx_dt_wf_rec]
-  | SmtDatatypeDecl.cons s2 d2 dd2, h => by
+    ∀ dd2, __smtx_dd_has_dt s dd2 = true →
+      __smtx_decl_wf_rec dd dd2 = true →
+      __smtx_dt_wf_rec dd (__smtx_dd_lookup s dd2) = true
+  | SmtDatatypeDecl.nil, hHas, _ => by
+      simp [__smtx_dd_has_dt] at hHas
+  | SmtDatatypeDecl.cons s2 d2 dd2, hHas, h => by
       by_cases hs : native_streq s s2 = true
-      · simp only [__smtx_decl_wf_rec] at h
-        rw [native_ite, if_pos hs] at h
-        simp only [__smtx_dd_lookup]
-        rw [native_ite, if_pos hs]
-        exact h
-      · simp only [__smtx_decl_wf_rec] at h
-        rw [native_ite, if_neg hs] at h
-        simp only [__smtx_dd_lookup]
-        rw [native_ite, if_neg hs]
-        exact decl_wf_rec_lookup s dd dd2 h
+      · have hDt : __smtx_dt_wf_rec dd d2 = true := by
+          simp only [__smtx_decl_wf_rec, native_and, Bool.and_eq_true] at h
+          exact h.1
+        simpa [__smtx_dd_lookup, native_ite, hs] using hDt
+      · have hHasTail : __smtx_dd_has_dt s dd2 = true := by
+          simpa [__smtx_dd_has_dt, native_or, hs] using hHas
+        have hTail : __smtx_decl_wf_rec dd dd2 = true := by
+          simp only [__smtx_decl_wf_rec, native_and, Bool.and_eq_true] at h
+          exact h.2.2.1
+        simpa [__smtx_dd_lookup, native_ite, hs] using
+          decl_wf_rec_lookup s dd dd2 hHasTail hTail
 
 /-- Extracts recursive datatype well-formedness from public type well-formedness. -/
 theorem datatype_wf_rec_of_type_wf
     {s : native_String}
     {dd : SmtDatatypeDecl}
     (h : __smtx_type_wf (SmtType.Datatype s dd) = true) :
-    __smtx_dt_wf_rec (__smtx_dt_resolve (__smtx_dd_lookup s dd) dd)
-      (__smtx_dd_lookup s dd) = true := by
+    __smtx_dt_wf_rec dd (__smtx_dd_lookup s dd) = true := by
   have hPair :
       native_inhabited_type (SmtType.Datatype s dd) = true ∧
-        __smtx_decl_wf_rec s dd dd dd = true := by
+        (__smtx_dd_has_dt s dd = true ∧ __smtx_decl_wf_rec dd dd = true) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
       native_and] using h
-  exact decl_wf_rec_lookup s dd dd hPair.2
+  exact decl_wf_rec_lookup s dd dd hPair.2.1 hPair.2.2
 
 /-- Empty datatypes are uninhabited. -/
 theorem not_type_inhabited_empty_datatype
@@ -904,7 +904,7 @@ theorem dt_sel_term_typeof_of_non_none
 function type for its final lookup. -/
 theorem dt_sel_wrong_fun_type_wf_of_map_wf
     (s : native_String)
-    (d : SmtDatatype)
+    (d : SmtDatatypeDecl)
     (i j : native_Nat)
     (hMapWF :
       __smtx_type_wf
@@ -925,15 +925,12 @@ theorem dt_sel_wrong_fun_type_wf_of_map_wf
       (B := SmtType.Map D R) hM2WF).2
   have hAll :
       native_inhabited_type (SmtType.Map D R) = true ∧
-        (((native_inhabited_type D = true ∧ __smtx_type_wf_rec D D = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil D = true) ∧
-          ((native_inhabited_type R = true ∧ __smtx_type_wf_rec R R = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil R = true)) := by
+        ((native_inhabited_type D = true ∧ __smtx_type_wf_rec D = true) ∧
+          (native_inhabited_type R = true ∧ __smtx_type_wf_rec R = true)) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      __smtx_type_no_alias_rec, native_and] using hM3WF
+      native_and] using hM3WF
   simp [D, R, __smtx_type_wf, __smtx_type_wf_component, native_and,
-    hAll.2.1.1.1, hAll.2.1.1.2, hAll.2.1.2,
-    hAll.2.2.1.1, hAll.2.2.1.2, hAll.2.2.2]
+    hAll.2.1.1, hAll.2.1.2, hAll.2.2.1, hAll.2.2.2]
 
 /-- Shows that evaluating `dt_sel_wrong` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_sel_wrong
@@ -968,23 +965,23 @@ theorem typeof_value_model_eval_dt_sel_wrong
       (B := SmtType.Map D R) hM2WF).2
   have hDRParts :
       native_inhabited_type D = true ∧
-        __smtx_type_wf_rec D D = true ∧
+        __smtx_type_wf_rec D = true ∧
           native_inhabited_type R = true ∧
-            __smtx_type_wf_rec R R = true := by
+            __smtx_type_wf_rec R = true := by
     have hAll :
         native_inhabited_type (SmtType.Map D R) = true ∧
-          ((native_inhabited_type D = true ∧ __smtx_type_wf_rec D D = true) ∧
-            (native_inhabited_type R = true ∧ __smtx_type_wf_rec R R = true)) := by
+          ((native_inhabited_type D = true ∧ __smtx_type_wf_rec D = true) ∧
+            (native_inhabited_type R = true ∧ __smtx_type_wf_rec R = true)) := by
       simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
         native_and] using hM3WF
     exact ⟨hAll.2.1.1, hAll.2.1.2, hAll.2.2.1, hAll.2.2.2⟩
   have hDParts :
       native_inhabited_type D = true ∧
-        __smtx_type_wf_rec D D = true :=
+        __smtx_type_wf_rec D = true :=
     ⟨hDRParts.1, hDRParts.2.1⟩
   have hRParts :
       native_inhabited_type R = true ∧
-        __smtx_type_wf_rec R R = true :=
+        __smtx_type_wf_rec R = true :=
     ⟨hDRParts.2.2.1, hDRParts.2.2.2⟩
   have hFunWF : __smtx_type_wf (SmtType.FunType D R) = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hDParts.1, hDParts.2,

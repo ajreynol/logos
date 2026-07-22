@@ -728,7 +728,7 @@ def __smtx_dd_lookup (s : native_String) : SmtDatatypeDecl -> SmtDatatype
   | SmtDatatypeDecl.nil => SmtDatatype.null
 
 
-def __smtx_dd_has_dt (s : native_String) : SmtDatatypeDecl -> SmtDatatype
+def __smtx_dd_has_dt (s : native_String) : SmtDatatypeDecl -> native_Bool
   | (SmtDatatypeDecl.cons s2 d dd) => (native_or (native_streq s s2) (__smtx_dd_has_dt s dd))
   | SmtDatatypeDecl.nil => false
 
