@@ -67,6 +67,25 @@ private theorem hoAppSpine_partial_uop_false
   | app hPrev =>
       exact hoAppSpine_raw_uop_none_false base op hRawNone hBase hPrev
 
+private theorem hoAppSpine_binary_uop_false
+    (base : Term) (op : UserOp) (x y : Term) :
+    (__smtx_typeof (__eo_to_smt (Term.UOp op)) = SmtType.None) ->
+    (__smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) x)) =
+      SmtType.None) ->
+    (__smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x) y)) =
+      SmtType.None) ->
+    RuleProofs.eo_has_smt_translation base ->
+    HoAppSpine base (Term.Apply (Term.Apply (Term.UOp op) x) y) ->
+    False := by
+  intro hRawNone hUnaryNone hNone hBase hSpine
+  cases hSpine with
+  | base =>
+      exact hBase hNone
+  | app hPrev =>
+      exact hoAppSpine_partial_uop_false
+        base op x hRawNone hUnaryNone hBase hPrev
+
 private theorem hoAppSpine_typeof_apply_eq
     (base f x : Term)
     (hBase : RuleProofs.eo_has_smt_translation base)
@@ -109,6 +128,31 @@ private theorem hoAppSpine_typeof_apply_eq
                     (SmtTerm.Apply SmtTerm.None (__eo_to_smt p₂)) =
                   SmtType.None
               simp [__smtx_typeof, __smtx_typeof_apply]) hBase hPrev)
+        case Apply p₀ p₃ =>
+          cases p₀ <;> try rfl
+          case UOp op =>
+            cases op <;> try rfl
+            all_goals
+              exact False.elim (hoAppSpine_binary_uop_false
+                base _ p₃ p₂
+                (by
+                  change __smtx_typeof SmtTerm.None = SmtType.None
+                  exact TranslationProofs.smtx_typeof_none)
+                (by
+                  change
+                    __smtx_typeof
+                        (SmtTerm.Apply SmtTerm.None (__eo_to_smt p₃)) =
+                      SmtType.None
+                  simp [__smtx_typeof, __smtx_typeof_apply])
+                (by
+                  change
+                    __smtx_typeof
+                        (SmtTerm.Apply
+                          (SmtTerm.Apply SmtTerm.None (__eo_to_smt p₃))
+                          (__eo_to_smt p₂)) =
+                      SmtType.None
+                  simp [__smtx_typeof, __smtx_typeof_apply])
+                hBase hPrev)
 
 theorem eo_apply_apply_head_has_translation_of_generic_apply_translation
     (f z x : Term)

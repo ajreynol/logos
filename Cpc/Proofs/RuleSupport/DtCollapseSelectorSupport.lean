@@ -4962,11 +4962,17 @@ private theorem eo_typeof_tuple_head_extra_application_stuck :
               (Term.Apply f' y') y x
               (by simpa [appHead] using hHead)
               (by intro h; cases h)
-          change
-            __eo_typeof_apply
-                (__eo_typeof (((Term.Apply f' y').Apply y).Apply x))
-                (__eo_typeof tail) = Term.Stuck
-          rw [hInner]
+          have hApply :
+              __eo_typeof
+                  ((((Term.Apply f' y').Apply y).Apply x).Apply tail) =
+                __eo_typeof_apply
+                  (__eo_typeof (((Term.Apply f' y').Apply y).Apply x))
+                  (__eo_typeof tail) := by
+            cases f' <;> try rfl
+            case UOp op =>
+              cases op <;> try rfl
+              all_goals simp [appHead] at hHead
+          rw [hApply, hInner]
           exact eo_typeof_apply_stuck_head (__eo_typeof tail)
       | _ =>
           cases hHead
