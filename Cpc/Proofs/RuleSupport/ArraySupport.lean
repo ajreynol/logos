@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.Canonical.Fresh
+import all Cpc.Proofs.Canonical.Fresh
 
 public section
 
@@ -556,9 +558,10 @@ private theorem map_lookup_eq_default_of_not_typed_canonical :
 
 /--
 Fresh-index witness needed only for the infinite-domain branch of array
-extensionality.  The former proof came through the outdated
-`Canonical.WfDiag`/cardinality stack; keep this boundary explicit until that
-stack is replaced.
+extensionality.  Discharged by the `Canonical.Fresh` freshness stack; the
+residual datatype obligations live behind
+`Smtm.infinite_datatype_large_witness` /
+`Smtm.finite_nonunit_datatype_nondefault_value`.
 -/
 private theorem fresh_default_lookup_for_infinite_map_domain
     (m1 m2 : SmtMap)
@@ -574,8 +577,9 @@ private theorem fresh_default_lookup_for_infinite_map_domain
       __smtx_typeof_value i = A ∧
         __smtx_value_canonical_bool i = true ∧
           __smtx_msm_lookup m1 i = __smtx_msm_get_default m1 ∧
-            __smtx_msm_lookup m2 i = __smtx_msm_get_default m2 := by
-  sorry
+            __smtx_msm_lookup m2 i = __smtx_msm_get_default m2 :=
+  Smtm.fresh_default_lookup_for_infinite_map_domain m1 m2 A B
+    _hm1Ty _hm2Ty _hm1Can _hm2Can _hAInh _hARec _hInfinite
 
 private theorem map_defaults_eq_of_no_typed_canonical_lookup_diff
     {m1 m2 : SmtMap} {A B : SmtType}
