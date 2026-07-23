@@ -231,17 +231,19 @@ private theorem dt_collapse_tester_singleton_sound
         M hM (__eo_to_smt t) hTNN
   have hCtorNN :
       __smtx_typeof_dt_cons_rec (SmtType.Datatype cs cd)
-          (__smtx_dt_substitute cs cd cd) ci ≠
+          (__smtx_dt_resolve (__smtx_dd_lookup cs cd) cd) ci ≠
         SmtType.None :=
     dt_tester_ctor_type_non_none_of_non_none hLeftNN
   have hCiLtSub :
-      ci < smtDatatypeNumCtors (__smtx_dt_substitute cs cd cd) :=
+      ci <
+        smtDatatypeNumCtors
+          (__smtx_dt_resolve (__smtx_dd_lookup cs cd) cd) :=
     smt_typeof_dt_cons_rec_non_none_implies_lt_ctors
       (SmtType.Datatype cs cd) hCtorNN
-  have hCiLt : ci < smtDatatypeNumCtors cd := by
-    simpa [smtDatatypeNumCtors_substitute cs cd cd] using hCiLtSub
+  have hCiLt : ci < smtDatatypeNumCtors (__smtx_dd_lookup cs cd) := by
+    simpa [smtDatatypeNumCtors_resolve cd (__smtx_dd_lookup cs cd)] using hCiLtSub
   rcases datatype_value_head_of_type hEvalTy with ⟨idx, hHead⟩
-  have hIdxLt : idx < smtDatatypeNumCtors cd :=
+  have hIdxLt : idx < smtDatatypeNumCtors (__smtx_dd_lookup cs cd) :=
     datatype_head_index_lt hHead hEvalTy
   rcases TranslationProofs.eo_to_smt_eq_dt_cons_cases c cs cd ci hCTrans with
     hDt | hTupleUnit
@@ -250,7 +252,7 @@ private theorem dt_collapse_tester_singleton_sound
     subst cd
     have hEoTType :
         __eo_to_smt_type (__eo_typeof t) =
-          SmtType.Datatype cs (__eo_to_smt_datatype d0) :=
+          SmtType.Datatype cs (__eo_to_smt_datatype_decl d0) :=
       TranslationProofs.eo_to_smt_type_typeof_of_smt_type t hTType (by simp)
     have hNameNe : cs ≠ (native_string_lit "@Tuple") :=
       TranslationProofs.eo_unreserved_datatype_name_ne_tuple hReserved
@@ -260,24 +262,33 @@ private theorem dt_collapse_tester_singleton_sound
     have hLenDt :
         __eo_list_len Term.__eo_List_cons
             (__dt_get_constructors (__eo_typeof t)) =
-          Term.Numeral (Int.ofNat (eoDatatypeNumCtors dt)) := by
+          Term.Numeral
+            (Int.ofNat (eoDatatypeNumCtors (__eo_dd_lookup cs dt))) := by
       rw [hTTypeEo]
       exact eo_list_len_dt_get_constructors_datatype cs dt
-    have hCtorCountEo : eoDatatypeNumCtors dt = 1 := by
+    have hCtorCountEo : eoDatatypeNumCtors (__eo_dd_lookup cs dt) = 1 := by
       have hNum :
-          Term.Numeral (Int.ofNat (eoDatatypeNumCtors dt)) =
+          Term.Numeral
+              (Int.ofNat (eoDatatypeNumCtors (__eo_dd_lookup cs dt))) =
             Term.Numeral 1 := by
         rw [← hLenDt]
         exact hLen
       injection hNum with hInt
       exact nat_eq_one_of_int_ofNat_eq_one hInt
     have hCtorCountSmt :
-        smtDatatypeNumCtors (__eo_to_smt_datatype d0) = 1 := by
+        smtDatatypeNumCtors
+            (__smtx_dd_lookup cs (__eo_to_smt_datatype_decl d0)) = 1 := by
       calc
-        smtDatatypeNumCtors (__eo_to_smt_datatype d0) =
-            smtDatatypeNumCtors (__eo_to_smt_datatype dt) := by
+        smtDatatypeNumCtors
+            (__smtx_dd_lookup cs (__eo_to_smt_datatype_decl d0)) =
+            smtDatatypeNumCtors
+              (__smtx_dd_lookup cs (__eo_to_smt_datatype_decl dt)) := by
           rw [hDtTrans]
-        _ = eoDatatypeNumCtors dt := smtDatatypeNumCtors_eo_to_smt dt
+        _ = smtDatatypeNumCtors
+              (__eo_to_smt_datatype (__eo_dd_lookup cs dt)) := by
+          rw [TranslationProofs.eo_to_smt_dd_lookup]
+        _ = eoDatatypeNumCtors (__eo_dd_lookup cs dt) :=
+          smtDatatypeNumCtors_eo_to_smt (__eo_dd_lookup cs dt)
         _ = 1 := hCtorCountEo
     have hCiZero : ci = native_nat_zero := by
       exact nat_eq_zero_of_lt_one (by
@@ -287,7 +298,7 @@ private theorem dt_collapse_tester_singleton_sound
         simpa [hCtorCountSmt] using hIdxLt)
     have hHeadTarget :
         __vsm_apply_head (__smtx_model_eval M (__eo_to_smt t)) =
-          SmtValue.DtCons cs (__eo_to_smt_datatype d0) ci := by
+          SmtValue.DtCons cs (__eo_to_smt_datatype_decl d0) ci := by
       subst idx
       subst ci
       exact hHead
@@ -310,7 +321,8 @@ private theorem dt_collapse_tester_singleton_sound
     have hHeadUnit :
         __vsm_apply_head (__smtx_model_eval M (__eo_to_smt t)) =
           SmtValue.DtCons (native_string_lit "@Tuple")
-            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+            (__smtx_tuple_datatype_decl
+              (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
             native_nat_zero :=
       unit_tuple_value_head_zero_of_type hEvalTy
     have hLeftEval :

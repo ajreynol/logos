@@ -582,7 +582,7 @@ theorem eo_to_smt_appSpineRev_uconst
 termination_by t
 
 private theorem eo_to_smt_apply_generic_of_appSpineRev_dtcons
-    (s : native_String) (d : Datatype) (i : native_Nat) (t x : Term)
+    (s : native_String) (d : DatatypeDecl) (i : native_Nat) (t x : Term)
     (hHead : (appSpineRev t).1 = Term.DtCons s d i) :
     __eo_to_smt (Term.Apply t x) =
       SmtTerm.Apply (__eo_to_smt t) (__eo_to_smt x) := by
@@ -615,7 +615,7 @@ private theorem eo_to_smt_apply_generic_of_appSpineRev_dtcons
       simp [appSpineRev] at hHead
 
 theorem eo_to_smt_appSpineRev_dtcons
-    (s : native_String) (d : Datatype) (i : native_Nat) (t : Term)
+    (s : native_String) (d : DatatypeDecl) (i : native_Nat) (t : Term)
     (hHead : (appSpineRev t).1 = Term.DtCons s d i) :
     __eo_to_smt t =
       mkSmtAppSpineRev (__eo_to_smt (Term.DtCons s d i))
@@ -638,7 +638,7 @@ theorem eo_to_smt_appSpineRev_dtcons
 termination_by t
 
 private theorem eo_to_smt_apply_generic_of_appSpineRev_dt_sel
-    (s : native_String) (d : Datatype) (i j : native_Nat) (t x : Term)
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (t x : Term)
     (hHead : (appSpineRev t).1 = Term.DtSel s d i j) :
     __eo_to_smt (Term.Apply t x) =
       SmtTerm.Apply (__eo_to_smt t) (__eo_to_smt x) := by
@@ -671,7 +671,7 @@ private theorem eo_to_smt_apply_generic_of_appSpineRev_dt_sel
       simp [appSpineRev] at hHead
 
 theorem eo_to_smt_appSpineRev_dt_sel
-    (s : native_String) (d : Datatype) (i j : native_Nat) (t : Term)
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (t : Term)
     (hHead : (appSpineRev t).1 = Term.DtSel s d i j) :
     __eo_to_smt t =
       mkSmtAppSpineRev (__eo_to_smt (Term.DtSel s d i j))
@@ -694,24 +694,24 @@ theorem eo_to_smt_appSpineRev_dt_sel
 termination_by t
 
 theorem eo_to_smt_dtcons_ne_dt_sel
-    (s : native_String) (d : Datatype) (i : native_Nat) :
+    (s : native_String) (d : DatatypeDecl) (i : native_Nat) :
     ∀ s' d' i' j',
       __eo_to_smt (Term.DtCons s d i) ≠ SmtTerm.DtSel s' d' i' j' := by
   intro s' d' i' j'
   change
     native_ite (native_reserved_datatype_name s) SmtTerm.None
-        (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ≠
+        (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i) ≠
       SmtTerm.DtSel s' d' i' j'
   cases native_reserved_datatype_name s <;> simp [native_ite]
 
 theorem eo_to_smt_dtcons_ne_dt_tester
-    (s : native_String) (d : Datatype) (i : native_Nat) :
+    (s : native_String) (d : DatatypeDecl) (i : native_Nat) :
     ∀ s' d' i',
       __eo_to_smt (Term.DtCons s d i) ≠ SmtTerm.DtTester s' d' i' := by
   intro s' d' i'
   change
     native_ite (native_reserved_datatype_name s) SmtTerm.None
-        (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ≠
+        (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i) ≠
       SmtTerm.DtTester s' d' i'
   cases native_reserved_datatype_name s <;> simp [native_ite]
 
@@ -764,7 +764,7 @@ private theorem congTypeSpine_uop2_eq
   | refl _ => rfl
 
 private theorem congTrueSpine_dt_sel_eq
-    (M : SmtModel) (s : native_String) (d : Datatype)
+    (M : SmtModel) (s : native_String) (d : DatatypeDecl)
     (i j : native_Nat) (rhs : Term) :
     CongTrueSpine M (Term.DtSel s d i j) rhs ->
     rhs = Term.DtSel s d i j := by
@@ -773,7 +773,7 @@ private theorem congTrueSpine_dt_sel_eq
   | refl _ => rfl
 
 private theorem congTypeSpine_dt_sel_eq
-    (s : native_String) (d : Datatype) (i j : native_Nat) (rhs : Term) :
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (rhs : Term) :
     CongTypeSpine (Term.DtSel s d i j) rhs ->
     rhs = Term.DtSel s d i j := by
   intro h
@@ -905,7 +905,7 @@ theorem congTypeSpine_indexed_binary_uop1_inv
       exact ⟨y₁, _, rfl, hArg₁, Or.inr hArg₂⟩
 
 theorem congTrueSpine_dt_sel_inv
-    (M : SmtModel) (s : native_String) (d : Datatype)
+    (M : SmtModel) (s : native_String) (d : DatatypeDecl)
     (i j : native_Nat) (x rhs : Term) :
     CongTrueSpine M (Term.Apply (Term.DtSel s d i j) x) rhs ->
     ∃ y,
@@ -921,7 +921,7 @@ theorem congTrueSpine_dt_sel_inv
       exact ⟨_, rfl, Or.inr hArg⟩
 
 theorem congTypeSpine_dt_sel_inv
-    (s : native_String) (d : Datatype) (i j : native_Nat) (x rhs : Term) :
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (x rhs : Term) :
     CongTypeSpine (Term.Apply (Term.DtSel s d i j) x) rhs ->
     ∃ y,
       rhs = Term.Apply (Term.DtSel s d i j) y ∧

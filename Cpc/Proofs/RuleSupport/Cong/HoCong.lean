@@ -1036,7 +1036,7 @@ private theorem smt_app_spine_type_eq_of_listRel_bool_special_head
           rw [hTailTy', hArgTy]
 
 theorem dt_sel_arg_non_reg_of_non_none_core
-    (s : native_String) (d : Datatype) (i j : native_Nat) (a : SmtTerm) :
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (a : SmtTerm) :
     __smtx_typeof
         (SmtTerm.Apply (__eo_to_smt (Term.DtSel s d i j)) a) ≠
       SmtType.None ->
@@ -1045,7 +1045,7 @@ theorem dt_sel_arg_non_reg_of_non_none_core
           A ≠ SmtType.None ∧ A ≠ SmtType.RegLan := by
   intro hNN
   have hSel :
-      (∃ (ss : native_String) (dd : SmtDatatype) (ii jj : native_Nat),
+      (∃ (ss : native_String) (dd : SmtDatatypeDecl) (ii jj : native_Nat),
           __eo_to_smt (Term.DtSel s d i j) =
             SmtTerm.DtSel ss dd ii jj) ∨
         __eo_to_smt (Term.DtSel s d i j) = SmtTerm.None := by
@@ -1111,7 +1111,7 @@ theorem congTypeSpine_appSpineRev_uconst_eq_has_bool_type
     hTrans
 
 theorem congTypeSpine_appSpineRev_dtcons_eq_has_bool_type
-    (s : native_String) (d : Datatype) (i : native_Nat) (t rhs : Term)
+    (s : native_String) (d : DatatypeDecl) (i : native_Nat) (t rhs : Term)
     (hHead : (appSpineRev t).1 = Term.DtCons s d i)
     (hTrans : RuleProofs.eo_has_smt_translation t)
     (hSpine : CongTypeSpine t rhs) :
@@ -1134,7 +1134,7 @@ theorem congTypeSpine_appSpineRev_dtcons_eq_has_bool_type
     hTrans
 
 theorem congTypeSpine_appSpineRev_dt_sel_eq_has_bool_type
-    (s : native_String) (d : Datatype) (i j : native_Nat) (t rhs : Term)
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (t rhs : Term)
     (hHead : (appSpineRev t).1 = Term.DtSel s d i j)
     (hTrans : RuleProofs.eo_has_smt_translation t)
     (hSpine : CongTypeSpine t rhs) :

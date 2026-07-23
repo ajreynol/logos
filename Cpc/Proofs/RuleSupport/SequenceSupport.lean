@@ -315,7 +315,6 @@ private theorem seq_char_wf :
   have hCharInh : native_inhabited_type SmtType.Char = true :=
     native_inhabited_type_char
   simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-    __smtx_type_no_alias_rec,
     native_and, hSeqInh, hCharInh]
 
 theorem smt_term_result_seq_components_wf_of_non_none
@@ -605,7 +604,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
     case DtCons s d i =>
       let raw :=
         __smtx_typeof_dt_cons_rec (SmtType.Datatype s d)
-          (__smtx_dt_substitute s d d) i
+          (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i
       have hGuardNN : __smtx_typeof_guard_wf (SmtType.Datatype s d) raw ≠
           SmtType.None := by
         unfold term_has_non_none_type at hxNN
@@ -617,7 +616,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s d) raw hGuardNN
       exact type_result_seq_components_wf_dt_cons_rec (SmtType.Datatype s d)
         (by simpa [type_result_seq_components_wf] using hBaseWf)
-        (__smtx_dt_substitute s d d) i
+        (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i
     case Apply f x =>
       by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
       · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
@@ -7776,5 +7775,5 @@ theorem type_wf_seq_of_component (A : SmtType)
     (h : __smtx_type_wf_component A = true) :
     __smtx_type_wf (SmtType.Seq A) = true := by
   simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-    __smtx_type_no_alias_rec, native_inhabited_type_seq, SmtEval.native_and] at h ⊢
+    native_inhabited_type_seq, SmtEval.native_and] at h ⊢
   exact h

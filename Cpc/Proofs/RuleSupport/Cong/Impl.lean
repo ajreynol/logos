@@ -1867,7 +1867,7 @@ theorem smt_value_rel_model_eval_apply_of_rel_across_models
   have hFNeReg : __smtx_typeof f ≠ SmtType.RegLan :=
     smt_type_ne_reglan_of_apply_head hHead
   have hANeReg : A ≠ SmtType.RegLan :=
-    TranslationProofs.smtx_term_fun_like_arg_ne_reglan_of_non_none
+    Smtm.smt_term_fun_like_arg_ne_reglan_of_non_none
       f hFNN hHead
   have hFEq : __smtx_model_eval M f = __smtx_model_eval N g :=
     RuleProofs.smt_value_rel_eq_of_type_ne_reglan

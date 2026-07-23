@@ -36,7 +36,8 @@ private def tp_result_seq_components_wf : SmtType -> Prop
   | SmtType.Datatype s d => __smtx_type_wf (SmtType.Datatype s d) = true
   | SmtType.Map A B => __smtx_type_wf (SmtType.Map A B) = true
   | SmtType.FunType A B => __smtx_type_wf (SmtType.FunType A B) = true
-  | SmtType.DtcAppType _ B => tp_result_seq_components_wf B
+  | SmtType.DtcAppType A B =>
+      A ≠ SmtType.RegLan ∧ tp_result_seq_components_wf B
   | _ => True
 
 @[simp] private theorem tp_result_seq_components_wf_if
@@ -269,21 +270,78 @@ private theorem tp_result_seq_components_wf_of_type_wf
       simp [tp_result_seq_components_wf]
   exact go T h
 
+private theorem tp_dt_cons_wf_rec_tail
+    {T : SmtType} {c : SmtDatatypeCons} {dd : SmtDatatypeDecl}
+    (h : __smtx_dt_cons_wf_rec dd (SmtDatatypeCons.cons T c) = true) :
+    __smtx_dt_cons_wf_rec dd c = true := by
+  cases T <;>
+    simp [__smtx_dt_cons_wf_rec, native_and] at h <;>
+    exact h.2
+
+private def tp_dtc_resolve_field
+    (T : SmtType) (dd : SmtDatatypeDecl) : SmtType :=
+  match T with
+  | SmtType.TypeRef s => SmtType.Datatype s dd
+  | T => T
+
+private theorem tp_dtc_resolve_head_ne_reglan
+    {T : SmtType} {c : SmtDatatypeCons} {dd : SmtDatatypeDecl}
+    (h : __smtx_dt_cons_wf_rec dd (SmtDatatypeCons.cons T c) = true) :
+    tp_dtc_resolve_field T dd ≠ SmtType.RegLan := by
+  cases T
+  case TypeRef s =>
+    simp [tp_dtc_resolve_field]
+  all_goals
+    apply type_wf_rec_ne_reglan
+    simp only [__smtx_dt_cons_wf_rec, native_and,
+      Bool.and_eq_true] at h
+    exact h.1.2
+
 private theorem tp_result_seq_components_wf_dt_cons_rec
-    (T : SmtType) (hT : tp_result_seq_components_wf T) :
+    (T : SmtType) (hT : tp_result_seq_components_wf T)
+    (dd : SmtDatatypeDecl) :
     ∀ (d : SmtDatatype) (i : native_Nat),
-      tp_result_seq_components_wf (__smtx_typeof_dt_cons_rec T d i)
-  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero => by
-      simpa [__smtx_typeof_dt_cons_rec] using hT
-  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, native_nat_zero => by
-      simpa [__smtx_typeof_dt_cons_rec, tp_result_seq_components_wf] using
-        tp_result_seq_components_wf_dt_cons_rec T hT
-          (SmtDatatype.sum c d) native_nat_zero
-  | SmtDatatype.sum c d, native_nat_succ i => by
-      simpa [__smtx_typeof_dt_cons_rec] using
-        tp_result_seq_components_wf_dt_cons_rec T hT d i
-  | SmtDatatype.null, i => by
-      cases i <;> simp [__smtx_typeof_dt_cons_rec, tp_result_seq_components_wf]
+      __smtx_dt_wf_rec dd d = true →
+      tp_result_seq_components_wf
+        (__smtx_typeof_dt_cons_rec T (__smtx_dt_resolve d dd) i)
+  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero, _hWf => by
+      simpa [__smtx_dt_resolve, __smtx_dtc_resolve,
+        __smtx_typeof_dt_cons_rec] using hT
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, native_nat_zero, hWf => by
+      have hParts :
+          __smtx_dt_cons_wf_rec dd (SmtDatatypeCons.cons U c) = true ∧
+            __smtx_dt_wf_rec dd d = true := by
+        simpa [__smtx_dt_wf_rec, native_and] using hWf
+      have hTailCons : __smtx_dt_cons_wf_rec dd c = true :=
+        tp_dt_cons_wf_rec_tail hParts.1
+      have hTailWf :
+          __smtx_dt_wf_rec dd (SmtDatatype.sum c d) = true := by
+        simp [__smtx_dt_wf_rec, native_and, hTailCons, hParts.2]
+      have hTail :=
+        tp_result_seq_components_wf_dt_cons_rec T hT dd
+          (SmtDatatype.sum c d) native_nat_zero hTailWf
+      have hUNeReg :
+          tp_dtc_resolve_field U dd ≠ SmtType.RegLan :=
+        tp_dtc_resolve_head_ne_reglan hParts.1
+      have hResolve :
+          __smtx_dtc_resolve (SmtDatatypeCons.cons U c) dd =
+            SmtDatatypeCons.cons
+              (tp_dtc_resolve_field U dd)
+              (__smtx_dtc_resolve c dd) := by
+        cases U <;> rfl
+      rw [__smtx_dt_resolve, hResolve, __smtx_typeof_dt_cons_rec]
+      exact ⟨hUNeReg, hTail⟩
+  | SmtDatatype.sum c d, native_nat_succ i, hWf => by
+      have hParts :
+          __smtx_dt_cons_wf_rec dd c = true ∧
+            __smtx_dt_wf_rec dd d = true := by
+        simpa [__smtx_dt_wf_rec, native_and] using hWf
+      simpa [__smtx_dt_resolve, __smtx_typeof_dt_cons_rec] using
+        tp_result_seq_components_wf_dt_cons_rec T hT dd d i hParts.2
+  | SmtDatatype.null, i, _hWf => by
+      cases i <;>
+        simp [__smtx_dt_resolve, __smtx_typeof_dt_cons_rec,
+          tp_result_seq_components_wf]
 
 private theorem tp_seq_char_wf :
     __smtx_type_wf (SmtType.Seq SmtType.Char) = true := by
@@ -592,9 +650,12 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
           hGuardNN]
       have hBaseWf : __smtx_type_wf (SmtType.Datatype s d) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s d) raw hGuardNN
+      have hDatatypeWf :
+          __smtx_dt_wf_rec d (__smtx_dd_lookup s d) = true :=
+        datatype_wf_rec_of_type_wf hBaseWf
       exact tp_result_seq_components_wf_dt_cons_rec (SmtType.Datatype s d)
         (by simpa [tp_result_seq_components_wf] using hBaseWf)
-        (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i
+        d (__smtx_dd_lookup s d) i hDatatypeWf
     case Apply f x =>
       by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
       · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
@@ -653,7 +714,10 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
               simpa [hF, tp_result_seq_components_wf] using hfGood
             exact tp_result_seq_components_wf_of_type_wf
               (fun_type_wf_components_of_wf hHeadGood).2
-          · simpa [hF, tp_result_seq_components_wf] using hfGood
+          · have hHeadGood :
+                A ≠ SmtType.RegLan ∧ tp_result_seq_components_wf B := by
+              simpa [hF, tp_result_seq_components_wf] using hfGood
+            exact hHeadGood.2
     case set_union x y =>
       rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
           (typeof_set_union_eq x y) hxNN with ⟨A, hxSet, hySet⟩
@@ -721,6 +785,21 @@ theorem smt_term_fun_type_wf_of_non_none
     __smtx_type_wf (SmtType.FunType A B) = true := by
   have hGood := tp_smt_term_result_seq_components_wf_of_non_none x hxNN
   simpa [tp_result_seq_components_wf, hxTy] using hGood
+
+theorem smt_term_fun_like_arg_ne_reglan_of_non_none
+    (x : SmtTerm)
+    (hxNN : term_has_non_none_type x)
+    {A B : SmtType}
+    (hxTy :
+      __smtx_typeof x = SmtType.FunType A B ∨
+        __smtx_typeof x = SmtType.DtcAppType A B) :
+    A ≠ SmtType.RegLan := by
+  rcases hxTy with hFun | hDtc
+  · exact fun_type_domain_ne_reglan_of_wf
+      (smt_term_fun_type_wf_of_non_none x hxNN hFun)
+  · have hGood := tp_smt_term_result_seq_components_wf_of_non_none x hxNN
+    rw [hDtc] at hGood
+    exact hGood.1
 
 theorem smt_term_ifun_type_wf_of_non_none
     (x : SmtTerm)
