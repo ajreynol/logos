@@ -1948,51 +1948,46 @@ def __smtx_typeof : SmtTerm -> SmtType
 def __smtx_tuple_datatype_decl (d : SmtDatatype) : SmtDatatypeDecl :=
   (SmtDatatypeDecl.cons (native_string_lit "@Tuple") d SmtDatatypeDecl.nil)
 
-def __smtx_is_unit_datatype_cons : SmtDatatypeCons -> native_Bool
-  | SmtDatatypeCons.unit => true
-  | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_unit_type T) (__smtx_is_unit_datatype_cons c))
+def __smtx_field_type_bounded (u : native_Bool) : SmtType -> SmtDatatypeDecl -> native_Bool
+  | (SmtType.TypeRef s), ddB => (__smtx_dd_has_dt s ddB)
+  | T, ddB => (__smtx_type_bounded u T)
+termination_by T ddB => (sizeOf T, 1)
 
 
-def __smtx_is_unit_datatype : SmtDatatype -> native_Bool
-  | (SmtDatatype.sum c SmtDatatype.null) => (__smtx_is_unit_datatype_cons c)
-  | d => false
+def __smtx_datatype_cons_bounded (u : native_Bool) : SmtDatatypeCons -> SmtDatatypeDecl -> native_Bool
+  | SmtDatatypeCons.unit, ddB => true
+  | (SmtDatatypeCons.cons T c), ddB => (native_and (__smtx_field_type_bounded u T ddB) (__smtx_datatype_cons_bounded u c ddB))
+termination_by c ddB => (sizeOf c, 0)
 
 
-def __smtx_is_unit_datatype_decl (s : native_String) : SmtDatatypeDecl -> native_Bool
-  | SmtDatatypeDecl.nil => false
-  | (SmtDatatypeDecl.cons s2 d dd) => (native_ite (native_streq s s2) (__smtx_is_unit_datatype d) (__smtx_is_unit_datatype_decl s dd))
+def __smtx_datatype_bounded (u : native_Bool) : SmtDatatype -> SmtDatatypeDecl -> native_Bool
+  | (SmtDatatype.sum c SmtDatatype.null), ddB => (__smtx_datatype_cons_bounded u c ddB)
+  | (SmtDatatype.sum c dF), ddB => (native_and (native_not u) (native_and (__smtx_datatype_cons_bounded u c ddB) (__smtx_datatype_bounded u dF ddB)))
+  | dF, ddB => (native_not u)
+termination_by dF ddB => (sizeOf dF, 0)
 
 
-def __smtx_is_unit_type : SmtType -> native_Bool
-  | (SmtType.BitVec w) => (native_nateq w native_nat_zero)
-  | (SmtType.Datatype s dd) => (__smtx_is_unit_datatype_decl s dd)
-  | (SmtType.Map T U) => (__smtx_is_unit_type U)
+def __smtx_datatype_decl_bounded_step (u : native_Bool) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtDatatypeDecl
+  | (SmtDatatypeDecl.cons sF dF ddR), ddB => (__smtx_datatype_decl_bounded_step u ddR (native_ite (native_and (native_not (__smtx_dd_has_dt sF ddB)) (__smtx_datatype_bounded u dF ddB)) (SmtDatatypeDecl.cons sF dF ddB) ddB))
+  | SmtDatatypeDecl.nil, ddB => ddB
+termination_by ddR ddB => (sizeOf ddR, 0)
+
+
+def __smtx_datatype_decl_bounded (u : native_Bool) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtDatatypeDecl -> SmtDatatypeDecl
+  | (SmtDatatypeDecl.cons sC dC ddC), dd, ddB => (__smtx_datatype_decl_bounded u ddC dd (__smtx_datatype_decl_bounded_step u dd ddB))
+  | SmtDatatypeDecl.nil, dd, ddB => ddB
+termination_by ddC dd ddB => (sizeOf dd, sizeOf ddC)
+
+
+def __smtx_type_bounded (u : native_Bool) : SmtType -> native_Bool
+  | SmtType.Bool => (native_not u)
+  | (SmtType.BitVec w) => (native_or (native_not u) (native_nateq w native_nat_zero))
+  | SmtType.Char => (native_not u)
+  | (SmtType.Datatype s dd) => (__smtx_dd_has_dt s (__smtx_datatype_decl_bounded u dd dd SmtDatatypeDecl.nil))
+  | (SmtType.Map T U) => (native_or (__smtx_type_bounded true U) (native_and (native_not u) (native_and (__smtx_type_bounded u T) (__smtx_type_bounded u U))))
+  | (SmtType.Set T) => (native_and (native_not u) (__smtx_type_bounded u T))
   | T => false
-
-
-def __smtx_is_finite_datatype_cons : SmtDatatypeCons -> native_Bool
-  | SmtDatatypeCons.unit => true
-  | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_finite_type T) (__smtx_is_finite_datatype_cons c))
-
-
-def __smtx_is_finite_datatype : SmtDatatype -> native_Bool
-  | SmtDatatype.null => true
-  | (SmtDatatype.sum c d) => (native_and (__smtx_is_finite_datatype_cons c) (__smtx_is_finite_datatype d))
-
-
-def __smtx_is_finite_datatype_decl (s : native_String) : SmtDatatypeDecl -> native_Bool
-  | SmtDatatypeDecl.nil => false
-  | (SmtDatatypeDecl.cons s2 d dd) => (native_ite (native_streq s s2) (__smtx_is_finite_datatype d) (__smtx_is_finite_datatype_decl s dd))
-
-
-def __smtx_is_finite_type : SmtType -> native_Bool
-  | SmtType.Bool => true
-  | (SmtType.BitVec w) => true
-  | SmtType.Char => true
-  | (SmtType.Datatype s dd) => (__smtx_is_finite_datatype_decl s dd)
-  | (SmtType.Map T U) => (native_or (__smtx_is_unit_type U) (native_and (__smtx_is_finite_type T) (__smtx_is_finite_type U)))
-  | (SmtType.Set T) => (__smtx_is_finite_type T)
-  | T => false
+termination_by T => (sizeOf T, 0)
 
 
 def __smtx_field_type_default (dd : SmtDatatypeDecl) : SmtType -> SmtDatatypeDecl -> SmtValue
@@ -2051,7 +2046,7 @@ def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> native_Bool
 
 
 def __smtx_map_default_canonical (T : SmtType) (e : SmtValue) : native_Bool :=
-  (native_ite (__smtx_is_finite_type T) (native_veq e (__smtx_type_default (__smtx_typeof_value e))) true)
+  (native_ite (__smtx_type_bounded false T) (native_veq e (__smtx_type_default (__smtx_typeof_value e))) true)
 
 def __smtx_map_canonical : SmtMap -> native_Bool
   | (SmtMap.default T e) => (native_and (__smtx_map_default_canonical T e) (__smtx_value_canonical_bool e))
