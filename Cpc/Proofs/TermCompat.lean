@@ -176,8 +176,12 @@ abbrev _at_strings_occur_index := Term.UOp UserOp._at_strings_occur_index
 abbrev _at_strings_occur_index_re (x y : Term) :=
   Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_occur_index_re) x) y
 abbrev _at_witness_string_length := Term.UOp3 UserOp3._at_witness_string_length
-abbrev _at_strings_replace_all_result (x : Term) :=
-  Term.Apply (Term.UOp UserOp._at_strings_replace_all_result) x
+abbrev _at_strings_replace_all_result (x y z : Term) :=
+  Term.Apply
+    (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_replace_all_result) x) y) z
+abbrev _at_strings_replace_re_all_result (x y z : Term) :=
+  Term.Apply
+    (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_replace_re_all_result) x) y) z
 abbrev is := Term.UOp1 UserOp1.is
 abbrev update := Term.UOp1 UserOp1.update
 abbrev UnitTuple := Term.UOp UserOp.UnitTuple
@@ -369,6 +373,7 @@ attribute [match_pattern]
   Term._at_strings_occur_index_re
   Term._at_witness_string_length
   Term._at_strings_replace_all_result
+  Term._at_strings_replace_re_all_result
   Term.is
   Term.update
   Term.UnitTuple

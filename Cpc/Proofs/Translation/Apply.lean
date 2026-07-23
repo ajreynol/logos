@@ -1420,6 +1420,22 @@ private theorem typeof_apply_apply_apply_none_head_eq
   rw [hGeneric, typeof_apply_apply_none_head_eq z y]
   simp [__smtx_typeof_apply]
 
+/-- Computes the type of applying a term whose ternary head starts from `none`. -/
+theorem typeof_apply_apply_apply_apply_none_head_eq
+    (w z y x : SmtTerm) :
+    __smtx_typeof
+        (SmtTerm.Apply
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None w) z) y) x) =
+      SmtType.None := by
+  have hGeneric :
+      generic_apply_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None w) z) y) x := by
+    exact generic_apply_type_of_non_special_head _ _
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+  rw [hGeneric, typeof_apply_apply_apply_none_head_eq w z y]
+  simp [__smtx_typeof_apply]
+
 /-- Computes the type of a generic apply with a non-function head. -/
 private theorem typeof_generic_apply_non_function_head_eq_none
     (f x : SmtTerm)
@@ -10206,6 +10222,35 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_none_head
       exact typeof_apply_apply_apply_none_head_eq
         (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x))
 
+/-- Closes quaternary `UOp` branches whose translated head starts from `none`. -/
+private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_apply_none_head
+    (op : UserOp) (w z y x : Term)
+    (hTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y) x) =
+        SmtTerm.Apply
+          (SmtTerm.Apply
+            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt w)) (__eo_to_smt z))
+            (__eo_to_smt y))
+          (__eo_to_smt x)) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y) x)) ≠
+      SmtType.None ->
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y) x)) =
+      __eo_to_smt_type
+        (__eo_typeof
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y) x)) := by
+  exact eo_to_smt_typeof_matches_translation_of_smt_none
+    (Term.Apply (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y) x)
+    (by
+      rw [hTranslate]
+      exact typeof_apply_apply_apply_apply_none_head_eq
+        (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x))
+
 private theorem bv_width_term_nonstuck (w : native_Nat) :
     Term.Numeral (native_nat_to_int w) ≠ Term.Stuck := by
   intro h
@@ -14120,6 +14165,24 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
     all_goals
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_application_head
         _ z y x ihFAll ihXAll (by rfl) (by rfl) hNonNone
+  case Apply g w =>
+    cases g
+    case UOp op =>
+      cases op
+      case _at_strings_replace_all_result =>
+        exact
+          eo_to_smt_typeof_matches_translation_apply_apply_apply_apply_none_head
+            UserOp._at_strings_replace_all_result w z y x (by rfl) hNonNone
+      case _at_strings_replace_re_all_result =>
+        exact
+          eo_to_smt_typeof_matches_translation_apply_apply_apply_apply_none_head
+            UserOp._at_strings_replace_re_all_result w z y x (by rfl) hNonNone
+      all_goals
+        exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_application_head
+          _ z y x ihFAll ihXAll (by rfl) (by rfl) hNonNone
+    all_goals
+      exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_application_head
+        _ z y x ihFAll ihXAll (by rfl) (by rfl) hNonNone
   all_goals
     exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_application_head
       _ z y x ihFAll ihXAll (by rfl) (by rfl) hNonNone
@@ -16056,5 +16119,75 @@ theorem eo_to_smt_typeof_matches_translation_apply
       exact typeof_apply_string_head_eq_none _ (__eo_to_smt x)
     | change __smtx_typeof (SmtTerm.Apply (SmtTerm.Binary _ _) (__eo_to_smt x)) = SmtType.None
       exact typeof_apply_binary_head_eq_none _ _ (__eo_to_smt x)
+
+/--
+Applying a term with an SMT translation uses the generic Eunoia application
+typing rule. In particular, a translated head cannot be one of the partial
+applications whose next argument triggers a specialized `__eo_typeof` clause.
+-/
+theorem eo_typeof_apply_eq_of_non_none_translation
+    (f x : Term)
+    (hTransF : __smtx_typeof (__eo_to_smt f) ≠ SmtType.None) :
+    __eo_typeof (Term.Apply f x) =
+      __eo_typeof_apply (__eo_typeof f) (__eo_typeof x) := by
+  cases f <;> try rfl
+  case __eo_List_cons =>
+    exfalso
+    apply hTransF
+    exact smtx_typeof_none
+  case UOp op =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      apply hTransF
+      exact smtx_typeof_none
+  case UOp1 op i =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      apply hTransF
+      exact smtx_typeof_none
+  case UOp2 op i j =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      apply hTransF
+      exact smtx_typeof_none
+  case Apply f a =>
+    cases f <;> try rfl
+    case UOp op =>
+      cases op <;> try rfl
+      all_goals
+        exfalso
+        apply hTransF
+        exact typeof_apply_none_eq (__eo_to_smt a)
+    case UOp1 op i =>
+      cases op <;> try rfl
+      all_goals
+        exfalso
+        apply hTransF
+        exact typeof_apply_none_eq (__eo_to_smt a)
+    case FunType =>
+      exfalso
+      apply hTransF
+      exact typeof_apply_none_eq (__eo_to_smt a)
+    case Apply f' b =>
+      cases f' <;> try rfl
+      case UOp op =>
+        cases op <;> try rfl
+        all_goals
+          exfalso
+          apply hTransF
+          exact typeof_apply_apply_none_head_eq
+            (__eo_to_smt b) (__eo_to_smt a)
+      case Apply f'' c =>
+        cases f'' <;> try rfl
+        case UOp op =>
+          cases op <;> try rfl
+          all_goals
+            exfalso
+            apply hTransF
+            exact typeof_apply_apply_apply_none_head_eq
+              (__eo_to_smt c) (__eo_to_smt b) (__eo_to_smt a)
 
 end TranslationProofs

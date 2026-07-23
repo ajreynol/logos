@@ -209,69 +209,8 @@ theorem eo_typeof_apply_eq_of_has_smt_translation
     (hTransF : RuleProofs.eo_has_smt_translation f) :
     __eo_typeof (Term.Apply f x) =
       __eo_typeof_apply (__eo_typeof f) (__eo_typeof x) := by
-  cases f <;> try rfl
-  case __eo_List_cons =>
-    exfalso
-    apply hTransF
-    change __smtx_typeof SmtTerm.None = SmtType.None
-    exact TranslationProofs.smtx_typeof_none
-  case UOp op =>
-    cases op <;> try rfl
-    all_goals
-      exfalso
-      apply hTransF
-      change __smtx_typeof SmtTerm.None = SmtType.None
-      exact TranslationProofs.smtx_typeof_none
-  case UOp1 op i =>
-    cases op <;> try rfl
-    all_goals
-      exfalso
-      apply hTransF
-      change __smtx_typeof SmtTerm.None = SmtType.None
-      exact TranslationProofs.smtx_typeof_none
-  case UOp2 op i j =>
-    cases op <;> try rfl
-    all_goals
-      exfalso
-      apply hTransF
-      change __smtx_typeof SmtTerm.None = SmtType.None
-      exact TranslationProofs.smtx_typeof_none
-  case Apply f a =>
-    cases f <;> try rfl
-    case UOp op =>
-      cases op <;> try rfl
-      all_goals
-        exfalso
-        apply hTransF
-        change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
-          SmtType.None
-        simp [__smtx_typeof, __smtx_typeof_apply]
-    case UOp1 op i =>
-      cases op <;> try rfl
-      all_goals
-        exfalso
-        apply hTransF
-        change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
-          SmtType.None
-        simp [__smtx_typeof, __smtx_typeof_apply]
-    case FunType =>
-      exfalso
-      apply hTransF
-      change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
-        SmtType.None
-      simp [__smtx_typeof, __smtx_typeof_apply]
-    case Apply f' b =>
-      cases f' <;> try rfl
-      case UOp op =>
-        cases op <;> try rfl
-        all_goals
-          exfalso
-          apply hTransF
-          change
-            __smtx_typeof
-              (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt b))
-                (__eo_to_smt a)) = SmtType.None
-          simp [__smtx_typeof, __smtx_typeof_apply]
+  exact TranslationProofs.eo_typeof_apply_eq_of_non_none_translation
+    f x hTransF
 
 theorem eo_typeof_eo_var_env_eq_list
     {xs : Term} {vars : List EoVarKey}

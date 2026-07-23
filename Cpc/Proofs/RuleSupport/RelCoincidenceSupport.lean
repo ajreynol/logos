@@ -116,7 +116,7 @@ private theorem cleanType_of_wf_rec :
   | SmtType.Seq A, h => by
       have hA : __smtx_type_wf_rec A = true := by
         simp [__smtx_type_wf_rec, SmtEval.native_and] at h
-        exact h.1.2
+        exact h.2
       refine ⟨?_, ?_, cleanType_of_wf_rec A hA⟩
       · intro hEq
         subst hEq
@@ -127,7 +127,7 @@ private theorem cleanType_of_wf_rec :
   | SmtType.Set A, h => by
       have hA : __smtx_type_wf_rec A = true := by
         simp [__smtx_type_wf_rec, SmtEval.native_and] at h
-        exact h.1.2
+        exact h.2
       refine ⟨?_, ?_, cleanType_of_wf_rec A hA⟩
       · intro hEq
         subst hEq
@@ -139,7 +139,7 @@ private theorem cleanType_of_wf_rec :
       have hAB : __smtx_type_wf_rec A = true ∧
           __smtx_type_wf_rec B = true := by
         simp [__smtx_type_wf_rec, SmtEval.native_and] at h
-        exact ⟨h.1.1.2, h.2.1.2⟩
+        exact ⟨h.1.2, h.2.2⟩
       refine ⟨⟨?_, ?_, cleanType_of_wf_rec A hAB.1⟩,
         ⟨?_, ?_, cleanType_of_wf_rec B hAB.2⟩⟩
       · intro hEq
@@ -164,7 +164,7 @@ private theorem cleanType_of_wf_component {T : SmtType}
   have hRec : __smtx_type_wf_rec T = true := by
     unfold __smtx_type_wf_component at h
     simp [SmtEval.native_and] at h
-    exact h.1.2
+    exact h.2
   exact cleanType_of_wf_rec T hRec
 
 private theorem ne_none_of_wf_component {T : SmtType}
@@ -1387,7 +1387,7 @@ private theorem typeof_cleanOrNone :
   | SmtTerm.DtCons s d i =>
       cleanOrNone_typeof_guard_wf
         (fun _ => cleanOrNone_dt_cons_rec (SmtType.Datatype s d) True.intro
-          (__smtx_dt_substitute s d d) i)
+          (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i)
   | SmtTerm.DtSel _ _ _ _ => Or.inl rfl
   | SmtTerm.DtTester _ _ _ => Or.inl rfl
   | SmtTerm.UConst _ T => cleanOrNone_typeof_guard_wf_self T
@@ -1752,7 +1752,7 @@ private theorem apply_rel {M N : SmtModel}
           (__smtx_typeof x) ≠ SmtType.None := by
         have h1 : __smtx_typeof_guard
             (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d)
-              (__smtx_dt_substitute s d d) i)
+              (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i)
             (__smtx_typeof_apply
               (SmtType.FunType (SmtType.Datatype s d) SmtType.Bool)
               (__smtx_typeof x)) ≠ SmtType.None := hTy

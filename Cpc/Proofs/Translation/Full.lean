@@ -34,6 +34,17 @@ private theorem false_of_typeof_apply_none_non_none_full {P : Prop}
     P := by
   exact False.elim (h (typeof_apply_none_eq x))
 
+private theorem false_of_typeof_quaternary_none_non_none_full {P : Prop}
+    (w z y x : SmtTerm)
+    (h :
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None w) z) y) x) ≠
+        SmtType.None) :
+    P := by
+  exact False.elim
+    (h (typeof_apply_apply_apply_apply_none_head_eq w z y x))
+
 private theorem eo_type_valid_of_valid_rec_top_full
     {T : Term}
     (h : eo_type_valid_rec [] T) :
@@ -3984,7 +3995,19 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     (by
                       cases g0 <;> try rfl
                       case UOp op =>
-                        exact False.elim (hG0UOp ⟨op, rfl⟩))
+                        exact False.elim (hG0UOp ⟨op, rfl⟩)
+                      case Apply g1 w =>
+                        cases g1 <;> try rfl
+                        case UOp op =>
+                          cases op <;> try rfl
+                          case _at_strings_replace_all_result =>
+                            exact false_of_typeof_quaternary_none_non_none_full
+                              (__eo_to_smt w) (__eo_to_smt z)
+                              (__eo_to_smt y) (__eo_to_smt x) hNonNone
+                          case _at_strings_replace_re_all_result =>
+                            exact false_of_typeof_quaternary_none_non_none_full
+                              (__eo_to_smt w) (__eo_to_smt z)
+                              (__eo_to_smt y) (__eo_to_smt x) hNonNone)
                     hTermNN hTy
               case __eo_List =>
                 exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
