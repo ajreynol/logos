@@ -1,7 +1,6 @@
 module
 
-public import Cpc.Proofs.Translation.Datatypes
-public import Cpc.Proofs.Translation.Quantifiers
+public import Cpc.Proofs.Translation.EoTypeof
 import all Cpc.Spec
 import all Cpc.Logos
 
@@ -18,11 +17,9 @@ namespace TranslationProofs
 /--
 Transfers EO typing information to a defined, non-`None` SMT translation.
 
-The former proof expands datatype aliases with the deleted lift/substitution
-operations. Reconstructing it requires commutation lemmas for declaration
-lookup and `__smtx_dt_resolve`; keep the remaining assumption isolated here so
-the declaration-based datatype translation and type-preservation proofs can be
-compiled independently in the meantime.
+This is the equality-oriented form of the full translation theorem: recover
+the translated EO type from the non-`None` SMT type, then rewrite the supplied
+EO typing equality.
 -/
 theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
     (t T : Term) (s : SmtTerm) :
@@ -30,7 +27,12 @@ theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
     __smtx_typeof s ≠ SmtType.None ->
     __eo_typeof t = T ->
     __smtx_typeof s = __eo_to_smt_type T := by
-  sorry
+  intro hs hNonNone hTy
+  subst s
+  have hRecovered :
+      __eo_to_smt_type (__eo_typeof t) = __smtx_typeof (__eo_to_smt t) :=
+    eo_to_smt_type_typeof_of_smt_type t rfl hNonNone
+  exact hRecovered.symm.trans (congrArg __eo_to_smt_type hTy)
 
 /-- Specialization of translation preservation to Boolean terms. -/
 theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool

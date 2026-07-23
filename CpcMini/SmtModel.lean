@@ -920,7 +920,7 @@ termination_by c ddF => 2 * (sizeOf c + sizeOf ddF) + 2
 def __smtx_datatype_default (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) : SmtDatatype -> SmtDatatypeDecl -> SmtValue
   | (SmtDatatype.sum cF dF), ddF => 
     let _v0 := (__smtx_datatype_cons_default (SmtValue.DtCons s dd n) dd cF ddF)
-    (native_ite (native_not (native_veq _v0 SmtValue.NotValue)) _v0 (__smtx_datatype_default s dd (native_nat_succ n) dF ddF))
+    (native_ite (native_and (native_not (native_veq _v0 SmtValue.NotValue)) (native_Teq (__smtx_typeof_value _v0) (SmtType.Datatype s dd))) _v0 (__smtx_datatype_default s dd (native_nat_succ n) dF ddF))
   | dF, ddF => SmtValue.NotValue
 termination_by dF ddF => 2 * (sizeOf dF + sizeOf ddF) + 1
 
