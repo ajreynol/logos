@@ -496,6 +496,13 @@ private theorem dcs_typeof_apply_eq_of_head
         all_goals
           change Term.UOp _ = Term.DtCons _ _ _ at hHead
           cases hHead
+      case Apply f'' c =>
+        cases f'' <;> try rfl
+        case UOp op =>
+          cases op <;> try rfl
+          all_goals
+            change Term.UOp _ = Term.DtCons _ _ _ at hHead
+            cases hHead
 
 private theorem dcs_type_chain {c : Term} (hs : DCS c) :
     ∃ (s : native_String) (d : Datatype) (i : native_Nat),
@@ -751,12 +758,23 @@ private theorem tcs_apply3_stuck {c : Term} (hs : TCS c) :
       exact qds_eo_typeof_apply_typeof_tuple_stuck _ _ _
   | @apply c s T hs hT ih =>
       intro a₀ a₁ a₂
-      change __eo_typeof_apply
-          (__eo_typeof
-            (Term.Apply (Term.Apply (Term.Apply c
-              (Term.Var (Term.String s) T)) a₀) a₁))
-          (__eo_typeof a₂) = Term.Stuck
-      rw [ih (Term.Var (Term.String s) T) a₀ a₁]
+      have hApply :
+          __eo_typeof
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply c (Term.Var (Term.String s) T)) a₀) a₁) a₂) =
+            __eo_typeof_apply
+              (__eo_typeof
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply c (Term.Var (Term.String s) T)) a₀) a₁))
+              (__eo_typeof a₂) := by
+        cases c <;> try rfl
+        case UOp op =>
+          cases hs
+          rfl
+      rw [hApply, ih (Term.Var (Term.String s) T) a₀ a₁]
       exact qds_eo_typeof_apply_stuck_head (__eo_typeof a₂)
 
 private def qdsAppHead : Term -> Term
@@ -808,11 +826,19 @@ private theorem qds_eo_typeof_unit_head_extra_application_stuck :
                   (Term.Apply (Term.Apply f'' z) y') y
                   (by simpa [qdsAppHead] using hHead)
                   (by intro h; cases h)
-              change __eo_typeof_apply
-                  (__eo_typeof
-                    (Term.Apply (Term.Apply (Term.Apply f'' z) y') y))
-                  (__eo_typeof x) = Term.Stuck
-              rw [hInner]
+              have hApply :
+                  __eo_typeof
+                      (Term.Apply
+                        (Term.Apply (Term.Apply (Term.Apply f'' z) y') y) x) =
+                    __eo_typeof_apply
+                      (__eo_typeof
+                        (Term.Apply (Term.Apply (Term.Apply f'' z) y') y))
+                      (__eo_typeof x) := by
+                cases f'' <;> try rfl
+                case UOp op =>
+                  cases op <;> try rfl
+                  all_goals simp [qdsAppHead] at hHead
+              rw [hApply, hInner]
               exact qds_eo_typeof_apply_stuck_head (__eo_typeof x)
           | _ => cases hHead
       | _ => cases hHead
