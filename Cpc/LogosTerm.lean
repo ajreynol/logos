@@ -156,6 +156,7 @@ inductive UserOp : Type where
   | _at_strings_occur_index : UserOp
   | _at_strings_occur_index_re : UserOp
   | _at_strings_replace_all_result : UserOp
+  | _at_strings_replace_re_all_result : UserOp
   | UnitTuple : UserOp
   | Tuple : UserOp
   | tuple_unit : UserOp
