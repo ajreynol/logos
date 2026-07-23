@@ -19,7 +19,7 @@ verbatim from `examples/test-simple-dt-mutual.cpc.lean`): `A` has one constructo
 storing a `B`; `B` has one nullary constructor and one constructor storing an `A`.
 Sibling occurrences inside the mutual block are encoded with
 `Term.DatatypeTypeRef <name>`, and the whole block is carried as a two-entry
-declaration list (`DatatypeDecl.cons "B" … (DatatypeDecl.cons "A" … nil)`).
+declaration list (`DatatypeDecl.cons "A" … (DatatypeDecl.cons "B" … nil)`).
 
 The mutual analogue of `TestSimpleDt.lean`, in the spirit of
 `CpcMini/Examples/TestSimpleCheckerAssumptions.lean`: we `#eval!`-check the checker
@@ -27,15 +27,15 @@ and prove the example meets all three side conditions in `Cpc/Proofs/Assumptions
 (`TranslatableAssumptionList`, `CmdListTranslationOk`, `eo_is_refutation`).
 -/
 
-def t1 := (Term.DatatypeTypeRef (SmtEval.native_string_lit "B"))
-def t2 := (DatatypeCons.cons t1 DatatypeCons.unit)
-def t3 := (Datatype.sum t2 Datatype.null)
-def t4 := (DatatypeDecl.cons (SmtEval.native_string_lit "A") t3 DatatypeDecl.nil)
-def t5 := (Datatype.sum DatatypeCons.unit Datatype.null)
-def t6 := (Term.DatatypeTypeRef (SmtEval.native_string_lit "A"))
+def t1 := (Datatype.sum DatatypeCons.unit Datatype.null)
+def t2 := (Term.DatatypeTypeRef (SmtEval.native_string_lit "A"))
+def t3 := (DatatypeCons.cons t2 DatatypeCons.unit)
+def t4 := (Datatype.sum t3 t1)
+def t5 := (DatatypeDecl.cons (SmtEval.native_string_lit "B") t4 DatatypeDecl.nil)
+def t6 := (Term.DatatypeTypeRef (SmtEval.native_string_lit "B"))
 def t7 := (DatatypeCons.cons t6 DatatypeCons.unit)
-def t8 := (Datatype.sum t7 t5)
-def t9 := (DatatypeDecl.cons (SmtEval.native_string_lit "B") t8 t4)
+def t8 := (Datatype.sum t7 Datatype.null)
+def t9 := (DatatypeDecl.cons (SmtEval.native_string_lit "A") t8 t5)
 def t10 := (Term.DtCons (SmtEval.native_string_lit "B") t9 1)
 def t11 := (Term.DtCons (SmtEval.native_string_lit "A") t9 0)
 def t12 := (Term.Apply t11 t10)
@@ -164,18 +164,6 @@ def proof : CCmdList :=
 #eval! __eo_checker_is_refutation assumptions proof
 #eval! logos_state_is_refutation s31
 
-/- KNOWN GAP (dtDecl refactor): the two SMT-translation obligations below are
-currently FALSE under the declaration-list model. `__smtx_datatype_cons_default`
-checks constructor fields against the *unresolved* declaration entry, so a sibling
-reference (`TypeRef "B"`) forces `NotValue`; datatype `A`, whose only constructor
-stores a `B`, therefore has no default value, `native_inhabited_type` is `false`,
-`__smtx_type_wf` rejects it, and every `A`-typed term translates to `None`
-(`native_decide` refutes the obligations). The pre-dtDecl substitution-based
-default builder unfolded one level of the sibling and accepted this example.
-Restoring these obligations needs a model-level decision on how the default
-builder should unfold sibling references (e.g. defaulting against the resolved
-entry with a different termination measure).
-
 example : TranslatableAssumptionList assumptions := by
   unfold assumptions
   repeat' first
@@ -193,7 +181,6 @@ example : CmdListTranslationOk proof := by
       argTranslationOkMasked, eoHasSmtTranslation, EoListAllHaveSmtTranslation,
       t39, t40, t41, t42, t53, t54, t55, t56, t57, t58, t59, t60]
   all_goals native_decide
--/
 
 example : eo_is_refutation assumptions proof := by
   apply eo_is_refutation.intro
