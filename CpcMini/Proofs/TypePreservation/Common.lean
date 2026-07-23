@@ -32,8 +32,8 @@ theorem native_inhabited_type_typed {T : SmtType} (h : native_inhabited_type T =
   exact h.2
 
 /-- The two facts carried by the inhabitation check: the type is not `None`, and the
-default value is typed at the input type. (Canonicity is now unconditional, via
-`type_default_canonical_of_typed`, rather than a conjunct of `native_inhabited_type`.) -/
+default value is typed at the input type. Canonicity additionally follows from
+recursive well-formedness via `type_default_canonical_of_inhabited_wf_rec`. -/
 theorem native_inhabited_type_parts {T : SmtType} (h : native_inhabited_type T = true) :
     T ≠ SmtType.None ∧ __smtx_typeof_value (__smtx_type_default T) = T := by
   refine ⟨?_, ?_⟩
@@ -59,11 +59,13 @@ theorem type_inhabited_of_native_inhabited_type
 /-- Extracts the concrete default witness carried by the generated Boolean inhabitation check. -/
 theorem type_default_typed_canonical_of_native_inhabited_type
     (T : SmtType)
-    (h : native_inhabited_type T = true) :
+    (h : native_inhabited_type T = true)
+    (hRec : __smtx_type_wf_rec T = true) :
     __smtx_typeof_value (__smtx_type_default T) = T ∧
       __smtx_value_canonical (__smtx_type_default T) := by
   refine ⟨(native_inhabited_type_parts h).2, ?_⟩
-  simpa [__smtx_value_canonical] using type_default_canonical_of_typed T (native_inhabited_type_typed h)
+  simpa [__smtx_value_canonical] using
+    type_default_canonical_of_inhabited_wf_rec T h hRec
 
 /-- Non-inhabited types fail the generated Boolean inhabitation check. -/
 theorem native_inhabited_type_eq_false_of_not_type_inhabited
@@ -143,7 +145,6 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
               native_inhabited_type B = true ∧
                 __smtx_type_wf_rec B = true := by
         exact fun_type_wf_parts hWf
-      have hDef := type_default_typed_canonical_of_native_inhabited_type B hParts.2.2.1
       exact ⟨SmtValue.Fun native_default_ifun_id A B, by
         simp [__smtx_typeof_value]⟩
     · have hPair :
@@ -212,7 +213,6 @@ theorem type_inhabited_of_type_wf
               native_inhabited_type B = true ∧
                 __smtx_type_wf_rec B = true := by
         exact fun_type_wf_parts hWF
-      have hDef := type_default_typed_canonical_of_native_inhabited_type B hParts.2.2.1
       exact ⟨SmtValue.Fun native_default_ifun_id A B, rfl⟩
     · have hInh : native_inhabited_type T = true := by
         cases T <;>

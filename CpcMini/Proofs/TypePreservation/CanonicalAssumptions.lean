@@ -16,8 +16,8 @@ namespace Smtm
 Datatype-default canonicity for the generated Mini model.
 
 The theorem keeps the historical `_assumption` name used by the downstream
-proof skeleton. Typing is extracted from `native_inhabited_type`; canonicity is
-proved unconditionally by the kernel (`type_default_canonical_of_typed`).
+proof skeleton. Typing is extracted from `native_inhabited_type`; canonicity
+follows from the recursive datatype well-formedness hypothesis.
 -/
 theorem cpcmini_datatype_type_default_typed_canonical_assumption
     (s : native_String)
@@ -34,8 +34,9 @@ theorem cpcmini_datatype_type_default_typed_canonical_assumption
     simp only [native_inhabited_type, native_and, Bool.and_eq_true] at h2
     exact h2.2
   refine ⟨of_decide_eq_true (by simpa [native_Teq] using hTyped), ?_⟩
-  -- canonicity: proved unconditionally by the kernel
+  -- Canonicity follows from recursive well-formedness of the datatype block.
   simpa [__smtx_value_canonical] using
-    type_default_canonical_of_typed (SmtType.Datatype s d) hTyped
+    type_default_canonical_of_inhabited_wf_rec
+      (SmtType.Datatype s d) _hInh _hRec
 
 end Smtm

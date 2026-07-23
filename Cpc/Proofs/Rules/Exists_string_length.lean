@@ -134,21 +134,18 @@ private theorem eo_seq_type_eq_of_wf (U : Term)
     __smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
     native_inhabited_type, native_and] at hWF ⊢
 
-private theorem seq_elem_native_inhabited_of_seq_wf {A : SmtType} :
+private theorem seq_elem_wf_parts_of_seq_wf {A : SmtType} :
     __smtx_type_wf (SmtType.Seq A) = true ->
-    native_inhabited_type A = true := by
+    native_inhabited_type A = true ∧
+      __smtx_type_wf_rec A = true := by
   intro h
-  have hParts : native_inhabited_type A = true ∧
-      __smtx_type_wf_rec A A = true := by
-    have hAll :
-        ((native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil (SmtType.Seq A) = true := by
-      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-        native_and] using h
-    exact hAll.1.1
-  exact hParts.1
+  have hAll :
+      native_inhabited_type (SmtType.Seq A) = true ∧
+        (native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A = true) := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+      native_and] using h
+  exact hAll.2
 
 private theorem list_typed_replicate_type_default
     (A : SmtType) (n : Nat)
@@ -302,9 +299,10 @@ private theorem eslFormula_true
     simpa [native_zlt] using hkGt
   have hkNonneg : (0 : native_Int) <= k := by
     exact Int.add_one_le_iff.mpr hkLt
-  have hAInh : native_inhabited_type A = true :=
-    seq_elem_native_inhabited_of_seq_wf hSeqWF
-  have hDef := Smtm.type_default_typed_canonical_of_native_inhabited_type A hAInh
+  have hAParts := seq_elem_wf_parts_of_seq_wf hSeqWF
+  have hDef :=
+    Smtm.type_default_typed_canonical_of_native_inhabited_type
+      A hAParts.1 hAParts.2
   let xs : List SmtValue :=
     List.replicate (native_int_to_nat k) (__smtx_type_default A)
   let w : SmtValue := SmtValue.Seq (native_pack_seq A xs)
