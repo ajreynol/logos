@@ -24,7 +24,7 @@ translatability from the selector-application typing facts rather than from the
 generic application helper. -/
 theorem substitute_simul_apply_dtsel_preserves_type_and_translation_of_typeof_ne_stuck
     {isRename : Bool}
-    (s : native_String) (d : Datatype) (i j : native_Nat)
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat)
     (a xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -124,7 +124,7 @@ theorem substitute_simul_apply_dtsel_preserves_type_and_translation_of_typeof_ne
   have hApplyNN :
       term_has_non_none_type
         (SmtTerm.Apply
-          (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
+          (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j)
           (__eo_to_smt a)) := by
     unfold term_has_non_none_type
     unfold RuleProofs.eo_has_smt_translation at hTrans
@@ -132,7 +132,7 @@ theorem substitute_simul_apply_dtsel_preserves_type_and_translation_of_typeof_ne
       __smtx_typeof
           (SmtTerm.Apply
             (native_ite (native_reserved_datatype_name s) SmtTerm.None
-              (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+              (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
             (__eo_to_smt a)) ≠
         SmtType.None at hTrans
     rw [hReserved] at hTrans
@@ -162,18 +162,18 @@ theorem substitute_simul_apply_dtsel_preserves_type_and_translation_of_typeof_ne
     TranslationProofs.eo_to_smt_typeof_matches_translation a hATrans
   have hSubArgSmt :
       __smtx_typeof (__eo_to_smt aSub) =
-        SmtType.Datatype s (__eo_to_smt_datatype d) := by
+        SmtType.Datatype s (__eo_to_smt_datatype_decl d) := by
     calc
       __smtx_typeof (__eo_to_smt aSub) =
           __eo_to_smt_type (__eo_typeof aSub) := hASubSmt
       _ = __eo_to_smt_type (__eo_typeof a) := by rw [hABoth.1]
       _ = __smtx_typeof (__eo_to_smt a) := hASmt.symm
-      _ = SmtType.Datatype s (__eo_to_smt_datatype d) :=
+      _ = SmtType.Datatype s (__eo_to_smt_datatype_decl d) :=
           dt_sel_arg_datatype_of_non_none hApplyNN
-  let R := __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j
+  let R := __smtx_ret_typeof_sel s (__eo_to_smt_datatype_decl d) i j
   let inner :=
     __smtx_typeof_apply
-      (SmtType.FunType (SmtType.Datatype s (__eo_to_smt_datatype d)) R)
+      (SmtType.FunType (SmtType.Datatype s (__eo_to_smt_datatype_decl d)) R)
       (__smtx_typeof (__eo_to_smt a))
   have hGuardNN : __smtx_typeof_guard_wf R inner ≠ SmtType.None := by
     unfold term_has_non_none_type at hApplyNN
@@ -191,7 +191,7 @@ theorem substitute_simul_apply_dtsel_preserves_type_and_translation_of_typeof_ne
   have hSubApplyNN :
       term_has_non_none_type
         (SmtTerm.Apply
-          (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
+          (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j)
           (__eo_to_smt aSub)) := by
     unfold term_has_non_none_type
     rw [typeof_dt_sel_apply_eq]
@@ -205,7 +205,7 @@ theorem substitute_simul_apply_dtsel_preserves_type_and_translation_of_typeof_ne
     __smtx_typeof
         (SmtTerm.Apply
           (native_ite (native_reserved_datatype_name s) SmtTerm.None
-            (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+            (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
           (__eo_to_smt aSub)) ≠
       SmtType.None
   rw [hReserved]
