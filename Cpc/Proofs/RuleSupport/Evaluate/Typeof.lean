@@ -4610,7 +4610,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
       intro hStuck
       subst UY
       simpa [TranslationProofs.eo_type_valid,
-        TranslationProofs.eo_type_valid_rec] using hYSeqValid
+        TranslationProofs.eo_type_valid_rec, TranslationProofs.noNoneTy,
+        __eo_to_smt_type, __smtx_typeof_guard, native_ite,
+        native_Teq] using hYSeqValid
     have hUEq : __eo_eq UY UY = Term.Boolean true := by
       cases UY <;> simp [__eo_eq, native_teq] at hUNe ⊢
     have hYPres :=
@@ -4742,7 +4744,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
       intro hStuck
       subst UY
       simpa [TranslationProofs.eo_type_valid,
-        TranslationProofs.eo_type_valid_rec] using hYSeqValid
+        TranslationProofs.eo_type_valid_rec, TranslationProofs.noNoneTy,
+        __eo_to_smt_type, __smtx_typeof_guard, native_ite,
+        native_Teq] using hYSeqValid
     have hUEq : __eo_eq UY UY = Term.Boolean true := by
       cases UY <;> simp [__eo_eq, native_teq] at hUNe ⊢
     have hRunPrefixNe :
@@ -4817,7 +4821,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
       intro hStuck
       subst UY
       simpa [TranslationProofs.eo_type_valid,
-        TranslationProofs.eo_type_valid_rec] using hYSeqValid
+        TranslationProofs.eo_type_valid_rec, TranslationProofs.noNoneTy,
+        __eo_to_smt_type, __smtx_typeof_guard, native_ite,
+        native_Teq] using hYSeqValid
     have hUEq : __eo_eq UY UY = Term.Boolean true := by
       cases UY <;> simp [__eo_eq, native_teq] at hUNe ⊢
     have hRunSuffixNe :
@@ -4901,7 +4907,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
       intro hStuck
       subst UY
       simpa [TranslationProofs.eo_type_valid,
-        TranslationProofs.eo_type_valid_rec] using hYSeqValid
+        TranslationProofs.eo_type_valid_rec, TranslationProofs.noNoneTy,
+        __eo_to_smt_type, __smtx_typeof_guard, native_ite,
+        native_Teq] using hYSeqValid
     have hUEq : __eo_eq UY UY = Term.Boolean true := by
       cases UY <;> simp [__eo_eq, native_teq] at hUNe ⊢
     have hRunContainsNe :
@@ -5284,7 +5292,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_ternary_uop
       intro hStuck
       subst U
       simpa [TranslationProofs.eo_type_valid,
-        TranslationProofs.eo_type_valid_rec] using hBSeqValid
+        TranslationProofs.eo_type_valid_rec, TranslationProofs.noNoneTy,
+        __eo_to_smt_type, __smtx_typeof_guard, native_ite,
+        native_Teq] using hBSeqValid
     have hUEq : __eo_eq U U = Term.Boolean true := by
       cases U <;> simp [__eo_eq, native_teq] at hUNe ⊢
     have hRunReplaceNe :
@@ -5404,7 +5414,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_ternary_uop
       intro hStuck
       subst U
       simpa [TranslationProofs.eo_type_valid,
-        TranslationProofs.eo_type_valid_rec] using hBSeqValid
+        TranslationProofs.eo_type_valid_rec, TranslationProofs.noNoneTy,
+        __eo_to_smt_type, __smtx_typeof_guard, native_ite,
+        native_Teq] using hBSeqValid
     have hUEq : __eo_eq U U = Term.Boolean true := by
       cases U <;> simp [__eo_eq, native_teq] at hUNe ⊢
     have hXMatch :=
@@ -5507,7 +5519,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_ternary_uop
       intro hStuck
       subst U
       simpa [TranslationProofs.eo_type_valid,
-        TranslationProofs.eo_type_valid_rec] using hBSeqValid
+        TranslationProofs.eo_type_valid_rec, TranslationProofs.noNoneTy,
+        __eo_to_smt_type, __smtx_typeof_guard, native_ite,
+        native_Teq] using hBSeqValid
     have hUEq : __eo_eq U U = Term.Boolean true := by
       cases U <;> simp [__eo_eq, native_teq] at hUNe ⊢
     have hYMatch :=
