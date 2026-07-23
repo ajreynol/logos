@@ -853,6 +853,9 @@ def __smtx_typeof : SmtTerm -> SmtType
   | x1 => SmtType.None
 
 
+def __smtx_is_finite_type (T : SmtType) : native_Bool :=
+  (__smtx_type_bounded false T)
+
 def __smtx_field_type_bounded (u : native_Bool) : SmtType -> SmtDatatypeDecl -> native_Bool
   | (SmtType.TypeRef s), ddB => (__smtx_dd_has_dt s ddB)
   | T, ddB => (__smtx_type_bounded u T)
@@ -893,13 +896,6 @@ def __smtx_type_bounded (u : native_Bool) : SmtType -> native_Bool
   | (SmtType.Set T) => (native_and (native_not u) (__smtx_type_bounded u T))
   | T => false
 termination_by T => (sizeOf T, 0)
-
-def __smtx_is_unit_type (T : SmtType) : native_Bool :=
-  __smtx_type_bounded true T
-
-
-def __smtx_is_finite_type (T : SmtType) : native_Bool :=
-  __smtx_type_bounded false T
 
 
 def __smtx_field_type_default (dd : SmtDatatypeDecl) : SmtType -> SmtDatatypeDecl -> SmtValue
@@ -958,7 +954,7 @@ def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> native_Bool
 
 
 def __smtx_map_default_canonical (T : SmtType) (e : SmtValue) : native_Bool :=
-  (native_ite (__smtx_type_bounded false T) (native_veq e (__smtx_type_default (__smtx_typeof_value e))) true)
+  (native_ite (__smtx_is_finite_type T) (native_veq e (__smtx_type_default (__smtx_typeof_value e))) true)
 
 def __smtx_map_canonical : SmtMap -> native_Bool
   | (SmtMap.default T e) => (native_and (__smtx_map_default_canonical T e) (__smtx_value_canonical_bool e))
