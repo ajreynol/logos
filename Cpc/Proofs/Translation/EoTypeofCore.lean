@@ -419,7 +419,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec_apply
                 __smtx_datatype_cons_default, __smtx_typeof_value,
                 __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute,
                 __smtx_dtc_substitute]
-            have hRec : __smtx_type_wf_rec tupleTy tupleTy = true := by
+            have hRec : __smtx_type_wf_rec tupleTy = true := by
               simp [tupleTy, __smtx_type_wf_rec,
                 __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec, __smtx_dt_substitute,
                 __smtx_dtc_substitute, native_ite]
@@ -1463,7 +1463,7 @@ private theorem smtx_type_field_wf_rec_to_type_wf_rec_of_not_typeref
     {T : SmtType} {refs : RefList}
     (hNoRef : ∀ s, T ≠ SmtType.TypeRef s)
     (h : smtx_type_field_wf_rec T refs) :
-    __smtx_type_wf_rec T T = true := by
+    __smtx_type_wf_rec T = true := by
   simpa [smtx_type_field_wf_rec] using h
 
 /-- Connector for the tuple case of the lift correspondence: a tuple that translates to a real
@@ -2015,7 +2015,7 @@ private theorem eo_type_valid_of_folded_smt_wf_rec
           (__smtx_typeof_guard (__eo_to_smt_type T2)
             choice)
           hGuardWf
-      have hChoice : __smtx_type_wf_rec choice choice = true :=
+      have hChoice : __smtx_type_wf_rec choice = true :=
         smtx_type_wf_rec_guard_of_true (__eo_to_smt_type T2)
           choice hOuter
       cases hFin :
@@ -2140,7 +2140,7 @@ private theorem eo_type_valid_of_folded_smt_wf_rec
           intro hNone
           rw [hNone] at hWf
           simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec, native_and] at hWf
-        have hRawRec : __smtx_type_wf_rec raw raw = true := by
+        have hRawRec : __smtx_type_wf_rec raw = true := by
           simpa [smtx_type_field_wf_rec] using hRawField
         obtain ⟨hTwf, hUwf⟩ := tuple_diag_wf_components T U hRawRec hRawNN
         exact ⟨eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _)
@@ -2241,7 +2241,7 @@ private theorem eo_type_valid_of_folded_smt_wf_rec
                     true :=
                 smtx_type_wf_rec_guard_of_true (__eo_to_smt_type y)
                   (__smtx_typeof_guard (__eo_to_smt_type x) choice) hGuardWf
-              have hChoice : __smtx_type_wf_rec choice choice = true :=
+              have hChoice : __smtx_type_wf_rec choice = true :=
                 smtx_type_wf_rec_guard_of_true (__eo_to_smt_type x) choice hOuter
               cases hFin :
                   __smtx_is_finite_type
@@ -2298,7 +2298,7 @@ private theorem eo_type_valid_of_folded_smt_wf_rec
                     rw [hNone] at hWf
                     simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
                       native_and] at hWf
-                  have hRawRec : __smtx_type_wf_rec raw raw = true := by
+                  have hRawRec : __smtx_type_wf_rec raw = true := by
                     have hRawField : smtx_type_field_wf_rec raw native_reflist_nil :=
                       smtx_type_field_wf_rec_of_type_wf_rec
                         (smtx_type_wf_rec_of_type_wf (by
