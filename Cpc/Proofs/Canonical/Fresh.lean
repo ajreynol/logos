@@ -20,12 +20,11 @@ namespace Smtm
 Fresh typed canonical values for infinite types, against the declaration-based
 datatype definitions and the `__smtx_type_bounded` finiteness fixpoint.
 
-This is the successor of the orphaned `Canonical.CardinalityAssumptions`
-development (which targeted the pre-`dtDecl` substitution-based datatypes).
-All non-datatype witnesses are discharged directly; the two residual datatype
-facts — the infinite-datatype pump and the finite-non-unit non-default
-witness — are stated as the explicit `sorry` boundary at
-`infinite_datatype_large_witness` / `finite_nonunit_datatype_nondefault_value`.
+All non-datatype witnesses are discharged directly; the two datatype facts —
+the infinite-datatype pump (`infinite_datatype_large_witness`) and the
+finite-non-unit non-default witness
+(`finite_nonunit_datatype_nondefault_value`) — are supplied by
+`Cpc.Proofs.Canonical.Pump`.
 
 The consumed deliverable is `fresh_default_lookup_for_infinite_map_domain`,
 used by array extensionality (`RuleSupport.ArraySupport`).
@@ -469,11 +468,7 @@ private theorem bitvec_succ_one_ne_default (w : Nat) :
       (__smtx_type_default (SmtType.BitVec (Nat.succ w))) = false := by
   simp [__smtx_type_default, native_nat_to_int, native_veq]
 
--- === the residual datatype boundary ===
---
--- `infinite_datatype_large_witness` (the pump) is proven in
--- `Cpc.Proofs.Canonical.Pump`; `finite_nonunit_datatype_nondefault_value`
--- remains the open obligation there.
+-- === datatype witnesses (from `Cpc.Proofs.Canonical.Pump`) ===
 
 private theorem infinite_datatype_fresh_value
     (s : native_String) (dd : SmtDatatypeDecl)

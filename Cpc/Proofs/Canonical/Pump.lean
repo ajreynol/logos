@@ -38,13 +38,6 @@ private def SubDD (B B' : SmtDatatypeDecl) : Prop :=
   ∀ t : native_String,
     __smtx_dd_has_dt t B = true -> __smtx_dd_has_dt t B' = true
 
-private theorem subdd_refl (B : SmtDatatypeDecl) : SubDD B B :=
-  fun _ h => h
-
-private theorem subdd_trans {B1 B2 B3 : SmtDatatypeDecl}
-    (h12 : SubDD B1 B2) (h23 : SubDD B2 B3) : SubDD B1 B3 :=
-  fun t h => h23 t (h12 t h)
-
 private theorem subdd_cons (s : native_String) (d : SmtDatatype)
     (B : SmtDatatypeDecl) : SubDD B (SmtDatatypeDecl.cons s d B) := by
   intro t h
@@ -62,9 +55,6 @@ private theorem eqdd_symm {B B' : SmtDatatypeDecl} (h : EqDD B B') : EqDD B' B :
 private theorem eqdd_trans {B1 B2 B3 : SmtDatatypeDecl}
     (h12 : EqDD B1 B2) (h23 : EqDD B2 B3) : EqDD B1 B3 :=
   fun t => (h12 t).trans (h23 t)
-
-private theorem eqdd_sub {B B' : SmtDatatypeDecl} (h : EqDD B B') : SubDD B B' :=
-  fun t ht => by rw [← h t]; exact ht
 
 -- === monotonicity / congruence of boundedness in the accumulator ===
 
