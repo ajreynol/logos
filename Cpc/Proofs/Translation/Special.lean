@@ -69,7 +69,10 @@ theorem eo_to_smt_typeof_matches_translation_array_deq_diff
       have hx1Valid := ih1Valid (by simp [hx1Ty])
       have hValidParts :
           eo_type_valid_rec [] U1 ∧ eo_type_valid_rec [] V1 := by
-        simpa [hx1EoTy, eo_type_valid, eo_type_valid_rec] using hx1Valid
+        have hp : noNoneTy C = true ∧ noNoneTy D = true := by
+          simpa [eo_type_valid, hx1Eo, noNoneTy, native_and] using hx1Valid
+        exact ⟨by simpa [eo_type_valid_rec, hU1] using hp.1,
+          by simpa [eo_type_valid_rec, hV1] using hp.2⟩
       have hUeq : U1 = U2 :=
         eo_to_smt_type_eq_of_valid_rec hValidParts.1 (hU1.trans hU2.symm)
       have hVeq : V1 = V2 :=
@@ -152,7 +155,9 @@ theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
         ⟨U2, hx2EoTy, hU2⟩
       have hx1Valid := ih1Valid (by simp [hx1Ty])
       have hU1Valid : eo_type_valid_rec [] U1 := by
-        simpa [hx1EoTy, eo_type_valid, eo_type_valid_rec] using hx1Valid
+        have hC : noNoneTy C = true := by
+          simpa [eo_type_valid, hx1Eo, noNoneTy] using hx1Valid
+        simpa [eo_type_valid_rec, hU1] using hC
       have hUeq : U1 = U2 :=
         eo_to_smt_type_eq_of_valid_rec hU1Valid (hU1.trans hU2.symm)
       subst U2

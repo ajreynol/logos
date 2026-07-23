@@ -51,4 +51,47 @@ namespace TranslationProofs
     __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := by
   simp [__smtx_typeof.eq_def]
 
+/-! ### Datatype-declaration lookup -/
+
+/-- Declaration lookup commutes with EO-to-SMT translation. -/
+theorem eo_to_smt_datatype_decl_lookup
+    : ∀ (s : native_String) (dd : DatatypeDecl),
+      __eo_to_smt_datatype (__eo_dd_lookup s dd) =
+        __smtx_dd_lookup s (__eo_to_smt_datatype_decl dd)
+  | _, DatatypeDecl.nil => rfl
+  | s, DatatypeDecl.cons s' d dd => by
+      cases hEq : native_streq s s' <;>
+        simp [__eo_dd_lookup, __smtx_dd_lookup, __eo_to_smt_datatype_decl,
+          native_ite, hEq, eo_to_smt_datatype_decl_lookup s dd]
+termination_by _ dd => sizeOf dd
+
+/-- Selector-result lookup commutes with translation. -/
+theorem eo_to_smt_type_typeof_dt_sel_return
+    : ∀ (d : Datatype) (i j : native_Nat),
+      __eo_to_smt_type (__eo_typeof_dt_sel_return d i j) =
+        __smtx_ret_typeof_sel_rec (__eo_to_smt_datatype d) i j
+  | Datatype.null, _, _ => by
+      simp [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec,
+        __eo_to_smt_datatype, __eo_to_smt_type]
+  | Datatype.sum DatatypeCons.unit d, native_nat_zero, j => by
+      cases j <;>
+        simp [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec,
+          __eo_to_smt_datatype, __eo_to_smt_datatype_cons, __eo_to_smt_type]
+  | Datatype.sum DatatypeCons.unit d, native_nat_succ i, j => by
+      simpa [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec,
+        __eo_to_smt_datatype, __eo_to_smt_datatype_cons] using
+        eo_to_smt_type_typeof_dt_sel_return d i j
+  | Datatype.sum (DatatypeCons.cons T c) d, native_nat_zero, native_nat_zero => by
+      simp [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec,
+        __eo_to_smt_datatype, __eo_to_smt_datatype_cons]
+  | Datatype.sum (DatatypeCons.cons T c) d, native_nat_zero, native_nat_succ j => by
+      simpa [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec,
+        __eo_to_smt_datatype, __eo_to_smt_datatype_cons] using
+        eo_to_smt_type_typeof_dt_sel_return (Datatype.sum c d) native_nat_zero j
+  | Datatype.sum c d, native_nat_succ i, j => by
+      simpa [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec,
+        __eo_to_smt_datatype] using
+        eo_to_smt_type_typeof_dt_sel_return d i j
+termination_by d _ _ => sizeOf d
+
 end TranslationProofs
