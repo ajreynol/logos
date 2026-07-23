@@ -597,18 +597,18 @@ private theorem eo_to_smt_tuple_prepend_of_type_ne_dt_sel
   cases tailTy <;> try simp [__eo_to_smt_tuple_prepend_of_type] at h
   case Datatype sTail ddTail =>
     cases ddTail with
-    | nil => simp [__eo_to_smt_tuple_prepend_of_type] at h
+    | nil => simp at h
     | cons s2 dTail ddRest =>
       cases ddRest with
-      | cons s3 d3 dd3 => simp [__eo_to_smt_tuple_prepend_of_type] at h
+      | cons s3 d3 dd3 => simp at h
       | nil =>
         cases dTail with
-        | null => simp [__eo_to_smt_tuple_prepend_of_type] at h
+        | null => simp at h
         | sum c rest =>
           cases rest with
-          | sum cRest restRest => simp [__eo_to_smt_tuple_prepend_of_type] at h
+          | sum cRest restRest => simp at h
           | null =>
-            simp only [__eo_to_smt_tuple_prepend_of_type] at h
+            simp only at h
             cases hCond : native_and
                 (native_and (native_streq sTail (native_string_lit "@Tuple"))
                   (native_streq s2 (native_string_lit "@Tuple")))
@@ -641,18 +641,18 @@ private theorem eo_to_smt_tuple_prepend_of_type_ne_dt_tester
   cases tailTy <;> try simp [__eo_to_smt_tuple_prepend_of_type] at h
   case Datatype sTail ddTail =>
     cases ddTail with
-    | nil => simp [__eo_to_smt_tuple_prepend_of_type] at h
+    | nil => simp at h
     | cons s2 dTail ddRest =>
       cases ddRest with
-      | cons s3 d3 dd3 => simp [__eo_to_smt_tuple_prepend_of_type] at h
+      | cons s3 d3 dd3 => simp at h
       | nil =>
         cases dTail with
-        | null => simp [__eo_to_smt_tuple_prepend_of_type] at h
+        | null => simp at h
         | sum c rest =>
           cases rest with
-          | sum cRest restRest => simp [__eo_to_smt_tuple_prepend_of_type] at h
+          | sum cRest restRest => simp at h
           | null =>
-            simp only [__eo_to_smt_tuple_prepend_of_type] at h
+            simp only at h
             cases hCond : native_and
                 (native_and (native_streq sTail (native_string_lit "@Tuple"))
                   (native_streq s2 (native_string_lit "@Tuple")))
@@ -685,18 +685,18 @@ private theorem eo_to_smt_tuple_prepend_of_type_ne_dt_cons
   cases tailTy <;> try simp [__eo_to_smt_tuple_prepend_of_type] at h
   case Datatype sTail ddTail =>
     cases ddTail with
-    | nil => simp [__eo_to_smt_tuple_prepend_of_type] at h
+    | nil => simp at h
     | cons s2 dTail ddRest =>
       cases ddRest with
-      | cons s3 d3 dd3 => simp [__eo_to_smt_tuple_prepend_of_type] at h
+      | cons s3 d3 dd3 => simp at h
       | nil =>
         cases dTail with
-        | null => simp [__eo_to_smt_tuple_prepend_of_type] at h
+        | null => simp at h
         | sum c rest =>
           cases rest with
-          | sum cRest restRest => simp [__eo_to_smt_tuple_prepend_of_type] at h
+          | sum cRest restRest => simp at h
           | null =>
-            simp only [__eo_to_smt_tuple_prepend_of_type] at h
+            simp only at h
             cases hCond : native_and
                 (native_and (native_streq sTail (native_string_lit "@Tuple"))
                   (native_streq s2 (native_string_lit "@Tuple")))
@@ -5048,8 +5048,8 @@ private theorem eo_to_smt_typeof_dt_cons_rec_zero_of_no_none_apply :
         simpa [__eo_to_smt_datatype] using hRecNN
       constructor
       · simp [__eo_typeof_dt_cons_rec, __smtx_typeof_dt_cons_rec,
-          __eo_to_smt_datatype, __eo_to_smt_datatype_cons, __eo_to_smt_type,
-          hTNS, hRec.1, hUNN, hRecNN', __smtx_typeof_guard, native_ite, native_Teq]
+          __eo_to_smt_datatype, __eo_to_smt_datatype_cons,
+          hRec.1, hUNN, hRecNN', __smtx_typeof_guard, native_ite, native_Teq]
       · simpa [__smtx_typeof_dt_cons_rec, __eo_to_smt_datatype,
           __eo_to_smt_datatype_cons, noNoneTy, native_and] using
           And.intro hp.1.1 hRec.2
@@ -5070,7 +5070,7 @@ private theorem eo_to_smt_typeof_dt_cons_rec_of_no_none_apply
             (__eo_to_smt_datatype d) i) = true)
   | Datatype.null, i, hTNS, hT, hD => by
       cases i <;> simp [__eo_typeof_dt_cons_rec, __smtx_typeof_dt_cons_rec,
-        __eo_to_smt_datatype, __eo_to_smt_type, hTNS]
+        __eo_to_smt_datatype, __eo_to_smt_type]
   | Datatype.sum c d, native_nat_zero, hTNS, hT, hD => by
       have hz := eo_to_smt_typeof_dt_cons_rec_zero_of_no_none_apply
         T c d hTNS hT hD
@@ -8740,7 +8740,7 @@ private theorem smtx_type_substitute_top_apply_tuple_of_eo_list_nth_rec_nat :
           unfold eo_type_valid_rec
           rw [hTail]
           simp [__smtx_tuple_datatype_decl, noNoneTy, noNoneDecl,
-            noNoneDt, noNoneDtc, native_and, hp.2]
+            noNoneDt, native_and, hp.2]
         cases j with
         | zero =>
             exact
@@ -8829,7 +8829,7 @@ theorem eo_type_valid_rec_tuple_list_nth_rec_nat :
           unfold eo_type_valid_rec
           rw [hTail]
           simp [__smtx_tuple_datatype_decl, noNoneTy, noNoneDecl,
-            noNoneDt, noNoneDtc, native_and, hp.2]
+            noNoneDt, native_and, hp.2]
         cases j with
         | zero =>
             simpa [__eo_list_nth_rec, native_nat_to_int, SmtEval.native_nat_to_int] using hy
@@ -9167,7 +9167,7 @@ theorem smtx_tuple_prepend_typeof_of_tail_tuple_type
       rw [hTailTy]
       dsimp [fullDD, fullD, __smtx_tuple_datatype_decl] at hWf
       simp [__eo_to_smt_tuple_prepend_of_type, __smtx_tuple_datatype_decl,
-        fullD, fullDD, native_streq, native_and, native_ite, hWf]
+        native_streq, native_and, native_ite, hWf]
     · rfl
   dsimp [fullDD, fullD, __smtx_tuple_datatype_decl] at hFullWf
   let seed := SmtTerm.Apply
@@ -9242,7 +9242,7 @@ theorem smtx_tuple_prepend_head_non_none_of_tail_tuple_type
       rw [hTailTy]
       dsimp [fullDD, fullD, __smtx_tuple_datatype_decl] at hWf
       simp [__eo_to_smt_tuple_prepend_of_type, __smtx_tuple_datatype_decl,
-        fullD, fullDD, native_streq, native_and, native_ite, hWf]
+        native_streq, native_and, native_ite, hWf]
     · rfl
   dsimp [fullDD, fullD, __smtx_tuple_datatype_decl] at hFullWf
   let seed := SmtTerm.Apply
@@ -9620,7 +9620,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
         SmtType.Datatype (native_string_lit "@Tuple") fullDD := by
     rw [hXTailType]
     simp [__eo_to_smt_type_tuple, __smtx_tuple_datatype_decl, tailDD,
-      tailD, fullDD, fullD, hHeadComp, native_streq, SmtEval.native_streq,
+      tailD, fullDD, fullD, native_streq, SmtEval.native_streq,
       hHeadParts.1, hHeadParts.2, native_and, native_ite]
   /- Obsolete substitution-based tuple head well-formedness extraction.
   have hRaw :
@@ -9838,7 +9838,7 @@ theorem eo_to_smt_tuple_tail_type_of_non_none_from_checked
                         by_cases hs2 : s2 = native_string_lit "@Tuple"
                         · subst s2
                           exact ⟨c, by
-                            simpa [__smtx_tuple_datatype_decl] using hTail⟩
+                            simp [__smtx_tuple_datatype_decl] at hTail ⊢⟩
                         · exact False.elim (hPrependNN (by
                             simp [hTail, __eo_to_smt_tuple_prepend_of_type,
                               hs2, native_streq, native_and, native_ite]))
@@ -12446,7 +12446,7 @@ theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_com
       rw [hZEo, hYEo, hXInt]
       rfl
     rw [hType]
-    simp [eo_type_valid, eo_type_valid_rec, noNoneTy, __smtx_typeof_guard,
+    simp [eo_type_valid, noNoneTy, __smtx_typeof_guard,
       native_ite, native_Teq]
 
 /-- Closes attempts to apply a binary head already known to have SMT type `Bool`. -/

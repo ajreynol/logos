@@ -299,7 +299,7 @@ private theorem eo_to_smt_typed_list_elem_type_of_non_none_full
                           headTy := by
                       dsimp [__eo_to_smt_typed_list_elem_type, headTy, tailTy]
                       rw [hGuard]
-                      simp [native_ite]
+                      simp
                     calc
                       __eo_to_smt_type T = tailTy := hTsSmt
                       _ = headTy := hHeadEqTail.symm
@@ -2026,7 +2026,7 @@ private theorem smtx_typeof_extract_ne_dtcapp_full
     cases lo <;> try simp at h
     case Numeral lo =>
       cases hx : __smtx_typeof x <;>
-        simp [hx, native_ite] at h
+        simp [hx] at h
       all_goals
         repeat split at h
         all_goals cases h
@@ -2579,7 +2579,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           refine ⟨?_, ?_⟩
           · rw [eo_to_smt_term_tuple_unit, smtx_typeof_tuple_unit_translation,
               eo_typeof_tuple_unit, eo_to_smt_type_unit_tuple]
-          · simp [eo_typeof_tuple_unit, eo_type_valid, eo_type_valid_rec]
+          · simp [eo_typeof_tuple_unit, eo_type_valid]
         all_goals
           exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.repeat x, hNonNone => by
@@ -2615,7 +2615,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
         · rw [eo_to_smt_boolean, eo_typeof_boolean, eo_to_smt_type_bool]
           unfold __smtx_typeof
           rfl
-        · simp [eo_typeof_boolean, eo_type_valid, eo_type_valid_rec]
+        · simp [eo_typeof_boolean, eo_type_valid]
     | Term.Numeral n, hNonNone => by
         have hSmt : __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int := by
           change __smtx_typeof (SmtTerm.Numeral n) = SmtType.Int
@@ -2623,8 +2623,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           rfl
         refine ⟨hSmt.trans (eo_to_smt_type_typeof_numeral n).symm, ?_⟩
         change eo_type_valid (Term.UOp UserOp.Int)
-        simp [eo_type_valid, eo_type_valid_rec, noNoneTy,
-          __smtx_typeof_guard, native_Teq]
+        simp [eo_type_valid, noNoneTy]
     | Term.Rational r, hNonNone => by
         have hSmt : __smtx_typeof (__eo_to_smt (Term.Rational r)) = SmtType.Real := by
           change __smtx_typeof (SmtTerm.Rational r) = SmtType.Real
@@ -2632,7 +2631,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           rfl
         refine ⟨hSmt.trans (eo_to_smt_type_typeof_rational r).symm, ?_⟩
         change eo_type_valid (Term.UOp UserOp.Real)
-        simp [eo_type_valid, eo_type_valid_rec]
+        simp [eo_type_valid]
     | Term.String s, hNonNone => by
         have hValid : native_string_valid s = true := by
           change __smtx_typeof (SmtTerm.String s) ≠ SmtType.None at hNonNone
@@ -2649,7 +2648,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           simp [native_ite, hValid]
         refine ⟨hSmt.trans (eo_to_smt_type_typeof_string s).symm, ?_⟩
         change eo_type_valid (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
-        simp [eo_type_valid, eo_type_valid_rec, noNoneTy,
+        simp [eo_type_valid, noNoneTy,
           __smtx_typeof_guard, native_Teq]
     | Term.Binary w n, hNonNone => by
         have hWidth : native_zleq 0 w = true := by
@@ -2668,7 +2667,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             __eo_to_smt_type (__eo_typeof (Term.Binary w n))
           exact hSmt.trans (eo_to_smt_type_typeof_binary w n hWidth).symm
         · change eo_type_valid (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
-          simp [eo_type_valid, eo_type_valid_rec, hWidth]
+          simp [eo_type_valid, hWidth]
     | Term.Var name T, hNonNone => by
         cases name with
         | String s =>
@@ -2780,7 +2779,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             rfl
           · change eo_type_valid (__eo_typeof_distinct (__eo_typeof x))
             rw [hXType]
-            simp [__eo_typeof_distinct, eo_type_valid, eo_type_valid_rec]
+            simp [__eo_typeof_distinct, eo_type_valid]
         case neg =>
           have hNotDistinct : f ≠ Term.UOp UserOp.distinct := hDistinct
           have hEq :=
@@ -2809,7 +2808,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           case UOp op =>
             rw [hTy] at hTypeNN
             cases op <;>
-              simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type] at hTypeNN ⊢
+              simp [eo_type_valid, __eo_to_smt_type] at hTypeNN ⊢
           case DatatypeType s d =>
             have hReserved : __eo_reserved_datatype_name s = false := by
               have hTypeNN' := hTypeNN
@@ -2867,7 +2866,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               rw [hTy]
               simp [__eo_to_smt_type]))
           case Bool =>
-            simp [eo_type_valid, eo_type_valid_rec]
+            simp [eo_type_valid]
           case Boolean b =>
             exact False.elim (hTypeNN (by
               rw [hTy]
@@ -2928,15 +2927,15 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             case None =>
               exact False.elim (hTypeNN (by rw [hTy, hSmt]))
             case Bool =>
-              simpa [eo_type_valid, hSmt, noNoneTy]
+              simp [eo_type_valid, hSmt, noNoneTy]
             case Int =>
-              simpa [eo_type_valid, hSmt, noNoneTy]
+              simp [eo_type_valid, hSmt, noNoneTy]
             case Real =>
-              simpa [eo_type_valid, hSmt, noNoneTy]
+              simp [eo_type_valid, hSmt, noNoneTy]
             case RegLan =>
-              simpa [eo_type_valid, hSmt, noNoneTy]
+              simp [eo_type_valid, hSmt, noNoneTy]
             case BitVec w =>
-              simpa [eo_type_valid, hSmt, noNoneTy]
+              simp [eo_type_valid, hSmt, noNoneTy]
             case Map A B =>
               have hMapTy :
                   __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
@@ -2968,7 +2967,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     Smtm.smt_term_seq_type_wf_of_non_none
                       (__eo_to_smt (Term.Apply f x)) hTermNN hSeqTy)
             case Char =>
-              simpa [eo_type_valid, hSmt, noNoneTy]
+              simp [eo_type_valid, hSmt, noNoneTy]
             case Datatype s d =>
               have hDatatypeTy :
                   __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
@@ -2991,7 +2990,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               exact False.elim (by
                 simp [Smtm.type_has_no_none_components] at hNoNone)
             case USort i =>
-              simpa [eo_type_valid, hSmt, noNoneTy]
+              simp [eo_type_valid, hSmt, noNoneTy]
             case FunType A B =>
               have hFunTy :
                   __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
@@ -3069,7 +3068,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     (go x) hTermNN hTy
                 | exact False.elim (false_of_typeof_set_is_empty_eq_dtcapp_full hTy)
                 | exact False.elim (false_of_typeof_div_by_zero_eq_dtcapp_full hTy)
-                | simp [eo_type_valid, eo_type_valid_rec,
+                | simp [eo_type_valid,
                     
                     __eo_typeof_Seq,
                     __eo_typeof_not
@@ -3380,7 +3379,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                         __eo_mk_apply, __eo_add, native_ite, native_teq,
                         native_not] at hTy hTypeNN
                      repeat (first | split at hTy | split at hTypeNN)
-                     all_goals simp [eo_type_valid, eo_type_valid_rec
+                     all_goals simp [eo_type_valid
                        
                        
                        

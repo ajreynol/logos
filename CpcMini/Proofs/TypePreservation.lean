@@ -227,8 +227,7 @@ private theorem mini_smt_term_result_components_wf_of_non_none
         simp [__smtx_typeof_seq_diff, mini_result_components_wf, h1, h2]
       case Seq.Seq A B =>
         cases hEq : native_Teq A B <;>
-          simp [__smtx_typeof_seq_diff, mini_result_components_wf, h1, h2,
-            native_ite, hEq]
+          simp [mini_result_components_wf, native_ite]
     case not t =>
       rw [__smtx_typeof.eq_def]
       exact mini_result_components_wf_native_ite _ (by trivial) (by trivial)
@@ -245,7 +244,7 @@ private theorem mini_smt_term_result_components_wf_of_non_none
       exact mini_result_components_wf_native_ite _
         (mini_result_components_wf_native_ite _ (by trivial) (by trivial)) (by trivial)
     all_goals
-      simp [mini_result_components_wf, __smtx_typeof, native_ite, native_Teq]
+      simp [mini_result_components_wf, __smtx_typeof]
   exact go x hxNN
 
 private theorem mini_smt_map_wf_of_non_none_type

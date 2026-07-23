@@ -2949,13 +2949,13 @@ private theorem eo_type_valid_of_smt_wf_rec_aux
         eo_type_valid_rec] at h ⊢
   | Term.UOp1 op x, h => by
       cases op
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.UOp2 op x y, h => by
       cases op
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.UOp3 op x y z, h => by
       cases op
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.Bool, _ => by simp [eo_type_valid_rec]
   | Term.DatatypeType s dd, h => by
       cases hReserved : native_reserved_datatype_name s
@@ -3019,39 +3019,39 @@ private theorem eo_type_valid_of_smt_wf_rec_aux
       | _ =>
           simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.__eo_List, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.__eo_List_nil, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.__eo_List_cons, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.Boolean b, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.Numeral n, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.Rational q, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.String s, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.Binary w n, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.Type, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.Stuck, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.FunType, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.Var name ty, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.DtcAppType T U, h => by
       cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
-        simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec,
+        simp [__eo_to_smt_type, __smtx_type_wf_rec,
           __smtx_typeof_guard, native_ite, native_Teq, hT, hU] at h
   | Term.DtCons s dd i, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.DtSel s dd i j, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.UConst i T, h => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec, eo_type_valid_rec] at h
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
 
 private theorem eo_datatype_cons_valid_of_smt_wf
     (base : DatatypeDecl) :
@@ -3143,7 +3143,7 @@ theorem eo_to_smt_type_ne_reglan (T : Term) :
           | BitVec =>
               cases x <;> try simp [__eo_to_smt_type]
               rename_i n
-              cases h : native_zleq 0 n <;> simp [__eo_to_smt_type, h]
+              cases h : native_zleq 0 n <;> simp
           | Seq =>
               simpa [__eo_to_smt_type] using
                 smtx_typeof_guard_ne_reglan_new (__eo_to_smt_type x)

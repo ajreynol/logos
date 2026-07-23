@@ -765,17 +765,18 @@ private theorem eo_type_valid_drop_refs_of_not_ref
     (h : TranslationProofs.eo_type_valid_rec refs T) :
     TranslationProofs.eo_type_valid_rec [] T := by
   cases T with
-  | UOp op => cases op <;> simpa [TranslationProofs.eo_type_valid_rec] using h
+  | UOp op =>
+      cases op <;> simp [TranslationProofs.eo_type_valid_rec] at h ⊢ <;> assumption
   | Apply f x =>
       cases f with
       | UOp op =>
           cases op <;> cases x <;>
-            simpa [TranslationProofs.eo_type_valid_rec] using h
+            simp [TranslationProofs.eo_type_valid_rec] at h ⊢ <;> assumption
       | Apply g y =>
-          cases g <;> simpa [TranslationProofs.eo_type_valid_rec] using h
+          cases g <;> simp [TranslationProofs.eo_type_valid_rec] at h ⊢ <;> assumption
       | _ => simp [TranslationProofs.eo_type_valid_rec] at h
   | DatatypeTypeRef s => exact False.elim (hNotRef s rfl)
-  | _ => simpa [TranslationProofs.eo_type_valid_rec] using h
+  | _ => simp [TranslationProofs.eo_type_valid_rec] at h ⊢ <;> assumption
 
 mutual
 

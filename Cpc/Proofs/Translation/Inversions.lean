@@ -306,7 +306,7 @@ theorem smtx_type_field_wf_rec_of_cons_wf
   cases T with
   | TypeRef s => exact absurd rfl (hNotRef s)
   | _ =>
-      simp [smtx_type_field_wf_rec, __smtx_dt_cons_wf_rec,
+      simp [__smtx_dt_cons_wf_rec,
         native_and] at h
       exact h.1.2
 
@@ -482,23 +482,23 @@ private theorem eo_to_smt_type_tuple_eq_none_or_datatype
   cases V <;> simp [__eo_to_smt_type_tuple]
   case Datatype s dd =>
     cases dd with
-    | nil => simp [__eo_to_smt_type_tuple]
+    | nil => simp
     | cons s2 d rest =>
       cases d with
-      | null => simp [__eo_to_smt_type_tuple]
+      | null => simp
       | sum c dTail =>
         cases dTail with
-        | sum c2 d2 => simp [__eo_to_smt_type_tuple]
+        | sum c2 d2 => simp
         | null =>
           cases rest with
-          | cons s3 d3 rest3 => simp [__eo_to_smt_type_tuple]
+          | cons s3 d3 rest3 => simp
           | nil =>
             by_cases hs : s = native_string_lit "@Tuple"
             · by_cases hs2 : s2 = native_string_lit "@Tuple"
               · by_cases hU : __smtx_type_wf_component U = true <;>
-                  simp [__eo_to_smt_type_tuple, hs, hs2, hU]
-              · simp [__eo_to_smt_type_tuple, hs, hs2]
-            · simp [__eo_to_smt_type_tuple, hs]
+                  simp [hs, hs2, hU]
+              · simp [hs, hs2]
+            · simp [hs]
 
 theorem eo_to_smt_type_tuple_ne_bool
     (U V : SmtType) :
@@ -1778,28 +1778,28 @@ private theorem eo_to_smt_type_tuple_eq_datatype_inv
   cases B <;> try simp [__eo_to_smt_type_tuple] at h
   case Datatype s decl =>
     cases decl with
-    | nil => simp [__eo_to_smt_type_tuple] at h
+    | nil => simp at h
     | cons s2 body rest =>
       cases body with
-      | null => simp [__eo_to_smt_type_tuple] at h
+      | null => simp at h
       | sum c tail =>
         cases tail with
-        | sum c2 tail2 => simp [__eo_to_smt_type_tuple] at h
+        | sum c2 tail2 => simp at h
         | null =>
           cases rest with
-          | cons s3 body3 rest3 => simp [__eo_to_smt_type_tuple] at h
+          | cons s3 body3 rest3 => simp at h
           | nil =>
             by_cases hs : s = native_string_lit "@Tuple"
             · by_cases hs2 : s2 = native_string_lit "@Tuple"
               · by_cases hA : __smtx_type_wf_component A = true
                 · subst s
                   subst s2
-                  simp [__eo_to_smt_type_tuple, hA] at h
+                  simp [hA] at h
                   subst dd
                   exact ⟨c, rfl, rfl⟩
-                · simp [__eo_to_smt_type_tuple, hs, hs2, hA] at h
-              · simp [__eo_to_smt_type_tuple, hs, hs2] at h
-            · simp [__eo_to_smt_type_tuple, hs] at h
+                · simp [hs, hs2, hA] at h
+              · simp [hs, hs2] at h
+            · simp [hs] at h
 
 /-- Inverts translated EO tuple types. -/
 theorem eo_to_smt_type_eq_tuple_datatype
@@ -2833,7 +2833,7 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                   __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)
                 have hRawWf : __smtx_type_wf raw = true := by
                   cases hw : __smtx_type_wf raw
-                  · simp [raw, __eo_to_smt_type, hw, __smtx_type_wf_rec] at hWF
+                  · simp [raw, hw, __smtx_type_wf_rec] at hWF
                   · rfl
                 have hRawNN : raw ≠ SmtType.None := by
                   intro hNone

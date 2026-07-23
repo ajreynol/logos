@@ -2596,7 +2596,7 @@ theorem eo_type_valid_rec_non_none
   intro hNone
   unfold eo_type_valid_rec at h
   rw [hNone] at h
-  simpa [noNoneTy] using h
+  simp [noNoneTy] at h
 
 theorem eo_type_valid_non_none
     {T : Term} (h : eo_type_valid T) :
@@ -2604,7 +2604,7 @@ theorem eo_type_valid_non_none
   intro hNone
   unfold eo_type_valid at h
   rw [hNone] at h
-  simpa [noNoneTy] using h
+  simp [noNoneTy] at h
 
 theorem eo_type_valid_rec_not_stuck
     {refs : List native_String} {T : Term}
@@ -2649,7 +2649,7 @@ theorem eo_type_valid_of_smt_wf
   case FunType A B =>
     have hp : __smtx_type_wf_rec A = true ∧ __smtx_type_wf_rec B = true :=
       fun_type_wf_rec_components_of_wf (by simpa [hA] using h)
-    simpa [noNoneTy, native_and, noNoneTy_of_wf A hp.1,
+    simp [noNoneTy, native_and, noNoneTy_of_wf A hp.1,
       noNoneTy_of_wf B hp.2]
   all_goals
     have hRec : __smtx_type_wf_rec (__eo_to_smt_type T) = true :=
@@ -2801,10 +2801,10 @@ private theorem eo_to_smt_tuple_select_ne_numeral
   cases T <;> cases i <;> try (simp [__eo_to_smt_tuple_select] at h)
   case Datatype.Numeral s dd k =>
     cases dd with
-    | nil => simp [__eo_to_smt_tuple_select] at h
+    | nil => simp at h
     | cons s2 body rest =>
         cases body <;> cases rest <;>
-          simp only [__eo_to_smt_tuple_select] at h
+          simp only at h
         all_goals first | cases h | (split at h <;> cases h)
 
 private theorem eo_to_smt_updater_ne_numeral
@@ -2839,10 +2839,10 @@ private theorem eo_to_smt_tuple_update_ne_numeral
   cases T <;> cases i <;> try (simp [__eo_to_smt_tuple_update] at h)
   case Datatype.Numeral s dd k =>
     cases dd with
-    | nil => simp [__eo_to_smt_tuple_update] at h
+    | nil => simp at h
     | cons s2 body rest =>
         cases body <;> cases rest <;>
-          simp only [__eo_to_smt_tuple_update] at h
+          simp only at h
         all_goals first
           | cases h
           | (split at h
@@ -2877,7 +2877,7 @@ private theorem eo_to_smt_tuple_prepend_of_type_ne_numeral
         | null => simp at h
         | sum c bodyTail =>
             cases bodyTail <;> cases rest <;>
-              simp [__eo_to_smt_tuple_prepend_of_type, native_ite] at h
+              simp at h
             all_goals first
               | cases h
               | (split at h
