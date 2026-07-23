@@ -563,7 +563,8 @@ theorem eo_to_smt_type_eq_ifun_iff
   · intro h
     rcases eo_to_smt_type_eq_fun_iff.mp h with
       ⟨T1, T2, hT, hT1, hT2, hT1NN, hT2NN⟩
-    exact ⟨T1, T2, hT, hT1, hT2, hT1NN, hT2NN, by simp [__smtx_is_finite_type]⟩
+    exact ⟨T1, T2, hT, hT1, hT2, hT1NN, hT2NN, by
+      simp [__smtx_is_finite_type, __smtx_type_bounded]⟩
   · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN, hFin⟩
     exact eo_to_smt_type_eq_fun_iff.mpr ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
 

@@ -456,8 +456,10 @@ private theorem map_default_eq_type_default_of_finite_domain :
             __smtx_msm_get_default m = __smtx_type_default B
   | SmtMap.default T e, A, B, hTy, hCan, hFin => by
       cases hTy
+      have hBounded : __smtx_type_bounded false T = true := by
+        simpa [__smtx_is_finite_type] using hFin
       have hParts := hCan
-      simp [__smtx_map_canonical, __smtx_map_default_canonical, hFin,
+      simp [__smtx_map_canonical, __smtx_map_default_canonical, hBounded,
         native_ite, SmtEval.native_and] at hParts
       exact Smtm.eq_of_native_veq_true hParts.1
   | SmtMap.cons i e m, A, B, hTy, hCan, hFin => by

@@ -894,6 +894,13 @@ def __smtx_type_bounded (u : native_Bool) : SmtType -> native_Bool
   | T => false
 termination_by T => (sizeOf T, 0)
 
+def __smtx_is_unit_type (T : SmtType) : native_Bool :=
+  __smtx_type_bounded true T
+
+
+def __smtx_is_finite_type (T : SmtType) : native_Bool :=
+  __smtx_type_bounded false T
+
 
 def __smtx_field_type_default (dd : SmtDatatypeDecl) : SmtType -> SmtDatatypeDecl -> SmtValue
   | (SmtType.TypeRef s), ddF => (__smtx_datatype_decl_default s dd ddF)
