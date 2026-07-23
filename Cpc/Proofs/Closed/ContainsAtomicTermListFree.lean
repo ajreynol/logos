@@ -4434,14 +4434,13 @@ private theorem smt_model_eval_tuple_prepend_eq_of_eval_eq
                               __smtx_tuple_datatype_decl] at hWf
                             simp [__eo_to_smt_tuple_prepend_of_type,
                               __smtx_tuple_datatype_decl, native_ite,
-                              native_streq, native_and, hWf, fullD,
-                              fullDD, __smtx_model_eval]
+                              native_streq, native_and, hWf,
+                              __smtx_model_eval]
                           · dsimp [fullDD, fullD,
                               __smtx_tuple_datatype_decl] at hWf
                             simp [__eo_to_smt_tuple_prepend_of_type,
                               __smtx_tuple_datatype_decl, native_ite,
-                              native_streq, native_and, hWf, fullD,
-                              fullDD]
+                              native_streq, native_and, hWf]
                             exact
                               smt_model_eval_tuple_prepend_rec_eq_of_eval_eq
                                 hGlobals tailDD tailD tail seed hTail

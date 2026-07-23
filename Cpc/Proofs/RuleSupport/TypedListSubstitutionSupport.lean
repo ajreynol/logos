@@ -221,12 +221,12 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
     | Apply f a =>
         cases f with
         | UOp op =>
+            have hValidOrig := hValid
             cases op <;>
               try
                 (simp [TranslationProofs.eo_type_valid_rec,
                   __eo_to_smt_type, TranslationProofs.noNoneTy,
-                  __smtx_typeof_guard, native_ite, native_Teq,
-                  native_and] at hValid)
+                  __smtx_typeof_guard, native_ite, native_Teq] at hValid)
             case BitVec =>
               cases a with
               | Numeral n =>
@@ -255,14 +255,11 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
                       (by intro h; cases h)
                       (by intro h; cases h)
               | _ =>
-                  simp [TranslationProofs.eo_type_valid_rec,
-                    __eo_to_smt_type, TranslationProofs.noNoneTy,
-                    __smtx_typeof_guard, native_ite, native_Teq,
-                    native_and] at hValid
+                  simp [__eo_to_smt_type, TranslationProofs.noNoneTy] at hValid
             case Seq =>
               have hAValid :
                   TranslationProofs.eo_type_valid_rec [] a := by
-                exact eo_type_valid_rec_seq_arg (refs := refs) hValid
+                exact eo_type_valid_rec_seq_arg (refs := refs) hValidOrig
               have hHead :
                   __substitute_simul_rec (Term.Boolean isRename)
                       (Term.UOp UserOp.Seq) xs ss bvs =
@@ -281,7 +278,7 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
             case Set =>
               have hAValid :
                   TranslationProofs.eo_type_valid_rec [] a := by
-                exact eo_type_valid_rec_set_arg (refs := refs) hValid
+                exact eo_type_valid_rec_set_arg (refs := refs) hValidOrig
               have hHead :
                   __substitute_simul_rec (Term.Boolean isRename)
                       (Term.UOp UserOp.Set) xs ss bvs =
@@ -334,15 +331,15 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
                     (by intro h; cases h)
                     (TranslationProofs.eo_type_valid_rec_not_stuck hAValid)
             | UOp op =>
+                have hValidOrig := hValid
                 cases op <;>
                   try
                     (simp [TranslationProofs.eo_type_valid_rec,
                       __eo_to_smt_type, TranslationProofs.noNoneTy,
-                      __smtx_typeof_guard, native_ite, native_Teq,
-                      native_and] at hValid)
+                      __smtx_typeof_guard, native_ite, native_Teq] at hValid)
                 case Array =>
                   rcases eo_type_valid_rec_array_args
-                      (refs := refs) hValid with
+                      (refs := refs) hValidOrig with
                     ⟨hYValid, hAValid⟩
                   have hHead :
                       __substitute_simul_rec (Term.Boolean isRename)
@@ -406,14 +403,10 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
                       (TranslationProofs.eo_type_valid_rec_not_stuck hAValid)
             | _ =>
                 simp [TranslationProofs.eo_type_valid_rec,
-                  __eo_to_smt_type, TranslationProofs.noNoneTy,
-                  __smtx_typeof_guard, native_ite, native_Teq,
-                  native_and] at hValid
+                  __eo_to_smt_type, TranslationProofs.noNoneTy] at hValid
         | _ =>
             simp [TranslationProofs.eo_type_valid_rec,
-              __eo_to_smt_type, TranslationProofs.noNoneTy,
-              __smtx_typeof_guard, native_ite, native_Teq,
-              native_and] at hValid
+              __eo_to_smt_type, TranslationProofs.noNoneTy] at hValid
     | UOp op =>
         exact
           SubstituteSupport.substitute_simul_rec_uop_eq_self
