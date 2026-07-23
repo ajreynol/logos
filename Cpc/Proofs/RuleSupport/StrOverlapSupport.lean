@@ -2704,7 +2704,7 @@ theorem str_flatten_seq_empty_typeof_eq
       __smtx_type_wf_component (SmtType.Seq T) = true := by
     simpa [__smtx_type_wf] using hSeqWF
   have hSeqRec :
-      __smtx_type_wf_rec (SmtType.Seq T) (SmtType.Seq T) = true :=
+      __smtx_type_wf_rec (SmtType.Seq T) = true :=
     (smtx_type_wf_component_parts hSeqComp).2
   have hTParts :
       native_inhabited_type T = true ∧
