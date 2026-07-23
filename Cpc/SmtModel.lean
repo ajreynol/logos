@@ -199,6 +199,23 @@ def native_re_replace_all_nonempty_list (r : native_RegLan) (replacement xs : Li
     List native_Char :=
   native_re_replace_all_nonempty_list_aux (xs.length + 1) r replacement xs
 
+/-- Cursor list for a greedy left-to-right scan of `s` for nonempty matches of
+`r`: `[c₀, c₁, …, cₙ]` where `c₀ = 0` and `cᵢ` is the position at which the
+search for the `i`-th match begins (equivalently, the end of match `i-1`).  The
+number of matches is therefore `length - 1`, and `cᵢ` is the meaning of
+`occur_index_re s r i`. -/
+def native_re_cursors_aux (r : native_RegLan) (s : List native_Char) (fuel : Nat) (pos : Nat) :
+    List native_Int :=
+  match fuel with
+  | 0 => []
+  | fuel + 1 =>
+      match native_re_find_nonempty_idx_from r s pos with
+      | some (idx, len) => native_nat_to_int (idx + len) :: native_re_cursors_aux r s fuel (idx + len)
+      | none => []
+
+def native_re_cursors (s : native_String) (r : native_RegLan) : List native_Int :=
+  (0 : native_Int) :: native_re_cursors_aux r s (s.length + 1) 0
+
 def native_str_to_re : native_String -> native_RegLan
   | s => native_re_of_list s
 def native_re_mult : native_RegLan -> native_RegLan
@@ -435,6 +452,8 @@ inductive SmtTerm : Type where
   | str_replace_re : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | str_replace_re_all : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | str_indexof_re : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | str_cursors : SmtTerm -> SmtTerm -> SmtTerm
+  | str_re_cursors : SmtTerm -> SmtTerm -> SmtTerm
   | re_allchar : SmtTerm
   | re_none : SmtTerm
   | re_all : SmtTerm
@@ -1471,6 +1490,16 @@ def __smtx_model_eval_str_indexof_re : SmtValue -> SmtValue -> SmtValue -> SmtVa
   | t1, t2, t3 => SmtValue.NotValue
 
 
+def __smtx_model_eval_str_cursors : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Seq x1), (SmtValue.Seq x2) => (SmtValue.Seq (native_pack_seq SmtType.Int ((native_seq_cursors (native_unpack_seq x1) (native_unpack_seq x2)).map SmtValue.Numeral)))
+  | t1, t2 => SmtValue.NotValue
+
+
+def __smtx_model_eval_str_re_cursors : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Seq x1), (SmtValue.RegLan x2) => (SmtValue.Seq (native_pack_seq SmtType.Int ((native_re_cursors (native_unpack_string x1) x2).map SmtValue.Numeral)))
+  | t1, t2 => SmtValue.NotValue
+
+
 def __smtx_model_eval_str_to_re : SmtValue -> SmtValue
   | (SmtValue.Seq x1) => (SmtValue.RegLan (native_str_to_re (native_unpack_string x1)))
   | t1 => SmtValue.NotValue
@@ -1897,6 +1926,10 @@ def __smtx_typeof : SmtTerm -> SmtType
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) _v0) _v0 SmtType.None) SmtType.None) SmtType.None)
   | (SmtTerm.str_indexof_re x1 x2 x3) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) SmtType.Int) SmtType.Int SmtType.None) SmtType.None) SmtType.None)
+  | (SmtTerm.str_cursors x1 x2) =>
+    let _v0 := (SmtType.Seq SmtType.Char)
+    (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) _v0) (SmtType.Seq SmtType.Int) SmtType.None) SmtType.None)
+  | (SmtTerm.str_re_cursors x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (SmtType.Seq SmtType.Int) SmtType.None) SmtType.None)
   | SmtTerm.re_allchar => SmtType.RegLan
   | SmtTerm.re_none => SmtType.RegLan
   | SmtTerm.re_all => SmtType.RegLan
@@ -2178,6 +2211,26 @@ def native_seq_rev : List SmtValue -> List SmtValue
 def native_seq_contains (xs pat : List SmtValue) : native_Bool :=
   (0 <= (native_seq_indexof xs pat 0))
 
+/-- Cursor list for a greedy left-to-right scan of `xs` for occurrences of the
+fixed subsequence `pat`: `[c₀, c₁, …, cₙ]` where `c₀ = 0` and
+`cᵢ₊₁ = indexof(xs, pat, cᵢ) + |pat|`.  Uses `native_seq_indexof`, so it agrees
+with the semantics of `str.indexof` / `str.replace_all`; `cᵢ` is the meaning of
+`occur_index xs pat i`, and the occurrence count is `length - 1`. -/
+def native_seq_cursors_aux (xs pat : List SmtValue) (fuel : Nat) (pos : native_Int) :
+    List native_Int :=
+  match fuel with
+  | 0 => []
+  | fuel + 1 =>
+      let p := native_seq_indexof xs pat pos
+      if p < 0 then
+        []
+      else
+        let nxt := native_zplus p (native_nat_to_int pat.length)
+        nxt :: native_seq_cursors_aux xs pat fuel nxt
+
+def native_seq_cursors (xs pat : List SmtValue) : List native_Int :=
+  (0 : native_Int) :: native_seq_cursors_aux xs pat (xs.length + 1) 0
+
 end
 
 end
@@ -2289,6 +2342,8 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.str_replace_re x1 x2 x3) => (__smtx_model_eval_str_replace_re (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.str_replace_re_all x1 x2 x3) => (__smtx_model_eval_str_replace_re_all (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.str_indexof_re x1 x2 x3) => (__smtx_model_eval_str_indexof_re (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.str_cursors x1 x2) => (__smtx_model_eval_str_cursors (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.str_re_cursors x1 x2) => (__smtx_model_eval_str_re_cursors (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | SmtTerm.re_allchar => (SmtValue.RegLan native_re_allchar)
   | SmtTerm.re_none => (SmtValue.RegLan native_re_none)
   | SmtTerm.re_all => (SmtValue.RegLan native_re_all)

@@ -368,10 +368,30 @@ def __eo_to_smt : Term -> SmtTerm
     let _v0 := (__eo_to_smt x2)
     let _v1 := (SmtTerm.Numeral 0)
     (SmtTerm.ite (SmtTerm.eq _v0 _v1) _v1 (SmtTerm.str_to_int (SmtTerm.str_substr (SmtTerm.str_from_int (__eo_to_smt x1)) _v1 _v0)))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x1) x2) => 
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x1) x2) =>
     let _v0 := (__eo_to_smt x2)
     let _v1 := (__eo_to_smt x1)
     (SmtTerm.div (SmtTerm.neg (SmtTerm.str_len _v1) (SmtTerm.str_len (SmtTerm.str_replace_all _v1 _v0 (SmtTerm.seq_empty (SmtType.Seq SmtType.Char))))) (SmtTerm.str_len _v0))
+  -- Auxiliary occurrence operators reduce to projections of the two cursor
+  -- primitives `str_cursors` (fixed subsequence) and `str_re_cursors` (regex):
+  -- `occur_index x y i` is the i-th cursor, and `num_occur_re` is `|cursors| - 1`.
+  | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_occur_index) x1) x2) x3) =>
+    (SmtTerm.seq_nth (SmtTerm.str_cursors (__eo_to_smt x1) (__eo_to_smt x2)) (__eo_to_smt x3))
+  | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_occur_index_re) x1) x2) x3) =>
+    (SmtTerm.seq_nth (SmtTerm.str_re_cursors (__eo_to_smt x1) (__eo_to_smt x2)) (__eo_to_smt x3))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x1) x2) =>
+    (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_re_cursors (__eo_to_smt x1) (__eo_to_smt x2))) (SmtTerm.Numeral 1))
+  -- `replace_all_result` for the i-th occurrence onward: replace over the suffix
+  -- of the source starting at cursor i (restartability of the greedy scan).  The
+  -- handle records whether this is the fixed or the regex replacement.
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_replace_all_result) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_all) x1) x2) x3)) x4) =>
+    let _v0 := (__eo_to_smt x1)
+    let _v1 := (__eo_to_smt x2)
+    (SmtTerm.str_replace_all (SmtTerm.str_substr _v0 (SmtTerm.seq_nth (SmtTerm.str_cursors _v0 _v1) (__eo_to_smt x4)) (SmtTerm.str_len _v0)) _v1 (__eo_to_smt x3))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_replace_all_result) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re_all) x1) x2) x3)) x4) =>
+    let _v0 := (__eo_to_smt x1)
+    let _v1 := (__eo_to_smt x2)
+    (SmtTerm.str_replace_re_all (SmtTerm.str_substr _v0 (SmtTerm.seq_nth (SmtTerm.str_re_cursors _v0 _v1) (__eo_to_smt x4)) (SmtTerm.str_len _v0)) _v1 (__eo_to_smt x3))
   | (Term.UOp3 UserOp3._at_witness_string_length x1 x2 x3) => 
     let _v0 := (__eo_to_smt_type x1)
     (native_ite (__eo_to_smt_nat_is_valid x2) (native_ite (__eo_to_smt_nat_is_valid x3) (SmtTerm.choice (native_string_lit "@x") _v0 (SmtTerm.eq (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") _v0)) (__eo_to_smt x2))) SmtTerm.None) SmtTerm.None)
