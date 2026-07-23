@@ -369,9 +369,7 @@ def __eo_to_smt : Term -> SmtTerm
     let _v1 := (SmtTerm.Numeral 0)
     (SmtTerm.ite (SmtTerm.eq _v0 _v1) _v1 (SmtTerm.str_to_int (SmtTerm.str_substr (SmtTerm.str_from_int (__eo_to_smt x1)) _v1 _v0)))
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x1) x2) =>
-    let _v0 := (__eo_to_smt x2)
-    let _v1 := (__eo_to_smt x1)
-    (SmtTerm.div (SmtTerm.neg (SmtTerm.str_len _v1) (SmtTerm.str_len (SmtTerm.str_replace_all _v1 _v0 (SmtTerm.seq_empty (SmtType.Seq SmtType.Char))))) (SmtTerm.str_len _v0))
+    (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_cursors (__eo_to_smt x1) (__eo_to_smt x2))) (SmtTerm.Numeral 1))
   -- Auxiliary occurrence operators reduce to projections of the two cursor
   -- primitives `str_cursors` (fixed subsequence) and `str_re_cursors` (regex):
   -- `occur_index x y i` is the i-th cursor, and `num_occur_re` is `|cursors| - 1`.
