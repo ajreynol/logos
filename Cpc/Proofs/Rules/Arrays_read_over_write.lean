@@ -177,7 +177,7 @@ private theorem eqs_of_requires_and_eq_true_not_stuck (x1 y1 x2 y2 B : Term) :
 
 private theorem smt_type_ne_none_of_wf_rec
     {T : SmtType}
-    (h : __smtx_type_wf_rec T T = true) :
+    (h : __smtx_type_wf_rec T = true) :
     T ≠ SmtType.None := by
   intro hNone
   subst T
@@ -346,7 +346,7 @@ private theorem smt_types_of_select_store_arg
     rw [hSelectTy] at hSelectNN
     exact hSelectNN
   have hARec :
-      __smtx_type_wf_rec A A = true :=
+      __smtx_type_wf_rec A = true :=
     (Smtm.smt_map_components_wf_rec_of_non_none_type
       (__eo_to_smt a) A B hATy).1
   have hANonNone : A ≠ SmtType.None :=
