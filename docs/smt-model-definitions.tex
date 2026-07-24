@@ -1067,6 +1067,52 @@ def smt_is_finite_type (T : SmtType) : Bool :=
 \label{fig:unit-finite}
 \end{figure}
 
+\begin{figure}
+\begin{lstlisting}
+theorem finite_type_enumerable
+    (A : SmtType)
+    (hInh : inhabited_type A = true)
+    (hRec : smt_type_wf_rec A = true)
+    (hFin : smt_is_finite_type A = true) :
+    ∃ l : List SmtValue, ∀ v : SmtValue,
+      smt_typeof_value v = A →
+      smt_value_canonical v = true → v ∈ l
+
+theorem fresh_typed_canonical_value_for_infinite_type
+    (A : SmtType)
+    (hInh : inhabited_type A = true)
+    (hRec : smt_type_wf_rec A = true)
+    (hInfinite : smt_is_finite_type A = false)
+    (avoid : List SmtValue) :
+    ∃ i : SmtValue,
+      smt_typeof_value i = A ∧
+      smt_value_canonical i = true ∧
+      (∀ j : SmtValue, j ∈ avoid → veq j i = false)
+
+theorem unit_type_values_default
+    (A : SmtType)
+    (hInh : inhabited_type A = true)
+    (hRec : smt_type_wf_rec A = true)
+    (hUnit : smt_is_unit_type A = true) :
+    ∀ v : SmtValue,
+      smt_typeof_value v = A →
+      smt_value_canonical v = true →
+      v = smt_type_default A
+
+theorem nonunit_typed_canonical_nondefault_value
+    (A : SmtType)
+    (hInh : inhabited_type A = true)
+    (hRec : smt_type_wf_rec A = true)
+    (hNonUnit : smt_is_unit_type A = false) :
+    ∃ e : SmtValue,
+      smt_typeof_value e = A ∧
+      smt_value_canonical e = true ∧
+      veq e (smt_type_default A) = false
+\end{lstlisting}
+\caption{Soundness and completeness of the finite and unit type classifiers, relative to the well-formedness and inhabitedness guards. Statements 1 (\code{finite_type_enumerable}) and 3 (\code{unit_type_values_default}) are the soundness directions; statements 2 (\code{fresh_typed_canonical_value_for_infinite_type}) and 4 (\code{nonunit_typed_canonical_nondefault_value}) are the completeness directions.}
+\label{fig:finite-unit-correctness}
+\end{figure}
+
 First, Figure~\ref{fig:unit-finite}
 defines a predicate \code{smt_is_finite_type} that 
 (for well-formed, first-class types) returns true iff that type is finite.
