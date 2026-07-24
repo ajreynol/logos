@@ -63,7 +63,7 @@
   xrightmargin=0.5em,
   aboveskip=0.75em,
   belowskip=0.75em,
-  literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1 {∃}{{$\exists$}}1 {∈}{{$\in$}}1 {≠}{{$\neq$}}1 {¬}{{$\neg$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1 {·}{{$\cdot$}}1
+  literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1 {∃}{{$\exists$}}1 {∈}{{$\in$}}1 {≠}{{$\neq$}}1 {¬}{{$\neg$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1 {·}{{$\cdot$}}1 {→}{{$\rightarrow$}}1
 }
 
 % Inline Lean/SMT identifiers in typewriter font; \detokenize prints
@@ -1544,7 +1544,7 @@ def model_wf (M : SmtModel) : Prop :=
 \end{figure}
 
 We now have the required definitions to define well-formed models,
-as given in Figure~\ref{ref:model-typed}.
+as given in Figure~\ref{fig:model-typed}.
 In particular, we define \code{model_wf}
 to be a property of models that holds when its value and function fields
 are well-formed.
