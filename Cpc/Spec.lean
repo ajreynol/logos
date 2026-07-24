@@ -66,23 +66,27 @@ def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> native_Nat ->
   | r1, n => SmtTerm.None
 
 
-def __eo_to_smt_strings_occur_index (s : SmtTerm) (t : SmtTerm) (n : SmtTerm) : SmtTerm :=
+def __eo_to_smt_strings_num_occur (s : SmtTerm) (t : SmtTerm) : SmtTerm :=
   
     let _v0 := (SmtTerm.Numeral 0)
-    let _v1 := (SmtTerm.Numeral 1)
-    let _v3 := (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-    let _v4 := (SmtTerm.str_substr s _v0 (SmtTerm.neg _v3 _v1))
-    let _v5 := (SmtTerm.str_substr s _v0 _v3)
-    (SmtTerm.choice (native_string_lit "@x") SmtType.Int (SmtTerm.and (SmtTerm.geq _v3 _v0) (SmtTerm.and (SmtTerm.eq (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_replace_all _v5 t (SmtTerm.str_substr _v5 _v0 _v1))) (SmtTerm.str_len (SmtTerm.str_replace_all _v5 t (SmtTerm.str_substr _v5 _v0 _v0)))) n) (SmtTerm.or (SmtTerm.eq _v3 _v0) (SmtTerm.lt (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_replace_all _v4 t (SmtTerm.str_substr _v4 _v0 _v1))) (SmtTerm.str_len (SmtTerm.str_replace_all _v4 t (SmtTerm.str_substr _v4 _v0 _v0)))) n)))))
+    (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_replace_all s t (SmtTerm.str_substr s _v0 (SmtTerm.Numeral 1)))) (SmtTerm.str_len (SmtTerm.str_replace_all s t (SmtTerm.str_substr s _v0 _v0))))
+
+def __eo_to_smt_strings_num_occur_re (s : SmtTerm) (t : SmtTerm) : SmtTerm :=
+  
+    let _v0 := (SmtTerm.Numeral 0)
+    (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_replace_re_all s t (SmtTerm.str_substr s _v0 (SmtTerm.Numeral 1)))) (SmtTerm.str_len (SmtTerm.str_replace_re_all s t (SmtTerm.str_substr s _v0 _v0))))
+
+def __eo_to_smt_strings_occur_index (s : SmtTerm) (t : SmtTerm) (n : SmtTerm) : SmtTerm :=
+  
+    let _v1 := (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+    let _v2 := (SmtTerm.Numeral 0)
+    (SmtTerm.choice (native_string_lit "@x") SmtType.Int (SmtTerm.and (SmtTerm.geq _v1 _v2) (SmtTerm.and (SmtTerm.eq (__eo_to_smt_strings_num_occur (SmtTerm.str_substr s _v2 _v1) t) n) (SmtTerm.or (SmtTerm.eq _v1 _v2) (SmtTerm.lt (__eo_to_smt_strings_num_occur (SmtTerm.str_substr s _v2 (SmtTerm.neg _v1 (SmtTerm.Numeral 1))) t) n)))))
 
 def __eo_to_smt_strings_occur_index_re (s : SmtTerm) (t : SmtTerm) (n : SmtTerm) : SmtTerm :=
   
-    let _v0 := (SmtTerm.Numeral 0)
-    let _v1 := (SmtTerm.Numeral 1)
-    let _v3 := (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-    let _v4 := (SmtTerm.str_substr s _v0 (SmtTerm.neg _v3 _v1))
-    let _v5 := (SmtTerm.str_substr s _v0 _v3)
-    (SmtTerm.choice (native_string_lit "@x") SmtType.Int (SmtTerm.and (SmtTerm.geq _v3 _v0) (SmtTerm.and (SmtTerm.eq (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_replace_re_all _v5 t (SmtTerm.str_substr _v5 _v0 _v1))) (SmtTerm.str_len (SmtTerm.str_replace_re_all _v5 t (SmtTerm.str_substr _v5 _v0 _v0)))) n) (SmtTerm.or (SmtTerm.eq _v3 _v0) (SmtTerm.lt (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_replace_re_all _v4 t (SmtTerm.str_substr _v4 _v0 _v1))) (SmtTerm.str_len (SmtTerm.str_replace_re_all _v4 t (SmtTerm.str_substr _v4 _v0 _v0)))) n)))))
+    let _v1 := (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+    let _v2 := (SmtTerm.Numeral 0)
+    (SmtTerm.choice (native_string_lit "@x") SmtType.Int (SmtTerm.and (SmtTerm.geq _v1 _v2) (SmtTerm.and (SmtTerm.eq (__eo_to_smt_strings_num_occur_re (SmtTerm.str_substr s _v2 _v1) t) n) (SmtTerm.or (SmtTerm.eq _v1 _v2) (SmtTerm.lt (__eo_to_smt_strings_num_occur_re (SmtTerm.str_substr s _v2 (SmtTerm.neg _v1 (SmtTerm.Numeral 1))) t) n)))))
 
 def __eo_to_smt_set_empty : SmtType -> SmtTerm
   | (SmtType.Set T) => (SmtTerm.set_empty T)
@@ -391,16 +395,8 @@ def __eo_to_smt : Term -> SmtTerm
     let _v0 := (__eo_to_smt x2)
     let _v1 := (SmtTerm.Numeral 0)
     (SmtTerm.ite (SmtTerm.eq _v0 _v1) _v1 (SmtTerm.str_to_int (SmtTerm.str_substr (SmtTerm.str_from_int (__eo_to_smt x1)) _v1 _v0)))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x1) x2) => 
-    let _v0 := (SmtTerm.Numeral 0)
-    let _v1 := (__eo_to_smt x1)
-    let _v2 := (__eo_to_smt x2)
-    (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_replace_all _v1 _v2 (SmtTerm.str_substr _v1 _v0 (SmtTerm.Numeral 1)))) (SmtTerm.str_len (SmtTerm.str_replace_all _v1 _v2 (SmtTerm.str_substr _v1 _v0 _v0))))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x1) x2) => 
-    let _v0 := (SmtTerm.Numeral 0)
-    let _v1 := (__eo_to_smt x1)
-    let _v2 := (__eo_to_smt x2)
-    (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_replace_re_all _v1 _v2 (SmtTerm.str_substr _v1 _v0 (SmtTerm.Numeral 1)))) (SmtTerm.str_len (SmtTerm.str_replace_re_all _v1 _v2 (SmtTerm.str_substr _v1 _v0 _v0))))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x1) x2) => (__eo_to_smt_strings_num_occur (__eo_to_smt x1) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x1) x2) => (__eo_to_smt_strings_num_occur_re (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_occur_index) x1) x2) x3) => (__eo_to_smt_strings_occur_index (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_occur_index_re) x1) x2) x3) => (__eo_to_smt_strings_occur_index_re (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.Apply (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_replace_all_result) x1) x2) x3) x4) => 

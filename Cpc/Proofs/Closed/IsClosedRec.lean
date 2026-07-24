@@ -14503,18 +14503,41 @@ by
                 (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
             (__eo_to_smt body)) := by
       exact hTrans
-    have hTy :=
-      generic_apply_type_of_non_special_head_closed _ _
+    have hTy :
+        __smtx_typeof
+            (SmtTerm.Apply
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.Apply g y) x)
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+              (__eo_to_smt body)) =
+          __smtx_typeof_apply
+            (__smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.Apply g y) x)
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))))
+            (__smtx_typeof (__eo_to_smt body)) :=
+      generic_apply_type_of_non_special_head_closed
+        (__eo_to_smt
+          (Term.Apply
+            (Term.Apply (Term.Apply g y) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+        (__eo_to_smt body)
         (by
           intro s d i j h
           exact
             TranslationProofs.eo_to_smt_apply_ne_dt_sel
-              _ _ s d i j h)
+              (Term.Apply (Term.Apply g y) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+              s d i j h)
         (by
           intro s d i h
           exact
             TranslationProofs.eo_to_smt_apply_ne_dt_tester
-              _ _ s d i h)
+              (Term.Apply (Term.Apply g y) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+              s d i h)
     have hHeadTrans :=
       (apply_args_have_smt_translation_of_non_none hTy hNN).1
     exact false_of_apply_apply_apply_raw_list_has_smt_translation
