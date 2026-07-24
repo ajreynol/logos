@@ -96,6 +96,7 @@ by
       __smtx_typeof_int_to_bv,
       __eo_to_smt_array_deq_diff,
       __eo_to_smt_sets_deq_diff, __eo_to_smt_set_insert,
+      __eo_to_smt_strings_num_occur, __eo_to_smt_strings_num_occur_re,
       __eo_to_smt_tuple_prepend, __eo_to_smt_tuple_prepend_of_type,
       __eo_to_smt_set_elem_type, __eo_to_smt_typed_list_elem_type,
       __smtx_bv_sizeof_type, __smtx_type_wf, __smtx_type_wf_component,
