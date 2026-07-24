@@ -1355,6 +1355,20 @@ theorem instantiate_eo_requires_result_eq_of_ne_stuck {x y z : Term} :
     · simp [hxy, hx, native_ite, SmtEval.native_not]
   · simp [hxy, native_ite] at h
 
+private theorem eo_type_valid_rec_dtc_app_args
+    {refs : List native_String} {T U : Term}
+    (h :
+      TranslationProofs.eo_type_valid_rec refs
+        (Term.DtcAppType T U)) :
+    TranslationProofs.eo_type_valid_rec [] T ∧
+      TranslationProofs.eo_type_valid_rec [] U := by
+  unfold TranslationProofs.eo_type_valid_rec at h ⊢
+  cases hT : __eo_to_smt_type T <;>
+    cases hU : __eo_to_smt_type U <;>
+      simp [__eo_to_smt_type, hT, hU, TranslationProofs.noNoneTy,
+        __smtx_typeof_guard, native_ite, native_Teq, native_and] at h ⊢
+  all_goals assumption
+
 theorem instantiate_smtx_typeof_apply_non_none_of_eo_typeof_apply_non_stuck
     (F X : Term)
     (hFValid : TranslationProofs.eo_type_valid F)
@@ -1373,9 +1387,7 @@ theorem instantiate_smtx_typeof_apply_non_none_of_eo_typeof_apply_non_stuck
       subst X
       have hValid : TranslationProofs.eo_type_valid_rec [] (Term.DtcAppType T U) := by
         simpa [TranslationProofs.eo_type_valid] using hFValid
-      rcases (by simpa [TranslationProofs.eo_type_valid_rec] using hValid :
-        TranslationProofs.eo_type_valid_rec [] T ∧
-          TranslationProofs.eo_type_valid_rec [] U) with ⟨hT, hU⟩
+      rcases eo_type_valid_rec_dtc_app_args hValid with ⟨hT, hU⟩
       have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
         TranslationProofs.eo_type_valid_rec_non_none hT
       have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
@@ -1399,10 +1411,7 @@ theorem instantiate_smtx_typeof_apply_non_none_of_eo_typeof_apply_non_stuck
                   TranslationProofs.eo_type_valid_rec []
                     (Term.Apply (Term.Apply Term.FunType T) U) := by
                 simpa [TranslationProofs.eo_type_valid] using hFValid
-              rcases (by
-                  simpa [TranslationProofs.eo_type_valid_rec] using hValid :
-                    TranslationProofs.eo_type_valid_rec [] T ∧
-                      TranslationProofs.eo_type_valid_rec [] U) with
+              rcases eo_type_valid_rec_fun_args hValid with
                 ⟨hT, hU⟩
               have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
                 TranslationProofs.eo_type_valid_rec_non_none hT

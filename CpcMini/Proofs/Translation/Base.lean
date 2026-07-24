@@ -32,7 +32,7 @@ private theorem eo_to_smt_var_ne
       exact hNone h
 
 /-- Shows that EO translation never produces a datatype tester. -/
-theorem eo_to_smt_ne_dt_tester (t : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+theorem eo_to_smt_ne_dt_tester (t : Term) (s : native_String) (d : SmtDatatypeDecl) (i : native_Nat) :
     __eo_to_smt t ≠ SmtTerm.DtTester s d i := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
@@ -58,7 +58,7 @@ theorem eo_to_smt_ne_dt_tester (t : Term) (s : native_String) (d : SmtDatatype) 
 theorem eo_to_smt_ne_dt_sel
     (t : Term)
     (hNoSel : ∀ s d i j, t ≠ Term.DtSel s d i j)
-    (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
+    (s : native_String) (d : SmtDatatypeDecl) (i j : native_Nat) :
     __eo_to_smt t ≠ SmtTerm.DtSel s d i j := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)

@@ -20,7 +20,7 @@ attribute [local simp] native_streq
 attribute [local simp] native_and
 
 @[simp] private theorem guarded_datatype_type_ne_bool
-    (s : native_String) (d : SmtDatatype) :
+    (s : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Bool := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -32,7 +32,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_int
-    (s : native_String) (d : SmtDatatype) :
+    (s : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Int := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -44,7 +44,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_real
-    (s : native_String) (d : SmtDatatype) :
+    (s : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Real := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -56,7 +56,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_reglan
-    (s : native_String) (d : SmtDatatype) :
+    (s : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.RegLan := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -68,7 +68,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_char
-    (s : native_String) (d : SmtDatatype) :
+    (s : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Char := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -80,7 +80,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_bitvec
-    (s : native_String) (d : SmtDatatype) (w : native_Nat) :
+    (s : native_String) (d : SmtDatatypeDecl) (w : native_Nat) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.BitVec w := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -92,7 +92,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_seq
-    (s : native_String) (d : SmtDatatype) (A : SmtType) :
+    (s : native_String) (d : SmtDatatypeDecl) (A : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Seq A := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -104,7 +104,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_set
-    (s : native_String) (d : SmtDatatype) (A : SmtType) :
+    (s : native_String) (d : SmtDatatypeDecl) (A : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Set A := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -116,7 +116,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_map
-    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    (s : native_String) (d : SmtDatatypeDecl) (A B : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Map A B := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -128,7 +128,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_fun
-    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    (s : native_String) (d : SmtDatatypeDecl) (A B : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.FunType A B := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -140,7 +140,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_ifun
-    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    (s : native_String) (d : SmtDatatypeDecl) (A B : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.FunType A B := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -152,7 +152,7 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_dtc_app
-    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    (s : native_String) (d : SmtDatatypeDecl) (A B : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.DtcAppType A B := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -164,19 +164,19 @@ attribute [local simp] native_and
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_typeref
-    (s r : native_String) (d : SmtDatatype) :
+    (s r : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.TypeRef r := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_typeref_type_ne_datatype
-    (s r : native_String) (d : SmtDatatype) :
+    (s r : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
       SmtType.Datatype r d := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_usort
-    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    (s : native_String) (d : SmtDatatypeDecl) (i : native_Nat) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.USort i := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -254,7 +254,7 @@ attribute [local simp] native_and
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_datatype
-    (T U : SmtType) (s : native_String) (d : SmtDatatype) :
+    (T U : SmtType) (s : native_String) (d : SmtDatatypeDecl) :
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then SmtType.FunType T U else SmtType.FunType T U) ≠
       SmtType.Datatype s d := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
@@ -277,11 +277,11 @@ diagonal self-check `__smtx_type_wf_rec T T`; the ambient `refs` parameter is no
 (kept only so existing call sites, many of which threaded a `RefList` that no longer carries any
 scoping information, continue to type-check). -/
 @[expose] def smtx_type_field_wf_rec (T : SmtType) (_refs : RefList) : Prop :=
-  __smtx_type_wf_rec T T = true
+  __smtx_type_wf_rec T = true
 
 theorem smtx_type_field_wf_rec_of_type_wf_rec
     {T : SmtType} {refs : RefList}
-    (h : __smtx_type_wf_rec T T = true) :
+    (h : __smtx_type_wf_rec T = true) :
     smtx_type_field_wf_rec T refs :=
   h
 
@@ -299,30 +299,21 @@ whose full (substituted) side agrees with the raw head field (i.e. substitution 
 as it always is at non-`TypeRef` field positions since `__smtx_type_substitute` only ever rewrites a
 bare `TypeRef` matching the substituted name). -/
 theorem smtx_type_field_wf_rec_of_cons_wf
-    {T : SmtType} {c : SmtDatatypeCons} {refs : RefList}
+    {T : SmtType} {c : SmtDatatypeCons} {dd : SmtDatatypeDecl} {refs : RefList}
     (hNotRef : ∀ s, T ≠ SmtType.TypeRef s)
-    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) (SmtDatatypeCons.cons T c) = true) :
+    (h : __smtx_dt_cons_wf_rec dd (SmtDatatypeCons.cons T c) = true) :
     smtx_type_field_wf_rec T refs := by
-  simp only [smtx_type_field_wf_rec]
-  have hgen : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) (SmtDatatypeCons.cons T c) =
-      native_ite (native_and (native_inhabited_type T) (__smtx_type_wf_rec T T))
-        (__smtx_dt_cons_wf_rec c c) false := by
-    cases T with
-    | TypeRef s => exact absurd rfl (hNotRef s)
-    | _ => simp [__smtx_dt_cons_wf_rec]
-  rw [hgen] at h
-  cases hb : native_and (native_inhabited_type T) (__smtx_type_wf_rec T T) with
-  | false =>
-      rw [hb] at h
-      exact absurd h (by simp [native_ite])
-  | true =>
-      simp only [native_and, Bool.and_eq_true] at hb
-      exact hb.2
+  cases T with
+  | TypeRef s => exact absurd rfl (hNotRef s)
+  | _ =>
+      simp [__smtx_dt_cons_wf_rec,
+        native_and] at h
+      exact h.1.2
 
 theorem smtx_type_wf_rec_guard_of_true
     (T U : SmtType)
-    (h : __smtx_type_wf_rec (__smtx_typeof_guard T U) (__smtx_typeof_guard T U) = true) :
-    __smtx_type_wf_rec U U = true := by
+    (h : __smtx_type_wf_rec (__smtx_typeof_guard T U) = true) :
+    __smtx_type_wf_rec U = true := by
   by_cases hNone : T = SmtType.None
   · exfalso
     simp [__smtx_typeof_guard, hNone, native_ite, native_Teq, __smtx_type_wf_rec] at h
@@ -332,14 +323,12 @@ theorem smtx_type_wf_rec_guard_of_true
 
 theorem seq_type_wf_rec_component_of_wf
     {A : SmtType}
-    (h : __smtx_type_wf_rec (SmtType.Seq A) (SmtType.Seq A) = true) :
-    __smtx_type_wf_rec A A = true := by
-  have hA :
-      (native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A A = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil A = true := by
+    (h : __smtx_type_wf_rec (SmtType.Seq A) = true) :
+    __smtx_type_wf_rec A = true := by
+  have h' :
+      native_inhabited_type A = true ∧ __smtx_type_wf_rec A = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
-  exact hA.1.2
+  exact h'.2
 
 theorem seq_type_field_wf_rec_component_of_wf
     {A : SmtType} {refs : RefList}
@@ -351,14 +340,12 @@ theorem seq_type_field_wf_rec_component_of_wf
 
 theorem set_type_wf_rec_component_of_wf
     {A : SmtType}
-    (h : __smtx_type_wf_rec (SmtType.Set A) (SmtType.Set A) = true) :
-    __smtx_type_wf_rec A A = true := by
-  have hA :
-      (native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A A = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil A = true := by
+    (h : __smtx_type_wf_rec (SmtType.Set A) = true) :
+    __smtx_type_wf_rec A = true := by
+  have h' :
+      native_inhabited_type A = true ∧ __smtx_type_wf_rec A = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
-  exact hA.1.2
+  exact h'.2
 
 theorem set_type_field_wf_rec_component_of_wf
     {A : SmtType} {refs : RefList}
@@ -370,18 +357,14 @@ theorem set_type_field_wf_rec_component_of_wf
 
 theorem map_type_wf_rec_components_of_wf
     {A B : SmtType}
-    (h : __smtx_type_wf_rec (SmtType.Map A B) (SmtType.Map A B) = true) :
-    __smtx_type_wf_rec A A = true ∧
-      __smtx_type_wf_rec B B = true := by
+    (h : __smtx_type_wf_rec (SmtType.Map A B) = true) :
+    __smtx_type_wf_rec A = true ∧
+      __smtx_type_wf_rec B = true := by
   have h' :
-      ((native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A A = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
-        (native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B B = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil B = true := by
+      (native_inhabited_type A = true ∧ __smtx_type_wf_rec A = true) ∧
+        (native_inhabited_type B = true ∧ __smtx_type_wf_rec B = true) := by
     simpa [__smtx_type_wf_rec, native_and] using h
-  exact ⟨h'.1.1.2, h'.2.1.2⟩
+  exact ⟨h'.1.2, h'.2.2⟩
 
 theorem map_type_field_wf_rec_components_of_wf
     {A B : SmtType} {refs : RefList}
@@ -396,23 +379,17 @@ theorem map_type_field_wf_rec_components_of_wf
 theorem fun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf_rec A A = true ∧
-      __smtx_type_wf_rec B B = true := by
-  have h' :
-      ((native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A A = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
-        ((native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B B = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil B = true) := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
-  exact ⟨h'.1.1.2, h'.2.1.2⟩
+    __smtx_type_wf_rec A = true ∧
+      __smtx_type_wf_rec B = true := by
+  have h' := h
+  simp [__smtx_type_wf, __smtx_type_wf_component, native_and] at h'
+  exact ⟨h'.1.2, h'.2.2⟩
 
 theorem ifun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf_rec A A = true ∧
-      __smtx_type_wf_rec B B = true := by
+    __smtx_type_wf_rec A = true ∧
+      __smtx_type_wf_rec B = true := by
   exact fun_type_wf_rec_components_of_wf h
 
 theorem fun_type_field_wf_rec_components_of_wf
@@ -423,14 +400,11 @@ theorem fun_type_field_wf_rec_components_of_wf
   simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
 
 theorem smtx_dt_cons_wf_rec_tail_of_true
-    {TF TU : SmtType} {cF cU : SmtDatatypeCons}
-    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TF cF) (SmtDatatypeCons.cons TU cU) = true) :
-    __smtx_dt_cons_wf_rec cF cU = true := by
-  by_cases hc : __smtx_dt_cons_wf_rec cF cU = true
-  · exact hc
-  · exfalso
-    cases TF <;> cases TU <;>
-      simp_all [__smtx_dt_cons_wf_rec, native_ite, native_and]
+    {T : SmtType} {c : SmtDatatypeCons} {dd : SmtDatatypeDecl}
+    (h : __smtx_dt_cons_wf_rec dd (SmtDatatypeCons.cons T c) = true) :
+    __smtx_dt_cons_wf_rec dd c = true := by
+  cases T <;> simp [__smtx_dt_cons_wf_rec, native_and] at h <;>
+    exact h.2
 
 @[simp] private theorem eo_to_smt_type_bitvec_lit_ne_bool
     (n : native_Int) :
@@ -499,284 +473,128 @@ theorem smtx_dt_cons_wf_rec_tail_of_true
   by_cases hn : native_zleq 0 n = true <;> simp [native_ite, hn]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_bool`. -/
+private theorem eo_to_smt_type_tuple_eq_none_or_datatype
+    (U V : SmtType) :
+    __eo_to_smt_type_tuple U V = SmtType.None ∨
+      ∃ dd : SmtDatatypeDecl,
+        __eo_to_smt_type_tuple U V =
+          SmtType.Datatype (native_string_lit "@Tuple") dd := by
+  cases V <;> simp [__eo_to_smt_type_tuple]
+  case Datatype s dd =>
+    cases dd with
+    | nil => simp
+    | cons s2 d rest =>
+      cases d with
+      | null => simp
+      | sum c dTail =>
+        cases dTail with
+        | sum c2 d2 => simp
+        | null =>
+          cases rest with
+          | cons s3 d3 rest3 => simp
+          | nil =>
+            by_cases hs : s = native_string_lit "@Tuple"
+            · by_cases hs2 : s2 = native_string_lit "@Tuple"
+              · by_cases hU : __smtx_type_wf_component U = true <;>
+                  simp [hs, hs2, hU]
+              · simp [hs, hs2]
+            · simp [hs]
+
 theorem eo_to_smt_type_tuple_ne_bool
     (U V : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.Bool := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_int`. -/
 theorem eo_to_smt_type_tuple_ne_int
     (U V : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.Int := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_real`. -/
 theorem eo_to_smt_type_tuple_ne_real
     (U V : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.Real := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_reglan`. -/
 theorem eo_to_smt_type_tuple_ne_reglan
     (U V : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.RegLan := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_bitvec`. -/
 theorem eo_to_smt_type_tuple_ne_bitvec
     (U V : SmtType) (w : native_Nat) :
     __eo_to_smt_type_tuple U V ≠ SmtType.BitVec w := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_char`. -/
 theorem eo_to_smt_type_tuple_ne_char
     (U V : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.Char := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_seq`. -/
 theorem eo_to_smt_type_tuple_ne_seq
     (U V W : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.Seq W := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_set`. -/
 theorem eo_to_smt_type_tuple_ne_set
     (U V W : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.Set W := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_map`. -/
 theorem eo_to_smt_type_tuple_ne_map
     (U V W X : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.Map W X := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_fun`. -/
 theorem eo_to_smt_type_tuple_ne_fun
     (U V A B : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.FunType A B := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_ifun`. -/
 theorem eo_to_smt_type_tuple_ne_ifun
     (U V A B : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.FunType A B := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  exact eo_to_smt_type_tuple_ne_fun U V A B
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_usort`. -/
 theorem eo_to_smt_type_tuple_ne_usort
     (U V : SmtType) (i : native_Nat) :
     __eo_to_smt_type_tuple U V ≠ SmtType.USort i := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_typeref`. -/
 theorem eo_to_smt_type_tuple_ne_typeref
     (U V : SmtType) (s' : native_String) :
     __eo_to_smt_type_tuple U V ≠ SmtType.TypeRef s' := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_dtc_app`. -/
 theorem eo_to_smt_type_tuple_ne_dtc_app
     (U V A B : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.DtcAppType A B := by
-  cases V <;> try simp [__eo_to_smt_type_tuple]
-  case Datatype s d =>
-    cases d with
-    | null =>
-        simp
-    | sum c d' =>
-        cases d' with
-        | null =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst hs
-              by_cases hComp : __smtx_type_wf_component U = true <;>
-                simp [hComp]
-            · simp [hs]
-        | sum c' d'' =>
-            simp
+  rcases eo_to_smt_type_tuple_eq_none_or_datatype U V with h | ⟨dd, h⟩ <;>
+    simp [h]
 
 private theorem eo_to_smt_type_guarded_tuple_ne_bool
     (U V : SmtType) :
@@ -1876,10 +1694,10 @@ The `@Tuple` datatype is generated by the EO tuple encoding, so excluding it
 keeps user datatypes disjoint from tuple types.
 -/
 theorem eo_to_smt_type_eq_datatype_non_tuple
-    {T : Term} {s : native_String} {d : SmtDatatype}
+    {T : Term} {s : native_String} {d : SmtDatatypeDecl}
     (hName : s ≠ (native_string_lit "@Tuple"))
     (h : __eo_to_smt_type T = SmtType.Datatype s d) :
-    ∃ d0, T = Term.DatatypeType s d0 ∧ __eo_to_smt_datatype d0 = d := by
+    ∃ d0, T = Term.DatatypeType s d0 ∧ __eo_to_smt_datatype_decl d0 = d := by
   cases T with
   | DatatypeType s' d' =>
       by_cases hReserved : __eo_reserved_datatype_name s' = true
@@ -1911,28 +1729,14 @@ theorem eo_to_smt_type_eq_datatype_non_tuple
                         (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
                     simp [hwf] at h ⊢
                   exact h
-                cases hx : __eo_to_smt_type x <;> simp [__eo_to_smt_type_tuple, hx] at hRaw
-                case Datatype s0 d0 =>
-                  by_cases hs0 : s0 = (native_string_lit "@Tuple")
-                  · subst s0
-                    cases d0 with
-                    | null => simp at hRaw
-                    | sum c rest =>
-                        cases rest with
-                        | null =>
-                            by_cases hComp :
-                                __smtx_type_wf_component (__eo_to_smt_type y) = true
-                            · simp [hComp] at hRaw
-                              rcases hRaw with ⟨hs, _⟩
-                              exact False.elim (hName hs.symm)
-                            · simp [hComp] at hRaw
-                        | sum c' rest' =>
-                            simp at hRaw
-                  · cases d0 with
-                    | null =>
-                        simp at hRaw
-                    | sum c rest =>
-                        cases rest <;> simp [hs0] at hRaw
+                rcases eo_to_smt_type_tuple_eq_none_or_datatype
+                    (__eo_to_smt_type y) (__eo_to_smt_type x) with hNone | ⟨dd, hTuple⟩
+                · rw [hRaw] at hNone
+                  simp at hNone
+                · rw [hRaw] at hTuple
+                  have hs : s = native_string_lit "@Tuple" := by
+                    injection hTuple
+                  exact False.elim (hName hs)
           | FunType =>
               cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                 simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -1962,16 +1766,55 @@ theorem eo_to_smt_type_eq_datatype_non_tuple
   | _ =>
       simp [__eo_to_smt_type] at h
 
+private theorem eo_to_smt_type_tuple_eq_datatype_inv
+    {A B : SmtType} {dd : SmtDatatypeDecl}
+    (h : __eo_to_smt_type_tuple A B =
+      SmtType.Datatype (native_string_lit "@Tuple") dd) :
+    ∃ c : SmtDatatypeCons,
+      B = SmtType.Datatype (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl (SmtDatatype.sum c SmtDatatype.null)) ∧
+      dd = __smtx_tuple_datatype_decl
+          (SmtDatatype.sum (SmtDatatypeCons.cons A c) SmtDatatype.null) := by
+  cases B <;> try simp [__eo_to_smt_type_tuple] at h
+  case Datatype s decl =>
+    cases decl with
+    | nil => simp at h
+    | cons s2 body rest =>
+      cases body with
+      | null => simp at h
+      | sum c tail =>
+        cases tail with
+        | sum c2 tail2 => simp at h
+        | null =>
+          cases rest with
+          | cons s3 body3 rest3 => simp at h
+          | nil =>
+            by_cases hs : s = native_string_lit "@Tuple"
+            · by_cases hs2 : s2 = native_string_lit "@Tuple"
+              · by_cases hA : __smtx_type_wf_component A = true
+                · subst s
+                  subst s2
+                  simp [hA] at h
+                  subst dd
+                  exact ⟨c, rfl, rfl⟩
+                · simp [hs, hs2, hA] at h
+              · simp [hs, hs2] at h
+            · simp [hs] at h
+
 /-- Inverts translated EO tuple types. -/
 theorem eo_to_smt_type_eq_tuple_datatype
-    {T : Term} {d : SmtDatatype}
+    {T : Term} {d : SmtDatatypeDecl}
     (h : __eo_to_smt_type T = SmtType.Datatype (native_string_lit "@Tuple") d) :
     (T = Term.UOp UserOp.UnitTuple ∧
-      d = SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) ∨
+      d = __smtx_tuple_datatype_decl
+        (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) ∨
     (∃ y x c,
       T = Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) y) x ∧
-      __eo_to_smt_type x = SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ∧
-      d = SmtDatatype.sum (SmtDatatypeCons.cons (__eo_to_smt_type y) c) SmtDatatype.null) := by
+      __eo_to_smt_type x = SmtType.Datatype (native_string_lit "@Tuple")
+        (__smtx_tuple_datatype_decl (SmtDatatype.sum c SmtDatatype.null)) ∧
+      d = __smtx_tuple_datatype_decl
+        (SmtDatatype.sum (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
+          SmtDatatype.null)) := by
   cases T with
   | UOp op =>
       cases op <;> simp [__eo_to_smt_type] at h
@@ -1996,27 +1839,9 @@ theorem eo_to_smt_type_eq_tuple_datatype
                         (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
                     simp [hWf] at h ⊢
                   exact h
-                cases hx : __eo_to_smt_type x <;> simp [__eo_to_smt_type_tuple, hx] at hRaw
-                case Datatype s0 d0 =>
-                  by_cases hs0 : s0 = (native_string_lit "@Tuple")
-                  · subst s0
-                    cases d0 with
-                    | null => simp at hRaw
-                    | sum c rest =>
-                        cases rest with
-                        | sum c' rest' => simp at hRaw
-                        | null =>
-                            by_cases hComp :
-                                __smtx_type_wf_component (__eo_to_smt_type y) = true
-                            · simp [hComp] at hRaw
-                              cases hRaw
-                              exact Or.inr ⟨y, x, c, rfl, hx, rfl⟩
-                            · simp [hComp] at hRaw
-                  · cases d0 with
-                    | null =>
-                        simp at hRaw
-                    | sum c rest =>
-                        cases rest <;> simp [hs0] at hRaw
+                rcases eo_to_smt_type_tuple_eq_datatype_inv hRaw with
+                  ⟨c, hx, hd⟩
+                exact Or.inr ⟨y, x, c, rfl, hx, hd⟩
           | FunType =>
               cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                 simp [__eo_to_smt_type, __smtx_typeof_guard,
@@ -2056,6 +1881,10 @@ theorem eo_to_smt_type_eq_tuple_datatype
 
 
 
+/- BEGIN obsolete body-substitution and two-sided-WF development.
+The declaration-based model resolves datatype references through a shared
+declaration environment. Declaration-aware injectivity and component lemmas
+follow this block.
 /-! ## Reserved-name substitution no-op (used by the tuple cases below)
 Substituting a *reserved* datatype name (e.g. the synthetic `"@Tuple"`) is a no-op on any
 translated type, because translation never emits a `TypeRef` bearing a reserved name at a
@@ -2878,6 +2707,8 @@ theorem eo_to_smt_datatype_injective_of_diag_wf
     d = e :=
   inj_dt_noNone d e D (noNoneDt_of_diag_wf hWF) hd he
 
+-/
+
 /-- EO type translation never produces a tuple-private type reference. -/
 theorem eo_to_smt_type_ne_tuple_typeref
     (T : Term) :
@@ -2890,6 +2721,8 @@ theorem eo_to_smt_type_ne_tuple_typeref
   rw [show __eo_reserved_datatype_name (native_string_lit "@Tuple") = true by native_decide] at h
   simp [native_ite] at h
 
+mutual
+
 /--
 If an EO term translates as a well-formed SMT type, the EO term itself has EO
 type `Type`.
@@ -2900,11 +2733,17 @@ directly and uses recursive well-formedness for all other field types.
 -/
 theorem eo_typeof_type_of_smt_type_wf_rec :
     (T : Term) ->
-    __smtx_type_wf_rec (__eo_to_smt_type T) (__eo_to_smt_type T) = true ->
+    __smtx_type_wf_rec (__eo_to_smt_type T) = true ->
     __eo_typeof T = Term.Type
   | Term.UOp op, hWF => by
       cases op <;> simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF ⊢ <;>
         first | rfl | contradiction
+  | Term.UOp1 op a, hWF => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
+  | Term.UOp2 op a b, hWF => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
+  | Term.UOp3 op a b c, hWF => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
   | Term.__eo_List, hWF => by
       simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
   | Term.__eo_List_nil, hWF => by
@@ -2990,60 +2829,47 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                 rw [hy, hx]
                 rfl
               case Tuple =>
-                have hRawWf :
-                    __smtx_type_wf
-                        (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) =
-                      true := by
-                  cases hRaw :
-                      __smtx_type_wf
-                        (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
-                    simp [hRaw, __smtx_type_wf_rec] at hWF ⊢
-                have hRawRec :
-                    __smtx_type_wf_rec
-                        (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x))
-                        (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) =
-                      true := by
-                  have hNotReg :
-                      __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) ≠
-                        SmtType.RegLan :=
-                    eo_to_smt_type_tuple_ne_reglan (__eo_to_smt_type y) (__eo_to_smt_type x)
-                  have hNotFun :
-                      ∀ A B : SmtType,
-                        __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) ≠
-                          SmtType.FunType A B := by
-                    intro A B
-                    exact eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type y) (__eo_to_smt_type x) A B
-                  have hNotIFun :
-                      ∀ A B : SmtType,
-                        __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) ≠
-                          SmtType.FunType A B := by
-                    intro A B
-                    exact eo_to_smt_type_tuple_ne_ifun (__eo_to_smt_type y) (__eo_to_smt_type x) A B
-                  cases hTuple :
-                      __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) <;>
-                    simp [hTuple, __smtx_type_wf, __smtx_type_wf_component,
-                      native_and] at hRawWf hNotReg ⊢
-                  case FunType A B =>
-                    exact False.elim (hNotFun A B hTuple)
-                  all_goals first | contradiction | exact hRawWf.2 | exact hRawWf.1.2
-                -- Substitution is a no-op on the tuple's fields (`translate y`/`translate x`), because
-                -- a validly-typed argument never translates to something bearing a reserved-name
-                -- `TypeRef` at a substitution-reachable position. `tuple_diag_wf_components` packages
-                -- this to hand back the component diagonal well-formedness, from which the elements
-                -- have EO type `Type` by recursion.
-                have hNN :
-                    __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) ≠
-                      SmtType.None := by
+                let raw :=
+                  __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)
+                have hRawWf : __smtx_type_wf raw = true := by
+                  cases hw : __smtx_type_wf raw
+                  · simp [raw, hw, __smtx_type_wf_rec] at hWF
+                  · rfl
+                have hRawNN : raw ≠ SmtType.None := by
                   intro hNone
-                  rw [hNone] at hRawWf
-                  simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-                    native_and] at hRawWf
-                obtain ⟨hyWF, hxWF⟩ := tuple_diag_wf_components y x hRawRec hNN
-                have hy := eo_typeof_type_of_smt_type_wf_rec y hyWF
-                have hx := eo_typeof_type_of_smt_type_wf_rec x hxWF
-                change __eo_typeof__at__at_Pair (__eo_typeof y) (__eo_typeof x) = Term.Type
-                rw [hy, hx]
-                rfl
+                  simp [hNone, __smtx_type_wf, __smtx_type_wf_component,
+                    __smtx_type_wf_rec, native_and] at hRawWf
+                rcases eo_to_smt_type_tuple_eq_none_or_datatype
+                    (__eo_to_smt_type y) (__eo_to_smt_type x) with hNone | ⟨dd, hRaw⟩
+                · exact False.elim (hRawNN (by simpa [raw] using hNone))
+                · have hRaw' :
+                      __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) =
+                        SmtType.Datatype (native_string_lit "@Tuple") dd := hRaw
+                  rcases eo_to_smt_type_tuple_eq_datatype_inv hRaw' with ⟨c, hx, rfl⟩
+                  have hyComp :
+                      __smtx_type_wf_component (__eo_to_smt_type y) = true := by
+                    by_cases hy :
+                        __smtx_type_wf_component (__eo_to_smt_type y) = true
+                    · exact hy
+                    · have hyF :
+                          __smtx_type_wf_component (__eo_to_smt_type y) = false :=
+                        Bool.eq_false_iff.mpr hy
+                      simp [__eo_to_smt_type_tuple, __smtx_tuple_datatype_decl,
+                        hx, hyF] at hRaw'
+                  have hyWF : __smtx_type_wf_rec (__eo_to_smt_type y) = true := by
+                    have hParts :
+                        native_inhabited_type (__eo_to_smt_type y) = true ∧
+                          __smtx_type_wf_rec (__eo_to_smt_type y) = true := by
+                      simpa [__smtx_type_wf_component, native_and] using hyComp
+                    exact hParts.2
+                  have hyType := eo_typeof_type_of_smt_type_wf_rec y hyWF
+                  have hxType := eo_typeof_type_of_smt_tuple x
+                    (__smtx_tuple_datatype_decl
+                      (SmtDatatype.sum c SmtDatatype.null)) hx
+                  change __eo_typeof__at__at_Pair (__eo_typeof y) (__eo_typeof x) =
+                    Term.Type
+                  rw [hyType, hxType]
+                  rfl
           | _ => simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
       | _ => simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
   | Term.FunType, hWF => by
@@ -3051,7 +2877,9 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
   | Term.Var name T, hWF => by
       simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
   | Term.DatatypeType s d, hWF => rfl
-  | Term.DatatypeTypeRef s, hWF => rfl
+  | Term.DatatypeTypeRef s, hWF => by
+      by_cases hr : __eo_reserved_datatype_name s = true <;>
+        simp [__eo_to_smt_type, hr, __smtx_type_wf_rec] at hWF
   | Term.DtcAppType T U, hWF => by
       have hInner := smtx_type_wf_rec_guard_of_true (__eo_to_smt_type T)
         (__smtx_typeof_guard (__eo_to_smt_type U)
@@ -3067,15 +2895,65 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
   | Term.USort i, hWF => rfl
   | Term.UConst i T, hWF => by
       simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
-  | Term.seq_empty T, hWF => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
-  | Term.set_empty T, hWF => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
-  | Term._at_quantifiers_skolemize q idx, hWF => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
-  | Term._at_const v T, hWF => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
 termination_by T => sizeOf T
+
+/-- A term translating to the private tuple datatype is an EO tuple type. -/
+theorem eo_typeof_type_of_smt_tuple :
+    (T : Term) ->
+    (dd : SmtDatatypeDecl) ->
+    __eo_to_smt_type T =
+      SmtType.Datatype (native_string_lit "@Tuple") dd ->
+    __eo_typeof T = Term.Type
+  | T, dd, h => by
+      rcases eo_to_smt_type_eq_tuple_datatype h with hUnit | hCons
+      · rcases hUnit with ⟨rfl, rfl⟩
+        rfl
+      · rcases hCons with ⟨y, x, c, rfl, hx, rfl⟩
+        have hRawWf :
+            __smtx_type_wf
+                (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) = true := by
+          change native_ite
+              (__smtx_type_wf
+                (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)))
+              (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x))
+              SmtType.None = _ at h
+          cases hw : __smtx_type_wf
+              (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
+            simp [native_ite, hw] at h ⊢
+        have hRaw :
+            __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) =
+              SmtType.Datatype (native_string_lit "@Tuple")
+                (__smtx_tuple_datatype_decl
+                  (SmtDatatype.sum (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
+                    SmtDatatype.null)) := by
+          change native_ite
+              (__smtx_type_wf
+                (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)))
+              (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x))
+              SmtType.None = _ at h
+          simpa [hRawWf] using h
+        have hyComp : __smtx_type_wf_component (__eo_to_smt_type y) = true := by
+          by_cases hy : __smtx_type_wf_component (__eo_to_smt_type y) = true
+          · exact hy
+          · have hyF : __smtx_type_wf_component (__eo_to_smt_type y) = false :=
+              Bool.eq_false_iff.mpr hy
+            simp [__eo_to_smt_type_tuple, __smtx_tuple_datatype_decl,
+              hx, hyF] at hRaw
+        have hyWF : __smtx_type_wf_rec (__eo_to_smt_type y) = true := by
+          have hParts :
+              native_inhabited_type (__eo_to_smt_type y) = true ∧
+                __smtx_type_wf_rec (__eo_to_smt_type y) = true := by
+            simpa [__smtx_type_wf_component, native_and] using hyComp
+          exact hParts.2
+        have hyType := eo_typeof_type_of_smt_type_wf_rec y hyWF
+        have hxType := eo_typeof_type_of_smt_tuple x
+          (__smtx_tuple_datatype_decl (SmtDatatype.sum c SmtDatatype.null)) hx
+        change __eo_typeof__at__at_Pair (__eo_typeof y) (__eo_typeof x) = Term.Type
+        rw [hyType, hxType]
+        rfl
+termination_by T => sizeOf T
+
+end
 
 theorem eo_typeof_type_of_smt_type_wf
     (T : Term)
@@ -3118,12 +2996,498 @@ theorem eo_typeof_type_of_smt_type_field_wf_rec
     __eo_typeof T = Term.Type := by
   cases hTy : __eo_to_smt_type T
   case TypeRef s =>
-    have hT : T = Term.DatatypeTypeRef s := eo_to_smt_type_eq_typeref hTy
-    subst T
-    rfl
+    simp [smtx_type_field_wf_rec, hTy, __smtx_type_wf_rec] at h
   all_goals
     exact eo_typeof_type_of_smt_type_wf_rec T (by
       simpa [smtx_type_field_wf_rec, hTy] using h)
+
+/- `None` is the only source of non-injectivity in type translation.  These
+predicates include declaration blocks, which replaced the old substituted
+datatype-body representation. -/
+mutual
+
+@[expose] def noNoneTy : SmtType → Bool
+  | SmtType.None => false
+  | SmtType.Datatype _ dd => noNoneDecl dd
+  | SmtType.Seq A => noNoneTy A
+  | SmtType.Set A => noNoneTy A
+  | SmtType.Map A B => native_and (noNoneTy A) (noNoneTy B)
+  | SmtType.FunType A B => native_and (noNoneTy A) (noNoneTy B)
+  | SmtType.DtcAppType A B => native_and (noNoneTy A) (noNoneTy B)
+  | _ => true
+
+@[expose] def noNoneDecl : SmtDatatypeDecl → Bool
+  | SmtDatatypeDecl.nil => true
+  | SmtDatatypeDecl.cons _ d dd => native_and (noNoneDt d) (noNoneDecl dd)
+
+@[expose] def noNoneDt : SmtDatatype → Bool
+  | SmtDatatype.null => true
+  | SmtDatatype.sum c d => native_and (noNoneDtc c) (noNoneDt d)
+
+@[expose] def noNoneDtc : SmtDatatypeCons → Bool
+  | SmtDatatypeCons.unit => true
+  | SmtDatatypeCons.cons T c => native_and (noNoneTy T) (noNoneDtc c)
+
+end
+
+theorem eo_to_smt_dd_lookup (s : native_String) :
+    ∀ dd : DatatypeDecl,
+      __eo_to_smt_datatype (__eo_dd_lookup s dd) =
+        __smtx_dd_lookup s (__eo_to_smt_datatype_decl dd)
+  | DatatypeDecl.nil => by
+      simp [__eo_dd_lookup, __smtx_dd_lookup, __eo_to_smt_datatype,
+        __eo_to_smt_datatype_decl]
+  | DatatypeDecl.cons s2 d dd => by
+      by_cases hs : s = s2
+      · subst s2
+        simp [__eo_dd_lookup, __smtx_dd_lookup, __eo_to_smt_datatype_decl,
+          native_ite, native_streq]
+      · simp [__eo_dd_lookup, __smtx_dd_lookup, __eo_to_smt_datatype_decl,
+          native_ite, native_streq, hs, eo_to_smt_dd_lookup s dd]
+
+private theorem eo_dtc_resolve_cons_of_not_ref
+    (T : Term) (c : DatatypeCons) (dd : DatatypeDecl)
+    (h : ∀ s, T ≠ Term.DatatypeTypeRef s) :
+    __eo_dtc_resolve (DatatypeCons.cons T c) dd =
+      DatatypeCons.cons T (__eo_dtc_resolve c dd) := by
+  cases T <;> simp [__eo_dtc_resolve] at h ⊢
+
+private theorem smtx_dtc_resolve_cons_of_not_typeref
+    (T : SmtType) (c : SmtDatatypeCons) (dd : SmtDatatypeDecl)
+    (h : ∀ s, T ≠ SmtType.TypeRef s) :
+    __smtx_dtc_resolve (SmtDatatypeCons.cons T c) dd =
+      SmtDatatypeCons.cons T (__smtx_dtc_resolve c dd) := by
+  cases T <;> simp [__smtx_dtc_resolve] at h ⊢
+
+theorem eo_to_smt_dtc_resolve_of_no_none :
+    ∀ (c : DatatypeCons) (dd : DatatypeDecl),
+      noNoneDtc (__eo_to_smt_datatype_cons c) = true ->
+      noNoneDecl (__eo_to_smt_datatype_decl dd) = true ->
+      __eo_to_smt_datatype_cons (__eo_dtc_resolve c dd) =
+        __smtx_dtc_resolve (__eo_to_smt_datatype_cons c)
+          (__eo_to_smt_datatype_decl dd)
+  | DatatypeCons.unit, dd, _, _ => by
+      simp [__eo_dtc_resolve, __smtx_dtc_resolve, __eo_to_smt_datatype_cons]
+  | DatatypeCons.cons T c, dd, hC, hDD => by
+      have hp :
+          noNoneTy (__eo_to_smt_type T) = true ∧
+            noNoneDtc (__eo_to_smt_datatype_cons c) = true := by
+        simpa [__eo_to_smt_datatype_cons, noNoneDtc, native_and] using hC
+      by_cases hRef : ∃ s, T = Term.DatatypeTypeRef s
+      · rcases hRef with ⟨s, rfl⟩
+        have hReserved : __eo_reserved_datatype_name s = false := by
+          cases hr : __eo_reserved_datatype_name s
+          · rfl
+          · simp [__eo_to_smt_type, native_ite, hr, noNoneTy] at hp
+        simp [__eo_dtc_resolve, __smtx_dtc_resolve,
+          __eo_to_smt_datatype_cons, __eo_to_smt_type, native_ite, hReserved,
+          eo_to_smt_dtc_resolve_of_no_none c dd hp.2 hDD]
+      · have hNotRef : ∀ s, T ≠ Term.DatatypeTypeRef s := by
+          intro s hEq
+          exact hRef ⟨s, hEq⟩
+        have hNotTypeRef : ∀ s, __eo_to_smt_type T ≠ SmtType.TypeRef s := by
+          intro s hEq
+          exact hRef ⟨s, eo_to_smt_type_eq_typeref hEq⟩
+        rw [eo_dtc_resolve_cons_of_not_ref T c dd hNotRef]
+        simp only [__eo_to_smt_datatype_cons]
+        rw [smtx_dtc_resolve_cons_of_not_typeref
+            (__eo_to_smt_type T) (__eo_to_smt_datatype_cons c)
+            (__eo_to_smt_datatype_decl dd) hNotTypeRef]
+        rw [eo_to_smt_dtc_resolve_of_no_none c dd hp.2 hDD]
+
+theorem eo_to_smt_dt_resolve_of_no_none :
+    ∀ (d : Datatype) (dd : DatatypeDecl),
+      noNoneDt (__eo_to_smt_datatype d) = true ->
+      noNoneDecl (__eo_to_smt_datatype_decl dd) = true ->
+      __eo_to_smt_datatype (__eo_dt_resolve d dd) =
+        __smtx_dt_resolve (__eo_to_smt_datatype d)
+          (__eo_to_smt_datatype_decl dd)
+  | Datatype.null, dd, _, _ => by
+      simp [__eo_dt_resolve, __smtx_dt_resolve, __eo_to_smt_datatype]
+  | Datatype.sum c d, dd, hD, hDD => by
+      have hp :
+          noNoneDtc (__eo_to_smt_datatype_cons c) = true ∧
+            noNoneDt (__eo_to_smt_datatype d) = true := by
+        simpa [__eo_to_smt_datatype, noNoneDt, native_and] using hD
+      simp [__eo_dt_resolve, __smtx_dt_resolve, __eo_to_smt_datatype,
+        eo_to_smt_dtc_resolve_of_no_none c dd hp.1 hDD,
+        eo_to_smt_dt_resolve_of_no_none d dd hp.2 hDD]
+
+theorem eo_to_smt_dd_resolve_of_no_none
+    (s : native_String) (dd : DatatypeDecl)
+    (hLookup :
+      noNoneDt (__smtx_dd_lookup s (__eo_to_smt_datatype_decl dd)) = true)
+    (hDecl : noNoneDecl (__eo_to_smt_datatype_decl dd) = true) :
+    __eo_to_smt_datatype (__eo_dd_resolve s dd) =
+      __smtx_dt_resolve
+        (__smtx_dd_lookup s (__eo_to_smt_datatype_decl dd))
+        (__eo_to_smt_datatype_decl dd) := by
+  have hLookup' :
+      noNoneDt (__eo_to_smt_datatype (__eo_dd_lookup s dd)) = true := by
+    rw [eo_to_smt_dd_lookup]
+    exact hLookup
+  unfold __eo_dd_resolve
+  rw [eo_to_smt_dt_resolve_of_no_none (__eo_dd_lookup s dd) dd hLookup' hDecl,
+    eo_to_smt_dd_lookup]
+
+theorem noNoneDtc_resolve :
+    ∀ (c : SmtDatatypeCons) (dd : SmtDatatypeDecl),
+      noNoneDtc c = true -> noNoneDecl dd = true ->
+        noNoneDtc (__smtx_dtc_resolve c dd) = true
+  | SmtDatatypeCons.unit, dd, _, _ => by simp [__smtx_dtc_resolve, noNoneDtc]
+  | SmtDatatypeCons.cons T c, dd, hC, hDD => by
+      have hp : noNoneTy T = true ∧ noNoneDtc c = true := by
+        simpa [noNoneDtc, native_and] using hC
+      have hTail := noNoneDtc_resolve c dd hp.2 hDD
+      cases T <;> simp_all [__smtx_dtc_resolve, noNoneDtc, noNoneTy, native_and]
+
+theorem noNoneDt_resolve :
+    ∀ (d : SmtDatatype) (dd : SmtDatatypeDecl),
+      noNoneDt d = true -> noNoneDecl dd = true ->
+        noNoneDt (__smtx_dt_resolve d dd) = true
+  | SmtDatatype.null, dd, _, _ => by simp [__smtx_dt_resolve, noNoneDt]
+  | SmtDatatype.sum c d, dd, hD, hDD => by
+      have hp : noNoneDtc c = true ∧ noNoneDt d = true := by
+        simpa [noNoneDt, native_and] using hD
+      simp [__smtx_dt_resolve, noNoneDt, native_and,
+        noNoneDtc_resolve c dd hp.1 hDD,
+        noNoneDt_resolve d dd hp.2 hDD]
+
+mutual
+
+theorem noNoneTy_of_wf :
+    ∀ (T : SmtType), __smtx_type_wf_rec T = true → noNoneTy T = true
+  | SmtType.Datatype s dd, h => by
+      have hParts :
+          __smtx_dd_has_dt s dd = true ∧ __smtx_decl_wf_rec dd dd = true := by
+        simpa [__smtx_type_wf_rec, native_and] using h
+      simpa [noNoneTy] using noNoneDecl_of_wf dd dd hParts.2
+  | SmtType.Seq T, h => by
+      have hT : __smtx_type_wf_rec T = true := by
+        have hp : native_inhabited_type T = true ∧ __smtx_type_wf_rec T = true := by
+          simpa [__smtx_type_wf_rec, native_and] using h
+        exact hp.2
+      simpa [noNoneTy] using noNoneTy_of_wf T hT
+  | SmtType.Set T, h => by
+      have hT : __smtx_type_wf_rec T = true := by
+        have hp : native_inhabited_type T = true ∧ __smtx_type_wf_rec T = true := by
+          simpa [__smtx_type_wf_rec, native_and] using h
+        exact hp.2
+      simpa [noNoneTy] using noNoneTy_of_wf T hT
+  | SmtType.Map T U, h => by
+      have hp :
+          (native_inhabited_type T = true ∧ __smtx_type_wf_rec T = true) ∧
+            native_inhabited_type U = true ∧ __smtx_type_wf_rec U = true := by
+        simpa [__smtx_type_wf_rec, native_and] using h
+      simp [noNoneTy, noNoneTy_of_wf T hp.1.2,
+        noNoneTy_of_wf U hp.2.2, native_and]
+  | SmtType.FunType T U, h => by simp [__smtx_type_wf_rec] at h
+  | SmtType.DtcAppType T U, h => by simp [__smtx_type_wf_rec] at h
+  | SmtType.TypeRef s, h => by simp [__smtx_type_wf_rec] at h
+  | SmtType.None, h => by simp [__smtx_type_wf_rec] at h
+  | SmtType.RegLan, h => by simp [__smtx_type_wf_rec] at h
+  | SmtType.Bool, _ => by simp [noNoneTy]
+  | SmtType.Int, _ => by simp [noNoneTy]
+  | SmtType.Real, _ => by simp [noNoneTy]
+  | SmtType.BitVec w, _ => by simp [noNoneTy]
+  | SmtType.Char, _ => by simp [noNoneTy]
+  | SmtType.USort i, _ => by simp [noNoneTy]
+
+theorem noNoneDecl_of_wf :
+    ∀ (base dd : SmtDatatypeDecl),
+      __smtx_decl_wf_rec base dd = true → noNoneDecl dd = true
+  | base, SmtDatatypeDecl.nil, _ => by simp [noNoneDecl]
+  | base, SmtDatatypeDecl.cons s d dd, h => by
+      have hp :
+          __smtx_dt_wf_rec base d = true ∧
+            native_inhabited_type (SmtType.Datatype s base) = true ∧
+              __smtx_decl_wf_rec base dd = true ∧
+                native_not (__smtx_dd_has_dt s dd) = true := by
+        simpa [__smtx_decl_wf_rec, native_and] using h
+      simp [noNoneDecl, noNoneDt_of_wf base d hp.1,
+        noNoneDecl_of_wf base dd hp.2.2.1, native_and]
+
+theorem noNoneDt_of_wf :
+    ∀ (base : SmtDatatypeDecl) (d : SmtDatatype),
+      __smtx_dt_wf_rec base d = true → noNoneDt d = true
+  | base, SmtDatatype.null, _ => by simp [noNoneDt]
+  | base, SmtDatatype.sum c d, h => by
+      have hp :
+          __smtx_dt_cons_wf_rec base c = true ∧
+            __smtx_dt_wf_rec base d = true := by
+        simpa [__smtx_dt_wf_rec, native_and] using h
+      simp [noNoneDt, noNoneDtc_of_wf base c hp.1,
+        noNoneDt_of_wf base d hp.2, native_and]
+
+theorem noNoneDtc_of_wf :
+    ∀ (base : SmtDatatypeDecl) (c : SmtDatatypeCons),
+      __smtx_dt_cons_wf_rec base c = true → noNoneDtc c = true
+  | base, SmtDatatypeCons.unit, _ => by simp [noNoneDtc]
+  | base, SmtDatatypeCons.cons T c, h => by
+      by_cases hRef : ∃ s, T = SmtType.TypeRef s
+      · rcases hRef with ⟨s, rfl⟩
+        have hp :
+            __smtx_dd_has_dt s base = true ∧
+              __smtx_dt_cons_wf_rec base c = true := by
+          simpa [__smtx_dt_cons_wf_rec, native_and] using h
+        simp [noNoneDtc, noNoneTy, noNoneDtc_of_wf base c hp.2, native_and]
+      · have hHead : __smtx_type_wf_rec T = true := by
+          have hField : smtx_type_field_wf_rec T native_reflist_nil :=
+            smtx_type_field_wf_rec_of_cons_wf
+              (by intro s hEq; exact hRef ⟨s, hEq⟩) h
+          simpa [smtx_type_field_wf_rec] using hField
+        have hTail : __smtx_dt_cons_wf_rec base c = true :=
+          smtx_dt_cons_wf_rec_tail_of_true h
+        simp [noNoneDtc, noNoneTy_of_wf T hHead,
+          noNoneDtc_of_wf base c hTail, native_and]
+
+end
+
+
+/- Translation is injective once every recursively embedded type is known not
+to be `None`.  Declaration and tuple cases are handled structurally. -/
+mutual
+
+private theorem injTyNoNone :
+    ∀ (T U : Term) (A : SmtType),
+      noNoneTy A = true →
+      __eo_to_smt_type T = A → __eo_to_smt_type U = A → T = U
+  | T, U, SmtType.None, hN, _, _ => by simp [noNoneTy] at hN
+  | T, U, SmtType.Bool, _, hT, hU =>
+      (eo_to_smt_type_eq_bool hT).trans (eo_to_smt_type_eq_bool hU).symm
+  | T, U, SmtType.Int, _, hT, hU =>
+      (eo_to_smt_type_eq_int hT).trans (eo_to_smt_type_eq_int hU).symm
+  | T, U, SmtType.Real, _, hT, hU =>
+      (eo_to_smt_type_eq_real hT).trans (eo_to_smt_type_eq_real hU).symm
+  | T, U, SmtType.RegLan, _, hT, hU =>
+      (eo_to_smt_type_eq_reglan hT).trans (eo_to_smt_type_eq_reglan hU).symm
+  | T, U, SmtType.BitVec w, _, hT, hU =>
+      (eo_to_smt_type_eq_bitvec hT).trans (eo_to_smt_type_eq_bitvec hU).symm
+  | T, U, SmtType.Char, _, hT, hU =>
+      (eo_to_smt_type_eq_char hT).trans (eo_to_smt_type_eq_char hU).symm
+  | T, U, SmtType.USort i, _, hT, hU =>
+      (eo_to_smt_type_eq_usort hT).trans (eo_to_smt_type_eq_usort hU).symm
+  | T, U, SmtType.TypeRef s, _, hT, hU =>
+      (eo_to_smt_type_eq_typeref hT).trans (eo_to_smt_type_eq_typeref hU).symm
+  | T, U, SmtType.Seq A, hN, hT, hU => by
+      rcases eo_to_smt_type_eq_seq hT with ⟨T0, rfl, hT0⟩
+      rcases eo_to_smt_type_eq_seq hU with ⟨U0, rfl, hU0⟩
+      rw [injTyNoNone T0 U0 A (by simpa [noNoneTy] using hN) hT0 hU0]
+  | T, U, SmtType.Set A, hN, hT, hU => by
+      rcases eo_to_smt_type_eq_set hT with ⟨T0, rfl, hT0⟩
+      rcases eo_to_smt_type_eq_set hU with ⟨U0, rfl, hU0⟩
+      rw [injTyNoNone T0 U0 A (by simpa [noNoneTy] using hN) hT0 hU0]
+  | T, U, SmtType.Map A B, hN, hT, hU => by
+      rcases eo_to_smt_type_eq_map hT with ⟨T1, T2, rfl, hT1, hT2⟩
+      rcases eo_to_smt_type_eq_map hU with ⟨U1, U2, rfl, hU1, hU2⟩
+      have hp : noNoneTy A = true ∧ noNoneTy B = true := by
+        simpa [noNoneTy, native_and] using hN
+      rw [injTyNoNone T1 U1 A hp.1 hT1 hU1,
+        injTyNoNone T2 U2 B hp.2 hT2 hU2]
+  | T, U, SmtType.FunType A B, hN, hT, hU => by
+      rcases eo_to_smt_type_eq_fun hT with ⟨T1, T2, rfl, hT1, hT2⟩
+      rcases eo_to_smt_type_eq_fun hU with ⟨U1, U2, rfl, hU1, hU2⟩
+      have hp : noNoneTy A = true ∧ noNoneTy B = true := by
+        simpa [noNoneTy, native_and] using hN
+      rw [injTyNoNone T1 U1 A hp.1 hT1 hU1,
+        injTyNoNone T2 U2 B hp.2 hT2 hU2]
+  | T, U, SmtType.DtcAppType A B, hN, hT, hU => by
+      rcases eo_to_smt_type_eq_dtc_app hT with ⟨T1, T2, rfl, hT1, hT2⟩
+      rcases eo_to_smt_type_eq_dtc_app hU with ⟨U1, U2, rfl, hU1, hU2⟩
+      have hp : noNoneTy A = true ∧ noNoneTy B = true := by
+        simpa [noNoneTy, native_and] using hN
+      rw [injTyNoNone T1 U1 A hp.1 hT1 hU1,
+        injTyNoNone T2 U2 B hp.2 hT2 hU2]
+  | T, U, SmtType.Datatype s dd, hN, hT, hU => by
+      by_cases hs : s = native_string_lit "@Tuple"
+      · subst s
+        rcases eo_to_smt_type_eq_tuple_datatype hT with hUnitT | hConsT
+        · rcases hUnitT with ⟨rfl, hddT⟩
+          rcases eo_to_smt_type_eq_tuple_datatype hU with hUnitU | hConsU
+          · rcases hUnitU with ⟨rfl, _⟩
+            rfl
+          · rcases hConsU with ⟨y, x, c, rfl, _, hddU⟩
+            simp [hddT, __smtx_tuple_datatype_decl] at hddU
+        · rcases hConsT with ⟨yT, xT, cT, rfl, hxT, hddT⟩
+          rcases eo_to_smt_type_eq_tuple_datatype hU with hUnitU | hConsU
+          · rcases hUnitU with ⟨rfl, hddU⟩
+            simp [hddU, __smtx_tuple_datatype_decl] at hddT
+          · rcases hConsU with ⟨yU, xU, cU, rfl, hxU, hddU⟩
+            have hDecl :
+                __smtx_tuple_datatype_decl
+                    (SmtDatatype.sum
+                      (SmtDatatypeCons.cons (__eo_to_smt_type yT) cT)
+                      SmtDatatype.null) =
+                  __smtx_tuple_datatype_decl
+                    (SmtDatatype.sum
+                      (SmtDatatypeCons.cons (__eo_to_smt_type yU) cU)
+                      SmtDatatype.null) := hddT.symm.trans hddU
+            simp [__smtx_tuple_datatype_decl] at hDecl
+            rcases hDecl with ⟨hY, hC⟩
+            subst cU
+            have hp :
+                noNoneTy (__eo_to_smt_type yT) = true ∧ noNoneDtc cT = true := by
+              rw [hddT] at hN
+              simpa [noNoneTy, noNoneDecl, noNoneDt, noNoneDtc,
+                __smtx_tuple_datatype_decl,
+                native_and] using hN
+            have hy : yT = yU :=
+              injTyNoNone yT yU (__eo_to_smt_type yT) hp.1 rfl hY.symm
+            have hx : xT = xU :=
+              injTyNoNone xT xU
+                (SmtType.Datatype (native_string_lit "@Tuple")
+                  (__smtx_tuple_datatype_decl
+                    (SmtDatatype.sum cT SmtDatatype.null)))
+                (by simpa [noNoneTy, noNoneDecl, noNoneDt, noNoneDtc,
+                    __smtx_tuple_datatype_decl, native_and] using hp.2)
+                hxT hxU
+            subst yU
+            subst xU
+            rfl
+      · rcases eo_to_smt_type_eq_datatype_non_tuple hs hT with ⟨dT, rfl, hdT⟩
+        rcases eo_to_smt_type_eq_datatype_non_tuple hs hU with ⟨dU, rfl, hdU⟩
+        rw [injDeclNoNone dT dU dd (by simpa [noNoneTy] using hN) hdT hdU]
+
+private theorem injDeclNoNone :
+    ∀ (d e : DatatypeDecl) (D : SmtDatatypeDecl),
+      noNoneDecl D = true →
+      __eo_to_smt_datatype_decl d = D →
+      __eo_to_smt_datatype_decl e = D → d = e
+  | d, e, SmtDatatypeDecl.nil, hN, hd, he => by
+      cases d <;> cases e <;>
+        simp [__eo_to_smt_datatype_decl] at hd he ⊢
+  | d, e, SmtDatatypeDecl.cons name body rest, hN, hd, he => by
+      have hp : noNoneDt body = true ∧ noNoneDecl rest = true := by
+        simpa [noNoneDecl, native_and] using hN
+      cases d with
+      | nil => simp [__eo_to_smt_datatype_decl] at hd
+      | cons s d dd =>
+          cases e with
+          | nil => simp [__eo_to_smt_datatype_decl] at he
+          | cons s' d' dd' =>
+              simp only [__eo_to_smt_datatype_decl] at hd he
+              injection hd with hs hbody hrest
+              injection he with hs' hbody' hrest'
+              have hD : d = d' := injDtNoNone d d' body hp.1 hbody hbody'
+              have hDD : dd = dd' :=
+                injDeclNoNone dd dd' rest hp.2 hrest hrest'
+              subst s
+              subst s'
+              subst d'
+              subst dd'
+              rfl
+
+private theorem injDtNoNone :
+    ∀ (d e : Datatype) (D : SmtDatatype),
+      noNoneDt D = true →
+      __eo_to_smt_datatype d = D → __eo_to_smt_datatype e = D → d = e
+  | d, e, SmtDatatype.null, hN, hd, he => by
+      cases d <;> cases e <;> simp [__eo_to_smt_datatype] at hd he ⊢
+  | d, e, SmtDatatype.sum C Dtail, hN, hd, he => by
+      have hp : noNoneDtc C = true ∧ noNoneDt Dtail = true := by
+        simpa [noNoneDt, native_and] using hN
+      cases d with
+      | null => simp [__eo_to_smt_datatype] at hd
+      | sum c d =>
+          cases e with
+          | null => simp [__eo_to_smt_datatype] at he
+          | sum c' d' =>
+              simp only [__eo_to_smt_datatype] at hd he
+              injection hd with hc hdt
+              injection he with hc' hdt'
+              have hC : c = c' := injDtcNoNone c c' C hp.1 hc hc'
+              have hD : d = d' := injDtNoNone d d' Dtail hp.2 hdt hdt'
+              subst c'
+              subst d'
+              rfl
+
+private theorem injDtcNoNone :
+    ∀ (c e : DatatypeCons) (C : SmtDatatypeCons),
+      noNoneDtc C = true →
+      __eo_to_smt_datatype_cons c = C →
+      __eo_to_smt_datatype_cons e = C → c = e
+  | c, e, SmtDatatypeCons.unit, hN, hc, he => by
+      cases c <;> cases e <;> simp [__eo_to_smt_datatype_cons] at hc he ⊢
+  | c, e, SmtDatatypeCons.cons A Ctail, hN, hc, he => by
+      have hp : noNoneTy A = true ∧ noNoneDtc Ctail = true := by
+        simpa [noNoneDtc, native_and] using hN
+      cases c with
+      | unit => simp [__eo_to_smt_datatype_cons] at hc
+      | cons T c =>
+          cases e with
+          | unit => simp [__eo_to_smt_datatype_cons] at he
+          | cons U cu =>
+              simp only [__eo_to_smt_datatype_cons] at hc he
+              injection hc with hT hct
+              injection he with hU hcu
+              have hHead : T = U := injTyNoNone T U A hp.1 hT hU
+              have hTail : c = cu := injDtcNoNone c cu Ctail hp.2 hct hcu
+              subst U
+              subst cu
+              rfl
+
+end
+
+
+/-- EO-to-SMT type translation is injective whenever the translated type
+contains no recursively embedded `None`.  This includes the intermediate
+`FunType` and `DtcAppType` shapes used while typing applications. -/
+theorem eo_to_smt_type_injective_of_no_none
+    {T U : Term} {A : SmtType}
+    (hT : __eo_to_smt_type T = A)
+    (hU : __eo_to_smt_type U = A)
+    (hNoNone : noNoneTy A = true) :
+    T = U :=
+  injTyNoNone T U A hNoNone hT hU
+
+
+theorem eo_to_smt_type_injective_of_field_wf_rec
+    {T U : Term} {A : SmtType} {refs : RefList}
+    (hT : __eo_to_smt_type T = A)
+    (hU : __eo_to_smt_type U = A)
+    (hWF : smtx_type_field_wf_rec A refs) :
+    T = U :=
+  injTyNoNone T U A
+    (noNoneTy_of_wf A (by simpa [smtx_type_field_wf_rec] using hWF)) hT hU
+
+/-- EO type translation is injective under the public top-level SMT
+well-formedness predicate. -/
+theorem eo_to_smt_type_injective_of_wf
+    {T U : Term} {A : SmtType}
+    (hT : __eo_to_smt_type T = A)
+    (hU : __eo_to_smt_type U = A)
+    (hWF : __smtx_type_wf A = true) :
+    T = U := by
+  by_cases hReg : A = SmtType.RegLan
+  · exact (eo_to_smt_type_eq_reglan (hT.trans hReg)).trans
+      (eo_to_smt_type_eq_reglan (hU.trans hReg)).symm
+  · by_cases hFun : ∃ X Y, A = SmtType.FunType X Y
+    · rcases hFun with ⟨X, Y, rfl⟩
+      have hComponents :
+          __smtx_type_wf_component X = true ∧
+            __smtx_type_wf_component Y = true := by
+        simpa [__smtx_type_wf, native_and] using hWF
+      have hX : __smtx_type_wf_rec X = true := by
+        have hp : native_inhabited_type X = true ∧ __smtx_type_wf_rec X = true := by
+          simpa [__smtx_type_wf_component, native_and] using hComponents.1
+        exact hp.2
+      have hY : __smtx_type_wf_rec Y = true := by
+        have hp : native_inhabited_type Y = true ∧ __smtx_type_wf_rec Y = true := by
+          simpa [__smtx_type_wf_component, native_and] using hComponents.2
+        exact hp.2
+      exact injTyNoNone T U (SmtType.FunType X Y)
+        (by simp [noNoneTy, noNoneTy_of_wf X hX,
+          noNoneTy_of_wf Y hY, native_and]) hT hU
+    ·
+      have hRec : __smtx_type_wf_rec A = true := by
+        have hComponent : __smtx_type_wf_component A = true := by
+          cases A <;>
+            simp [__smtx_type_wf] at hWF hReg hFun ⊢
+          all_goals first | contradiction | exact hWF
+        have hp : native_inhabited_type A = true ∧ __smtx_type_wf_rec A = true := by
+          simpa [__smtx_type_wf_component, native_and] using hComponent
+        exact hp.2
+      exact injTyNoNone T U A (noNoneTy_of_wf A hRec) hT hU
 
 /-- Recovers the translated EO type from an SMT typing equality using an explicit IH. -/
 theorem eo_to_smt_type_typeof_of_smt_type_from_ih

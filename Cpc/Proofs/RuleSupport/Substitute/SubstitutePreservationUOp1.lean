@@ -754,21 +754,36 @@ private theorem smt_typeof_tuple_select_non_none_of_arg_type_eq
   | Datatype s d =>
       cases hIdx : __eo_to_smt idx with
       | Numeral n =>
-          cases hCond :
-              native_and (native_streq s (native_string_lit "@Tuple"))
-                (native_zleq 0 n)
-          · exfalso
-            apply hNN
-            simp [__eo_to_smt_tuple_select, hA, hIdx, hCond, native_ite]
-          · have hNN' := hNN
-            simp [__eo_to_smt_tuple_select, hA, hIdx, hCond, native_ite]
-              at hNN'
-            rw [hTyEq, hA]
-            simp [__eo_to_smt_tuple_select, hCond, native_ite]
-            rw [typeof_dt_sel_apply_eq]
-            rw [typeof_dt_sel_apply_eq] at hNN'
-            simpa [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
-              native_Teq, hA, hTyEq] using hNN'
+          cases d with
+          | nil =>
+              exfalso
+              apply hNN
+              simp [__eo_to_smt_tuple_select, hA, hIdx]
+          | cons s2 body rest =>
+              cases rest with
+              | cons s3 body3 rest3 =>
+                  exfalso
+                  apply hNN
+                  simp [__eo_to_smt_tuple_select, hA, hIdx]
+              | nil =>
+                  cases hCond :
+                      native_and
+                        (native_and
+                          (native_streq s (native_string_lit "@Tuple"))
+                          (native_streq s2 (native_string_lit "@Tuple")))
+                        (native_zleq 0 n)
+                  · exfalso
+                    apply hNN
+                    simp [__eo_to_smt_tuple_select, hA, hIdx, hCond, native_ite]
+                  · have hNN' := hNN
+                    simp [__eo_to_smt_tuple_select, hA, hIdx, hCond, native_ite]
+                      at hNN'
+                    rw [hTyEq, hA]
+                    simp [__eo_to_smt_tuple_select, hCond, native_ite]
+                    rw [typeof_dt_sel_apply_eq]
+                    rw [typeof_dt_sel_apply_eq] at hNN'
+                    simpa [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
+                      native_Teq, hA, hTyEq] using hNN'
       | _ =>
           exfalso
           apply hNN

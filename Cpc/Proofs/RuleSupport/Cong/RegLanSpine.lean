@@ -1833,7 +1833,7 @@ theorem congTypeSpine_strings_stoi_non_digit_eq_has_bool_type
       x rhs
 
 theorem congTypeSpine_dt_sel_eq_has_bool_type
-    (s : native_String) (d : Datatype) (i j : native_Nat) (x rhs : Term) :
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (x rhs : Term) :
     RuleProofs.eo_has_smt_translation
       (Term.Apply (Term.DtSel s d i j) x) ->
     CongTypeSpine (Term.Apply (Term.DtSel s d i j) x) rhs ->
@@ -1867,7 +1867,7 @@ theorem congTypeSpine_dt_sel_eq_has_bool_type
 
 theorem congTrueSpine_dt_sel_eq_true
     (M : SmtModel) (hM : model_total_typed M)
-    (s : native_String) (d : Datatype) (i j : native_Nat) (x rhs : Term) :
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (x rhs : Term) :
     RuleProofs.eo_has_bool_type
       (mkEq (Term.Apply (Term.DtSel s d i j) x) rhs) ->
     CongTrueSpine M (Term.Apply (Term.DtSel s d i j) x) rhs ->

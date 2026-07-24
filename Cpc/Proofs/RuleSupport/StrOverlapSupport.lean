@@ -2704,17 +2704,13 @@ theorem str_flatten_seq_empty_typeof_eq
       __smtx_type_wf_component (SmtType.Seq T) = true := by
     simpa [__smtx_type_wf] using hSeqWF
   have hSeqRec :
-      __smtx_type_wf_rec (SmtType.Seq T) (SmtType.Seq T) = true :=
+      __smtx_type_wf_rec (SmtType.Seq T) = true :=
     (smtx_type_wf_component_parts hSeqComp).2
   have hTParts :
       native_inhabited_type T = true ∧
-        __smtx_type_wf_rec T T = true := by
-    have h3 : (native_inhabited_type T = true ∧
-        __smtx_type_wf_rec T T = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil T = true := by
-      simpa [__smtx_type_wf_rec, native_and] using hSeqRec
-    exact h3.1
-  have hTRec : __smtx_type_wf_rec T T = true :=
+        __smtx_type_wf_rec T = true := by
+    simpa [__smtx_type_wf_rec, native_and] using hSeqRec
+  have hTRec : __smtx_type_wf_rec T = true :=
     hTParts.2
   have hUType : __eo_typeof U = Term.Type :=
     TranslationProofs.eo_typeof_type_of_smt_type_wf_rec U (by
@@ -3218,7 +3214,7 @@ theorem explicitCharEmpty_smt_type :
   exact TranslationProofs.smtx_typeof_seq_empty_of_non_none SmtType.Char (by
     unfold __smtx_typeof
     simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_component,
-      __smtx_type_wf_rec, __smtx_type_no_alias_rec, native_and, native_ite,
+      __smtx_type_wf_rec, native_and, native_ite,
       native_inhabited_type_seq, native_inhabited_type_char])
 
 theorem str_flatten_string_empty :

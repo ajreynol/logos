@@ -414,24 +414,29 @@ private theorem tuple_selector_eval_eq_arg
     (M : SmtModel) (tailD : SmtDatatype) (tail : SmtTerm) (j : Nat)
     (hHead :
       __vsm_apply_head (__smtx_model_eval M tail) =
-        SmtValue.DtCons (native_string_lit "@Tuple") tailD native_nat_zero) :
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) native_nat_zero) :
     __smtx_model_eval M
         (SmtTerm.Apply
-          (SmtTerm.DtSel (native_string_lit "@Tuple") tailD native_nat_zero j)
+          (SmtTerm.DtSel (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl tailD) native_nat_zero j)
           tail) =
       __vsm_apply_arg_nth (__smtx_model_eval M tail) j
         (__smtx_dt_num_sels tailD native_nat_zero) := by
   simp [__smtx_model_eval, __smtx_model_eval_dt_sel, hHead, native_veq,
-    native_ite]
+    native_ite, __smtx_tuple_datatype_decl, __smtx_dd_lookup, native_streq,
+    SmtEval.native_streq, dt_num_sels_resolve]
 
 private theorem tuple_value_arg_not_notvalue
     {v : SmtValue} {tailD : SmtDatatype} {j : Nat}
     (hTy :
       __smtx_typeof_value v =
-        SmtType.Datatype (native_string_lit "@Tuple") tailD)
+        SmtType.Datatype (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD))
     (hHead :
       __vsm_apply_head v =
-        SmtValue.DtCons (native_string_lit "@Tuple") tailD native_nat_zero)
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) native_nat_zero)
     (hCount :
       vsm_num_apply_args v = __smtx_dt_num_sels tailD native_nat_zero)
     (hj : j < __smtx_dt_num_sels tailD native_nat_zero) :
@@ -459,7 +464,9 @@ private theorem tuple_prepend_rec_ne_dt_sel
     (tailD : SmtDatatype) (tail acc : SmtTerm)
     (hAcc : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j) :
     ∀ k s d i j,
-      __eo_to_smt_tuple_prepend_rec tailD tail k acc ≠ SmtTerm.DtSel s d i j
+      __eo_to_smt_tuple_prepend_rec
+        (__smtx_tuple_datatype_decl tailD) tailD tail k acc ≠
+          SmtTerm.DtSel s d i j
   | 0, s, d, i, j => hAcc s d i j
   | Nat.succ k, s, d, i, j => by
       simp [__eo_to_smt_tuple_prepend_rec]
@@ -468,7 +475,9 @@ private theorem tuple_prepend_rec_ne_dt_tester
     (tailD : SmtDatatype) (tail acc : SmtTerm)
     (hAcc : ∀ s d i, acc ≠ SmtTerm.DtTester s d i) :
     ∀ k s d i,
-      __eo_to_smt_tuple_prepend_rec tailD tail k acc ≠ SmtTerm.DtTester s d i
+      __eo_to_smt_tuple_prepend_rec
+        (__smtx_tuple_datatype_decl tailD) tailD tail k acc ≠
+          SmtTerm.DtTester s d i
   | 0, s, d, i => hAcc s d i
   | Nat.succ k, s, d, i => by
       simp [__eo_to_smt_tuple_prepend_rec]
@@ -478,14 +487,17 @@ private theorem tuple_value_head_zero_of_type
     (hTy :
       __smtx_typeof_value v =
         SmtType.Datatype (native_string_lit "@Tuple")
-          (SmtDatatype.sum c SmtDatatype.null)) :
+          (__smtx_tuple_datatype_decl
+            (SmtDatatype.sum c SmtDatatype.null))) :
     __vsm_apply_head v =
       SmtValue.DtCons (native_string_lit "@Tuple")
-        (SmtDatatype.sum c SmtDatatype.null) native_nat_zero := by
+        (__smtx_tuple_datatype_decl
+          (SmtDatatype.sum c SmtDatatype.null)) native_nat_zero := by
   rcases datatype_value_head_of_type hTy with ⟨i, hHead⟩
   have hiLt := datatype_head_index_lt hHead hTy
   have hi : i = 0 := by
-    simpa [smtDatatypeNumCtors] using hiLt
+    simpa [smtDatatypeNumCtors, __smtx_tuple_datatype_decl,
+      __smtx_dd_lookup, native_streq, SmtEval.native_streq, native_ite] using hiLt
   subst i
   exact hHead
 
@@ -493,14 +505,17 @@ private theorem tuple_value_count_of_type
     {v : SmtValue} {tailD : SmtDatatype}
     (hTy :
       __smtx_typeof_value v =
-        SmtType.Datatype (native_string_lit "@Tuple") tailD)
+        SmtType.Datatype (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD))
     (hHead :
       __vsm_apply_head v =
-        SmtValue.DtCons (native_string_lit "@Tuple") tailD native_nat_zero) :
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) native_nat_zero) :
     vsm_num_apply_args v = __smtx_dt_num_sels tailD native_nat_zero := by
   have hCount :=
     vsm_num_apply_args_eq_dt_num_sels_of_datatype hHead hTy
-  simpa [dt_num_sels_substitute] using hCount
+  simpa [__smtx_tuple_datatype_decl, __smtx_dd_lookup, native_streq,
+    SmtEval.native_streq, native_ite, dt_num_sels_resolve] using hCount
 
 private theorem tuple_prepend_rec_eval_eq_value_rec
     (M : SmtModel) (tailD : SmtDatatype) (tail acc : SmtTerm)
@@ -509,19 +524,24 @@ private theorem tuple_prepend_rec_eval_eq_value_rec
     (hAccNoTester : ∀ s d i, acc ≠ SmtTerm.DtTester s d i)
     (hTailHead :
       __vsm_apply_head (__smtx_model_eval M tail) =
-        SmtValue.DtCons (native_string_lit "@Tuple") tailD native_nat_zero)
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) native_nat_zero)
     (hTailTy :
       __smtx_typeof_value (__smtx_model_eval M tail) =
-        SmtType.Datatype (native_string_lit "@Tuple") tailD)
+        SmtType.Datatype (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD))
     (hTailCount :
       vsm_num_apply_args (__smtx_model_eval M tail) =
         __smtx_dt_num_sels tailD native_nat_zero)
     (hAccHead :
       __vsm_apply_head (__smtx_model_eval M acc) =
-        SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero) :
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl fullD) native_nat_zero) :
     ∀ k,
       k ≤ __smtx_dt_num_sels tailD native_nat_zero ->
-      __smtx_model_eval M (__eo_to_smt_tuple_prepend_rec tailD tail k acc) =
+      __smtx_model_eval M
+          (__eo_to_smt_tuple_prepend_rec
+            (__smtx_tuple_datatype_decl tailD) tailD tail k acc) =
         tuplePrependValueRec tailD (__smtx_model_eval M tail) k
           (__smtx_model_eval M acc)
   | 0, _hk => by
@@ -547,26 +567,34 @@ private theorem tuple_prepend_rec_eval_eq_value_rec
                 (tuplePrependValueRec tailD (__smtx_model_eval M tail) k
                   (__smtx_model_eval M acc)) =
               SmtValue.DtCons s d i := by
-        refine ⟨native_string_lit "@Tuple", fullD, native_nat_zero, ?_⟩
+        refine ⟨native_string_lit "@Tuple",
+          __smtx_tuple_datatype_decl fullD, native_nat_zero, ?_⟩
         rw [tuplePrependValueRec_head, hAccHead]
       simp only [__eo_to_smt_tuple_prepend_rec, tuplePrependValueRec]
       rw [show
         __smtx_model_eval M
             (SmtTerm.Apply
-              (__eo_to_smt_tuple_prepend_rec tailD tail k acc)
+              (__eo_to_smt_tuple_prepend_rec
+                (__smtx_tuple_datatype_decl tailD) tailD tail k acc)
               (SmtTerm.Apply
-                (SmtTerm.DtSel (native_string_lit "@Tuple") tailD native_nat_zero k)
+                (SmtTerm.DtSel (native_string_lit "@Tuple")
+                  (__smtx_tuple_datatype_decl tailD) native_nat_zero k)
                 tail)) =
           __smtx_model_eval_apply M
-            (__smtx_model_eval M (__eo_to_smt_tuple_prepend_rec tailD tail k acc))
+            (__smtx_model_eval M
+              (__eo_to_smt_tuple_prepend_rec
+                (__smtx_tuple_datatype_decl tailD) tailD tail k acc))
             (__smtx_model_eval M
               (SmtTerm.Apply
-                (SmtTerm.DtSel (native_string_lit "@Tuple") tailD native_nat_zero k)
+                (SmtTerm.DtSel (native_string_lit "@Tuple")
+                  (__smtx_tuple_datatype_decl tailD) native_nat_zero k)
                 tail)) by
           exact smtx_model_eval_apply_eq_apply_of_not_dt_ops M
-            (__eo_to_smt_tuple_prepend_rec tailD tail k acc)
+            (__eo_to_smt_tuple_prepend_rec
+              (__smtx_tuple_datatype_decl tailD) tailD tail k acc)
             (SmtTerm.Apply
-              (SmtTerm.DtSel (native_string_lit "@Tuple") tailD native_nat_zero k)
+              (SmtTerm.DtSel (native_string_lit "@Tuple")
+                (__smtx_tuple_datatype_decl tailD) native_nat_zero k)
               tail)
             (tuple_prepend_rec_ne_dt_sel tailD tail acc hAccNoSel k)
             (tuple_prepend_rec_ne_dt_tester tailD tail acc hAccNoTester k)]
@@ -585,7 +613,8 @@ theorem tuple_prepend_eval_eq_value_rec
     (hTailTy :
       __smtx_typeof tail =
         SmtType.Datatype (native_string_lit "@Tuple")
-          (SmtDatatype.sum c SmtDatatype.null))
+          (__smtx_tuple_datatype_decl
+            (SmtDatatype.sum c SmtDatatype.null)))
     (hPrependNN :
       __smtx_typeof (__eo_to_smt_tuple_prepend head headTy tail) ≠
         SmtType.None) :
@@ -595,35 +624,44 @@ theorem tuple_prepend_eval_eq_value_rec
       tuplePrependValueRec tailD (__smtx_model_eval M tail)
         (__smtx_dt_num_sels tailD native_nat_zero)
         (SmtValue.Apply
-          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD) native_nat_zero)
           (__smtx_model_eval M head)) := by
   intro tailD fullD
   let seed :=
     SmtTerm.Apply
-      (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero) head
+      (SmtTerm.DtCons (native_string_lit "@Tuple")
+        (__smtx_tuple_datatype_decl fullD) native_nat_zero) head
   have hFullWf :
-      __smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") fullD) =
-        true := by
+      __smtx_type_wf
+          (SmtType.Datatype (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD)) = true := by
     cases hWf :
-        __smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") fullD)
+        __smtx_type_wf
+          (SmtType.Datatype (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD))
     · exfalso
       apply hPrependNN
       unfold __eo_to_smt_tuple_prepend
       rw [hTailTy]
-      simp [__eo_to_smt_tuple_prepend_of_type, fullD, native_streq,
-        native_and, native_ite, hWf]
+      dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
+      simp [__eo_to_smt_tuple_prepend_of_type, fullD,
+        __smtx_tuple_datatype_decl, native_streq, native_and, native_ite, hWf]
     · rfl
   have hTerm :
       __eo_to_smt_tuple_prepend head headTy tail =
-        __eo_to_smt_tuple_prepend_rec tailD tail
+        __eo_to_smt_tuple_prepend_rec
+          (__smtx_tuple_datatype_decl tailD) tailD tail
           (__smtx_dt_num_sels tailD native_nat_zero) seed := by
     unfold __eo_to_smt_tuple_prepend
     rw [hTailTy]
+    dsimp [fullD, __smtx_tuple_datatype_decl] at hFullWf
     simp [__eo_to_smt_tuple_prepend_of_type, tailD, fullD, seed,
-      native_streq, native_and, native_ite, hFullWf]
+      __smtx_tuple_datatype_decl, native_streq, native_and, native_ite, hFullWf]
   have hTailEvalTy :
       __smtx_typeof_value (__smtx_model_eval M tail) =
-        SmtType.Datatype (native_string_lit "@Tuple") tailD := by
+        SmtType.Datatype (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) := by
     have hTailNN : term_has_non_none_type tail := by
       unfold term_has_non_none_type
       rw [hTailTy]
@@ -634,7 +672,8 @@ theorem tuple_prepend_eval_eq_value_rec
     simpa [tailD] using hPres
   have hTailHead :
       __vsm_apply_head (__smtx_model_eval M tail) =
-        SmtValue.DtCons (native_string_lit "@Tuple") tailD native_nat_zero :=
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) native_nat_zero :=
     tuple_value_head_zero_of_type (by simpa [tailD] using hTailEvalTy)
   have hTailCount :
       vsm_num_apply_args (__smtx_model_eval M tail) =
@@ -663,14 +702,16 @@ theorem tuple_prepend_eval_eq_value_rec
   have hSeedEval :
       __smtx_model_eval M seed =
         SmtValue.Apply
-          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD) native_nat_zero)
           (__smtx_model_eval M head) := by
     cases hHeadEval : __smtx_model_eval M head <;>
       simp [seed, __smtx_model_eval, __smtx_model_eval_apply,
         hHeadEval] at hHeadEvalNN ⊢
   have hAccHead :
       __vsm_apply_head (__smtx_model_eval M seed) =
-        SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero := by
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl fullD) native_nat_zero := by
     rw [hSeedEval]
     simp [__vsm_apply_head]
   rw [hTerm]
@@ -729,9 +770,10 @@ theorem tuple_apply_head_model_eval_proper
     (SmtDatatype.sum c SmtDatatype.null)
     (__smtx_model_eval M (__eo_to_smt tail))
     (SmtValue.DtCons (native_string_lit "@Tuple")
-      (SmtDatatype.sum
-        (SmtDatatypeCons.cons (__smtx_typeof (__eo_to_smt head)) c)
-        SmtDatatype.null) native_nat_zero)
+      (__smtx_tuple_datatype_decl
+        (SmtDatatype.sum
+          (SmtDatatypeCons.cons (__smtx_typeof (__eo_to_smt head)) c)
+          SmtDatatype.null)) native_nat_zero)
     (__smtx_model_eval M (__eo_to_smt head))
     (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null) native_nat_zero)
 
@@ -808,14 +850,17 @@ private theorem tuple_tail_head_size_lt_seed
     (headTy : SmtType) (c : SmtDatatypeCons) (headVal : SmtValue) :
     sizeOf
         (SmtValue.DtCons (native_string_lit "@Tuple")
-          (SmtDatatype.sum c SmtDatatype.null) native_nat_zero) <
+          (__smtx_tuple_datatype_decl
+            (SmtDatatype.sum c SmtDatatype.null)) native_nat_zero) <
       sizeOf
         (SmtValue.Apply
           (SmtValue.DtCons (native_string_lit "@Tuple")
-            (SmtDatatype.sum (SmtDatatypeCons.cons headTy c) SmtDatatype.null)
+            (__smtx_tuple_datatype_decl
+              (SmtDatatype.sum
+                (SmtDatatypeCons.cons headTy c) SmtDatatype.null))
             native_nat_zero)
           headVal) := by
-  simp
+  simp [__smtx_tuple_datatype_decl]
   omega
 
 theorem tuple_apply_tail_model_eval_size_lt
@@ -844,7 +889,8 @@ theorem tuple_apply_tail_model_eval_size_lt
   let tailVal := __smtx_model_eval M (__eo_to_smt tail)
   let seed :=
     SmtValue.Apply
-      (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+      (SmtValue.DtCons (native_string_lit "@Tuple")
+        (__smtx_tuple_datatype_decl fullD) native_nat_zero)
       (__smtx_model_eval M (__eo_to_smt head))
   have hEval := tuple_prepend_eval_eq_value_rec M hM
     (__eo_to_smt head) (__eo_to_smt tail)
@@ -852,7 +898,8 @@ theorem tuple_apply_tail_model_eval_size_lt
   dsimp at hEval
   have hTailEvalTy :
       __smtx_typeof_value tailVal =
-        SmtType.Datatype (native_string_lit "@Tuple") tailD := by
+        SmtType.Datatype (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) := by
     have hTailNN : term_has_non_none_type (__eo_to_smt tail) := by
       unfold term_has_non_none_type
       rw [hTailTy]
@@ -864,7 +911,8 @@ theorem tuple_apply_tail_model_eval_size_lt
     simpa [tailVal, tailD] using hPres
   have hTailHead :
       __vsm_apply_head tailVal =
-        SmtValue.DtCons (native_string_lit "@Tuple") tailD native_nat_zero :=
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) native_nat_zero :=
     tuple_value_head_zero_of_type (by simpa [tailD] using hTailEvalTy)
   have hTailCount :
       vsm_num_apply_args tailVal =
@@ -901,7 +949,8 @@ private theorem tuplePrependValueRec_seed_apply_ne_reglan
     ∀ k r,
       tuplePrependValueRec tailD tailVal k
           (SmtValue.Apply
-            (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+            (SmtValue.DtCons (native_string_lit "@Tuple")
+              (__smtx_tuple_datatype_decl fullD) native_nat_zero)
             headVal) ≠
         SmtValue.RegLan r
   | 0, r => by simp [tuplePrependValueRec]
@@ -950,31 +999,37 @@ private theorem tuplePrependValueRec_seed_apply_eq_iff
     (headVal headVal' tailVal tailVal' : SmtValue)
     (hTailHead :
       __vsm_apply_head tailVal =
-        SmtValue.DtCons (native_string_lit "@Tuple") tailD native_nat_zero)
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) native_nat_zero)
     (hTailHead' :
       __vsm_apply_head tailVal' =
-        SmtValue.DtCons (native_string_lit "@Tuple") tailD native_nat_zero)
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) native_nat_zero)
     (hTailCount :
       vsm_num_apply_args tailVal = __smtx_dt_num_sels tailD native_nat_zero)
     (hTailCount' :
       vsm_num_apply_args tailVal' = __smtx_dt_num_sels tailD native_nat_zero) :
     tuplePrependValueRec tailD tailVal (__smtx_dt_num_sels tailD native_nat_zero)
         (SmtValue.Apply
-          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD) native_nat_zero)
           headVal) =
       tuplePrependValueRec tailD tailVal' (__smtx_dt_num_sels tailD native_nat_zero)
         (SmtValue.Apply
-          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD) native_nat_zero)
           headVal') ↔
       headVal = headVal' ∧ tailVal = tailVal' := by
   constructor
   · intro hEq
     rcases tuplePrependValueRec_eq_components tailD tailVal tailVal'
         (SmtValue.Apply
-          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD) native_nat_zero)
           headVal)
         (SmtValue.Apply
-          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD) native_nat_zero)
           headVal')
         (__smtx_dt_num_sels tailD native_nat_zero) hEq with
       ⟨hSeed, hArgs⟩
@@ -1042,11 +1097,17 @@ theorem eo_eq_has_bool_type_of_eq_has_bool_type
               native_Teq, ht, hs] at hEqNN' ⊢ <;> exact hEqNN')
 
 private def tuplePrependHeadTypeOfType : SmtType -> SmtType
-  | SmtType.Datatype _ (SmtDatatype.sum (SmtDatatypeCons.cons T _) SmtDatatype.null) => T
+  | SmtType.Datatype _
+      (SmtDatatypeDecl.cons _
+        (SmtDatatype.sum (SmtDatatypeCons.cons T _) SmtDatatype.null)
+        SmtDatatypeDecl.nil) => T
   | _ => SmtType.None
 
 private def tuplePrependTailConsOfType : SmtType -> SmtDatatypeCons
-  | SmtType.Datatype _ (SmtDatatype.sum (SmtDatatypeCons.cons _ c) SmtDatatype.null) => c
+  | SmtType.Datatype _
+      (SmtDatatypeDecl.cons _
+        (SmtDatatype.sum (SmtDatatypeCons.cons _ c) SmtDatatype.null)
+        SmtDatatypeDecl.nil) => c
   | _ => SmtDatatypeCons.unit
 
 private theorem tuple_eq_has_bool_type_components
@@ -1275,7 +1336,8 @@ private theorem tuple_prepend_eval_eq_and
   have hBsTyC :
       __smtx_typeof (__eo_to_smt bs) =
         SmtType.Datatype (native_string_lit "@Tuple")
-          (SmtDatatype.sum c SmtDatatype.null) := by
+          (__smtx_tuple_datatype_decl
+            (SmtDatatype.sum c SmtDatatype.null)) := by
     rw [hBsTy, hTailCons]
   let tailD := SmtDatatype.sum c SmtDatatype.null
   let fullD :=
@@ -1288,7 +1350,8 @@ private theorem tuple_prepend_eval_eq_and
       tuplePrependValueRec tailD (__smtx_model_eval M (__eo_to_smt as))
         (__smtx_dt_num_sels tailD native_nat_zero)
         (SmtValue.Apply
-          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD) native_nat_zero)
           (__smtx_model_eval M (__eo_to_smt a))) := by
     change
       __smtx_model_eval M
@@ -1297,7 +1360,8 @@ private theorem tuple_prepend_eval_eq_and
       tuplePrependValueRec tailD (__smtx_model_eval M (__eo_to_smt as))
         (__smtx_dt_num_sels tailD native_nat_zero)
         (SmtValue.Apply
-          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD) native_nat_zero)
           (__smtx_model_eval M (__eo_to_smt a)))
     simpa [tailD, fullD] using
       tuple_prepend_eval_eq_value_rec M hM
@@ -1309,7 +1373,8 @@ private theorem tuple_prepend_eval_eq_and
       tuplePrependValueRec tailD (__smtx_model_eval M (__eo_to_smt bs))
         (__smtx_dt_num_sels tailD native_nat_zero)
         (SmtValue.Apply
-          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD) native_nat_zero)
           (__smtx_model_eval M (__eo_to_smt b))) := by
     have hEvalRight0 :=
       tuple_prepend_eval_eq_value_rec M hM
@@ -1322,12 +1387,14 @@ private theorem tuple_prepend_eval_eq_and
       tuplePrependValueRec tailD (__smtx_model_eval M (__eo_to_smt bs))
         (__smtx_dt_num_sels tailD native_nat_zero)
         (SmtValue.Apply
-          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl fullD) native_nat_zero)
           (__smtx_model_eval M (__eo_to_smt b)))
     simpa [tailD, fullD, hHeadTy, hTailCons] using hEvalRight0
   have hAsEvalTy :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt as)) =
-        SmtType.Datatype (native_string_lit "@Tuple") tailD := by
+        SmtType.Datatype (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) := by
     have hAsNN : term_has_non_none_type (__eo_to_smt as) := by
       unfold term_has_non_none_type
       rw [hAsTy]
@@ -1339,7 +1406,8 @@ private theorem tuple_prepend_eval_eq_and
     simpa [tailD] using hPres
   have hBsEvalTy :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt bs)) =
-        SmtType.Datatype (native_string_lit "@Tuple") tailD := by
+        SmtType.Datatype (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) := by
     have hBsNN : term_has_non_none_type (__eo_to_smt bs) := by
       unfold term_has_non_none_type
       rw [hBsTyC]
@@ -1351,11 +1419,13 @@ private theorem tuple_prepend_eval_eq_and
     simpa [tailD] using hPres
   have hAsHead :
       __vsm_apply_head (__smtx_model_eval M (__eo_to_smt as)) =
-        SmtValue.DtCons (native_string_lit "@Tuple") tailD native_nat_zero :=
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) native_nat_zero :=
     tuple_value_head_zero_of_type (by simpa [tailD] using hAsEvalTy)
   have hBsHead :
       __vsm_apply_head (__smtx_model_eval M (__eo_to_smt bs)) =
-        SmtValue.DtCons (native_string_lit "@Tuple") tailD native_nat_zero :=
+        SmtValue.DtCons (native_string_lit "@Tuple")
+          (__smtx_tuple_datatype_decl tailD) native_nat_zero :=
     tuple_value_head_zero_of_type (by simpa [tailD] using hBsEvalTy)
   have hAsCount :
       vsm_num_apply_args (__smtx_model_eval M (__eo_to_smt as)) =
@@ -1384,7 +1454,8 @@ private theorem tuple_prepend_eval_eq_and
           __smtx_model_eval M (__eo_to_smt bs) = SmtValue.RegLan r2 :=
     smt_model_eval_pair_not_reglan_of_non_reg_type M hM
       (__eo_to_smt as) (__eo_to_smt bs)
-      (SmtType.Datatype (native_string_lit "@Tuple") tailD)
+      (SmtType.Datatype (native_string_lit "@Tuple")
+        (__smtx_tuple_datatype_decl tailD))
       (by simpa [tailD] using hAsTy)
       (by simpa [tailD] using hBsTyC)
       (by simp [tailD])
@@ -1395,13 +1466,15 @@ private theorem tuple_prepend_eval_eq_and
         tuplePrependValueRec tailD (__smtx_model_eval M (__eo_to_smt as))
             (__smtx_dt_num_sels tailD native_nat_zero)
             (SmtValue.Apply
-              (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+              (SmtValue.DtCons (native_string_lit "@Tuple")
+                (__smtx_tuple_datatype_decl fullD) native_nat_zero)
               (__smtx_model_eval M (__eo_to_smt a))) =
           SmtValue.RegLan r1 ∧
         tuplePrependValueRec tailD (__smtx_model_eval M (__eo_to_smt bs))
             (__smtx_dt_num_sels tailD native_nat_zero)
             (SmtValue.Apply
-              (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+              (SmtValue.DtCons (native_string_lit "@Tuple")
+                (__smtx_tuple_datatype_decl fullD) native_nat_zero)
               (__smtx_model_eval M (__eo_to_smt b))) =
           SmtValue.RegLan r2 := by
     intro hReg
@@ -1426,12 +1499,14 @@ private theorem tuple_prepend_eval_eq_and
           (tuplePrependValueRec tailD (__smtx_model_eval M (__eo_to_smt as))
               (__smtx_dt_num_sels tailD native_nat_zero)
               (SmtValue.Apply
-                (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+                (SmtValue.DtCons (native_string_lit "@Tuple")
+                  (__smtx_tuple_datatype_decl fullD) native_nat_zero)
                 (__smtx_model_eval M (__eo_to_smt a))) =
             tuplePrependValueRec tailD (__smtx_model_eval M (__eo_to_smt bs))
               (__smtx_dt_num_sels tailD native_nat_zero)
               (SmtValue.Apply
-                (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+                (SmtValue.DtCons (native_string_lit "@Tuple")
+                  (__smtx_tuple_datatype_decl fullD) native_nat_zero)
                 (__smtx_model_eval M (__eo_to_smt b)))) =
         decide
           (__smtx_model_eval M (__eo_to_smt a) =
@@ -1563,16 +1638,16 @@ private theorem mk_dt_cons_eq_stuck_right (t : Term) :
   cases t <;> rfl
 
 private inductive DtConsSpineRoot :
-    Term -> native_String -> Datatype -> native_Nat -> Prop where
-  | root (s : native_String) (d : Datatype) (i : native_Nat) :
+    Term -> native_String -> DatatypeDecl -> native_Nat -> Prop where
+  | root (s : native_String) (d : DatatypeDecl) (i : native_Nat) :
       DtConsSpineRoot (Term.DtCons s d i) s d i
-  | app {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+  | app {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
       (x : Term) :
       DtConsSpineRoot t s d i ->
       DtConsSpineRoot (Term.Apply t x) s d i
 
 private theorem dtConsSpineRoot_apply_generic
-    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (hSp : DtConsSpineRoot t s d i) (x : Term) :
     __eo_to_smt (Term.Apply t x) =
       SmtTerm.Apply (__eo_to_smt t) (__eo_to_smt x) := by
@@ -1595,7 +1670,7 @@ private inductive CtorSpineRoot : Term -> Term -> Prop where
       CtorSpineRoot (Term.UOp UserOp.tuple) (Term.UOp UserOp.tuple)
   | tupleUnit :
       CtorSpineRoot (Term.UOp UserOp.tuple_unit) (Term.UOp UserOp.tuple_unit)
-  | dtCons (s : native_String) (d : Datatype) (i : native_Nat) :
+  | dtCons (s : native_String) (d : DatatypeDecl) (i : native_Nat) :
       CtorSpineRoot (Term.DtCons s d i) (Term.DtCons s d i)
   | app {t root : Term} (x : Term) :
       CtorSpineRoot t root ->
@@ -1608,7 +1683,7 @@ private inductive CtorSpineEq : Term -> Term -> Term -> Prop where
   | tupleUnit :
       CtorSpineEq (Term.UOp UserOp.tuple_unit) (Term.UOp UserOp.tuple_unit)
         (Term.UOp UserOp.tuple_unit)
-  | dtCons (s : native_String) (d : Datatype) (i : native_Nat) :
+  | dtCons (s : native_String) (d : DatatypeDecl) (i : native_Nat) :
       CtorSpineEq (Term.DtCons s d i) (Term.DtCons s d i)
         (Term.DtCons s d i)
   | app {t s root : Term} (x y : Term) :
@@ -1828,7 +1903,7 @@ private theorem ctorSpineEq_right_root
 private theorem dtConsSpineRoot_of_ctor_dtCons_aux
     {t root : Term} :
     CtorSpineRoot t root ->
-      ∀ {s : native_String} {d : Datatype} {i : native_Nat},
+      ∀ {s : native_String} {d : DatatypeDecl} {i : native_Nat},
         root = Term.DtCons s d i -> DtConsSpineRoot t s d i := by
   intro h
   induction h with
@@ -1847,33 +1922,33 @@ private theorem dtConsSpineRoot_of_ctor_dtCons_aux
       exact DtConsSpineRoot.app x (ih hEq)
 
 private theorem dtConsSpineRoot_of_ctor_dtCons
-    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat} :
+    {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat} :
     CtorSpineRoot t (Term.DtCons s d i) ->
       DtConsSpineRoot t s d i := by
   intro h
   exact dtConsSpineRoot_of_ctor_dtCons_aux h rfl
 
 private theorem dtConsSpineRoot_left_of_ctorSpineEq
-    {t u : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {t u : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (h : CtorSpineEq t u (Term.DtCons s d i)) :
     DtConsSpineRoot t s d i :=
   dtConsSpineRoot_of_ctor_dtCons (ctorSpineEq_left_root h)
 
 private theorem dtConsSpineRoot_right_of_ctorSpineEq
-    {t u : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {t u : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (h : CtorSpineEq t u (Term.DtCons s d i)) :
     DtConsSpineRoot u s d i :=
   dtConsSpineRoot_of_ctor_dtCons (ctorSpineEq_right_root h)
 
 private theorem eo_to_smt_dtCons_eq
-    (s : native_String) (d : Datatype) (i : native_Nat) :
+    (s : native_String) (d : DatatypeDecl) (i : native_Nat) :
     __eo_to_smt (Term.DtCons s d i) =
       native_ite (native_reserved_datatype_name s) SmtTerm.None
-        (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) := by
+        (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i) := by
   rfl
 
 private theorem dtConsSpineRoot_to_smt_ne_dt_sel
-    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (hSp : DtConsSpineRoot t s d i) :
     ∀ s' d' i' j, __eo_to_smt t ≠ SmtTerm.DtSel s' d' i' j := by
   induction hSp with
@@ -1888,7 +1963,7 @@ private theorem dtConsSpineRoot_to_smt_ne_dt_sel
       cases hEq
 
 private theorem dtConsSpineRoot_to_smt_ne_dt_tester
-    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (hSp : DtConsSpineRoot t s d i) :
     ∀ s' d' i', __eo_to_smt t ≠ SmtTerm.DtTester s' d' i' := by
   induction hSp with
@@ -1918,7 +1993,7 @@ private theorem smt_model_eval_not_notvalue_of_non_none
 
 private theorem dtConsSpineRoot_eval_head_of_type
     (M : SmtModel) (hM : model_total_typed M)
-    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (hSp : DtConsSpineRoot t s d i)
     (hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None) :
     ∃ s' d' i',
@@ -1931,7 +2006,7 @@ private theorem dtConsSpineRoot_eval_head_of_type
       · exfalso
         apply hNN
         simp [native_ite, hRes]
-      · refine ⟨s, __eo_to_smt_datatype d, i, ?_⟩
+      · refine ⟨s, __eo_to_smt_datatype_decl d, i, ?_⟩
         rw [eo_to_smt_dtCons_eq]
         simp [native_ite, hRes]
         simp [__smtx_model_eval, __vsm_apply_head]
@@ -1971,7 +2046,7 @@ private theorem dtConsSpineRoot_eval_head_of_type
 
 private theorem dtConsSpineRoot_apply_eval_eq_apply
     (M : SmtModel) (hM : model_total_typed M)
-    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (hSp : DtConsSpineRoot t s d i) (x : Term)
     (hNN : __smtx_typeof (__eo_to_smt (Term.Apply t x)) ≠ SmtType.None) :
     __smtx_model_eval M (__eo_to_smt (Term.Apply t x)) =
@@ -2065,7 +2140,7 @@ private theorem smt_type_ne_reglan_of_apply_head_cases
 private theorem ctorSpineEq_dtCons_type_eq_of_non_none_aux
     {f g root : Term}
     (hSp : CtorSpineEq f g root) :
-    ∀ {s : native_String} {d : Datatype} {i : native_Nat},
+    ∀ {s : native_String} {d : DatatypeDecl} {i : native_Nat},
       root = Term.DtCons s d i ->
       __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt g) ≠ SmtType.None ->
@@ -2146,7 +2221,7 @@ private theorem ctorSpineEq_dtCons_type_eq_of_non_none_aux
       simpa [hHeadEq] using hApplyEq
 
 private theorem ctorSpineEq_dtCons_type_eq_of_non_none
-    {f g : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {f g : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (hSp : CtorSpineEq f g (Term.DtCons s d i))
     (hFNN : __smtx_typeof (__eo_to_smt f) ≠ SmtType.None)
     (hGNN : __smtx_typeof (__eo_to_smt g) ≠ SmtType.None) :
@@ -2154,7 +2229,7 @@ private theorem ctorSpineEq_dtCons_type_eq_of_non_none
   ctorSpineEq_dtCons_type_eq_of_non_none_aux hSp rfl hFNN hGNN
 
 private theorem dtCons_ctor_spine_eq_apply_bool_components
-    {f g : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {f g : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (a b : Term)
     (hSp : CtorSpineEq f g (Term.DtCons s d i))
     (hBool : RuleProofs.eo_has_bool_type
@@ -2236,7 +2311,7 @@ private theorem dtCons_ctor_spine_eq_apply_bool_components
 
 private theorem dtCons_ctor_spine_eq_apply_eval_eq_and
     (M : SmtModel) (hM : model_total_typed M)
-    {f g : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {f g : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (a b : Term)
     (hSp : CtorSpineEq f g (Term.DtCons s d i))
     (hBool : RuleProofs.eo_has_bool_type
@@ -2325,7 +2400,7 @@ private theorem dtCons_ctor_spine_eq_apply_eval_eq_and
     unfold term_has_non_none_type
     exact hFNN
   have hAReg : A ≠ SmtType.RegLan :=
-    TranslationProofs.smtx_term_fun_like_arg_ne_reglan_of_non_none
+    Smtm.smt_term_fun_like_arg_ne_reglan_of_non_none
       (__eo_to_smt f) hFTermNN hHeadF
   have hArgBTy : __smtx_typeof (__eo_to_smt b) = A :=
     hArgTyEq.symm.trans hATy
@@ -2357,7 +2432,7 @@ private theorem dtCons_ctor_spine_eq_apply_eval_eq_and
 
 private theorem dtCons_ctor_spine_eq_apply_eval_eq_false_of_component
     (M : SmtModel) (hM : model_total_typed M)
-    {f g : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {f g : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (a b : Term)
     (hSp : CtorSpineEq f g (Term.DtCons s d i))
     (hLeftTrans : RuleProofs.eo_has_smt_translation (Term.Apply f a))
@@ -2444,7 +2519,7 @@ private theorem dtCons_ctor_spine_eq_apply_eval_eq_false_of_component
     unfold term_has_non_none_type
     exact hFNN
   have hAReg : A ≠ SmtType.RegLan :=
-    TranslationProofs.smtx_term_fun_like_arg_ne_reglan_of_non_none
+    Smtm.smt_term_fun_like_arg_ne_reglan_of_non_none
       (__eo_to_smt f) hFTermNN hHeadF
   have hArgBTy : __smtx_typeof (__eo_to_smt b) = A :=
     hArgTyEq.symm.trans hATy
@@ -2623,21 +2698,25 @@ private theorem ctorSpineRoot_tupleUnit_apply_type_none_aux
         __smtx_typeof
             (SmtTerm.Apply
               (SmtTerm.DtCons (native_string_lit "@Tuple")
-                (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+                (__smtx_tuple_datatype_decl
+                  (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                 native_nat_zero)
               (__eo_to_smt a)) =
           SmtType.None
       have hGeneric :
           generic_apply_type
             (SmtTerm.DtCons (native_string_lit "@Tuple")
-              (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+              (__smtx_tuple_datatype_decl
+                (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
               native_nat_zero)
             (__eo_to_smt a) :=
         generic_apply_type_of_non_datatype_head
           (by intro s d i j h; cases h)
           (by intro s d i h; cases h)
       unfold generic_apply_type at hGeneric
-      rw [hGeneric, TranslationProofs.smtx_typeof_tuple_unit_translation]
+      rw [hGeneric]
+      simp [__smtx_tuple_datatype_decl,
+        TranslationProofs.smtx_typeof_tuple_unit_translation]
       rfl
   | dtCons s d i =>
       intro a hRoot
@@ -2991,9 +3070,10 @@ private theorem tuple_apply_model_eval_is_apply
     (__smtx_model_eval M (__eo_to_smt as))
     (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null) native_nat_zero)
     (SmtValue.DtCons (native_string_lit "@Tuple")
-      (SmtDatatype.sum
-        (SmtDatatypeCons.cons (__smtx_typeof (__eo_to_smt a)) c)
-        SmtDatatype.null) native_nat_zero)
+      (__smtx_tuple_datatype_decl
+        (SmtDatatype.sum
+          (SmtDatatypeCons.cons (__smtx_typeof (__eo_to_smt a)) c)
+          SmtDatatype.null)) native_nat_zero)
     (__smtx_model_eval M (__eo_to_smt a))
 
 private theorem ctorSpineRoot_nonapply_eval_ne_apply
@@ -3197,7 +3277,7 @@ private theorem smt_eval_eq_false_implies_ne
   cases hEq
 
 private theorem dtConsSpineRoot_head_translation_of_apply_translation
-    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (hSp : DtConsSpineRoot t s d i) (x : Term) :
     RuleProofs.eo_has_smt_translation (Term.Apply t x) ->
     RuleProofs.eo_has_smt_translation t := by
@@ -3226,7 +3306,7 @@ private theorem dtConsSpineRoot_head_translation_of_apply_translation
   rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
 
 private theorem dtConsSpineRoot_reserved_false_of_translation
-    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (hSp : DtConsSpineRoot t s d i) :
     RuleProofs.eo_has_smt_translation t ->
     native_reserved_datatype_name s = false := by
@@ -3248,7 +3328,7 @@ private theorem dtConsSpineRoot_reserved_false_of_translation
 
 private theorem dtConsSpineRoot_eval_head_name_of_type
     (M : SmtModel) (hM : model_total_typed M)
-    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (hSp : DtConsSpineRoot t s d i)
     (hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None) :
     ∃ d' i',
@@ -3261,7 +3341,7 @@ private theorem dtConsSpineRoot_eval_head_name_of_type
       · exfalso
         apply hNN
         simp [native_ite, hRes]
-      · refine ⟨__eo_to_smt_datatype d, i, ?_⟩
+      · refine ⟨__eo_to_smt_datatype_decl d, i, ?_⟩
         rw [eo_to_smt_dtCons_eq]
         simp [native_ite, hRes]
         simp [__smtx_model_eval, __vsm_apply_head]

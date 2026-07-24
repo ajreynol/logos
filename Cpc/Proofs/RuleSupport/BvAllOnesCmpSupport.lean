@@ -476,7 +476,7 @@ theorem typed_bv_ult_ones_term
       __smtx_type_wf (__smtx_typeof (__eo_to_smt x)) = true := by
     rw [hXSmtTy]
     simp [__smtx_type_wf, __smtx_type_wf_component,
-      __smtx_type_wf_rec, __smtx_type_no_alias_rec, native_and]
+      __smtx_type_wf_rec, native_and]
   have hConstTy := smt_typeof_bv_const_of_int_type n W hNSmtTy hW0
   have hConstTrans :
       RuleProofs.eo_has_smt_translation
@@ -665,7 +665,7 @@ theorem facts_bv_ult_ones_term
       __smtx_type_wf (__smtx_typeof (__eo_to_smt x)) = true := by
     rw [hXSmtTy]
     simp [__smtx_type_wf, __smtx_type_wf_component,
-      __smtx_type_wf_rec, __smtx_type_no_alias_rec, native_and]
+      __smtx_type_wf_rec, native_and]
   have hConstTy := smt_typeof_bv_const_of_int_type n W hNSmtTy hW0
   have hConstEval :
       __smtx_model_eval M

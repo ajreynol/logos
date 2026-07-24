@@ -104,7 +104,7 @@ private inductive CtorSpineRoot : Term -> Term -> Prop where
       CtorSpineRoot (Term.UOp UserOp.tuple) (Term.UOp UserOp.tuple)
   | tupleUnit :
       CtorSpineRoot (Term.UOp UserOp.tuple_unit) (Term.UOp UserOp.tuple_unit)
-  | dtCons (s : native_String) (d : Datatype) (i : native_Nat) :
+  | dtCons (s : native_String) (d : DatatypeDecl) (i : native_Nat) :
       CtorSpineRoot (Term.DtCons s d i) (Term.DtCons s d i)
   | app {t root : Term} (x : Term) :
       CtorSpineRoot t root ->

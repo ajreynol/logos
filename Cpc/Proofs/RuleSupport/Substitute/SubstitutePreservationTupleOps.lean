@@ -19,33 +19,34 @@ set_option maxRecDepth 2000
 namespace SubstitutePreservationSupport
 
 private theorem substitute_tuple_prepend_rec_ne_dt_sel
-    (tailD : SmtDatatype) (tail : SmtTerm) :
+    (tailDD : SmtDatatypeDecl) (tailD : SmtDatatype) (tail : SmtTerm) :
     ∀ (k : native_Nat) (acc : SmtTerm),
       (∀ s d i j, acc ≠ SmtTerm.DtSel s d i j) ->
       ∀ s d i j,
-        __eo_to_smt_tuple_prepend_rec tailD tail k acc ≠
+        __eo_to_smt_tuple_prepend_rec tailDD tailD tail k acc ≠
           SmtTerm.DtSel s d i j
   | native_nat_zero, acc, hAcc, s, d, i, j => by
       simpa [__eo_to_smt_tuple_prepend_rec] using hAcc s d i j
   | native_nat_succ k, acc, hAcc, s, d, i, j => by
       simp [__eo_to_smt_tuple_prepend_rec,
-        substitute_tuple_prepend_rec_ne_dt_sel tailD tail k acc hAcc]
+        substitute_tuple_prepend_rec_ne_dt_sel tailDD tailD tail k acc hAcc]
 
 private theorem substitute_tuple_prepend_rec_ne_dt_tester
-    (tailD : SmtDatatype) (tail : SmtTerm) :
+    (tailDD : SmtDatatypeDecl) (tailD : SmtDatatype) (tail : SmtTerm) :
     ∀ (k : native_Nat) (acc : SmtTerm),
       (∀ s d i, acc ≠ SmtTerm.DtTester s d i) ->
       ∀ s d i,
-        __eo_to_smt_tuple_prepend_rec tailD tail k acc ≠
+        __eo_to_smt_tuple_prepend_rec tailDD tailD tail k acc ≠
           SmtTerm.DtTester s d i
   | native_nat_zero, acc, hAcc, s, d, i => by
       simpa [__eo_to_smt_tuple_prepend_rec] using hAcc s d i
   | native_nat_succ k, acc, hAcc, s, d, i => by
       simp [__eo_to_smt_tuple_prepend_rec,
-        substitute_tuple_prepend_rec_ne_dt_tester tailD tail k acc hAcc]
+        substitute_tuple_prepend_rec_ne_dt_tester tailDD tailD tail k acc hAcc]
 
 private theorem substitute_tuple_prepend_rec_type_congr
-    (tailD : SmtDatatype) (tail tail' acc acc' : SmtTerm)
+    (tailDD : SmtDatatypeDecl) (tailD : SmtDatatype)
+    (tail tail' acc acc' : SmtTerm)
     (hTail : __smtx_typeof tail = __smtx_typeof tail')
     (hAccSel : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j)
     (hAccTester : ∀ s d i, acc ≠ SmtTerm.DtTester s d i)
@@ -53,22 +54,22 @@ private theorem substitute_tuple_prepend_rec_type_congr
     (hAcc'Tester : ∀ s d i, acc' ≠ SmtTerm.DtTester s d i)
     (hAcc : __smtx_typeof acc = __smtx_typeof acc') :
     ∀ k,
-      __smtx_typeof (__eo_to_smt_tuple_prepend_rec tailD tail k acc) =
-        __smtx_typeof (__eo_to_smt_tuple_prepend_rec tailD tail' k acc')
+      __smtx_typeof (__eo_to_smt_tuple_prepend_rec tailDD tailD tail k acc) =
+        __smtx_typeof (__eo_to_smt_tuple_prepend_rec tailDD tailD tail' k acc')
   | native_nat_zero => by
       simpa [__eo_to_smt_tuple_prepend_rec] using hAcc
   | native_nat_succ k => by
-      let recTerm := __eo_to_smt_tuple_prepend_rec tailD tail k acc
-      let recTerm' := __eo_to_smt_tuple_prepend_rec tailD tail' k acc'
+      let recTerm := __eo_to_smt_tuple_prepend_rec tailDD tailD tail k acc
+      let recTerm' := __eo_to_smt_tuple_prepend_rec tailDD tailD tail' k acc'
       let argTerm :=
-        SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") tailD
+        SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") tailDD
           native_nat_zero k) tail
       let argTerm' :=
-        SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") tailD
+        SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") tailDD
           native_nat_zero k) tail'
       have hRecTy : __smtx_typeof recTerm = __smtx_typeof recTerm' := by
         simpa [recTerm, recTerm'] using
-          substitute_tuple_prepend_rec_type_congr tailD tail tail' acc acc'
+          substitute_tuple_prepend_rec_type_congr tailDD tailD tail tail' acc acc'
             hTail hAccSel hAccTester hAcc'Sel hAcc'Tester hAcc k
       have hArgTy : __smtx_typeof argTerm = __smtx_typeof argTerm' := by
         simp [argTerm, argTerm', __smtx_typeof, hTail]
@@ -77,24 +78,24 @@ private theorem substitute_tuple_prepend_rec_type_congr
           (by
             intro s d i j h
             exact
-              substitute_tuple_prepend_rec_ne_dt_sel tailD tail k acc
+              substitute_tuple_prepend_rec_ne_dt_sel tailDD tailD tail k acc
                 hAccSel s d i j (by simpa [recTerm] using h))
           (by
             intro s d i h
             exact
-              substitute_tuple_prepend_rec_ne_dt_tester tailD tail k acc
+              substitute_tuple_prepend_rec_ne_dt_tester tailDD tailD tail k acc
                 hAccTester s d i (by simpa [recTerm] using h))
       have hGen' : generic_apply_type recTerm' argTerm' :=
         generic_apply_type_of_non_datatype_head
           (by
             intro s d i j h
             exact
-              substitute_tuple_prepend_rec_ne_dt_sel tailD tail' k acc'
+              substitute_tuple_prepend_rec_ne_dt_sel tailDD tailD tail' k acc'
                 hAcc'Sel s d i j (by simpa [recTerm'] using h))
           (by
             intro s d i h
             exact
-              substitute_tuple_prepend_rec_ne_dt_tester tailD tail' k acc'
+              substitute_tuple_prepend_rec_ne_dt_tester tailDD tailD tail' k acc'
                 hAcc'Tester s d i (by simpa [recTerm'] using h))
       unfold generic_apply_type at hGen hGen'
       change
@@ -114,52 +115,68 @@ private theorem substitute_tuple_prepend_type_congr
   unfold __eo_to_smt_tuple_prepend
   rw [← hTail]
   cases hTailTy : __smtx_typeof tail with
-  | Datatype s d =>
-      by_cases hs : s = (native_string_lit "@Tuple")
-      · subst s
-        cases d with
-        | null =>
-            simp [__eo_to_smt_tuple_prepend_of_type]
-        | sum c rest =>
-            cases rest with
-            | null =>
-                let tailD := SmtDatatype.sum c SmtDatatype.null
-                let fullD :=
-                  SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
-                    SmtDatatype.null
-                let seed :=
-                  SmtTerm.Apply
-                    (SmtTerm.DtCons (native_string_lit "@Tuple") fullD
-                      native_nat_zero) head
-                let seed' :=
-                  SmtTerm.Apply
-                    (SmtTerm.DtCons (native_string_lit "@Tuple") fullD
-                      native_nat_zero) head'
-                cases hWf :
-                    __smtx_type_wf
-                      (SmtType.Datatype (native_string_lit "@Tuple") fullD)
-                · simp [__eo_to_smt_tuple_prepend_of_type, native_ite,
-                    native_and, native_streq, hWf, fullD]
-                · simp [__eo_to_smt_tuple_prepend_of_type, native_ite,
-                    native_and, native_streq, hWf, fullD]
-                  exact
-                    substitute_tuple_prepend_rec_type_congr tailD tail tail'
-                      seed seed' hTail
-                      (by intro s d i j h; simp [seed] at h)
-                      (by intro s d i h; simp [seed] at h)
-                      (by intro s d i j h; simp [seed'] at h)
-                      (by intro s d i h; simp [seed'] at h)
-                      (by simp [seed, seed', __smtx_typeof, hHead])
-                      (__smtx_dt_num_sels tailD native_nat_zero)
-            | sum _ _ =>
-                simp [__eo_to_smt_tuple_prepend_of_type]
-      · cases d with
-        | null =>
-            simp [__eo_to_smt_tuple_prepend_of_type]
-        | sum _ rest =>
-            cases rest <;>
-              simp [__eo_to_smt_tuple_prepend_of_type, native_streq,
-                native_and, native_ite, hs]
+  | Datatype s dd =>
+      cases dd with
+      | nil =>
+          simp [__eo_to_smt_tuple_prepend_of_type]
+      | cons s2 d rest =>
+          cases rest with
+          | cons s3 d3 rest3 =>
+              simp [__eo_to_smt_tuple_prepend_of_type]
+          | nil =>
+              cases d with
+              | null =>
+                  simp [__eo_to_smt_tuple_prepend_of_type]
+              | sum c dTail =>
+                  cases dTail with
+                  | sum c2 d2 =>
+                      simp [__eo_to_smt_tuple_prepend_of_type]
+                  | null =>
+                      by_cases hs : s = native_string_lit "@Tuple"
+                      · subst s
+                        by_cases hs2 : s2 = native_string_lit "@Tuple"
+                        · subst s2
+                          let tailD := SmtDatatype.sum c SmtDatatype.null
+                          let tailDD := __smtx_tuple_datatype_decl tailD
+                          let fullD :=
+                            SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
+                              SmtDatatype.null
+                          let fullDD := __smtx_tuple_datatype_decl fullD
+                          let seed :=
+                            SmtTerm.Apply
+                              (SmtTerm.DtCons (native_string_lit "@Tuple") fullDD
+                                native_nat_zero) head
+                          let seed' :=
+                            SmtTerm.Apply
+                              (SmtTerm.DtCons (native_string_lit "@Tuple") fullDD
+                                native_nat_zero) head'
+                          cases hWf :
+                              __smtx_type_wf
+                                (SmtType.Datatype
+                                  (native_string_lit "@Tuple") fullDD)
+                          · dsimp [fullDD, fullD,
+                              __smtx_tuple_datatype_decl] at hWf
+                            simp [__eo_to_smt_tuple_prepend_of_type,
+                              __smtx_tuple_datatype_decl, native_ite,
+                              native_and, native_streq, hWf, fullD, fullDD]
+                          · dsimp [fullDD, fullD,
+                              __smtx_tuple_datatype_decl] at hWf
+                            simp [__eo_to_smt_tuple_prepend_of_type,
+                              __smtx_tuple_datatype_decl, native_ite,
+                              native_and, native_streq, hWf, fullD, fullDD]
+                            exact
+                              substitute_tuple_prepend_rec_type_congr
+                                tailDD tailD tail tail' seed seed' hTail
+                                (by intro s d i j h; simp [seed] at h)
+                                (by intro s d i h; simp [seed] at h)
+                                (by intro s d i j h; simp [seed'] at h)
+                                (by intro s d i h; simp [seed'] at h)
+                                (by simp [seed, seed', __smtx_typeof, hHead])
+                                (__smtx_dt_num_sels tailD native_nat_zero)
+                        · simp [__eo_to_smt_tuple_prepend_of_type, hs2,
+                            native_streq, native_and, native_ite]
+                      · simp [__eo_to_smt_tuple_prepend_of_type, hs,
+                          native_streq, native_and, native_ite]
   | _ =>
       simp [__eo_to_smt_tuple_prepend_of_type]
 
@@ -238,7 +255,7 @@ private theorem substitute_updater_type_congr
   case DtSel s d i j =>
     cases hGuard :
         native_zlt (native_nat_to_int j)
-          (native_nat_to_int (__smtx_dt_num_sels d i))
+          (native_nat_to_int (__smtx_dt_num_sels (__smtx_dd_lookup s d) i))
     · simp [native_ite, hGuard]
     · simp [native_ite, hGuard]
       rw [typeof_ite_eq, typeof_ite_eq]
@@ -249,12 +266,15 @@ private theorem substitute_updater_type_congr
       have hThen :
           __smtx_typeof
               (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
-                (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i)) =
+                (__smtx_dt_num_sels (__smtx_dd_lookup s d) i)
+                t u (SmtTerm.DtCons s d i)) =
             __smtx_typeof
               (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
-                (__smtx_dt_num_sels d i) t' u' (SmtTerm.DtCons s d i)) :=
+                (__smtx_dt_num_sels (__smtx_dd_lookup s d) i)
+                t' u' (SmtTerm.DtCons s d i)) :=
         substitute_updater_rec_type_congr
-          (SmtTerm.DtSel s d i j) (__smtx_dt_num_sels d i)
+          (SmtTerm.DtSel s d i j)
+          (__smtx_dt_num_sels (__smtx_dd_lookup s d) i)
           t u (SmtTerm.DtCons s d i) t' u' ht hu
       rw [hCond, hThen, ht]
 
@@ -268,17 +288,31 @@ private theorem substitute_tuple_update_type_congr
   intro hT ht hu
   subst T'
   cases T <;> cases idx <;> simp [__eo_to_smt_tuple_update]
-  case Datatype.Numeral s d n =>
-    by_cases hs : s = (native_string_lit "@Tuple")
-    · subst s
-      cases hNonneg : native_zleq 0 n
-      · simp [native_ite, native_and, native_streq, hNonneg]
-      · simp [native_ite, native_and, native_streq, hNonneg]
-        exact substitute_updater_type_congr
-          (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero
-            (native_int_to_nat n))
-          t u t' u' ht hu
-    · simp [native_ite, native_and, native_streq, hs]
+  case Datatype.Numeral s dd n =>
+    cases dd with
+    | nil =>
+        simp [__eo_to_smt_tuple_update]
+    | cons s2 d rest =>
+        cases rest with
+        | cons s3 d3 rest3 =>
+            simp [__eo_to_smt_tuple_update]
+        | nil =>
+            by_cases hs : s = native_string_lit "@Tuple"
+            · subst s
+              by_cases hs2 : s2 = native_string_lit "@Tuple"
+              · subst s2
+                cases hNonneg : native_zleq 0 n
+                · simp [native_ite, native_and, native_streq, hNonneg]
+                · simp [native_ite, native_and, native_streq, hNonneg]
+                  exact substitute_updater_type_congr
+                    (SmtTerm.DtSel (native_string_lit "@Tuple")
+                      (__smtx_tuple_datatype_decl d) native_nat_zero
+                      (native_int_to_nat n))
+                    t u t' u' ht hu
+              · simp [__eo_to_smt_tuple_update, native_ite, native_and,
+                  native_streq, hs2]
+            · simp [__eo_to_smt_tuple_update, native_ite, native_and,
+                native_streq, hs]
 theorem substitute_simul_tuple_preserves_type_and_translation_of_typeof_ne_stuck
     {isRename : Bool}
     (x y xs ts bvs : Term)

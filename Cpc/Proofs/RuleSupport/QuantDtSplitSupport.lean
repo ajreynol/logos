@@ -225,7 +225,8 @@ theorem vsm_canonical_of_spine (args : List SmtValue) :
         exact hArgs b (List.mem_cons_of_mem a hb)
 
 theorem vsmMkSpine_dtcons_type_aux
-    (s : native_String) (d0 d : SmtDatatype) (i : native_Nat)
+    (s : native_String) (d0 : SmtDatatypeDecl) (d : SmtDatatype)
+    (i : native_Nat)
     (total : Nat)
     (hTotal : total ≤ __smtx_dt_num_sels d i)
     (hRetWf : ∀ j, j < total ->
@@ -279,7 +280,8 @@ theorem vsmMkSpine_dtcons_type_aux
       exact hRec
 
 theorem vsmMkSpine_dtcons_type
-    (s : native_String) (d0 d : SmtDatatype) (i : native_Nat)
+    (s : native_String) (d0 : SmtDatatypeDecl) (d : SmtDatatype)
+    (i : native_Nat)
     (args : List SmtValue)
     (hRoot : __smtx_typeof_value (SmtValue.DtCons s d0 i) =
       dt_cons_applied_type_rec s d0 d i 0)
@@ -358,15 +360,18 @@ is a constructor spine with in-range index, correct arity, and arguments typed
 by the (substituted) selector types.
 -/
 theorem datatype_value_spine
-    {v : SmtValue} {s : native_String} {d : SmtDatatype}
+    {v : SmtValue} {s : native_String} {d : SmtDatatypeDecl}
     (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
     ∃ (i : Nat) (args : List SmtValue),
       v = vsmMkSpine (SmtValue.DtCons s d i) args ∧
-      i < smtDatatypeNumCtors d ∧
-      args.length = __smtx_dt_num_sels (__smtx_dt_substitute s d d) i ∧
+      i < smtDatatypeNumCtors (__smtx_dd_lookup s d) ∧
+      args.length =
+        __smtx_dt_num_sels
+          (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i ∧
       (∀ j : Nat, j < args.length ->
         __smtx_typeof_value args[j]! =
-          __smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) i j) := by
+          __smtx_ret_typeof_sel_rec
+            (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i j) := by
   obtain ⟨i, hHead⟩ := datatype_value_head_of_type hTy
   refine ⟨i, vsmArgs v, ?_, ?_, ?_, ?_⟩
   · have := vsm_spine_decomposition v
@@ -661,14 +666,14 @@ theorem eoTermSpine_eq_head_implies_nil {c : Term} {args : List Term}
       rw [h] at hLt
       omega
 
-inductive DtEoSpine : Term -> native_String -> Datatype -> Nat -> Prop where
-  | root (s : native_String) (d : Datatype) (i : Nat) :
+inductive DtEoSpine : Term -> native_String -> DatatypeDecl -> Nat -> Prop where
+  | root (s : native_String) (d : DatatypeDecl) (i : Nat) :
       DtEoSpine (Term.DtCons s d i) s d i
-  | app {c : Term} {s : native_String} {d : Datatype} {i : Nat}
+  | app {c : Term} {s : native_String} {d : DatatypeDecl} {i : Nat}
       (a : Term) : DtEoSpine c s d i -> DtEoSpine (Term.Apply c a) s d i
 
 theorem dtEoSpine_apply_translation
-    {c : Term} {s : native_String} {d : Datatype} {i : Nat}
+    {c : Term} {s : native_String} {d : DatatypeDecl} {i : Nat}
     (hSpine : DtEoSpine c s d i) (a : Term) :
     __eo_to_smt (Term.Apply c a) =
       SmtTerm.Apply (__eo_to_smt c) (__eo_to_smt a) := by
@@ -683,7 +688,7 @@ theorem dtEoSpine_apply_translation
           | app a''' hSpine'' => rfl
 
 theorem dtEoSpine_spine_translation
-    {c : Term} {s : native_String} {d : Datatype} {i : Nat}
+    {c : Term} {s : native_String} {d : DatatypeDecl} {i : Nat}
     (hSpine : DtEoSpine c s d i) (args : List Term) :
     __eo_to_smt (eoTermSpine c args) =
       List.foldl (fun f a => SmtTerm.Apply f (__eo_to_smt a))
@@ -697,11 +702,11 @@ theorem dtEoSpine_spine_translation
       rfl
 
 theorem dtEoSpine_translation_head
-    {c : Term} {s : native_String} {d : Datatype} {i : Nat}
+    {c : Term} {s : native_String} {d : DatatypeDecl} {i : Nat}
     (hSpine : DtEoSpine c s d i)
     (hReserved : native_reserved_datatype_name s = false) :
     qdsSmtApplyHead (__eo_to_smt c) =
-      SmtTerm.DtCons s (__eo_to_smt_datatype d) i := by
+      SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i := by
   induction hSpine with
   | root => simp [qdsSmtApplyHead, hReserved, native_ite]
   | app a hSpine ih =>
@@ -919,11 +924,11 @@ theorem eoTermArgs_eoTermSpine : ∀ (head : Term) (args : List Term),
       simp [eoTermArgs, List.append_assoc]
 
 theorem eo_to_smt_spine_dtcons
-    (s : native_String) (d : Datatype) (i : Nat) (args : List Term)
+    (s : native_String) (d : DatatypeDecl) (i : Nat) (args : List Term)
     (hReserved : native_reserved_datatype_name s = false) :
     __eo_to_smt (eoTermSpine (Term.DtCons s d i) args) =
       List.foldl (fun f a => SmtTerm.Apply f (__eo_to_smt a))
-        (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) args := by
+        (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i) args := by
   rw [dtEoSpine_spine_translation (DtEoSpine.root s d i)]
   simp [hReserved, native_ite]
 
@@ -1989,7 +1994,7 @@ theorem conj_backward_aux
 /-! ## Reconstructing a selected constructor branch -/
 
 theorem datatype_name_not_reserved_of_type_wf
-    (s : native_String) (d : Datatype)
+    (s : native_String) (d : DatatypeDecl)
     (hWf : __smtx_type_wf
       (__eo_to_smt_type (Term.DatatypeType s d)) = true) :
     native_reserved_datatype_name s = false := by
@@ -2000,7 +2005,7 @@ theorem datatype_name_not_reserved_of_type_wf
 
 theorem smt_model_eval_apply_of_dt_head
     (M : SmtModel) (f u : SmtValue)
-    {s : native_String} {d : SmtDatatype} {i : Nat}
+    {s : native_String} {d : SmtDatatypeDecl} {i : Nat}
     (hHead : __vsm_apply_head f = SmtValue.DtCons s d i)
     (hu : u ≠ SmtValue.NotValue) :
     __smtx_model_eval_apply M f u = SmtValue.Apply f u := by
@@ -2164,7 +2169,7 @@ theorem conj_final_tcs
 selected conjunct so that its final constructor evaluates to the requested
 constructor value. -/
 private theorem conj_ctor_inst_from_values_aux
-    (s : native_String) (d : Datatype) (i : Nat)
+    (s : native_String) (d : DatatypeDecl) (i : Nat)
     (hReserved : native_reserved_datatype_name s = false) :
     ∀ {x F c ys g : Term}
       (rel : ConjRel x F c ys g),
@@ -2177,14 +2182,14 @@ private theorem conj_ctor_inst_from_values_aux
       ∀ (M : SmtModel) (v : SmtValue) (args : List SmtValue),
       __smtx_typeof (gEnc g) = SmtType.Bool ->
       __smtx_typeof (__eo_to_smt (conjFinal rel)) =
-        SmtType.Datatype s (__eo_to_smt_datatype d) ->
+        SmtType.Datatype s (__eo_to_smt_datatype_decl d) ->
       args.length = (conjAbsorbed rel).length ->
       (∀ j, j < args.length ->
         __smtx_typeof_value args[j]! =
           __smtx_typeof (__eo_to_smt (conjAbsorbed rel)[j]!)) ->
       (∀ u ∈ args, __smtx_value_canonical_bool u = true) ->
       __vsm_apply_head (__smtx_model_eval M (__eo_to_smt c)) =
-        SmtValue.DtCons s (__eo_to_smt_datatype d) i ->
+        SmtValue.DtCons s (__eo_to_smt_datatype_decl d) i ->
       v = vsmMkSpine (__smtx_model_eval M (__eo_to_smt c)) args ->
       CtorInst x F rel M v := by
   intro x F c ys g rel
@@ -2423,14 +2428,14 @@ private theorem conj_ctor_inst_from_values_aux
       | cons u us => simp [conjAbsorbed] at hLen
 
 theorem conj_ctor_inst_from_values
-    (s : native_String) (d : Datatype) (i : Nat)
+    (s : native_String) (d : DatatypeDecl) (i : Nat)
     (hReserved : native_reserved_datatype_name s = false) :
     ∀ {x F ys g : Term}
       (rel : ConjRel x F (Term.DtCons s d i) ys g),
       ∀ (M : SmtModel) (v : SmtValue) (args : List SmtValue),
       __smtx_typeof (gEnc g) = SmtType.Bool ->
       __smtx_typeof (__eo_to_smt (conjFinal rel)) =
-        SmtType.Datatype s (__eo_to_smt_datatype d) ->
+        SmtType.Datatype s (__eo_to_smt_datatype_decl d) ->
       args.length = (conjAbsorbed rel).length ->
       (∀ j, j < args.length ->
         __smtx_typeof_value args[j]! =
@@ -2438,7 +2443,7 @@ theorem conj_ctor_inst_from_values
       (∀ u ∈ args, __smtx_value_canonical_bool u = true) ->
       __vsm_apply_head
           (__smtx_model_eval M (__eo_to_smt (Term.DtCons s d i))) =
-        SmtValue.DtCons s (__eo_to_smt_datatype d) i ->
+        SmtValue.DtCons s (__eo_to_smt_datatype_decl d) i ->
       v = vsmMkSpine
         (__smtx_model_eval M (__eo_to_smt (Term.DtCons s d i))) args ->
       CtorInst x F rel M v := by
@@ -2585,7 +2590,8 @@ theorem eo_mk_apply_cons_ne_stuck {t y : Term} (hy : y ≠ Term.Stuck) :
     __eo_mk_apply (Term.Apply Term.__eo_List_cons t) y = eoCons t y := by
   cases y <;> first | rfl | exact absurd rfl hy
 
-theorem eoCtorList_datatype_constructors_rec (s : native_String) (d : Datatype) :
+theorem eoCtorList_datatype_constructors_rec
+    (s : native_String) (d : DatatypeDecl) :
     ∀ (d' : Datatype) (i : native_Nat),
       EoCtorList (__eo_datatype_constructors_rec s d d' i)
   | Datatype.null, i => EoCtorList.nil
@@ -2601,7 +2607,7 @@ theorem eoCtorList_datatype_constructors_rec (s : native_String) (d : Datatype) 
 /-- The relative `i`th entry generated from a datatype tail is the constructor
 whose absolute index is `start + i`. -/
 theorem eoCtorAt_datatype_constructors_rec
-    (s : native_String) (root : Datatype) :
+    (s : native_String) (root : DatatypeDecl) :
     ∀ (current : Datatype) (start i : Nat),
       i < eoDatatypeNumCtors current ->
       EoCtorAt (__eo_datatype_constructors_rec s root current start) i
@@ -3017,8 +3023,10 @@ theorem split_forward
       rw [show __eo_typeof (Term.Var (Term.String sx)
           (Term.DatatypeType sD dD)) = Term.DatatypeType sD dD from rfl]
       rw [show __dt_get_constructors (Term.DatatypeType sD dD) =
-        __eo_datatype_constructors_rec sD dD dD native_nat_zero from rfl]
-      exact eoCtorList_datatype_constructors_rec sD dD dD native_nat_zero
+        __eo_datatype_constructors_rec sD dD (__eo_dd_lookup sD dD)
+          native_nat_zero from rfl]
+      exact eoCtorList_datatype_constructors_rec sD dD
+        (__eo_dd_lookup sD dD) native_nat_zero
     exact split_forward_chain M hM sx (Term.DatatypeType sD dD) ys F hWfX hFTrans hH
       srel hCs hGTy
   · refine split_forward_nondatatype M hM sx xT ys F G ?_ ?_ hWfX hFTrans hGTy hH
@@ -3112,12 +3120,13 @@ theorem split_backward
     · obtain ⟨sD, dD, rfl⟩ := hDt
       have hReserved := datatype_name_not_reserved_of_type_wf sD dD hWfX
       have hwTyDt : __smtx_typeof_value w =
-          SmtType.Datatype sD (__eo_to_smt_datatype dD) := by
+          SmtType.Datatype sD (__eo_to_smt_datatype_decl dD) := by
         simpa [__eo_to_smt_type, hReserved, native_ite] using hwTy
       obtain ⟨ci, args, hW, hCiLt, hArgLen, hArgTypes⟩ :=
         datatype_value_spine hwTyDt
       obtain ⟨hHeadCanon, hArgsCanon⟩ := vsm_canonical_spine w hwCanon
-      have hCiLtEo : ci < eoDatatypeNumCtors dD := by
+      have hCiLtEo : ci < eoDatatypeNumCtors (__eo_dd_lookup sD dD) := by
+        rw [← TranslationProofs.eo_to_smt_dd_lookup] at hCiLt
         simpa [smtDatatypeNumCtors_eo_to_smt] using hCiLt
       have hAt : EoCtorAt
           (__dt_get_constructors
@@ -3128,9 +3137,10 @@ theorem split_backward
           (Term.Var (Term.String sx) (Term.DatatypeType sD dD)) =
             Term.DatatypeType sD dD from rfl]
         rw [show __dt_get_constructors (Term.DatatypeType sD dD) =
-          __eo_datatype_constructors_rec sD dD dD 0 from rfl]
+          __eo_datatype_constructors_rec sD dD (__eo_dd_lookup sD dD) 0 from rfl]
         simpa using
-          (eoCtorAt_datatype_constructors_rec sD dD dD 0 ci hCiLtEo)
+          (eoCtorAt_datatype_constructors_rec sD dD
+            (__eo_dd_lookup sD dD) 0 ci hCiLtEo)
       obtain ⟨g, crel, hgTy, hgTrue⟩ :=
         splitRel_pick_true M srel hAt hGTy hRHS
       have hEnc : gEnc g = __eo_to_smt g :=
@@ -3143,18 +3153,18 @@ theorem split_backward
         rw [hEnc]
         exact hgTrue
       have hFinalTy : __smtx_typeof (__eo_to_smt (conjFinal crel)) =
-          SmtType.Datatype sD (__eo_to_smt_datatype dD) := by
+          SmtType.Datatype sD (__eo_to_smt_datatype_decl dD) := by
         have h := conj_final_smt_type sx (Term.DatatypeType sD dD) F hWfX
           crel (CS.head (CH.datatype sD dD ci)) hgEncTy
         simpa [__eo_to_smt_type, hReserved, native_ite] using h
       have hFinalTo : __eo_to_smt (conjFinal crel) =
           List.foldl (fun f a => SmtTerm.Apply f (__eo_to_smt a))
-            (SmtTerm.DtCons sD (__eo_to_smt_datatype dD) ci)
+            (SmtTerm.DtCons sD (__eo_to_smt_datatype_decl dD) ci)
             (conjAbsorbed crel) := by
         rw [conjFinal_eq_spine crel]
         exact eo_to_smt_spine_dtcons sD dD ci (conjAbsorbed crel) hReserved
       have hQHead : qdsSmtApplyHead (__eo_to_smt (conjFinal crel)) =
-          SmtTerm.DtCons sD (__eo_to_smt_datatype dD) ci := by
+          SmtTerm.DtCons sD (__eo_to_smt_datatype_decl dD) ci := by
         rw [hFinalTo, qdsSmtApplyHead_foldl]
         rfl
       have hQArgs : qdsSmtApplyArgs (__eo_to_smt (conjFinal crel)) =
@@ -3169,8 +3179,9 @@ theorem split_backward
         calc
           args.length =
               __smtx_dt_num_sels
-                (__smtx_dt_substitute sD (__eo_to_smt_datatype dD)
-                  (__eo_to_smt_datatype dD)) ci := hArgLen
+                (__smtx_dt_resolve
+                  (__smtx_dd_lookup sD (__eo_to_smt_datatype_decl dD))
+                  (__eo_to_smt_datatype_decl dD)) ci := hArgLen
           _ = qdsSmtNumApplyArgs (__eo_to_smt (conjFinal crel)) :=
             hStaticLen.symm
           _ = (qdsSmtApplyArgs (__eo_to_smt (conjFinal crel))).length :=
@@ -3195,19 +3206,20 @@ theorem split_backward
         calc
           __smtx_typeof_value args[j]! =
               __smtx_ret_typeof_sel_rec
-                (__smtx_dt_substitute sD (__eo_to_smt_datatype dD)
-                  (__eo_to_smt_datatype dD)) ci j := hArgTypes j hj
+                (__smtx_dt_resolve
+                  (__smtx_dd_lookup sD (__eo_to_smt_datatype_decl dD))
+                  (__eo_to_smt_datatype_decl dD)) ci j := hArgTypes j hj
           _ = __smtx_typeof
               (qdsSmtApplyArgs (__eo_to_smt (conjFinal crel)))[j]! := hStatic.symm
           _ = __smtx_typeof
               (__eo_to_smt (conjAbsorbed crel)[j]!) := congrArg __smtx_typeof hMap
       have hEvalHead : __vsm_apply_head
           (__smtx_model_eval N₀ (__eo_to_smt (Term.DtCons sD dD ci))) =
-          SmtValue.DtCons sD (__eo_to_smt_datatype dD) ci := by
+          SmtValue.DtCons sD (__eo_to_smt_datatype_decl dD) ci := by
         have hRootTo : __eo_to_smt (Term.DtCons sD dD ci) =
-            SmtTerm.DtCons sD (__eo_to_smt_datatype dD) ci := by
+            SmtTerm.DtCons sD (__eo_to_smt_datatype_decl dD) ci := by
           change native_ite (native_reserved_datatype_name sD) SmtTerm.None
-            (SmtTerm.DtCons sD (__eo_to_smt_datatype dD) ci) = _
+            (SmtTerm.DtCons sD (__eo_to_smt_datatype_decl dD) ci) = _
           rw [hReserved]
           rfl
         rw [hRootTo]
@@ -3215,9 +3227,9 @@ theorem split_backward
       have hTarget : w = vsmMkSpine
           (__smtx_model_eval N₀ (__eo_to_smt (Term.DtCons sD dD ci))) args := by
         have hRootTo : __eo_to_smt (Term.DtCons sD dD ci) =
-            SmtTerm.DtCons sD (__eo_to_smt_datatype dD) ci := by
+            SmtTerm.DtCons sD (__eo_to_smt_datatype_decl dD) ci := by
           change native_ite (native_reserved_datatype_name sD) SmtTerm.None
-            (SmtTerm.DtCons sD (__eo_to_smt_datatype dD) ci) = _
+            (SmtTerm.DtCons sD (__eo_to_smt_datatype_decl dD) ci) = _
           rw [hReserved]
           rfl
         rw [hRootTo]
@@ -3302,55 +3314,37 @@ theorem split_backward
           qds_tuple_type_shape_of_wf T₁ T₂ hWfX
         let A := __eo_to_smt_type T₁
         let tailD := SmtDatatype.sum c SmtDatatype.null
+        let tailDD := __smtx_tuple_datatype_decl tailD
         let fullD := SmtDatatype.sum (SmtDatatypeCons.cons A c) SmtDatatype.null
-        have hAFree : Smtm.hasFreeTy (native_string_lit "@Tuple")
-            native_reflist_nil A = false := by
-          exact TranslationProofs.hasFreeTy_reserved_of_translate
-            (native_string_lit "@Tuple") (by native_decide) T₁
-              native_reflist_nil
-        have hANotTuple : A ≠
-            SmtType.TypeRef (native_string_lit "@Tuple") := by
-          simpa [A] using
-            TranslationProofs.eo_to_smt_type_ne_tuple_typeref T₁
-        have hCFree : Smtm.hasFreeDtc (native_string_lit "@Tuple")
-            native_reflist_nil c = false :=
-          qds_tuple_fields_no_free hTailShape
-        have hFullFieldsFree : Smtm.hasFreeDtc
-            (native_string_lit "@Tuple") native_reflist_nil
-            (SmtDatatypeCons.cons A c) = false := by
-          cases hA : A <;>
-            simp [Smtm.hasFreeDtc, hA] at hAFree ⊢
-          case TypeRef s =>
-            have hs : s ≠ native_string_lit "@Tuple" := by
-              intro hs
-              subst s
-              exact hANotTuple hA
-            simp [native_streq, hs, hCFree, native_or,
-              native_and, native_not, native_reflist_contains]
-          all_goals simp_all [native_or]
-        have hSubFullCons := Smtm.subst_noop_no_free_dtc
-          (native_string_lit "@Tuple") (SmtDatatypeCons.cons A c) fullD
-            native_reflist_nil (by native_decide) hFullFieldsFree
-        have hSubFull : __smtx_dt_substitute (native_string_lit "@Tuple")
-            fullD fullD = fullD := by
-          simpa [fullD, __smtx_dt_substitute] using congrArg
-            (fun fields => SmtDatatype.sum fields SmtDatatype.null) hSubFullCons
-        have hSubTailCons := Smtm.subst_noop_no_free_dtc
-          (native_string_lit "@Tuple") c tailD native_reflist_nil
-            (by native_decide) hCFree
-        have hSubTail : __smtx_dt_substitute (native_string_lit "@Tuple")
-            tailD tailD = tailD := by
-          simpa [tailD, __smtx_dt_substitute] using congrArg
-            (fun fields => SmtDatatype.sum fields SmtDatatype.null) hSubTailCons
+        let fullDD := __smtx_tuple_datatype_decl fullD
+        have hLookupFull :
+            __smtx_dd_lookup (native_string_lit "@Tuple") fullDD = fullD := by
+          simp [fullDD, fullD, __smtx_tuple_datatype_decl,
+            __smtx_dd_lookup, native_streq, native_ite]
+        have hLookupTail :
+            __smtx_dd_lookup (native_string_lit "@Tuple") tailDD = tailD := by
+          simp [tailDD, tailD, __smtx_tuple_datatype_decl,
+            __smtx_dd_lookup, native_streq, native_ite]
+        have hResolveFull :
+            __smtx_dt_resolve fullD fullDD = fullD := by
+          simpa [fullD, fullDD, A] using
+            qds_tuple_resolve_noop_of_eo_type
+              (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T₁) T₂)
+              (SmtDatatypeCons.cons A c) hFullShape hWfX
+        have hResolveTail :
+            __smtx_dt_resolve tailD tailDD = tailD := by
+          simpa [tailD, tailDD] using
+            qds_tuple_resolve_noop_of_eo_type T₂ c hTailShape hU₂Wf
         have hwTyFull : __smtx_typeof_value w =
-            SmtType.Datatype (native_string_lit "@Tuple") fullD := by
-          exact hwTy.trans (by simpa [fullD, A] using hFullShape)
+            SmtType.Datatype (native_string_lit "@Tuple") fullDD := by
+          exact hwTy.trans (by simpa [fullD, fullDD, A] using hFullShape)
         obtain ⟨ci, args, hW, hCiLt, hArgLen, hArgTypes⟩ :=
           datatype_value_spine hwTyFull
         have hCi : ci = 0 := by
+          rw [hLookupFull] at hCiLt
           simpa [fullD, smtDatatypeNumCtors] using hCiLt
         subst ci
-        rw [hSubFull] at hArgLen hArgTypes
+        rw [hLookupFull, hResolveFull] at hArgLen hArgTypes
         cases args with
         | nil =>
             simp [fullD, __smtx_dt_num_sels, __smtx_dtc_num_sels] at hArgLen
@@ -3377,44 +3371,40 @@ theorem split_backward
               intro a ha
               exact hArgsCanon a (by rw [hArgsView]; simp [ha])
             let tailRoot := SmtValue.DtCons
-              (native_string_lit "@Tuple") tailD native_nat_zero
+              (native_string_lit "@Tuple") tailDD native_nat_zero
             let tailVal := vsmMkSpine tailRoot rest
             have hTailRootTy : __smtx_typeof_value tailRoot =
-                dt_cons_applied_type_rec (native_string_lit "@Tuple")
-                  tailD tailD native_nat_zero 0 := by
+              dt_cons_applied_type_rec (native_string_lit "@Tuple")
+                  tailDD tailD native_nat_zero 0 := by
               simp [tailRoot, __smtx_typeof_value, dt_cons_applied_type_rec,
-                hSubTail]
+                hLookupTail, hResolveTail]
             have hRetWf : ∀ j, j < __smtx_dt_num_sels tailD 0 ->
                 __smtx_type_wf
                   (__smtx_ret_typeof_sel_rec tailD 0 j) = true := by
               intro j hj
-              apply qds_tuple_ret_type_wf_of_eo_type T₂ c j hTailShape hU₂Wf
-              simpa [tailD, __smtx_dt_num_sels] using hj
+              have h := qds_tuple_ret_type_wf_of_eo_type
+                T₂ c j hTailShape hU₂Wf
+                (by simpa [tailD, __smtx_dt_num_sels] using hj)
+              rwa [hResolveTail] at h
             have hTailValTyRaw := vsmMkSpine_dtcons_type
-              (native_string_lit "@Tuple") tailD tailD native_nat_zero rest
+              (native_string_lit "@Tuple") tailDD tailD native_nat_zero rest
                 hTailRootTy (by simp [tailD, __smtx_dt_num_sels, hRestLen])
                 hRetWf hRestTypes
             have hTailValTy : __smtx_typeof_value tailVal =
-                SmtType.Datatype (native_string_lit "@Tuple") tailD := by
+                SmtType.Datatype (native_string_lit "@Tuple") tailDD := by
               rw [show tailVal = vsmMkSpine tailRoot rest from rfl,
                 hTailValTyRaw, hRestLen,
-                qds_dtc_full_arity (native_string_lit "@Tuple") tailD c]
+                qds_dtc_full_arity (native_string_lit "@Tuple") tailDD c]
             have hTailValCanon : __smtx_value_canonical_bool tailVal = true := by
               apply vsm_canonical_of_spine rest tailRoot
               · rfl
               · exact hRestCanon
             have hSourceNe := tuple_absorbed_two_ne_of_typed crel hgEncTy
               s₁ s₂ T₁ T₂ hAbs
-            have hFullValid := TranslationProofs.eo_type_valid_of_smt_wf
-              (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T₁) T₂) hWfX
             have hT₁Valid : TranslationProofs.eo_type_valid_rec [] T₁ := by
-              have hParts : TranslationProofs.eo_type_valid_rec [] T₁ ∧
-                  TranslationProofs.eo_type_valid_rec [] T₂ ∧
-                    __smtx_type_wf (__eo_to_smt_type_tuple
-                      (__eo_to_smt_type T₁) (__eo_to_smt_type T₂)) = true := by
-                simpa [TranslationProofs.eo_type_valid,
-                  TranslationProofs.eo_type_valid_rec] using hFullValid
-              exact hParts.1
+              simpa [TranslationProofs.eo_type_valid,
+                TranslationProofs.eo_type_valid_rec] using
+                  TranslationProofs.eo_type_valid_of_smt_wf T₁ hU₁Wf
             have hKeyNe :
                 ({ isVar := true, name := s₁, ty := A } : SmtModelKey) ≠
                   { isVar := true, name := s₂, ty := __eo_to_smt_type T₂ } := by
@@ -3432,15 +3422,15 @@ theorem split_backward
               rw [TranslationProofs.eo_to_smt_var, smtx_typeof_var_term_eq]
               simp [__smtx_typeof_guard_wf, hU₁Wf, A, native_ite]
             have hTailTupleWf : __smtx_type_wf
-                (SmtType.Datatype (native_string_lit "@Tuple") tailD) = true := by
+                (SmtType.Datatype (native_string_lit "@Tuple") tailDD) = true := by
               exact (congrArg __smtx_type_wf hTailShape).symm.trans
-                (by simpa [tailD] using hU₂Wf)
+                (by simpa [tailD, tailDD] using hU₂Wf)
             have hTailTermTy : __smtx_typeof
                 (__eo_to_smt (Term.Var (Term.String s₂) T₂)) =
-                  SmtType.Datatype (native_string_lit "@Tuple") tailD := by
+                  SmtType.Datatype (native_string_lit "@Tuple") tailDD := by
               rw [TranslationProofs.eo_to_smt_var, smtx_typeof_var_term_eq]
               simp [__smtx_typeof_guard_wf, hTailShape, hTailTupleWf,
-                tailD, native_ite]
+                tailD, tailDD, native_ite]
             have hFullTrans : RuleProofs.eo_has_smt_translation
                 (Term.Apply
                   (Term.Apply (Term.UOp UserOp.tuple)
@@ -3468,7 +3458,7 @@ theorem split_backward
             have hTailValTyEo : __smtx_typeof_value tailVal =
                 __eo_to_smt_type T₂ := by
               rw [hTailShape]
-              simpa [tailD] using hTailValTy
+              simpa [tailD, tailDD] using hTailValTy
             let P := native_model_push
               (native_model_push N₀ s₁ A u)
               s₂ (__eo_to_smt_type T₂) tailVal
@@ -3493,14 +3483,15 @@ theorem split_backward
             have hTupleEval := tuple_prepend_eval_eq_value_rec P hPTyped
               (__eo_to_smt (Term.Var (Term.String s₁) T₁))
               (__eo_to_smt (Term.Var (Term.String s₂) T₂))
-              A c hHeadTermTy (by simpa [tailD] using hTailTermTy) hPrependNN
+              A c hHeadTermTy
+                (by simpa [tailD, tailDD] using hTailTermTy) hPrependNN
             rw [hEvalHead, hEvalTail] at hTupleEval
             have hRestLenTail : rest.length =
                 __smtx_dt_num_sels tailD native_nat_zero := by
               simpa [tailD, __smtx_dt_num_sels] using hRestLen
             have hRec := tuplePrependValueRec_vsmMkSpine tailD tailRoot rest
               (SmtValue.Apply
-                (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
+                (SmtValue.DtCons (native_string_lit "@Tuple") fullDD native_nat_zero)
                 u)
               (by rfl) hRestLenTail
             have hEvalFinal : __smtx_model_eval P
@@ -3521,13 +3512,14 @@ theorem split_backward
                     tuplePrependValueRec tailD tailVal
                       (__smtx_dt_num_sels tailD native_nat_zero)
                       (SmtValue.Apply
-                        (SmtValue.DtCons (native_string_lit "@Tuple") fullD
+                        (SmtValue.DtCons (native_string_lit "@Tuple") fullDD
                           native_nat_zero) u) := by
-                            simpa [tailD, fullD] using hTupleEval
+                            simpa [tailD, tailDD, fullD, fullDD] using hTupleEval
                 _ = vsmMkSpine
                     (SmtValue.Apply
-                      (SmtValue.DtCons (native_string_lit "@Tuple") fullD
-                        native_nat_zero) u) rest := hRec
+                      (SmtValue.DtCons (native_string_lit "@Tuple") fullDD
+                          native_nat_zero) u) rest := by
+                            exact hRec
                 _ = w := by simpa [vsmMkSpine] using hW.symm
             have hCI := ctorInst_of_two_absorbed crel N₀ w
               s₁ T₁ u s₂ T₂ tailVal hAbs
@@ -3565,19 +3557,26 @@ theorem split_backward
         have hAbs : conjAbsorbed crel = [] := by
           apply eoTermSpine_eq_head_implies_nil
           rw [← conjFinal_eq_spine crel, hFull]
+        let unitD :=
+          SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null
+        let unitDD := __smtx_tuple_datatype_decl unitD
         have hwTyUnit : __smtx_typeof_value w =
-            SmtType.Datatype (native_string_lit "@Tuple")
-              (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
-          simpa [TranslationProofs.eo_to_smt_type_unit_tuple] using hwTy
+            SmtType.Datatype (native_string_lit "@Tuple") unitDD := by
+          simpa [unitDD, unitD,
+            TranslationProofs.eo_to_smt_type_unit_tuple] using hwTy
         obtain ⟨ci, args, hW, hCiLt, hArgLen, hArgTypes⟩ :=
           datatype_value_spine hwTyUnit
         have hCi : ci = 0 := by
-          simpa [smtDatatypeNumCtors] using hCiLt
+          simpa [unitDD, unitD, __smtx_tuple_datatype_decl,
+            __smtx_dd_lookup, smtDatatypeNumCtors, native_streq,
+            native_ite] using hCiLt
         subst ci
         have hArgs : args = [] := by
           apply List.eq_nil_of_length_eq_zero
-          simpa [__smtx_dt_substitute, __smtx_dtc_substitute,
-            __smtx_dt_num_sels, __smtx_dtc_num_sels] using hArgLen
+          simpa [unitDD, unitD, __smtx_tuple_datatype_decl,
+            __smtx_dd_lookup, __smtx_dt_resolve, __smtx_dtc_resolve,
+            __smtx_dt_num_sels, __smtx_dtc_num_sels, native_streq,
+            native_ite] using hArgLen
         subst args
         have hEval : __smtx_model_eval N₀
             (__eo_to_smt (conjFinal crel)) = w := by

@@ -31,19 +31,19 @@ theorem smtDatatypeNumCtors_eo_to_smt :
       simp [smtDatatypeNumCtors, eoDatatypeNumCtors, __eo_to_smt_datatype,
         smtDatatypeNumCtors_eo_to_smt d]
 
-theorem smtDatatypeNumCtors_substitute
-    (s : native_String) (d0 : SmtDatatype) :
+theorem smtDatatypeNumCtors_resolve
+    (dd : SmtDatatypeDecl) :
     ∀ d : SmtDatatype,
-      smtDatatypeNumCtors (__smtx_dt_substitute s d0 d) =
+      smtDatatypeNumCtors (__smtx_dt_resolve d dd) =
         smtDatatypeNumCtors d
   | SmtDatatype.null => by
-      simp [smtDatatypeNumCtors, __smtx_dt_substitute]
+      simp [smtDatatypeNumCtors, __smtx_dt_resolve]
   | SmtDatatype.sum c d => by
-      simp [smtDatatypeNumCtors, __smtx_dt_substitute,
-        smtDatatypeNumCtors_substitute s d0 d]
+      simp [smtDatatypeNumCtors, __smtx_dt_resolve,
+        smtDatatypeNumCtors_resolve dd d]
 
 theorem dt_cons_applied_type_rec_non_none_implies_lt_ctors
-    (s : native_String) (d0 : SmtDatatype) :
+    (s : native_String) (d0 : SmtDatatypeDecl) :
     ∀ {d : SmtDatatype} {i n : Nat},
       dt_cons_applied_type_rec s d0 d i n ≠ SmtType.None ->
       i < smtDatatypeNumCtors d
@@ -81,40 +81,40 @@ private theorem eo_mk_apply_of_ne_stuck
   cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
 
 theorem eo_datatype_constructors_rec_ne_stuck
-    (s : native_String) (root : Datatype) :
+    (s : native_String) (dd : DatatypeDecl) :
     ∀ current start,
-      __eo_datatype_constructors_rec s root current start ≠ Term.Stuck
+      __eo_datatype_constructors_rec s dd current start ≠ Term.Stuck
   | Datatype.null, start => by
       simp [__eo_datatype_constructors_rec]
   | Datatype.sum c d, start => by
-      let tail := __eo_datatype_constructors_rec s root d (Nat.succ start)
+      let tail := __eo_datatype_constructors_rec s dd d (Nat.succ start)
       have hTail : tail ≠ Term.Stuck :=
-        eo_datatype_constructors_rec_ne_stuck s root d (Nat.succ start)
+        eo_datatype_constructors_rec_ne_stuck s dd d (Nat.succ start)
       change
-        __eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s root start)) tail ≠
+        __eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s dd start)) tail ≠
           Term.Stuck
       rw [eo_mk_apply_of_ne_stuck (by simp) hTail]
       simp
 
 theorem eo_get_nil_rec_datatype_constructors_rec
-    (s : native_String) (root : Datatype) :
+    (s : native_String) (dd : DatatypeDecl) :
     ∀ current start,
       __eo_get_nil_rec Term.__eo_List_cons
-        (__eo_datatype_constructors_rec s root current start) =
+        (__eo_datatype_constructors_rec s dd current start) =
       Term.__eo_List_nil
   | Datatype.null, start => by
       simp [__eo_datatype_constructors_rec, __eo_get_nil_rec,
         __eo_is_list_nil, __eo_requires]
   | Datatype.sum c d, start => by
-      let tail := __eo_datatype_constructors_rec s root d (Nat.succ start)
+      let tail := __eo_datatype_constructors_rec s dd d (Nat.succ start)
       have hTailNe : tail ≠ Term.Stuck :=
-        eo_datatype_constructors_rec_ne_stuck s root d (Nat.succ start)
+        eo_datatype_constructors_rec_ne_stuck s dd d (Nat.succ start)
       have ih :
           __eo_get_nil_rec Term.__eo_List_cons tail = Term.__eo_List_nil :=
-        eo_get_nil_rec_datatype_constructors_rec s root d (Nat.succ start)
+        eo_get_nil_rec_datatype_constructors_rec s dd d (Nat.succ start)
       change
         __eo_get_nil_rec Term.__eo_List_cons
-          (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s root start)) tail) =
+          (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s dd start)) tail) =
         Term.__eo_List_nil
       rw [eo_mk_apply_of_ne_stuck (by simp) hTailNe]
       simp [__eo_get_nil_rec, __eo_requires, ih]
@@ -127,37 +127,37 @@ private theorem eo_is_list_of_get_nil_rec_eq_nil
   cases x <;> simp [__eo_is_list, __eo_is_ok, hGet] at hx ⊢
 
 theorem eo_is_list_datatype_constructors_rec
-    (s : native_String) (root : Datatype) :
+    (s : native_String) (dd : DatatypeDecl) :
     ∀ current start,
       __eo_is_list Term.__eo_List_cons
-        (__eo_datatype_constructors_rec s root current start) =
+        (__eo_datatype_constructors_rec s dd current start) =
       Term.Boolean true := by
   intro current start
   have hGet :
       __eo_get_nil_rec Term.__eo_List_cons
-        (__eo_datatype_constructors_rec s root current start) =
+        (__eo_datatype_constructors_rec s dd current start) =
       Term.__eo_List_nil :=
-    eo_get_nil_rec_datatype_constructors_rec s root current start
+    eo_get_nil_rec_datatype_constructors_rec s dd current start
   exact eo_is_list_of_get_nil_rec_eq_nil
-    (eo_datatype_constructors_rec_ne_stuck s root current start) hGet
+    (eo_datatype_constructors_rec_ne_stuck s dd current start) hGet
 
 theorem eo_list_len_rec_datatype_constructors_rec
-    (s : native_String) (root : Datatype) :
+    (s : native_String) (dd : DatatypeDecl) :
     ∀ current start,
-      __eo_list_len_rec (__eo_datatype_constructors_rec s root current start) =
+      __eo_list_len_rec (__eo_datatype_constructors_rec s dd current start) =
         Term.Numeral (Int.ofNat (eoDatatypeNumCtors current))
   | Datatype.null, start => by
       simp [__eo_datatype_constructors_rec, __eo_list_len_rec,
         eoDatatypeNumCtors]
   | Datatype.sum c d, start => by
-      let tail := __eo_datatype_constructors_rec s root d (Nat.succ start)
+      let tail := __eo_datatype_constructors_rec s dd d (Nat.succ start)
       have hTailNe : tail ≠ Term.Stuck :=
-        eo_datatype_constructors_rec_ne_stuck s root d (Nat.succ start)
+        eo_datatype_constructors_rec_ne_stuck s dd d (Nat.succ start)
       have ih :=
-        eo_list_len_rec_datatype_constructors_rec s root d (Nat.succ start)
+        eo_list_len_rec_datatype_constructors_rec s dd d (Nat.succ start)
       change
         __eo_list_len_rec
-          (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s root start)) tail) =
+          (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s dd start)) tail) =
         Term.Numeral (Int.ofNat (eoDatatypeNumCtors (Datatype.sum c d)))
       rw [eo_mk_apply_of_ne_stuck (by simp) hTailNe]
       change
@@ -171,37 +171,41 @@ theorem eo_list_len_rec_datatype_constructors_rec
       rw [Int.add_comm]
 
 theorem eo_list_len_dt_get_constructors_datatype
-    (s : native_String) (d : Datatype) :
+    (s : native_String) (dd : DatatypeDecl) :
     __eo_list_len Term.__eo_List_cons
-        (__dt_get_constructors (Term.DatatypeType s d)) =
-      Term.Numeral (Int.ofNat (eoDatatypeNumCtors d)) := by
+        (__dt_get_constructors (Term.DatatypeType s dd)) =
+      Term.Numeral (Int.ofNat (eoDatatypeNumCtors (__eo_dd_lookup s dd))) := by
   have hList :
       __eo_is_list Term.__eo_List_cons
-          (__eo_datatype_constructors_rec s d d native_nat_zero) =
+          (__eo_datatype_constructors_rec s dd (__eo_dd_lookup s dd) native_nat_zero) =
         Term.Boolean true :=
-    eo_is_list_datatype_constructors_rec s d d native_nat_zero
+    eo_is_list_datatype_constructors_rec s dd (__eo_dd_lookup s dd) native_nat_zero
   have hLen :
-      __eo_list_len_rec (__eo_datatype_constructors_rec s d d native_nat_zero) =
-        Term.Numeral (Int.ofNat (eoDatatypeNumCtors d)) :=
-    eo_list_len_rec_datatype_constructors_rec s d d native_nat_zero
+      __eo_list_len_rec
+          (__eo_datatype_constructors_rec s dd (__eo_dd_lookup s dd) native_nat_zero) =
+        Term.Numeral (Int.ofNat (eoDatatypeNumCtors (__eo_dd_lookup s dd))) :=
+    eo_list_len_rec_datatype_constructors_rec
+      s dd (__eo_dd_lookup s dd) native_nat_zero
   simp [__dt_get_constructors, __eo_dt_constructors, __eo_list_len,
     __eo_requires, hList, hLen]
 
 theorem datatype_value_head_of_type
-    {v : SmtValue} {s : native_String} {d : SmtDatatype}
-    (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
-    ∃ i, __vsm_apply_head v = SmtValue.DtCons s d i := by
+    {v : SmtValue} {s : native_String} {dd : SmtDatatypeDecl}
+    (hTy : __smtx_typeof_value v = SmtType.Datatype s dd) :
+    ∃ i, __vsm_apply_head v = SmtValue.DtCons s dd i := by
   by_cases hHead : ∃ s0 d0 i0, __vsm_apply_head v = SmtValue.DtCons s0 d0 i0
   · rcases hHead with ⟨s0, d0, i0, hHead⟩
     have hChain :=
       dt_cons_chain_type_of_non_none hHead (by rw [hTy]; simp)
     have hEq :
-        dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i0
+        dt_cons_applied_type_rec s0 d0
+            (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0
             (vsm_num_apply_args v) =
-          SmtType.Datatype s d := by
+          SmtType.Datatype s dd := by
       exact hChain.symm.trans hTy
     have hArgsZero :
-        __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0 -
+        __smtx_dt_num_sels
+            (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0 -
             vsm_num_apply_args v =
           0 := by
       have hArgs := congrArg dt_cons_type_num_args hEq
@@ -209,35 +213,43 @@ theorem datatype_value_head_of_type
       simpa only [dt_cons_type_num_args_datatype] using hArgs
     have hle :
         vsm_num_apply_args v ≤
-          __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0 :=
+          __smtx_dt_num_sels
+            (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0 :=
       dt_cons_applied_type_rec_non_none_implies_le s0 d0
-        (__smtx_dt_substitute s0 d0 d0) i0
+        (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0
         (vsm_num_apply_args v) (by rw [hEq]; simp)
     have hCount :
         vsm_num_apply_args v =
-          __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0 := by
+          __smtx_dt_num_sels
+            (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0 := by
       have hge :
-          __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0 ≤
+          __smtx_dt_num_sels
+              (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0 ≤
             vsm_num_apply_args v :=
         (Nat.sub_eq_zero_iff_le).1 hArgsZero
       exact Nat.le_antisymm hle hge
     have hFull :
-        dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i0
-            (__smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0) =
+        dt_cons_applied_type_rec s0 d0
+            (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0
+            (__smtx_dt_num_sels
+              (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0) =
           SmtType.Datatype s0 d0 :=
       dt_cons_applied_type_rec_full_arity s0 d0
-        (__smtx_dt_substitute s0 d0 d0) i0
+        (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0
         (by rw [← hCount, hEq]; simp)
-    have hBase : SmtType.Datatype s0 d0 = SmtType.Datatype s d := by
+    have hBase : SmtType.Datatype s0 d0 = SmtType.Datatype s dd := by
       calc
         SmtType.Datatype s0 d0 =
-            dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i0
-              (__smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0) := by
+            dt_cons_applied_type_rec s0 d0
+              (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0
+              (__smtx_dt_num_sels
+                (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0) := by
           exact hFull.symm
         _ =
-            dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i0
+            dt_cons_applied_type_rec s0 d0
+              (__smtx_dt_resolve (__smtx_dd_lookup s0 d0) d0) i0
               (vsm_num_apply_args v) := by rw [hCount]
-        _ = SmtType.Datatype s d := hEq
+        _ = SmtType.Datatype s dd := hEq
     injection hBase with hs hd
     subst hs
     subst hd
@@ -292,34 +304,40 @@ theorem datatype_value_head_of_type
         cases hTy
 
 theorem datatype_head_index_lt
-    {v : SmtValue} {s : native_String} {d : SmtDatatype} {i : Nat}
-    (hHead : __vsm_apply_head v = SmtValue.DtCons s d i)
-    (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
-    i < smtDatatypeNumCtors d := by
+    {v : SmtValue} {s : native_String} {dd : SmtDatatypeDecl} {i : Nat}
+    (hHead : __vsm_apply_head v = SmtValue.DtCons s dd i)
+    (hTy : __smtx_typeof_value v = SmtType.Datatype s dd) :
+    i < smtDatatypeNumCtors (__smtx_dd_lookup s dd) := by
   have hChain := dt_cons_chain_type_of_non_none hHead (by rw [hTy]; simp)
   have hNN :
-      dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+      dt_cons_applied_type_rec s dd
+          (__smtx_dt_resolve (__smtx_dd_lookup s dd) dd) i
           (vsm_num_apply_args v) ≠ SmtType.None := by
     rw [← hChain, hTy]
     simp
   have hltSub := dt_cons_applied_type_rec_non_none_implies_lt_ctors
-    s d (d := __smtx_dt_substitute s d d) (i := i)
+    s dd (d := __smtx_dt_resolve (__smtx_dd_lookup s dd) dd) (i := i)
     (n := vsm_num_apply_args v) hNN
-  simpa [smtDatatypeNumCtors_substitute s d d] using hltSub
+  simpa [smtDatatypeNumCtors_resolve dd (__smtx_dd_lookup s dd)] using hltSub
 
 theorem unit_tuple_value_head_zero_of_type
     {v : SmtValue}
     (hTy :
       __smtx_typeof_value v =
         SmtType.Datatype (native_string_lit "@Tuple")
-          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) :
+          (SmtDatatypeDecl.cons (native_string_lit "@Tuple")
+            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+            SmtDatatypeDecl.nil)) :
     __vsm_apply_head v =
       SmtValue.DtCons (native_string_lit "@Tuple")
-        (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+        (SmtDatatypeDecl.cons (native_string_lit "@Tuple")
+          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+          SmtDatatypeDecl.nil)
         native_nat_zero := by
   rcases datatype_value_head_of_type hTy with ⟨i, hHead⟩
   have hlt := datatype_head_index_lt hHead hTy
   have hi : i = native_nat_zero := by
-    simpa [smtDatatypeNumCtors] using hlt
+    simpa [__smtx_dd_lookup, native_ite, native_streq,
+      smtDatatypeNumCtors] using hlt
   subst i
   exact hHead

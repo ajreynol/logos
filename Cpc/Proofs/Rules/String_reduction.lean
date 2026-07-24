@@ -6653,7 +6653,7 @@ private theorem string_reduction_pred_true
                 hsTy, hrTy, ivar, lvar, __smtx_typeof_str_substr,
                 __smtx_typeof_seq_op_2_ret, __smtx_typeof_guard_wf,
                 __smtx_type_wf, __smtx_type_wf_component,
-                __smtx_type_wf_rec, __smtx_type_no_alias_rec,
+                __smtx_type_wf_rec,
                 __smtx_typeof, native_and, native_ite, native_Teq]
             have hQBodyTy : __smtx_typeof qBody = SmtType.Bool := by
               simp [qBody, typeof_or_eq, typeof_not_eq, typeof_geq_eq,
@@ -6663,7 +6663,7 @@ private theorem string_reduction_pred_true
                 __smtx_typeof_arith_overload_op_2, __smtx_typeof_guard,
                 __smtx_typeof_guard_wf, __smtx_type_wf,
                 __smtx_type_wf_component, __smtx_type_wf_rec,
-                __smtx_type_no_alias_rec, __smtx_typeof, native_and,
+                __smtx_typeof, native_and,
                 native_ite, native_Teq]
             have hMinimalTy : __smtx_typeof minimal = SmtType.Bool := by
               simp [minimal, typeof_not_eq, smtx_typeof_exists_term_eq,
@@ -6674,7 +6674,7 @@ private theorem string_reduction_pred_true
                 hsTy, hrTy, hResultTy, lvar, __smtx_typeof_str_substr,
                 __smtx_typeof_seq_op_2_ret, __smtx_typeof_guard_wf,
                 __smtx_type_wf, __smtx_type_wf_component,
-                __smtx_type_wf_rec, __smtx_type_no_alias_rec,
+                __smtx_type_wf_rec,
                 __smtx_typeof, native_and, native_ite, native_Teq]
             have hFoundBodyTy : __smtx_typeof foundBody = SmtType.Bool := by
               simp [foundBody, typeof_or_eq, typeof_not_eq, typeof_geq_eq,
@@ -6683,7 +6683,7 @@ private theorem string_reduction_pred_true
                 __smtx_typeof_arith_overload_op_2, __smtx_typeof_guard,
                 __smtx_typeof_guard_wf, __smtx_type_wf,
                 __smtx_type_wf_component, __smtx_type_wf_rec,
-                __smtx_type_no_alias_rec, __smtx_typeof, native_and,
+                __smtx_typeof, native_and,
                 native_ite, native_Teq]
             have hFoundForallTy :
                 __smtx_typeof foundForall = SmtType.Bool := by

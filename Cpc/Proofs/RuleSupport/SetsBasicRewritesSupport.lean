@@ -2619,7 +2619,7 @@ theorem type_wf_set_of_component (A : SmtType)
     (h : __smtx_type_wf_component A = true) :
     __smtx_type_wf (SmtType.Set A) = true := by
   simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-    __smtx_type_no_alias_rec, native_inhabited_type_set, SmtEval.native_and] at h ⊢
+    native_inhabited_type_set, SmtEval.native_and] at h ⊢
   exact h
 
 /-- Looking up element `i` in the canonical singleton map `{v ↦ true}` over a

@@ -45,17 +45,17 @@ private theorem eo_mk_apply_of_ne_stuck {f x : Term}
   cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
 
 private theorem datatype_constructors_rec_ne_stuck
-    (s : native_String) (root : Datatype) :
+    (s : native_String) (dd : DatatypeDecl) :
     ∀ current start,
-      __eo_datatype_constructors_rec s root current start ≠ Term.Stuck
+      __eo_datatype_constructors_rec s dd current start ≠ Term.Stuck
   | Datatype.null, start => by
       simp [__eo_datatype_constructors_rec]
   | Datatype.sum c d, start => by
-      let tail := __eo_datatype_constructors_rec s root d (Nat.succ start)
+      let tail := __eo_datatype_constructors_rec s dd d (Nat.succ start)
       have hTail : tail ≠ Term.Stuck :=
-        datatype_constructors_rec_ne_stuck s root d (Nat.succ start)
+        datatype_constructors_rec_ne_stuck s dd d (Nat.succ start)
       change
-        __eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s root start)) tail ≠
+        __eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s dd start)) tail ≠
           Term.Stuck
       rw [eo_mk_apply_of_ne_stuck (by simp) hTail]
       simp
@@ -75,59 +75,67 @@ private theorem mk_dt_split_cons_of_ne_stuck (c xs x : Term) :
   cases x <;> simp [__mk_dt_split] at hx ⊢
 
 private theorem dt_split_ctor_tester_has_bool_type
-    (x : Term) (s : native_String) (root : Datatype) (idx : Nat)
+    (x : Term) (s : native_String) (dd : DatatypeDecl) (idx : Nat)
     (hReserved : native_reserved_datatype_name s = false)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
-        SmtType.Datatype s (__eo_to_smt_datatype root))
-    (hIdx : idx < eoDatatypeNumCtors root) :
+        SmtType.Datatype s (__eo_to_smt_datatype_decl dd))
+    (hIdx : idx < eoDatatypeNumCtors (__eo_dd_lookup s dd)) :
     RuleProofs.eo_has_bool_type
-      (Term.Apply (Term.UOp1 UserOp1.is (Term.DtCons s root idx)) x) := by
+      (Term.Apply (Term.UOp1 UserOp1.is (Term.DtCons s dd idx)) x) := by
+  let smtDD := __eo_to_smt_datatype_decl dd
+  let smtBody := __smtx_dt_resolve (__smtx_dd_lookup s smtDD) smtDD
+  have hCount :
+      smtDatatypeNumCtors smtBody =
+        eoDatatypeNumCtors (__eo_dd_lookup s dd) := by
+    calc
+      smtDatatypeNumCtors smtBody =
+          smtDatatypeNumCtors (__smtx_dd_lookup s smtDD) := by
+        exact smtDatatypeNumCtors_resolve smtDD (__smtx_dd_lookup s smtDD)
+      _ = smtDatatypeNumCtors (__eo_to_smt_datatype (__eo_dd_lookup s dd)) := by
+        rw [TranslationProofs.eo_to_smt_dd_lookup]
+      _ = eoDatatypeNumCtors (__eo_dd_lookup s dd) :=
+        smtDatatypeNumCtors_eo_to_smt (__eo_dd_lookup s dd)
   have hCtorLt :
-      idx <
-        smtDatatypeNumCtors
-          (__smtx_dt_substitute s (__eo_to_smt_datatype root)
-            (__eo_to_smt_datatype root)) := by
-    simpa [smtDatatypeNumCtors_substitute, smtDatatypeNumCtors_eo_to_smt]
-      using hIdx
+      idx < smtDatatypeNumCtors smtBody := by
+    simpa only [hCount] using hIdx
   have hCtorNN :
       __smtx_typeof_dt_cons_rec
-          (SmtType.Datatype s (__eo_to_smt_datatype root))
-          (__smtx_dt_substitute s (__eo_to_smt_datatype root)
-            (__eo_to_smt_datatype root)) idx ≠
+          (SmtType.Datatype s smtDD) smtBody idx ≠
         SmtType.None :=
     smt_typeof_dt_cons_rec_non_none_of_lt
-      (T := SmtType.Datatype s (__eo_to_smt_datatype root)) (by simp) hCtorLt
+      (T := SmtType.Datatype s smtDD) (by simp) hCtorLt
   unfold RuleProofs.eo_has_bool_type
   rw [show
       __eo_to_smt
-          (Term.Apply (Term.UOp1 UserOp1.is (Term.DtCons s root idx)) x) =
-        SmtTerm.Apply (SmtTerm.DtTester s (__eo_to_smt_datatype root) idx)
+          (Term.Apply (Term.UOp1 UserOp1.is (Term.DtCons s dd idx)) x) =
+        SmtTerm.Apply (SmtTerm.DtTester s smtDD idx)
           (__eo_to_smt x) by
     change
       SmtTerm.Apply
           (__eo_to_smt_tester
             (native_ite (native_reserved_datatype_name s) SmtTerm.None
-              (SmtTerm.DtCons s (__eo_to_smt_datatype root) idx)))
+              (SmtTerm.DtCons s smtDD idx)))
           (__eo_to_smt x) =
-        SmtTerm.Apply (SmtTerm.DtTester s (__eo_to_smt_datatype root) idx)
+        SmtTerm.Apply (SmtTerm.DtTester s smtDD idx)
           (__eo_to_smt x)
     rw [hReserved]
     rfl]
   rw [typeof_dt_tester_apply_eq]
-  simp [hxTy, hCtorNN, __smtx_typeof_apply, __smtx_typeof_guard, native_ite,
+  simp [smtBody, smtDD, hxTy, hCtorNN, __smtx_typeof_apply, __smtx_typeof_guard, native_ite,
     native_Teq]
 
 private theorem mk_dt_split_has_bool_type
-    (x : Term) (s : native_String) (root : Datatype)
+    (x : Term) (s : native_String) (dd : DatatypeDecl)
     (hReserved : native_reserved_datatype_name s = false)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
-        SmtType.Datatype s (__eo_to_smt_datatype root)) :
+        SmtType.Datatype s (__eo_to_smt_datatype_decl dd)) :
     ∀ current start,
-      start + eoDatatypeNumCtors current ≤ eoDatatypeNumCtors root ->
+      start + eoDatatypeNumCtors current ≤
+        eoDatatypeNumCtors (__eo_dd_lookup s dd) ->
       RuleProofs.eo_has_bool_type
-        (__mk_dt_split (__eo_datatype_constructors_rec s root current start) x)
+        (__mk_dt_split (__eo_datatype_constructors_rec s dd current start) x)
   | Datatype.null, start, _hRange => by
       have hxTrans : RuleProofs.eo_has_smt_translation x := by
         unfold RuleProofs.eo_has_smt_translation
@@ -135,14 +143,14 @@ private theorem mk_dt_split_has_bool_type
         simp
       have hxNe : x ≠ Term.Stuck :=
         RuleProofs.term_ne_stuck_of_has_smt_translation x hxTrans
-      rw [show __eo_datatype_constructors_rec s root Datatype.null start =
+      rw [show __eo_datatype_constructors_rec s dd Datatype.null start =
           Term.__eo_List_nil by rfl]
       rw [mk_dt_split_nil_of_ne_stuck x hxNe]
       exact RuleProofs.eo_has_bool_type_false
   | Datatype.sum c d, start, hRange => by
-      let ctor := Term.DtCons s root start
+      let ctor := Term.DtCons s dd start
       let tester := Term.Apply (Term.UOp1 UserOp1.is ctor) x
-      let ctorTail := __eo_datatype_constructors_rec s root d (Nat.succ start)
+      let ctorTail := __eo_datatype_constructors_rec s dd d (Nat.succ start)
       let tail := __mk_dt_split ctorTail x
       have hxTrans : RuleProofs.eo_has_smt_translation x := by
         unfold RuleProofs.eo_has_smt_translation
@@ -150,23 +158,24 @@ private theorem mk_dt_split_has_bool_type
         simp
       have hxNe : x ≠ Term.Stuck :=
         RuleProofs.term_ne_stuck_of_has_smt_translation x hxTrans
-      have hStartLt : start < eoDatatypeNumCtors root := by
+      have hStartLt : start < eoDatatypeNumCtors (__eo_dd_lookup s dd) := by
         have hPos : 0 < eoDatatypeNumCtors (Datatype.sum c d) := by
           simp [eoDatatypeNumCtors]
         omega
       have hTesterBool : RuleProofs.eo_has_bool_type tester := by
         simpa [tester, ctor] using
-          dt_split_ctor_tester_has_bool_type x s root start hReserved hxTy hStartLt
+          dt_split_ctor_tester_has_bool_type x s dd start hReserved hxTy hStartLt
       have hTailRange :
-          Nat.succ start + eoDatatypeNumCtors d ≤ eoDatatypeNumCtors root := by
+          Nat.succ start + eoDatatypeNumCtors d ≤
+            eoDatatypeNumCtors (__eo_dd_lookup s dd) := by
         have hRange' : start + Nat.succ (eoDatatypeNumCtors d) ≤
-            eoDatatypeNumCtors root := by
+            eoDatatypeNumCtors (__eo_dd_lookup s dd) := by
           simpa [eoDatatypeNumCtors] using hRange
         omega
       have hTailBool : RuleProofs.eo_has_bool_type tail :=
-        mk_dt_split_has_bool_type x s root hReserved hxTy d (Nat.succ start) hTailRange
+        mk_dt_split_has_bool_type x s dd hReserved hxTy d (Nat.succ start) hTailRange
       have hCtorTailNe : ctorTail ≠ Term.Stuck :=
-        datatype_constructors_rec_ne_stuck s root d (Nat.succ start)
+        datatype_constructors_rec_ne_stuck s dd d (Nat.succ start)
       have hTailNe : tail ≠ Term.Stuck :=
         RuleProofs.term_ne_stuck_of_has_smt_translation tail
           (RuleProofs.eo_has_smt_translation_of_has_bool_type tail hTailBool)
@@ -183,33 +192,33 @@ private theorem mk_dt_split_has_bool_type
       exact RuleProofs.eo_has_bool_type_or_of_bool_args tester tail hTesterBool hTailBool
 
 private theorem dt_split_ctor_tester_interprets_true
-    (M : SmtModel) (x : Term) (s : native_String) (root : Datatype) (idx : Nat)
+    (M : SmtModel) (x : Term) (s : native_String) (dd : DatatypeDecl) (idx : Nat)
     (hReserved : native_reserved_datatype_name s = false)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
-        SmtType.Datatype s (__eo_to_smt_datatype root))
-    (hIdx : idx < eoDatatypeNumCtors root)
+        SmtType.Datatype s (__eo_to_smt_datatype_decl dd))
+    (hIdx : idx < eoDatatypeNumCtors (__eo_dd_lookup s dd))
     (hHead :
       __vsm_apply_head (__smtx_model_eval M (__eo_to_smt x)) =
-        SmtValue.DtCons s (__eo_to_smt_datatype root) idx) :
+        SmtValue.DtCons s (__eo_to_smt_datatype_decl dd) idx) :
     eo_interprets M
-      (Term.Apply (Term.UOp1 UserOp1.is (Term.DtCons s root idx)) x) true := by
+      (Term.Apply (Term.UOp1 UserOp1.is (Term.DtCons s dd idx)) x) true := by
   have hBool :=
-    dt_split_ctor_tester_has_bool_type x s root idx hReserved hxTy hIdx
+    dt_split_ctor_tester_has_bool_type x s dd idx hReserved hxTy hIdx
   apply RuleProofs.eo_interprets_of_bool_eval M
   · exact hBool
   · rw [show
         __eo_to_smt
-            (Term.Apply (Term.UOp1 UserOp1.is (Term.DtCons s root idx)) x) =
-          SmtTerm.Apply (SmtTerm.DtTester s (__eo_to_smt_datatype root) idx)
+            (Term.Apply (Term.UOp1 UserOp1.is (Term.DtCons s dd idx)) x) =
+          SmtTerm.Apply (SmtTerm.DtTester s (__eo_to_smt_datatype_decl dd) idx)
             (__eo_to_smt x) by
       change
         SmtTerm.Apply
             (__eo_to_smt_tester
               (native_ite (native_reserved_datatype_name s) SmtTerm.None
-                (SmtTerm.DtCons s (__eo_to_smt_datatype root) idx)))
+                (SmtTerm.DtCons s (__eo_to_smt_datatype_decl dd) idx)))
             (__eo_to_smt x) =
-          SmtTerm.Apply (SmtTerm.DtTester s (__eo_to_smt_datatype root) idx)
+          SmtTerm.Apply (SmtTerm.DtTester s (__eo_to_smt_datatype_decl dd) idx)
             (__eo_to_smt x)
       rw [hReserved]
       rfl]
@@ -217,24 +226,25 @@ private theorem dt_split_ctor_tester_interprets_true
 
 private theorem mk_dt_split_interprets_true
     (M : SmtModel) (hM : model_total_typed M)
-    (x : Term) (s : native_String) (root : Datatype)
+    (x : Term) (s : native_String) (dd : DatatypeDecl)
     (hReserved : native_reserved_datatype_name s = false)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
-        SmtType.Datatype s (__eo_to_smt_datatype root)) :
+        SmtType.Datatype s (__eo_to_smt_datatype_decl dd)) :
     ∀ current start rel,
-      start + eoDatatypeNumCtors current ≤ eoDatatypeNumCtors root ->
+      start + eoDatatypeNumCtors current ≤
+        eoDatatypeNumCtors (__eo_dd_lookup s dd) ->
       rel < eoDatatypeNumCtors current ->
       __vsm_apply_head (__smtx_model_eval M (__eo_to_smt x)) =
-        SmtValue.DtCons s (__eo_to_smt_datatype root) (start + rel) ->
+        SmtValue.DtCons s (__eo_to_smt_datatype_decl dd) (start + rel) ->
       eo_interprets M
-        (__mk_dt_split (__eo_datatype_constructors_rec s root current start) x) true
+        (__mk_dt_split (__eo_datatype_constructors_rec s dd current start) x) true
   | Datatype.null, start, rel, _hRange, hRel, _hHead => by
       simp [eoDatatypeNumCtors] at hRel
   | Datatype.sum c d, start, rel, hRange, hRel, hHead => by
-      let ctor := Term.DtCons s root start
+      let ctor := Term.DtCons s dd start
       let tester := Term.Apply (Term.UOp1 UserOp1.is ctor) x
-      let ctorTail := __eo_datatype_constructors_rec s root d (Nat.succ start)
+      let ctorTail := __eo_datatype_constructors_rec s dd d (Nat.succ start)
       let tail := __mk_dt_split ctorTail x
       have hxTrans : RuleProofs.eo_has_smt_translation x := by
         unfold RuleProofs.eo_has_smt_translation
@@ -242,23 +252,24 @@ private theorem mk_dt_split_interprets_true
         simp
       have hxNe : x ≠ Term.Stuck :=
         RuleProofs.term_ne_stuck_of_has_smt_translation x hxTrans
-      have hStartLt : start < eoDatatypeNumCtors root := by
+      have hStartLt : start < eoDatatypeNumCtors (__eo_dd_lookup s dd) := by
         have hPos : 0 < eoDatatypeNumCtors (Datatype.sum c d) := by
           simp [eoDatatypeNumCtors]
         omega
       have hTesterBool : RuleProofs.eo_has_bool_type tester := by
         simpa [tester, ctor] using
-          dt_split_ctor_tester_has_bool_type x s root start hReserved hxTy hStartLt
+          dt_split_ctor_tester_has_bool_type x s dd start hReserved hxTy hStartLt
       have hTailRange :
-          Nat.succ start + eoDatatypeNumCtors d ≤ eoDatatypeNumCtors root := by
+          Nat.succ start + eoDatatypeNumCtors d ≤
+            eoDatatypeNumCtors (__eo_dd_lookup s dd) := by
         have hRange' : start + Nat.succ (eoDatatypeNumCtors d) ≤
-            eoDatatypeNumCtors root := by
+            eoDatatypeNumCtors (__eo_dd_lookup s dd) := by
           simpa [eoDatatypeNumCtors] using hRange
         omega
       have hTailBool : RuleProofs.eo_has_bool_type tail :=
-        mk_dt_split_has_bool_type x s root hReserved hxTy d (Nat.succ start) hTailRange
+        mk_dt_split_has_bool_type x s dd hReserved hxTy d (Nat.succ start) hTailRange
       have hCtorTailNe : ctorTail ≠ Term.Stuck :=
-        datatype_constructors_rec_ne_stuck s root d (Nat.succ start)
+        datatype_constructors_rec_ne_stuck s dd d (Nat.succ start)
       have hTailNe : tail ≠ Term.Stuck :=
         RuleProofs.term_ne_stuck_of_has_smt_translation tail
           (RuleProofs.eo_has_smt_translation_of_has_bool_type tail hTailBool)
@@ -276,7 +287,7 @@ private theorem mk_dt_split_interprets_true
       | zero =>
           have hTesterTrue : eo_interprets M tester true := by
             simpa [tester, ctor] using
-              dt_split_ctor_tester_interprets_true M x s root start
+              dt_split_ctor_tester_interprets_true M x s dd start
                 hReserved hxTy hStartLt (by simpa using hHead)
           exact RuleProofs.eo_interprets_or_left_intro M hM tester tail
             hTesterTrue hTailBool
@@ -285,12 +296,12 @@ private theorem mk_dt_split_interprets_true
             simpa [eoDatatypeNumCtors] using Nat.succ_lt_succ_iff.mp hRel
           have hHead' :
               __vsm_apply_head (__smtx_model_eval M (__eo_to_smt x)) =
-                SmtValue.DtCons s (__eo_to_smt_datatype root)
+                SmtValue.DtCons s (__eo_to_smt_datatype_decl dd)
                   (Nat.succ start + rel') := by
             rw [hHead]
             rw [Nat.add_succ, Nat.succ_add]
           have hTailTrue : eo_interprets M tail true :=
-            mk_dt_split_interprets_true M hM x s root hReserved hxTy
+            mk_dt_split_interprets_true M hM x s dd hReserved hxTy
               d (Nat.succ start) rel' hTailRange hRel' hHead'
           exact RuleProofs.eo_interprets_or_right_intro M hM tester tail
             hTesterBool hTailTrue
@@ -308,25 +319,25 @@ private theorem orList_get_nil_rec_ne_stuck_local {c : Term} :
         native_not, SmtEval.native_not] using ih
 
 private theorem mk_dt_split_orList
-    (x : Term) (s : native_String) (root : Datatype) :
+    (x : Term) (s : native_String) (dd : DatatypeDecl) :
     x ≠ Term.Stuck ->
     ∀ current start,
       CnfSupport.OrList
-        (__mk_dt_split (__eo_datatype_constructors_rec s root current start) x)
+        (__mk_dt_split (__eo_datatype_constructors_rec s dd current start) x)
   | hx, Datatype.null, start => by
-      rw [show __eo_datatype_constructors_rec s root Datatype.null start =
+      rw [show __eo_datatype_constructors_rec s dd Datatype.null start =
           Term.__eo_List_nil by rfl]
       rw [mk_dt_split_nil_of_ne_stuck x hx]
       exact CnfSupport.OrList.false
   | hx, Datatype.sum c d, start => by
-      let ctor := Term.DtCons s root start
+      let ctor := Term.DtCons s dd start
       let tester := Term.Apply (Term.UOp1 UserOp1.is ctor) x
-      let ctorTail := __eo_datatype_constructors_rec s root d (Nat.succ start)
+      let ctorTail := __eo_datatype_constructors_rec s dd d (Nat.succ start)
       let tail := __mk_dt_split ctorTail x
       have hCtorTailNe : ctorTail ≠ Term.Stuck :=
-        datatype_constructors_rec_ne_stuck s root d (Nat.succ start)
+        datatype_constructors_rec_ne_stuck s dd d (Nat.succ start)
       have hTailList : CnfSupport.OrList tail :=
-        mk_dt_split_orList x s root hx d (Nat.succ start)
+        mk_dt_split_orList x s dd hx d (Nat.succ start)
       have hTailNe : tail ≠ Term.Stuck :=
         CnfSupport.orList_ne_stuck hTailList
       change
@@ -385,17 +396,17 @@ private theorem list_singleton_elim_or_multiple (x y ys : Term)
 
 private theorem dt_split_datatype_program_true
     (M : SmtModel) (hM : model_total_typed M)
-    (x : Term) (s : native_String) (root : Datatype)
-    (hType : __eo_typeof x = Term.DatatypeType s root)
+    (x : Term) (s : native_String) (dd : DatatypeDecl)
+    (hType : __eo_typeof x = Term.DatatypeType s dd)
     (hReserved : native_reserved_datatype_name s = false)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
-        SmtType.Datatype s (__eo_to_smt_datatype root))
+        SmtType.Datatype s (__eo_to_smt_datatype_decl dd))
     (idx : Nat)
-    (hIdx : idx < eoDatatypeNumCtors root)
+    (hIdx : idx < eoDatatypeNumCtors (__eo_dd_lookup s dd))
     (hHead :
       __vsm_apply_head (__smtx_model_eval M (__eo_to_smt x)) =
-        SmtValue.DtCons s (__eo_to_smt_datatype root) idx) :
+        SmtValue.DtCons s (__eo_to_smt_datatype_decl dd) idx) :
     eo_interprets M (__eo_prog_dt_split x) true := by
   have hxTrans : RuleProofs.eo_has_smt_translation x := by
     unfold RuleProofs.eo_has_smt_translation
@@ -403,54 +414,51 @@ private theorem dt_split_datatype_program_true
     simp
   have hxNe : x ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation x hxTrans
-  let raw := __mk_dt_split (__eo_datatype_constructors_rec s root root 0) x
+  let root := __eo_dd_lookup s dd
+  let raw := __mk_dt_split (__eo_datatype_constructors_rec s dd root 0) x
   have hRawBool : RuleProofs.eo_has_bool_type raw := by
     have hRange : 0 + eoDatatypeNumCtors root ≤ eoDatatypeNumCtors root := by
       omega
     simpa [raw] using
-      mk_dt_split_has_bool_type x s root hReserved hxTy root 0 hRange
+      mk_dt_split_has_bool_type x s dd hReserved hxTy root 0 hRange
   have hRawTrue : eo_interprets M raw true := by
     have hRange : 0 + eoDatatypeNumCtors root ≤ eoDatatypeNumCtors root := by
       omega
     have hHead' :
         __vsm_apply_head (__smtx_model_eval M (__eo_to_smt x)) =
-          SmtValue.DtCons s (__eo_to_smt_datatype root) (0 + idx) := by
+          SmtValue.DtCons s (__eo_to_smt_datatype_decl dd) (0 + idx) := by
       simpa using hHead
     simpa [raw] using
-      mk_dt_split_interprets_true M hM x s root hReserved hxTy
+      mk_dt_split_interprets_true M hM x s dd hReserved hxTy
         root 0 idx hRange hIdx hHead'
   rw [eo_prog_dt_split_of_non_stuck x hxNe, hType]
   change eo_interprets M (__eo_list_singleton_elim (Term.UOp UserOp.or) raw) true
-  cases root with
+  cases hRoot : __eo_dd_lookup s dd with
   | null =>
-      simp [eoDatatypeNumCtors] at hIdx
+      simp [hRoot, eoDatatypeNumCtors] at hIdx
   | sum c rest =>
       cases rest with
       | null =>
           let tester :=
             Term.Apply (Term.UOp1 UserOp1.is
-              (Term.DtCons s (Datatype.sum c Datatype.null) 0)) x
+              (Term.DtCons s dd 0)) x
           have hRawEq :
               raw =
                 Term.Apply (Term.Apply (Term.UOp UserOp.or) tester)
                   (Term.Boolean false) := by
-            change
-              __mk_dt_split
-                  (__eo_datatype_constructors_rec s (Datatype.sum c Datatype.null)
-                    (Datatype.sum c Datatype.null) 0) x =
-                Term.Apply (Term.Apply (Term.UOp UserOp.or) tester)
-                  (Term.Boolean false)
+            dsimp [raw, root]
+            rw [hRoot]
             change
               __mk_dt_split
                   (__eo_mk_apply
                     (Term.Apply Term.__eo_List_cons
-                      (Term.DtCons s (Datatype.sum c Datatype.null) 0))
+                      (Term.DtCons s dd 0))
                     Term.__eo_List_nil) x =
                 Term.Apply (Term.Apply (Term.UOp UserOp.or) tester)
                   (Term.Boolean false)
             rw [eo_mk_apply_of_ne_stuck (by simp) (by simp)]
             rw [mk_dt_split_cons_of_ne_stuck
-              (Term.DtCons s (Datatype.sum c Datatype.null) 0)
+              (Term.DtCons s dd 0)
               Term.__eo_List_nil x hxNe]
             rw [mk_dt_split_nil_of_ne_stuck x hxNe]
             rw [eo_mk_apply_of_ne_stuck (by simp) (by simp)]
@@ -464,42 +472,38 @@ private theorem dt_split_datatype_program_true
       | sum c2 d2 =>
           let tester0 :=
             Term.Apply (Term.UOp1 UserOp1.is
-              (Term.DtCons s (Datatype.sum c (Datatype.sum c2 d2)) 0)) x
+              (Term.DtCons s dd 0)) x
           let tester1 :=
             Term.Apply (Term.UOp1 UserOp1.is
-              (Term.DtCons s (Datatype.sum c (Datatype.sum c2 d2)) 1)) x
+              (Term.DtCons s dd 1)) x
           let ys :=
             __mk_dt_split
-              (__eo_datatype_constructors_rec s (Datatype.sum c (Datatype.sum c2 d2))
-                d2 2) x
+              (__eo_datatype_constructors_rec s dd d2 2) x
           have hYsList : CnfSupport.OrList ys := by
             simpa [ys] using
-              mk_dt_split_orList x s (Datatype.sum c (Datatype.sum c2 d2)) hxNe d2 2
+              mk_dt_split_orList x s dd hxNe d2 2
           have hYsGet : __eo_get_nil_rec (Term.UOp UserOp.or) ys ≠ Term.Stuck :=
             orList_get_nil_rec_ne_stuck_local hYsList
           have hYsNe : ys ≠ Term.Stuck :=
             CnfSupport.orList_ne_stuck hYsList
           have hTailEq :
               __mk_dt_split
-                  (__eo_datatype_constructors_rec s (Datatype.sum c (Datatype.sum c2 d2))
-                    (Datatype.sum c2 d2) 1) x =
+                  (__eo_datatype_constructors_rec s dd (Datatype.sum c2 d2) 1) x =
                 Term.Apply (Term.Apply (Term.UOp UserOp.or) tester1) ys := by
             let ctorTail :=
-              __eo_datatype_constructors_rec s (Datatype.sum c (Datatype.sum c2 d2))
-                d2 2
+              __eo_datatype_constructors_rec s dd d2 2
             have hCtorTailNe : ctorTail ≠ Term.Stuck :=
-              datatype_constructors_rec_ne_stuck s (Datatype.sum c (Datatype.sum c2 d2))
-                d2 2
+              datatype_constructors_rec_ne_stuck s dd d2 2
             change
               __mk_dt_split
                   (__eo_mk_apply
                     (Term.Apply Term.__eo_List_cons
-                      (Term.DtCons s (Datatype.sum c (Datatype.sum c2 d2)) 1))
+                      (Term.DtCons s dd 1))
                     ctorTail) x =
                 Term.Apply (Term.Apply (Term.UOp UserOp.or) tester1) ys
             rw [eo_mk_apply_of_ne_stuck (by simp) hCtorTailNe]
             rw [mk_dt_split_cons_of_ne_stuck
-              (Term.DtCons s (Datatype.sum c (Datatype.sum c2 d2)) 1)
+              (Term.DtCons s dd 1)
               ctorTail x hxNe]
             change
               __eo_mk_apply (Term.Apply (Term.UOp UserOp.or) tester1) ys =
@@ -510,43 +514,37 @@ private theorem dt_split_datatype_program_true
                 Term.Apply (Term.Apply (Term.UOp UserOp.or) tester0)
                   (Term.Apply (Term.Apply (Term.UOp UserOp.or) tester1) ys) := by
             let ctorTail :=
-              __eo_datatype_constructors_rec s (Datatype.sum c (Datatype.sum c2 d2))
-                (Datatype.sum c2 d2) 1
+              __eo_datatype_constructors_rec s dd (Datatype.sum c2 d2) 1
             have hCtorTailNe : ctorTail ≠ Term.Stuck :=
-              datatype_constructors_rec_ne_stuck s (Datatype.sum c (Datatype.sum c2 d2))
-                (Datatype.sum c2 d2) 1
-            change
-              __mk_dt_split
-                  (__eo_datatype_constructors_rec s
-                    (Datatype.sum c (Datatype.sum c2 d2))
-                    (Datatype.sum c (Datatype.sum c2 d2)) 0) x =
-                Term.Apply (Term.Apply (Term.UOp UserOp.or) tester0)
-                  (Term.Apply (Term.Apply (Term.UOp UserOp.or) tester1) ys)
+              datatype_constructors_rec_ne_stuck s dd (Datatype.sum c2 d2) 1
+            dsimp [raw, root]
+            rw [hRoot]
             change
               __mk_dt_split
                   (__eo_mk_apply
                     (Term.Apply Term.__eo_List_cons
-                      (Term.DtCons s (Datatype.sum c (Datatype.sum c2 d2)) 0))
+                      (Term.DtCons s dd 0))
                     ctorTail) x =
                 Term.Apply (Term.Apply (Term.UOp UserOp.or) tester0)
                   (Term.Apply (Term.Apply (Term.UOp UserOp.or) tester1) ys)
             rw [eo_mk_apply_of_ne_stuck (by simp) hCtorTailNe]
             rw [mk_dt_split_cons_of_ne_stuck
-              (Term.DtCons s (Datatype.sum c (Datatype.sum c2 d2)) 0)
+              (Term.DtCons s dd 0)
               ctorTail x hxNe]
             rw [hTailEq]
             rw [eo_mk_apply_of_ne_stuck (by simp)
               (by
                 rw [← hTailEq]
                 exact CnfSupport.orList_ne_stuck
-                  (mk_dt_split_orList x s (Datatype.sum c (Datatype.sum c2 d2))
+                  (mk_dt_split_orList x s dd
                     hxNe (Datatype.sum c2 d2) 1))]
           rw [hRawEq]
           rw [list_singleton_elim_or_multiple tester0 tester1 ys hYsGet]
           simpa [hRawEq] using hRawTrue
 
-private def smtUnitTupleDatatype : SmtDatatype :=
-  SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null
+private def smtUnitTupleDatatype : SmtDatatypeDecl :=
+  __smtx_tuple_datatype_decl
+    (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
 
 private theorem eo_typeof_stuck :
     __eo_typeof Term.Stuck = Term.Stuck := by
@@ -582,16 +580,25 @@ private theorem unit_tuple_tester_has_bool_type
   have hCtorNN :
       __smtx_typeof_dt_cons_rec
           (SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype)
-          (__smtx_dt_substitute (native_string_lit "@Tuple") smtUnitTupleDatatype smtUnitTupleDatatype) 0 ≠
+          (__smtx_dt_resolve
+            (__smtx_dd_lookup (native_string_lit "@Tuple") smtUnitTupleDatatype)
+            smtUnitTupleDatatype) 0 ≠
         SmtType.None := by
-    simp [smtUnitTupleDatatype, __smtx_dt_substitute, __smtx_dtc_substitute,
+    simp [smtUnitTupleDatatype, __smtx_tuple_datatype_decl,
+      __smtx_dd_lookup, __smtx_dt_resolve, __smtx_dtc_resolve,
+      native_ite, native_streq,
       __smtx_typeof_dt_cons_rec]
   have hCtorNN' :
       __smtx_typeof_dt_cons_rec
-          (SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
-          (__smtx_dt_substitute (native_string_lit "@Tuple")
-            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
-            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0 ≠
+          (SmtType.Datatype (native_string_lit "@Tuple")
+            (__smtx_tuple_datatype_decl
+              (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)))
+          (__smtx_dt_resolve
+            (__smtx_dd_lookup (native_string_lit "@Tuple")
+              (__smtx_tuple_datatype_decl
+                (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)))
+            (__smtx_tuple_datatype_decl
+              (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))) 0 ≠
         SmtType.None := by
     simpa [smtUnitTupleDatatype] using hCtorNN
   rw [typeof_dt_tester_apply_eq]
@@ -612,7 +619,9 @@ private theorem unit_tuple_tester_interprets_true
   rcases datatype_value_head_of_type hEvalTy with ⟨i, hHead⟩
   have hlt := datatype_head_index_lt hHead hEvalTy
   have hi : i = 0 := by
-    simpa [smtUnitTupleDatatype, smtDatatypeNumCtors] using hlt
+    simpa [smtUnitTupleDatatype, __smtx_tuple_datatype_decl,
+      __smtx_dd_lookup, native_ite, native_streq,
+      smtDatatypeNumCtors] using hlt
   subst i
   apply RuleProofs.eo_interprets_of_bool_eval M
   · exact hBool
@@ -684,15 +693,17 @@ private theorem facts___eo_prog_dt_split_impl
       cases hReserved : native_reserved_datatype_name s
       · have hxTy :
             __smtx_typeof (__eo_to_smt x) =
-              SmtType.Datatype s (__eo_to_smt_datatype d) := by
+              SmtType.Datatype s (__eo_to_smt_datatype_decl d) := by
           simpa [__eo_to_smt_type, hReserved, native_ite] using hxMatchT
         have hEvalTy :
             __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt x)) =
-              SmtType.Datatype s (__eo_to_smt_datatype d) := by
+              SmtType.Datatype s (__eo_to_smt_datatype_decl d) := by
           simpa [hxTy] using hxEvalTy
         rcases datatype_value_head_of_type hEvalTy with ⟨idx, hHead⟩
         have hIdxSmt := datatype_head_index_lt hHead hEvalTy
-        have hIdx : idx < eoDatatypeNumCtors d := by
+        have hIdx :
+            idx < eoDatatypeNumCtors (__eo_dd_lookup s d) := by
+          rw [← TranslationProofs.eo_to_smt_dd_lookup] at hIdxSmt
           simpa [smtDatatypeNumCtors_eo_to_smt] using hIdxSmt
         exact dt_split_datatype_program_true M hM x s d (by simpa using hT)
           hReserved hxTy idx hIdx hHead

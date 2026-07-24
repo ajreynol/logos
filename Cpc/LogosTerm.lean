@@ -252,14 +252,22 @@ inductive Term : Type where
   | Apply : Term -> Term -> Term
   | FunType : Term
   | Var : Term -> Term -> Term
-  | DatatypeType : native_String -> Datatype -> Term
+  | DatatypeType : native_String -> DatatypeDecl -> Term
   | DatatypeTypeRef : native_String -> Term
   | DtcAppType : Term -> Term -> Term
-  | DtCons : native_String -> Datatype -> native_Nat -> Term
-  | DtSel : native_String -> Datatype -> native_Nat -> native_Nat -> Term
+  | DtCons : native_String -> DatatypeDecl -> native_Nat -> Term
+  | DtSel : native_String -> DatatypeDecl -> native_Nat -> native_Nat -> Term
   | USort : native_Nat -> Term
   | UConst : native_Nat -> Term -> Term
 
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+Eunoia datatype declarations.
+-/
+inductive DatatypeDecl : Type where
+  | nil : DatatypeDecl
+  | cons : native_String -> Datatype -> DatatypeDecl -> DatatypeDecl
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
@@ -268,7 +276,7 @@ Eunoia datatypes.
 inductive Datatype : Type where
   | null : Datatype
   | sum : DatatypeCons -> Datatype -> Datatype
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
 Eunoia datatype constructors.
@@ -276,7 +284,7 @@ Eunoia datatype constructors.
 inductive DatatypeCons : Type where
   | unit : DatatypeCons
   | cons : Term -> DatatypeCons -> DatatypeCons
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 

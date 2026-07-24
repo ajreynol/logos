@@ -2,8 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
-public import Cpc.Proofs.Canonical.CardinalityAssumptions
-import all Cpc.Proofs.Canonical.CardinalityAssumptions
+public import Cpc.Proofs.Canonical.Fresh
+import all Cpc.Proofs.Canonical.Fresh
 
 public section
 
@@ -556,6 +556,31 @@ private theorem map_lookup_eq_default_of_not_typed_canonical :
         simpa [__smtx_msm_lookup, __smtx_msm_get_default, native_ite,
           hivFalse] using hRec
 
+/--
+Fresh-index witness needed only for the infinite-domain branch of array
+extensionality.  Discharged by the `Canonical.Fresh` freshness stack; the
+residual datatype obligations live behind
+`Smtm.infinite_datatype_large_witness` /
+`Smtm.finite_nonunit_datatype_nondefault_value`.
+-/
+private theorem fresh_default_lookup_for_infinite_map_domain
+    (m1 m2 : SmtMap)
+    (A B : SmtType)
+    (_hm1Ty : __smtx_typeof_map_value m1 = SmtType.Map A B)
+    (_hm2Ty : __smtx_typeof_map_value m2 = SmtType.Map A B)
+    (_hm1Can : __smtx_map_canonical m1 = true)
+    (_hm2Can : __smtx_map_canonical m2 = true)
+    (_hAInh : native_inhabited_type A = true)
+    (_hARec : __smtx_type_wf_rec A = true)
+    (_hInfinite : __smtx_is_finite_type A = false) :
+    ∃ i : SmtValue,
+      __smtx_typeof_value i = A ∧
+        __smtx_value_canonical_bool i = true ∧
+          __smtx_msm_lookup m1 i = __smtx_msm_get_default m1 ∧
+            __smtx_msm_lookup m2 i = __smtx_msm_get_default m2 :=
+  Smtm.fresh_default_lookup_for_infinite_map_domain m1 m2 A B
+    _hm1Ty _hm2Ty _hm1Can _hm2Can _hAInh _hARec _hInfinite
+
 private theorem map_defaults_eq_of_no_typed_canonical_lookup_diff
     {m1 m2 : SmtMap} {A B : SmtType}
     (hm1Ty : __smtx_typeof_map_value m1 = SmtType.Map A B)
@@ -563,7 +588,7 @@ private theorem map_defaults_eq_of_no_typed_canonical_lookup_diff
     (hm1Can : __smtx_map_canonical m1 = true)
     (hm2Can : __smtx_map_canonical m2 = true)
     (hAInh : native_inhabited_type A = true)
-    (hARec : __smtx_type_wf_rec A A = true)
+    (hARec : __smtx_type_wf_rec A = true)
     (hNoDiff :
       ¬ ∃ i : SmtValue,
         __smtx_typeof_value i = A ∧
@@ -572,7 +597,7 @@ private theorem map_defaults_eq_of_no_typed_canonical_lookup_diff
               (__smtx_msm_lookup m2 i) = false) :
     __smtx_msm_get_default m1 = __smtx_msm_get_default m2 := by
   cases hFin : __smtx_is_finite_type A
-  · rcases Smtm.cpc_fresh_default_lookup_for_infinite_map_domain_assumption
+  · rcases fresh_default_lookup_for_infinite_map_domain
         m1 m2 A B hm1Ty hm2Ty hm1Can hm2Can hAInh hARec hFin with
       ⟨i, hiTy, hiCan, hiLookup1, hiLookup2⟩
     cases hVeq :
@@ -596,7 +621,7 @@ private theorem map_diff_typed_canonical_lookup_witness
     (hm1Can : __smtx_map_canonical m1 = true)
     (hm2Can : __smtx_map_canonical m2 = true)
     (hAInh : native_inhabited_type A = true)
-    (hARec : __smtx_type_wf_rec A A = true)
+    (hARec : __smtx_type_wf_rec A = true)
     (hNe : __smtx_model_eval_eq (SmtValue.Map m1) (SmtValue.Map m2) =
       SmtValue.Boolean false) :
     ∃ i : SmtValue,
@@ -727,7 +752,7 @@ theorem map_diff_selects_model_eval_eq_false
     (hm1Can : __smtx_map_canonical m1 = true)
     (hm2Can : __smtx_map_canonical m2 = true)
     (hAInh : native_inhabited_type A = true)
-    (hARec : __smtx_type_wf_rec A A = true)
+    (hARec : __smtx_type_wf_rec A = true)
     (hBNeRegLan : B ≠ SmtType.RegLan)
     (hNe : __smtx_model_eval_eq (SmtValue.Map m1) (SmtValue.Map m2) =
       SmtValue.Boolean false) :

@@ -2284,7 +2284,7 @@ private theorem native_reserved_datatype_name_tuple :
   native_decide
 
 private theorem dtcons_reserved_false_of_translation
-    {s : native_String} {d : Datatype} {i : native_Nat} :
+    {s : native_String} {d : DatatypeDecl} {i : native_Nat} :
     RuleProofs.eo_has_smt_translation (Term.DtCons s d i) ->
     native_reserved_datatype_name s = false := by
   intro hTrans
@@ -2292,7 +2292,7 @@ private theorem dtcons_reserved_false_of_translation
   change
     __smtx_typeof
         (native_ite (native_reserved_datatype_name s) SmtTerm.None
-          (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)) ≠
+          (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i)) ≠
       SmtType.None at hTrans
   cases hReserved : native_reserved_datatype_name s
   · simp
@@ -2301,28 +2301,26 @@ private theorem dtcons_reserved_false_of_translation
     simp [native_ite] at hTrans
 
 private theorem dtcons_model_eval_of_translation
-    (M : SmtModel) {s : native_String} {d : Datatype} {i : native_Nat} :
+    (M : SmtModel) {s : native_String} {d : DatatypeDecl} {i : native_Nat} :
     RuleProofs.eo_has_smt_translation (Term.DtCons s d i) ->
     __smtx_model_eval M (__eo_to_smt (Term.DtCons s d i)) =
-      SmtValue.DtCons s (__eo_to_smt_datatype d) i := by
+      SmtValue.DtCons s (__eo_to_smt_datatype_decl d) i := by
   intro hTrans
   have hReserved : native_reserved_datatype_name s = false :=
     dtcons_reserved_false_of_translation hTrans
   change
     __smtx_model_eval M
         (native_ite (native_reserved_datatype_name s) SmtTerm.None
-          (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)) =
-      SmtValue.DtCons s (__eo_to_smt_datatype d) i
+          (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i)) =
+      SmtValue.DtCons s (__eo_to_smt_datatype_decl d) i
   rw [hReserved]
   simp [native_ite, __smtx_model_eval]
 
-private theorem dtcons_smt_datatype_wf_rec_of_translation
-    {s : native_String} {d : Datatype} {i : native_Nat} :
+private theorem dtcons_smt_datatype_wf_of_translation
+    {s : native_String} {d : DatatypeDecl} {i : native_Nat} :
     RuleProofs.eo_has_smt_translation (Term.DtCons s d i) ->
-    __smtx_dt_wf_rec
-        (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d))
-        (__eo_to_smt_datatype d) =
-      true := by
+    __smtx_type_wf
+        (SmtType.Datatype s (__eo_to_smt_datatype_decl d)) = true := by
   intro hTrans
   have hReserved : native_reserved_datatype_name s = false :=
     dtcons_reserved_false_of_translation hTrans
@@ -2330,36 +2328,40 @@ private theorem dtcons_smt_datatype_wf_rec_of_translation
   change
     __smtx_typeof
         (native_ite (native_reserved_datatype_name s) SmtTerm.None
-          (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)) ≠
+          (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i)) ≠
       SmtType.None at hTrans
   rw [hReserved] at hTrans
   simp [native_ite] at hTrans
   let raw :=
     __smtx_typeof_dt_cons_rec
-      (SmtType.Datatype s (__eo_to_smt_datatype d))
-      (__smtx_dt_substitute s (__eo_to_smt_datatype d)
-        (__eo_to_smt_datatype d)) i
+      (SmtType.Datatype s (__eo_to_smt_datatype_decl d))
+      (__smtx_dt_resolve
+        (__smtx_dd_lookup s (__eo_to_smt_datatype_decl d))
+        (__eo_to_smt_datatype_decl d)) i
   have hGuardNN :
       __smtx_typeof_guard_wf
-          (SmtType.Datatype s (__eo_to_smt_datatype d)) raw ≠
+          (SmtType.Datatype s (__eo_to_smt_datatype_decl d)) raw ≠
         SmtType.None := by
     simpa [Smtm.typeof_dt_cons_eq, raw] using hTrans
   have hBaseWf :
-      __smtx_type_wf (SmtType.Datatype s (__eo_to_smt_datatype d)) =
+      __smtx_type_wf (SmtType.Datatype s (__eo_to_smt_datatype_decl d)) =
         true :=
     Smtm.smtx_typeof_guard_wf_wf_of_non_none
-      (SmtType.Datatype s (__eo_to_smt_datatype d)) raw hGuardNN
-  exact Smtm.datatype_wf_rec_of_type_wf hBaseWf
+      (SmtType.Datatype s (__eo_to_smt_datatype_decl d)) raw hGuardNN
+  exact hBaseWf
 
 private theorem tuple_unit_model_eval
     (M : SmtModel) :
     __smtx_model_eval M (__eo_to_smt (Term.UOp UserOp.tuple_unit)) =
       SmtValue.DtCons (native_string_lit "@Tuple")
-        (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) native_nat_zero := by
-  simp [TranslationProofs.eo_to_smt_term_tuple_unit, __smtx_model_eval]
+        (__smtx_tuple_datatype_decl
+          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
+        native_nat_zero := by
+  simp [TranslationProofs.eo_to_smt_term_tuple_unit, __smtx_model_eval,
+    __smtx_tuple_datatype_decl]
 
 private theorem tuple_unit_dtcons_model_eval_eq_false
-    (M : SmtModel) {s : native_String} {d : Datatype} {i : native_Nat} :
+    (M : SmtModel) {s : native_String} {d : DatatypeDecl} {i : native_Nat} :
     RuleProofs.eo_has_smt_translation (Term.DtCons s d i) ->
     __smtx_model_eval_eq
         (__smtx_model_eval M (__eo_to_smt (Term.UOp UserOp.tuple_unit)))
@@ -2385,7 +2387,7 @@ private theorem tuple_unit_dtcons_model_eval_eq_false
       cases h₁)
 
 private theorem dtcons_tuple_unit_model_eval_eq_false
-    (M : SmtModel) {s : native_String} {d : Datatype} {i : native_Nat} :
+    (M : SmtModel) {s : native_String} {d : DatatypeDecl} {i : native_Nat} :
     RuleProofs.eo_has_smt_translation (Term.DtCons s d i) ->
     __smtx_model_eval_eq
         (__smtx_model_eval M (__eo_to_smt (Term.DtCons s d i)))
@@ -2412,7 +2414,7 @@ private theorem dtcons_tuple_unit_model_eval_eq_false
 
 private theorem dtcons_dtcons_model_eval_eq_false
     (M : SmtModel)
-    {s₁ s₂ : native_String} {d₁ d₂ : Datatype}
+    {s₁ s₂ : native_String} {d₁ d₂ : DatatypeDecl}
     {i₁ i₂ : native_Nat} :
     RuleProofs.eo_has_smt_translation (Term.DtCons s₁ d₁ i₁) ->
     RuleProofs.eo_has_smt_translation (Term.DtCons s₂ d₂ i₂) ->
@@ -2432,14 +2434,21 @@ private theorem dtcons_dtcons_model_eval_eq_false
       subst s₂
       subst i₂
       have hWF :
-          __smtx_dt_wf_rec
-              (__smtx_dt_substitute s₁ (__eo_to_smt_datatype d₁) (__eo_to_smt_datatype d₁))
-              (__eo_to_smt_datatype d₁) =
-            true :=
-        dtcons_smt_datatype_wf_rec_of_translation h₁Trans
-      have hd : d₁ = d₂ :=
-        TranslationProofs.eo_to_smt_datatype_injective_of_wf_rec
-          rfl hD.symm hWF
+          __smtx_type_wf
+              (SmtType.Datatype s₁ (__eo_to_smt_datatype_decl d₁)) = true :=
+        dtcons_smt_datatype_wf_of_translation h₁Trans
+      have hReserved : native_reserved_datatype_name s₁ = false :=
+        dtcons_reserved_false_of_translation h₁Trans
+      have hTypeEq :
+          Term.DatatypeType s₁ d₁ = Term.DatatypeType s₁ d₂ :=
+        TranslationProofs.eo_to_smt_type_injective_of_wf
+          (by simp [TranslationProofs.eo_to_smt_type_datatype,
+            native_ite, hReserved])
+          (by simpa [TranslationProofs.eo_to_smt_type_datatype,
+            native_ite, hReserved] using hD.symm)
+          hWF
+      have hd : d₁ = d₂ := by
+        injection hTypeEq
       subst d₂
       exact (eo_eq_false_ne hEqFalse) rfl)
     (by

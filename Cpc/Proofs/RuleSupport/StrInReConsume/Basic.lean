@@ -6023,7 +6023,7 @@ theorem smt_typeof_str_nary_intro_seq_char_local
     seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf x
       SmtType.Char hxTy type_inhabited_char (by
         simp [__smtx_type_wf, __smtx_type_wf_rec,
-          __smtx_type_wf_component, __smtx_type_no_alias_rec,
+          __smtx_type_wf_component,
           native_inhabited_type_char, native_and])
   exact smt_typeof_str_nary_intro_of_seq_empty_typeof x SmtType.Char
     hxTy hEmptyNN hIntro

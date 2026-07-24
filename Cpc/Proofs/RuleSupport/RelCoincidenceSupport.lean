@@ -92,56 +92,56 @@ private def cleanType : SmtType -> Prop
   | SmtType.DtcAppType _ B => B = SmtType.None ∨ cleanType B
   | _ => True
 
-/-- `__smtx_type_wf_rec _ U = true` forces the container components of `U`
+/-- `__smtx_type_wf_rec U = true` forces the container components of `U`
 to be clean. -/
 private theorem cleanType_of_wf_rec :
-    ∀ (U T : SmtType), __smtx_type_wf_rec T U = true -> cleanType U
-  | SmtType.None, T, h => by
+    ∀ U : SmtType, __smtx_type_wf_rec U = true -> cleanType U
+  | SmtType.None, h => by
       simp [__smtx_type_wf_rec] at h
-  | SmtType.Bool, _, _ => True.intro
-  | SmtType.Int, _, _ => True.intro
-  | SmtType.Real, _, _ => True.intro
-  | SmtType.RegLan, T, h => by
+  | SmtType.Bool, _ => True.intro
+  | SmtType.Int, _ => True.intro
+  | SmtType.Real, _ => True.intro
+  | SmtType.RegLan, h => by
       simp [__smtx_type_wf_rec] at h
-  | SmtType.BitVec _, _, _ => True.intro
-  | SmtType.Char, _, _ => True.intro
-  | SmtType.Datatype _ _, _, _ => True.intro
-  | SmtType.TypeRef _, T, h => by
+  | SmtType.BitVec _, _ => True.intro
+  | SmtType.Char, _ => True.intro
+  | SmtType.Datatype _ _, _ => True.intro
+  | SmtType.TypeRef _, h => by
       simp [__smtx_type_wf_rec] at h
-  | SmtType.USort _, _, _ => True.intro
-  | SmtType.FunType _ _, T, h => by
+  | SmtType.USort _, _ => True.intro
+  | SmtType.FunType _ _, h => by
       simp [__smtx_type_wf_rec] at h
-  | SmtType.DtcAppType _ _, T, h => by
+  | SmtType.DtcAppType _ _, h => by
       simp [__smtx_type_wf_rec] at h
-  | SmtType.Seq A, T, h => by
-      have hA : __smtx_type_wf_rec A A = true := by
+  | SmtType.Seq A, h => by
+      have hA : __smtx_type_wf_rec A = true := by
         simp [__smtx_type_wf_rec, SmtEval.native_and] at h
-        exact h.1.2
-      refine ⟨?_, ?_, cleanType_of_wf_rec A A hA⟩
+        exact h.2
+      refine ⟨?_, ?_, cleanType_of_wf_rec A hA⟩
       · intro hEq
         subst hEq
         simp [__smtx_type_wf_rec] at hA
       · intro hEq
         subst hEq
         simp [__smtx_type_wf_rec] at hA
-  | SmtType.Set A, T, h => by
-      have hA : __smtx_type_wf_rec A A = true := by
+  | SmtType.Set A, h => by
+      have hA : __smtx_type_wf_rec A = true := by
         simp [__smtx_type_wf_rec, SmtEval.native_and] at h
-        exact h.1.2
-      refine ⟨?_, ?_, cleanType_of_wf_rec A A hA⟩
+        exact h.2
+      refine ⟨?_, ?_, cleanType_of_wf_rec A hA⟩
       · intro hEq
         subst hEq
         simp [__smtx_type_wf_rec] at hA
       · intro hEq
         subst hEq
         simp [__smtx_type_wf_rec] at hA
-  | SmtType.Map A B, T, h => by
-      have hAB : __smtx_type_wf_rec A A = true ∧
-          __smtx_type_wf_rec B B = true := by
+  | SmtType.Map A B, h => by
+      have hAB : __smtx_type_wf_rec A = true ∧
+          __smtx_type_wf_rec B = true := by
         simp [__smtx_type_wf_rec, SmtEval.native_and] at h
-        exact ⟨h.1.1.2, h.2.1.2⟩
-      refine ⟨⟨?_, ?_, cleanType_of_wf_rec A A hAB.1⟩,
-        ⟨?_, ?_, cleanType_of_wf_rec B B hAB.2⟩⟩
+        exact ⟨h.1.2, h.2.2⟩
+      refine ⟨⟨?_, ?_, cleanType_of_wf_rec A hAB.1⟩,
+        ⟨?_, ?_, cleanType_of_wf_rec B hAB.2⟩⟩
       · intro hEq
         subst hEq
         have := hAB.1
@@ -161,11 +161,11 @@ private theorem cleanType_of_wf_rec :
 
 private theorem cleanType_of_wf_component {T : SmtType}
     (h : __smtx_type_wf_component T = true) : cleanType T := by
-  have hRec : __smtx_type_wf_rec T T = true := by
+  have hRec : __smtx_type_wf_rec T = true := by
     unfold __smtx_type_wf_component at h
     simp [SmtEval.native_and] at h
-    exact h.1.2
-  exact cleanType_of_wf_rec T T hRec
+    exact h.2
+  exact cleanType_of_wf_rec T hRec
 
 private theorem ne_none_of_wf_component {T : SmtType}
     (h : __smtx_type_wf_component T = true) : T ≠ SmtType.None := by
@@ -1387,7 +1387,7 @@ private theorem typeof_cleanOrNone :
   | SmtTerm.DtCons s d i =>
       cleanOrNone_typeof_guard_wf
         (fun _ => cleanOrNone_dt_cons_rec (SmtType.Datatype s d) True.intro
-          (__smtx_dt_substitute s d d) i)
+          (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i)
   | SmtTerm.DtSel _ _ _ _ => Or.inl rfl
   | SmtTerm.DtTester _ _ _ => Or.inl rfl
   | SmtTerm.UConst _ T => cleanOrNone_typeof_guard_wf_self T
@@ -1752,7 +1752,7 @@ private theorem apply_rel {M N : SmtModel}
           (__smtx_typeof x) ≠ SmtType.None := by
         have h1 : __smtx_typeof_guard
             (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d)
-              (__smtx_dt_substitute s d d) i)
+              (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i)
             (__smtx_typeof_apply
               (SmtType.FunType (SmtType.Datatype s d) SmtType.Bool)
               (__smtx_typeof x)) ≠ SmtType.None := hTy

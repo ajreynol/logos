@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.Cong.Core
 import all Cpc.Proofs.RuleSupport.Cong.Core
+public import Cpc.Proofs.Translation.Apply
+import all Cpc.Proofs.Translation.Apply
 import all Cpc.SmtModel
 
 public section
@@ -1455,6 +1457,29 @@ theorem congTypeSpine_typecongr_indexed_unop_eq_has_bool_type
     hOpTy
     hTrans
 
+private theorem smtx_tuple_select_type_congr_local
+    (T : SmtType) (idx x y : SmtTerm)
+    (hTy : __smtx_typeof x = __smtx_typeof y) :
+    __smtx_typeof (__eo_to_smt_tuple_select T idx x) =
+      __smtx_typeof (__eo_to_smt_tuple_select T idx y) := by
+  cases T <;> cases idx <;>
+    try simp [__eo_to_smt_tuple_select]
+  case Datatype.Numeral s dd n =>
+    cases dd with
+    | nil =>
+        simp [__eo_to_smt_tuple_select]
+    | cons s2 body rest =>
+        cases rest with
+        | nil =>
+            by_cases hCond :
+                (s = native_string_lit "@Tuple" ∧
+                  s2 = native_string_lit "@Tuple") ∧
+                    native_zleq 0 n = true
+            · simp [__eo_to_smt_tuple_select, hCond, __smtx_typeof, hTy]
+            · simp [__eo_to_smt_tuple_select, hCond]
+        | cons s3 body3 rest3 =>
+            simp [__eo_to_smt_tuple_select]
+
 private theorem tuple_select_type_congr
     (idx x y : Term)
     (hSmt :
@@ -1477,21 +1502,9 @@ private theorem tuple_select_type_congr
           (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt idx)
           (__eo_to_smt y))
   rw [hSmt]
-  cases hTy : __smtx_typeof (__eo_to_smt y) with
-  | Datatype s d =>
-      by_cases hs : s = (native_string_lit "@Tuple")
-      · subst s
-        cases hIdx : __eo_to_smt idx with
-        | Numeral n =>
-            cases hNonneg : native_zleq 0 n <;>
-              simp [__eo_to_smt_tuple_select, hTy, hNonneg,
-                native_ite, __smtx_typeof, hSmt]
-        | _ =>
-            simp [__eo_to_smt_tuple_select]
-      · cases hIdx : __eo_to_smt idx <;>
-          simp [__eo_to_smt_tuple_select, hs]
-  | _ =>
-      simp [__eo_to_smt_tuple_select]
+  exact smtx_tuple_select_type_congr_local
+    (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt idx)
+    (__eo_to_smt x) (__eo_to_smt y) hSmt
 
 theorem congTypeSpine_tuple_select_eq_has_bool_type
     (idx x rhs : Term) :
@@ -1533,38 +1546,39 @@ private theorem tuple_select_arg_non_reg_of_non_none
         (__eo_to_smt_tuple_select
           (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt idx)
           (__eo_to_smt x)) ≠ SmtType.None at hNN
-  cases hTy : __smtx_typeof (__eo_to_smt x) with
-  | Datatype s d =>
-      by_cases hs : s = (native_string_lit "@Tuple")
-      · subst s
-        cases hIdx : __eo_to_smt idx with
-        | Numeral n =>
-            cases hNonneg : native_zleq 0 n
-            · exfalso
-              apply hNN
-              simp [__eo_to_smt_tuple_select, hTy, hIdx, hNonneg, native_ite]
-            · have hTerm :
-                  term_has_non_none_type
-                    (SmtTerm.Apply
-                      (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero
-                        (native_int_to_nat n))
-                      (__eo_to_smt x)) := by
-                unfold term_has_non_none_type
-                simpa [__eo_to_smt_tuple_select, hTy, hIdx, hNonneg,
-                  native_ite] using hNN
-              exact ⟨SmtType.Datatype (native_string_lit "@Tuple") d, rfl, by simp, by simp⟩
-        | _ =>
-            exfalso
-            apply hNN
-            simp [__eo_to_smt_tuple_select, hTy, hIdx]
-      · exfalso
-        apply hNN
-        cases hIdx : __eo_to_smt idx <;>
-          simp [__eo_to_smt_tuple_select, hTy, hs]
-  | _ =>
-      exfalso
-      apply hNN
-      simp [__eo_to_smt_tuple_select, hTy]
+  refine ⟨__smtx_typeof (__eo_to_smt x), rfl, ?_, ?_⟩
+  · intro hNone
+    apply hNN
+    rw [hNone]
+    simp [__eo_to_smt_tuple_select]
+  · intro hReg
+    apply hNN
+    rw [hReg]
+    simp [__eo_to_smt_tuple_select]
+
+private theorem smtx_tuple_select_eval_congr_local
+    (M : SmtModel) (T : SmtType) (idx x y : SmtTerm)
+    (hEval : __smtx_model_eval M x = __smtx_model_eval M y) :
+    __smtx_model_eval M (__eo_to_smt_tuple_select T idx x) =
+      __smtx_model_eval M (__eo_to_smt_tuple_select T idx y) := by
+  cases T <;> cases idx <;>
+    try simp [__eo_to_smt_tuple_select]
+  case Datatype.Numeral s dd n =>
+    cases dd with
+    | nil =>
+        simp [__eo_to_smt_tuple_select]
+    | cons s2 body rest =>
+        cases rest with
+        | nil =>
+            by_cases hCond :
+                (s = native_string_lit "@Tuple" ∧
+                  s2 = native_string_lit "@Tuple") ∧
+                    native_zleq 0 n = true
+            · simp [__eo_to_smt_tuple_select, hCond,
+                __smtx_model_eval, hEval]
+            · simp [__eo_to_smt_tuple_select, hCond]
+        | cons s3 body3 rest3 =>
+            simp [__eo_to_smt_tuple_select]
 
 private theorem tuple_select_eval_congr
     (M : SmtModel) (idx x y : Term)
@@ -1590,23 +1604,9 @@ private theorem tuple_select_eval_congr
           (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt idx)
           (__eo_to_smt y))
   rw [hSmt]
-  cases hTy : __smtx_typeof (__eo_to_smt y) with
-  | Datatype s d =>
-      by_cases hs : s = (native_string_lit "@Tuple")
-      · subst s
-        cases hIdx : __eo_to_smt idx with
-        | Numeral n =>
-            cases hNonneg : native_zleq 0 n
-            · simp [__eo_to_smt_tuple_select, hNonneg,
-                native_ite]
-            · simp [__eo_to_smt_tuple_select, hNonneg,
-                native_ite, __smtx_model_eval, hEval]
-        | _ =>
-            simp [__eo_to_smt_tuple_select]
-      · cases hIdx : __eo_to_smt idx <;>
-          simp [__eo_to_smt_tuple_select, hs]
-  | _ =>
-      simp [__eo_to_smt_tuple_select]
+  exact smtx_tuple_select_eval_congr_local M
+    (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt idx)
+    (__eo_to_smt x) (__eo_to_smt y) hEval
 
 theorem congTrueSpine_tuple_select_eq_true
     (M : SmtModel) (hM : model_total_typed M)
@@ -2297,7 +2297,7 @@ theorem smt_value_rel_model_eval_apply_of_rel_core
   have hFNeReg : __smtx_typeof f ≠ SmtType.RegLan := by
     exact smt_type_ne_reglan_of_apply_head hHead
   have hANeReg : A ≠ SmtType.RegLan :=
-    TranslationProofs.smtx_term_fun_like_arg_ne_reglan_of_non_none
+    Smtm.smt_term_fun_like_arg_ne_reglan_of_non_none
       f hFNN hHead
   have hFEq : __smtx_model_eval M f = __smtx_model_eval M g :=
     RuleProofs.smt_value_rel_eq_of_type_ne_reglan
@@ -2388,15 +2388,17 @@ private theorem smtx_typeof_apply_non_none_of_eo_typeof_apply_non_stuck
       have hAppReq : __eo_requires T X U ≠ Term.Stuck := hApp
       have hX : T = X := eo_requires_arg_eq_of_ne_stuck hAppReq
       subst X
-      have hValid : TranslationProofs.eo_type_valid_rec [] (Term.DtcAppType T U) := by
-        simpa [TranslationProofs.eo_type_valid] using hFValid
-      rcases (by simpa [TranslationProofs.eo_type_valid_rec] using hValid :
-        TranslationProofs.eo_type_valid_rec [] T ∧
-          TranslationProofs.eo_type_valid_rec [] U) with ⟨hT, hU⟩
-      have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
-        TranslationProofs.eo_type_valid_rec_non_none hT
-      have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
-        TranslationProofs.eo_type_valid_rec_non_none hU
+      have hTransNN :
+          __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.None :=
+        TranslationProofs.eo_type_valid_non_none hFValid
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None := by
+        intro hT
+        apply hTransNN
+        simp [__eo_to_smt_type, hT, __smtx_typeof_guard]
+      have hUNN : __eo_to_smt_type U ≠ SmtType.None := by
+        intro hU
+        apply hTransNN
+        simp [__eo_to_smt_type, hU, __smtx_typeof_guard]
       simp [__eo_to_smt_type, __smtx_typeof_apply, __smtx_typeof_guard,
         native_ite, native_Teq, hTNN, hUNN]
   | Apply f U =>
@@ -2412,19 +2414,21 @@ private theorem smtx_typeof_apply_non_none_of_eo_typeof_apply_non_stuck
               have hAppReq : __eo_requires T X U ≠ Term.Stuck := hApp
               have hX : T = X := eo_requires_arg_eq_of_ne_stuck hAppReq
               subst X
-              have hValid :
-                  TranslationProofs.eo_type_valid_rec []
-                    (Term.Apply (Term.Apply Term.FunType T) U) := by
-                simpa [TranslationProofs.eo_type_valid] using hFValid
-              rcases (by
-                  simpa [TranslationProofs.eo_type_valid_rec] using hValid :
-                    TranslationProofs.eo_type_valid_rec [] T ∧
-                      TranslationProofs.eo_type_valid_rec [] U) with
-                ⟨hT, hU⟩
-              have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
-                TranslationProofs.eo_type_valid_rec_non_none hT
-              have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
-                TranslationProofs.eo_type_valid_rec_non_none hU
+              have hTransNN :
+                  __eo_to_smt_type
+                      (Term.Apply (Term.Apply Term.FunType T) U) ≠
+                    SmtType.None :=
+                TranslationProofs.eo_type_valid_non_none hFValid
+              have hTNN : __eo_to_smt_type T ≠ SmtType.None := by
+                intro hT
+                apply hTransNN
+                simp [TranslationProofs.eo_to_smt_type_fun, hT,
+                  __smtx_typeof_guard]
+              have hUNN : __eo_to_smt_type U ≠ SmtType.None := by
+                intro hU
+                apply hTransNN
+                simp [TranslationProofs.eo_to_smt_type_fun, hU,
+                  __smtx_typeof_guard]
               simp [TranslationProofs.eo_to_smt_type_fun,
                 __smtx_typeof_apply, __smtx_typeof_guard, native_ite,
                 native_Teq, hTNN, hUNN]
