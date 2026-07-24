@@ -328,11 +328,16 @@ inductive SmtType : Type where
   | Set : SmtType -> SmtType
   | Seq : SmtType -> SmtType
   | Char : SmtType
-  | Datatype : String -> SmtDatatype -> SmtType
+  | Datatype : String -> SmtDatatypeDecl -> SmtType
   | TypeRef : String -> SmtType
   | DtcAppType : SmtType -> SmtType -> SmtType
   | FunType : SmtType -> SmtType -> SmtType
   | USort : Nat -> SmtType
+deriving Repr, DecidableEq, Inhabited, Ord
+
+inductive SmtDatatypeDecl : Type where
+  | nil : SmtDatatypeDecl
+  | cons : String -> SmtDatatype -> SmtDatatypeDecl -> SmtDatatypeDecl
 deriving Repr, DecidableEq, Inhabited, Ord
 
 inductive SmtDatatype : Type where
@@ -526,30 +531,22 @@ The definition of one-step unfolding of datatypes is given by the method
 
 \begin{figure}
 \begin{lstlisting}
-def smt_type_lift (s : String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (if (Teq (SmtType.Datatype s d) (SmtType.Datatype s2 d2)) then (SmtType.TypeRef s) else (SmtType.Datatype s2 (smt_dt_lift s d d2)))
-  | T => T
+def smt_dtc_resolve : SmtDatatypeCons -> SmtDatatypeDecl -> SmtDatatypeCons
+  | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), dd => (SmtDatatypeCons.cons (SmtType.Datatype s dd) (smt_dtc_resolve c dd))
+  | (SmtDatatypeCons.cons T c), dd => (SmtDatatypeCons.cons T (smt_dtc_resolve c dd))
+  | SmtDatatypeCons.unit, dd => SmtDatatypeCons.unit
 
-def smt_dtc_lift (s : String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
-  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (smt_type_lift s d T) (smt_dtc_lift s d c))
-  | SmtDatatypeCons.unit => SmtDatatypeCons.unit
+def smt_dt_resolve : SmtDatatype -> SmtDatatypeDecl -> SmtDatatype
+  | (SmtDatatype.sum c d), dd => (SmtDatatype.sum (smt_dtc_resolve c dd) (smt_dt_resolve d dd))
+  | SmtDatatype.null, dd => SmtDatatype.null
 
-def smt_dt_lift (s : String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
-  | (SmtDatatype.sum c d2) => (SmtDatatype.sum (smt_dtc_lift s d c) (smt_dt_lift s d d2))
-  | SmtDatatype.null => SmtDatatype.null
+def smt_dd_lookup (s : String) : SmtDatatypeDecl -> SmtDatatype
+  | (SmtDatatypeDecl.cons s2 d dd) => (if (s = s2) then d else (smt_dd_lookup s dd))
+  | SmtDatatypeDecl.nil => SmtDatatype.null
 
-def smt_type_substitute (s : String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (if (s = s2) then d2 else (smt_dt_substitute s (smt_dt_lift s2 d2 d) d2)))
-  | (SmtType.TypeRef s2) => (if (s = s2) then (SmtType.Datatype s d) else (SmtType.TypeRef s2))
-  | T => T
-
-def smt_dtc_substitute (s : String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
-  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (smt_type_substitute s d T) (smt_dtc_substitute s d c))
-  | SmtDatatypeCons.unit => SmtDatatypeCons.unit
-
-def smt_dt_substitute (s : String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
-  | (SmtDatatype.sum c d2) => (SmtDatatype.sum (smt_dtc_substitute s d c) (smt_dt_substitute s d d2))
-  | SmtDatatype.null => SmtDatatype.null
+def smt_dd_has_dt (s : String) : SmtDatatypeDecl -> Bool
+  | (SmtDatatypeDecl.cons s2 d dd) => ((s = s2) || (smt_dd_has_dt s dd))
+  | SmtDatatypeDecl.nil => false
 \end{lstlisting}
 \caption{Single step unfolding of datatypes.}
 \label{fig:dt-substitute}
@@ -708,7 +705,7 @@ inductive SmtValue : Type where
   | Seq : SmtSeq -> SmtValue
   | Char : Char -> SmtValue
   | RegLan : SmtRegLan -> SmtValue
-  | DtCons : String -> SmtDatatype -> Nat -> SmtValue
+  | DtCons : String -> SmtDatatypeDecl -> Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
   | UValue : Nat -> Nat -> SmtValue
 deriving Repr, DecidableEq, Inhabited, Ord
@@ -962,7 +959,7 @@ def smt_typeof_value : SmtValue -> SmtType
   | (SmtValue.Map m) => (smt_typeof_map_value m)
   | (SmtValue.Set m) => (smt_map_to_set_type (smt_typeof_map_value m))
   | (SmtValue.Seq ss) => (smt_typeof_seq_value ss)
-  | (SmtValue.DtCons s d i) => (smt_typeof_dt_cons_value_rec (SmtType.Datatype s d) (smt_dt_substitute s d d) i)
+  | (SmtValue.DtCons s dd i) => (smt_typeof_dt_cons_value_rec (SmtType.Datatype s dd) (smt_dt_resolve (smt_dd_lookup s dd) dd) i)
   | (SmtValue.Apply f v) => (smt_typeof_apply_value (smt_typeof_value f) (smt_typeof_value v))
   | (SmtValue.UValue i e) => (SmtType.USort i)
   | ... => ...
@@ -1030,36 +1027,41 @@ The latter will additionally be used to define our notion of inhabited types.
 
 \begin{figure}
 \begin{lstlisting}
-def smt_is_finite_datatype_cons : SmtDatatypeCons -> Bool
-  | SmtDatatypeCons.unit => true
-  | (SmtDatatypeCons.cons T c) => (smt_is_finite_type T && smt_is_finite_datatype_cons c)
+def smt_field_type_bounded (u : Bool) : SmtType -> SmtDatatypeDecl -> Bool
+  | (SmtType.TypeRef s), ddB => (smt_dd_has_dt s ddB)
+  | T, ddB => (smt_type_bounded u T)
 
-def smt_is_finite_datatype : SmtDatatype -> Bool
-  | SmtDatatype.null => true
-  | (SmtDatatype.sum c d) => (smt_is_finite_datatype_cons c && smt_is_finite_datatype d)
+def smt_datatype_cons_bounded (u : Bool) : SmtDatatypeCons -> SmtDatatypeDecl -> Bool
+  | SmtDatatypeCons.unit, ddB => true
+  | (SmtDatatypeCons.cons T c), ddB => ((smt_field_type_bounded u T ddB) && (smt_datatype_cons_bounded u c ddB))
 
-def smt_is_unit_datatype_cons : SmtDatatypeCons -> Bool
-  | SmtDatatypeCons.unit => true
-  | (SmtDatatypeCons.cons T c) => (smt_is_unit_type T && smt_is_unit_datatype_cons c)
+def smt_datatype_bounded (u : Bool) : SmtDatatype -> SmtDatatypeDecl -> Bool
+  | (SmtDatatype.sum c SmtDatatype.null), ddB => (smt_datatype_cons_bounded u c ddB)
+  | (SmtDatatype.sum c dF), ddB => (!u && ((smt_datatype_cons_bounded u c ddB) && (smt_datatype_bounded u dF ddB)))
+  | dF, ddB => !u
 
-def smt_is_unit_datatype : SmtDatatype -> Bool
-  | (SmtDatatype.sum c SmtDatatype.null) => (smt_is_unit_datatype_cons c)
-  | d => false
+def smt_datatype_decl_bounded_step (u : Bool) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtDatatypeDecl
+  | (SmtDatatypeDecl.cons sF dF ddR), ddB => (smt_datatype_decl_bounded_step u ddR (if (!(smt_dd_has_dt sF ddB) && (smt_datatype_bounded u dF ddB)) then (SmtDatatypeDecl.cons sF dF ddB) else ddB))
+  | SmtDatatypeDecl.nil, ddB => ddB
 
-def smt_is_unit_type : SmtType -> Bool
-  | (SmtType.BitVec w) => decide (w = 0)
-  | (SmtType.Datatype s d) => (smt_is_unit_datatype d)
-  | (SmtType.Map T U) => (smt_is_unit_type U)
+def smt_datatype_decl_bounded (u : Bool) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtDatatypeDecl -> SmtDatatypeDecl
+  | (SmtDatatypeDecl.cons sC dC ddC), dd, ddB => (smt_datatype_decl_bounded u ddC dd (smt_datatype_decl_bounded_step u dd ddB))
+  | SmtDatatypeDecl.nil, dd, ddB => ddB
+
+def smt_type_bounded (u : Bool) : SmtType -> Bool
+  | SmtType.Bool => !u
+  | (SmtType.BitVec w) => (!u || (w = 0))
+  | SmtType.Char => !u
+  | (SmtType.Datatype s dd) => (smt_dd_has_dt s (smt_datatype_decl_bounded u dd dd SmtDatatypeDecl.nil))
+  | (SmtType.Map T U) => ((smt_type_bounded true U) || (!u && ((smt_type_bounded u T) && (smt_type_bounded u U))))
+  | (SmtType.Set T) => (!u && (smt_type_bounded u T))
   | T => false
 
-def smt_is_finite_type : SmtType -> Bool
-  | SmtType.Bool => true
-  | (SmtType.BitVec w) => true
-  | SmtType.Char => true
-  | (SmtType.Datatype s d) => (smt_is_finite_datatype d)
-  | (SmtType.Map T U) => (smt_is_unit_type U || (smt_is_finite_type T && smt_is_finite_type U))
-  | (SmtType.Set T) => (smt_is_finite_type T)
-  | T => false
+def smt_is_unit_type (T : SmtType) : Bool :=
+  (smt_type_bounded true T)
+
+def smt_is_finite_type (T : SmtType) : Bool :=
+  (smt_type_bounded false T)
 \end{lstlisting}
 \caption{Unit and finite SMT type predicates.}
 \label{fig:unit-finite}
@@ -1096,39 +1098,42 @@ which we describe later in this section.
 
 \begin{figure}
 \begin{lstlisting}
-def smt_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCons -> SmtValue
-  | SmtDatatypeCons.unit, SmtDatatypeCons.unit => v
-  | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) =>
-    let _v0 := (smt_type_default_rec TF TU)
-    (if (veq _v0 SmtValue.NotValue) then SmtValue.NotValue else (smt_datatype_cons_default (SmtValue.Apply v _v0) cF cU))
-  | cF, cU => SmtValue.NotValue
+def smt_field_type_default (dd : SmtDatatypeDecl) : SmtType -> SmtDatatypeDecl -> SmtValue
+  | (SmtType.TypeRef s), ddF => (smt_datatype_decl_default s dd ddF)
+  | T, ddF => (smt_type_default T)
 
-def smt_datatype_default (s : String) (d : SmtDatatype) (n : Nat) : SmtDatatype -> SmtDatatype -> SmtValue
-  | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
-    let _v0 := (smt_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
-    (if (veq _v0 SmtValue.NotValue) then (smt_datatype_default s d (Nat.succ n) dF dU) else _v0)
-  | dF, dU => SmtValue.NotValue
+def smt_datatype_cons_default (v : SmtValue) (dd : SmtDatatypeDecl) : SmtDatatypeCons -> SmtDatatypeDecl -> SmtValue
+  | SmtDatatypeCons.unit, ddF => v
+  | (SmtDatatypeCons.cons T c), ddF =>
+    let _v0 := (smt_field_type_default dd T ddF)
+    (if (veq _v0 SmtValue.NotValue) then SmtValue.NotValue else (smt_datatype_cons_default (SmtValue.Apply v _v0) dd c ddF))
 
-def smt_type_default_rec : SmtType -> SmtType -> SmtValue
-  | (SmtType.Datatype sF dF), (SmtType.Datatype sU dU) =>
-    (smt_datatype_default sF dF 0 (smt_dt_substitute sF dF dF) dU)
-  | V, SmtType.Bool => (SmtValue.Boolean false)
-  | V, SmtType.Int => (SmtValue.Numeral 0)
-  | V, (SmtType.Map T U) =>
-    let _v0 := (smt_type_default_rec U U)
+def smt_datatype_default (s : String) (dd : SmtDatatypeDecl) (n : Nat) : SmtDatatype -> SmtDatatypeDecl -> SmtValue
+  | (SmtDatatype.sum cF dF), ddF =>
+    let _v0 := (smt_datatype_cons_default (SmtValue.DtCons s dd n) dd cF ddF)
+    (if !(veq _v0 SmtValue.NotValue) then _v0 else (smt_datatype_default s dd (Nat.succ n) dF ddF))
+  | dF, ddF => SmtValue.NotValue
+
+def smt_datatype_decl_default (s : String) (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> SmtValue
+  | (SmtDatatypeDecl.cons sF dF ddF) => (if (s = sF) then (smt_datatype_default s dd 0 dF ddF) else (smt_datatype_decl_default s dd ddF))
+  | ddF => SmtValue.NotValue
+
+def smt_type_default : SmtType -> SmtValue
+  | (SmtType.Datatype s dd) => (smt_datatype_decl_default s dd dd)
+  | SmtType.Bool => (SmtValue.Boolean false)
+  | SmtType.Int => (SmtValue.Numeral 0)
+  | (SmtType.Map T U) =>
+    let _v0 := (smt_type_default U)
     (if (veq _v0 SmtValue.NotValue) then SmtValue.NotValue else (SmtValue.Map (SmtMap.default T _v0)))
-  | V, (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
-  | V, (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
-  | V, (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
-  | V, (SmtType.USort i) => (SmtValue.UValue i 0)
-  | V, ... => ...
-  | V, T => SmtValue.NotValue
+  | (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
+  | (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
+  | (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
+  | (SmtType.USort i) => (SmtValue.UValue i 0)
+  | ... => ...
+  | T => SmtValue.NotValue
 
-def smt_type_default (T : SmtType) : SmtValue :=
-  (smt_type_default_rec T T)
-  
 def inhabited_type (T : SmtType) : Bool :=
-  (Teq (smt_typeof_value (smt_type_default T)) T) && !(Teq T SmtType.None)
+  !(Teq T SmtType.None) && (Teq (smt_typeof_value (smt_type_default T)) T)
 \end{lstlisting}
 \caption{Finite default value computation and type inhabitedness.}
 \label{fig:default-value}
@@ -1336,52 +1341,39 @@ and confirm that all values they are built from are also canonical.
 
 \begin{figure}
 \begin{lstlisting}
-def smt_dt_cons_no_alias_rec (refs : RefList) : SmtDatatypeCons -> Bool
-  | (SmtDatatypeCons.cons T c) => (smt_type_no_alias_rec refs T) && (smt_dt_cons_no_alias_rec refs c)
+def smt_dt_cons_wf_rec (dd : SmtDatatypeDecl) : SmtDatatypeCons -> Bool
+  | (SmtDatatypeCons.cons (SmtType.TypeRef s) c) => ((smt_dd_has_dt s dd) && (smt_dt_cons_wf_rec dd c))
+  | (SmtDatatypeCons.cons T c) => ((inhabited_type T) && (smt_type_wf_rec T) && (smt_dt_cons_wf_rec dd c))
   | SmtDatatypeCons.unit => true
 
-def smt_dt_no_alias_rec (refs : RefList) : SmtDatatype -> Bool
+def smt_dt_wf_rec (dd : SmtDatatypeDecl) : SmtDatatype -> Bool
+  | (SmtDatatype.sum cF dF) => ((smt_dt_cons_wf_rec dd cF) && (smt_dt_wf_rec dd dF))
   | SmtDatatype.null => true
-  | (SmtDatatype.sum c d) => (smt_dt_cons_no_alias_rec refs c) && (smt_dt_no_alias_rec refs d)
 
-def smt_type_no_alias_rec : RefList -> SmtType -> Bool
-  | refs, (SmtType.Datatype s d) => !(s ∈ refs) && (smt_dt_no_alias_rec (s :: refs) d)
-  | T, refs => true
+def smt_decl_wf_rec (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> Bool
+  | (SmtDatatypeDecl.cons s d ddF) =>
+      ((smt_dt_wf_rec dd d) && (inhabited_type (SmtType.Datatype s dd)) && (smt_decl_wf_rec dd ddF) && !(smt_dd_has_dt s ddF))
+  | SmtDatatypeDecl.nil => true
 
-def smt_dt_cons_wf_rec : SmtDatatypeCons -> SmtDatatypeCons -> Bool
-  | (SmtDatatypeCons.cons (SmtType.Datatype s d) cF),
-    (SmtDatatypeCons.cons (SmtType.TypeRef sU) cU) => (smt_dt_cons_wf_rec cF cU)
-  | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) =>
-      (inhabited_type TF) && (smt_type_wf_rec TF TU) && (smt_dt_cons_wf_rec cF cU)
-  | SmtDatatypeCons.unit, SmtDatatypeCons.unit => true
-  | cF, cU => false
-
-def smt_dt_wf_rec : SmtDatatype -> SmtDatatype -> Bool
-  | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
-      (smt_dt_cons_wf_rec cF cU) && (smt_dt_wf_rec dF dU)
-  | SmtDatatype.null, SmtDatatype.null => true
-  | dF, dU => false
-
-def smt_type_wf_rec : SmtType -> SmtType -> Bool
-  | (SmtType.Datatype sF dF), (SmtType.Datatype sU dU) =>
-      (smt_dt_wf_rec (smt_dt_substitute sF dF dF) dU)
-  | T, (SmtType.TypeRef s) => false
-  | T, (SmtType.Seq x1) => (smt_type_wf_component x1)
-  | T, (SmtType.Map x1 x2) =>
-      (smt_type_wf_component x1) && (smt_type_wf_component x2)
-  | T, (SmtType.Set x1) => (smt_type_wf_component x1)
-  | T, (SmtType.FunType x1 x2) => false
-  | T, (SmtType.DtcAppType x1 x2) => false
-  | T, SmtType.None => false
-  | T, SmtType.RegLan => false
-  | T, U => true
+def smt_type_wf_rec : SmtType -> Bool
+  | (SmtType.Datatype s dd) => ((smt_dd_has_dt s dd) && (smt_decl_wf_rec dd dd))
+  | (SmtType.TypeRef s) => false
+  | (SmtType.Seq x1) => ((inhabited_type x1) && (smt_type_wf_rec x1))
+  | (SmtType.Map x1 x2) =>
+      ((inhabited_type x1) && (smt_type_wf_rec x1) && (inhabited_type x2) && (smt_type_wf_rec x2))
+  | (SmtType.Set x1) => ((inhabited_type x1) && (smt_type_wf_rec x1))
+  | (SmtType.FunType x1 x2) => false
+  | (SmtType.DtcAppType x1 x2) => false
+  | SmtType.None => false
+  | SmtType.RegLan => false
+  | U => true
 
 def smt_type_wf_component (T : SmtType) : Bool :=
-  (inhabited_type T) && (smt_type_wf_rec T T) && (smt_type_no_alias_rec [] T)
+  (inhabited_type T) && (smt_type_wf_rec T)
 
 def smt_type_wf : SmtType -> Bool
   | SmtType.RegLan => true
-  | (SmtType.FunType T U) => (smt_type_wf_component T) && (smt_type_wf U)
+  | (SmtType.FunType T U) => (smt_type_wf_component T) && (smt_type_wf_component U)
   | T => (smt_type_wf_component T)
 \end{lstlisting}
 \caption{Type well-formedness.}
@@ -1550,8 +1542,8 @@ inductive SmtTerm : Type where
   ...
   
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
-  | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
-  | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
+  | DtCons : String -> SmtDatatypeDecl -> Nat -> SmtTerm
+  | DtSel : String -> SmtDatatypeDecl -> Nat -> Nat -> SmtTerm
   | exists : String -> SmtType -> SmtTerm -> SmtTerm
   | forall : String -> SmtType -> SmtTerm -> SmtTerm
   | Var : String -> SmtType -> SmtTerm
@@ -1702,9 +1694,9 @@ def smt_typeof : SmtTerm -> SmtType
   | (SmtTerm.plus x1 x2) => (smt_typeof_arith_overload_op_2 (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.select x1 x2) => (smt_typeof_select (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.Apply f x1) => (smt_typeof_apply (smt_typeof f) (smt_typeof x1))
-  | (SmtTerm.DtCons s d i) =>
-      let _v0 := (SmtType.Datatype s d)
-      (smt_typeof_guard_wf _v0 (smt_typeof_dt_cons_rec _v0 (smt_dt_substitute s d d) i))
+  | (SmtTerm.DtCons s dd i) =>
+      let _v0 := (SmtType.Datatype s dd)
+      (smt_typeof_guard_wf _v0 (smt_typeof_dt_cons_rec _v0 (smt_dt_resolve (smt_dd_lookup s dd) dd) i))
   | ... => ...
 \end{lstlisting}
 \caption{Types for SMT terms.}
@@ -1786,7 +1778,7 @@ noncomputable def eval_texists (M : SmtModel) (s : String)
 
 def smt_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | v, SmtValue.NotValue => SmtValue.NotValue
-  | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
+  | (SmtValue.DtCons s dd n), i => (SmtValue.Apply (SmtValue.DtCons s dd n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Fun s T U), i => (model_fun_lookup M s T U i)
   | v, i => SmtValue.NotValue
@@ -1798,7 +1790,7 @@ noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.not x1) => (smt_model_eval_not (smt_model_eval M x1))
   | (SmtTerm.eq x1 x2) => (smt_model_eval_eq (smt_model_eval M x1) (smt_model_eval M x2))
   | (SmtTerm.exists s T x1) => (eval_texists M s T x1)
-  | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
+  | (SmtTerm.DtCons s dd i) => (SmtValue.DtCons s dd i)
   | (SmtTerm.Apply f x1) =>
       (smt_model_eval_apply M (smt_model_eval M f) (smt_model_eval M x1))
   | (SmtTerm.Var s T) => (model_lookup M true s T)
@@ -2012,11 +2004,11 @@ inductive Term : Type where
   | Rational : Rat -> Term
   | String : String -> Term
   | Binary : Int -> Int -> Term
-  | DatatypeType : String -> Datatype -> Term
+  | DatatypeType : String -> DatatypeDecl -> Term
   | DatatypeTypeRef : String -> Term
   | DtcAppType : Term -> Term -> Term
-  | DtCons : String -> Datatype -> Nat -> Term
-  | DtSel : String -> Datatype -> Nat -> Nat -> Term
+  | DtCons : String -> DatatypeDecl -> Nat -> Term
+  | DtSel : String -> DatatypeDecl -> Nat -> Nat -> Term
   | USort : Nat -> Term
   | UConst : Nat -> Term -> Term
   | Var : Term -> Term -> Term
@@ -2137,6 +2129,10 @@ i.e. variables are considered atomic terms indexed by their name and type.
 def eo_to_smt_datatype : Datatype -> SmtDatatype
   ...
 
+def eo_to_smt_datatype_decl : DatatypeDecl -> SmtDatatypeDecl
+  | (DatatypeDecl.cons s d dd) => (SmtDatatypeDecl.cons s (eo_to_smt_datatype d) (eo_to_smt_datatype_decl dd))
+  | DatatypeDecl.nil => SmtDatatypeDecl.nil
+
 def eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | (Term.UOp UserOp.Int) => SmtType.Int
@@ -2150,8 +2146,8 @@ def eo_to_smt_type : Term -> SmtType
   | (Term.Apply (Term.UOp UserOp.Seq) x1) =>
     let _v0 := (eo_to_smt_type x1)
     (smt_typeof_guard _v0 (SmtType.Seq _v0))
-  | (Term.DatatypeType s d) =>
-      if s.startsWith "@" then SmtType.None else SmtType.Datatype s (eo_to_smt_datatype d)
+  | (Term.DatatypeType s dd) =>
+      if s.startsWith "@" then SmtType.None else SmtType.Datatype s (eo_to_smt_datatype_decl dd)
   ...
 
 def eo_to_smt : Term -> SmtTerm
@@ -2198,7 +2194,7 @@ def eo_satisfiability (t : Term) (b : Bool) : Prop :=
 def eo_typeof : Term -> Term
   | (Term.Boolean b) => Term.Bool
   | (Term.Var (Term.String s) T) => T
-  | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
+  | (Term.DtCons s dd i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s dd) (__eo_dd_resolve s dd) i)
   | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) eo_x1) eo_x2) => (__eo_typeof_eq (__eo_typeof eo_x1) (__eo_typeof eo_x2))
   | (Term.Apply eo_f eo_x) => (__eo_typeof_apply (__eo_typeof eo_f) (__eo_typeof eo_x))
   | ... => ...
