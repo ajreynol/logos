@@ -18,7 +18,7 @@ attribute [local simp] native_ite
 attribute [local simp] Smtm.__smtx_type_wf_component
 
 @[simp] private theorem guarded_datatype_type_ne_fun
-    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    (s : native_String) (d : SmtDatatypeDecl) (A B : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.FunType A B := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -30,7 +30,7 @@ attribute [local simp] Smtm.__smtx_type_wf_component
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_ifun
-    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    (s : native_String) (d : SmtDatatypeDecl) (A B : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.FunType A B := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -42,7 +42,7 @@ attribute [local simp] Smtm.__smtx_type_wf_component
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_dtc_app
-    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    (s : native_String) (d : SmtDatatypeDecl) (A B : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.DtcAppType A B := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -54,7 +54,7 @@ attribute [local simp] Smtm.__smtx_type_wf_component
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_seq
-    (s : native_String) (d : SmtDatatype) (A : SmtType) :
+    (s : native_String) (d : SmtDatatypeDecl) (A : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Seq A := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -66,19 +66,19 @@ attribute [local simp] Smtm.__smtx_type_wf_component
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_typeref
-    (s r : native_String) (d : SmtDatatype) :
+    (s r : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.TypeRef r := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_typeref_type_ne_datatype
-    (s r : native_String) (d : SmtDatatype) :
+    (s r : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
       SmtType.Datatype r d := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_bool
-    (s : native_String) (d : SmtDatatype) :
+    (s : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Bool := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -90,7 +90,7 @@ attribute [local simp] Smtm.__smtx_type_wf_component
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_int
-    (s : native_String) (d : SmtDatatype) :
+    (s : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Int := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -102,7 +102,7 @@ attribute [local simp] Smtm.__smtx_type_wf_component
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_real
-    (s : native_String) (d : SmtDatatype) :
+    (s : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Real := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -114,7 +114,7 @@ attribute [local simp] Smtm.__smtx_type_wf_component
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_char
-    (s : native_String) (d : SmtDatatype) :
+    (s : native_String) (d : SmtDatatypeDecl) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.Char := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -126,7 +126,7 @@ attribute [local simp] Smtm.__smtx_type_wf_component
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_usort
-    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    (s : native_String) (d : SmtDatatypeDecl) (i : native_Nat) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.USort i := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -138,7 +138,7 @@ attribute [local simp] Smtm.__smtx_type_wf_component
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_bitvec
-    (s : native_String) (d : SmtDatatype) (w : native_Nat) :
+    (s : native_String) (d : SmtDatatypeDecl) (w : native_Nat) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
       SmtType.BitVec w := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
@@ -171,7 +171,7 @@ theorem smtx_typeof_guard_of_non_none
 
 /-- The finite/infinite EO function-type lowering never produces an SMT datatype. -/
 @[simp] private theorem smt_fun_choice_ne_datatype
-    (T U : SmtType) (s : native_String) (d : SmtDatatype) :
+    (T U : SmtType) (s : native_String) (d : SmtDatatypeDecl) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
       (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.Datatype s d := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
@@ -256,7 +256,7 @@ theorem smtx_typeof_guard_of_non_none
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_datatype
-    (T U : SmtType) (s : native_String) (d : SmtDatatype) :
+    (T U : SmtType) (s : native_String) (d : SmtDatatypeDecl) :
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
@@ -343,7 +343,7 @@ theorem smtx_typeof_guard_seq_ne_typeref
 
 /-- A translated sequence type is never an SMT datatype. -/
 theorem smtx_typeof_guard_seq_ne_datatype
-    (T : SmtType) (s : native_String) (d : SmtDatatype) :
+    (T : SmtType) (s : native_String) (d : SmtDatatypeDecl) :
     __smtx_typeof_guard T (SmtType.Seq T) ≠ SmtType.Datatype s d := by
   cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
 
@@ -358,7 +358,7 @@ theorem smtx_typeof_guard_fun_ne_typeref
 
 /-- A translated function type is never an SMT datatype. -/
 theorem smtx_typeof_guard_fun_ne_datatype
-    (T U : SmtType) (s : native_String) (d : SmtDatatype) :
+    (T U : SmtType) (s : native_String) (d : SmtDatatypeDecl) :
     __smtx_typeof_guard T
         (__smtx_typeof_guard U
           (native_ite (__smtx_is_finite_type (SmtType.FunType T U))
@@ -374,7 +374,7 @@ theorem smtx_typeof_guard_dtc_app_ne_typeref
 
 /-- A translated datatype-constructor application type is never an SMT datatype. -/
 theorem smtx_typeof_guard_dtc_app_ne_datatype
-    (T U : SmtType) (s : native_String) (d : SmtDatatype) :
+    (T U : SmtType) (s : native_String) (d : SmtDatatypeDecl) :
     __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.DtcAppType T U)) ≠
       SmtType.Datatype s d := by
   cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
@@ -431,7 +431,7 @@ theorem eo_to_smt_type_apply_ne_typeref
 
 /-- An EO application never translates to an SMT datatype. -/
 theorem eo_to_smt_type_apply_ne_datatype
-    (f x : Term) (s : native_String) (d : SmtDatatype) :
+    (f x : Term) (s : native_String) (d : SmtDatatypeDecl) :
     __eo_to_smt_type (Term.Apply f x) ≠ SmtType.Datatype s d := by
   cases f with
   | UOp op =>
@@ -459,7 +459,7 @@ theorem eo_to_smt_type_apply_ne_datatype
 
 /-- A translated EO datatype-constructor application type is never an SMT datatype. -/
 theorem eo_to_smt_type_dtc_app_ne_datatype
-    (T U : Term) (s : native_String) (d : SmtDatatype) :
+    (T U : Term) (s : native_String) (d : SmtDatatypeDecl) :
     __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Datatype s d := by
   simpa [__eo_to_smt_type] using
     smtx_typeof_guard_dtc_app_ne_datatype (__eo_to_smt_type T) (__eo_to_smt_type U) s d
@@ -563,7 +563,8 @@ theorem eo_to_smt_type_eq_ifun_iff
   · intro h
     rcases eo_to_smt_type_eq_fun_iff.mp h with
       ⟨T1, T2, hT, hT1, hT2, hT1NN, hT2NN⟩
-    exact ⟨T1, T2, hT, hT1, hT2, hT1NN, hT2NN, by simp [__smtx_is_finite_type]⟩
+    exact ⟨T1, T2, hT, hT1, hT2, hT1NN, hT2NN, by
+      simp [__smtx_is_finite_type, __smtx_type_bounded]⟩
   · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN, hFin⟩
     exact eo_to_smt_type_eq_fun_iff.mpr ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
 
@@ -643,12 +644,12 @@ theorem eo_to_smt_type_eq_dtc_app_iff
 
 /-- Characterizes translated EO types equal to an SMT datatype. -/
 theorem eo_to_smt_type_eq_datatype_iff
-    {T : Term} {s : native_String} {d : SmtDatatype} :
+    {T : Term} {s : native_String} {d : SmtDatatypeDecl} :
     __eo_to_smt_type T = SmtType.Datatype s d ↔
       ∃ d0,
         T = Term.DatatypeType s d0 ∧
         native_reserved_datatype_name s = false ∧
-        __eo_to_smt_datatype d0 = d := by
+        __eo_to_smt_datatype_decl d0 = d := by
   constructor
   · intro h
     cases T with
@@ -1069,13 +1070,20 @@ theorem eo_typeof_eq_translated_eo_dtc_app_of_smt_dtc_app
     rw [← hRec, hx]
   exact eo_to_smt_type_eq_dtc_app_iff.mp hTy
 
+/- The datatype names made available to references inside a declaration block. -/
+def eo_datatype_decl_names : DatatypeDecl -> List native_String
+  | DatatypeDecl.nil => []
+  | DatatypeDecl.cons s _ dd => s :: eo_datatype_decl_names dd
+
 /- Proof-side validity predicates for the EO type fragment meant to survive translation. -/
 mutual
 
 def eo_type_valid_rec (refs : List native_String) : Term -> Prop
   | Term.Bool => True
-  | Term.DatatypeType s d =>
-      native_reserved_datatype_name s = false ∧ eo_datatype_valid_rec (s :: refs) d
+  | Term.DatatypeType s dd =>
+      native_reserved_datatype_name s = false ∧
+        s ∈ eo_datatype_decl_names dd ∧
+        eo_datatype_decl_valid_rec (eo_datatype_decl_names dd) dd
   | Term.DatatypeTypeRef s => native_reserved_datatype_name s = false ∧ s ∈ refs
   | Term.DtcAppType T U => eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U
   | Term.USort _ => True
@@ -1098,6 +1106,11 @@ def eo_datatype_valid_rec (refs : List native_String) : Datatype -> Prop
   | Datatype.sum c d =>
       eo_datatype_cons_valid_rec refs c ∧ eo_datatype_valid_rec refs d
 
+def eo_datatype_decl_valid_rec (refs : List native_String) : DatatypeDecl -> Prop
+  | DatatypeDecl.nil => True
+  | DatatypeDecl.cons _ d dd =>
+      eo_datatype_valid_rec refs d ∧ eo_datatype_decl_valid_rec refs dd
+
 end
 
 /-- Valid EO types always translate to a non-`None` SMT type. -/
@@ -1114,6 +1127,15 @@ theorem eo_type_valid_rec_non_none :
           simp [__eo_to_smt_type]
       | _ =>
           simp [eo_type_valid_rec] at h
+  | refs, Term.UOp1 op x, h => by
+      cases op
+      simp [eo_type_valid_rec] at h
+  | refs, Term.UOp2 op x y, h => by
+      cases op
+      simp [eo_type_valid_rec] at h
+  | refs, Term.UOp3 op x y z, h => by
+      cases op
+      simp [eo_type_valid_rec] at h
   | refs, Term.__eo_List, h => by
       simp [eo_type_valid_rec] at h
   | refs, Term.__eo_List_nil, h => by
@@ -1271,13 +1293,16 @@ private theorem eo_to_smt_type_unique_of_valid_rec
   | Term.Var name ty, U, hValid, hEq => by
       simp [eo_type_valid_rec] at hValid
   | Term.DatatypeType s d, U, hValid, hEq => by
-      rcases hValid with ⟨hReserved, hValid⟩
-      have hU : __eo_to_smt_type U = SmtType.Datatype s (__eo_to_smt_datatype d) := by
+      rcases hValid with ⟨hReserved, _hMem, hValid⟩
+      have hU :
+          __eo_to_smt_type U =
+            SmtType.Datatype s (__eo_to_smt_datatype_decl d) := by
         simpa [__eo_to_smt_type, hReserved] using hEq.symm
       rcases eo_to_smt_type_eq_datatype_iff.mp hU with ⟨d0, hU', _, hd0⟩
       subst hU'
       have hd : d = d0 :=
-        eo_to_smt_datatype_unique_of_valid_rec (s :: refs) hValid hd0.symm
+        eo_to_smt_datatype_decl_unique_of_valid_rec
+          (eo_datatype_decl_names d) hValid hd0.symm
       cases hd
       rfl
   | Term.DatatypeTypeRef s, U, hValid, hEq => by
@@ -1508,6 +1533,32 @@ private theorem eo_to_smt_datatype_unique_of_valid_rec
           cases hD'
           rfl
 
+private theorem eo_to_smt_datatype_decl_unique_of_valid_rec
+    (refs : List native_String) :
+    ∀ {d d' : DatatypeDecl},
+      eo_datatype_decl_valid_rec refs d ->
+      __eo_to_smt_datatype_decl d = __eo_to_smt_datatype_decl d' ->
+      d = d'
+  | DatatypeDecl.nil, d', _, hEq => by
+      cases d' <;> simp [__eo_to_smt_datatype_decl] at hEq
+      rfl
+  | DatatypeDecl.cons s d dd, d', hValid, hEq => by
+      rcases hValid with ⟨hD, hDD⟩
+      cases d' with
+      | nil =>
+          simp [__eo_to_smt_datatype_decl] at hEq
+      | cons s' d' dd' =>
+          simp [__eo_to_smt_datatype_decl] at hEq
+          rcases hEq with ⟨hS, hD', hDD'⟩
+          subst s'
+          have hd : d = d' :=
+            eo_to_smt_datatype_unique_of_valid_rec refs hD hD'
+          have hdd : dd = dd' :=
+            eo_to_smt_datatype_decl_unique_of_valid_rec refs hDD hDD'
+          cases hd
+          cases hdd
+          rfl
+
 end
 
 /-- Injectivity of EO-to-SMT type translation on the proof-side valid fragment. -/
@@ -1526,6 +1577,9 @@ theorem eo_to_smt_type_eq_of_valid
     T = U := by
   exact eo_to_smt_type_eq_of_valid_rec hValid hEq
 
+/- BEGIN obsolete body-substitution development.
+The declaration-based datatype model resolves references through a shared
+declaration environment instead; the replacement lemmas follow this block.
 /-- Converts a reflected ref-list membership test into propositional membership. -/
 private theorem native_reflist_contains_true
     {refs : List native_String} {s : native_String}
@@ -2854,5 +2908,387 @@ theorem eo_to_smt_type_typeof_apply_dt_sel_of_exact_eo_datatype
   simp [__eo_typeof, __eo_typeof_apply, __eo_requires, hx,
     eo_to_smt_type_typeof_dt_sel_return_on_substituted_datatype s d i j hValid,
     native_ite, native_teq, native_not]
+
+end TranslationProofs
+-/
+
+/-- Reflected declaration membership agrees with membership in the EO name list. -/
+theorem eo_to_smt_datatype_decl_has
+    : ∀ (s : native_String) (dd : DatatypeDecl),
+      __smtx_dd_has_dt s (__eo_to_smt_datatype_decl dd) = true ↔
+        s ∈ eo_datatype_decl_names dd
+  | _, DatatypeDecl.nil => by
+      simp [__smtx_dd_has_dt, __eo_to_smt_datatype_decl, eo_datatype_decl_names]
+  | s, DatatypeDecl.cons s' d dd => by
+      simp [__smtx_dd_has_dt, __eo_to_smt_datatype_decl, eo_datatype_decl_names,
+        native_or, eo_to_smt_datatype_decl_has s dd, native_streq]
+termination_by _ dd => sizeOf dd
+
+/-- The ordinary (non-reference) constructor-field branch exposes recursive
+well-formedness of the field and tail. -/
+private theorem smtx_datatype_cons_wf_generic_parts
+    {base : SmtDatatypeDecl} {T : SmtType} {c : SmtDatatypeCons}
+    (hNotRef : ∀ s, T ≠ SmtType.TypeRef s)
+    (h : __smtx_dt_cons_wf_rec base (SmtDatatypeCons.cons T c) = true) :
+    __smtx_type_wf_rec T = true ∧ __smtx_dt_cons_wf_rec base c = true := by
+  cases T <;>
+    simp_all [__smtx_dt_cons_wf_rec, native_and, native_inhabited_type,
+      __smtx_type_wf_rec]
+
+/- Recover proof-side validity from the declaration-aware SMT well-formedness
+predicates. The four statements are mutual because EO terms and datatype
+declarations form one mutually inductive syntax. -/
+mutual
+
+private theorem eo_type_valid_of_smt_wf_rec_aux
+    (refs : List native_String) :
+    ∀ (T : Term),
+      __smtx_type_wf_rec (__eo_to_smt_type T) = true ->
+        eo_type_valid_rec refs T
+  | Term.UOp op, h => by
+      cases op <;> simp [__eo_to_smt_type, __smtx_type_wf_rec,
+        eo_type_valid_rec] at h ⊢
+  | Term.UOp1 op x, h => by
+      cases op
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.UOp2 op x y, h => by
+      cases op
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.UOp3 op x y z, h => by
+      cases op
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.Bool, _ => by simp [eo_type_valid_rec]
+  | Term.DatatypeType s dd, h => by
+      cases hReserved : native_reserved_datatype_name s
+      · have hParts :
+            __smtx_dd_has_dt s (__eo_to_smt_datatype_decl dd) = true ∧
+              __smtx_decl_wf_rec (__eo_to_smt_datatype_decl dd)
+                (__eo_to_smt_datatype_decl dd) = true := by
+          simpa [__eo_to_smt_type, hReserved, __smtx_type_wf_rec,
+            native_and] using h
+        exact ⟨hReserved,
+          (eo_to_smt_datatype_decl_has s dd).mp hParts.1,
+          eo_datatype_decl_valid_of_smt_wf dd dd hParts.2⟩
+      · simp [__eo_to_smt_type, hReserved, __smtx_type_wf_rec] at h
+  | Term.DatatypeTypeRef s, h => by
+      cases hReserved : native_reserved_datatype_name s <;>
+        simp [__eo_to_smt_type, hReserved, __smtx_type_wf_rec] at h
+  | Term.USort i, _ => by simp [eo_type_valid_rec]
+  | Term.Apply (Term.UOp UserOp.Seq) T, h => by
+      have hT : __smtx_type_wf_rec (__eo_to_smt_type T) = true := by
+        cases hTy : __eo_to_smt_type T <;>
+          simp [__eo_to_smt_type, __smtx_typeof_guard, __smtx_type_wf_rec,
+            native_ite, native_Teq, hTy, native_and] at h ⊢
+        all_goals exact h.2
+      simpa [eo_type_valid_rec] using eo_type_valid_of_smt_wf_rec_aux [] T hT
+  | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), h => by
+      cases hz : native_zleq 0 n
+      · simp [__eo_to_smt_type, hz, __smtx_type_wf_rec] at h
+      · simpa [eo_type_valid_rec, native_zleq] using hz
+  | Term.Apply f x, h => by
+      cases f with
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  cases hz : native_zleq 0 n
+                  · simp [__eo_to_smt_type, hz, __smtx_type_wf_rec] at h
+                  · simpa [eo_type_valid_rec, native_zleq] using hz
+              | _ =>
+                  simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+          | Seq =>
+              have hx : __smtx_type_wf_rec (__eo_to_smt_type x) = true := by
+                cases hTy : __eo_to_smt_type x <;>
+                  simp [__eo_to_smt_type, __smtx_typeof_guard,
+                    __smtx_type_wf_rec, native_ite, native_Teq, hTy,
+                    native_and] at h ⊢
+                all_goals exact h.2
+              simpa [eo_type_valid_rec] using
+                eo_type_valid_of_smt_wf_rec_aux [] x hx
+          | _ =>
+              simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+      | Apply g y =>
+          cases g with
+          | FunType =>
+              cases hY : __eo_to_smt_type y <;>
+                cases hX : __eo_to_smt_type x <;>
+                simp [__eo_to_smt_type, __smtx_typeof_guard,
+                  __smtx_type_wf_rec, native_ite, native_Teq, hY, hX] at h
+          | _ =>
+              simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+      | _ =>
+          simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.__eo_List, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.__eo_List_nil, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.__eo_List_cons, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.Boolean b, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.Numeral n, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.Rational q, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.String s, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.Binary w n, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.Type, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.Stuck, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.FunType, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.Var name ty, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.DtcAppType T U, h => by
+      cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+        simp [__eo_to_smt_type, __smtx_type_wf_rec,
+          __smtx_typeof_guard, native_ite, native_Teq, hT, hU] at h
+  | Term.DtCons s dd i, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.DtSel s dd i j, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+  | Term.UConst i T, h => by
+      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+
+private theorem eo_datatype_cons_valid_of_smt_wf
+    (base : DatatypeDecl) :
+    ∀ (c : DatatypeCons),
+      __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_decl base)
+        (__eo_to_smt_datatype_cons c) = true ->
+      eo_datatype_cons_valid_rec (eo_datatype_decl_names base) c
+  | DatatypeCons.unit, _ => by simp [eo_datatype_cons_valid_rec]
+  | DatatypeCons.cons T c, h => by
+      by_cases hRef : ∃ s, __eo_to_smt_type T = SmtType.TypeRef s
+      · rcases hRef with ⟨s, hTy⟩
+        rcases eo_to_smt_type_eq_typeref_iff.mp hTy with ⟨rfl, hReserved⟩
+        have hParts :
+            __smtx_dd_has_dt s (__eo_to_smt_datatype_decl base) = true ∧
+              __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_decl base)
+                (__eo_to_smt_datatype_cons c) = true := by
+          simpa [__eo_to_smt_datatype_cons, __eo_to_smt_type, hReserved,
+            __smtx_dt_cons_wf_rec, native_and] using h
+        exact ⟨⟨hReserved,
+          (eo_to_smt_datatype_decl_has s base).mp hParts.1⟩,
+          eo_datatype_cons_valid_of_smt_wf base c hParts.2⟩
+      · have hParts :
+            __smtx_type_wf_rec (__eo_to_smt_type T) = true ∧
+              __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_decl base)
+                (__eo_to_smt_datatype_cons c) = true :=
+          smtx_datatype_cons_wf_generic_parts
+            (by intro s hs; exact hRef ⟨s, hs⟩)
+            (by simpa [__eo_to_smt_datatype_cons] using h)
+        exact ⟨eo_type_valid_of_smt_wf_rec_aux
+            (eo_datatype_decl_names base) T hParts.1,
+          eo_datatype_cons_valid_of_smt_wf base c hParts.2⟩
+
+private theorem eo_datatype_valid_of_smt_wf
+    (base : DatatypeDecl) :
+    ∀ (d : Datatype),
+      __smtx_dt_wf_rec (__eo_to_smt_datatype_decl base)
+        (__eo_to_smt_datatype d) = true ->
+      eo_datatype_valid_rec (eo_datatype_decl_names base) d
+  | Datatype.null, _ => by simp [eo_datatype_valid_rec]
+  | Datatype.sum c d, h => by
+      have hParts :
+          __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_decl base)
+              (__eo_to_smt_datatype_cons c) = true ∧
+            __smtx_dt_wf_rec (__eo_to_smt_datatype_decl base)
+              (__eo_to_smt_datatype d) = true := by
+        simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec, native_and] using h
+      exact ⟨eo_datatype_cons_valid_of_smt_wf base c hParts.1,
+        eo_datatype_valid_of_smt_wf base d hParts.2⟩
+
+private theorem eo_datatype_decl_valid_of_smt_wf
+    (base : DatatypeDecl) :
+    ∀ (dd : DatatypeDecl),
+      __smtx_decl_wf_rec (__eo_to_smt_datatype_decl base)
+        (__eo_to_smt_datatype_decl dd) = true ->
+      eo_datatype_decl_valid_rec (eo_datatype_decl_names base) dd
+  | DatatypeDecl.nil, _ => by simp [eo_datatype_decl_valid_rec]
+  | DatatypeDecl.cons s d dd, h => by
+      simp only [__eo_to_smt_datatype_decl, __smtx_decl_wf_rec, native_and,
+        Bool.and_eq_true] at h
+      exact ⟨eo_datatype_valid_of_smt_wf base d h.1,
+        eo_datatype_decl_valid_of_smt_wf base dd h.2.2.1⟩
+
+end
+
+/-- A translated EO type satisfying recursive SMT well-formedness is valid. -/
+theorem eo_type_valid_of_smt_wf_rec
+    (refs : List native_String) (T : Term)
+    (h : __smtx_type_wf_rec (__eo_to_smt_type T) = true) :
+    eo_type_valid_rec refs T :=
+  eo_type_valid_of_smt_wf_rec_aux refs T h
+
+private theorem smtx_typeof_guard_ne_reglan_new
+    (T U : SmtType) (hU : U ≠ SmtType.RegLan) :
+    __smtx_typeof_guard T U ≠ SmtType.RegLan := by
+  cases T <;> simp [__smtx_typeof_guard, native_Teq, hU]
+
+/-- EO type translation never produces the SMT regular-language type. -/
+theorem eo_to_smt_type_ne_reglan (T : Term) :
+    __eo_to_smt_type T ≠ SmtType.RegLan := by
+  cases T with
+  | UOp op => cases op <;> simp [__eo_to_smt_type]
+  | UOp1 op x => cases op <;> simp [__eo_to_smt_type]
+  | UOp2 op x y => cases op <;> simp [__eo_to_smt_type]
+  | UOp3 op x y z => cases op <;> simp [__eo_to_smt_type]
+  | Apply f x =>
+      cases f with
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x <;> try simp [__eo_to_smt_type]
+              rename_i n
+              cases h : native_zleq 0 n <;> simp
+          | Seq =>
+              simpa [__eo_to_smt_type] using
+                smtx_typeof_guard_ne_reglan_new (__eo_to_smt_type x)
+                  (SmtType.Seq (__eo_to_smt_type x)) (by simp)
+          | _ => simp [__eo_to_smt_type]
+      | Apply g y =>
+          cases g <;> try simp [__eo_to_smt_type]
+          simpa [__eo_to_smt_type] using
+            smtx_typeof_guard_ne_reglan_new (__eo_to_smt_type y)
+              (__smtx_typeof_guard (__eo_to_smt_type x)
+                (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)))
+              (smtx_typeof_guard_ne_reglan_new (__eo_to_smt_type x)
+                (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)) (by simp))
+      | _ => simp [__eo_to_smt_type]
+  | DtcAppType T U =>
+      simpa [__eo_to_smt_type] using
+        smtx_typeof_guard_ne_reglan_new (__eo_to_smt_type T)
+          (__smtx_typeof_guard (__eo_to_smt_type U)
+            (SmtType.DtcAppType (__eo_to_smt_type T) (__eo_to_smt_type U)))
+          (smtx_typeof_guard_ne_reglan_new (__eo_to_smt_type U)
+            (SmtType.DtcAppType (__eo_to_smt_type T) (__eo_to_smt_type U)) (by simp))
+  | DatatypeType s dd =>
+      cases h : native_reserved_datatype_name s <;> simp [__eo_to_smt_type, h]
+  | DatatypeTypeRef s =>
+      cases h : native_reserved_datatype_name s <;> simp [__eo_to_smt_type, h]
+  | _ => simp [__eo_to_smt_type]
+
+/-- Public SMT well-formedness of a translated EO type implies proof-side validity. -/
+theorem eo_type_valid_of_smt_wf
+    (refs : List native_String) (T : Term)
+    (h : __smtx_type_wf (__eo_to_smt_type T) = true) :
+    eo_type_valid_rec refs T := by
+  cases hTy : __eo_to_smt_type T
+  case FunType A B =>
+      rcases eo_to_smt_type_eq_fun_iff.mp hTy with
+        ⟨T1, T2, hT, hT1, hT2, _, _⟩
+      subst T
+      have hParts :
+          __smtx_type_wf_rec A = true ∧ __smtx_type_wf_rec B = true := by
+        have hComponents :
+            __smtx_type_wf_component A = true ∧
+              __smtx_type_wf_component B = true := by
+          simpa [__smtx_type_wf, native_and, hTy] using h
+        have hA :
+            native_inhabited_type A = true ∧ __smtx_type_wf_rec A = true := by
+          simpa [__smtx_type_wf_component, native_and] using hComponents.1
+        have hB :
+            native_inhabited_type B = true ∧ __smtx_type_wf_rec B = true := by
+          simpa [__smtx_type_wf_component, native_and] using hComponents.2
+        exact ⟨hA.2, hB.2⟩
+      exact ⟨eo_type_valid_of_smt_wf_rec_aux [] T1 (by simpa [hT1] using hParts.1),
+        eo_type_valid_of_smt_wf_rec_aux [] T2 (by simpa [hT2] using hParts.2)⟩
+  case RegLan =>
+      exact False.elim (eo_to_smt_type_ne_reglan T hTy)
+  all_goals
+      have hRec : __smtx_type_wf_rec (__eo_to_smt_type T) = true := by
+        have hComponent :
+            __smtx_type_wf_component (__eo_to_smt_type T) = true := by
+          simpa [__smtx_type_wf, hTy] using h
+        have hParts :
+            native_inhabited_type (__eo_to_smt_type T) = true ∧
+              __smtx_type_wf_rec (__eo_to_smt_type T) = true := by
+          simpa [__smtx_type_wf_component, native_and] using hComponent
+        exact hParts.2
+      exact eo_type_valid_of_smt_wf_rec_aux refs T hRec
+
+/-- A non-`None` well-formedness guard validates its translated EO input type. -/
+theorem eo_type_valid_of_guard_wf_non_none
+    (refs : List native_String) (T : Term) (U : SmtType)
+    (h : __smtx_typeof_guard_wf (__eo_to_smt_type T) U ≠ SmtType.None) :
+    eo_type_valid_rec refs T := by
+  cases hWF : __smtx_type_wf (__eo_to_smt_type T)
+  · exfalso
+    exact h (by simp [__smtx_typeof_guard_wf, hWF, native_ite])
+  · exact eo_type_valid_of_smt_wf refs T hWF
+
+/-- Resolving a translated constructor chain agrees with translating EO
+declaration resolution. -/
+theorem eo_to_smt_datatype_cons_resolve
+    : ∀ (c : DatatypeCons) (dd : DatatypeDecl),
+      __eo_to_smt_datatype_cons (__eo_dtc_resolve c dd) =
+        __smtx_dtc_resolve (__eo_to_smt_datatype_cons c)
+          (__eo_to_smt_datatype_decl dd)
+  | DatatypeCons.unit, _ => rfl
+  | DatatypeCons.cons T c, dd => by
+      by_cases hRef : ∃ s, T = Term.DatatypeTypeRef s
+      · rcases hRef with ⟨s, rfl⟩
+        cases hReserved : native_reserved_datatype_name s <;>
+          simp [__eo_dtc_resolve, __smtx_dtc_resolve,
+            __eo_to_smt_datatype_cons, __eo_to_smt_type, hReserved,
+            eo_to_smt_datatype_cons_resolve c dd]
+      · have hTranslated :
+            ∀ s, __eo_to_smt_type T ≠ SmtType.TypeRef s := by
+          intro s h
+          exact hRef ⟨s, (eo_to_smt_type_eq_typeref_iff.mp h).1⟩
+        have hResolve :
+            __smtx_dtc_resolve
+                (SmtDatatypeCons.cons (__eo_to_smt_type T)
+                  (__eo_to_smt_datatype_cons c))
+                (__eo_to_smt_datatype_decl dd) =
+              SmtDatatypeCons.cons (__eo_to_smt_type T)
+                (__smtx_dtc_resolve (__eo_to_smt_datatype_cons c)
+                  (__eo_to_smt_datatype_decl dd)) := by
+          cases hT : __eo_to_smt_type T <;>
+            simp_all [__smtx_dtc_resolve]
+        rw [show __eo_dtc_resolve (DatatypeCons.cons T c) dd =
+            DatatypeCons.cons T (__eo_dtc_resolve c dd) by
+          cases T <;> simp_all [__eo_dtc_resolve]]
+        simp [__eo_to_smt_datatype_cons, hResolve,
+          eo_to_smt_datatype_cons_resolve c dd]
+termination_by c _ => sizeOf c
+
+/-- Datatype-body resolution commutes with translation. -/
+theorem eo_to_smt_datatype_resolve
+    : ∀ (d : Datatype) (dd : DatatypeDecl),
+      __eo_to_smt_datatype (__eo_dt_resolve d dd) =
+        __smtx_dt_resolve (__eo_to_smt_datatype d)
+          (__eo_to_smt_datatype_decl dd)
+  | Datatype.null, _ => rfl
+  | Datatype.sum c d, dd => by
+      simp [__eo_dt_resolve, __smtx_dt_resolve, __eo_to_smt_datatype,
+        eo_to_smt_datatype_cons_resolve,
+        eo_to_smt_datatype_resolve d dd]
+termination_by d _ => sizeOf d
+
+/-- Fully resolved declaration lookup commutes with translation. -/
+theorem eo_to_smt_datatype_decl_resolve
+    (s : native_String) (dd : DatatypeDecl) :
+    __eo_to_smt_datatype (__eo_dd_resolve s dd) =
+      __smtx_dt_resolve
+        (__smtx_dd_lookup s (__eo_to_smt_datatype_decl dd))
+        (__eo_to_smt_datatype_decl dd) := by
+  rw [__eo_dd_resolve, eo_to_smt_datatype_resolve,
+    eo_to_smt_datatype_decl_lookup]
+
+/-- Exact datatype typing makes selector-result translation commute directly
+with declaration lookup and resolution. -/
+theorem eo_to_smt_type_typeof_apply_dt_sel_of_exact_eo_datatype
+    (x : Term) (s : native_String) (dd : DatatypeDecl) (i j : native_Nat)
+    (hx : __eo_typeof x = Term.DatatypeType s dd) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtSel s dd i j) x)) =
+      __smtx_ret_typeof_sel s (__eo_to_smt_datatype_decl dd) i j := by
+  simp [__eo_typeof, __eo_typeof_apply, __eo_requires, hx,
+    __smtx_ret_typeof_sel, eo_to_smt_datatype_decl_resolve,
+    eo_to_smt_type_typeof_dt_sel_return, native_ite, native_teq, native_not]
 
 end TranslationProofs

@@ -565,16 +565,20 @@ theorem substitute_typeof_apply_tuple_unit_head_eq_none
     __smtx_typeof
         (SmtTerm.Apply
           (SmtTerm.DtCons (native_string_lit "@Tuple")
-            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) x) =
+            (__smtx_tuple_datatype_decl
+              (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) x) =
       SmtType.None := by
   have hGeneric :
       generic_apply_type
         (SmtTerm.DtCons (native_string_lit "@Tuple")
-          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) x :=
+          (__smtx_tuple_datatype_decl
+            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) x :=
     generic_apply_type_of_non_datatype_head
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
-  rw [hGeneric, TranslationProofs.smtx_typeof_tuple_unit_translation]
+  rw [hGeneric]
+  simp [__smtx_tuple_datatype_decl,
+    TranslationProofs.smtx_typeof_tuple_unit_translation]
   rfl
 
 theorem substitute_uop_apply_typeof_none_of_not_unary_smt_translation
@@ -749,7 +753,7 @@ theorem eo_to_smt_uop_apply_ne_dt_tester (op : UserOp) (x : Term) :
       simp [native_ite, hSize] at h
 
 theorem dtcons_reserved_false_of_apply_has_smt_translation
-    {s : native_String} {d : Datatype} {i : native_Nat} {a : Term}
+    {s : native_String} {d : DatatypeDecl} {i : native_Nat} {a : Term}
     (hTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.DtCons s d i) a)) :
@@ -759,7 +763,7 @@ theorem dtcons_reserved_false_of_apply_has_smt_translation
     __smtx_typeof
         (SmtTerm.Apply
           (native_ite (native_reserved_datatype_name s) SmtTerm.None
-            (SmtTerm.DtCons s (__eo_to_smt_datatype d) i))
+            (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i))
           (__eo_to_smt a)) ≠
       SmtType.None at hTrans
   cases hReserved : native_reserved_datatype_name s
@@ -771,7 +775,7 @@ theorem dtcons_reserved_false_of_apply_has_smt_translation
         TranslationProofs.typeof_apply_none_eq (__eo_to_smt a))
 
 theorem dtsel_reserved_false_of_apply_has_smt_translation
-    {s : native_String} {d : Datatype} {i j : native_Nat} {a : Term}
+    {s : native_String} {d : DatatypeDecl} {i j : native_Nat} {a : Term}
     (hTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.DtSel s d i j) a)) :
@@ -781,7 +785,7 @@ theorem dtsel_reserved_false_of_apply_has_smt_translation
     __smtx_typeof
         (SmtTerm.Apply
           (native_ite (native_reserved_datatype_name s) SmtTerm.None
-            (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+            (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
           (__eo_to_smt a)) ≠
       SmtType.None at hTrans
   cases hReserved : native_reserved_datatype_name s
@@ -1355,7 +1359,7 @@ theorem substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
 
 theorem substitute_simul_rec_apply_dtsel_typeof_eq_of_typeof_ne_stuck
     {isRename : Bool}
-    (s : native_String) (d : Datatype) (i j : native_Nat)
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat)
     (a xs ss bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -1430,7 +1434,7 @@ theorem substitute_simul_rec_apply_dtsel_typeof_eq_of_typeof_ne_stuck
   have hApplyNN :
       term_has_non_none_type
         (SmtTerm.Apply
-          (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
+          (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j)
           (__eo_to_smt a)) := by
     unfold term_has_non_none_type
     unfold RuleProofs.eo_has_smt_translation at hTrans
@@ -1438,7 +1442,7 @@ theorem substitute_simul_rec_apply_dtsel_typeof_eq_of_typeof_ne_stuck
       __smtx_typeof
           (SmtTerm.Apply
             (native_ite (native_reserved_datatype_name s) SmtTerm.None
-              (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+              (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
             (__eo_to_smt a)) ≠
         SmtType.None at hTrans
     rw [hReserved] at hTrans

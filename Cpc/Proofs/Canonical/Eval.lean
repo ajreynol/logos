@@ -355,7 +355,7 @@ theorem model_eval_seq_nth_term_canonical
     (hElemRec :
       ∀ {T : SmtType},
         __smtx_typeof t1 = SmtType.Seq T ->
-          __smtx_type_wf_rec T T = true)
+          __smtx_type_wf_rec T = true)
     (h1 : __smtx_value_canonical (__smtx_model_eval M t1)) :
     __smtx_value_canonical (__smtx_model_eval M (SmtTerm.seq_nth t1 t2)) := by
   rcases seq_nth_args_of_non_none ht with ⟨T, ht1Ty, ht2Ty⟩
@@ -365,14 +365,13 @@ theorem model_eval_seq_nth_term_canonical
     simpa [__smtx_typeof_seq_nth, ht1Ty, ht2Ty] using ht
   have hTWf : __smtx_type_wf T = true :=
     smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-  have hRec : __smtx_type_wf_rec T T = true := hElemRec ht1Ty
+  have hRec : __smtx_type_wf_rec T = true := hElemRec ht1Ty
   have hTInh : native_inhabited_type T = true := by
     cases T <;>
       simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
         native_and] at hTWf hRec ⊢
     all_goals first | exact hTWf | exact hTWf.1 | exact hTWf.1.1 | contradiction
   have hMapWF := seq_nth_wrong_map_type_wf hTInh hRec
-    (type_no_alias_of_type_wf hTWf)
   have ht1 : term_has_non_none_type t1 := by
     unfold term_has_non_none_type
     rw [ht1Ty]
@@ -390,7 +389,7 @@ theorem model_eval_dt_sel_term_canonical
     (M : SmtModel)
     (hM : model_total_typed M)
     (s : native_String)
-    (d : SmtDatatype)
+    (d : SmtDatatypeDecl)
     (i j : native_Nat)
     (x : SmtTerm)
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x))

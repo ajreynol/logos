@@ -461,7 +461,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                             (native_reserved_datatype_name s)
                             SmtTerm.None
                             (SmtTerm.DtCons s
-                              (__eo_to_smt_datatype d)
+                              (__eo_to_smt_datatype_decl d)
                               i))
                           (__eo_to_smt a)) =
                       __smtx_typeof_apply
@@ -470,7 +470,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                             (native_reserved_datatype_name s)
                             SmtTerm.None
                             (SmtTerm.DtCons s
-                              (__eo_to_smt_datatype d)
+                              (__eo_to_smt_datatype_decl d)
                               i)))
                         (__smtx_typeof (__eo_to_smt a))
                   rw [hReserved]
@@ -3829,7 +3829,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                                                                                                                                                     (native_reserved_datatype_name s)
                                                                                                                                                                                                                                                     SmtTerm.None
                                                                                                                                                                                                                                                     (SmtTerm.DtCons s
-                                                                                                                                                                                                                                                      (__eo_to_smt_datatype d)
+                                                                                                                                                                                                                                                      (__eo_to_smt_datatype_decl d)
                                                                                                                                                                                                                                                       i))
                                                                                                                                                                                                                                                   (__eo_to_smt x1)) =
                                                                                                                                                                                                                                               __smtx_typeof_apply
@@ -3838,7 +3838,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                                                                                                                                                     (native_reserved_datatype_name s)
                                                                                                                                                                                                                                                     SmtTerm.None
                                                                                                                                                                                                                                                     (SmtTerm.DtCons s
-                                                                                                                                                                                                                                                      (__eo_to_smt_datatype d)
+                                                                                                                                                                                                                                                      (__eo_to_smt_datatype_decl d)
                                                                                                                                                                                                                                                       i)))
                                                                                                                                                                                                                                                 (__smtx_typeof (__eo_to_smt x1))
                                                                                                                                                                                                                                           rw [hReserved]
@@ -3873,7 +3873,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                                                                                                                                                       (native_reserved_datatype_name s)
                                                                                                                                                                                                                                                       SmtTerm.None
                                                                                                                                                                                                                                                       (SmtTerm.DtCons s
-                                                                                                                                                                                                                                                        (__eo_to_smt_datatype d)
+                                                                                                                                                                                                                                                        (__eo_to_smt_datatype_decl d)
                                                                                                                                                                                                                                                         i))
                                                                                                                                                                                                                                                     (__eo_to_smt x1)) =
                                                                                                                                                                                                                                                 __smtx_typeof_apply
@@ -3882,7 +3882,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                                                                                                                                                       (native_reserved_datatype_name s)
                                                                                                                                                                                                                                                       SmtTerm.None
                                                                                                                                                                                                                                                       (SmtTerm.DtCons s
-                                                                                                                                                                                                                                                        (__eo_to_smt_datatype d)
+                                                                                                                                                                                                                                                        (__eo_to_smt_datatype_decl d)
                                                                                                                                                                                                                                                         i)))
                                                                                                                                                                                                                                                   (__smtx_typeof (__eo_to_smt x1))
                                                                                                                                                                                                                                             rw [hReserved]

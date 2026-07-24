@@ -104,7 +104,7 @@ theorem smt_app_spine_type_eq_and_rel_of_listRel_true
 
 private theorem smt_app_spine_type_eq_and_rel_of_listRel_true_dt_sel
     (M : SmtModel) (hM : model_total_typed M)
-    (s : native_String) (d : Datatype) (i j : native_Nat) :
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) :
     let F := __eo_to_smt (Term.DtSel s d i j)
     ∀ {xs ys : List Term},
       ListRel (EqTrueOrSame M) xs ys ->
@@ -306,7 +306,7 @@ theorem congTrueSpine_appSpineRev_uconst_eq_true
 
 theorem congTrueSpine_appSpineRev_dtcons_eq_true
     (M : SmtModel) (hM : model_total_typed M)
-    (s : native_String) (d : Datatype) (i : native_Nat) (t rhs : Term)
+    (s : native_String) (d : DatatypeDecl) (i : native_Nat) (t rhs : Term)
     (hHead : (appSpineRev t).1 = Term.DtCons s d i)
     (hEqBool : RuleProofs.eo_has_bool_type (mkEq t rhs))
     (hSpine : CongTrueSpine M t rhs) :
@@ -337,7 +337,7 @@ theorem congTrueSpine_appSpineRev_dtcons_eq_true
 
 theorem congTrueSpine_appSpineRev_dt_sel_eq_true
     (M : SmtModel) (hM : model_total_typed M)
-    (s : native_String) (d : Datatype) (i j : native_Nat) (t rhs : Term)
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (t rhs : Term)
     (hHead : (appSpineRev t).1 = Term.DtSel s d i j)
     (hEqBool : RuleProofs.eo_has_bool_type (mkEq t rhs))
     (hSpine : CongTrueSpine M t rhs) :

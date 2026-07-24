@@ -91,7 +91,7 @@ theorem value_canonical_uvalue (u n : native_Nat) :
     __smtx_value_canonical (SmtValue.UValue u n) := by
   simp [__smtx_value_canonical, __smtx_value_canonical_bool]
 
-theorem value_canonical_dt_cons (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+theorem value_canonical_dt_cons (s : native_String) (d : SmtDatatypeDecl) (i : native_Nat) :
     __smtx_value_canonical (SmtValue.DtCons s d i) := by
   simp [__smtx_value_canonical, __smtx_value_canonical_bool]
 

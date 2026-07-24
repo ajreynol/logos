@@ -139,20 +139,21 @@ default witness for datatype types.
 -/
 theorem datatype_type_default_typed_canonical_of_inhabited
     (s : native_String)
-    (d : SmtDatatype)
+    (d : SmtDatatypeDecl)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
-    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
+    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) = true) :
       __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) :=
-  type_default_typed_canonical_of_native_inhabited_type (SmtType.Datatype s d) _hInh
+  type_default_typed_canonical_of_native_inhabited_type
+    (SmtType.Datatype s d) _hInh _hRec
 
 private theorem type_default_typed_canonical_of_wf_rec
     (T : SmtType) (hInh : native_inhabited_type T = true)
-    (_hRec : __smtx_type_wf_rec T T = true) :
+    (_hRec : __smtx_type_wf_rec T = true) :
     __smtx_typeof_value (__smtx_type_default T) = T ∧
       __smtx_value_canonical (__smtx_type_default T) :=
-  type_default_typed_canonical_of_native_inhabited_type T hInh
+  type_default_typed_canonical_of_native_inhabited_type T hInh _hRec
 
 theorem canonical_type_inhabited_of_type_wf
     (T : SmtType)
@@ -166,17 +167,15 @@ theorem canonical_type_inhabited_of_type_wf
     · rcases hFun with ⟨A, B, rfl⟩
       have hParts :
           native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A A = true ∧
+            __smtx_type_wf_rec A = true ∧
               native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B B = true := by
+                __smtx_type_wf_rec B = true := by
         exact fun_type_wf_parts hWF
-      have hDef :=
-        type_default_typed_canonical_of_native_inhabited_type
-          (SmtType.FunType A B) (native_inhabited_type_fun hParts.2.2.1)
-      exact ⟨__smtx_type_default (SmtType.FunType A B), hDef.1, hDef.2⟩
+      exact ⟨SmtValue.Fun native_default_ifun_id A B, rfl, by
+        simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
     · have hParts :
         native_inhabited_type T = true ∧
-          __smtx_type_wf_rec T T = true := by
+          __smtx_type_wf_rec T = true := by
         cases T <;>
           simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
             native_and] at hWF hReg hFun ⊢ <;>
@@ -189,7 +188,7 @@ theorem canonical_type_inhabited_of_type_wf
 theorem type_default_typed_canonical_of_inhabited_wf_rec
     (T : SmtType)
     (hInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T T = true) :
+    (hRec : __smtx_type_wf_rec T = true) :
     __smtx_typeof_value (__smtx_type_default T) = T ∧
       __smtx_value_canonical (__smtx_type_default T) :=
   type_default_typed_canonical_of_wf_rec T hInh hRec
@@ -198,7 +197,7 @@ theorem type_default_typed_canonical_of_inhabited_wf_rec
 theorem type_default_typed_of_inhabited_wf_rec
     (T : SmtType)
     (hInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T T = true) :
+    (hRec : __smtx_type_wf_rec T = true) :
     __smtx_typeof_value (__smtx_type_default T) = T :=
   (type_default_typed_canonical_of_inhabited_wf_rec T hInh hRec).1
 

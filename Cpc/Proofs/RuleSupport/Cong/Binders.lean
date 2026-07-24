@@ -1533,16 +1533,20 @@ private theorem typeof_apply_tuple_unit_head_eq_none
     __smtx_typeof
         (SmtTerm.Apply
           (SmtTerm.DtCons (native_string_lit "@Tuple")
-            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) x) =
+            (__smtx_tuple_datatype_decl
+              (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) x) =
       SmtType.None := by
   have hGeneric :
       generic_apply_type
         (SmtTerm.DtCons (native_string_lit "@Tuple")
-          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) x :=
+          (__smtx_tuple_datatype_decl
+            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) x :=
     generic_apply_type_of_non_datatype_head
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
-  rw [hGeneric, TranslationProofs.smtx_typeof_tuple_unit_translation]
+  rw [hGeneric]
+  simp only [__smtx_tuple_datatype_decl]
+  rw [TranslationProofs.smtx_typeof_tuple_unit_translation]
   rfl
 
 theorem typeof_apply_eo_to_smt_seq_empty_eq_none

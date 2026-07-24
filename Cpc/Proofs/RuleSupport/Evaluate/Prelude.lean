@@ -402,10 +402,10 @@ theorem EvaluateProofInternal.eo_to_smt_type_eq_of_top_valid
         simpa [__eo_to_smt_type] using hEq.symm
       exact (TranslationProofs.eo_to_smt_type_eq_reglan hUReg).symm
     all_goals
-      exact TranslationProofs.eo_to_smt_type_eq_of_valid_rec
+      exact TranslationProofs.eo_to_smt_type_eq_of_valid_rec (refs := [])
         (by simpa [TranslationProofs.eo_type_valid] using hValid) hEq
   all_goals
-    exact TranslationProofs.eo_to_smt_type_eq_of_valid_rec
+    exact TranslationProofs.eo_to_smt_type_eq_of_valid_rec (refs := [])
       (by simpa [TranslationProofs.eo_type_valid] using hValid) hEq
 
 theorem EvaluateProofInternal.run_evaluate_typeof_eq_of_same_smt_type
@@ -13669,5 +13669,4 @@ theorem EvaluateProofInternal.eo_str_leq_body_typeof_bool_of_seq_char_args_and_n
     | contradiction
     | cases hX
     | cases hY
-
 
