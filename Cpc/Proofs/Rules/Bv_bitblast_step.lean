@@ -11,25 +11,32 @@ set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
 /-!
-This rule is currently unsound for two independent reasons.
+This rule was previously unsound for two independent reasons, both now fixed
+in the corresponding definitions in `Cpc.Logos`.
 
-First, `__bv_bitblast_ult` accepts an `orEqual` argument but does not use it.
-Consequently, the `bvule` branch implements strict unsigned comparison.  The
-same omission reaches the recursive magnitude comparison in the multi-bit
-`bvsle` branch.  Equal operands therefore give a counterexample.
+First, `__bv_bitblast_ult` accepted an `orEqual` argument but did not use it,
+so the `bvule` branch (and the recursive magnitude comparison in the multi-bit
+`bvsle` branch) implemented strict unsigned comparison and gave a wrong answer
+on equal operands.  `__bv_bitblast_ult` now seeds `__bv_bitblast_ult_rec` from
+`orEqual`: the seed is one comparison step applied to the least-significant bit
+with prior result `orEqual`, so equal operands reduce to `orEqual` (`true` for
+`bvule`/`bvsle`, `false` for `bvult`/`bvslt`).  With `orEqual = false` the seed
+reduces to the original strict seed, so `bvult`/`bvslt` are unchanged.
 
-Second, the bitwise, addition, and multiplication helpers expect their right
-operand to be a right-nested operator list ending in the operator's identity.
-Their fallback case returns the accumulated left operand.  A well-typed plain
-binary application is also admitted by the rule theorem, however, and its
-right operand is then silently dropped.  The closed examples below exercise
-all three affected fold helpers.
+Second, the bitwise, addition, and multiplication fold helpers expect their
+right operand to be a right-nested operator spine ending in the operator's
+identity.  Their fallback case returned the accumulated left operand, silently
+dropping the terminal operand.  A well-typed plain binary application is also
+admitted by the rule theorem, and there the right operand was dropped, giving
+a wrong bit-blasting.  The fallbacks now guard with `__eo_requires` that the
+terminal operand is the operator's nil (`__eo_is_list_nil`); a non-identity
+terminal (e.g. the right operand of a plain binary application) yields
+`Term.Stuck`, so `__eo_prog_bv_bitblast_step` produces a non-`Bool` result and
+the rule theorem's well-typedness hypothesis excludes the case.
 
-The comparison helper should incorporate `orEqual` into its least-significant
-bit seed (or start the recurrence from `orEqual`).  The fold helpers should
-either process a final bit-vector operand or the rule must require the
-canonical right-spine representation.  The proof remains unfinished until
-these cases are fixed or excluded by the rule specification.
+The `private def`s below exercise all affected paths and now evaluate either to
+a valid instance (`bvule`) or to `Term.Stuck` (the three fold helpers), rather
+than to an unsound equality.  The soundness proof is still outstanding.
 -/
 
 private abbrev bitblastCounterApp2 (op x y : Term) : Term :=

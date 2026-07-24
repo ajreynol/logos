@@ -1894,7 +1894,7 @@ def __bv_bitblast_ult_rec : Term -> Term -> Term -> Term
 
 def __bv_bitblast_ult : Term -> Term -> Term -> Term
   | _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) b1) a1), (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) b2) a2), orEqual => (__bv_bitblast_ult_rec a1 a2 (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) b1)) (Term.Apply (Term.Apply (Term.UOp UserOp.and) b2) (Term.Boolean true))))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) b1) a1), (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) b2) a2), orEqual => (__bv_bitblast_ult_rec a1 a2 (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) b1) b2)) (Term.Apply (Term.Apply (Term.UOp UserOp.and) orEqual) (Term.Boolean true)))) (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) b1)) (Term.Apply (Term.Apply (Term.UOp UserOp.and) b2) (Term.Boolean true)))) (Term.Boolean false))))
   | _, _, _ => Term.Stuck
 
 
@@ -1918,7 +1918,7 @@ def __eo_l_1___bv_mk_bitblast_step_bitwise : Term -> Term -> Term -> Term -> Ter
   | _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck  => Term.Stuck
-  | bf, f, a2, ac => ac
+  | bf, f, a2, ac => (__eo_requires (__eo_is_list_nil bf a2) (Term.Boolean true) ac)
 
 
 def __bv_mk_bitblast_step_bitwise : Term -> Term -> Term -> Term -> Term
@@ -1944,7 +1944,7 @@ def __bv_mk_bitblast_step_add : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) a1) a2), ac => (__bv_mk_bitblast_step_add a2 (__pair_second (__bv_ripple_carry_adder_2 ac a1 (Term.Boolean false) (Term.Binary 0 0))))
-  | a2, ac => ac
+  | a2, ac => (__eo_requires (__eo_is_list_nil (Term.UOp UserOp.bvadd) a2) (Term.Boolean true) ac)
 
 
 def __bv_shift_add_multiplier_rec_step : Term -> Term -> Term -> Term -> Term -> Term
@@ -1980,7 +1980,7 @@ def __bv_mk_bitblast_step_mul : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) a1) a2), ac => (__bv_mk_bitblast_step_mul a2 (__bv_shift_add_multiplier ac a1))
-  | a2, ac => ac
+  | a2, ac => (__eo_requires (__eo_is_list_nil (Term.UOp UserOp.bvmul) a2) (Term.Boolean true) ac)
 
 
 def __eo_l_1___bv_div_mod_impl : Term -> Term -> Term -> Term -> Term
