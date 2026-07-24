@@ -96,6 +96,7 @@ by
       __smtx_typeof_int_to_bv,
       __eo_to_smt_array_deq_diff,
       __eo_to_smt_sets_deq_diff, __eo_to_smt_set_insert,
+      __eo_to_smt_strings_num_occur, __eo_to_smt_strings_num_occur_re,
       __eo_to_smt_tuple_prepend, __eo_to_smt_tuple_prepend_of_type,
       __eo_to_smt_set_elem_type, __eo_to_smt_typed_list_elem_type,
       __smtx_bv_sizeof_type, __smtx_type_wf, __smtx_type_wf_component,
@@ -7777,6 +7778,87 @@ by
       (term_not_eo_list_cons_of_has_smt_translation hYTrans)
       (ihX hXTrans) (ihY hYTrans) (ihZ hZTrans)
 
+theorem is_closed_rec_apply_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_arg_trans
+    {op : UserOp} {w z y x env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : op ≠ UserOp.forall)
+    (hNotExists : op ≠ UserOp.exists)
+    (hWTrans : eoHasSmtTranslation w)
+    (hZTrans : eoHasSmtTranslation z)
+    (hYTrans : eoHasSmtTranslation y)
+    (hXTrans : eoHasSmtTranslation x)
+    (ihW :
+      eoHasSmtTranslation w ->
+        __is_closed_rec w env = __eo_is_closed_rec w env ∧
+          ∃ b, __eo_is_closed_rec w env = Term.Boolean b)
+    (ihZ :
+      eoHasSmtTranslation z ->
+        __is_closed_rec z env = __eo_is_closed_rec z env ∧
+          ∃ b, __eo_is_closed_rec z env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp op) w) z)
+          y)
+        x)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp op) w) z)
+          y)
+        x)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) w) z)
+              y)
+            x)
+          env =
+        Term.Boolean b :=
+by
+  have hHead :
+      __is_closed_rec
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z)
+            y)
+          env =
+        __eo_is_closed_rec
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z)
+            y)
+          env ∧
+        ∃ b,
+          __eo_is_closed_rec
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.UOp op) w) z)
+                y)
+              env =
+            Term.Boolean b :=
+    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv hNotForall hNotExists hWTrans hZTrans hYTrans
+      ihW ihZ ihY
+  exact
+    is_closed_rec_apply_generic_eq_and_bool_of_parts
+      hEnv
+      (by
+        intro q v vs hEq
+        cases hEq
+        exact term_not_eo_list_cons_of_has_smt_translation hYTrans v vs rfl)
+      (by intro vs hEq; cases hEq)
+      (by intro vs hEq; cases hEq)
+      hHead (ihX hXTrans)
+
 theorem ite_args_have_smt_translation_of_has_smt_translation
     {c x y : Term}
     (hTrans :
@@ -9823,54 +9905,172 @@ theorem strings_num_occur_args_have_smt_translation_of_has_smt_translation
   eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
 by
   have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
-  let needle := __eo_to_smt y
-  let haystack := __eo_to_smt x
-  let replaced :=
-    SmtTerm.str_replace_all haystack needle
-      (SmtTerm.seq_empty (SmtType.Seq SmtType.Char))
-  let num :=
-    SmtTerm.neg (SmtTerm.str_len haystack) (SmtTerm.str_len replaced)
-  let den := SmtTerm.str_len needle
-  change term_has_non_none_type (SmtTerm.div num den) at hNN
-  rcases int_binop_args_of_non_none (op := SmtTerm.div)
-      (typeof_div_eq num den) hNN with
-    ⟨hNumTy, hDenTy⟩
-  have hDenNN : term_has_non_none_type den := by
-    unfold term_has_non_none_type
-    rw [hDenTy]
-    simp
-  rcases seq_arg_of_non_none_ret (op := SmtTerm.str_len)
-      (typeof_str_len_eq needle) hDenNN with
-    ⟨B, hYTy⟩
-  have hNumNN : term_has_non_none_type num := by
-    unfold term_has_non_none_type
-    rw [hNumTy]
-    simp
-  have hLenHaystackTy :
-      __smtx_typeof (SmtTerm.str_len haystack) = SmtType.Int := by
-    rcases arith_binop_args_of_non_none (op := SmtTerm.neg)
-        (typeof_neg_eq (SmtTerm.str_len haystack)
-          (SmtTerm.str_len replaced)) hNumNN with hArgs | hArgs
-    · exact hArgs.1
-    · exfalso
-      have hNumReal : __smtx_typeof num = SmtType.Real := by
-        rw [show num =
-          SmtTerm.neg (SmtTerm.str_len haystack)
-            (SmtTerm.str_len replaced) by rfl]
-        rw [typeof_neg_eq (SmtTerm.str_len haystack)
-          (SmtTerm.str_len replaced)]
-        simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
-      rw [hNumTy] at hNumReal
-      cases hNumReal
-  have hLenHaystackNN : term_has_non_none_type (SmtTerm.str_len haystack) := by
-    unfold term_has_non_none_type
-    rw [hLenHaystackTy]
-    simp
-  rcases seq_arg_of_non_none_ret (op := SmtTerm.str_len)
-      (typeof_str_len_eq haystack) hLenHaystackNN with
-    ⟨A, hXTy⟩
+  rw [TranslationProofs.eo_to_smt_strings_num_occur_eq] at hNN
+  rcases
+      TranslationProofs.smt_strings_num_occur_args_of_non_none
+        (__eo_to_smt x) (__eo_to_smt y) hNN with
+    ⟨T, hXTy, hYTy, _hResultTy⟩
   exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
     eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem strings_num_occur_re_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
+  rw [TranslationProofs.eo_to_smt_strings_num_occur_re_eq] at hNN
+  rcases
+      TranslationProofs.smt_strings_num_occur_re_args_of_non_none
+        (__eo_to_smt x) (__eo_to_smt y) hNN with
+    ⟨hXTy, hYTy, _hResultTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem strings_occur_index_args_have_smt_translation_of_has_smt_translation
+    {x y z : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at_strings_occur_index) x) y)
+          z)) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
+  rw [TranslationProofs.eo_to_smt_strings_occur_index_eq] at hNN
+  rcases
+      TranslationProofs.smt_strings_occur_index_args_of_non_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z) hNN with
+    ⟨T, hXTy, hYTy, hZTy, _hResultTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hZTy (by simp)⟩
+
+theorem strings_occur_index_re_args_have_smt_translation_of_has_smt_translation
+    {x y z : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at_strings_occur_index_re) x) y)
+          z)) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
+  rw [TranslationProofs.eo_to_smt_strings_occur_index_re_eq] at hNN
+  rcases
+      TranslationProofs.smt_strings_occur_index_re_args_of_non_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z) hNN with
+    ⟨hXTy, hYTy, hZTy, _hResultTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hZTy (by simp)⟩
+
+theorem strings_replace_all_result_args_have_smt_translation_of_has_smt_translation
+    {w z y x : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.UOp UserOp._at_strings_replace_all_result) w)
+              z)
+            y)
+          x)) :
+  eoHasSmtTranslation w ∧
+    eoHasSmtTranslation z ∧
+      eoHasSmtTranslation y ∧
+        eoHasSmtTranslation x :=
+by
+  let start :=
+    TranslationProofs.smtStringsOccurIndex SmtTerm.str_replace_all
+      (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x)
+  let suffix :=
+    SmtTerm.str_substr (__eo_to_smt w) start
+      (SmtTerm.str_len (__eo_to_smt w))
+  have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
+  rw [TranslationProofs.eo_to_smt_strings_replace_all_result_eq] at hNN
+  rcases
+      seq_triop_args_of_non_none (op := SmtTerm.str_replace_all)
+        (typeof_str_replace_all_eq suffix (__eo_to_smt z) (__eo_to_smt y))
+        (by simpa [suffix] using hNN) with
+    ⟨T, hSuffixTy, hZTy, hYTy⟩
+  have hSuffixNN : term_has_non_none_type suffix := by
+    unfold term_has_non_none_type
+    rw [hSuffixTy]
+    simp
+  rcases str_substr_args_of_non_none (by simpa [suffix] using hSuffixNN) with
+    ⟨U, hWTy, hStartTy, _hLengthTy⟩
+  have hStartNN : term_has_non_none_type start := by
+    unfold term_has_non_none_type
+    rw [hStartTy]
+    simp
+  rcases
+      TranslationProofs.smt_strings_occur_index_args_of_non_none
+        (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x)
+        (by simpa [start] using hStartNN) with
+    ⟨V, _hWFromStart, _hZFromStart, hXTy, _hStartResultTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hWTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hZTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hXTy (by simp)⟩
+
+theorem strings_replace_re_all_result_args_have_smt_translation_of_has_smt_translation
+    {w z y x : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.UOp UserOp._at_strings_replace_re_all_result) w)
+              z)
+            y)
+          x)) :
+  eoHasSmtTranslation w ∧
+    eoHasSmtTranslation z ∧
+      eoHasSmtTranslation y ∧
+        eoHasSmtTranslation x :=
+by
+  let start :=
+    TranslationProofs.smtStringsOccurIndex SmtTerm.str_replace_re_all
+      (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x)
+  let suffix :=
+    SmtTerm.str_substr (__eo_to_smt w) start
+      (SmtTerm.str_len (__eo_to_smt w))
+  have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
+  rw [TranslationProofs.eo_to_smt_strings_replace_re_all_result_eq] at hNN
+  have hArgs :=
+    str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re_all)
+      (typeof_str_replace_re_all_eq suffix (__eo_to_smt z) (__eo_to_smt y))
+      (by simpa [suffix] using hNN)
+  have hSuffixNN : term_has_non_none_type suffix := by
+    unfold term_has_non_none_type
+    rw [hArgs.1]
+    simp
+  rcases str_substr_args_of_non_none (by simpa [suffix] using hSuffixNN) with
+    ⟨T, hWTy, hStartTy, _hLengthTy⟩
+  have hStartNN : term_has_non_none_type start := by
+    unfold term_has_non_none_type
+    rw [hStartTy]
+    simp
+  have hOccurArgs :=
+    TranslationProofs.smt_strings_occur_index_re_args_of_non_none
+      (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x)
+      (by simpa [start] using hStartNN)
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hWTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hArgs.2.1 (by simp),
+    eo_has_smt_translation_of_smt_type_eq hArgs.2.2 (by simp),
+    eo_has_smt_translation_of_smt_type_eq hOccurArgs.2.2.1 (by simp)⟩
 
 theorem tuple_args_have_smt_translation_of_has_smt_translation
     {x y : Term}
@@ -13743,6 +13943,21 @@ by
       false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
         strings_num_occur_args_have_smt_translation_of_has_smt_translation
         (by rfl) hTrans
+  case _at_strings_num_occur_re =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        strings_num_occur_re_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case _at_strings_occur_index =>
+    exact False.elim
+      (term_not_eo_list_cons_of_has_smt_translation
+        (strings_occur_index_args_have_smt_translation_of_has_smt_translation
+          hTrans).2.1 v vs rfl)
+  case _at_strings_occur_index_re =>
+    exact False.elim
+      (term_not_eo_list_cons_of_has_smt_translation
+        (strings_occur_index_re_args_have_smt_translation_of_has_smt_translation
+          hTrans).2.1 v vs rfl)
   case tuple =>
     exact
       false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
@@ -14020,6 +14235,16 @@ by
         (smtOp := SmtTerm.str_indexof_re_split)
         (by rfl) str_indexof_re_split_args_have_smt_translation_of_non_none
         hTrans
+  case _at_strings_occur_index =>
+    exact False.elim
+      (term_not_eo_list_cons_of_has_smt_translation
+        (strings_occur_index_args_have_smt_translation_of_has_smt_translation
+          hTrans).2.2 v vs rfl)
+  case _at_strings_occur_index_re =>
+    exact False.elim
+      (term_not_eo_list_cons_of_has_smt_translation
+        (strings_occur_index_re_args_have_smt_translation_of_has_smt_translation
+          hTrans).2.2 v vs rfl)
   all_goals
     exact
       false_of_apply_generic_raw_arg_has_smt_translation
@@ -14063,6 +14288,136 @@ by
               _ _ s d i h))
       hTrans
 
+theorem false_of_apply_apply_apply_apply_uop_last_raw_list_has_smt_translation
+    {P : Prop} {op : UserOp} {w z y v vs : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z)
+            y)
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))) :
+  P :=
+by
+  cases op
+  case _at_strings_replace_all_result =>
+    exact False.elim
+      (term_not_eo_list_cons_of_has_smt_translation
+        (strings_replace_all_result_args_have_smt_translation_of_has_smt_translation
+          hTrans).2.2.2 v vs rfl)
+  case _at_strings_replace_re_all_result =>
+    exact False.elim
+      (term_not_eo_list_cons_of_has_smt_translation
+        (strings_replace_re_all_result_args_have_smt_translation_of_has_smt_translation
+          hTrans).2.2.2 v vs rfl)
+  all_goals
+    exact
+      false_of_apply_generic_raw_arg_has_smt_translation
+        (q := Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp _) w) z) y)
+        (by rfl)
+        (generic_apply_type_of_non_special_head_closed _ _
+          (by
+            intro s d i j h
+            exact
+              TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                _ _ s d i j h)
+          (by
+            intro s d i h
+            exact
+              TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                _ _ s d i h))
+        hTrans
+
+theorem false_of_apply_apply_apply_apply_uop_third_raw_list_has_smt_translation
+    {P : Prop} {op : UserOp} {w z v vs x : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp op) w)
+              z)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          x)) :
+  P :=
+by
+  by_cases hReplaceAll :
+      op = UserOp._at_strings_replace_all_result
+  · subst op
+    exact False.elim
+      (term_not_eo_list_cons_of_has_smt_translation
+        (strings_replace_all_result_args_have_smt_translation_of_has_smt_translation
+          hTrans).2.2.1 v vs rfl)
+  by_cases hReplaceReAll :
+      op = UserOp._at_strings_replace_re_all_result
+  · subst op
+    exact False.elim
+      (term_not_eo_list_cons_of_has_smt_translation
+        (strings_replace_re_all_result_args_have_smt_translation_of_has_smt_translation
+          hTrans).2.2.1 v vs rfl)
+  ·
+    exfalso
+    have hTranslate :
+        __eo_to_smt
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply (Term.UOp op) w)
+                  z)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+              x) =
+          SmtTerm.Apply
+            (__eo_to_smt
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.UOp op) w) z)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            (__eo_to_smt x) :=
+      TranslationProofs.eo_to_smt_apply_apply_apply_apply_uop_generic_eq
+        op w z (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) x
+        hReplaceAll hReplaceReAll
+    have hTy :
+        __smtx_typeof
+            (SmtTerm.Apply
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.Apply (Term.UOp op) w) z)
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+              (__eo_to_smt x)) =
+          __smtx_typeof_apply
+            (__smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.Apply (Term.UOp op) w) z)
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))))
+            (__smtx_typeof (__eo_to_smt x)) :=
+      generic_apply_type_of_non_special_head_closed _ _
+        (by
+          intro s d i j h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_sel
+              _ _ s d i j h)
+        (by
+          intro s d i h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_tester
+              _ _ s d i h)
+    have hNN :
+        term_has_non_none_type
+          (SmtTerm.Apply
+            (__eo_to_smt
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.UOp op) w) z)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            (__eo_to_smt x)) := by
+      unfold term_has_non_none_type
+      rw [← hTranslate]
+      exact hTrans
+    have hHeadTrans :=
+      (apply_args_have_smt_translation_of_non_none hTy hNN).1
+    exact false_of_apply_apply_apply_uop_last_raw_list_has_smt_translation
+      hHeadTrans
+
 theorem false_of_apply_apply_apply_raw_list_has_smt_translation
     {P : Prop} {f x y v vs : Term}
     (hTrans :
@@ -14079,6 +14434,28 @@ by
   case UOp1 op idx =>
     exact false_of_apply_apply_apply_uop1_last_raw_list_has_smt_translation
       hTrans
+  case Apply g w =>
+    cases g
+    case UOp op =>
+      exact
+        false_of_apply_apply_apply_apply_uop_last_raw_list_has_smt_translation
+          hTrans
+    all_goals
+      exact
+        false_of_apply_generic_raw_arg_has_smt_translation
+          (by rfl)
+          (generic_apply_type_of_non_special_head_closed _ _
+            (by
+              intro s d i j h
+              exact
+                TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                  _ _ s d i j h)
+            (by
+              intro s d i h
+              exact
+                TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                  _ _ s d i h))
+          hTrans
   all_goals
     exact
       false_of_apply_generic_raw_arg_has_smt_translation
@@ -14095,6 +14472,77 @@ by
               TranslationProofs.eo_to_smt_apply_ne_dt_tester
                 _ _ s d i h))
         hTrans
+
+theorem false_of_apply_apply_apply_apply_middle_raw_list_has_smt_translation
+    {P : Prop} {g y x v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply g y) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  P :=
+by
+  by_cases hUOp : ∃ op, g = Term.UOp op
+  · rcases hUOp with ⟨op, rfl⟩
+    exact
+      false_of_apply_apply_apply_apply_uop_third_raw_list_has_smt_translation
+        hTrans
+  ·
+    exfalso
+    unfold eoHasSmtTranslation at hTrans
+    rw [TranslationProofs.eo_to_smt_apply_apply_apply_apply_eq_of_head_not_uop
+      g y x (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) body
+      (by intro op h; exact hUOp ⟨op, h⟩)] at hTrans
+    have hNN :
+        term_has_non_none_type
+          (SmtTerm.Apply
+            (__eo_to_smt
+              (Term.Apply
+                (Term.Apply (Term.Apply g y) x)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            (__eo_to_smt body)) := by
+      exact hTrans
+    have hTy :
+        __smtx_typeof
+            (SmtTerm.Apply
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.Apply g y) x)
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+              (__eo_to_smt body)) =
+          __smtx_typeof_apply
+            (__smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.Apply g y) x)
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))))
+            (__smtx_typeof (__eo_to_smt body)) :=
+      generic_apply_type_of_non_special_head_closed
+        (__eo_to_smt
+          (Term.Apply
+            (Term.Apply (Term.Apply g y) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+        (__eo_to_smt body)
+        (by
+          intro s d i j h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_sel
+              (Term.Apply (Term.Apply g y) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+              s d i j h)
+        (by
+          intro s d i h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_tester
+              (Term.Apply (Term.Apply g y) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+              s d i h)
+    have hHeadTrans :=
+      (apply_args_have_smt_translation_of_non_none hTy hNN).1
+    exact false_of_apply_apply_apply_raw_list_has_smt_translation
+      hHeadTrans
 
 theorem is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
     {q v vs body : Term}
@@ -14124,62 +14572,9 @@ by
     case UOp1 op idx =>
       exact false_of_apply_apply_apply_uop1_middle_raw_list_has_smt_translation hTrans
     case Apply g y =>
-      exfalso
-      have hTranslate :
-          __eo_to_smt
-              (Term.Apply
-                (Term.Apply
-                  (Term.Apply (Term.Apply g y) x)
-                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
-                body) =
-            SmtTerm.Apply
-              (__eo_to_smt
-                (Term.Apply
-                  (Term.Apply (Term.Apply g y) x)
-                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
-              (__eo_to_smt body) := by
-        rfl
-      have hTy :
-          __smtx_typeof
-              (SmtTerm.Apply
-                (__eo_to_smt
-                  (Term.Apply
-                    (Term.Apply (Term.Apply g y) x)
-                    (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
-                (__eo_to_smt body)) =
-            __smtx_typeof_apply
-              (__smtx_typeof
-                (__eo_to_smt
-                  (Term.Apply
-                    (Term.Apply (Term.Apply g y) x)
-                    (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))))
-              (__smtx_typeof (__eo_to_smt body)) :=
-        generic_apply_type_of_non_special_head_closed _ _
-          (by
-            intro s d i j h
-            exact
-              TranslationProofs.eo_to_smt_apply_ne_dt_sel
-                _ _ s d i j h)
-          (by
-            intro s d i h
-            exact
-              TranslationProofs.eo_to_smt_apply_ne_dt_tester
-                _ _ s d i h)
-      have hNN :
-          term_has_non_none_type
-            (SmtTerm.Apply
-              (__eo_to_smt
-                (Term.Apply
-                  (Term.Apply (Term.Apply g y) x)
-                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
-              (__eo_to_smt body)) := by
-        unfold term_has_non_none_type
-        rw [← hTranslate]
-        exact hTrans
-      rcases apply_args_have_smt_translation_of_non_none hTy hNN with
-        ⟨hHeadTrans, _hBodyTrans⟩
-      exact false_of_apply_apply_apply_raw_list_has_smt_translation
-        hHeadTrans
+      exact
+        false_of_apply_apply_apply_apply_middle_raw_list_has_smt_translation
+          hTrans
     all_goals
       exact
         false_of_apply_apply_generic_raw_list_has_smt_translation
@@ -14638,6 +15033,15 @@ by
       is_closed_rec_apply_apply_strings_num_occur_eq_and_bool_of_has_smt_translation
         hEnv hTrans (fun hx => ih hXLt hEnv hx)
         (fun hy => ih hYLt hEnv hy)
+  case _at_strings_num_occur_re =>
+    rcases
+        strings_num_occur_re_args_have_smt_translation_of_has_smt_translation
+          hTrans with
+      ⟨hXTrans, hYTrans⟩
+    exact
+      is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+        hEnv (by decide) (by decide) hTrans hXTrans hYTrans
+        (fun hx => ih hXLt hEnv hx) (fun hy => ih hYLt hEnv hy)
   case tuple =>
     exact
       is_closed_rec_apply_apply_tuple_eq_and_bool_of_has_smt_translation
@@ -15895,6 +16299,32 @@ by
         root hEnv hXLt hYLt hZLt
         strings_num_occur_args_have_smt_translation_of_has_smt_translation
         (by rfl) hTrans ih
+  case _at_strings_num_occur_re =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        strings_num_occur_re_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case _at_strings_occur_index =>
+    rcases
+        strings_occur_index_args_have_smt_translation_of_has_smt_translation
+          hTrans with
+      ⟨hXTrans, hYTrans, hZTrans⟩
+    exact
+      is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+        hEnv (by decide) (by decide) hXTrans hYTrans hZTrans
+        (fun hx => ih hXLt hEnv hx) (fun hy => ih hYLt hEnv hy)
+        (fun hz => ih hZLt hEnv hz)
+  case _at_strings_occur_index_re =>
+    rcases
+        strings_occur_index_re_args_have_smt_translation_of_has_smt_translation
+          hTrans with
+      ⟨hXTrans, hYTrans, hZTrans⟩
+    exact
+      is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+        hEnv (by decide) (by decide) hXTrans hYTrans hZTrans
+        (fun hx => ih hXLt hEnv hx) (fun hy => ih hYLt hEnv hy)
+        (fun hz => ih hZLt hEnv hz)
   case tuple =>
     exact
       is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
@@ -15975,6 +16405,107 @@ by
     exact
       is_closed_rec_apply_apply_apply_uop_generic_eq_and_bool_of_has_smt_translation
         root hEnv hXLt hYLt hZLt (by rfl) (by rfl) hTrans ih
+
+theorem is_closed_rec_apply_apply_apply_apply_uop_any_eq_and_bool_of_has_smt_translation
+    (root : Term)
+    {op : UserOp} {w z y x env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hWLt : sizeOf w < sizeOf root)
+    (hZLt : sizeOf z < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hXLt : sizeOf x < sizeOf root)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z)
+            y)
+          x))
+    (ih :
+      ∀ {t env : Term} {vars : List SmtVarKey},
+        sizeOf t < sizeOf root ->
+          EoSmtVarEnv env vars ->
+            eoHasSmtTranslation t ->
+              __is_closed_rec t env = __eo_is_closed_rec t env ∧
+                ∃ b, __eo_is_closed_rec t env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp op) w) z)
+          y)
+        x)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp op) w) z)
+          y)
+        x)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) w) z)
+              y)
+            x)
+          env =
+        Term.Boolean b :=
+by
+  cases op
+  case _at_strings_replace_all_result =>
+    rcases
+        strings_replace_all_result_args_have_smt_translation_of_has_smt_translation
+          hTrans with
+      ⟨hWTrans, hZTrans, hYTrans, hXTrans⟩
+    exact
+      is_closed_rec_apply_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_arg_trans
+        hEnv (by decide) (by decide)
+        hWTrans hZTrans hYTrans hXTrans
+        (fun hw => ih hWLt hEnv hw) (fun hz => ih hZLt hEnv hz)
+        (fun hy => ih hYLt hEnv hy) (fun hx => ih hXLt hEnv hx)
+  case _at_strings_replace_re_all_result =>
+    rcases
+        strings_replace_re_all_result_args_have_smt_translation_of_has_smt_translation
+          hTrans with
+      ⟨hWTrans, hZTrans, hYTrans, hXTrans⟩
+    exact
+      is_closed_rec_apply_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_arg_trans
+        hEnv (by decide) (by decide)
+        hWTrans hZTrans hYTrans hXTrans
+        (fun hw => ih hWLt hEnv hw) (fun hz => ih hZLt hEnv hz)
+        (fun hy => ih hYLt hEnv hy) (fun hx => ih hXLt hEnv hx)
+  all_goals
+    exact
+      is_closed_rec_apply_generic_eq_and_bool_of_has_smt_translation
+        hEnv
+        (by
+          intro q v vs hEq
+          cases hEq
+          rcases
+              is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
+                hTrans with hForall | hExists
+          · cases hForall
+          · cases hExists)
+        (by intro vs hEq; cases hEq)
+        (by intro vs hEq; cases hEq)
+        (by rfl)
+        (generic_apply_type_of_non_special_head_closed _ _
+          (by
+            intro s d i j hSel
+            exact
+              TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                _ _ s d i j hSel)
+          (by
+            intro s d i hTester
+            exact
+              TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                _ _ s d i hTester))
+        hTrans
+        (fun hFTrans =>
+          is_closed_rec_apply_apply_apply_uop_any_eq_and_bool_of_has_smt_translation
+            root hEnv hWLt hZLt hYLt hFTrans ih)
+        (fun hXTrans => ih hXLt hEnv hXTrans)
 
 theorem apply_dt_sel_arg_has_smt_translation_of_has_smt_translation
     {s : native_String} {d : DatatypeDecl} {i j : native_Nat} {x : Term}
@@ -16154,6 +16685,48 @@ by
                     (Term.Apply (Term.Apply (Term.UOp op) z) y) x)
                   hEnv (by simp; omega) (by simp; omega)
                   (by simp; omega) hTrans hRec
+            case Apply k w =>
+              cases k
+              case UOp op =>
+                exact
+                  is_closed_rec_apply_apply_apply_apply_uop_any_eq_and_bool_of_has_smt_translation
+                    (Term.Apply
+                      (Term.Apply
+                        (Term.Apply (Term.Apply (Term.UOp op) w) z)
+                        y)
+                      x)
+                    hEnv (by simp; omega) (by simp; omega)
+                    (by simp; omega) (by simp; omega) hTrans hRec
+              all_goals
+                exact
+                  is_closed_rec_apply_generic_eq_and_bool_of_has_smt_translation
+                    hEnv
+                    (by
+                      intro q v vs hEq
+                      cases hEq
+                      rcases
+                        is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
+                          hTrans with hForall | hExists
+                      · cases hForall
+                      · cases hExists)
+                    (by intro vs hEq; cases hEq)
+                    (by intro vs hEq; cases hEq)
+                    (TranslationProofs.eo_to_smt_apply_apply_apply_apply_eq_of_head_not_uop
+                      _ w z y x (by intro op h; cases h))
+                    (generic_apply_type_of_non_special_head_closed _ _
+                      (by
+                        intro s d i j hSel
+                        exact
+                          TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                            _ _ s d i j hSel)
+                      (by
+                        intro s d i hTester
+                        exact
+                          TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                            _ _ s d i hTester))
+                    hTrans
+                    (fun hFTrans => hRec (by simp; omega) hEnv hFTrans)
+                    (fun hXTrans => hRec (by simp; omega) hEnv hXTrans)
             all_goals
               exact
                 is_closed_rec_apply_generic_eq_and_bool_of_has_smt_translation
