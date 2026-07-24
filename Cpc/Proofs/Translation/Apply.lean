@@ -6193,7 +6193,7 @@ theorem choice_nth_body_bool_of_non_none
     unfold __smtx_typeof
     simp [hEqFalse, native_ite]
 
-private def smtStringsNumOccur
+def smtStringsNumOccur
     (replace : SmtTerm → SmtTerm → SmtTerm → SmtTerm)
     (source pattern : SmtTerm) : SmtTerm :=
   let zero := SmtTerm.Numeral 0
@@ -6203,7 +6203,7 @@ private def smtStringsNumOccur
     (SmtTerm.str_len
       (replace source pattern (SmtTerm.str_substr source zero zero)))
 
-private def smtStringsOccurIndex
+def smtStringsOccurIndex
     (replace : SmtTerm → SmtTerm → SmtTerm → SmtTerm)
     (source pattern count : SmtTerm) : SmtTerm :=
   let zero := SmtTerm.Numeral 0
@@ -6217,6 +6217,133 @@ private def smtStringsOccurIndex
         (SmtTerm.eq (smtStringsNumOccur replace pref pattern) count)
         (SmtTerm.or (SmtTerm.eq index zero)
           (SmtTerm.lt (smtStringsNumOccur replace previous pattern) count))))
+
+theorem eo_to_smt_strings_num_occur_eq (x y : Term) :
+    __eo_to_smt
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y) =
+      smtStringsNumOccur SmtTerm.str_replace_all
+        (__eo_to_smt x) (__eo_to_smt y) :=
+by
+  rfl
+
+theorem eo_to_smt_strings_num_occur_re_eq (x y : Term) :
+    __eo_to_smt
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x) y) =
+      smtStringsNumOccur SmtTerm.str_replace_re_all
+        (__eo_to_smt x) (__eo_to_smt y) :=
+by
+  rfl
+
+theorem eo_to_smt_strings_occur_index_eq (x y z : Term) :
+    __eo_to_smt
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at_strings_occur_index) x) y)
+          z) =
+      smtStringsOccurIndex SmtTerm.str_replace_all
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z) :=
+by
+  rfl
+
+theorem eo_to_smt_strings_occur_index_re_eq (x y z : Term) :
+    __eo_to_smt
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at_strings_occur_index_re) x) y)
+          z) =
+      smtStringsOccurIndex SmtTerm.str_replace_re_all
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z) :=
+by
+  rfl
+
+theorem eo_to_smt_strings_replace_all_result_eq (w z y x : Term) :
+    __eo_to_smt
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.UOp UserOp._at_strings_replace_all_result) w)
+              z)
+            y)
+          x) =
+      SmtTerm.str_replace_all
+        (SmtTerm.str_substr (__eo_to_smt w)
+          (smtStringsOccurIndex SmtTerm.str_replace_all
+            (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x))
+          (SmtTerm.str_len (__eo_to_smt w)))
+        (__eo_to_smt z) (__eo_to_smt y) :=
+by
+  rfl
+
+theorem eo_to_smt_strings_replace_re_all_result_eq (w z y x : Term) :
+    __eo_to_smt
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.UOp UserOp._at_strings_replace_re_all_result) w)
+              z)
+            y)
+          x) =
+      SmtTerm.str_replace_re_all
+        (SmtTerm.str_substr (__eo_to_smt w)
+          (smtStringsOccurIndex SmtTerm.str_replace_re_all
+            (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x))
+          (SmtTerm.str_len (__eo_to_smt w)))
+        (__eo_to_smt z) (__eo_to_smt y) :=
+by
+  rfl
+
+theorem eo_to_smt_apply_apply_apply_apply_eq_of_head_not_uop
+    (g y x z body : Term)
+    (hNotUOp : ∀ op, g ≠ Term.UOp op) :
+    __eo_to_smt
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply g y) x)
+            z)
+          body) =
+      SmtTerm.Apply
+        (__eo_to_smt
+          (Term.Apply
+            (Term.Apply (Term.Apply g y) x)
+            z))
+        (__eo_to_smt body) :=
+by
+  cases g
+  case UOp op =>
+    exact False.elim (hNotUOp op rfl)
+  all_goals
+    rfl
+
+theorem eo_to_smt_apply_apply_apply_apply_uop_generic_eq
+    (op : UserOp) (w z y x : Term)
+    (hNotReplaceAllResult :
+      op ≠ UserOp._at_strings_replace_all_result)
+    (hNotReplaceReAllResult :
+      op ≠ UserOp._at_strings_replace_re_all_result) :
+    __eo_to_smt
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z)
+            y)
+          x) =
+      SmtTerm.Apply
+        (__eo_to_smt
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z)
+            y))
+        (__eo_to_smt x) :=
+by
+  cases op
+  case _at_strings_replace_all_result =>
+    exact False.elim (hNotReplaceAllResult rfl)
+  case _at_strings_replace_re_all_result =>
+    exact False.elim (hNotReplaceReAllResult rfl)
+  all_goals
+    rfl
 
 private theorem smt_strings_num_occur_type_and_first_replace_non_none
     (replace : SmtTerm → SmtTerm → SmtTerm → SmtTerm)
@@ -6263,7 +6390,7 @@ private theorem smt_strings_num_occur_type_and_first_replace_non_none
     rw [hArgs.1] at hFirstLenInt
     cases hFirstLenInt
 
-private theorem smt_strings_num_occur_args_of_non_none
+theorem smt_strings_num_occur_args_of_non_none
     (source pattern : SmtTerm)
     (hNonNone :
       term_has_non_none_type
@@ -6284,7 +6411,7 @@ private theorem smt_strings_num_occur_args_of_non_none
     ⟨T, hSource, hPattern, _hReplacement⟩
   exact ⟨T, hSource, hPattern, hCount⟩
 
-private theorem smt_strings_num_occur_re_args_of_non_none
+theorem smt_strings_num_occur_re_args_of_non_none
     (source pattern : SmtTerm)
     (hNonNone :
       term_has_non_none_type
@@ -6304,7 +6431,7 @@ private theorem smt_strings_num_occur_re_args_of_non_none
       hReplace
   exact ⟨hArgs.1, hArgs.2.1, hCount⟩
 
-private theorem smt_strings_occur_index_args_of_non_none
+theorem smt_strings_occur_index_args_of_non_none
     (source pattern count : SmtTerm)
     (hNonNone :
       term_has_non_none_type
@@ -6392,7 +6519,7 @@ private theorem smt_strings_occur_index_args_of_non_none
   exact ⟨T, hSource, hPattern, hCount,
     by simpa [smtStringsOccurIndex] using choice_term_typeof_of_non_none hChoiceNN⟩
 
-private theorem smt_strings_occur_index_re_args_of_non_none
+theorem smt_strings_occur_index_re_args_of_non_none
     (source pattern count : SmtTerm)
     (hNonNone :
       term_has_non_none_type
