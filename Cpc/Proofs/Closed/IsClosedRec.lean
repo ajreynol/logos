@@ -9992,7 +9992,7 @@ theorem strings_replace_all_result_args_have_smt_translation_of_has_smt_translat
         eoHasSmtTranslation x :=
 by
   let start :=
-    TranslationProofs.smtStringsOccurIndex SmtTerm.str_replace_all
+    SmtTerm._at_strings_occur_index
       (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x)
   let suffix :=
     SmtTerm.str_substr (__eo_to_smt w) start
@@ -10042,7 +10042,7 @@ theorem strings_replace_re_all_result_args_have_smt_translation_of_has_smt_trans
         eoHasSmtTranslation x :=
 by
   let start :=
-    TranslationProofs.smtStringsOccurIndex SmtTerm.str_replace_re_all
+    SmtTerm._at_strings_occur_index_re
       (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x)
   let suffix :=
     SmtTerm.str_substr (__eo_to_smt w) start

@@ -4815,6 +4815,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_va
       f x ihF ihX
       hGeneric hTranslate hEoApply hNonNone).1
 
+set_option maxHeartbeats 40000000 in
 /-- Selector application typing, using the local IH for the selector argument. -/
 private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_from_ih
     (x : Term) (s : native_String) (d : DatatypeDecl) (i j : native_Nat)
@@ -6242,7 +6243,7 @@ theorem eo_to_smt_strings_occur_index_eq (x y z : Term) :
           (Term.Apply
             (Term.Apply (Term.UOp UserOp._at_strings_occur_index) x) y)
           z) =
-      smtStringsOccurIndex SmtTerm.str_replace_all
+      SmtTerm._at_strings_occur_index
         (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z) :=
 by
   rfl
@@ -6253,7 +6254,7 @@ theorem eo_to_smt_strings_occur_index_re_eq (x y z : Term) :
           (Term.Apply
             (Term.Apply (Term.UOp UserOp._at_strings_occur_index_re) x) y)
           z) =
-      smtStringsOccurIndex SmtTerm.str_replace_re_all
+      SmtTerm._at_strings_occur_index_re
         (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z) :=
 by
   rfl
@@ -6270,7 +6271,7 @@ theorem eo_to_smt_strings_replace_all_result_eq (w z y x : Term) :
           x) =
       SmtTerm.str_replace_all
         (SmtTerm.str_substr (__eo_to_smt w)
-          (smtStringsOccurIndex SmtTerm.str_replace_all
+          (SmtTerm._at_strings_occur_index
             (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x))
           (SmtTerm.str_len (__eo_to_smt w)))
         (__eo_to_smt z) (__eo_to_smt y) :=
@@ -6289,7 +6290,7 @@ theorem eo_to_smt_strings_replace_re_all_result_eq (w z y x : Term) :
           x) =
       SmtTerm.str_replace_re_all
         (SmtTerm.str_substr (__eo_to_smt w)
-          (smtStringsOccurIndex SmtTerm.str_replace_re_all
+          (SmtTerm._at_strings_occur_index_re
             (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x))
           (SmtTerm.str_len (__eo_to_smt w)))
         (__eo_to_smt z) (__eo_to_smt y) :=
@@ -6435,177 +6436,84 @@ theorem smt_strings_occur_index_args_of_non_none
     (source pattern count : SmtTerm)
     (hNonNone :
       term_has_non_none_type
-        (smtStringsOccurIndex SmtTerm.str_replace_all source pattern count)) :
+        (SmtTerm._at_strings_occur_index source pattern count)) :
     ∃ T : SmtType,
       __smtx_typeof source = SmtType.Seq T ∧
         __smtx_typeof pattern = SmtType.Seq T ∧
         __smtx_typeof count = SmtType.Int ∧
         __smtx_typeof
-            (smtStringsOccurIndex SmtTerm.str_replace_all source pattern count) =
+            (SmtTerm._at_strings_occur_index source pattern count) =
           SmtType.Int := by
-  let zero := SmtTerm.Numeral 0
-  let index := SmtTerm.Var (native_string_lit "@x") SmtType.Int
-  let pref := SmtTerm.str_substr source zero index
-  let countTerm := smtStringsNumOccur SmtTerm.str_replace_all pref pattern
-  let eqTerm := SmtTerm.eq countTerm count
-  let tail :=
-    SmtTerm.and eqTerm
-      (SmtTerm.or (SmtTerm.eq index zero)
-        (SmtTerm.lt
-          (smtStringsNumOccur SmtTerm.str_replace_all
-            (SmtTerm.str_substr source zero
-              (SmtTerm.neg index (SmtTerm.Numeral 1))) pattern)
-          count))
-  let body := SmtTerm.and (SmtTerm.geq index zero) tail
-  have hChoiceNN :
-      term_has_non_none_type
-        (SmtTerm.choice (native_string_lit "@x") SmtType.Int body) := by
-    simpa [smtStringsOccurIndex, zero, index, pref, countTerm, eqTerm, tail, body]
-      using hNonNone
-  have hBody : __smtx_typeof body = SmtType.Bool :=
-    choice_nth_body_bool_of_non_none hChoiceNN
-  have hBodyNN : term_has_non_none_type body := by
-    unfold term_has_non_none_type
-    rw [hBody]
-    simp
-  have hBodyArgs :=
-    bool_binop_args_bool_of_non_none (op := SmtTerm.and)
-      (typeof_and_eq (SmtTerm.geq index zero) tail) (by simpa [body] using hBodyNN)
-  have hTailNN : term_has_non_none_type tail := by
-    unfold term_has_non_none_type
-    rw [hBodyArgs.2]
-    simp
-  have hTailArgs :=
-    bool_binop_args_bool_of_non_none (op := SmtTerm.and)
-      (typeof_and_eq eqTerm
-        (SmtTerm.or (SmtTerm.eq index zero)
-          (SmtTerm.lt
-            (smtStringsNumOccur SmtTerm.str_replace_all
-              (SmtTerm.str_substr source zero
-                (SmtTerm.neg index (SmtTerm.Numeral 1))) pattern)
-            count)))
-      (by simpa [tail] using hTailNN)
-  have hEqNN : term_has_non_none_type eqTerm := by
-    unfold term_has_non_none_type
-    rw [hTailArgs.1]
-    simp
-  have hEqTypeNN :
-      __smtx_typeof_eq (__smtx_typeof countTerm) (__smtx_typeof count) ≠
-        SmtType.None := by
-    simpa [eqTerm, typeof_eq_eq] using hEqNN
-  have hEqTypes := smtx_typeof_eq_non_none hEqTypeNN
-  have hCountTermNN : term_has_non_none_type countTerm := by
-    unfold term_has_non_none_type
-    exact hEqTypes.2
-  rcases smt_strings_num_occur_args_of_non_none pref pattern
-      (by simpa [countTerm] using hCountTermNN) with
-    ⟨T, hPrefix, hPattern, hCountTerm⟩
-  have hCount : __smtx_typeof count = SmtType.Int :=
-    hEqTypes.1.symm.trans hCountTerm
-  have hPrefixNN : term_has_non_none_type pref := by
-    unfold term_has_non_none_type
-    rw [hPrefix]
-    simp
-  rcases str_substr_args_of_non_none (by simpa [pref] using hPrefixNN) with
-    ⟨U, hSource, hZero, hIndex⟩
-  have hPrefixU : __smtx_typeof pref = SmtType.Seq U := by
-    simp [pref, typeof_str_substr_eq, __smtx_typeof_str_substr,
-      hSource, hZero, hIndex]
-  have hUT : U = T := by
-    have hEq : SmtType.Seq U = SmtType.Seq T := hPrefixU.symm.trans hPrefix
-    cases hEq
-    rfl
-  subst U
-  exact ⟨T, hSource, hPattern, hCount,
-    by simpa [smtStringsOccurIndex] using choice_term_typeof_of_non_none hChoiceNN⟩
+  have hTy :
+      __smtx_typeof (SmtTerm._at_strings_occur_index source pattern count) =
+        __smtx_typeof_str_indexof (__smtx_typeof source)
+          (__smtx_typeof pattern) (__smtx_typeof count) := by
+    rw [__smtx_typeof.eq_def] <;> simp only
+  unfold term_has_non_none_type at hNonNone
+  rw [hTy] at hNonNone
+  have hArgs :
+      ∃ T : SmtType,
+        __smtx_typeof source = SmtType.Seq T ∧
+          __smtx_typeof pattern = SmtType.Seq T ∧
+          __smtx_typeof count = SmtType.Int := by
+    unfold __smtx_typeof_str_indexof at hNonNone
+    split at hNonNone
+    · rename_i x1 x2 h1 h2 h3
+      by_cases hEq : native_Teq x1 x2
+      · have hx : x1 = x2 := by simpa [native_Teq] using hEq
+        subst hx
+        exact ⟨x1, h1, h2, h3⟩
+      · exfalso
+        apply hNonNone
+        rw [native_ite, if_neg hEq]
+    · exact absurd rfl hNonNone
+  rcases hArgs with ⟨T, h1, h2, h3⟩
+  refine ⟨T, h1, h2, h3, ?_⟩
+  rw [hTy, h1, h2, h3]
+  simp [__smtx_typeof_str_indexof, native_ite, native_Teq]
 
 theorem smt_strings_occur_index_re_args_of_non_none
     (source pattern count : SmtTerm)
     (hNonNone :
       term_has_non_none_type
-        (smtStringsOccurIndex SmtTerm.str_replace_re_all source pattern count)) :
+        (SmtTerm._at_strings_occur_index_re source pattern count)) :
     __smtx_typeof source = SmtType.Seq SmtType.Char ∧
       __smtx_typeof pattern = SmtType.RegLan ∧
       __smtx_typeof count = SmtType.Int ∧
       __smtx_typeof
-          (smtStringsOccurIndex SmtTerm.str_replace_re_all source pattern count) =
+          (SmtTerm._at_strings_occur_index_re source pattern count) =
         SmtType.Int := by
-  let zero := SmtTerm.Numeral 0
-  let index := SmtTerm.Var (native_string_lit "@x") SmtType.Int
-  let pref := SmtTerm.str_substr source zero index
-  let countTerm := smtStringsNumOccur SmtTerm.str_replace_re_all pref pattern
-  let eqTerm := SmtTerm.eq countTerm count
-  let tail :=
-    SmtTerm.and eqTerm
-      (SmtTerm.or (SmtTerm.eq index zero)
-        (SmtTerm.lt
-          (smtStringsNumOccur SmtTerm.str_replace_re_all
-            (SmtTerm.str_substr source zero
-              (SmtTerm.neg index (SmtTerm.Numeral 1))) pattern)
-          count))
-  let body := SmtTerm.and (SmtTerm.geq index zero) tail
-  have hChoiceNN :
-      term_has_non_none_type
-        (SmtTerm.choice (native_string_lit "@x") SmtType.Int body) := by
-    simpa [smtStringsOccurIndex, zero, index, pref, countTerm, eqTerm, tail, body]
-      using hNonNone
-  have hBody : __smtx_typeof body = SmtType.Bool :=
-    choice_nth_body_bool_of_non_none hChoiceNN
-  have hBodyNN : term_has_non_none_type body := by
-    unfold term_has_non_none_type
-    rw [hBody]
-    simp
-  have hBodyArgs :=
-    bool_binop_args_bool_of_non_none (op := SmtTerm.and)
-      (typeof_and_eq (SmtTerm.geq index zero) tail) (by simpa [body] using hBodyNN)
-  have hTailNN : term_has_non_none_type tail := by
-    unfold term_has_non_none_type
-    rw [hBodyArgs.2]
-    simp
-  have hTailArgs :=
-    bool_binop_args_bool_of_non_none (op := SmtTerm.and)
-      (typeof_and_eq eqTerm
-        (SmtTerm.or (SmtTerm.eq index zero)
-          (SmtTerm.lt
-            (smtStringsNumOccur SmtTerm.str_replace_re_all
-              (SmtTerm.str_substr source zero
-                (SmtTerm.neg index (SmtTerm.Numeral 1))) pattern)
-            count)))
-      (by simpa [tail] using hTailNN)
-  have hEqNN : term_has_non_none_type eqTerm := by
-    unfold term_has_non_none_type
-    rw [hTailArgs.1]
-    simp
-  have hEqTypeNN :
-      __smtx_typeof_eq (__smtx_typeof countTerm) (__smtx_typeof count) ≠
-        SmtType.None := by
-    simpa [eqTerm, typeof_eq_eq] using hEqNN
-  have hEqTypes := smtx_typeof_eq_non_none hEqTypeNN
-  have hCountTermNN : term_has_non_none_type countTerm := by
-    unfold term_has_non_none_type
-    exact hEqTypes.2
-  have hCountArgs :=
-    smt_strings_num_occur_re_args_of_non_none pref pattern
-      (by simpa [countTerm] using hCountTermNN)
-  have hCount : __smtx_typeof count = SmtType.Int :=
-    hEqTypes.1.symm.trans hCountArgs.2.2
-  have hPrefixNN : term_has_non_none_type pref := by
-    unfold term_has_non_none_type
-    rw [hCountArgs.1]
-    simp
-  rcases str_substr_args_of_non_none (by simpa [pref] using hPrefixNN) with
-    ⟨T, hSource, _hZero, _hIndex⟩
-  have hPrefixT : __smtx_typeof pref = SmtType.Seq T := by
-    simp [pref, typeof_str_substr_eq, __smtx_typeof_str_substr,
-      hSource, _hZero, _hIndex]
-  have hTChar : T = SmtType.Char := by
-    have hEq : SmtType.Seq T = SmtType.Seq SmtType.Char :=
-      hPrefixT.symm.trans hCountArgs.1
-    cases hEq
-    rfl
-  subst T
-  exact ⟨hSource, hCountArgs.2.1, hCount,
-    by simpa [smtStringsOccurIndex] using choice_term_typeof_of_non_none hChoiceNN⟩
+  have hTy :
+      __smtx_typeof
+          (SmtTerm._at_strings_occur_index_re source pattern count) =
+        native_ite
+          (native_Teq (__smtx_typeof source) (SmtType.Seq SmtType.Char))
+          (native_ite (native_Teq (__smtx_typeof pattern) SmtType.RegLan)
+            (native_ite (native_Teq (__smtx_typeof count) SmtType.Int)
+              SmtType.Int SmtType.None)
+            SmtType.None)
+          SmtType.None := by
+    rw [__smtx_typeof.eq_def] <;> simp only
+  unfold term_has_non_none_type at hNonNone
+  rw [hTy] at hNonNone
+  by_cases h1 : native_Teq (__smtx_typeof source) (SmtType.Seq SmtType.Char)
+  · by_cases h2 : native_Teq (__smtx_typeof pattern) SmtType.RegLan
+    · by_cases h3 : native_Teq (__smtx_typeof count) SmtType.Int
+      · refine ⟨by simpa [native_Teq] using h1,
+          by simpa [native_Teq] using h2,
+          by simpa [native_Teq] using h3, ?_⟩
+        rw [hTy]
+        simp [native_ite, h1, h2, h3]
+      · exfalso
+        apply hNonNone
+        simp [native_ite, h1, h2, h3]
+    · exfalso
+      apply hNonNone
+      simp [native_ite, h1, h2]
+  · exfalso
+    apply hNonNone
+    simp [native_ite, h1]
+
 
 /-- Simplifies EO-to-SMT translation for `_at_strings_deq_diff`. -/
 theorem eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
@@ -12311,12 +12219,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_at_string
       __eo_to_smt
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_occur_index) z) y) x) =
-        smtStringsOccurIndex SmtTerm.str_replace_all
+        SmtTerm._at_strings_occur_index
           (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) := by
     rfl
   have hOccurNN :
       term_has_non_none_type
-        (smtStringsOccurIndex SmtTerm.str_replace_all
+        (SmtTerm._at_strings_occur_index
           (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) := by
     unfold term_has_non_none_type
     rw [← hTranslate]
@@ -12394,12 +12302,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_at_string
       __eo_to_smt
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_occur_index_re) z) y) x) =
-        smtStringsOccurIndex SmtTerm.str_replace_re_all
+        SmtTerm._at_strings_occur_index_re
           (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) := by
     rfl
   have hOccurNN :
       term_has_non_none_type
-        (smtStringsOccurIndex SmtTerm.str_replace_re_all
+        (SmtTerm._at_strings_occur_index_re
           (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) := by
     unfold term_has_non_none_type
     rw [← hTranslate]
@@ -12470,7 +12378,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_apply_at_
               (Term.Apply
                 (Term.Apply (Term.UOp UserOp._at_strings_replace_all_result) w) z) y) x)) := by
   let start :=
-    smtStringsOccurIndex SmtTerm.str_replace_all
+    SmtTerm._at_strings_occur_index
       (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x)
   let suffix :=
     SmtTerm.str_substr (__eo_to_smt w) start (SmtTerm.str_len (__eo_to_smt w))
@@ -12603,7 +12511,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_apply_at_
               (Term.Apply
                 (Term.Apply (Term.UOp UserOp._at_strings_replace_re_all_result) w) z) y) x)) := by
   let start :=
-    smtStringsOccurIndex SmtTerm.str_replace_re_all
+    SmtTerm._at_strings_occur_index_re
       (__eo_to_smt w) (__eo_to_smt z) (__eo_to_smt x)
   let suffix :=
     SmtTerm.str_substr (__eo_to_smt w) start (SmtTerm.str_len (__eo_to_smt w))

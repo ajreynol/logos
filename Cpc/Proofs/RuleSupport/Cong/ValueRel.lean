@@ -753,6 +753,84 @@ theorem native_str_replace_re_congr
   simp [native_str_replace_re,
     native_re_find_idx_from_congr_valid_ext r r' s 0 hExtList]
 
+private theorem native_re_find_nonempty_idx_aux_congr_valid_ext :
+    ∀ (xs : List native_Char) (idx : Nat) (r r' : native_RegLan),
+      (∀ ys : List native_Char,
+        native_string_valid ys = true ->
+          native_list_in_re ys r = native_list_in_re ys r') ->
+      native_re_find_nonempty_idx_aux r xs idx =
+        native_re_find_nonempty_idx_aux r' xs idx := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro idx r r' hExt
+      have hPref :=
+        native_re_positive_prefix_match_len_congr_valid_ext r r' [] hExt
+      rw [native_re_find_nonempty_idx_aux, native_re_find_nonempty_idx_aux,
+        hPref]
+  | cons c cs ih =>
+      intro idx r r' hExt
+      have hPref :=
+        native_re_positive_prefix_match_len_congr_valid_ext r r' (c :: cs)
+          hExt
+      rw [native_re_find_nonempty_idx_aux, native_re_find_nonempty_idx_aux,
+        hPref]
+      cases hRes : native_re_positive_prefix_match_len? r' (c :: cs) with
+      | none => exact ih (idx + 1) r r' hExt
+      | some n =>
+          cases n with
+          | zero => exact ih (idx + 1) r r' hExt
+          | succ n => rfl
+
+private theorem native_re_find_nonempty_idx_from_congr_valid_ext
+    (r r' : native_RegLan) (xs : List native_Char) (start : Nat)
+    (hExt :
+      ∀ ys : List native_Char,
+        native_string_valid ys = true ->
+          native_list_in_re ys r = native_list_in_re ys r') :
+    native_re_find_nonempty_idx_from r xs start =
+      native_re_find_nonempty_idx_from r' xs start := by
+  simp [native_re_find_nonempty_idx_from,
+    native_re_find_nonempty_idx_aux_congr_valid_ext (xs.drop start) start
+      r r' hExt]
+
+private theorem native_re_scan_ends_aux_congr_valid_ext :
+    ∀ (fuel : Nat) (s : native_String) (pos : Nat) (r r' : native_RegLan),
+      (∀ ys : List native_Char,
+        native_string_valid ys = true ->
+          native_list_in_re ys r = native_list_in_re ys r') ->
+      native_re_scan_ends_aux fuel r s pos =
+        native_re_scan_ends_aux fuel r' s pos := by
+  intro fuel
+  induction fuel with
+  | zero =>
+      intro s pos r r' hExt
+      rfl
+  | succ fuel ih =>
+      intro s pos r r' hExt
+      rw [native_re_scan_ends_aux, native_re_scan_ends_aux,
+        native_re_find_nonempty_idx_from_congr_valid_ext r r' s pos hExt]
+      cases native_re_find_nonempty_idx_from r' s pos with
+      | none => rfl
+      | some p =>
+          obtain ⟨idx, len⟩ := p
+          simp only
+          rw [ih s (idx + len) r r' hExt]
+
+/-- `@strings_occur_index_re` boundaries only depend on the language of the
+regular expression. -/
+theorem native_str_occur_index_re_congr
+    (s : native_String) (r r' : native_RegLan) (n : native_Int)
+    (hExt :
+      ∀ str : native_String,
+        native_string_valid str = true ->
+          native_str_in_re str r = native_str_in_re str r') :
+    native_str_occur_index_re s r n = native_str_occur_index_re s r' n := by
+  have hExtList := native_str_ext_to_list_ext r r' hExt
+  simp [native_str_occur_index_re,
+    native_re_scan_ends_aux_congr_valid_ext (s.length + 1) s 0 r r'
+      hExtList]
+
 theorem native_str_replace_re_all_congr
     (s : native_String) (r r' : native_RegLan) (replacement : native_String)
     (hExt :

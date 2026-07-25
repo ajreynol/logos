@@ -2559,39 +2559,25 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                 exact
                                   congTypeSpine_typecongr_ternop_eq_has_bool_type
                                     UserOp._at_strings_occur_index
-                                    __eo_to_smt_strings_occur_index
+                                    SmtTerm._at_strings_occur_index
                                     (by intro a b c; rfl)
                                     (by
                                       intro a b c a' b' c' ha hb hc
-                                      simp only
-                                        [__eo_to_smt_strings_occur_index,
-                                          __eo_to_smt_strings_num_occur,
-                                          smtx_typeof_choice_term_eq,
-                                          typeof_and_eq, typeof_geq_eq,
-                                          typeof_eq_eq, typeof_or_eq,
-                                          typeof_lt_eq, typeof_neg_eq,
-                                          typeof_str_len_eq,
-                                          typeof_str_replace_all_eq,
-                                          typeof_str_substr_eq, ha, hb, hc])
+                                      rw [typeof_at_strings_occur_index_eq,
+                                        typeof_at_strings_occur_index_eq,
+                                        ha, hb, hc])
                                     a z x (Term.Apply g y) hTrans hApp
                               case _at_strings_occur_index_re =>
                                 exact
                                   congTypeSpine_typecongr_ternop_eq_has_bool_type
                                     UserOp._at_strings_occur_index_re
-                                    __eo_to_smt_strings_occur_index_re
+                                    SmtTerm._at_strings_occur_index_re
                                     (by intro a b c; rfl)
                                     (by
                                       intro a b c a' b' c' ha hb hc
-                                      simp only
-                                        [__eo_to_smt_strings_occur_index_re,
-                                          __eo_to_smt_strings_num_occur_re,
-                                          smtx_typeof_choice_term_eq,
-                                          typeof_and_eq, typeof_geq_eq,
-                                          typeof_eq_eq, typeof_or_eq,
-                                          typeof_lt_eq, typeof_neg_eq,
-                                          typeof_str_len_eq,
-                                          typeof_str_replace_re_all_eq,
-                                          typeof_str_substr_eq, ha, hb, hc])
+                                      rw [typeof_at_strings_occur_index_re_eq,
+                                        typeof_at_strings_occur_index_re_eq,
+                                        ha, hb, hc])
                                     a z x (Term.Apply g y) hTrans hApp
                               case str_replace =>
                                 exact
@@ -2697,24 +2683,22 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                       (fun a b c d =>
                                         SmtTerm.str_replace_all
                                           (SmtTerm.str_substr a
-                                            (__eo_to_smt_strings_occur_index
+                                            (SmtTerm._at_strings_occur_index
                                               a b d)
                                             (SmtTerm.str_len a))
                                           b c)
                                       (by intro a b c d; rfl)
                                       (by
                                         intro a b c d a' b' c' d' ha hb hc hd
-                                        simp only
-                                          [__eo_to_smt_strings_occur_index,
-                                            __eo_to_smt_strings_num_occur,
-                                            smtx_typeof_choice_term_eq,
-                                            typeof_and_eq, typeof_geq_eq,
-                                            typeof_eq_eq, typeof_or_eq,
-                                            typeof_lt_eq, typeof_neg_eq,
-                                            typeof_str_len_eq,
-                                            typeof_str_replace_all_eq,
-                                            typeof_str_substr_eq,
-                                            ha, hb, hc, hd])
+                                        rw [typeof_str_replace_all_eq,
+                                          typeof_str_replace_all_eq,
+                                          typeof_str_substr_eq,
+                                          typeof_str_substr_eq,
+                                          typeof_str_len_eq,
+                                          typeof_str_len_eq,
+                                          typeof_at_strings_occur_index_eq,
+                                          typeof_at_strings_occur_index_eq,
+                                          ha, hb, hc, hd])
                                       b a z x (Term.Apply g y) hTrans hApp
                                 case _at_strings_replace_re_all_result =>
                                   exact
@@ -2723,24 +2707,22 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                       (fun a b c d =>
                                         SmtTerm.str_replace_re_all
                                           (SmtTerm.str_substr a
-                                            (__eo_to_smt_strings_occur_index_re
+                                            (SmtTerm._at_strings_occur_index_re
                                               a b d)
                                             (SmtTerm.str_len a))
                                           b c)
                                       (by intro a b c d; rfl)
                                       (by
                                         intro a b c d a' b' c' d' ha hb hc hd
-                                        simp only
-                                          [__eo_to_smt_strings_occur_index_re,
-                                            __eo_to_smt_strings_num_occur_re,
-                                            smtx_typeof_choice_term_eq,
-                                            typeof_and_eq, typeof_geq_eq,
-                                            typeof_eq_eq, typeof_or_eq,
-                                            typeof_lt_eq, typeof_neg_eq,
-                                            typeof_str_len_eq,
-                                            typeof_str_replace_re_all_eq,
-                                            typeof_str_substr_eq,
-                                            ha, hb, hc, hd])
+                                        rw [typeof_str_replace_re_all_eq,
+                                          typeof_str_replace_re_all_eq,
+                                          typeof_str_substr_eq,
+                                          typeof_str_substr_eq,
+                                          typeof_str_len_eq,
+                                          typeof_str_len_eq,
+                                          typeof_at_strings_occur_index_re_eq,
+                                          typeof_at_strings_occur_index_re_eq,
+                                          ha, hb, hc, hd])
                                       b a z x (Term.Apply g y) hTrans hApp
                         | Term.FunType =>
                             exact False.elim

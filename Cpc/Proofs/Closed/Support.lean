@@ -448,6 +448,10 @@ def SmtTermClosedIn (vars : List SmtVarKey) : SmtTerm -> Prop
   | SmtTerm.str_in_re x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
   | SmtTerm.seq_unit x => SmtTermClosedIn vars x
   | SmtTerm.seq_nth x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
+  | SmtTerm._at_strings_occur_index x y z =>
+      SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y ∧ SmtTermClosedIn vars z
+  | SmtTerm._at_strings_occur_index_re x y z =>
+      SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y ∧ SmtTermClosedIn vars z
   | SmtTerm.set_empty _ => True
   | SmtTerm.set_singleton x => SmtTermClosedIn vars x
   | SmtTerm.set_union x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
@@ -1687,74 +1691,7 @@ theorem smtTermClosedIn_eo_to_smt_strings_occur_index
       (Term.Apply (Term.Apply (Term.Apply
         (Term.UOp UserOp._at_strings_occur_index) x) y) z)) :=
 by
-  change SmtTermClosedIn vars
-    (SmtTerm.choice (native_string_lit "@x") SmtType.Int
-      (SmtTerm.and
-        (SmtTerm.geq
-          (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-          (SmtTerm.Numeral 0))
-        (SmtTerm.and
-          (SmtTerm.eq
-            (SmtTerm.neg
-              (SmtTerm.str_len
-                (SmtTerm.str_replace_all
-                  (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                    (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                  (__eo_to_smt y)
-                  (SmtTerm.str_substr
-                    (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                      (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                    (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
-              (SmtTerm.str_len
-                (SmtTerm.str_replace_all
-                  (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                    (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                  (__eo_to_smt y)
-                  (SmtTerm.str_substr
-                    (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                      (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                    (SmtTerm.Numeral 0) (SmtTerm.Numeral 0)))))
-            (__eo_to_smt z))
-          (SmtTerm.or
-            (SmtTerm.eq
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-              (SmtTerm.Numeral 0))
-            (SmtTerm.lt
-              (SmtTerm.neg
-                (SmtTerm.str_len
-                  (SmtTerm.str_replace_all
-                    (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                      (SmtTerm.neg
-                        (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                        (SmtTerm.Numeral 1)))
-                    (__eo_to_smt y)
-                    (SmtTerm.str_substr
-                      (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                        (SmtTerm.neg
-                          (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                          (SmtTerm.Numeral 1)))
-                      (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
-                (SmtTerm.str_len
-                  (SmtTerm.str_replace_all
-                    (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                      (SmtTerm.neg
-                        (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                        (SmtTerm.Numeral 1)))
-                    (__eo_to_smt y)
-                    (SmtTerm.str_substr
-                      (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                        (SmtTerm.neg
-                          (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                          (SmtTerm.Numeral 1)))
-                      (SmtTerm.Numeral 0) (SmtTerm.Numeral 0)))))
-              (__eo_to_smt z))))))
-  have hx' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hx
-  have hy' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hy
-  have hz' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hz
-  simp [SmtTermClosedIn, hx', hy', hz']
+  exact ⟨hx, hy, hz⟩
 
 theorem smtTermClosedIn_eo_to_smt_strings_occur_index_re
     {vars : List SmtVarKey} {x y z : Term}
@@ -1766,74 +1703,7 @@ theorem smtTermClosedIn_eo_to_smt_strings_occur_index_re
       (Term.Apply (Term.Apply (Term.Apply
         (Term.UOp UserOp._at_strings_occur_index_re) x) y) z)) :=
 by
-  change SmtTermClosedIn vars
-    (SmtTerm.choice (native_string_lit "@x") SmtType.Int
-      (SmtTerm.and
-        (SmtTerm.geq
-          (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-          (SmtTerm.Numeral 0))
-        (SmtTerm.and
-          (SmtTerm.eq
-            (SmtTerm.neg
-              (SmtTerm.str_len
-                (SmtTerm.str_replace_re_all
-                  (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                    (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                  (__eo_to_smt y)
-                  (SmtTerm.str_substr
-                    (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                      (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                    (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
-              (SmtTerm.str_len
-                (SmtTerm.str_replace_re_all
-                  (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                    (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                  (__eo_to_smt y)
-                  (SmtTerm.str_substr
-                    (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                      (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                    (SmtTerm.Numeral 0) (SmtTerm.Numeral 0)))))
-            (__eo_to_smt z))
-          (SmtTerm.or
-            (SmtTerm.eq
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-              (SmtTerm.Numeral 0))
-            (SmtTerm.lt
-              (SmtTerm.neg
-                (SmtTerm.str_len
-                  (SmtTerm.str_replace_re_all
-                    (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                      (SmtTerm.neg
-                        (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                        (SmtTerm.Numeral 1)))
-                    (__eo_to_smt y)
-                    (SmtTerm.str_substr
-                      (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                        (SmtTerm.neg
-                          (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                          (SmtTerm.Numeral 1)))
-                      (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
-                (SmtTerm.str_len
-                  (SmtTerm.str_replace_re_all
-                    (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                      (SmtTerm.neg
-                        (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                        (SmtTerm.Numeral 1)))
-                    (__eo_to_smt y)
-                    (SmtTerm.str_substr
-                      (SmtTerm.str_substr (__eo_to_smt x) (SmtTerm.Numeral 0)
-                        (SmtTerm.neg
-                          (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                          (SmtTerm.Numeral 1)))
-                      (SmtTerm.Numeral 0) (SmtTerm.Numeral 0)))))
-              (__eo_to_smt z))))))
-  have hx' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hx
-  have hy' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hy
-  have hz' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hz
-  simp [SmtTermClosedIn, hx', hy', hz']
+  exact ⟨hx, hy, hz⟩
 
 theorem smtTermClosedIn_eo_to_smt_strings_replace_all_result
     {vars : List SmtVarKey} {x y z w : Term}
@@ -1846,86 +1716,7 @@ theorem smtTermClosedIn_eo_to_smt_strings_replace_all_result
       (Term.Apply (Term.Apply (Term.Apply (Term.Apply
         (Term.UOp UserOp._at_strings_replace_all_result) x) y) z) w)) :=
 by
-  change SmtTermClosedIn vars
-    (SmtTerm.str_replace_all
-      (SmtTerm.str_substr (__eo_to_smt x)
-        (SmtTerm.choice (native_string_lit "@x") SmtType.Int
-          (SmtTerm.and
-            (SmtTerm.geq
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-              (SmtTerm.Numeral 0))
-            (SmtTerm.and
-              (SmtTerm.eq
-                (SmtTerm.neg
-                  (SmtTerm.str_len
-                    (SmtTerm.str_replace_all
-                      (SmtTerm.str_substr (__eo_to_smt x)
-                        (SmtTerm.Numeral 0)
-                        (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                      (__eo_to_smt y)
-                      (SmtTerm.str_substr
-                        (SmtTerm.str_substr (__eo_to_smt x)
-                          (SmtTerm.Numeral 0)
-                          (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
-                  (SmtTerm.str_len
-                    (SmtTerm.str_replace_all
-                      (SmtTerm.str_substr (__eo_to_smt x)
-                        (SmtTerm.Numeral 0)
-                        (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                      (__eo_to_smt y)
-                      (SmtTerm.str_substr
-                        (SmtTerm.str_substr (__eo_to_smt x)
-                          (SmtTerm.Numeral 0)
-                          (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 0)))))
-                (__eo_to_smt w))
-              (SmtTerm.or
-                (SmtTerm.eq
-                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                  (SmtTerm.Numeral 0))
-                (SmtTerm.lt
-                  (SmtTerm.neg
-                    (SmtTerm.str_len
-                      (SmtTerm.str_replace_all
-                        (SmtTerm.str_substr (__eo_to_smt x)
-                          (SmtTerm.Numeral 0)
-                          (SmtTerm.neg
-                            (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                            (SmtTerm.Numeral 1)))
-                        (__eo_to_smt y)
-                        (SmtTerm.str_substr
-                          (SmtTerm.str_substr (__eo_to_smt x)
-                            (SmtTerm.Numeral 0)
-                            (SmtTerm.neg
-                              (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                              (SmtTerm.Numeral 1)))
-                          (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
-                    (SmtTerm.str_len
-                      (SmtTerm.str_replace_all
-                        (SmtTerm.str_substr (__eo_to_smt x)
-                          (SmtTerm.Numeral 0)
-                          (SmtTerm.neg
-                            (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                            (SmtTerm.Numeral 1)))
-                        (__eo_to_smt y)
-                        (SmtTerm.str_substr
-                          (SmtTerm.str_substr (__eo_to_smt x)
-                            (SmtTerm.Numeral 0)
-                            (SmtTerm.neg
-                              (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                              (SmtTerm.Numeral 1)))
-                          (SmtTerm.Numeral 0) (SmtTerm.Numeral 0)))))
-                  (__eo_to_smt w))))))
-        (SmtTerm.str_len (__eo_to_smt x)))
-      (__eo_to_smt y) (__eo_to_smt z))
-  have hx' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hx
-  have hy' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hy
-  have hw' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hw
-  simp [SmtTermClosedIn, hx, hy, hz, hx', hy', hw']
+  exact ⟨⟨hx, ⟨hx, hy, hw⟩, hx⟩, hy, hz⟩
 
 theorem smtTermClosedIn_eo_to_smt_strings_replace_re_all_result
     {vars : List SmtVarKey} {x y z w : Term}
@@ -1938,86 +1729,8 @@ theorem smtTermClosedIn_eo_to_smt_strings_replace_re_all_result
       (Term.Apply (Term.Apply (Term.Apply (Term.Apply
         (Term.UOp UserOp._at_strings_replace_re_all_result) x) y) z) w)) :=
 by
-  change SmtTermClosedIn vars
-    (SmtTerm.str_replace_re_all
-      (SmtTerm.str_substr (__eo_to_smt x)
-        (SmtTerm.choice (native_string_lit "@x") SmtType.Int
-          (SmtTerm.and
-            (SmtTerm.geq
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-              (SmtTerm.Numeral 0))
-            (SmtTerm.and
-              (SmtTerm.eq
-                (SmtTerm.neg
-                  (SmtTerm.str_len
-                    (SmtTerm.str_replace_re_all
-                      (SmtTerm.str_substr (__eo_to_smt x)
-                        (SmtTerm.Numeral 0)
-                        (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                      (__eo_to_smt y)
-                      (SmtTerm.str_substr
-                        (SmtTerm.str_substr (__eo_to_smt x)
-                          (SmtTerm.Numeral 0)
-                          (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
-                  (SmtTerm.str_len
-                    (SmtTerm.str_replace_re_all
-                      (SmtTerm.str_substr (__eo_to_smt x)
-                        (SmtTerm.Numeral 0)
-                        (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                      (__eo_to_smt y)
-                      (SmtTerm.str_substr
-                        (SmtTerm.str_substr (__eo_to_smt x)
-                          (SmtTerm.Numeral 0)
-                          (SmtTerm.Var (native_string_lit "@x") SmtType.Int))
-                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 0)))))
-                (__eo_to_smt w))
-              (SmtTerm.or
-                (SmtTerm.eq
-                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                  (SmtTerm.Numeral 0))
-                (SmtTerm.lt
-                  (SmtTerm.neg
-                    (SmtTerm.str_len
-                      (SmtTerm.str_replace_re_all
-                        (SmtTerm.str_substr (__eo_to_smt x)
-                          (SmtTerm.Numeral 0)
-                          (SmtTerm.neg
-                            (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                            (SmtTerm.Numeral 1)))
-                        (__eo_to_smt y)
-                        (SmtTerm.str_substr
-                          (SmtTerm.str_substr (__eo_to_smt x)
-                            (SmtTerm.Numeral 0)
-                            (SmtTerm.neg
-                              (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                              (SmtTerm.Numeral 1)))
-                          (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
-                    (SmtTerm.str_len
-                      (SmtTerm.str_replace_re_all
-                        (SmtTerm.str_substr (__eo_to_smt x)
-                          (SmtTerm.Numeral 0)
-                          (SmtTerm.neg
-                            (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                            (SmtTerm.Numeral 1)))
-                        (__eo_to_smt y)
-                        (SmtTerm.str_substr
-                          (SmtTerm.str_substr (__eo_to_smt x)
-                            (SmtTerm.Numeral 0)
-                            (SmtTerm.neg
-                              (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                              (SmtTerm.Numeral 1)))
-                          (SmtTerm.Numeral 0) (SmtTerm.Numeral 0)))))
-                  (__eo_to_smt w))))))
-        (SmtTerm.str_len (__eo_to_smt x)))
-      (__eo_to_smt y) (__eo_to_smt z))
-  have hx' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hx
-  have hy' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hy
-  have hw' := SmtTermClosedIn.weaken_cons
-    (s := native_string_lit "@x") (T := SmtType.Int) hw
-  simp [SmtTermClosedIn, hx, hy, hz, hx', hy', hw']
+  exact ⟨⟨hx, ⟨hx, hy, hw⟩, hx⟩, hy, hz⟩
+
 
 theorem smtTermClosedIn_eo_to_smt_witness_string_length
     {vars : List SmtVarKey} {x y z : Term}

@@ -1263,6 +1263,16 @@ private theorem supported_type_preservation
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
         (supported_type_preservation M hM _ ht3 hs3)
+  | _at_strings_occur_index ht1 hs1 ht2 hs2 ht3 hs3 =>
+      exact typeof_value_model_eval_at_strings_occur_index M _ _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+        (supported_type_preservation M hM _ ht3 hs3)
+  | _at_strings_occur_index_re ht1 hs1 ht2 hs2 ht3 hs3 =>
+      exact typeof_value_model_eval_at_strings_occur_index_re M _ _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+        (supported_type_preservation M hM _ ht3 hs3)
   | str_indexof_re_split ht1 hs1 ht2 hs2 ht3 hs3 =>
       exact typeof_value_model_eval_str_indexof_re_split M _ _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
@@ -1905,6 +1915,14 @@ private theorem canonical_of_supported
   case str_indexof_re ht1 hs1 ht2 hs2 ht3 hs3 =>
       simpa [__smtx_model_eval] using
         model_eval_str_indexof_re_canonical
+          (__smtx_model_eval M _) (__smtx_model_eval M _) (__smtx_model_eval M _)
+  case _at_strings_occur_index ht1 hs1 ht2 hs2 ht3 hs3 =>
+      simpa [__smtx_model_eval] using
+        model_eval_at_strings_occur_index_canonical
+          (__smtx_model_eval M _) (__smtx_model_eval M _) (__smtx_model_eval M _)
+  case _at_strings_occur_index_re ht1 hs1 ht2 hs2 ht3 hs3 =>
+      simpa [__smtx_model_eval] using
+        model_eval_at_strings_occur_index_re_canonical
           (__smtx_model_eval M _) (__smtx_model_eval M _) (__smtx_model_eval M _)
   case str_indexof_re_split ht1 hs1 ht2 hs2 ht3 hs3 =>
       simpa [__smtx_model_eval] using
@@ -3993,6 +4011,26 @@ private theorem str_indexof_re_type_has_no_none_components_of_non_none
   rw [typeof_str_indexof_re_eq]
   simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2, type_has_no_none_components]
 
+private theorem at_strings_occur_index_type_has_no_none_components_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm._at_strings_occur_index t1 t2 t3)) :
+    type_has_no_none_components
+      (__smtx_typeof (SmtTerm._at_strings_occur_index t1 t2 t3)) := by
+  rcases at_strings_occur_index_args_of_non_none ht with ⟨T, h1, h2, h3⟩
+  rw [typeof_at_strings_occur_index_eq]
+  simp [__smtx_typeof_str_indexof, native_ite, native_Teq, h1, h2, h3,
+    type_has_no_none_components]
+
+private theorem at_strings_occur_index_re_type_has_no_none_components_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm._at_strings_occur_index_re t1 t2 t3)) :
+    type_has_no_none_components
+      (__smtx_typeof (SmtTerm._at_strings_occur_index_re t1 t2 t3)) := by
+  have hArgs := at_strings_occur_index_re_args_of_non_none ht
+  rw [typeof_at_strings_occur_index_re_eq]
+  simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2,
+    type_has_no_none_components]
+
 private theorem str_indexof_re_split_type_has_no_none_components_of_non_none
     {t1 t2 t3 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.str_indexof_re_split t1 t2 t3)) :
@@ -4553,6 +4591,10 @@ theorem term_type_has_no_none_components_of_non_none :
         exact str_indexof_re_type_has_no_none_components_of_non_none ht
     | SmtTerm.str_indexof_re_split _ _ _ =>
         exact str_indexof_re_split_type_has_no_none_components_of_non_none ht
+    | SmtTerm._at_strings_occur_index _ _ _ =>
+        exact at_strings_occur_index_type_has_no_none_components_of_non_none ht
+    | SmtTerm._at_strings_occur_index_re _ _ _ =>
+        exact at_strings_occur_index_re_type_has_no_none_components_of_non_none ht
     | SmtTerm.re_allchar =>
         simp [__smtx_typeof, type_has_no_none_components]
     | SmtTerm.re_none =>
@@ -5343,6 +5385,18 @@ theorem supported_preservation_term_of_non_none :
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2.1 (by simp)
         have ht3 : term_has_non_none_type t3 := term_has_non_none_of_type_eq hArgs.2.2 (by simp)
         exact supported_preservation_term.str_indexof_re ht1 (go t1 ht1) ht2 (go t2 ht2) ht3 (go t3 ht3)
+    | SmtTerm._at_strings_occur_index t1 t2 t3 =>
+        rcases at_strings_occur_index_args_of_non_none ht with ⟨T, h1, h2, h3⟩
+        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
+        have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
+        have ht3 : term_has_non_none_type t3 := term_has_non_none_of_type_eq h3 (by simp)
+        exact supported_preservation_term._at_strings_occur_index ht1 (go t1 ht1) ht2 (go t2 ht2) ht3 (go t3 ht3)
+    | SmtTerm._at_strings_occur_index_re t1 t2 t3 =>
+        have hArgs := at_strings_occur_index_re_args_of_non_none ht
+        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArgs.1 (by simp)
+        have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2.1 (by simp)
+        have ht3 : term_has_non_none_type t3 := term_has_non_none_of_type_eq hArgs.2.2 (by simp)
+        exact supported_preservation_term._at_strings_occur_index_re ht1 (go t1 ht1) ht2 (go t2 ht2) ht3 (go t3 ht3)
     | SmtTerm.str_indexof_re_split t1 t2 t3 =>
         have hArgs := str_indexof_re_split_args_of_non_none ht
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArgs.1 (by simp)

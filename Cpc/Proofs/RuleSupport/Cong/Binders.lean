@@ -840,20 +840,32 @@ set_option maxHeartbeats 100000000 in
 whenever its occurrence-count argument does. -/
 private theorem occur_index_translation_type_none_of_last_none
     (s t n : SmtTerm) (hn : __smtx_typeof n = SmtType.None) :
-    __smtx_typeof (__eo_to_smt_strings_occur_index s t n) =
+    __smtx_typeof (SmtTerm._at_strings_occur_index s t n) =
       SmtType.None := by
-  simp only [__eo_to_smt_strings_occur_index]
-  rw [smtx_typeof_choice_term_eq, typeof_and_eq, typeof_and_eq,
-    smt_eq_type_none_of_second_arg_none _ n hn]
-  simp [native_ite, native_Teq]
+  have hTy :
+      __smtx_typeof (SmtTerm._at_strings_occur_index s t n) =
+        __smtx_typeof_str_indexof (__smtx_typeof s) (__smtx_typeof t)
+          (__smtx_typeof n) := by
+    rw [__smtx_typeof.eq_def] <;> simp only
+  rw [hTy, hn]
+  unfold __smtx_typeof_str_indexof
+  split <;> simp_all
 
 private theorem occur_index_re_translation_type_none_of_last_none
     (s t n : SmtTerm) (hn : __smtx_typeof n = SmtType.None) :
-    __smtx_typeof (__eo_to_smt_strings_occur_index_re s t n) =
+    __smtx_typeof (SmtTerm._at_strings_occur_index_re s t n) =
       SmtType.None := by
-  simp only [__eo_to_smt_strings_occur_index_re]
-  rw [smtx_typeof_choice_term_eq, typeof_and_eq, typeof_and_eq,
-    smt_eq_type_none_of_second_arg_none _ n hn]
+  have hTy :
+      __smtx_typeof (SmtTerm._at_strings_occur_index_re s t n) =
+        native_ite
+          (native_Teq (__smtx_typeof s) (SmtType.Seq SmtType.Char))
+          (native_ite (native_Teq (__smtx_typeof t) SmtType.RegLan)
+            (native_ite (native_Teq (__smtx_typeof n) SmtType.Int)
+              SmtType.Int SmtType.None)
+            SmtType.None)
+          SmtType.None := by
+    rw [__smtx_typeof.eq_def] <;> simp only
+  rw [hTy, hn]
   simp [native_ite, native_Teq]
 
 theorem eo_apply_apply_arg_has_translation_of_has_translation
@@ -1435,14 +1447,14 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
             exact hTrans (by
               change
                 __smtx_typeof
-                  (__eo_to_smt_strings_occur_index (__eo_to_smt y)
+                  (SmtTerm._at_strings_occur_index (__eo_to_smt y)
                     (__eo_to_smt z) (__eo_to_smt x)) = SmtType.None
               exact occur_index_translation_type_none_of_last_none _ _ _ hx)
           case _at_strings_occur_index_re =>
             exact hTrans (by
               change
                 __smtx_typeof
-                  (__eo_to_smt_strings_occur_index_re (__eo_to_smt y)
+                  (SmtTerm._at_strings_occur_index_re (__eo_to_smt y)
                     (__eo_to_smt z) (__eo_to_smt x)) = SmtType.None
               exact occur_index_re_translation_type_none_of_last_none
                 _ _ _ hx)
@@ -1459,7 +1471,7 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
                     __smtx_typeof
                       (SmtTerm.str_replace_all
                         (SmtTerm.str_substr (__eo_to_smt y')
-                          (__eo_to_smt_strings_occur_index (__eo_to_smt y')
+                          (SmtTerm._at_strings_occur_index (__eo_to_smt y')
                             (__eo_to_smt y) (__eo_to_smt x))
                           (SmtTerm.str_len (__eo_to_smt y')))
                         (__eo_to_smt y) (__eo_to_smt z)) = SmtType.None
@@ -1477,7 +1489,7 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
                     __smtx_typeof
                       (SmtTerm.str_replace_re_all
                         (SmtTerm.str_substr (__eo_to_smt y')
-                          (__eo_to_smt_strings_occur_index_re
+                          (SmtTerm._at_strings_occur_index_re
                             (__eo_to_smt y') (__eo_to_smt y)
                             (__eo_to_smt x))
                           (SmtTerm.str_len (__eo_to_smt y')))
