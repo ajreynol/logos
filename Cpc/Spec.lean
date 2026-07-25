@@ -77,16 +77,10 @@ def __eo_to_smt_strings_num_occur_re (s : SmtTerm) (t : SmtTerm) : SmtTerm :=
     (SmtTerm.neg (SmtTerm.str_len (SmtTerm.str_replace_re_all s t (SmtTerm.str_substr s _v0 (SmtTerm.Numeral 1)))) (SmtTerm.str_len (SmtTerm.str_replace_re_all s t (SmtTerm.str_substr s _v0 _v0))))
 
 def __eo_to_smt_strings_occur_index (s : SmtTerm) (t : SmtTerm) (n : SmtTerm) : SmtTerm :=
-  
-    let _v1 := (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-    let _v2 := (SmtTerm.Numeral 0)
-    (SmtTerm.choice (native_string_lit "@x") SmtType.Int (SmtTerm.and (SmtTerm.geq _v1 _v2) (SmtTerm.and (SmtTerm.eq (__eo_to_smt_strings_num_occur (SmtTerm.str_substr s _v2 _v1) t) n) (SmtTerm.or (SmtTerm.eq _v1 _v2) (SmtTerm.lt (__eo_to_smt_strings_num_occur (SmtTerm.str_substr s _v2 (SmtTerm.neg _v1 (SmtTerm.Numeral 1))) t) n)))))
+  (SmtTerm.str_occur_index s t n)
 
 def __eo_to_smt_strings_occur_index_re (s : SmtTerm) (t : SmtTerm) (n : SmtTerm) : SmtTerm :=
-  
-    let _v1 := (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-    let _v2 := (SmtTerm.Numeral 0)
-    (SmtTerm.choice (native_string_lit "@x") SmtType.Int (SmtTerm.and (SmtTerm.geq _v1 _v2) (SmtTerm.and (SmtTerm.eq (__eo_to_smt_strings_num_occur_re (SmtTerm.str_substr s _v2 _v1) t) n) (SmtTerm.or (SmtTerm.eq _v1 _v2) (SmtTerm.lt (__eo_to_smt_strings_num_occur_re (SmtTerm.str_substr s _v2 (SmtTerm.neg _v1 (SmtTerm.Numeral 1))) t) n)))))
+  (SmtTerm.str_occur_index_re s t n)
 
 def __eo_to_smt_set_empty : SmtType -> SmtTerm
   | (SmtType.Set T) => (SmtTerm.set_empty T)
