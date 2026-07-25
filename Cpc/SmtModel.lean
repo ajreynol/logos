@@ -460,8 +460,6 @@ inductive SmtTerm : Type where
   | str_replace_re : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | str_replace_re_all : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | str_indexof_re : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | str_occur_index : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | str_occur_index_re : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | re_allchar : SmtTerm
   | re_none : SmtTerm
   | re_all : SmtTerm
@@ -481,6 +479,8 @@ inductive SmtTerm : Type where
   | str_indexof_re_split : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | seq_unit : SmtTerm -> SmtTerm
   | seq_nth : SmtTerm -> SmtTerm -> SmtTerm
+  | _at_strings_occur_index : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | _at_strings_occur_index_re : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | set_empty : SmtType -> SmtTerm
   | set_singleton : SmtTerm -> SmtTerm
   | set_union : SmtTerm -> SmtTerm -> SmtTerm
@@ -1483,14 +1483,6 @@ def __smtx_model_eval_str_indexof_re : SmtValue -> SmtValue -> SmtValue -> SmtVa
   | (SmtValue.Seq x1), (SmtValue.RegLan x2), (SmtValue.Numeral x3) => (SmtValue.Numeral (native_str_indexof_re (native_unpack_string x1) x2 x3))
   | t1, t2, t3 => SmtValue.NotValue
 
-def __smtx_model_eval_str_occur_index : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2), (SmtValue.Numeral x3) => (SmtValue.Numeral (native_seq_occur_index (native_unpack_seq x1) (native_unpack_seq x2) x3))
-  | t1, t2, t3 => SmtValue.NotValue
-
-def __smtx_model_eval_str_occur_index_re : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.RegLan x2), (SmtValue.Numeral x3) => (SmtValue.Numeral (native_str_occur_index_re (native_unpack_string x1) x2 x3))
-  | t1, t2, t3 => SmtValue.NotValue
-
 
 def __smtx_model_eval_str_to_re : SmtValue -> SmtValue
   | (SmtValue.Seq x1) => (SmtValue.RegLan (native_str_to_re (native_unpack_string x1)))
@@ -1569,6 +1561,16 @@ def __smtx_model_eval_str_in_re : SmtValue -> SmtValue -> SmtValue
 
 def __smtx_model_eval_str_indexof_re_split : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Seq x1), (SmtValue.RegLan x2), (SmtValue.RegLan x3) => (SmtValue.Numeral (native_str_indexof_re_split (native_unpack_string x1) x2 x3))
+  | t1, t2, t3 => SmtValue.NotValue
+
+
+def __smtx_model_eval__at_strings_occur_index : SmtValue -> SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Seq x1), (SmtValue.Seq x2), (SmtValue.Numeral x3) => (SmtValue.Numeral (native_seq_occur_index (native_unpack_seq x1) (native_unpack_seq x2) x3))
+  | t1, t2, t3 => SmtValue.NotValue
+
+
+def __smtx_model_eval__at_strings_occur_index_re : SmtValue -> SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Seq x1), (SmtValue.RegLan x2), (SmtValue.Numeral x3) => (SmtValue.Numeral (native_str_occur_index_re (native_unpack_string x1) x2 x3))
   | t1, t2, t3 => SmtValue.NotValue
 
 
@@ -1918,8 +1920,6 @@ def __smtx_typeof : SmtTerm -> SmtType
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) _v0) _v0 SmtType.None) SmtType.None) SmtType.None)
   | (SmtTerm.str_indexof_re x1 x2 x3) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) SmtType.Int) SmtType.Int SmtType.None) SmtType.None) SmtType.None)
-  | (SmtTerm.str_occur_index x1 x2 x3) => (__smtx_typeof_str_indexof (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
-  | (SmtTerm.str_occur_index_re x1 x2 x3) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) SmtType.Int) SmtType.Int SmtType.None) SmtType.None) SmtType.None)
   | SmtTerm.re_allchar => SmtType.RegLan
   | SmtTerm.re_none => SmtType.RegLan
   | SmtTerm.re_all => SmtType.RegLan
@@ -1943,6 +1943,8 @@ def __smtx_typeof : SmtTerm -> SmtType
     let _v0 := (SmtType.Seq (__smtx_typeof x1))
     (__smtx_typeof_guard_wf _v0 _v0)
   | (SmtTerm.seq_nth x1 x2) => (__smtx_typeof_seq_nth (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm._at_strings_occur_index x1 x2 x3) => (__smtx_typeof_str_indexof (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
+  | (SmtTerm._at_strings_occur_index_re x1 x2 x3) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) SmtType.Int) SmtType.Int SmtType.None) SmtType.None) SmtType.None)
   | (SmtTerm.set_empty x1) => 
     let _v0 := (SmtType.Set x1)
     (__smtx_typeof_guard_wf _v0 _v0)
@@ -2371,8 +2373,6 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.str_replace_re x1 x2 x3) => (__smtx_model_eval_str_replace_re (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.str_replace_re_all x1 x2 x3) => (__smtx_model_eval_str_replace_re_all (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.str_indexof_re x1 x2 x3) => (__smtx_model_eval_str_indexof_re (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.str_occur_index x1 x2 x3) => (__smtx_model_eval_str_occur_index (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.str_occur_index_re x1 x2 x3) => (__smtx_model_eval_str_occur_index_re (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | SmtTerm.re_allchar => (SmtValue.RegLan native_re_allchar)
   | SmtTerm.re_none => (SmtValue.RegLan native_re_none)
   | SmtTerm.re_all => (SmtValue.RegLan native_re_all)
@@ -2394,6 +2394,8 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
     let _v0 := (__smtx_model_eval M x1)
     (SmtValue.Seq (SmtSeq.cons _v0 (SmtSeq.empty (__smtx_typeof_value _v0))))
   | (SmtTerm.seq_nth x1 x2) => (__smtx_seq_nth M (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm._at_strings_occur_index x1 x2 x3) => (__smtx_model_eval__at_strings_occur_index (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm._at_strings_occur_index_re x1 x2 x3) => (__smtx_model_eval__at_strings_occur_index_re (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.set_empty x1) => (SmtValue.Set (SmtMap.default x1 (SmtValue.Boolean false)))
   | (SmtTerm.set_singleton x1) => (__smtx_model_eval_set_singleton (__smtx_model_eval M x1))
   | (SmtTerm.set_union x1 x2) => (__smtx_model_eval_set_union (__smtx_model_eval M x1) (__smtx_model_eval M x2))
