@@ -250,11 +250,41 @@ private def oiBody (S T w : SmtTerm) : SmtTerm :=
                 (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
                 (SmtTerm.Numeral 1))) T) w)))
 
-private theorem oi_term_eq (S T w : SmtTerm) :
-    __eo_to_smt_strings_occur_index S T w =
-      SmtTerm.choice (native_string_lit "@x") SmtType.Int
-        (oiBody S T w) := by
-  simp only [__eo_to_smt_strings_occur_index, oiBody]
+private theorem occ_ends_aux_eq (fuel : Nat) (pat xs : List SmtValue) :
+    native_seq_occur_ends_aux fuel pat xs = occEndsAux fuel pat xs := by
+  induction fuel generalizing xs with
+  | zero => simp [native_seq_occur_ends_aux, occEndsAux]
+  | succ fuel ih =>
+      cases pat with
+      | nil => simp [native_seq_occur_ends_aux, occEndsAux]
+      | cons p ps =>
+          unfold native_seq_occur_ends_aux occEndsAux
+          simp only
+          by_cases h : native_seq_indexof xs (p :: ps) 0 < 0
+          · simp [h]
+          · simp [h, ih]
+
+/-- The native scan-boundary function agrees with `bound` in range. -/
+private theorem occ_index_eq_bound (ss ts : List SmtValue) (nn : Nat)
+    (hnn : nn ≤ (occEnds ts ss).length) :
+    native_seq_occur_index ss ts ((nn : Nat) : Int) =
+      ((bound ts ss nn : Nat) : Int) := by
+  have hAux : native_seq_occur_ends_aux (ss.length + 1) ts ss =
+      occEnds ts ss := occ_ends_aux_eq (ss.length + 1) ts ss
+  simp only [native_seq_occur_index, hAux]
+  rw [if_pos]
+  · rw [Int.toNat_natCast]
+    simp only [bound, Int.ofNat_eq_natCast]
+  · refine ⟨Int.natCast_nonneg _, ?_⟩
+    rw [Int.toNat_natCast]
+    simp only [List.length_cons]
+    omega
+
+private theorem oi_term_eq (M : SmtModel) (S T w : SmtTerm) :
+    __smtx_model_eval M (SmtTerm._at_strings_occur_index S T w) =
+      __smtx_model_eval__at_strings_occur_index (__smtx_model_eval M S)
+        (__smtx_model_eval M T) (__smtx_model_eval M w) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
 
 /-- Truth of the `occur_index` choice body over concrete values. -/
 private theorem oi_body_eval_true_iff
@@ -316,68 +346,22 @@ private theorem oi_body_eval_true_iff
       decide_eq_true_eq, SmtValue.Numeral.injEq]
     exact h
 
-/-- The value of the `@strings_occur_index` translation at a count `nn` in
+/-- The value of the `@strings_occur_index` term at a count `nn` in
 range: the `nn`-th scan boundary. -/
 private theorem oi_eval
     (M' : SmtModel) (S T w : SmtTerm) (E : SmtType)
     (ss ts : List SmtValue) (nn : Nat)
-    (hSPush : ∀ v : SmtValue,
-      __smtx_model_eval
-          (native_model_push M' (native_string_lit "@x") SmtType.Int v) S =
-        SmtValue.Seq (native_pack_seq E ss))
-    (hTPush : ∀ v : SmtValue,
-      __smtx_model_eval
-          (native_model_push M' (native_string_lit "@x") SmtType.Int v) T =
-        SmtValue.Seq (native_pack_seq E ts))
-    (hWPush : ∀ v : SmtValue,
-      __smtx_model_eval
-          (native_model_push M' (native_string_lit "@x") SmtType.Int v) w =
-        SmtValue.Numeral (nn : Int))
+    (hS : __smtx_model_eval M' S = SmtValue.Seq (native_pack_seq E ss))
+    (hT : __smtx_model_eval M' T = SmtValue.Seq (native_pack_seq E ts))
+    (hW : __smtx_model_eval M' w = SmtValue.Numeral (nn : Int))
     (hTs : ts ≠ [])
     (hnn : nn ≤ (occEnds ts ss).length) :
-    __smtx_model_eval M' (__eo_to_smt_strings_occur_index S T w) =
+    __smtx_model_eval M' (SmtTerm._at_strings_occur_index S T w) =
       SmtValue.Numeral ((bound ts ss nn : Nat) : Int) := by
-  have hPatPos : 0 < ts.length := by
-    cases ts with
-    | nil => exact absurd rfl hTs
-    | cons => simp
-  rw [oi_term_eq, eval_choice_term_eq]
-  apply tchoice_eq_of_unique
-  · exact numeral_typeof _
-  · exact numeral_canonical _
-  · rw [oi_body_eval_true_iff _ S T w E ss ts nn _
-      (hSPush _) (hTPush _) (hWPush _) (var_lookup_push_same _ _ _ _) hTs]
-    refine ⟨by omega, ?_, ?_⟩
-    · rw [Int.toNat_natCast, occ_count_at_bound ts ss hTs nn hnn]
-    · cases nn with
-      | zero =>
-          left
-          simp [bound_zero]
-      | succ k =>
-          right
-          have hB1 : 1 ≤ bound ts ss (k + 1) := by
-            have := bound_ge_pat ts ss (k + 1) (by omega) hnn
-            omega
-          have hBelow := occ_count_below_bound ts ss hTs (k + 1)
-            (by omega) hnn
-          rw [show Int.toNat (((bound ts ss (k + 1) : Nat) : Int) - 1) =
-              bound ts ss (k + 1) - 1 by omega]
-          omega
-  · intro v hvTy hvCan hvSat
-    rcases int_value_canonical hvTy with ⟨m, rfl⟩
-    rw [oi_body_eval_true_iff _ S T w E ss ts nn m
-      (hSPush _) (hTPush _) (hWPush _) (var_lookup_push_same _ _ _ _)
-      hTs] at hvSat
-    rcases hvSat with ⟨hm0, hcount, hprev⟩
-    have hcount' : (occEnds ts (ss.take (Int.toNat m))).length = nn := by
-      omega
-    have hprev' : m = 0 ∨
-        (occEnds ts (ss.take (Int.toNat (m - 1)))).length < nn := by
-      rcases hprev with h0 | hlt
-      · exact Or.inl h0
-      · exact Or.inr (by omega)
-    have hUnique := occ_count_unique ts ss hTs nn hnn m hm0 hcount' hprev'
-    rw [hUnique]
+  rw [oi_term_eq, hS, hT, hW]
+  simp only [__smtx_model_eval__at_strings_occur_index,
+    Smtm.native_unpack_pack_seq, elem_typeof_pack_seq]
+  rw [occ_index_eq_bound ss ts nn hnn]
 
 private theorem extract_full_drop (ss : List SmtValue) (b : Nat)
     (hb : b ≤ ss.length) :
@@ -414,37 +398,20 @@ private theorem extract_full_drop (ss : List SmtValue) (b : Nat)
       unfold native_Int at hAbs
       rcases hAbs with (h1 | h2) | h3 <;> omega
 
-/-- Typing of the `@strings_occur_index` translation. -/
+/-- Typing of the `@strings_occur_index` term. -/
 private theorem oi_typeof (S T w : SmtTerm) (E : SmtType)
     (hS : __smtx_typeof S = SmtType.Seq E)
     (hT : __smtx_typeof T = SmtType.Seq E)
     (hW : __smtx_typeof w = SmtType.Int) :
-    __smtx_typeof (__eo_to_smt_strings_occur_index S T w) =
+    __smtx_typeof (SmtTerm._at_strings_occur_index S T w) =
       SmtType.Int := by
-  rw [oi_term_eq, smtx_typeof_choice_term_eq]
-  have hVar :
-      __smtx_typeof
-          (SmtTerm.Var (native_string_lit "@x") SmtType.Int) =
-        SmtType.Int := by
-    rw [__smtx_typeof.eq_def] <;>
-      simp [__smtx_typeof_guard_wf, native_ite, __smtx_type_wf,
-        __smtx_type_wf_component, __smtx_type_wf_rec, native_and]
-  have hNum : ∀ k : native_Int,
-      __smtx_typeof (SmtTerm.Numeral k) = SmtType.Int := by
-    intro k
+  have hTy :
+      __smtx_typeof (SmtTerm._at_strings_occur_index S T w) =
+        __smtx_typeof_str_indexof (__smtx_typeof S) (__smtx_typeof T)
+          (__smtx_typeof w) := by
     rw [__smtx_typeof.eq_def] <;> simp only
-  have hBody : __smtx_typeof (oiBody S T w) = SmtType.Bool := by
-    simp only [oiBody, __eo_to_smt_strings_num_occur]
-    simp [typeof_and_eq, typeof_or_eq, typeof_eq_eq, typeof_geq_eq,
-      typeof_lt_eq, typeof_neg_eq, typeof_str_len_eq,
-      typeof_str_replace_all_eq, typeof_str_substr_eq, hVar, hNum, hS, hT,
-      hW, __smtx_typeof_str_substr, __smtx_typeof_seq_op_3,
-      __smtx_typeof_seq_op_1_ret, __smtx_typeof_arith_overload_op_2,
-      __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_eq,
-      __smtx_typeof_guard, native_ite, native_Teq]
-  rw [hBody]
-  simp [native_ite, native_Teq, __smtx_typeof_guard_wf, __smtx_type_wf,
-    __smtx_type_wf_component, __smtx_type_wf_rec, native_and]
+  rw [hTy, hS, hT, hW]
+  simp [__smtx_typeof_str_indexof, native_ite, native_Teq]
 
 /-- The value of the `@strings_replace_all_result` translation: the
 replace-all of the suffix at the `nn`-th boundary. -/
@@ -454,29 +421,18 @@ private theorem rar_eval
     (hS : __smtx_model_eval M' S = SmtValue.Seq (native_pack_seq E ss))
     (hT : __smtx_model_eval M' T = SmtValue.Seq (native_pack_seq E ts))
     (hR : __smtx_model_eval M' R = SmtValue.Seq (native_pack_seq E rs))
-    (hSPush : ∀ v : SmtValue,
-      __smtx_model_eval
-          (native_model_push M' (native_string_lit "@x") SmtType.Int v) S =
-        SmtValue.Seq (native_pack_seq E ss))
-    (hTPush : ∀ v : SmtValue,
-      __smtx_model_eval
-          (native_model_push M' (native_string_lit "@x") SmtType.Int v) T =
-        SmtValue.Seq (native_pack_seq E ts))
-    (hWPush : ∀ v : SmtValue,
-      __smtx_model_eval
-          (native_model_push M' (native_string_lit "@x") SmtType.Int v) w =
-        SmtValue.Numeral (nn : Int))
+    (hW : __smtx_model_eval M' w = SmtValue.Numeral (nn : Int))
     (hTs : ts ≠ [])
     (hnn : nn ≤ (occEnds ts ss).length) :
     __smtx_model_eval M'
         (SmtTerm.str_replace_all
-          (SmtTerm.str_substr S (__eo_to_smt_strings_occur_index S T w)
+          (SmtTerm.str_substr S (SmtTerm._at_strings_occur_index S T w)
             (SmtTerm.str_len S))
           T R) =
       SmtValue.Seq
         (native_pack_seq E
           (native_seq_replace_all (ss.drop (bound ts ss nn)) ts rs)) := by
-  have hOi := oi_eval M' S T w E ss ts nn hSPush hTPush hWPush hTs hnn
+  have hOi := oi_eval M' S T w E ss ts nn hS hT hW hTs hnn
   rw [eval_str_replace_all_term_eq,
     StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
     smtx_eval_str_len_term_eq, hS, hT, hR, hOi]
@@ -684,12 +640,12 @@ theorem str_replace_all_reduction_pred_true
   let idx := SmtTerm.Var idxName SmtType.Int
   let numOcc := __eo_to_smt_strings_num_occur tz ty
   let startI := SmtTerm.str_indexof tz ty
-    (__eo_to_smt_strings_occur_index tz ty idx)
+    (SmtTerm._at_strings_occur_index tz ty idx)
   let iNext := SmtTerm.plus idx
     (SmtTerm.plus (SmtTerm.Numeral 1) (SmtTerm.Numeral 0))
   let seg := SmtTerm.str_substr tz
-    (__eo_to_smt_strings_occur_index tz ty idx)
-    (SmtTerm.neg startI (__eo_to_smt_strings_occur_index tz ty idx))
+    (SmtTerm._at_strings_occur_index tz ty idx)
+    (SmtTerm.neg startI (SmtTerm._at_strings_occur_index tz ty idx))
   let sourceLen := SmtTerm.str_len tz
   let result := SmtTerm._at_purify (SmtTerm.str_replace_all tz ty tx)
   -- the EO segment term whose element type seeds the `nil` of the
@@ -726,7 +682,7 @@ theorem str_replace_all_reduction_pred_true
       __smtx_typeof_seq_op_1_ret, __smtx_typeof_arith_overload_op_2,
       native_ite, native_Teq]
   have hOiTy : ∀ w : SmtTerm, __smtx_typeof w = SmtType.Int ->
-      __smtx_typeof (__eo_to_smt_strings_occur_index tz ty w) =
+      __smtx_typeof (SmtTerm._at_strings_occur_index tz ty w) =
         SmtType.Int := by
     intro w hw
     exact oi_typeof tz ty w T hzTy hyTy hw
@@ -761,7 +717,7 @@ theorem str_replace_all_reduction_pred_true
       __smtx_typeof
           (SmtTerm.str_replace_all
             (SmtTerm.str_substr tz
-              (__eo_to_smt_strings_occur_index tz ty w) sourceLen)
+              (SmtTerm._at_strings_occur_index tz ty w) sourceLen)
             ty tx) = SmtType.Seq T := by
     intro w hw
     rw [typeof_str_replace_all_eq, typeof_str_substr_eq, hzTy,
@@ -788,7 +744,7 @@ theorem str_replace_all_reduction_pred_true
   -- the translated reduction predicate
   let rarT : SmtTerm -> SmtTerm := fun w =>
     SmtTerm.str_replace_all
-      (SmtTerm.str_substr tz (__eo_to_smt_strings_occur_index tz ty w)
+      (SmtTerm.str_substr tz (SmtTerm._at_strings_occur_index tz ty w)
         sourceLen)
       ty tx
   let qBody := SmtTerm.or
@@ -803,7 +759,7 @@ theorem str_replace_all_reduction_pred_true
                 (SmtTerm.str_concat tx
                   (SmtTerm.str_concat (rarT iNext) nilSegS))))
             (SmtTerm.and
-              (SmtTerm.eq (__eo_to_smt_strings_occur_index tz ty iNext)
+              (SmtTerm.eq (SmtTerm._at_strings_occur_index tz ty iNext)
                 (SmtTerm.plus startI
                   (SmtTerm.plus (SmtTerm.str_len ty) (SmtTerm.Numeral 0))))
               (SmtTerm.Boolean true))))
@@ -817,14 +773,14 @@ theorem str_replace_all_reduction_pred_true
         (SmtTerm.and
           (SmtTerm.eq (rarT numOcc)
             (SmtTerm.str_substr tz
-              (__eo_to_smt_strings_occur_index tz ty numOcc) sourceLen))
+              (SmtTerm._at_strings_occur_index tz ty numOcc) sourceLen))
           (SmtTerm.and
-            (SmtTerm.eq (__eo_to_smt_strings_occur_index tz ty
+            (SmtTerm.eq (SmtTerm._at_strings_occur_index tz ty
               (SmtTerm.Numeral 0)) (SmtTerm.Numeral 0))
             (SmtTerm.and
               (SmtTerm.eq
                 (SmtTerm.str_indexof tz ty
-                  (__eo_to_smt_strings_occur_index tz ty numOcc))
+                  (SmtTerm._at_strings_occur_index tz ty numOcc))
                 (SmtTerm.Numeral (-1)))
               (SmtTerm.and forallPart (SmtTerm.Boolean true)))))))
   have hNilSegNe' :
@@ -881,14 +837,14 @@ theorem str_replace_all_reduction_pred_true
   have hSubstrNumTy :
       __smtx_typeof
           (SmtTerm.str_substr tz
-            (__eo_to_smt_strings_occur_index tz ty numOcc) sourceLen) =
+            (SmtTerm._at_strings_occur_index tz ty numOcc) sourceLen) =
         SmtType.Seq T := by
     rw [typeof_str_substr_eq, hzTy, hOiNumOccTy, hSourceLenTy]
     simp [__smtx_typeof_str_substr]
   have hIndexofNumTy :
       __smtx_typeof
           (SmtTerm.str_indexof tz ty
-            (__eo_to_smt_strings_occur_index tz ty numOcc)) =
+            (SmtTerm._at_strings_occur_index tz ty numOcc)) =
         SmtType.Int := by
     rw [typeof_str_indexof_eq, hzTy, hyTy, hOiNumOccTy]
     simp [__smtx_typeof_str_indexof, native_ite, native_Teq]
@@ -1104,9 +1060,8 @@ theorem str_replace_all_reduction_pred_true
                   (zs.drop (bound ys zs 0)) ys rs)) := by
         simp only [rarT, sourceLen]
         exact rar_eval M tz ty tx (SmtTerm.Numeral 0) T zs ys rs 0
-          hZEval' hYEval' hXEval' hZPush hYPush
+          hZEval' hYEval' hXEval'
           (by
-            intro v
             rw [eval_numeral_term_eq]
             norm_cast)
           hYs (Nat.zero_le _)
@@ -1120,11 +1075,11 @@ theorem str_replace_all_reduction_pred_true
       -- conjunct 3: `rar` at the count is the untouched tail
       have hOiKM :
           __smtx_model_eval M
-              (__eo_to_smt_strings_occur_index tz ty numOcc) =
+              (SmtTerm._at_strings_occur_index tz ty numOcc) =
             SmtValue.Numeral
               ((bound ys zs (occEnds ys zs).length : Nat) : Int) :=
         oi_eval M tz ty numOcc T zs ys (occEnds ys zs).length
-          hZPush hYPush hNumPush hYs (Nat.le_refl _)
+          hZEval' hYEval' hNumOccM hYs (Nat.le_refl _)
       have hRarKEval :
           __smtx_model_eval M (rarT numOcc) =
             SmtValue.Seq
@@ -1134,12 +1089,12 @@ theorem str_replace_all_reduction_pred_true
                   rs)) := by
         simp only [rarT, sourceLen]
         exact rar_eval M tz ty tx numOcc T zs ys rs
-          (occEnds ys zs).length hZEval' hYEval' hXEval' hZPush hYPush
-          hNumPush hYs (Nat.le_refl _)
+          (occEnds ys zs).length hZEval' hYEval' hXEval'
+          hNumOccM hYs (Nat.le_refl _)
       have hSubstrKEval :
           __smtx_model_eval M
               (SmtTerm.str_substr tz
-                (__eo_to_smt_strings_occur_index tz ty numOcc)
+                (SmtTerm._at_strings_occur_index tz ty numOcc)
                 sourceLen) =
             SmtValue.Seq
               (native_pack_seq T
@@ -1157,7 +1112,7 @@ theorem str_replace_all_reduction_pred_true
           __smtx_model_eval M
               (SmtTerm.eq (rarT numOcc)
                 (SmtTerm.str_substr tz
-                  (__eo_to_smt_strings_occur_index tz ty numOcc)
+                  (SmtTerm._at_strings_occur_index tz ty numOcc)
                   sourceLen)) = SmtValue.Boolean true := by
         rw [eval_eq_term_eq, hRarKEval, hSubstrKEval,
           replace_all_drop_bound_last ys rs zs hYs]
@@ -1165,18 +1120,17 @@ theorem str_replace_all_reduction_pred_true
       -- conjunct 4: the zeroth boundary is zero
       have hOi0M :
           __smtx_model_eval M
-              (__eo_to_smt_strings_occur_index tz ty (SmtTerm.Numeral 0)) =
+              (SmtTerm._at_strings_occur_index tz ty (SmtTerm.Numeral 0)) =
             SmtValue.Numeral ((bound ys zs 0 : Nat) : Int) :=
-        oi_eval M tz ty (SmtTerm.Numeral 0) T zs ys 0 hZPush hYPush
+        oi_eval M tz ty (SmtTerm.Numeral 0) T zs ys 0 hZEval' hYEval'
           (by
-            intro v
             rw [eval_numeral_term_eq]
             norm_cast)
           hYs (Nat.zero_le _)
       have hC4 :
           __smtx_model_eval M
               (SmtTerm.eq
-                (__eo_to_smt_strings_occur_index tz ty (SmtTerm.Numeral 0))
+                (SmtTerm._at_strings_occur_index tz ty (SmtTerm.Numeral 0))
                 (SmtTerm.Numeral 0)) = SmtValue.Boolean true := by
         rw [eval_eq_term_eq, hOi0M, eval_numeral_term_eq, bound_zero]
         simp [__smtx_model_eval_eq, native_veq]
@@ -1185,7 +1139,7 @@ theorem str_replace_all_reduction_pred_true
           __smtx_model_eval M
               (SmtTerm.eq
                 (SmtTerm.str_indexof tz ty
-                  (__eo_to_smt_strings_occur_index tz ty numOcc))
+                  (SmtTerm._at_strings_occur_index tz ty numOcc))
                 (SmtTerm.Numeral (-1))) = SmtValue.Boolean true := by
         rw [eval_eq_term_eq, eval_str_indexof_term_eq, hZEval', hYEval',
           hOiKM, eval_numeral_term_eq]
@@ -1266,36 +1220,30 @@ theorem str_replace_all_reduction_pred_true
             have hmmK : Int.toNat m < (occEnds ys zs).length := by first
               | omega
               | (unfold native_Int at *; omega)
-            have hIdxMkPush' : ∀ v : SmtValue,
+            have hIdxMk' :
                 __smtx_model_eval
-                    (native_model_push
-                      (native_model_push M idxName SmtType.Int
-                        (SmtValue.Numeral m))
-                      (native_string_lit "@x") SmtType.Int v) idx =
+                    (native_model_push M idxName SmtType.Int
+                      (SmtValue.Numeral m)) idx =
                   SmtValue.Numeral ((Int.toNat m : Nat) : Int) := by
-              intro v
-              rw [hIdxMkPush v]
+              rw [hIdxMk]
               congr 1
               exact (Int.toNat_of_nonneg hm0).symm
             have hOiIdxMk := oi_eval
               (native_model_push M idxName SmtType.Int
                 (SmtValue.Numeral m))
-              tz ty idx T zs ys (Int.toNat m) hZMkPush hYMkPush
-              hIdxMkPush' hYs (Nat.le_of_lt hmmK)
+              tz ty idx T zs ys (Int.toNat m) hZMk hYMk
+              hIdxMk' hYs (Nat.le_of_lt hmmK)
             rcases indexof_at_bound ys zs hYs (Int.toNat m) hmmK with
               ⟨hPatLe, hMono, hIdxAt⟩
-            have hINextMkPush : ∀ v : SmtValue,
+            have hINextMk :
                 __smtx_model_eval
-                    (native_model_push
-                      (native_model_push M idxName SmtType.Int
-                        (SmtValue.Numeral m))
-                      (native_string_lit "@x") SmtType.Int v) iNext =
+                    (native_model_push M idxName SmtType.Int
+                      (SmtValue.Numeral m)) iNext =
                   SmtValue.Numeral ((Int.toNat m + 1 : Nat) : Int) := by
-              intro v
               simp only [iNext]
               rw [StrSubstrContainsSupport.smtx_eval_plus_term_eq,
                 StrSubstrContainsSupport.smtx_eval_plus_term_eq,
-                hIdxMkPush v, eval_numeral_term_eq, eval_numeral_term_eq]
+                hIdxMk, eval_numeral_term_eq, eval_numeral_term_eq]
               simp only [__smtx_model_eval_plus, native_zplus]
               congr 1
               first
@@ -1304,8 +1252,8 @@ theorem str_replace_all_reduction_pred_true
             have hOiNextMk := oi_eval
               (native_model_push M idxName SmtType.Int
                 (SmtValue.Numeral m))
-              tz ty iNext T zs ys (Int.toNat m + 1) hZMkPush hYMkPush
-              hINextMkPush hYs (by first
+              tz ty iNext T zs ys (Int.toNat m + 1) hZMk hYMk
+              hINextMk hYs (by first
               | omega
               | (unfold native_Int at *; omega))
             have hRarIdxMk :
@@ -1318,7 +1266,7 @@ theorem str_replace_all_reduction_pred_true
                         (zs.drop (bound ys zs (Int.toNat m))) ys rs)) := by
               simp only [rarT, sourceLen]
               exact rar_eval _ tz ty tx idx T zs ys rs (Int.toNat m)
-                hZMk hYMk hXMk hZMkPush hYMkPush hIdxMkPush' hYs
+                hZMk hYMk hXMk hIdxMk' hYs
                 (Nat.le_of_lt hmmK)
             have hRarNextMk :
                 __smtx_model_eval
@@ -1331,7 +1279,7 @@ theorem str_replace_all_reduction_pred_true
                         rs)) := by
               simp only [rarT, sourceLen]
               exact rar_eval _ tz ty tx iNext T zs ys rs (Int.toNat m + 1)
-                hZMk hYMk hXMk hZMkPush hYMkPush hINextMkPush hYs
+                hZMk hYMk hXMk hINextMk hYs
                 (by first
               | omega
               | (unfold native_Int at *; omega))
@@ -1433,25 +1381,24 @@ theorem str_replace_all_reduction_pred_true
                   __smtx_model_eval
                       (native_model_push M idxName SmtType.Int
                         (SmtValue.Numeral m))
-                      (__eo_to_smt_strings_occur_index tz ty idx) =
+                      (SmtTerm._at_strings_occur_index tz ty idx) =
                     SmtValue.Numeral mi := by
-              rw [oi_term_eq, eval_choice_term_eq]
-              rcases int_value_canonical
-                  (tchoice_typed_canonical_of_wf' _ _ SmtType.Int _
-                    int_wf).1 with ⟨mi, hmi⟩
-              exact ⟨mi, hmi⟩
+              rw [oi_term_eq, hZMk, hYMk, hIdxMk]
+              simp only [__smtx_model_eval__at_strings_occur_index]
+              exact ⟨_, rfl⟩
             obtain ⟨mj, hOiNextShape⟩ :
                 ∃ mj : Int,
                   __smtx_model_eval
                       (native_model_push M idxName SmtType.Int
                         (SmtValue.Numeral m))
-                      (__eo_to_smt_strings_occur_index tz ty iNext) =
+                      (SmtTerm._at_strings_occur_index tz ty iNext) =
                     SmtValue.Numeral mj := by
-              rw [oi_term_eq, eval_choice_term_eq]
-              rcases int_value_canonical
-                  (tchoice_typed_canonical_of_wf' _ _ SmtType.Int _
-                    int_wf).1 with ⟨mj, hmj⟩
-              exact ⟨mj, hmj⟩
+              rw [oi_term_eq]
+              simp only [iNext,
+                StrSubstrContainsSupport.smtx_eval_plus_term_eq, hZMk,
+                hYMk, hIdxMk, eval_numeral_term_eq, __smtx_model_eval_plus,
+                __smtx_model_eval__at_strings_occur_index]
+              exact ⟨_, rfl⟩
             simp only [qBody, rarT, seg, startI, sourceLen, numOcc,
               eval_or_term_eq, smtx_eval_not_term_eq, eval_geq_term_eq,
               eval_lt_term_eq, eval_and_term_eq, eval_eq_term_eq,
@@ -1489,25 +1436,24 @@ theorem str_replace_all_reduction_pred_true
                 __smtx_model_eval
                     (native_model_push M idxName SmtType.Int
                       (SmtValue.Numeral m))
-                    (__eo_to_smt_strings_occur_index tz ty idx) =
+                    (SmtTerm._at_strings_occur_index tz ty idx) =
                   SmtValue.Numeral mi := by
-            rw [oi_term_eq, eval_choice_term_eq]
-            rcases int_value_canonical
-                (tchoice_typed_canonical_of_wf' _ _ SmtType.Int _
-                  int_wf).1 with ⟨mi, hmi⟩
-            exact ⟨mi, hmi⟩
+            rw [oi_term_eq, hZMk, hYMk, hIdxMk]
+            simp only [__smtx_model_eval__at_strings_occur_index]
+            exact ⟨_, rfl⟩
           obtain ⟨mj, hOiNextShape⟩ :
               ∃ mj : Int,
                 __smtx_model_eval
                     (native_model_push M idxName SmtType.Int
                       (SmtValue.Numeral m))
-                    (__eo_to_smt_strings_occur_index tz ty iNext) =
+                    (SmtTerm._at_strings_occur_index tz ty iNext) =
                   SmtValue.Numeral mj := by
-            rw [oi_term_eq, eval_choice_term_eq]
-            rcases int_value_canonical
-                (tchoice_typed_canonical_of_wf' _ _ SmtType.Int _
-                  int_wf).1 with ⟨mj, hmj⟩
-            exact ⟨mj, hmj⟩
+            rw [oi_term_eq]
+            simp only [iNext,
+              StrSubstrContainsSupport.smtx_eval_plus_term_eq, hZMk,
+              hYMk, hIdxMk, eval_numeral_term_eq, __smtx_model_eval_plus,
+              __smtx_model_eval__at_strings_occur_index]
+            exact ⟨_, rfl⟩
           simp only [qBody, rarT, seg, startI, sourceLen, numOcc,
             eval_or_term_eq, smtx_eval_not_term_eq, eval_geq_term_eq,
             eval_lt_term_eq, eval_and_term_eq, eval_eq_term_eq,

@@ -3472,6 +3472,144 @@ by
       (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
       (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
 
+theorem contains_atomic_term_list_free_rec_apply_apply_apply_apply_uop_false_args
+    {op : UserOp} {w z y x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hWNotList :
+      ∀ v vs,
+        w ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+    (hZNotList :
+      ∀ v vs,
+        z ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+    (hYNotList :
+      ∀ v vs,
+        y ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y) x)
+          except bound =
+        Term.Boolean false) :
+  __contains_atomic_term_list_free_rec w except bound =
+      Term.Boolean false ∧
+    __contains_atomic_term_list_free_rec z except bound =
+      Term.Boolean false ∧
+    __contains_atomic_term_list_free_rec y except bound =
+      Term.Boolean false ∧
+    __contains_atomic_term_list_free_rec x except bound =
+      Term.Boolean false :=
+by
+  rcases
+    contains_atomic_term_list_free_rec_apply_false_cases
+      hExcept hBound
+      (by
+        intro q v vs hEq
+        cases hEq
+        exact hYNotList v vs rfl)
+      hNoFree with
+    ⟨hHeadNoFree, hXNoFree⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_apply_uop_false_args
+      hExcept hBound hWNotList hZNotList hHeadNoFree with
+    ⟨hWNoFree, hZNoFree, hYNoFree⟩
+  exact ⟨hWNoFree, hZNoFree, hYNoFree, hXNoFree⟩
+
+theorem smt_model_eval_apply_apply_apply_apply_uop_quaternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp} {w z y x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hWLt : sizeOf w < sizeOf root)
+    (hZLt : sizeOf z < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hXLt : sizeOf x < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y) x))
+    (hArgsTrans :
+      eoHasSmtTranslation
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+            x) ->
+        eoHasSmtTranslation w ∧
+          eoHasSmtTranslation z ∧
+          eoHasSmtTranslation y ∧
+          eoHasSmtTranslation x)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y) x)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (hEval :
+      __smtx_model_eval M (__eo_to_smt w) =
+        __smtx_model_eval N (__eo_to_smt w) ->
+      __smtx_model_eval M (__eo_to_smt z) =
+        __smtx_model_eval N (__eo_to_smt z) ->
+      __smtx_model_eval M (__eo_to_smt y) =
+        __smtx_model_eval N (__eo_to_smt y) ->
+      __smtx_model_eval M (__eo_to_smt x) =
+        __smtx_model_eval N (__eo_to_smt x) ->
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+              x)) =
+        __smtx_model_eval N
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+              x)))
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y) x)) =
+    __smtx_model_eval N
+      (__eo_to_smt
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+          x)) :=
+by
+  rcases hArgsTrans hTrans with ⟨hWTrans, hZTrans, hYTrans, hXTrans⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_apply_apply_uop_false_args
+      hExcept hBound
+      (term_not_eo_list_cons_of_has_smt_translation hWTrans)
+      (term_not_eo_list_cons_of_has_smt_translation hZTrans)
+      (term_not_eo_list_cons_of_has_smt_translation hYTrans)
+      hNoFree with
+    ⟨hWNoFree, hZNoFree, hYNoFree, hXNoFree⟩
+  exact
+    hEval
+      (ih hWLt hExcept hBound hWTrans hWNoFree hAgree)
+      (ih hZLt hExcept hBound hZTrans hZNoFree hAgree)
+      (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
+      (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
+
 /--
 Evaluator congruence for the SMT existential chain produced from an exact EO
 binder list.
@@ -4642,6 +4780,7 @@ by
             | exact strings_stoi_result_args_have_smt_translation_of_has_smt_translation h
             | exact strings_itos_result_args_have_smt_translation_of_has_smt_translation h
             | exact strings_num_occur_args_have_smt_translation_of_has_smt_translation h
+            | exact strings_num_occur_re_args_have_smt_translation_of_has_smt_translation h
             | exact tuple_args_have_smt_translation_of_has_smt_translation h
             | exact sets_deq_diff_args_have_smt_translation_of_has_smt_translation h
             | exact qdiv_args_have_smt_translation_of_has_smt_translation h
@@ -5872,6 +6011,36 @@ by
           dsimp only [__eo_to_smt]
           simp [__smtx_model_eval, hc, hx, hy])
         ih
+  case _at_strings_occur_index =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            strings_occur_index_args_have_smt_translation_of_has_smt_translation
+              h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case _at_strings_occur_index_re =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            strings_occur_index_re_args_have_smt_translation_of_has_smt_translation
+              h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
   case «forall» =>
     exact false_of_apply_apply_apply_forall_has_smt_translation hTrans
   case «exists» =>
@@ -6020,6 +6189,144 @@ by
                   (by
                     simp <;> omega)
                   hExcept hBound hTrans hNoFree hAgree hRec
+            case Apply f4 w =>
+              cases f4
+              case UOp op4 =>
+                cases op4
+                case _at_strings_replace_all_result =>
+                  exact
+                    smt_model_eval_apply_apply_apply_apply_uop_quaternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                      (Term.Apply
+                        (Term.Apply
+                          (Term.Apply
+                            (Term.Apply
+                              (Term.UOp UserOp._at_strings_replace_all_result)
+                              w)
+                            z)
+                          y)
+                        x)
+                      (by
+                        simp <;> omega)
+                      (by
+                        simp <;> omega)
+                      (by
+                        simp <;> omega)
+                      (by
+                        simp <;> omega)
+                      hExcept hBound hTrans
+                      (by
+                        intro h
+                        exact
+                          strings_replace_all_result_args_have_smt_translation_of_has_smt_translation
+                            h)
+                      hNoFree hAgree
+                      (by
+                        intro hw hz hy hx
+                        dsimp only [__eo_to_smt]
+                        simp [__smtx_model_eval, hw, hz, hy, hx])
+                      hRec
+                case _at_strings_replace_re_all_result =>
+                  exact
+                    smt_model_eval_apply_apply_apply_apply_uop_quaternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                      (Term.Apply
+                        (Term.Apply
+                          (Term.Apply
+                            (Term.Apply
+                              (Term.UOp UserOp._at_strings_replace_re_all_result)
+                              w)
+                            z)
+                          y)
+                        x)
+                      (by
+                        simp <;> omega)
+                      (by
+                        simp <;> omega)
+                      (by
+                        simp <;> omega)
+                      (by
+                        simp <;> omega)
+                      hExcept hBound hTrans
+                      (by
+                        intro h
+                        exact
+                          strings_replace_re_all_result_args_have_smt_translation_of_has_smt_translation
+                            h)
+                      hNoFree hAgree
+                      (by
+                        intro hw hz hy hx
+                        dsimp only [__eo_to_smt]
+                        simp [__smtx_model_eval, hw, hz, hy, hx])
+                      hRec
+                all_goals
+                      exact
+                        smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                          hExcept hBound
+                          (by
+                            intro q v vs hEq
+                            cases hEq
+                            rcases
+                              is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
+                                hTrans with hForall | hExists
+                            · cases hForall
+                            · cases hExists)
+                          (by rfl)
+                          (generic_apply_type_of_non_special_head_closed _ _
+                            (by
+                              intro s d i j hSel
+                              exact
+                                TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                                  _ _ s d i j hSel)
+                            (by
+                              intro s d i hTester
+                              exact
+                                TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                                  _ _ s d i hTester))
+                          hTrans hNoFree hAgree
+                          (by
+                            intro hFTrans hBound' hFNoFree M' N' hAgree'
+                            exact hRec (by
+                              simp <;> omega) hExcept hBound'
+                              hFTrans hFNoFree hAgree')
+                          (by
+                            intro hXTrans hBound' hXNoFree M' N' hAgree'
+                            exact hRec (by
+                              simp <;> omega) hExcept hBound'
+                              hXTrans hXNoFree hAgree')
+              all_goals
+                    exact
+                      smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                        hExcept hBound
+                        (by
+                          intro q v vs hEq
+                          cases hEq
+                          rcases
+                            is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
+                              hTrans with hForall | hExists
+                          · cases hForall
+                          · cases hExists)
+                        (by rfl)
+                        (generic_apply_type_of_non_special_head_closed _ _
+                          (by
+                            intro s d i j hSel
+                            exact
+                              TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                                _ _ s d i j hSel)
+                          (by
+                            intro s d i hTester
+                            exact
+                              TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                                _ _ s d i hTester))
+                        hTrans hNoFree hAgree
+                        (by
+                          intro hFTrans hBound' hFNoFree M' N' hAgree'
+                          exact hRec (by
+                            simp <;> omega) hExcept hBound'
+                            hFTrans hFNoFree hAgree')
+                        (by
+                          intro hXTrans hBound' hXNoFree M' N' hAgree'
+                          exact hRec (by
+                            simp <;> omega) hExcept hBound'
+                            hXTrans hXNoFree hAgree')
             all_goals
               exact
                 smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
