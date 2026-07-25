@@ -4938,7 +4938,8 @@ by
                 smt_model_eval_tuple_prepend_eq_of_eval_eq hAgree.globals
                   (__eo_to_smt x) (__eo_to_smt y)
                   (__smtx_typeof (__eo_to_smt x)) hx hy
-            | simp [__smtx_model_eval, hx, hy, hAgree.globals.1,
+            | simp [__smtx_model_eval, __eo_to_smt_strings_num_occur,
+              __eo_to_smt_strings_num_occur_re, hx, hy, hAgree.globals.1,
               smtx_model_eval_apply_eq_of_globals hAgree.globals,
               smtx_seq_nth_eq_of_globals hAgree.globals])
           ih

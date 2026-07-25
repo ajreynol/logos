@@ -2145,6 +2145,86 @@ theorem congTypeSpine_typecongr_ternop_eq_has_bool_type
     hOpTy
     hTrans
 
+theorem congTypeSpine_typecongr_quadop_eq_has_bool_type
+    (eoOp : UserOp)
+    (smtOp : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm)
+    (hToSmt :
+      ∀ a b c d,
+        __eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) a) b) c)
+              d) =
+          smtOp (__eo_to_smt a) (__eo_to_smt b) (__eo_to_smt c)
+            (__eo_to_smt d))
+    (hTypeCong :
+      ∀ a b c d a' b' c' d',
+        __smtx_typeof a = __smtx_typeof a' ->
+        __smtx_typeof b = __smtx_typeof b' ->
+        __smtx_typeof c = __smtx_typeof c' ->
+        __smtx_typeof d = __smtx_typeof d' ->
+          __smtx_typeof (smtOp a b c d) =
+            __smtx_typeof (smtOp a' b' c' d'))
+    (x₁ x₂ x₃ x₄ rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x₁) x₂) x₃)
+        x₄) ->
+    CongTypeSpine
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x₁) x₂) x₃)
+        x₄)
+      rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x₁) x₂) x₃)
+          x₄)
+        rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_quaternary_uop_inv eoOp x₁ x₂ x₃ x₄ rhs hSpine with
+    ⟨y₁, y₂, y₃, y₄, hRhs, hArg₁, hArg₂, hArg₃, hArg₄⟩
+  subst hRhs
+  have hArgTy₁ :
+      __smtx_typeof (__eo_to_smt x₁) =
+        __smtx_typeof (__eo_to_smt y₁) :=
+    smt_type_eq_of_eq_bool_or_same x₁ y₁ hArg₁
+  have hArgTy₂ :
+      __smtx_typeof (__eo_to_smt x₂) =
+        __smtx_typeof (__eo_to_smt y₂) :=
+    smt_type_eq_of_eq_bool_or_same x₂ y₂ hArg₂
+  have hArgTy₃ :
+      __smtx_typeof (__eo_to_smt x₃) =
+        __smtx_typeof (__eo_to_smt y₃) :=
+    smt_type_eq_of_eq_bool_or_same x₃ y₃ hArg₃
+  have hArgTy₄ :
+      __smtx_typeof (__eo_to_smt x₄) =
+        __smtx_typeof (__eo_to_smt y₄) :=
+    smt_type_eq_of_eq_bool_or_same x₄ y₄ hArg₄
+  have hOpTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x₁) x₂)
+                x₃)
+              x₄)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) y₁) y₂)
+                y₃)
+              y₄)) := by
+    rw [hToSmt x₁ x₂ x₃ x₄, hToSmt y₁ y₂ y₃ y₄]
+    exact hTypeCong (__eo_to_smt x₁) (__eo_to_smt x₂) (__eo_to_smt x₃)
+      (__eo_to_smt x₄) (__eo_to_smt y₁) (__eo_to_smt y₂) (__eo_to_smt y₃)
+      (__eo_to_smt y₄) hArgTy₁ hArgTy₂ hArgTy₃ hArgTy₄
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+    (Term.Apply
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x₁) x₂) x₃) x₄)
+    (Term.Apply
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) y₁) y₂) y₃) y₄)
+    hOpTy
+    hTrans
+
 theorem congTrueSpine_ite_eq_true
     (M : SmtModel) (hM : model_total_typed M)
     (c t e rhs : Term) :
@@ -2823,6 +2903,20 @@ theorem eo_to_smt_apply_generic_of_has_smt_translation
               (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt b))
                 (__eo_to_smt a)) = SmtType.None
           simp [__smtx_typeof, __smtx_typeof_apply]
+      case Apply f'' c =>
+        cases f'' <;> try rfl
+        case UOp op =>
+          cases op <;> try rfl
+          all_goals
+            exfalso
+            apply hTransF
+            change
+              __smtx_typeof
+                (SmtTerm.Apply
+                  (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt c))
+                    (__eo_to_smt b))
+                  (__eo_to_smt a)) = SmtType.None
+            simp [__smtx_typeof, __smtx_typeof_apply]
 
 theorem eo_typeof_apply_eq_of_has_smt_translation
     (f x : Term)

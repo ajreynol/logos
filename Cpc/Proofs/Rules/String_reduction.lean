@@ -20,6 +20,8 @@ public import Cpc.Proofs.RuleSupport.StrInReFromIntDigRangeSupport
 import all Cpc.Proofs.RuleSupport.StrInReFromIntDigRangeSupport
 public import Cpc.Proofs.Closed.IsClosedRec
 import all Cpc.Proofs.Closed.IsClosedRec
+public import Cpc.Proofs.RuleSupport.StrReplaceAllCaseSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceAllCaseSupport
 
 open Eo
 open SmtEval
@@ -6534,15 +6536,26 @@ private theorem string_reduction_pred_true
                     native_and, native_zleq, native_zlt, native_veq,
                     Int.ofNat_eq_natCast]
           case str_replace_all =>
-            -- Depends on `occur_index` and `replace_all_result`, whose current
-            -- EO-to-SMT translations are headed by `SmtTerm.None`.
-            sorry
+            exact StrReplaceAllCase.str_replace_all_reduction_pred_true
+              M hM z y x hTrans hClosed
           case str_replace_re =>
-            -- Depends on `occur_index_re`, which currently has no SMT meaning.
+            -- UNPROVABLE with the current `@strings_occur_index_re`
+            -- translation: the prefix-count characterisation picks the wrong
+            -- witness for regexes.  Counterexamples: s = "a", r = (re.* "a"),
+            -- t = "b" (nullable r: the predicate forces the result "b", the
+            -- evaluator computes "ba"); s = "abc", r = (re.++ "abc" | "b")
+            -- (the prefix "ab" contains the *different* match "b", so the
+            -- choice witness is 2, but the actual first match ends at 3).
+            -- See the session notes: the rule itself also places
+            -- contradictory demands on @strings_occur_index_re(s, r, 1)
+            -- versus str_replace_re_all when ε ∈ L(r).
             sorry
           case str_replace_re_all =>
-            -- Depends on `occur_index_re`, `num_occur_re`, and
-            -- `replace_all_result`, which currently have no SMT meaning.
+            -- UNPROVABLE with the current `@strings_occur_index_re`
+            -- translation (same prefix-count issue as str_replace_re):
+            -- for s = "abc", r = ("abc" | "b"), the choice witness is 2
+            -- while the scan's first match ends at 3, falsifying the
+            -- quantified recurrence.
             sorry
           case str_indexof_re =>
             let ts := __eo_to_smt z
