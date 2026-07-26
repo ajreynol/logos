@@ -6084,13 +6084,13 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_from_bools
     SmtTerm.ite (__eo_to_smt y) (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)
   have hTranslate :
       __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) y) x) =
-        SmtTerm.concat bit (__eo_to_smt x) := by
+        SmtTerm.concat (__eo_to_smt x) bit := by
     rfl
-  have hApplyNN : term_has_non_none_type (SmtTerm.concat bit (__eo_to_smt x)) := by
+  have hApplyNN : term_has_non_none_type (SmtTerm.concat (__eo_to_smt x) bit) := by
     unfold term_has_non_none_type
     rw [← hTranslate]
     exact hNonNone
-  rcases bv_concat_args_of_non_none hApplyNN with ⟨w1, w2, hBit, hX⟩
+  rcases bv_concat_args_of_non_none hApplyNN with ⟨w1, w2, hX, hBit⟩
   have hBitNN : term_has_non_none_type bit := by
     unfold term_has_non_none_type
     rw [hBit]
@@ -6106,8 +6106,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_from_bools
     exact hT
   have hTBitVec1 : T = SmtType.BitVec 1 :=
     hThen.symm.trans (smtx_typeof_binary_of_non_none 1 1 hThenNN)
-  have hW1 : w1 = 1 := by
-    have hEq : SmtType.BitVec w1 = SmtType.BitVec 1 :=
+  have hW2 : w2 = 1 := by
+    have hEq : SmtType.BitVec w2 = SmtType.BitVec 1 :=
       hBit.symm.trans (hBitTy.trans hTBitVec1)
     cases hEq
     rfl
@@ -6115,14 +6115,14 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_from_bools
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) y) x)) =
         SmtType.BitVec
           (native_int_to_nat (native_zplus (native_nat_to_int w1) (native_nat_to_int w2))) := by
-    rw [hTranslate, typeof_concat_eq bit (__eo_to_smt x)]
+    rw [hTranslate, typeof_concat_eq (__eo_to_smt x) bit]
     simp [__smtx_typeof_concat, hBit, hX]
   have hYEo : __eo_typeof y = Term.Bool :=
     eo_typeof_eq_bool_of_smt_bool_from_ih y ihY hY
   have hXEo :
       __eo_typeof x =
-        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w2)) :=
-    eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w2 hX
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w1)) :=
+    eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w1 hX
   have hEo :
       __eo_to_smt_type
           (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) y) x)) =
@@ -6132,21 +6132,22 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_from_bools
       __eo_to_smt_type (__eo_typeof__at_from_bools (__eo_typeof y) (__eo_typeof x)) =
         SmtType.BitVec
           (native_int_to_nat (native_zplus (native_nat_to_int w1) (native_nat_to_int w2)))
-    rw [hYEo, hXEo, hW1]
-    have hNonnegProp : (0 : Int) ≤ native_zplus 1 (native_nat_to_int w2) := by
+    rw [hYEo, hXEo, hW2]
+    have hNonnegProp : (0 : Int) ≤ native_zplus 1 (native_nat_to_int w1) := by
       unfold native_zplus native_nat_to_int
-      exact Int.add_nonneg (by decide) (Int.natCast_nonneg w2)
-    have hNonneg : native_zleq 0 (native_zplus 1 (native_nat_to_int w2)) = true := by
+      exact Int.add_nonneg (by decide) (Int.natCast_nonneg w1)
+    have hNonneg : native_zleq 0 (native_zplus 1 (native_nat_to_int w1)) = true := by
       unfold native_zleq
       simp [hNonnegProp]
     change
-      native_ite (native_zleq 0 (native_zplus 1 (native_nat_to_int w2)))
-        (SmtType.BitVec (native_int_to_nat (native_zplus 1 (native_nat_to_int w2))))
-        SmtType.None =
+      native_ite (native_zleq 0 (native_zplus 1 (native_nat_to_int w1)))
+        (SmtType.BitVec (native_int_to_nat (native_zplus 1 (native_nat_to_int w1))))
+      SmtType.None =
       SmtType.BitVec
-        (native_int_to_nat (native_zplus (native_nat_to_int 1) (native_nat_to_int w2)))
+        (native_int_to_nat (native_zplus (native_nat_to_int w1) (native_nat_to_int 1)))
     rw [hNonneg]
-    rfl
+    simp [native_ite, native_zplus, native_nat_to_int,
+      native_int_to_nat, Int.add_comm]
   exact hSmt.trans hEo.symm
 
 /-- Computes `__smtx_typeof` for `eq_non_none`. -/
@@ -14008,8 +14009,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
         UserOp._at_from_bools z y x ihFAll ihXAll
         (SmtTerm.concat
+          (__eo_to_smt y)
           (SmtTerm.ite (__eo_to_smt z) (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
-          (__eo_to_smt y))
+          )
         (by rfl)
         (by rfl)
         (by intro s d i j h; cases h)
