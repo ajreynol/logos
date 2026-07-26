@@ -5796,6 +5796,16 @@ theorem eo_to_smt_apply_apply_generic_of_head_has_smt_translation
         change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
           SmtType.None
         simp [__smtx_typeof, __smtx_typeof_apply]
+    case Apply h b =>
+      cases h <;> try rfl
+      case UOp op =>
+        cases op <;> try rfl
+        all_goals
+          exfalso
+          apply hG
+          exact
+            TranslationProofs.typeof_apply_apply_none_head_eq
+              (__eo_to_smt b) (__eo_to_smt a)
 
 theorem eo_to_smt_apply_apply_apply_generic_of_head_has_smt_translation
     (g x y z : Term)
@@ -5813,16 +5823,28 @@ theorem eo_to_smt_apply_apply_apply_generic_of_head_has_smt_translation
       apply hG
       change __smtx_typeof SmtTerm.None = SmtType.None
       exact TranslationProofs.smtx_typeof_none
+  case Apply f a =>
+    cases f <;> try rfl
+    case UOp op =>
+      cases op <;> try rfl
+      all_goals
+        exfalso
+        apply hG
+        exact TranslationProofs.typeof_apply_none_eq (__eo_to_smt a)
 
 theorem eo_to_smt_apply_apply_apply_non_uop_head_generic
     {g x y z : Term}
-    (hNotUOp : ∀ op, g ≠ Term.UOp op) :
+    (hNotUOp : ∀ op, g ≠ Term.UOp op)
+    (hNotApplyUOp : ∀ op a, g ≠ Term.Apply (Term.UOp op) a) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.Apply g x) y) z) =
       SmtTerm.Apply
         (__eo_to_smt (Term.Apply (Term.Apply g x) y))
         (__eo_to_smt z) := by
   cases g <;> try rfl
   case UOp op => exact False.elim (hNotUOp op rfl)
+  case Apply f a =>
+    cases f <;> try rfl
+    case UOp op => exact False.elim (hNotApplyUOp op a rfl)
 
 theorem eo_to_smt_apply_apply_apply_apply_head_generic
     (g x y z w : Term)
@@ -7146,6 +7168,7 @@ theorem substFalse_eval_ternary_uop1_head_generic_apply
           (__eo_to_smt z) :=
     eo_to_smt_apply_apply_apply_non_uop_head_generic
       (by intro op' hEq; cases hEq)
+      (by intro op' a' hEq; cases hEq)
   have hOrigTy :
       generic_apply_type
         (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp1 op idx) x) y))
@@ -7298,6 +7321,7 @@ theorem substFalse_eval_ternary_uop1_head_generic_apply
     exact
       eo_to_smt_apply_apply_apply_non_uop_head_generic
         (by intro op' hEq; cases hEq)
+        (by intro op' a' hEq; cases hEq)
   have hSubstTy :
       generic_apply_type
         (__eo_to_smt
@@ -7545,6 +7569,7 @@ theorem substFalse_eval_ternary_atom_head_generic_apply
           (__eo_to_smt (Term.Apply (Term.Apply g x) y))
           (__eo_to_smt z) :=
     eo_to_smt_apply_apply_apply_non_uop_head_generic hNotUOp
+      (fun op a => hNotApply (Term.UOp op) a)
   have hOrigTy :
       generic_apply_type (__eo_to_smt (Term.Apply (Term.Apply g x) y))
         (__eo_to_smt z) :=
@@ -7736,7 +7761,9 @@ theorem substFalse_eval_ternary_atom_head_generic_apply
               (Term.Apply (Term.Apply g x) y) xs ss bvs))
           (__eo_to_smt zSub) := by
     rw [hHeadResultEq]
-    exact eo_to_smt_apply_apply_apply_non_uop_head_generic hNotUOp
+    exact
+      eo_to_smt_apply_apply_apply_non_uop_head_generic hNotUOp
+        (fun op a => hNotApply (Term.UOp op) a)
   have hSubstTy :
       generic_apply_type
         (__eo_to_smt

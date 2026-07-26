@@ -672,7 +672,8 @@ theorem substitute_simul_strings_replace_all_result_preserves_type_and_translati
           typeof_at_strings_occur_index_eq, typeof_str_len_eq,
           hSSmt, hPSmt, hRSmt, hCSmt, hSeqSmt]
         simp [__smtx_typeof_seq_op_3, __smtx_typeof_str_substr,
-          __smtx_typeof_str_indexof, native_ite, native_Teq])
+          __smtx_typeof_str_indexof, __smtx_typeof_seq_op_1_ret,
+          native_ite, native_Teq])
       hRecSource hRecPattern hRecReplacement hRecCount
 
 theorem substitute_simul_strings_replace_re_all_result_preserves_type_and_translation_of_typeof_ne_stuck
@@ -851,7 +852,8 @@ theorem substitute_simul_strings_replace_re_all_result_preserves_type_and_transl
         rw [typeof_str_replace_re_all_eq, typeof_str_substr_eq,
           typeof_at_strings_occur_index_re_eq, typeof_str_len_eq,
           hSSmt, hRSmt, hPSmt, hCSmt]
-        simp [__smtx_typeof_str_substr, native_ite, native_Teq])
+        simp [__smtx_typeof_str_substr, __smtx_typeof_seq_op_1_ret,
+          native_ite, native_Teq])
       hRecSource hRecRegex hRecReplacement hRecCount
 
 
