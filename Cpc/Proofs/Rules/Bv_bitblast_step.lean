@@ -1,7 +1,7 @@
 module
 
-public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.BvBitblastSupport
+import all Cpc.Proofs.RuleSupport.BvBitblastSupport
 
 open Eo
 open SmtEval
