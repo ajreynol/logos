@@ -3322,6 +3322,380 @@ theorem substFalse_eval_ternary_op
       (by simp [IsNonbinderSubterm, hOuterNonbinder, hMiddleNonbinder])
       (by simp; omega) hArgsTrans.2.2 hSubstArgsTrans.2.2)
 
+/-- Reusable reduction for a **quaternary special-head application**
+`(Apply (Apply (Apply (Apply (UOp op) x1) x2) x3) a)` in the
+substitution-evaluation induction. -/
+theorem substFalse_eval_quaternary_op
+    (op : UserOp) (x1 x2 x3 a xs ss bvs : Term) {M N : SmtModel}
+    (hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck)
+    (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck)
+    (hbvs : bvs ≠ Term.Stuck)
+    (hNotBinderOuter :
+      ∀ q v vs,
+        Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3 ≠
+          Term.Apply q
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3) a))
+    (hSubstTrans :
+      eoHasSmtTranslation
+        (__substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3) a)
+          xs ss bvs))
+    (hHeadSub :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.UOp op) xs ss bvs =
+        Term.UOp op)
+    (hArgExtract :
+      ∀ {w x y z : Term},
+        eoHasSmtTranslation
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) w) x) y) z) →
+        eoHasSmtTranslation w ∧ eoHasSmtTranslation x ∧
+          eoHasSmtTranslation y ∧ eoHasSmtTranslation z)
+    (hCong :
+      ∀ X1 Y1 X2 Y2 X3 Y3 X4 Y4 : Term,
+        __smtx_model_eval M (__eo_to_smt X1) =
+          __smtx_model_eval N (__eo_to_smt Y1) →
+        __smtx_model_eval M (__eo_to_smt X2) =
+          __smtx_model_eval N (__eo_to_smt Y2) →
+        __smtx_model_eval M (__eo_to_smt X3) =
+          __smtx_model_eval N (__eo_to_smt Y3) →
+        __smtx_model_eval M (__eo_to_smt X4) =
+          __smtx_model_eval N (__eo_to_smt Y4) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply (Term.UOp op) X1) X2) X3) X4)) =
+          __smtx_model_eval N
+            (__eo_to_smt
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply (Term.UOp op) Y1) Y2) Y3) Y4)))
+    (hRecArg :
+      ∀ {b : Term},
+        IsNonbinderSubterm b
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3) a) →
+        sizeOf b <
+          sizeOf
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3) a) →
+        eoHasSmtTranslation b →
+        eoHasSmtTranslation
+          (__substitute_simul_rec (Term.Boolean isRename) b xs ss bvs) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec
+                (Term.Boolean isRename) b xs ss bvs)) =
+          __smtx_model_eval N (__eo_to_smt b)) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean isRename)
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3) a)
+            xs ss bvs)) =
+      __smtx_model_eval N
+        (__eo_to_smt
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3) a)) := by
+  have hArgsTrans := hArgExtract hFTrans
+  have hSubstInner :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply (Term.UOp op) x1) xs ss bvs =
+        __eo_mk_apply (Term.UOp op)
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x1 xs ss bvs) := by
+    have hEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean isRename) (Term.UOp op) x1 xs ss bvs
+        hisr hxs hss hbvs (by intro q v vs hEq; cases hEq)
+    simpa [hHeadSub] using hEq
+  have hNotBinderMiddle :
+      ∀ q v vs,
+        Term.Apply (Term.UOp op) x1 ≠
+          Term.Apply q
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) := by
+    intro q v vs hEq
+    cases hEq
+    exact term_not_eo_list_cons_of_has_smt_translation
+      hArgsTrans.1 v vs rfl
+  have hSubstMiddle :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply (Term.Apply (Term.UOp op) x1) x2)
+          xs ss bvs =
+        __eo_mk_apply
+          (__eo_mk_apply (Term.UOp op)
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x1 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x2 xs ss bvs) := by
+    have hEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean isRename)
+        (Term.Apply (Term.UOp op) x1) x2 xs ss bvs
+        hisr hxs hss hbvs hNotBinderMiddle
+    rw [hEq, hSubstInner]
+  have hNotBinderThird :
+      ∀ q v vs,
+        Term.Apply
+            (Term.Apply (Term.UOp op) x1) x2 ≠
+          Term.Apply q
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) := by
+    intro q v vs hEq
+    cases hEq
+    exact term_not_eo_list_cons_of_has_smt_translation
+      hArgsTrans.2.1 v vs rfl
+  have hSubstThird :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3)
+          xs ss bvs =
+        __eo_mk_apply
+          (__eo_mk_apply
+            (__eo_mk_apply (Term.UOp op)
+              (__substitute_simul_rec
+                (Term.Boolean isRename) x1 xs ss bvs))
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x2 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x3 xs ss bvs) := by
+    have hEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean isRename)
+        (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3
+        xs ss bvs hisr hxs hss hbvs hNotBinderThird
+    rw [hEq, hSubstMiddle]
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3) a)
+          xs ss bvs =
+        __eo_mk_apply
+          (__eo_mk_apply
+            (__eo_mk_apply
+              (__eo_mk_apply (Term.UOp op)
+                (__substitute_simul_rec
+                  (Term.Boolean isRename) x1 xs ss bvs))
+              (__substitute_simul_rec
+                (Term.Boolean isRename) x2 xs ss bvs))
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x3 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) a xs ss bvs) := by
+    have hEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean isRename)
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3) a
+        xs ss bvs hisr hxs hss hbvs hNotBinderOuter
+    rw [hEq, hSubstThird]
+  have hOuterNeStuck :
+      __eo_mk_apply
+          (__eo_mk_apply
+            (__eo_mk_apply
+              (__eo_mk_apply (Term.UOp op)
+                (__substitute_simul_rec
+                  (Term.Boolean isRename) x1 xs ss bvs))
+              (__substitute_simul_rec
+                (Term.Boolean isRename) x2 xs ss bvs))
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x3 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) a xs ss bvs) ≠
+        Term.Stuck := by
+    rw [← hSubstEq]
+    exact RuleProofs.term_ne_stuck_of_has_smt_translation _ hSubstTrans
+  have hThirdNeStuck :
+      __eo_mk_apply
+          (__eo_mk_apply
+            (__eo_mk_apply (Term.UOp op)
+              (__substitute_simul_rec
+                (Term.Boolean isRename) x1 xs ss bvs))
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x2 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x3 xs ss bvs) ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hOuterNeStuck
+  have hMiddleNeStuck :
+      __eo_mk_apply
+          (__eo_mk_apply (Term.UOp op)
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x1 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x2 xs ss bvs) ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hThirdNeStuck
+  have hInnerNeStuck :
+      __eo_mk_apply (Term.UOp op)
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x1 xs ss bvs) ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hMiddleNeStuck
+  have hInnerMk :
+      __eo_mk_apply (Term.UOp op)
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x1 xs ss bvs) =
+        Term.Apply (Term.UOp op)
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x1 xs ss bvs) :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hInnerNeStuck
+  have hMiddleMk :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp op)
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x1 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x2 xs ss bvs) =
+        Term.Apply
+          (Term.Apply (Term.UOp op)
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x1 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x2 xs ss bvs) :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
+      rw [← hInnerMk]
+      exact hMiddleNeStuck)
+  have hThirdMk :
+      __eo_mk_apply
+          (Term.Apply
+            (Term.Apply (Term.UOp op)
+              (__substitute_simul_rec
+                (Term.Boolean isRename) x1 xs ss bvs))
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x2 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x3 xs ss bvs) =
+        Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp op)
+              (__substitute_simul_rec
+                (Term.Boolean isRename) x1 xs ss bvs))
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x2 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) x3 xs ss bvs) :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
+      rw [← hMiddleMk, ← hInnerMk]
+      exact hThirdNeStuck)
+  have hOuterMk :
+      __eo_mk_apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp op)
+                (__substitute_simul_rec
+                  (Term.Boolean isRename) x1 xs ss bvs))
+              (__substitute_simul_rec
+                (Term.Boolean isRename) x2 xs ss bvs))
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x3 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) a xs ss bvs) =
+        Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp op)
+                (__substitute_simul_rec
+                  (Term.Boolean isRename) x1 xs ss bvs))
+              (__substitute_simul_rec
+                (Term.Boolean isRename) x2 xs ss bvs))
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x3 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) a xs ss bvs) :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
+      rw [← hThirdMk, ← hMiddleMk, ← hInnerMk]
+      exact hOuterNeStuck)
+  have hResultEq :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3) a)
+          xs ss bvs =
+        Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp op)
+                (__substitute_simul_rec
+                  (Term.Boolean isRename) x1 xs ss bvs))
+              (__substitute_simul_rec
+                (Term.Boolean isRename) x2 xs ss bvs))
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x3 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) a xs ss bvs) := by
+    rw [hSubstEq, hInnerMk, hMiddleMk, hThirdMk, hOuterMk]
+  have hSubstAppTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp op)
+                (__substitute_simul_rec
+                  (Term.Boolean isRename) x1 xs ss bvs))
+              (__substitute_simul_rec
+                (Term.Boolean isRename) x2 xs ss bvs))
+            (__substitute_simul_rec
+              (Term.Boolean isRename) x3 xs ss bvs))
+          (__substitute_simul_rec
+            (Term.Boolean isRename) a xs ss bvs)) := by
+    rw [← hResultEq]
+    exact hSubstTrans
+  have hSubstArgsTrans := hArgExtract hSubstAppTrans
+  have hOuterNonbinder :
+      ¬ IsBinderHead
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp op) x1) x2) x3) := by
+    rintro ⟨q, v, vs, hEq⟩
+    exact hNotBinderOuter q v vs hEq
+  have hThirdNonbinder :
+      ¬ IsBinderHead
+        (Term.Apply (Term.Apply (Term.UOp op) x1) x2) := by
+    rintro ⟨q, v, vs, hEq⟩
+    exact hNotBinderThird q v vs hEq
+  have hMiddleNonbinder :
+      ¬ IsBinderHead (Term.Apply (Term.UOp op) x1) := by
+    rintro ⟨q, v, vs, hEq⟩
+    exact hNotBinderMiddle q v vs hEq
+  rw [hResultEq]
+  exact hCong _ _ _ _ _ _ _ _
+    (hRecArg
+      (by
+        simp [IsNonbinderSubterm, hOuterNonbinder, hThirdNonbinder,
+          hMiddleNonbinder])
+      (by simp; omega) hArgsTrans.1 hSubstArgsTrans.1)
+    (hRecArg
+      (by
+        simp [IsNonbinderSubterm, hOuterNonbinder, hThirdNonbinder,
+          hMiddleNonbinder])
+      (by simp; omega) hArgsTrans.2.1 hSubstArgsTrans.2.1)
+    (hRecArg
+      (by
+        simp [IsNonbinderSubterm, hOuterNonbinder, hThirdNonbinder,
+          hMiddleNonbinder])
+      (by simp; omega) hArgsTrans.2.2.1 hSubstArgsTrans.2.2.1)
+    (hRecArg
+      (by
+        simp [IsNonbinderSubterm, hOuterNonbinder, hThirdNonbinder,
+          hMiddleNonbinder])
+      (by simp; omega) hArgsTrans.2.2.2 hSubstArgsTrans.2.2.2)
+
 theorem smtx_model_eval_apply_cross_eq_of_eval_eq
     {M N : SmtModel} (hGlobals : model_agrees_on_globals M N)
     {F F' X X' : SmtTerm}
@@ -4098,6 +4472,7 @@ theorem eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
     (hSetSubset : op ≠ UserOp.set_subset)
     (hStringsItosResult : op ≠ UserOp._at_strings_itos_result)
     (hStringsNumOccur : op ≠ UserOp._at_strings_num_occur)
+    (hStringsNumOccurRe : op ≠ UserOp._at_strings_num_occur_re)
     (hArrayDeqDiff : op ≠ UserOp._at_array_deq_diff)
     (hSetsDeqDiff : op ≠ UserOp._at_sets_deq_diff)
     (hTuple : op ≠ UserOp.tuple)
@@ -4190,6 +4565,7 @@ theorem eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
     | exact hSetSubset rfl
     | exact hStringsItosResult rfl
     | exact hStringsNumOccur rfl
+    | exact hStringsNumOccurRe rfl
     | exact hArrayDeqDiff rfl
     | exact hSetsDeqDiff rfl
     | exact hTuple rfl
@@ -4418,7 +4794,9 @@ theorem eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
     (hStrReplaceRe : op ≠ UserOp.str_replace_re)
     (hStrReplaceReAll : op ≠ UserOp.str_replace_re_all)
     (hStrIndexofRe : op ≠ UserOp.str_indexof_re)
-    (hStrIndexofReSplit : op ≠ UserOp.str_indexof_re_split) :
+    (hStrIndexofReSplit : op ≠ UserOp.str_indexof_re_split)
+    (hStringsOccurIndex : op ≠ UserOp._at_strings_occur_index)
+    (hStringsOccurIndexRe : op ≠ UserOp._at_strings_occur_index_re) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) =
       SmtTerm.Apply
         (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x) y))
@@ -4436,6 +4814,10 @@ theorem eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
   case str_replace_re_all => exact False.elim (hStrReplaceReAll rfl)
   case str_indexof_re => exact False.elim (hStrIndexofRe rfl)
   case str_indexof_re_split => exact False.elim (hStrIndexofReSplit rfl)
+  case _at_strings_occur_index =>
+    exact False.elim (hStringsOccurIndex rfl)
+  case _at_strings_occur_index_re =>
+    exact False.elim (hStringsOccurIndexRe rfl)
 
 theorem substFalse_eval_ternary_uop_generic_apply
     (op : UserOp) (x1 x2 a xs ss bvs : Term) {M N : SmtModel}
@@ -5443,12 +5825,23 @@ theorem eo_to_smt_apply_apply_apply_non_uop_head_generic
   case UOp op => exact False.elim (hNotUOp op rfl)
 
 theorem eo_to_smt_apply_apply_apply_apply_head_generic
-    (g x y z w : Term) :
+    (g x y z w : Term)
+    (hStringsReplaceAllResult :
+      g ≠ Term.UOp UserOp._at_strings_replace_all_result)
+    (hStringsReplaceReAllResult :
+      g ≠ Term.UOp UserOp._at_strings_replace_re_all_result) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.Apply g x) y) z) w) =
       SmtTerm.Apply
         (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g x) y) z))
         (__eo_to_smt w) := by
-  rfl
+  cases g <;> try rfl
+  case UOp op =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      first
+      | exact hStringsReplaceAllResult rfl
+      | exact hStringsReplaceReAllResult rfl
 
 theorem substFalse_eval_binary_atom_head_generic_apply
     (g x y xs ss bvs : Term) {M N : SmtModel}
@@ -7397,8 +7790,16 @@ theorem substFalse_eval_ternary_atom_head_generic_apply
 
 theorem substFalse_eval_quaternary_apply_head_generic_apply
     (g y x0 x1 a xs ss bvs : Term) {M N : SmtModel}
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
     (hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck)
     (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck)
+    (hStringsReplaceAllResult :
+      g ≠ Term.UOp UserOp._at_strings_replace_all_result)
+    (hStringsReplaceReAllResult :
+      g ≠ Term.UOp UserOp._at_strings_replace_re_all_result)
     (hNotBinderOuter :
       ∀ q v vs,
         Term.Apply (Term.Apply (Term.Apply g y) x0) x1 ≠
@@ -7471,6 +7872,7 @@ theorem substFalse_eval_quaternary_apply_head_generic_apply
           (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g y) x0) x1))
           (__eo_to_smt a) :=
     eo_to_smt_apply_apply_apply_apply_head_generic g y x0 x1 a
+      hStringsReplaceAllResult hStringsReplaceReAllResult
   have hOrigTy :
       generic_apply_type
         (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g y) x0) x1))
@@ -7522,6 +7924,40 @@ theorem substFalse_eval_quaternary_apply_head_generic_apply
       substitute_simul_rec_apply_apply_apply_eq_apply_apply_apply_of_ne_stuck
         g y x0 x1 xs ss bvs hisr hxs hss hbvs hHeadSubNe
     with ⟨gSub, ySub, x0Sub, x1Sub, hHeadShape⟩
+  have hGSubStringsReplaceAllResult :
+      gSub ≠ Term.UOp UserOp._at_strings_replace_all_result :=
+    substitute_simul_apply_apply_apply_head_ne_untranslatable_target
+      g y x0 x1 a xs ss bvs
+      (Term.UOp UserOp._at_strings_replace_all_result)
+      gSub ySub x0Sub x1Sub
+      hXsEnv hBvsEnv hSsTrans hStringsReplaceAllResult
+      (by
+        intro h
+        exact h (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none))
+      (by intro p q h; cases h)
+      (by
+        simpa [eoHasSmtTranslation, RuleProofs.eo_has_smt_translation]
+          using hFTrans)
+      hHeadSubNe hHeadShape
+  have hGSubStringsReplaceReAllResult :
+      gSub ≠ Term.UOp UserOp._at_strings_replace_re_all_result :=
+    substitute_simul_apply_apply_apply_head_ne_untranslatable_target
+      g y x0 x1 a xs ss bvs
+      (Term.UOp UserOp._at_strings_replace_re_all_result)
+      gSub ySub x0Sub x1Sub
+      hXsEnv hBvsEnv hSsTrans hStringsReplaceReAllResult
+      (by
+        intro h
+        exact h (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none))
+      (by intro p q h; cases h)
+      (by
+        simpa [eoHasSmtTranslation, RuleProofs.eo_has_smt_translation]
+          using hFTrans)
+      hHeadSubNe hHeadShape
   have hSubstTranslate :
       __eo_to_smt
           (Term.Apply
@@ -7537,6 +7973,7 @@ theorem substFalse_eval_quaternary_apply_head_generic_apply
     exact
       eo_to_smt_apply_apply_apply_apply_head_generic
         gSub ySub x0Sub x1Sub aSub
+        hGSubStringsReplaceAllResult hGSubStringsReplaceReAllResult
   have hSubstTy :
       generic_apply_type
         (__eo_to_smt
@@ -9909,202 +10346,211 @@ theorem substitute_simul_eval_nonbinder
                                                                                                                                                                                                                                                                   (fun {s t} h => strings_num_occur_args_have_smt_translation_of_has_smt_translation h)
                                                                                                                                                                                                                                                                   (fun X1 Y1 X2 Y2 h1 h2 => by
                                                                                                                                                                                                                                                                     show __smtx_model_eval M
-                                                                                                                                                                                                                                                                        (SmtTerm.div
-                                                                                                                                                                                                                                                                          (SmtTerm.neg
-                                                                                                                                                                                                                                                                            (SmtTerm.str_len (__eo_to_smt X1))
-                                                                                                                                                                                                                                                                            (SmtTerm.str_len
-                                                                                                                                                                                                                                                                              (SmtTerm.str_replace_all (__eo_to_smt X1) (__eo_to_smt X2)
-                                                                                                                                                                                                                                                                                (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
-                                                                                                                                                                                                                                                                          (SmtTerm.str_len (__eo_to_smt X2))) =
+                                                                                                                                                                                                                                                                        (__eo_to_smt_strings_num_occur
+                                                                                                                                                                                                                                                                          (__eo_to_smt X1) (__eo_to_smt X2)) =
                                                                                                                                                                                                                                                                       __smtx_model_eval N
-                                                                                                                                                                                                                                                                        (SmtTerm.div
-                                                                                                                                                                                                                                                                          (SmtTerm.neg
-                                                                                                                                                                                                                                                                            (SmtTerm.str_len (__eo_to_smt Y1))
-                                                                                                                                                                                                                                                                            (SmtTerm.str_len
-                                                                                                                                                                                                                                                                              (SmtTerm.str_replace_all (__eo_to_smt Y1) (__eo_to_smt Y2)
-                                                                                                                                                                                                                                                                                (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
-                                                                                                                                                                                                                                                                          (SmtTerm.str_len (__eo_to_smt Y2)))
-                                                                                                                                                                                                                                                                    simp [__smtx_model_eval, h1, h2,
-                                                                                                                                                                                                                                                                      smtx_model_eval_apply_eq_of_globals hGlobals,
-                                                                                                                                                                                                                                                                      hGlobals.1])
+                                                                                                                                                                                                                                                                        (__eo_to_smt_strings_num_occur
+                                                                                                                                                                                                                                                                          (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                                                                                                                                                                    simp [__eo_to_smt_strings_num_occur,
+                                                                                                                                                                                                                                                                      __smtx_model_eval, h1, h2])
                                                                                                                                                                                                                                                                   (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                                                                                                                                                                                                   (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                                                                                                                                                              · by_cases h_array_deq_diff : op = UserOp._at_array_deq_diff
+                                                                                                                                                                                                                                                              · by_cases h_strings_num_occur_re : op = UserOp._at_strings_num_occur_re
                                                                                                                                                                                                                                                                 · subst op
-                                                                                                                                                                                                                                                                  exact substFalse_eval_binary_op_with_app_trans UserOp._at_array_deq_diff x1 a xs ss bvs
+                                                                                                                                                                                                                                                                  exact substFalse_eval_binary_op UserOp._at_strings_num_occur_re x1 a xs ss bvs
                                                                                                                                                                                                                                                                     hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
                                                                                                                                                                                                                                                                     hFTrans hSubstTrans
-                                                                                                                                                                                                                                                                    (substitute_simul_rec_uop_eq_self UserOp._at_array_deq_diff xs ss bvs hXsEnv hBvsEnv hSsTrans)
-                                                                                                                                                                                                                                                                    (fun {s t} h => array_deq_diff_args_have_smt_translation_of_has_smt_translation h)
-                                                                                                                                                                                                                                                                    (fun X1 Y1 X2 Y2 hSubApp hOrigApp h1 h2 => by
-                                                                                                                                                                                                                                                                      unfold eoHasSmtTranslation at hSubApp hOrigApp
-                                                                                                                                                                                                                                                                      change
-                                                                                                                                                                                                                                                                          __smtx_model_eval M
-                                                                                                                                                                                                                                                                              (__eo_to_smt_array_deq_diff (__eo_to_smt X1)
-                                                                                                                                                                                                                                                                                (__smtx_typeof (__eo_to_smt X1))
-                                                                                                                                                                                                                                                                                (__eo_to_smt X2)
-                                                                                                                                                                                                                                                                                (__smtx_typeof (__eo_to_smt X2))) =
-                                                                                                                                                                                                                                                                            __smtx_model_eval N
-                                                                                                                                                                                                                                                                              (__eo_to_smt_array_deq_diff (__eo_to_smt Y1)
-                                                                                                                                                                                                                                                                                (__smtx_typeof (__eo_to_smt Y1))
-                                                                                                                                                                                                                                                                                (__eo_to_smt Y2)
-                                                                                                                                                                                                                                                                                (__smtx_typeof (__eo_to_smt Y2)))
-                                                                                                                                                                                                                                                                      change
-                                                                                                                                                                                                                                                                          __smtx_typeof
-                                                                                                                                                                                                                                                                              (__eo_to_smt_array_deq_diff (__eo_to_smt X1)
-                                                                                                                                                                                                                                                                                (__smtx_typeof (__eo_to_smt X1))
-                                                                                                                                                                                                                                                                                (__eo_to_smt X2)
-                                                                                                                                                                                                                                                                                (__smtx_typeof (__eo_to_smt X2))) ≠
-                                                                                                                                                                                                                                                                            SmtType.None at hSubApp
-                                                                                                                                                                                                                                                                      change
-                                                                                                                                                                                                                                                                          __smtx_typeof
-                                                                                                                                                                                                                                                                              (__eo_to_smt_array_deq_diff (__eo_to_smt Y1)
-                                                                                                                                                                                                                                                                                (__smtx_typeof (__eo_to_smt Y1))
-                                                                                                                                                                                                                                                                                (__eo_to_smt Y2)
-                                                                                                                                                                                                                                                                                (__smtx_typeof (__eo_to_smt Y2))) ≠
-                                                                                                                                                                                                                                                                            SmtType.None at hOrigApp
-                                                                                                                                                                                                                                                                      cases hX1Ty : __smtx_typeof (__eo_to_smt X1) <;>
-                                                                                                                                                                                                                                                                        cases hX2Ty : __smtx_typeof (__eo_to_smt X2) <;>
-                                                                                                                                                                                                                                                                        simp [__eo_to_smt_array_deq_diff, hX1Ty, hX2Ty,
-                                                                                                                                                                                                                                                                          TranslationProofs.smtx_typeof_none] at hSubApp ⊢
-                                                                                                                                                                                                                                                                      case Map.Map A B C D =>
-                                                                                                                                                                                                                                                                        cases hY1Ty : __smtx_typeof (__eo_to_smt Y1) <;>
-                                                                                                                                                                                                                                                                          cases hY2Ty : __smtx_typeof (__eo_to_smt Y2) <;>
-                                                                                                                                                                                                                                                                          simp [__eo_to_smt_array_deq_diff, hY1Ty, hY2Ty,
-                                                                                                                                                                                                                                                                            TranslationProofs.smtx_typeof_none] at hOrigApp ⊢
-                                                                                                                                                                                                                                                                        case Map.Map A' B' C' D' =>
-                                                                                                                                                                                                                                                                          simp [__smtx_model_eval, h1, h2])
+                                                                                                                                                                                                                                                                    (substitute_simul_rec_uop_eq_self UserOp._at_strings_num_occur_re xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                                                                                                                                                    (fun {s t} h => strings_num_occur_re_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                                                                                                                                    (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                                                                                                                                                                      show __smtx_model_eval M
+                                                                                                                                                                                                                                                                          (__eo_to_smt_strings_num_occur_re
+                                                                                                                                                                                                                                                                            (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                                                                                                                                                                        __smtx_model_eval N
+                                                                                                                                                                                                                                                                          (__eo_to_smt_strings_num_occur_re
+                                                                                                                                                                                                                                                                            (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                                                                                                                                                                      simp [__eo_to_smt_strings_num_occur_re,
+                                                                                                                                                                                                                                                                        __smtx_model_eval, h1, h2])
                                                                                                                                                                                                                                                                     (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                                                                                                                                                                                                     (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                                                                                                                                                                · by_cases h_sets_deq_diff : op = UserOp._at_sets_deq_diff
+                                                                                                                                                                                                                                                                · by_cases h_array_deq_diff : op = UserOp._at_array_deq_diff
                                                                                                                                                                                                                                                                   · subst op
-                                                                                                                                                                                                                                                                    exact substFalse_eval_binary_op_with_app_trans UserOp._at_sets_deq_diff x1 a xs ss bvs
+                                                                                                                                                                                                                                                                    exact substFalse_eval_binary_op_with_app_trans UserOp._at_array_deq_diff x1 a xs ss bvs
                                                                                                                                                                                                                                                                       hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
                                                                                                                                                                                                                                                                       hFTrans hSubstTrans
-                                                                                                                                                                                                                                                                      (substitute_simul_rec_uop_eq_self UserOp._at_sets_deq_diff xs ss bvs hXsEnv hBvsEnv hSsTrans)
-                                                                                                                                                                                                                                                                      (fun {s t} h => sets_deq_diff_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                                                                                                                                      (substitute_simul_rec_uop_eq_self UserOp._at_array_deq_diff xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                                                                                                                                                      (fun {s t} h => array_deq_diff_args_have_smt_translation_of_has_smt_translation h)
                                                                                                                                                                                                                                                                       (fun X1 Y1 X2 Y2 hSubApp hOrigApp h1 h2 => by
                                                                                                                                                                                                                                                                         unfold eoHasSmtTranslation at hSubApp hOrigApp
                                                                                                                                                                                                                                                                         change
                                                                                                                                                                                                                                                                             __smtx_model_eval M
-                                                                                                                                                                                                                                                                                (__eo_to_smt_sets_deq_diff (__eo_to_smt X1)
+                                                                                                                                                                                                                                                                                (__eo_to_smt_array_deq_diff (__eo_to_smt X1)
                                                                                                                                                                                                                                                                                   (__smtx_typeof (__eo_to_smt X1))
                                                                                                                                                                                                                                                                                   (__eo_to_smt X2)
                                                                                                                                                                                                                                                                                   (__smtx_typeof (__eo_to_smt X2))) =
                                                                                                                                                                                                                                                                               __smtx_model_eval N
-                                                                                                                                                                                                                                                                                (__eo_to_smt_sets_deq_diff (__eo_to_smt Y1)
+                                                                                                                                                                                                                                                                                (__eo_to_smt_array_deq_diff (__eo_to_smt Y1)
                                                                                                                                                                                                                                                                                   (__smtx_typeof (__eo_to_smt Y1))
                                                                                                                                                                                                                                                                                   (__eo_to_smt Y2)
                                                                                                                                                                                                                                                                                   (__smtx_typeof (__eo_to_smt Y2)))
                                                                                                                                                                                                                                                                         change
                                                                                                                                                                                                                                                                             __smtx_typeof
-                                                                                                                                                                                                                                                                                (__eo_to_smt_sets_deq_diff (__eo_to_smt X1)
+                                                                                                                                                                                                                                                                                (__eo_to_smt_array_deq_diff (__eo_to_smt X1)
                                                                                                                                                                                                                                                                                   (__smtx_typeof (__eo_to_smt X1))
                                                                                                                                                                                                                                                                                   (__eo_to_smt X2)
                                                                                                                                                                                                                                                                                   (__smtx_typeof (__eo_to_smt X2))) ≠
                                                                                                                                                                                                                                                                               SmtType.None at hSubApp
                                                                                                                                                                                                                                                                         change
                                                                                                                                                                                                                                                                             __smtx_typeof
-                                                                                                                                                                                                                                                                                (__eo_to_smt_sets_deq_diff (__eo_to_smt Y1)
+                                                                                                                                                                                                                                                                                (__eo_to_smt_array_deq_diff (__eo_to_smt Y1)
                                                                                                                                                                                                                                                                                   (__smtx_typeof (__eo_to_smt Y1))
                                                                                                                                                                                                                                                                                   (__eo_to_smt Y2)
                                                                                                                                                                                                                                                                                   (__smtx_typeof (__eo_to_smt Y2))) ≠
                                                                                                                                                                                                                                                                               SmtType.None at hOrigApp
                                                                                                                                                                                                                                                                         cases hX1Ty : __smtx_typeof (__eo_to_smt X1) <;>
                                                                                                                                                                                                                                                                           cases hX2Ty : __smtx_typeof (__eo_to_smt X2) <;>
-                                                                                                                                                                                                                                                                          simp [__eo_to_smt_sets_deq_diff, hX1Ty, hX2Ty,
+                                                                                                                                                                                                                                                                          simp [__eo_to_smt_array_deq_diff, hX1Ty, hX2Ty,
                                                                                                                                                                                                                                                                             TranslationProofs.smtx_typeof_none] at hSubApp ⊢
-                                                                                                                                                                                                                                                                        case Set.Set A B =>
+                                                                                                                                                                                                                                                                        case Map.Map A B C D =>
                                                                                                                                                                                                                                                                           cases hY1Ty : __smtx_typeof (__eo_to_smt Y1) <;>
                                                                                                                                                                                                                                                                             cases hY2Ty : __smtx_typeof (__eo_to_smt Y2) <;>
-                                                                                                                                                                                                                                                                            simp [__eo_to_smt_sets_deq_diff, hY1Ty, hY2Ty,
+                                                                                                                                                                                                                                                                            simp [__eo_to_smt_array_deq_diff, hY1Ty, hY2Ty,
                                                                                                                                                                                                                                                                               TranslationProofs.smtx_typeof_none] at hOrigApp ⊢
-                                                                                                                                                                                                                                                                          case Set.Set A' B' =>
+                                                                                                                                                                                                                                                                          case Map.Map A' B' C' D' =>
                                                                                                                                                                                                                                                                             simp [__smtx_model_eval, h1, h2])
                                                                                                                                                                                                                                                                       (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                                                                                                                                                                                                       (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                                                                                                                                                                  · by_cases h_forall : op = UserOp.forall
+                                                                                                                                                                                                                                                                  · by_cases h_sets_deq_diff : op = UserOp._at_sets_deq_diff
                                                                                                                                                                                                                                                                     · subst op
-                                                                                                                                                                                                                                                                      exact
-                                                                                                                                                                                                                                                                        false_of_forall_non_list_has_smt_translation
-                                                                                                                                                                                                                                                                          (by
-                                                                                                                                                                                                                                                                            intro v vs hEq
-                                                                                                                                                                                                                                                                            exact hBinder ⟨Term.UOp UserOp.forall, v, vs, by rw [hEq]⟩)
-                                                                                                                                                                                                                                                                          hFTrans
-                                                                                                                                                                                                                                                                    · by_cases h_exists : op = UserOp.exists
+                                                                                                                                                                                                                                                                      exact substFalse_eval_binary_op_with_app_trans UserOp._at_sets_deq_diff x1 a xs ss bvs
+                                                                                                                                                                                                                                                                        hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                                                                                                        hFTrans hSubstTrans
+                                                                                                                                                                                                                                                                        (substitute_simul_rec_uop_eq_self UserOp._at_sets_deq_diff xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                                                                                                                                                        (fun {s t} h => sets_deq_diff_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                                                                                                                                        (fun X1 Y1 X2 Y2 hSubApp hOrigApp h1 h2 => by
+                                                                                                                                                                                                                                                                          unfold eoHasSmtTranslation at hSubApp hOrigApp
+                                                                                                                                                                                                                                                                          change
+                                                                                                                                                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                                                                                                                                                  (__eo_to_smt_sets_deq_diff (__eo_to_smt X1)
+                                                                                                                                                                                                                                                                                    (__smtx_typeof (__eo_to_smt X1))
+                                                                                                                                                                                                                                                                                    (__eo_to_smt X2)
+                                                                                                                                                                                                                                                                                    (__smtx_typeof (__eo_to_smt X2))) =
+                                                                                                                                                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                                                                                                                                                  (__eo_to_smt_sets_deq_diff (__eo_to_smt Y1)
+                                                                                                                                                                                                                                                                                    (__smtx_typeof (__eo_to_smt Y1))
+                                                                                                                                                                                                                                                                                    (__eo_to_smt Y2)
+                                                                                                                                                                                                                                                                                    (__smtx_typeof (__eo_to_smt Y2)))
+                                                                                                                                                                                                                                                                          change
+                                                                                                                                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                                                                                                                                  (__eo_to_smt_sets_deq_diff (__eo_to_smt X1)
+                                                                                                                                                                                                                                                                                    (__smtx_typeof (__eo_to_smt X1))
+                                                                                                                                                                                                                                                                                    (__eo_to_smt X2)
+                                                                                                                                                                                                                                                                                    (__smtx_typeof (__eo_to_smt X2))) ≠
+                                                                                                                                                                                                                                                                                SmtType.None at hSubApp
+                                                                                                                                                                                                                                                                          change
+                                                                                                                                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                                                                                                                                  (__eo_to_smt_sets_deq_diff (__eo_to_smt Y1)
+                                                                                                                                                                                                                                                                                    (__smtx_typeof (__eo_to_smt Y1))
+                                                                                                                                                                                                                                                                                    (__eo_to_smt Y2)
+                                                                                                                                                                                                                                                                                    (__smtx_typeof (__eo_to_smt Y2))) ≠
+                                                                                                                                                                                                                                                                                SmtType.None at hOrigApp
+                                                                                                                                                                                                                                                                          cases hX1Ty : __smtx_typeof (__eo_to_smt X1) <;>
+                                                                                                                                                                                                                                                                            cases hX2Ty : __smtx_typeof (__eo_to_smt X2) <;>
+                                                                                                                                                                                                                                                                            simp [__eo_to_smt_sets_deq_diff, hX1Ty, hX2Ty,
+                                                                                                                                                                                                                                                                              TranslationProofs.smtx_typeof_none] at hSubApp ⊢
+                                                                                                                                                                                                                                                                          case Set.Set A B =>
+                                                                                                                                                                                                                                                                            cases hY1Ty : __smtx_typeof (__eo_to_smt Y1) <;>
+                                                                                                                                                                                                                                                                              cases hY2Ty : __smtx_typeof (__eo_to_smt Y2) <;>
+                                                                                                                                                                                                                                                                              simp [__eo_to_smt_sets_deq_diff, hY1Ty, hY2Ty,
+                                                                                                                                                                                                                                                                                TranslationProofs.smtx_typeof_none] at hOrigApp ⊢
+                                                                                                                                                                                                                                                                            case Set.Set A' B' =>
+                                                                                                                                                                                                                                                                              simp [__smtx_model_eval, h1, h2])
+                                                                                                                                                                                                                                                                        (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
+                                                                                                                                                                                                                                                                        (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
+                                                                                                                                                                                                                                                                    · by_cases h_forall : op = UserOp.forall
                                                                                                                                                                                                                                                                       · subst op
                                                                                                                                                                                                                                                                         exact
-                                                                                                                                                                                                                                                                          false_of_exists_non_list_has_smt_translation
+                                                                                                                                                                                                                                                                          false_of_forall_non_list_has_smt_translation
                                                                                                                                                                                                                                                                             (by
                                                                                                                                                                                                                                                                               intro v vs hEq
-                                                                                                                                                                                                                                                                              exact hBinder ⟨Term.UOp UserOp.exists, v, vs, by rw [hEq]⟩)
+                                                                                                                                                                                                                                                                              exact hBinder ⟨Term.UOp UserOp.forall, v, vs, by rw [hEq]⟩)
                                                                                                                                                                                                                                                                             hFTrans
-                                                                                                                                                                                                                                                                      · by_cases h_tuple : op = UserOp.tuple
+                                                                                                                                                                                                                                                                      · by_cases h_exists : op = UserOp.exists
                                                                                                                                                                                                                                                                         · subst op
-                                                                                                                                                                                                                                                                          exact substFalse_eval_binary_tuple x1 a xs ss bvs hM hN
-                                                                                                                                                                                                                                                                            hisr hxs hss hbvs
-                                                                                                                                                                                                                                                                            (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                                                                                                                                                                                                                                            hFTrans hSubstTrans
-                                                                                                                                                                                                                                                                            (substitute_simul_rec_uop_eq_self UserOp.tuple xs ss bvs
-                                                                                                                                                                                                                                                                              hXsEnv hBvsEnv hSsTrans)
-                                                                                                                                                                                                                                                                            hGlobals
-                                                                                                                                                                                                                                                                            (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                                                                                                                                                                            (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                                                                                                                                                                        · by_cases h_set_insert : op = UserOp.set_insert
+                                                                                                                                                                                                                                                                          exact
+                                                                                                                                                                                                                                                                            false_of_exists_non_list_has_smt_translation
+                                                                                                                                                                                                                                                                              (by
+                                                                                                                                                                                                                                                                                intro v vs hEq
+                                                                                                                                                                                                                                                                                exact hBinder ⟨Term.UOp UserOp.exists, v, vs, by rw [hEq]⟩)
+                                                                                                                                                                                                                                                                              hFTrans
+                                                                                                                                                                                                                                                                        · by_cases h_tuple : op = UserOp.tuple
                                                                                                                                                                                                                                                                           · subst op
-                                                                                                                                                                                                                                                                            exact substFalse_eval_set_insert x1 a xs ss bvs
-                                                                                                                                                                                                                                                                              hXsEnv hBvsEnv hSsTrans
+                                                                                                                                                                                                                                                                            exact substFalse_eval_binary_tuple x1 a xs ss bvs hM hN
                                                                                                                                                                                                                                                                               hisr hxs hss hbvs
                                                                                                                                                                                                                                                                               (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
                                                                                                                                                                                                                                                                               hFTrans hSubstTrans
-                                                                                                                                                                                                                                                                              (substitute_simul_rec_uop_eq_self UserOp.set_insert xs ss bvs
-                                                                                                                                                                                                                                                                                hXsEnv hBvsEnv hSsTrans)
-                                                                                                                                                                                                                                                                              hRecArg
-                                                                                                                                                                                                                                                                          · exact substFalse_eval_binary_uop_generic_apply op x1 a xs ss bvs
-                                                                                                                                                                                                                                                                              hisr hxs hss hbvs
-                                                                                                                                                                                                                                                                              (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                                                                                                                                                                                                                                              (eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
-                                                                                                                                                                                                                                                                                h_and h_or h_imp h_xor h_eq h_plus h_neg h_mult
-                                                                                                                                                                                                                                                                                h_lt h_leq h_gt h_geq h_div h_mod h_select
-                                                                                                                                                                                                                                                                                h_divisible h_div_total h_mod_total h_qdiv_total h_qdiv h_concat
-                                                                                                                                                                                                                                                                                h_bvand h_bvor h_bvnand h_bvnor h_bvxor h_bvxnor
-                                                                                                                                                                                                                                                                                h_bvcomp h_bvadd h_bvmul h_bvudiv h_bvurem h_bvsub
-                                                                                                                                                                                                                                                                                h_bvsdiv h_bvsrem h_bvsmod h_bvshl h_bvlshr
-                                                                                                                                                                                                                                                                                h_bvashr h_bvult h_bvule h_bvugt h_bvuge h_bvslt
-                                                                                                                                                                                                                                                                                h_bvsle h_bvsgt h_bvsge h_bvuaddo h_bvsaddo
-                                                                                                                                                                                                                                                                                h_bvumulo h_bvsmulo h_bvusubo h_bvssubo h_bvsdivo
-                                                                                                                                                                                                                                                                                h_bvultbv h_bvsltbv h_from_bools h_strings_deq_diff
-                                                                                                                                                                                                                                                                                h_strings_stoi_result h_str_concat h_str_contains h_str_at
-                                                                                                                                                                                                                                                                                h_str_prefixof h_str_suffixof h_str_lt h_str_leq
-                                                                                                                                                                                                                                                                                h_re_range h_re_concat h_re_inter h_re_union h_re_diff
-                                                                                                                                                                                                                                                                                h_str_in_re h_seq_nth h_set_union h_set_inter
-                                                                                                                                                                                                                                                                                h_set_minus h_set_member h_set_subset h_strings_itos_result
-                                                                                                                                                                                                                                                                                h_strings_num_occur h_array_deq_diff h_sets_deq_diff
-                                                                                                                                                                                                                                                                                h_tuple h_set_insert h_forall h_exists)
-                                                                                                                                                                                                                                                                              (eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
-                                                                                                                                                                                                                                                                                h_and h_or h_imp h_xor h_eq h_plus h_neg h_mult
-                                                                                                                                                                                                                                                                                h_lt h_leq h_gt h_geq h_div h_mod h_select
-                                                                                                                                                                                                                                                                                h_divisible h_div_total h_mod_total h_qdiv_total h_qdiv h_concat
-                                                                                                                                                                                                                                                                                h_bvand h_bvor h_bvnand h_bvnor h_bvxor h_bvxnor
-                                                                                                                                                                                                                                                                                h_bvcomp h_bvadd h_bvmul h_bvudiv h_bvurem h_bvsub
-                                                                                                                                                                                                                                                                                h_bvsdiv h_bvsrem h_bvsmod h_bvshl h_bvlshr
-                                                                                                                                                                                                                                                                                h_bvashr h_bvult h_bvule h_bvugt h_bvuge h_bvslt
-                                                                                                                                                                                                                                                                                h_bvsle h_bvsgt h_bvsge h_bvuaddo h_bvsaddo
-                                                                                                                                                                                                                                                                                h_bvumulo h_bvsmulo h_bvusubo h_bvssubo h_bvsdivo
-                                                                                                                                                                                                                                                                                h_bvultbv h_bvsltbv h_from_bools h_strings_deq_diff
-                                                                                                                                                                                                                                                                                h_strings_stoi_result h_str_concat h_str_contains h_str_at
-                                                                                                                                                                                                                                                                                h_str_prefixof h_str_suffixof h_str_lt h_str_leq
-                                                                                                                                                                                                                                                                                h_re_range h_re_concat h_re_inter h_re_union h_re_diff
-                                                                                                                                                                                                                                                                                h_str_in_re h_seq_nth h_set_union h_set_inter
-                                                                                                                                                                                                                                                                                h_set_minus h_set_member h_set_subset h_strings_itos_result
-                                                                                                                                                                                                                                                                                h_strings_num_occur h_array_deq_diff h_sets_deq_diff
-                                                                                                                                                                                                                                                                                h_tuple h_set_insert h_forall h_exists)
-                                                                                                                                                                                                                                                                              hFTrans hSubstTrans
-                                                                                                                                                                                                                                                                              (substitute_simul_rec_uop_eq_self op xs ss bvs
+                                                                                                                                                                                                                                                                              (substitute_simul_rec_uop_eq_self UserOp.tuple xs ss bvs
                                                                                                                                                                                                                                                                                 hXsEnv hBvsEnv hSsTrans)
                                                                                                                                                                                                                                                                               hGlobals
                                                                                                                                                                                                                                                                               (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                                                                                                                                                                                                               (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
+                                                                                                                                                                                                                                                                          · by_cases h_set_insert : op = UserOp.set_insert
+                                                                                                                                                                                                                                                                            · subst op
+                                                                                                                                                                                                                                                                              exact substFalse_eval_set_insert x1 a xs ss bvs
+                                                                                                                                                                                                                                                                                hXsEnv hBvsEnv hSsTrans
+                                                                                                                                                                                                                                                                                hisr hxs hss hbvs
+                                                                                                                                                                                                                                                                                (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                                                                                                                hFTrans hSubstTrans
+                                                                                                                                                                                                                                                                                (substitute_simul_rec_uop_eq_self UserOp.set_insert xs ss bvs
+                                                                                                                                                                                                                                                                                  hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                                                                                                                                                                hRecArg
+                                                                                                                                                                                                                                                                            · exact substFalse_eval_binary_uop_generic_apply op x1 a xs ss bvs
+                                                                                                                                                                                                                                                                                hisr hxs hss hbvs
+                                                                                                                                                                                                                                                                                (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                                                                                                                (eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
+                                                                                                                                                                                                                                                                                  h_and h_or h_imp h_xor h_eq h_plus h_neg h_mult
+                                                                                                                                                                                                                                                                                  h_lt h_leq h_gt h_geq h_div h_mod h_select
+                                                                                                                                                                                                                                                                                  h_divisible h_div_total h_mod_total h_qdiv_total h_qdiv h_concat
+                                                                                                                                                                                                                                                                                  h_bvand h_bvor h_bvnand h_bvnor h_bvxor h_bvxnor
+                                                                                                                                                                                                                                                                                  h_bvcomp h_bvadd h_bvmul h_bvudiv h_bvurem h_bvsub
+                                                                                                                                                                                                                                                                                  h_bvsdiv h_bvsrem h_bvsmod h_bvshl h_bvlshr
+                                                                                                                                                                                                                                                                                  h_bvashr h_bvult h_bvule h_bvugt h_bvuge h_bvslt
+                                                                                                                                                                                                                                                                                  h_bvsle h_bvsgt h_bvsge h_bvuaddo h_bvsaddo
+                                                                                                                                                                                                                                                                                  h_bvumulo h_bvsmulo h_bvusubo h_bvssubo h_bvsdivo
+                                                                                                                                                                                                                                                                                  h_bvultbv h_bvsltbv h_from_bools h_strings_deq_diff
+                                                                                                                                                                                                                                                                                  h_strings_stoi_result h_str_concat h_str_contains h_str_at
+                                                                                                                                                                                                                                                                                  h_str_prefixof h_str_suffixof h_str_lt h_str_leq
+                                                                                                                                                                                                                                                                                  h_re_range h_re_concat h_re_inter h_re_union h_re_diff
+                                                                                                                                                                                                                                                                                  h_str_in_re h_seq_nth h_set_union h_set_inter
+                                                                                                                                                                                                                                                                                  h_set_minus h_set_member h_set_subset h_strings_itos_result
+                                                                                                                                                                                                                                                                                  h_strings_num_occur h_strings_num_occur_re
+                                                                                                                                                                                                                                                                                  h_array_deq_diff h_sets_deq_diff
+                                                                                                                                                                                                                                                                                  h_tuple h_set_insert h_forall h_exists)
+                                                                                                                                                                                                                                                                                (eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
+                                                                                                                                                                                                                                                                                  h_and h_or h_imp h_xor h_eq h_plus h_neg h_mult
+                                                                                                                                                                                                                                                                                  h_lt h_leq h_gt h_geq h_div h_mod h_select
+                                                                                                                                                                                                                                                                                  h_divisible h_div_total h_mod_total h_qdiv_total h_qdiv h_concat
+                                                                                                                                                                                                                                                                                  h_bvand h_bvor h_bvnand h_bvnor h_bvxor h_bvxnor
+                                                                                                                                                                                                                                                                                  h_bvcomp h_bvadd h_bvmul h_bvudiv h_bvurem h_bvsub
+                                                                                                                                                                                                                                                                                  h_bvsdiv h_bvsrem h_bvsmod h_bvshl h_bvlshr
+                                                                                                                                                                                                                                                                                  h_bvashr h_bvult h_bvule h_bvugt h_bvuge h_bvslt
+                                                                                                                                                                                                                                                                                  h_bvsle h_bvsgt h_bvsge h_bvuaddo h_bvsaddo
+                                                                                                                                                                                                                                                                                  h_bvumulo h_bvsmulo h_bvusubo h_bvssubo h_bvsdivo
+                                                                                                                                                                                                                                                                                  h_bvultbv h_bvsltbv h_from_bools h_strings_deq_diff
+                                                                                                                                                                                                                                                                                  h_strings_stoi_result h_str_concat h_str_contains h_str_at
+                                                                                                                                                                                                                                                                                  h_str_prefixof h_str_suffixof h_str_lt h_str_leq
+                                                                                                                                                                                                                                                                                  h_re_range h_re_concat h_re_inter h_re_union h_re_diff
+                                                                                                                                                                                                                                                                                  h_str_in_re h_seq_nth h_set_union h_set_inter
+                                                                                                                                                                                                                                                                                  h_set_minus h_set_member h_set_subset h_strings_itos_result
+                                                                                                                                                                                                                                                                                  h_strings_num_occur h_strings_num_occur_re
+                                                                                                                                                                                                                                                                                  h_array_deq_diff h_sets_deq_diff
+                                                                                                                                                                                                                                                                                  h_tuple h_set_insert h_forall h_exists)
+                                                                                                                                                                                                                                                                                hFTrans hSubstTrans
+                                                                                                                                                                                                                                                                                (substitute_simul_rec_uop_eq_self op xs ss bvs
+                                                                                                                                                                                                                                                                                  hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                                                                                                                                                                hGlobals
+                                                                                                                                                                                                                                                                                (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
+                                                                                                                                                                                                                                                                                (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                         | Apply h x0 =>
                                                                                             cases h with
                                                                                             | UOp op =>
@@ -10369,25 +10815,65 @@ theorem substitute_simul_eval_nonbinder
                                                                                                                             simp only [__smtx_model_eval]
                                                                                                                             rw [h1, h2, h3])
                                                                                                                           hRecArg
-                                                                                                                      · exact substFalse_eval_ternary_uop_generic_apply op x0 x1 a xs ss bvs
-                                                                                                                          hisr hxs hss hbvs
-                                                                                                                          (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                                                                                          (eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
-                                                                                                                            h_ite h_store h_bvite h_str_substr h_str_indexof
-                                                                                                                            h_str_update h_str_replace h_str_replace_all
-                                                                                                                            h_str_replace_re h_str_replace_re_all h_str_indexof_re
-                                                                                                                            h_str_indexof_re_split)
-                                                                                                                          (eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
-                                                                                                                            h_ite h_store h_bvite h_str_substr h_str_indexof
-                                                                                                                            h_str_update h_str_replace h_str_replace_all
-                                                                                                                            h_str_replace_re h_str_replace_re_all h_str_indexof_re
-                                                                                                                            h_str_indexof_re_split)
-                                                                                                                          hFTrans hSubstTrans
-                                                                                                                          (substitute_simul_rec_uop_eq_self op xs ss bvs
-                                                                                                                            hXsEnv hBvsEnv hSsTrans)
-                                                                                                                          hGlobals
-                                                                                                                          (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                          (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
+                                                                                                                      · by_cases h_strings_occur_index : op = UserOp._at_strings_occur_index
+                                                                                                                        · subst op
+                                                                                                                          exact substFalse_eval_ternary_op UserOp._at_strings_occur_index x0 x1 a xs ss bvs
+                                                                                                                            hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                            hFTrans hSubstTrans
+                                                                                                                            (substitute_simul_rec_uop_eq_self UserOp._at_strings_occur_index xs ss bvs
+                                                                                                                              hXsEnv hBvsEnv hSsTrans)
+                                                                                                                            (fun {x y z} h =>
+                                                                                                                              strings_occur_index_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                            (fun X1 Y1 X2 Y2 X3 Y3 h1 h2 h3 => by
+                                                                                                                              show __smtx_model_eval M
+                                                                                                                                  (SmtTerm._at_strings_occur_index
+                                                                                                                                    (__eo_to_smt X1) (__eo_to_smt X2) (__eo_to_smt X3)) =
+                                                                                                                                __smtx_model_eval N
+                                                                                                                                  (SmtTerm._at_strings_occur_index
+                                                                                                                                    (__eo_to_smt Y1) (__eo_to_smt Y2) (__eo_to_smt Y3))
+                                                                                                                              simp only [__smtx_model_eval]
+                                                                                                                              rw [h1, h2, h3])
+                                                                                                                            hRecArg
+                                                                                                                        · by_cases h_strings_occur_index_re : op = UserOp._at_strings_occur_index_re
+                                                                                                                          · subst op
+                                                                                                                            exact substFalse_eval_ternary_op UserOp._at_strings_occur_index_re x0 x1 a xs ss bvs
+                                                                                                                              hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                              hFTrans hSubstTrans
+                                                                                                                              (substitute_simul_rec_uop_eq_self UserOp._at_strings_occur_index_re xs ss bvs
+                                                                                                                                hXsEnv hBvsEnv hSsTrans)
+                                                                                                                              (fun {x y z} h =>
+                                                                                                                                strings_occur_index_re_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                              (fun X1 Y1 X2 Y2 X3 Y3 h1 h2 h3 => by
+                                                                                                                                show __smtx_model_eval M
+                                                                                                                                    (SmtTerm._at_strings_occur_index_re
+                                                                                                                                      (__eo_to_smt X1) (__eo_to_smt X2) (__eo_to_smt X3)) =
+                                                                                                                                  __smtx_model_eval N
+                                                                                                                                    (SmtTerm._at_strings_occur_index_re
+                                                                                                                                      (__eo_to_smt Y1) (__eo_to_smt Y2) (__eo_to_smt Y3))
+                                                                                                                                simp only [__smtx_model_eval]
+                                                                                                                                rw [h1, h2, h3])
+                                                                                                                              hRecArg
+                                                                                                                          · exact substFalse_eval_ternary_uop_generic_apply op x0 x1 a xs ss bvs
+                                                                                                                              hisr hxs hss hbvs
+                                                                                                                              (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                              (eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
+                                                                                                                                h_ite h_store h_bvite h_str_substr h_str_indexof
+                                                                                                                                h_str_update h_str_replace h_str_replace_all
+                                                                                                                                h_str_replace_re h_str_replace_re_all h_str_indexof_re
+                                                                                                                                h_str_indexof_re_split h_strings_occur_index
+                                                                                                                                h_strings_occur_index_re)
+                                                                                                                              (eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
+                                                                                                                                h_ite h_store h_bvite h_str_substr h_str_indexof
+                                                                                                                                h_str_update h_str_replace h_str_replace_all
+                                                                                                                                h_str_replace_re h_str_replace_re_all h_str_indexof_re
+                                                                                                                                h_str_indexof_re_split h_strings_occur_index
+                                                                                                                                h_strings_occur_index_re)
+                                                                                                                              hFTrans hSubstTrans
+                                                                                                                              (substitute_simul_rec_uop_eq_self op xs ss bvs
+                                                                                                                                hXsEnv hBvsEnv hSsTrans)
+                                                                                                                              hGlobals
+                                                                                                                              (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
+                                                                                                                              (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                             | Var name S =>
                                                                                                 exact
                                                                                                   substFalse_eval_ternary_var_head_generic_apply
@@ -10451,14 +10937,107 @@ theorem substitute_simul_eval_nonbinder
                                                                                                     hGlobals
                                                                                                     hRecArg
                                                                                             | Apply g y =>
-                                                                                                exact
-                                                                                                  substFalse_eval_quaternary_apply_head_generic_apply
-                                                                                                    g y x0 x1 a xs ss bvs
-                                                                                                    hisr hxs hss hbvs
-                                                                                                    (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                                                                    hFTrans hSubstTrans
-                                                                                                    hGlobals
-                                                                                                    hRecArg
+                                                                                                by_cases h_strings_replace_all_result :
+                                                                                                    g = Term.UOp UserOp._at_strings_replace_all_result
+                                                                                                · subst g
+                                                                                                  exact
+                                                                                                    substFalse_eval_quaternary_op
+                                                                                                      UserOp._at_strings_replace_all_result
+                                                                                                      y x0 x1 a xs ss bvs
+                                                                                                      hisr hxs hss hbvs
+                                                                                                      (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                      hFTrans hSubstTrans
+                                                                                                      (substitute_simul_rec_uop_eq_self
+                                                                                                        UserOp._at_strings_replace_all_result
+                                                                                                        xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                      (fun {w z y x} h =>
+                                                                                                        strings_replace_all_result_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                      (fun X1 Y1 X2 Y2 X3 Y3 X4 Y4
+                                                                                                          h1 h2 h3 h4 => by
+                                                                                                        show
+                                                                                                          __smtx_model_eval M
+                                                                                                              (SmtTerm.str_replace_all
+                                                                                                                (SmtTerm.str_substr
+                                                                                                                  (__eo_to_smt X1)
+                                                                                                                  (SmtTerm._at_strings_occur_index
+                                                                                                                    (__eo_to_smt X1)
+                                                                                                                    (__eo_to_smt X2)
+                                                                                                                    (__eo_to_smt X4))
+                                                                                                                  (SmtTerm.str_len
+                                                                                                                    (__eo_to_smt X1)))
+                                                                                                                (__eo_to_smt X2)
+                                                                                                                (__eo_to_smt X3)) =
+                                                                                                            __smtx_model_eval N
+                                                                                                              (SmtTerm.str_replace_all
+                                                                                                                (SmtTerm.str_substr
+                                                                                                                  (__eo_to_smt Y1)
+                                                                                                                  (SmtTerm._at_strings_occur_index
+                                                                                                                    (__eo_to_smt Y1)
+                                                                                                                    (__eo_to_smt Y2)
+                                                                                                                    (__eo_to_smt Y4))
+                                                                                                                  (SmtTerm.str_len
+                                                                                                                    (__eo_to_smt Y1)))
+                                                                                                                (__eo_to_smt Y2)
+                                                                                                                (__eo_to_smt Y3))
+                                                                                                        simp [__smtx_model_eval,
+                                                                                                          h1, h2, h3, h4])
+                                                                                                      hRecArg
+                                                                                                · by_cases h_strings_replace_re_all_result :
+                                                                                                      g = Term.UOp UserOp._at_strings_replace_re_all_result
+                                                                                                  · subst g
+                                                                                                    exact
+                                                                                                      substFalse_eval_quaternary_op
+                                                                                                        UserOp._at_strings_replace_re_all_result
+                                                                                                        y x0 x1 a xs ss bvs
+                                                                                                        hisr hxs hss hbvs
+                                                                                                        (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                        hFTrans hSubstTrans
+                                                                                                        (substitute_simul_rec_uop_eq_self
+                                                                                                          UserOp._at_strings_replace_re_all_result
+                                                                                                          xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                        (fun {w z y x} h =>
+                                                                                                          strings_replace_re_all_result_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                        (fun X1 Y1 X2 Y2 X3 Y3 X4 Y4
+                                                                                                            h1 h2 h3 h4 => by
+                                                                                                          show
+                                                                                                            __smtx_model_eval M
+                                                                                                                (SmtTerm.str_replace_re_all
+                                                                                                                  (SmtTerm.str_substr
+                                                                                                                    (__eo_to_smt X1)
+                                                                                                                    (SmtTerm._at_strings_occur_index_re
+                                                                                                                      (__eo_to_smt X1)
+                                                                                                                      (__eo_to_smt X2)
+                                                                                                                      (__eo_to_smt X4))
+                                                                                                                    (SmtTerm.str_len
+                                                                                                                      (__eo_to_smt X1)))
+                                                                                                                  (__eo_to_smt X2)
+                                                                                                                  (__eo_to_smt X3)) =
+                                                                                                              __smtx_model_eval N
+                                                                                                                (SmtTerm.str_replace_re_all
+                                                                                                                  (SmtTerm.str_substr
+                                                                                                                    (__eo_to_smt Y1)
+                                                                                                                    (SmtTerm._at_strings_occur_index_re
+                                                                                                                      (__eo_to_smt Y1)
+                                                                                                                      (__eo_to_smt Y2)
+                                                                                                                      (__eo_to_smt Y4))
+                                                                                                                    (SmtTerm.str_len
+                                                                                                                      (__eo_to_smt Y1)))
+                                                                                                                  (__eo_to_smt Y2)
+                                                                                                                  (__eo_to_smt Y3))
+                                                                                                          simp [__smtx_model_eval,
+                                                                                                            h1, h2, h3, h4])
+                                                                                                        hRecArg
+                                                                                                  · exact
+                                                                                                      substFalse_eval_quaternary_apply_head_generic_apply
+                                                                                                        g y x0 x1 a xs ss bvs
+                                                                                                        hXsEnv hBvsEnv hSsTrans
+                                                                                                        hisr hxs hss hbvs
+                                                                                                        h_strings_replace_all_result
+                                                                                                        h_strings_replace_re_all_result
+                                                                                                        (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                        hFTrans hSubstTrans
+                                                                                                        hGlobals
+                                                                                                        hRecArg
                                                                                             | _ =>
                                                                                                 exact
                                                                                                   substFalse_eval_ternary_atom_head_generic_apply

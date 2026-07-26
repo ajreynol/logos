@@ -1095,36 +1095,157 @@ theorem substitute_simul_strings_num_occur_preserves_type_and_translation_of_typ
         unfold RuleProofs.eo_has_smt_translation
         change
           __smtx_typeof
-              (SmtTerm.div
-                (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt X))
-                  (SmtTerm.str_len
-                    (SmtTerm.str_replace_all (__eo_to_smt X) (__eo_to_smt Y)
-                      (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
-                (SmtTerm.str_len (__eo_to_smt Y))) ≠
+              (__eo_to_smt_strings_num_occur
+                (__eo_to_smt X) (__eo_to_smt Y)) ≠
             SmtType.None
         have hOrig :
             __smtx_typeof
-                (SmtTerm.div
-                  (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt x))
-                    (SmtTerm.str_len
-                      (SmtTerm.str_replace_all (__eo_to_smt x) (__eo_to_smt y)
-                        (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
-                  (SmtTerm.str_len (__eo_to_smt y))) ≠
+                (__eo_to_smt_strings_num_occur
+                  (__eo_to_smt x) (__eo_to_smt y)) ≠
               SmtType.None := by
           unfold RuleProofs.eo_has_smt_translation at hFTrans
           change
             __smtx_typeof
-                (SmtTerm.div
-                  (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt x))
-                    (SmtTerm.str_len
-                      (SmtTerm.str_replace_all (__eo_to_smt x) (__eo_to_smt y)
-                        (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
-                  (SmtTerm.str_len (__eo_to_smt y))) ≠
+                (__eo_to_smt_strings_num_occur
+                  (__eo_to_smt x) (__eo_to_smt y)) ≠
               SmtType.None at hFTrans
           exact hFTrans
         rw [smt_strings_num_occur_typeof_congr hXSmt hYSmt]
         exact hOrig)
         hRecX hRecY
+
+theorem substitute_simul_strings_num_occur_re_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x) y)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x) y)
+          xs ts bvs) =
+      __eo_typeof
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x) y)
+          xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck_arg_type_eq
+      UserOp._at_strings_num_occur_re x y xs ts bvs hXsEnv hBvsEnv hTs
+      hNotBinder hFTrans hTy
+      (fun h =>
+        strings_num_occur_re_args_have_smt_translation_of_has_smt_translation h)
+      (fun X Y hApp => by
+        change
+          __eo_typeof__at_strings_num_occur_re
+              (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact
+          eo_typeof_strings_num_occur_re_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof__at_strings_num_occur_re
+              (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof__at_strings_num_occur_re
+              (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hXTy hYTy _hApp => by
+        have hFTransEo :
+            eoHasSmtTranslation
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x)
+                y) := by
+          simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+            using hFTrans
+        rcases
+            strings_num_occur_re_args_have_smt_translation_of_has_smt_translation
+              hFTransEo with
+          ⟨hXOrigEo, hYOrigEo⟩
+        have hXOrigTrans : RuleProofs.eo_has_smt_translation x := by
+          simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+            using hXOrigEo
+        have hYOrigTrans : RuleProofs.eo_has_smt_translation y := by
+          simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+            using hYOrigEo
+        have hXSmt :
+            __smtx_typeof (__eo_to_smt X) =
+              __smtx_typeof (__eo_to_smt x) := by
+          rw [
+            TranslationProofs.eo_to_smt_typeof_matches_translation
+              X hXTrans,
+            TranslationProofs.eo_to_smt_typeof_matches_translation
+              x hXOrigTrans,
+            hXTy]
+        have hYSmt :
+            __smtx_typeof (__eo_to_smt Y) =
+              __smtx_typeof (__eo_to_smt y) := by
+          rw [
+            TranslationProofs.eo_to_smt_typeof_matches_translation
+              Y hYTrans,
+            TranslationProofs.eo_to_smt_typeof_matches_translation
+              y hYOrigTrans,
+            hYTy]
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (__eo_to_smt_strings_num_occur_re
+                (__eo_to_smt X) (__eo_to_smt Y)) ≠
+            SmtType.None
+        have hOrig :
+            __smtx_typeof
+                (__eo_to_smt_strings_num_occur_re
+                  (__eo_to_smt x) (__eo_to_smt y)) ≠
+              SmtType.None := by
+          unfold RuleProofs.eo_has_smt_translation at hFTrans
+          change
+            __smtx_typeof
+                (__eo_to_smt_strings_num_occur_re
+                  (__eo_to_smt x) (__eo_to_smt y)) ≠
+              SmtType.None at hFTrans
+          exact hFTrans
+        rw [smt_strings_num_occur_re_typeof_congr hXSmt hYSmt]
+        exact hOrig)
+      hRecX hRecY
 
 theorem substitute_simul_str_prefixof_preserves_type_and_translation_of_typeof_ne_stuck
     {isRename : Bool}
