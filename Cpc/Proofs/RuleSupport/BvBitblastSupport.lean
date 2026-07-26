@@ -2526,93 +2526,6 @@ private theorem eval_at_bit
   rw [← hpcast]
   norm_cast
 
-private theorem reify_rec_eval
-    (M : SmtModel) (a : Term) (W i n : Nat) (p : Int)
-    (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W)
-    (hin : i + n ≤ W)
-    (ha :
-      __smtx_model_eval M (__eo_to_smt a) =
-        SmtValue.Binary (W : Int) p) :
-    BitListEval M (__bv_bitblast_reify_rec a i n)
-      (reifyBits p.toNat i n) := by
-  induction n generalizing i with
-  | zero =>
-    exact BitListEval.nil
-  | succ n ih =>
-    rw [__bv_bitblast_reify_rec]
-    exact BitListEval.cons _ _ _ _
-      (by
-        simpa [BitVec.getLsbD, BitVec.toNat_ofInt,
-          Int.emod_eq_of_lt hp0 hp1] using
-            eval_at_bit M a W i p hp0 hp1 ha)
-      (ih (i := i + 1) (by omega))
-
-private theorem reify_rec_full_eval
-    (M : SmtModel) (a : Term) (W : Nat) (p : Int)
-    (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W)
-    (ha :
-      __smtx_model_eval M (__eo_to_smt a) =
-        SmtValue.Binary (W : Int) p) :
-    __smtx_model_eval M
-        (__eo_to_smt (__bv_bitblast_reify_rec a 0 W)) =
-      __smtx_model_eval M (__eo_to_smt a) := by
-  have hlist := reify_rec_eval M a W 0 W p hp0 hp1 (by omega) ha
-  rw [hlist.eval, ha]
-  simp only [reifyBits_length]
-  rw [bitsValue_reifyBits p.toNat W]
-  · have hpcast : (p.toNat : Int) = p := by omega
-    rw [hpcast]
-  · have hpcast : (p.toNat : Int) = p := by omega
-    rw [← hpcast] at hp1
-    exact_mod_cast hp1
-
-private theorem reify_shape (a : Term)
-    (h : __bv_bitblast_reify a ≠ Term.Stuck) :
-    ∃ w : Int,
-      __eo_typeof a =
-          Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) ∧
-        0 ≤ w ∧
-        __bv_bitblast_reify a =
-          __bv_bitblast_reify_rec a 0 w.toNat := by
-  unfold __bv_bitblast_reify at h ⊢
-  split at *
-  all_goals try simp_all
-  split at *
-  all_goals try simp_all
-  rename_i _ _ _ w heo
-  rcases h with ⟨hw, hrec⟩
-  have hneg : ¬ w < 0 := Int.not_lt_of_ge hw
-  simp [hneg]
-
-theorem eval_step_reify
-    (M : SmtModel) (hM : model_total_typed M) (a : Term)
-    (hExpanded : __bv_bitblast_reify a ≠ Term.Stuck)
-    (hnn : term_has_non_none_type (__eo_to_smt a)) :
-    __smtx_model_eval M (__eo_to_smt (__bv_bitblast_reify a)) =
-      __smtx_model_eval M (__eo_to_smt a) := by
-  rcases reify_shape a hExpanded with
-    ⟨w, heo, hwNN, hExpandedEq⟩
-  rw [hExpandedEq]
-  have htrans : RuleProofs.eo_has_smt_translation a := hnn
-  rcases smt_bitvec_type_of_eo_bitvec_type_with_width
-      a (Term.Numeral w) htrans heo with
-    ⟨w', hw', hw0, haTy⟩
-  injection hw' with hww
-  subst w'
-  rcases smt_eval_binary_of_smt_type_bitvec
-      M hM (__eo_to_smt a) w.toNat haTy with
-    ⟨p, ha, hcan⟩
-  have hrange :=
-    bitvec_payload_range_of_canonical
-      (w := (w.toNat : Int)) (n := p)
-        (by
-          unfold native_zleq
-          exact decide_eq_true (Int.natCast_nonneg _)) hcan
-  apply reify_rec_full_eval M a w.toNat p
-  · exact hrange.1
-  · simpa only [native_int_pow2_nat, Int.natCast_pow] using hrange.2
-  · exact ha
-
 theorem eval_step_bvnot (M : SmtModel) (hM : model_total_typed M)
     (a : Term)
     (hExpanded :
@@ -3857,26 +3770,26 @@ theorem eval_bv_mk_bitblast_step
   case h_5 => exact eval_step_bvule M hM _ _ hne hnn
   case h_6 => exact eval_step_bvslt M hM _ _ hne hnn
   case h_7 => exact eval_step_bvsle M hM _ _ hne hnn
-  case h_8 => exact eval_step_reify M hM _ hne hnn
-  case h_9 => exact eval_step_reify M hM _ hne hnn
-  case h_10 => exact eval_step_reify M hM _ hne hnn
-  case h_11 => exact eval_step_reify M hM _ hne hnn
-  case h_12 => exact eval_step_reify M hM _ hne hnn
+  case h_8 => sorry
+  case h_9 => sorry
+  case h_10 => sorry
+  case h_11 => sorry
+  case h_12 => sorry
   case h_13 => exact eval_step_bvxnor M hM _ _ hne hnn
-  case h_14 => exact eval_step_reify M hM _ hne hnn
-  case h_15 => exact eval_step_reify M hM _ hne hnn
-  case h_16 => exact eval_step_reify M hM _ hne hnn
-  case h_17 => exact eval_step_reify M hM _ hne hnn
+  case h_14 => sorry
+  case h_15 => sorry
+  case h_16 => sorry
+  case h_17 => sorry
   case h_18 => exact eval_step_bvsub M hM _ _ hne hnn
   case h_19 => exact eval_step_bvneg M hM _ hne hnn
   case h_20 => exact eval_step_bvite M hM _ _ _ hne hnn
-  case h_21 => exact eval_step_reify M hM _ hne hnn
-  case h_22 => exact eval_step_reify M hM _ hne hnn
-  case h_23 => exact eval_step_reify M hM _ hne hnn
+  case h_21 => sorry
+  case h_22 => sorry
+  case h_23 => sorry
   case h_24 => exact eval_step_bvcomp M hM _ _ hne hnn
   case h_25 => exact eval_step_bvultbv M hM _ _ hne hnn
   case h_26 => exact eval_step_bvsltbv M hM _ _ hne hnn
-  case h_27 => exact eval_step_reify M hM _ hne hnn
-  case h_28 => exact eval_step_reify M hM _ hne hnn
+  case h_27 => sorry
+  case h_28 => sorry
 
 end BvBitblast
