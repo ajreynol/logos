@@ -929,8 +929,12 @@ theorem dt_sel_wrong_fun_type_wf_of_map_wf
           (native_inhabited_type R = true ∧ __smtx_type_wf_rec R = true)) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
       native_and] using hM3WF
-  simp [D, R, __smtx_type_wf, __smtx_type_wf_component, native_and,
-    hAll.2.1.1, hAll.2.1.2, hAll.2.2.1, hAll.2.2.2]
+  have hRWF : __smtx_type_wf R = true :=
+    type_wf_of_inhabited_and_wf_rec hAll.2.2.1 hAll.2.2.2
+  change
+    native_and (__smtx_type_wf_component D) (__smtx_type_wf R) = true
+  simp [native_and,
+    smtx_type_wf_component_of_parts hAll.2.1.1 hAll.2.1.2, hRWF]
 
 /-- Shows that evaluating `dt_sel_wrong` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_sel_wrong
@@ -983,9 +987,11 @@ theorem typeof_value_model_eval_dt_sel_wrong
       native_inhabited_type R = true ∧
         __smtx_type_wf_rec R = true :=
     ⟨hDRParts.2.2.1, hDRParts.2.2.2⟩
+  have hRWF : __smtx_type_wf R = true :=
+    type_wf_of_inhabited_and_wf_rec hRParts.1 hRParts.2
   have hFunWF : __smtx_type_wf (SmtType.FunType D R) = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hDParts.1, hDParts.2,
-      hRParts.1, hRParts.2]
+      hRWF]
   have hLookup :
       __smtx_typeof_value
         (native_model_lookup M (native_wrong_apply_sel_id i j) (SmtType.FunType D R)) =

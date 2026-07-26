@@ -380,16 +380,16 @@ theorem fun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf_rec B = true := by
+      __smtx_type_wf B = true := by
   have h' := h
   simp [__smtx_type_wf, __smtx_type_wf_component, native_and] at h'
-  exact ⟨h'.1.2, h'.2.2⟩
+  exact ⟨h'.1.2, h'.2⟩
 
 theorem ifun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf_rec B = true := by
+      __smtx_type_wf B = true := by
   exact fun_type_wf_rec_components_of_wf h
 
 theorem fun_type_field_wf_rec_components_of_wf
@@ -2968,27 +2968,17 @@ theorem eo_typeof_type_of_smt_type_wf
       rcases fun_type_wf_rec_components_of_wf (by simpa [hTy] using h) with ⟨hURec, hVRec⟩
       have hUType := eo_typeof_type_of_smt_type_wf_rec U (by
         simpa [hU] using hURec)
-      have hVType := eo_typeof_type_of_smt_type_wf_rec V (by
+      have hVType := eo_typeof_type_of_smt_type_wf V (by
         simpa [hV] using hVRec)
       change __eo_typeof_fun_type (__eo_typeof U) (__eo_typeof V) = Term.Type
       rw [hUType, hVType]
       rfl
-    · by_cases hIFun : ∃ A B : SmtType, __eo_to_smt_type T = SmtType.FunType A B
-      · rcases hIFun with ⟨A, B, hTy⟩
-        rcases eo_to_smt_type_eq_ifun hTy with ⟨U, V, rfl, hU, hV⟩
-        rcases ifun_type_wf_rec_components_of_wf (by simpa [hTy] using h) with ⟨hURec, hVRec⟩
-        have hUType := eo_typeof_type_of_smt_type_wf_rec U (by
-          simpa [hU] using hURec)
-        have hVType := eo_typeof_type_of_smt_type_wf_rec V (by
-          simpa [hV] using hVRec)
-        change __eo_typeof_fun_type (__eo_typeof U) (__eo_typeof V) = Term.Type
-        rw [hUType, hVType]
-        rfl
-      · exact eo_typeof_type_of_smt_type_wf_rec T (by
-          cases hTy : __eo_to_smt_type T <;>
-            simp [hTy, __smtx_type_wf, __smtx_type_wf_component,
-              native_and] at h hReg hFun hIFun ⊢
-          all_goals first | contradiction | exact h.2 | exact h.1.2)
+    · exact eo_typeof_type_of_smt_type_wf_rec T (by
+        cases hTy : __eo_to_smt_type T <;>
+          simp [hTy, __smtx_type_wf, __smtx_type_wf_component,
+            native_and] at h hReg hFun ⊢
+        all_goals first | contradiction | exact h.2 | exact h.1.2)
+termination_by T
 
 theorem eo_typeof_type_of_smt_type_field_wf_rec
     (T : Term) (refs : RefList)
@@ -3450,34 +3440,25 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
   injTyNoNone T U A
     (noNoneTy_of_wf A (by simpa [smtx_type_field_wf_rec] using hWF)) hT hU
 
-/-- EO type translation is injective under the public top-level SMT
-well-formedness predicate. -/
-theorem eo_to_smt_type_injective_of_wf
-    {T U : Term} {A : SmtType}
-    (hT : __eo_to_smt_type T = A)
-    (hU : __eo_to_smt_type U = A)
+theorem noNoneTy_of_type_wf
+    (A : SmtType)
     (hWF : __smtx_type_wf A = true) :
-    T = U := by
+    noNoneTy A = true := by
   by_cases hReg : A = SmtType.RegLan
-  · exact (eo_to_smt_type_eq_reglan (hT.trans hReg)).trans
-      (eo_to_smt_type_eq_reglan (hU.trans hReg)).symm
+  · subst A
+    simp [noNoneTy]
   · by_cases hFun : ∃ X Y, A = SmtType.FunType X Y
     · rcases hFun with ⟨X, Y, rfl⟩
       have hComponents :
           __smtx_type_wf_component X = true ∧
-            __smtx_type_wf_component Y = true := by
+            __smtx_type_wf Y = true := by
         simpa [__smtx_type_wf, native_and] using hWF
       have hX : __smtx_type_wf_rec X = true := by
         have hp : native_inhabited_type X = true ∧ __smtx_type_wf_rec X = true := by
           simpa [__smtx_type_wf_component, native_and] using hComponents.1
         exact hp.2
-      have hY : __smtx_type_wf_rec Y = true := by
-        have hp : native_inhabited_type Y = true ∧ __smtx_type_wf_rec Y = true := by
-          simpa [__smtx_type_wf_component, native_and] using hComponents.2
-        exact hp.2
-      exact injTyNoNone T U (SmtType.FunType X Y)
-        (by simp [noNoneTy, noNoneTy_of_wf X hX,
-          noNoneTy_of_wf Y hY, native_and]) hT hU
+      simp [noNoneTy, noNoneTy_of_wf X hX,
+        noNoneTy_of_type_wf Y hComponents.2, native_and]
     ·
       have hRec : __smtx_type_wf_rec A = true := by
         have hComponent : __smtx_type_wf_component A = true := by
@@ -3487,7 +3468,18 @@ theorem eo_to_smt_type_injective_of_wf
         have hp : native_inhabited_type A = true ∧ __smtx_type_wf_rec A = true := by
           simpa [__smtx_type_wf_component, native_and] using hComponent
         exact hp.2
-      exact injTyNoNone T U A (noNoneTy_of_wf A hRec) hT hU
+      exact noNoneTy_of_wf A hRec
+termination_by A
+
+/-- EO type translation is injective under the public top-level SMT
+well-formedness predicate. -/
+theorem eo_to_smt_type_injective_of_wf
+    {T U : Term} {A : SmtType}
+    (hT : __eo_to_smt_type T = A)
+    (hU : __eo_to_smt_type U = A)
+    (hWF : __smtx_type_wf A = true) :
+    T = U :=
+  injTyNoNone T U A (noNoneTy_of_type_wf A hWF) hT hU
 
 /-- Recovers the translated EO type from an SMT typing equality using an explicit IH. -/
 theorem eo_to_smt_type_typeof_of_smt_type_from_ih

@@ -36,14 +36,10 @@ private theorem default_typed_model_of_native_fun_typed
           ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v) :
     native_fun_typed (default_typed_model_of hCan) := by
   intro fid A B i hFunWF hi
-  have hParts :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B = true := by
-    exact ifun_type_wf_parts hFunWF
+  have hBWF : __smtx_type_wf B = true :=
+    (fun_type_wf_components_of_wf hFunWF).2
   have hDefault :=
-    type_default_typed_canonical_of_inhabited_wf_rec B hParts.2.2.1 hParts.2.2.2
+    type_default_typed_canonical_of_type_wf B hBWF
   have hDefaultCan :
       __smtx_value_canonical_bool (__smtx_type_default B) = true := by
     simpa [__smtx_value_canonical] using hDefault.2

@@ -100,21 +100,20 @@ theorem smtx_type_wf_component_of_parts
     __smtx_type_wf_component T = true := by
   simp [__smtx_type_wf_component, native_and, hInh, hRec]
 
-/-- Extracts the component well-formedness facts from a well-formed function type. -/
+/-- Extracts the domain component facts and recursive codomain well-formedness
+from a well-formed function type. -/
 theorem fun_type_wf_parts
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     native_inhabited_type A = true ∧
       __smtx_type_wf_rec A = true ∧
-        native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B = true := by
+        __smtx_type_wf B = true := by
   have hAll :
       (native_inhabited_type A = true ∧
         __smtx_type_wf_rec A = true) ∧
-          (native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B = true) := by
+          __smtx_type_wf B = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
-  exact ⟨hAll.1.1, hAll.1.2, hAll.2.1, hAll.2.2⟩
+  exact ⟨hAll.1.1, hAll.1.2, hAll.2⟩
 
 /-- Compatibility name for the former native-function well-formedness helper. -/
 theorem ifun_type_wf_parts
@@ -122,8 +121,7 @@ theorem ifun_type_wf_parts
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     native_inhabited_type A = true ∧
       __smtx_type_wf_rec A = true ∧
-        native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B = true := by
+        __smtx_type_wf B = true := by
   exact fun_type_wf_parts h
 
 /-- Extracts semantic inhabitation from a non-`None` guarded type. -/
@@ -139,12 +137,6 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
     exact ⟨SmtValue.RegLan native_re_none, rfl⟩
   · by_cases hFun : ∃ A B, T = SmtType.FunType A B
     · rcases hFun with ⟨A, B, rfl⟩
-      have hParts :
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A = true ∧
-              native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B = true := by
-        exact fun_type_wf_parts hWf
       exact ⟨SmtValue.Fun native_default_ifun_id A B, by
         simp [__smtx_typeof_value]⟩
     · have hPair :
@@ -207,12 +199,6 @@ theorem type_inhabited_of_type_wf
     exact ⟨SmtValue.RegLan native_re_none, rfl⟩
   · by_cases hFun : ∃ A B, T = SmtType.FunType A B
     · rcases hFun with ⟨A, B, rfl⟩
-      have hParts :
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A = true ∧
-              native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B = true := by
-        exact fun_type_wf_parts hWF
       exact ⟨SmtValue.Fun native_default_ifun_id A B, rfl⟩
     · have hInh : native_inhabited_type T = true := by
         cases T <;>
@@ -272,11 +258,10 @@ theorem fun_type_wf_components_of_wf
   have hAll :
       (native_inhabited_type A = true ∧
         __smtx_type_wf_rec A = true) ∧
-        (native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B = true) := by
+        __smtx_type_wf B = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
   exact ⟨type_wf_of_inhabited_and_wf_rec hAll.1.1 hAll.1.2,
-    type_wf_of_inhabited_and_wf_rec hAll.2.1 hAll.2.2⟩
+    hAll.2⟩
 
 /-- Compatibility name for the former native-function component helper. -/
 theorem ifun_type_wf_components_of_wf
@@ -285,32 +270,21 @@ theorem ifun_type_wf_components_of_wf
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
   exact fun_type_wf_components_of_wf h
 
-/-- Extracts recursive well-formedness of the domain and codomain of a well-formed function type. -/
+/-- Extracts recursive well-formedness of the domain and public
+well-formedness of the (possibly functional) codomain. -/
 theorem fun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf_rec B = true := by
-  have hPair :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B = true := by
-    have hAll :
-        native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A = true ∧
-            native_inhabited_type B = true ∧
-              __smtx_type_wf_rec B = true := by
-      exact fun_type_wf_parts h
-    exact hAll
-  exact ⟨hPair.2.1, hPair.2.2.2⟩
+      __smtx_type_wf B = true := by
+  exact ⟨(fun_type_wf_parts h).2.1, (fun_type_wf_parts h).2.2⟩
 
 /-- Compatibility name for the former native-function recursive component helper. -/
 theorem ifun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf_rec B = true := by
+      __smtx_type_wf B = true := by
   exact fun_type_wf_rec_components_of_wf h
 
 /-- The domain of a well-formed function type is not `RegLan`. -/

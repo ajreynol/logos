@@ -2037,10 +2037,9 @@ private theorem smtx_fun_components_field_wf_rec_of_non_none_type_apply
     (x : SmtTerm) (A B : SmtType)
     (hxTy : __smtx_typeof x = SmtType.FunType A B) :
     smtx_type_field_wf_rec A native_reflist_nil ∧
-      smtx_type_field_wf_rec B native_reflist_nil := by
+      __smtx_type_wf B = true := by
   have hComps := smt_fun_components_wf_rec_of_non_none_type x A B hxTy
-  exact ⟨smtx_type_field_wf_rec_of_type_wf_rec hComps.1,
-    smtx_type_field_wf_rec_of_type_wf_rec hComps.2⟩
+  exact ⟨smtx_type_field_wf_rec_of_type_wf_rec hComps.1, hComps.2⟩
 
 private theorem smtx_datatype_field_wf_rec_of_non_none_type_apply
     (x : SmtTerm) (s : native_String) (d : SmtDatatypeDecl)
@@ -10496,7 +10495,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_eq_from_valid_i
         have h1 : X1 = Y1 :=
           eo_to_smt_type_injective_of_field_wf_rec hX1 hY1 hComps.1
         have h2 : X2 = Y2 :=
-          eo_to_smt_type_injective_of_field_wf_rec hX2 hY2 hComps.2
+          eo_to_smt_type_injective_of_wf hX2 hY2 hComps.2
         have hEqEo : __eo_typeof x = __eo_typeof y := by
           rw [hXEo, hYEo, h1, h2]
         exact eo_to_smt_type_typeof_apply_apply_eq_of_same_type
