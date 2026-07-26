@@ -706,6 +706,42 @@ private theorem false_of_typeof_str_indexof_re_split_eq_dtcapp_full
   repeat (first | split at hTy)
   all_goals cases hTy
 
+private theorem false_of_typeof_strings_num_occur_re_eq_dtcapp_full
+    {y x A B : Term}
+    (hTy :
+      __eo_typeof__at_strings_num_occur_re (__eo_typeof y) (__eo_typeof x) =
+        Term.DtcAppType A B) :
+    False := by
+  unfold __eo_typeof__at_strings_num_occur_re at hTy
+  repeat (first | split at hTy)
+  all_goals cases hTy
+
+private theorem false_of_typeof_strings_replace_all_result_eq_dtcapp_full
+    {w z y x A B : Term}
+    (hTy :
+      __eo_typeof__at_strings_replace_all_result
+          (__eo_typeof w) (__eo_typeof z) (__eo_typeof y) (__eo_typeof x) =
+        Term.DtcAppType A B) :
+    False := by
+  unfold __eo_typeof__at_strings_replace_all_result at hTy
+  repeat (first | split at hTy)
+  all_goals
+    first
+      | cases hTy
+      | exact false_of_requires_eq_dtcapp_of_payload_ne_full
+          (by intro h; cases h) hTy
+
+private theorem false_of_typeof_strings_replace_re_all_result_eq_dtcapp_full
+    {w z y x A B : Term}
+    (hTy :
+      __eo_typeof__at_strings_replace_re_all_result
+          (__eo_typeof w) (__eo_typeof z) (__eo_typeof y) (__eo_typeof x) =
+        Term.DtcAppType A B) :
+    False := by
+  unfold __eo_typeof__at_strings_replace_re_all_result at hTy
+  repeat (first | split at hTy)
+  all_goals cases hTy
+
 private theorem eo_type_valid_of_requires_eq_dtcapp_full
     {T V U A B : Term}
     (hU : eo_type_valid U)
@@ -3345,6 +3381,14 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                 case _at_strings_itos_result =>
                   exact False.elim
                     (false_of_typeof_strings_itos_result_eq_dtcapp_full hTy)
+                case _at_strings_num_occur_re =>
+                  exact False.elim
+                    (false_of_typeof_strings_num_occur_re_eq_dtcapp_full (by
+                      change
+                        __eo_typeof__at_strings_num_occur_re
+                            (__eo_typeof y) (__eo_typeof x) =
+                          Term.DtcAppType a b
+                      exact hTy))
                 case _at_sets_deq_diff =>
                   have hEq :=
                     eo_to_smt_typeof_matches_translation_sets_deq_diff y x
@@ -3991,7 +4035,31 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     (by
                       cases g0 <;> try rfl
                       case UOp op =>
-                        exact False.elim (hG0UOp ⟨op, rfl⟩))
+                        exact False.elim (hG0UOp ⟨op, rfl⟩)
+                      case Apply g1 w =>
+                        cases g1 <;> try rfl
+                        case UOp op =>
+                          cases op <;> try rfl
+                          case _at_strings_replace_all_result =>
+                            exact False.elim
+                              (false_of_typeof_strings_replace_all_result_eq_dtcapp_full
+                                (by
+                                  change
+                                    __eo_typeof__at_strings_replace_all_result
+                                        (__eo_typeof w) (__eo_typeof z)
+                                        (__eo_typeof y) (__eo_typeof x) =
+                                      Term.DtcAppType a b
+                                  exact hTy))
+                          case _at_strings_replace_re_all_result =>
+                            exact False.elim
+                              (false_of_typeof_strings_replace_re_all_result_eq_dtcapp_full
+                                (by
+                                  change
+                                    __eo_typeof__at_strings_replace_re_all_result
+                                        (__eo_typeof w) (__eo_typeof z)
+                                        (__eo_typeof y) (__eo_typeof x) =
+                                      Term.DtcAppType a b
+                                  exact hTy)))
                     (by
                       cases g0 <;> try rfl
                       case UOp op =>
@@ -4001,13 +4069,25 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                         case UOp op =>
                           cases op <;> try rfl
                           case _at_strings_replace_all_result =>
-                            exact false_of_typeof_quaternary_none_non_none_full
-                              (__eo_to_smt w) (__eo_to_smt z)
-                              (__eo_to_smt y) (__eo_to_smt x) hNonNone
+                            exact False.elim
+                              (false_of_typeof_strings_replace_all_result_eq_dtcapp_full
+                                (by
+                                  change
+                                    __eo_typeof__at_strings_replace_all_result
+                                        (__eo_typeof w) (__eo_typeof z)
+                                        (__eo_typeof y) (__eo_typeof x) =
+                                      Term.DtcAppType a b
+                                  exact hTy))
                           case _at_strings_replace_re_all_result =>
-                            exact false_of_typeof_quaternary_none_non_none_full
-                              (__eo_to_smt w) (__eo_to_smt z)
-                              (__eo_to_smt y) (__eo_to_smt x) hNonNone)
+                            exact False.elim
+                              (false_of_typeof_strings_replace_re_all_result_eq_dtcapp_full
+                                (by
+                                  change
+                                    __eo_typeof__at_strings_replace_re_all_result
+                                        (__eo_typeof w) (__eo_typeof z)
+                                        (__eo_typeof y) (__eo_typeof x) =
+                                      Term.DtcAppType a b
+                                  exact hTy)))
                     hTermNN hTy
               case __eo_List =>
                 exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full

@@ -399,7 +399,7 @@ def mkSmtAppSpineRev (head : SmtTerm) : List SmtTerm -> SmtTerm
 def EqTrueOrSame (M : SmtModel) (x y : Term) : Prop :=
   x = y ∨ eo_interprets M (mkEq x y) true
 
-private def EqTrueStableOrSame (M : SmtModel) (x y : Term) : Prop :=
+def EqTrueStableOrSame (M : SmtModel) (x y : Term) : Prop :=
   x = y ∨
     (eo_interprets M (mkEq x y) true ∧
       StableInAnyVarModel M (mkEq x y))
@@ -465,7 +465,9 @@ private theorem eo_to_smt_apply_generic_of_appSpineRev_var
           dsimp [appSpineRev] at hHead
           cases f' with
           | Apply f'' y'' =>
-              rfl
+              cases f'' with
+              | UOp op => simp [appSpineRev] at hHead
+              | _ => rfl
           | Var name U =>
               cases name with
               | String name =>
@@ -537,7 +539,9 @@ private theorem eo_to_smt_apply_generic_of_appSpineRev_uconst
           dsimp [appSpineRev] at hHead
           cases f' with
           | Apply f'' y'' =>
-              rfl
+              cases f'' with
+              | UOp op => simp [appSpineRev] at hHead
+              | _ => rfl
           | UConst i' U =>
               simp [appSpineRev] at hHead
               rcases hHead with ⟨rfl, rfl⟩
@@ -594,7 +598,9 @@ private theorem eo_to_smt_apply_generic_of_appSpineRev_dtcons
           dsimp [appSpineRev] at hHead
           cases f' with
           | Apply f'' y'' =>
-              rfl
+              cases f'' with
+              | UOp op => simp [appSpineRev] at hHead
+              | _ => rfl
           | DtCons s' d' i' =>
               simp [appSpineRev] at hHead
               rcases hHead with ⟨rfl, rfl, rfl⟩
@@ -650,7 +656,9 @@ private theorem eo_to_smt_apply_generic_of_appSpineRev_dt_sel
           dsimp [appSpineRev] at hHead
           cases f' with
           | Apply f'' y'' =>
-              rfl
+              cases f'' with
+              | UOp op => simp [appSpineRev] at hHead
+              | _ => rfl
           | DtSel s' d' i' j' =>
               simp [appSpineRev] at hHead
               rcases hHead with ⟨rfl, rfl, rfl, rfl⟩
@@ -1008,6 +1016,144 @@ theorem congTypeSpine_ternary_uop_inv
         ⟨y₁, y₂, hHeadEq, hArg₁, hArg₂⟩
       subst hHeadEq
       exact ⟨y₁, y₂, _, rfl, hArg₁, hArg₂, Or.inr hArg₃⟩
+
+theorem eqTrueOrSame_of_stable {M : SmtModel} {x y : Term}
+    (h : EqTrueStableOrSame M x y) : EqTrueOrSame M x y := by
+  rcases h with hEq | ⟨hTrue, _⟩
+  · exact Or.inl hEq
+  · exact Or.inr hTrue
+
+theorem congTrueSpine_uop_eq_stable
+    (M : SmtModel) (op : UserOp) (g : Term) :
+    CongTrueSpine M (Term.UOp op) g -> g = Term.UOp op := by
+  intro h
+  cases h with
+  | refl _ => rfl
+
+theorem congTrueSpine_unary_uop_inv_stable
+    (M : SmtModel) (op : UserOp) (x rhs : Term) :
+    CongTrueSpine M (Term.Apply (Term.UOp op) x) rhs ->
+    ∃ y,
+      rhs = Term.Apply (Term.UOp op) y ∧
+        EqTrueStableOrSame M x y := by
+  intro h
+  cases h with
+  | refl _ =>
+      exact ⟨x, rfl, Or.inl rfl⟩
+  | app hHead hArg hStable =>
+      have hg : _ := congTrueSpine_uop_eq_stable M op _ hHead
+      subst hg
+      exact ⟨_, rfl, Or.inr ⟨hArg, hStable⟩⟩
+
+theorem congTrueSpine_binary_uop_inv_stable
+    (M : SmtModel) (op : UserOp) (x₁ x₂ rhs : Term) :
+    CongTrueSpine M
+      (Term.Apply (Term.Apply (Term.UOp op) x₁) x₂) rhs ->
+    ∃ y₁ y₂,
+      rhs = Term.Apply (Term.Apply (Term.UOp op) y₁) y₂ ∧
+        EqTrueStableOrSame M x₁ y₁ ∧ EqTrueStableOrSame M x₂ y₂ := by
+  intro h
+  cases h with
+  | refl _ =>
+      exact ⟨x₁, x₂, rfl, Or.inl rfl, Or.inl rfl⟩
+  | app hHead hArg hStable =>
+      rcases congTrueSpine_unary_uop_inv_stable M op x₁ _ hHead with
+        ⟨y₁, hHeadEq, hArg₁⟩
+      subst hHeadEq
+      exact ⟨y₁, _, rfl, hArg₁, Or.inr ⟨hArg, hStable⟩⟩
+
+theorem congTrueSpine_ternary_uop_inv_stable
+    (M : SmtModel) (op : UserOp) (x₁ x₂ x₃ rhs : Term) :
+    CongTrueSpine M
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x₁) x₂) x₃)
+      rhs ->
+    ∃ y₁ y₂ y₃,
+      rhs =
+        Term.Apply (Term.Apply (Term.Apply (Term.UOp op) y₁) y₂) y₃ ∧
+        EqTrueStableOrSame M x₁ y₁ ∧ EqTrueStableOrSame M x₂ y₂ ∧
+          EqTrueStableOrSame M x₃ y₃ := by
+  intro h
+  cases h with
+  | refl _ =>
+      exact ⟨x₁, x₂, x₃, rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl⟩
+  | app hHead hArg hStable =>
+      rcases congTrueSpine_binary_uop_inv_stable M op x₁ x₂ _ hHead with
+        ⟨y₁, y₂, hHeadEq, hArg₁, hArg₂⟩
+      subst hHeadEq
+      exact ⟨y₁, y₂, _, rfl, hArg₁, hArg₂, Or.inr ⟨hArg, hStable⟩⟩
+
+theorem congTrueSpine_quaternary_uop_inv_stable
+    (M : SmtModel) (op : UserOp) (x₁ x₂ x₃ x₄ rhs : Term) :
+    CongTrueSpine M
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x₁) x₂) x₃) x₄)
+      rhs ->
+    ∃ y₁ y₂ y₃ y₄,
+      rhs =
+        Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) y₁) y₂) y₃)
+          y₄ ∧
+        EqTrueStableOrSame M x₁ y₁ ∧ EqTrueStableOrSame M x₂ y₂ ∧
+          EqTrueStableOrSame M x₃ y₃ ∧ EqTrueStableOrSame M x₄ y₄ := by
+  intro h
+  cases h with
+  | refl _ =>
+      exact ⟨x₁, x₂, x₃, x₄, rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl,
+        Or.inl rfl⟩
+  | app hHead hArg hStable =>
+      rcases congTrueSpine_ternary_uop_inv_stable M op x₁ x₂ x₃ _ hHead with
+        ⟨y₁, y₂, y₃, hHeadEq, hArg₁, hArg₂, hArg₃⟩
+      subst hHeadEq
+      exact ⟨y₁, y₂, y₃, _, rfl, hArg₁, hArg₂, hArg₃,
+        Or.inr ⟨hArg, hStable⟩⟩
+
+theorem congTrueSpine_quaternary_uop_inv
+    (M : SmtModel) (op : UserOp) (x₁ x₂ x₃ x₄ rhs : Term) :
+    CongTrueSpine M
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x₁) x₂) x₃) x₄)
+      rhs ->
+    ∃ y₁ y₂ y₃ y₄,
+      rhs =
+        Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) y₁) y₂) y₃)
+          y₄ ∧
+        EqTrueOrSame M x₁ y₁ ∧ EqTrueOrSame M x₂ y₂ ∧
+          EqTrueOrSame M x₃ y₃ ∧ EqTrueOrSame M x₄ y₄ := by
+  intro h
+  cases h with
+  | refl _ =>
+      exact ⟨x₁, x₂, x₃, x₄, rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl,
+        Or.inl rfl⟩
+  | app hHead hArg₄ _ =>
+      rcases congTrueSpine_ternary_uop_inv M op x₁ x₂ x₃ _ hHead with
+        ⟨y₁, y₂, y₃, hHeadEq, hArg₁, hArg₂, hArg₃⟩
+      subst hHeadEq
+      exact ⟨y₁, y₂, y₃, _, rfl, hArg₁, hArg₂, hArg₃, Or.inr hArg₄⟩
+
+theorem congTypeSpine_quaternary_uop_inv
+    (op : UserOp) (x₁ x₂ x₃ x₄ rhs : Term) :
+    CongTypeSpine
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x₁) x₂) x₃) x₄)
+      rhs ->
+    ∃ y₁ y₂ y₃ y₄,
+      rhs =
+        Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) y₁) y₂) y₃)
+          y₄ ∧
+        EqBoolOrSame x₁ y₁ ∧ EqBoolOrSame x₂ y₂ ∧
+          EqBoolOrSame x₃ y₃ ∧ EqBoolOrSame x₄ y₄ := by
+  intro h
+  cases h with
+  | refl _ =>
+      exact ⟨x₁, x₂, x₃, x₄, rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl,
+        Or.inl rfl⟩
+  | app hHead hArg₄ =>
+      rcases congTypeSpine_ternary_uop_inv op x₁ x₂ x₃ _ hHead with
+        ⟨y₁, y₂, y₃, hHeadEq, hArg₁, hArg₂, hArg₃⟩
+      subst hHeadEq
+      exact ⟨y₁, y₂, y₃, _, rfl, hArg₁, hArg₂, hArg₃, Or.inr hArg₄⟩
 
 theorem smt_value_rel_of_eq_true_or_same
     (M : SmtModel) (x y : Term) :
