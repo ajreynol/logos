@@ -1493,6 +1493,122 @@ theorem typeof_value_model_eval_str_indexof_re
   rw [hss1, hr, hn]
   rfl
 
+/-- Typing equation for the `@strings_occur_index` skolem operator. -/
+theorem typeof_at_strings_occur_index_eq
+    (t1 t2 t3 : SmtTerm) :
+    __smtx_typeof (SmtTerm._at_strings_occur_index t1 t2 t3) =
+      __smtx_typeof_str_indexof (__smtx_typeof t1) (__smtx_typeof t2) (__smtx_typeof t3) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Typing equation for the `@strings_occur_index_re` skolem operator. -/
+theorem typeof_at_strings_occur_index_re_eq
+    (t1 t2 t3 : SmtTerm) :
+    __smtx_typeof (SmtTerm._at_strings_occur_index_re t1 t2 t3) =
+      native_ite (native_Teq (__smtx_typeof t1) (SmtType.Seq SmtType.Char))
+        (native_ite (native_Teq (__smtx_typeof t2) SmtType.RegLan)
+          (native_ite (native_Teq (__smtx_typeof t3) SmtType.Int) SmtType.Int
+            SmtType.None)
+          SmtType.None)
+        SmtType.None := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Derives `@strings_occur_index` argument types from `non_none`; the
+typing guard coincides with `str_indexof`. -/
+theorem at_strings_occur_index_args_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht :
+      term_has_non_none_type
+        (SmtTerm._at_strings_occur_index t1 t2 t3)) :
+    ∃ T,
+      __smtx_typeof t1 = SmtType.Seq T ∧
+        __smtx_typeof t2 = SmtType.Seq T ∧
+        __smtx_typeof t3 = SmtType.Int := by
+  apply str_indexof_args_of_non_none (t1 := t1) (t2 := t2) (t3 := t3)
+  unfold term_has_non_none_type at ht ⊢
+  rw [typeof_str_indexof_eq]
+  rw [typeof_at_strings_occur_index_eq] at ht
+  exact ht
+
+/-- Derives `@strings_occur_index_re` argument types from `non_none`; the
+typing guard coincides with `str_indexof_re`. -/
+theorem at_strings_occur_index_re_args_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht :
+      term_has_non_none_type
+        (SmtTerm._at_strings_occur_index_re t1 t2 t3)) :
+    __smtx_typeof t1 = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof t2 = SmtType.RegLan ∧
+      __smtx_typeof t3 = SmtType.Int := by
+  apply str_indexof_re_args_of_non_none (t1 := t1) (t2 := t2) (t3 := t3)
+  unfold term_has_non_none_type at ht ⊢
+  rw [typeof_str_indexof_re_eq]
+  rw [typeof_at_strings_occur_index_re_eq] at ht
+  exact ht
+
+/-- Shows that evaluating `@strings_occur_index` terms produces values of
+the expected type. -/
+theorem typeof_value_model_eval_at_strings_occur_index
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm._at_strings_occur_index t1 t2 t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M
+          (SmtTerm._at_strings_occur_index t1 t2 t3)) =
+      __smtx_typeof
+        (SmtTerm._at_strings_occur_index t1 t2 t3) := by
+  rcases at_strings_occur_index_args_of_non_none ht with ⟨T, h1, h2, h3⟩
+  rw [show __smtx_typeof
+      (SmtTerm._at_strings_occur_index t1 t2 t3) =
+        SmtType.Int by
+    rw [typeof_at_strings_occur_index_eq]
+    simp [__smtx_typeof_str_indexof, native_ite, native_Teq, h1, h2, h3]]
+  rw [__smtx_model_eval.eq_def] <;> simp only
+  change __smtx_typeof_value
+      (__smtx_model_eval__at_strings_occur_index (__smtx_model_eval M t1)
+        (__smtx_model_eval M t2) (__smtx_model_eval M t3)) = SmtType.Int
+  rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [h2] using hpres2) with ⟨ss2, hss2⟩
+  rcases int_value_canonical (by simpa [h3] using hpres3) with ⟨n, hn⟩
+  rw [hss1, hss2, hn]
+  rfl
+
+/-- Shows that evaluating `@strings_occur_index_re` terms produces values of
+the expected type. -/
+theorem typeof_value_model_eval_at_strings_occur_index_re
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm._at_strings_occur_index_re t1 t2 t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M
+          (SmtTerm._at_strings_occur_index_re t1 t2 t3)) =
+      __smtx_typeof
+        (SmtTerm._at_strings_occur_index_re t1 t2 t3) := by
+  have hArgs := at_strings_occur_index_re_args_of_non_none ht
+  rw [show __smtx_typeof
+      (SmtTerm._at_strings_occur_index_re t1 t2 t3) =
+        SmtType.Int by
+    rw [typeof_at_strings_occur_index_re_eq]
+    simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2]]
+  rw [__smtx_model_eval.eq_def] <;> simp only
+  change __smtx_typeof_value
+      (__smtx_model_eval__at_strings_occur_index_re (__smtx_model_eval M t1)
+        (__smtx_model_eval M t2) (__smtx_model_eval M t3)) = SmtType.Int
+  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
+  rcases reglan_value_canonical (by simpa [hArgs.2.1] using hpres2) with ⟨r, hr⟩
+  rcases int_value_canonical (by simpa [hArgs.2.2] using hpres3) with ⟨n, hn⟩
+  rw [hss1, hr, hn]
+  rfl
+
 /-- Shows that evaluating `str_indexof_re_split` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_indexof_re_split
     (M : SmtModel)

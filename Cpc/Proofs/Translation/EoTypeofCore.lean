@@ -3035,6 +3035,10 @@ private theorem eo_to_smt_apply_ne_numeral
       cases g2 <;> try cases h
       case UOp op =>
         cases op <;> try cases h
+      case Apply g3 w =>
+        cases g3 <;> try cases h
+        case UOp op =>
+          cases op <;> cases h
 
 /-- The only EO terms that translate to SMT numerals are EO numerals. -/
 theorem eo_to_smt_eq_numeral

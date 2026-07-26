@@ -20,6 +20,12 @@ public import Cpc.Proofs.RuleSupport.StrInReFromIntDigRangeSupport
 import all Cpc.Proofs.RuleSupport.StrInReFromIntDigRangeSupport
 public import Cpc.Proofs.Closed.IsClosedRec
 import all Cpc.Proofs.Closed.IsClosedRec
+public import Cpc.Proofs.RuleSupport.StrReplaceAllCaseSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceAllCaseSupport
+public import Cpc.Proofs.RuleSupport.StrReplaceReCaseSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceReCaseSupport
+public import Cpc.Proofs.RuleSupport.StrReplaceReAllCaseSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceReAllCaseSupport
 
 open Eo
 open SmtEval
@@ -6534,16 +6540,14 @@ private theorem string_reduction_pred_true
                     native_and, native_zleq, native_zlt, native_veq,
                     Int.ofNat_eq_natCast]
           case str_replace_all =>
-            -- Depends on `occur_index` and `replace_all_result`, whose current
-            -- EO-to-SMT translations are headed by `SmtTerm.None`.
-            sorry
+            exact StrReplaceAllCase.str_replace_all_reduction_pred_true
+              M hM z y x hTrans hClosed
           case str_replace_re =>
-            -- Depends on `occur_index_re`, which currently has no SMT meaning.
-            sorry
+            exact StrReplaceReCase.str_replace_re_reduction_pred_true
+              M hM z y x hTrans hClosed
           case str_replace_re_all =>
-            -- Depends on `occur_index_re`, `num_occur_re`, and
-            -- `replace_all_result`, which currently have no SMT meaning.
-            sorry
+            exact StrReplaceReAllCase.str_replace_re_all_reduction_pred_true
+              M hM z y x hTrans hClosed
           case str_indexof_re =>
             let ts := __eo_to_smt z
             let tr := __eo_to_smt y

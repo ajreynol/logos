@@ -2102,6 +2102,10 @@ theorem congTrueSpine_eq_true
                             case _at_strings_num_occur =>
                               exact congTrueSpine_strings_num_occur_eq_true M hM
                                 z x (Term.Apply g y) hEqBool hApp
+                            case _at_strings_num_occur_re =>
+                              exact
+                                congTrueSpine_strings_num_occur_re_eq_true M hM
+                                  z x (Term.Apply g y) hEqBool hApp
                             case _at_strings_stoi_result =>
                               exact
                                 congTrueSpine_strings_stoi_result_eq_true M hM
@@ -2792,6 +2796,42 @@ theorem congTrueSpine_eq_true
                                 exact
                                   congTrueSpine_str_indexof_re_split_eq_true M hM
                                     a z x (Term.Apply g y) hEqBool hApp
+                              case _at_strings_occur_index =>
+                                exact
+                                  congTrueSpine_strings_occur_index_eq_true M hM
+                                    a z x (Term.Apply g y) hEqBool hApp
+                              case _at_strings_occur_index_re =>
+                                exact
+                                  congTrueSpine_strings_occur_index_re_eq_true
+                                    M hM a z x (Term.Apply g y) hEqBool hApp
+                            case Apply f1 b =>
+                              cases f1 <;>
+                                try
+                                  exact False.elim
+                                    (hHeadTrans
+                                      (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                        _ z x (by rfl)
+                                        ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                          _ _ hEqBool).2)))
+                              case UOp op =>
+                                cases op <;>
+                                  try
+                                    exact False.elim
+                                      (hHeadTrans
+                                        (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                          _ z x (by rfl)
+                                          ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                            _ _ hEqBool).2)))
+                                case _at_strings_replace_all_result =>
+                                  exact
+                                    congTrueSpine_strings_replace_all_result_eq_true
+                                      M hM b a z x (Term.Apply g y) hEqBool
+                                      hApp
+                                case _at_strings_replace_re_all_result =>
+                                  exact
+                                    congTrueSpine_strings_replace_re_all_result_eq_true
+                                      M hM b a z x (Term.Apply g y) hEqBool
+                                      hApp
                         | Term.FunType =>
                             exact False.elim
                               (hHeadTrans
