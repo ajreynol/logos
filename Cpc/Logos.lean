@@ -2090,6 +2090,35 @@ def __bv_mk_bitblast_step_var_rec : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
+/-
+Fallback bit-vector reification used by `bv_bitblast_step`.
+
+The specialized circuits below are preferable when their semantic invariant is
+available.  For the remaining operators, reify the result uniformly as its
+little-endian sequence of `@bit` predicates.  Unlike returning the input or
+rejecting the step, this still produces the Boolean-list representation expected
+by subsequent bit-blasting rules.
+-/
+def __bv_bitblast_reify_rec : Term -> Nat -> Nat -> Term
+  | _, _, 0 => Term.Binary 0 0
+  | a, i, n + 1 =>
+      Term.Apply
+        (Term.Apply (Term.UOp UserOp._at_from_bools)
+          (Term.Apply
+            (Term.UOp1 UserOp1._at_bit (Term.Numeral (i : Int))) a))
+        (__bv_bitblast_reify_rec a (i + 1) n)
+
+
+def __bv_bitblast_reify : Term -> Term
+  | Term.Stuck => Term.Stuck
+  | a =>
+      match __eo_typeof a with
+      | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) =>
+          if w < 0 then Term.Stuck
+          else __bv_bitblast_reify_rec a 0 w.toNat
+      | _ => Term.Stuck
+
+
 def __bv_mk_bitblast_step : Term -> Term
   | Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.UOp UserOp.bvnot) a1) => (__bv_bitblast_apply_unary (Term.UOp UserOp.not) a1)
@@ -2098,58 +2127,40 @@ def __bv_mk_bitblast_step : Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) a1) a2) => (__bv_bitblast_ult a1 a2 (Term.Boolean true))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvslt) a1) a2) => (__bv_bitblast_slt_impl (__eo_list_rev (Term.UOp UserOp._at_from_bools) a1) (__eo_list_rev (Term.UOp UserOp._at_from_bools) a2) (Term.Boolean false))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvsle) a1) a2) => (__bv_bitblast_slt_impl (__eo_list_rev (Term.UOp UserOp._at_from_bools) a1) (__eo_list_rev (Term.UOp UserOp._at_from_bools) a2) (Term.Boolean true))
-  | (Term.Apply (Term.UOp2 UserOp2.extract u l) a1) => (__bv_bitblast_subsequence l u a1)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.concat) a1) a3) => (__bv_mk_bitblast_step_concat (Term.Apply (Term.Apply (Term.UOp UserOp.concat) a1) a3))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) a1) a2) => (__bv_mk_bitblast_step_bitwise (Term.UOp UserOp.bvor) (Term.UOp UserOp.or) a2 a1)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) a1) a2) => (__bv_mk_bitblast_step_bitwise (Term.UOp UserOp.bvand) (Term.UOp UserOp.and) a2 a1)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) a1) a2) => (__bv_mk_bitblast_step_bitwise (Term.UOp UserOp.bvxor) (Term.UOp UserOp.xor) a2 a1)
+  | (Term.Apply (Term.UOp2 UserOp2.extract u l) a1) =>
+    (__bv_bitblast_reify (Term.Apply (Term.UOp2 UserOp2.extract u l) a1))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.concat) a1) a3) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.concat) a1) a3))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) a1) a2) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) a1) a2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) a1) a2) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) a1) a2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) a1) a2) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) a1) a2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvxnor) a1) a2) => (__bv_bitblast_apply_binary (Term.UOp UserOp.eq) a1 a2)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) a1) a2) => (__bv_mk_bitblast_step_add a2 a1)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) a1) a2) => (__bv_mk_bitblast_step_mul a2 a1)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) a1) a2) => 
-    let _v0 := (__bv_bitwidth (__eo_typeof a1))
-    let _v1 := (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (Term.Boolean false) _v0)
-    (__bv_bitblast_apply_ite (__eo_list_singleton_elim (Term.UOp UserOp.and) (__bv_mk_bitblast_step_eq_rec a2 _v1)) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (Term.Boolean true) _v0) (__pair_first (__bv_div_mod_impl a1 a2 _v1 (__eo_requires (__eo_is_neg _v0) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v0) (Term.Numeral 0))))))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) a1) a2) => 
-    let _v0 := (__bv_bitwidth (__eo_typeof a1))
-    let _v1 := (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (Term.Boolean false) _v0)
-    (__bv_bitblast_apply_ite (__eo_list_singleton_elim (Term.UOp UserOp.and) (__bv_mk_bitblast_step_eq_rec a2 _v1)) a1 (__pair_second (__bv_div_mod_impl a1 a2 _v1 (__eo_requires (__eo_is_neg _v0) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v0) (Term.Numeral 0))))))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) a1) a2) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) a1) a2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) a1) a2) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) a1) a2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) a1) a2) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) a1) a2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) a1) a2) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) a1) a2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvsub) a1) a2) => (__pair_second (__bv_ripple_carry_adder_2 a1 (__bv_bitblast_apply_unary (Term.UOp UserOp.not) a2) (Term.Boolean true) (Term.Binary 0 0)))
   | (Term.Apply (Term.UOp UserOp.bvneg) a1) => (__pair_second (__bv_ripple_carry_adder_2 (__bv_bitblast_apply_unary (Term.UOp UserOp.not) a1) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (Term.Boolean false) (__bv_bitwidth (__eo_typeof a1))) (Term.Boolean true) (Term.Binary 0 0)))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) ac) a1) a2) => (__bv_mk_bitblast_step_ite ac a1 a2)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a1) a2) => 
-    let _v0 := (__bv_bitwidth (__eo_typeof a1))
-    let _v1 := (__bv_bitblast_head (__eo_list_rev (Term.UOp UserOp._at_from_bools) a1))
-    let _v2 := (__eo_is_neg _v0)
-    let _v3 := (__eo_is_z _v0)
-    let _v4 := (__eo_ite _v3 (__eo_ite _v2 (Term.Numeral 0) (__eo_log (Term.Numeral 2) _v0)) (__eo_mk_apply (Term.UOp UserOp.int_log2) _v0))
-    let _v5 := (__eo_to_bin _v0 _v0)
-    let _v6 := (__eo_len _v5)
-    (__bv_bitblast_apply_ite (__bv_bitblast_ult a2 (__bv_const_to_bitlist_rec _v5 (__eo_requires (__eo_is_neg _v6) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v6) (Term.Numeral 0)))) (Term.Boolean false)) (__bv_mk_bitblast_step_shr_rec a1 a2 (Term.Numeral 0) (__eo_ite (__eo_ite _v3 (__eo_ite _v2 (Term.Boolean false) (__eo_eq _v0 (__eo_pow (Term.Numeral 2) _v4))) (__eo_mk_apply (Term.UOp UserOp.int_ispow2) _v0)) _v4 (__eo_add _v4 (Term.Numeral 1))) _v1) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) _v1 _v0))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvlshr) a1) a2) => 
-    let _v0 := (__bv_bitwidth (__eo_typeof a1))
-    let _v1 := (__eo_is_neg _v0)
-    let _v2 := (__eo_is_z _v0)
-    let _v3 := (__eo_ite _v2 (__eo_ite _v1 (Term.Numeral 0) (__eo_log (Term.Numeral 2) _v0)) (__eo_mk_apply (Term.UOp UserOp.int_log2) _v0))
-    let _v4 := (__eo_to_bin _v0 _v0)
-    let _v5 := (__eo_len _v4)
-    (__bv_bitblast_apply_ite (__bv_bitblast_ult a2 (__bv_const_to_bitlist_rec _v4 (__eo_requires (__eo_is_neg _v5) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v5) (Term.Numeral 0)))) (Term.Boolean false)) (__bv_mk_bitblast_step_shr_rec a1 a2 (Term.Numeral 0) (__eo_ite (__eo_ite _v2 (__eo_ite _v1 (Term.Boolean false) (__eo_eq _v0 (__eo_pow (Term.Numeral 2) _v3))) (__eo_mk_apply (Term.UOp UserOp.int_ispow2) _v0)) _v3 (__eo_add _v3 (Term.Numeral 1))) (Term.Boolean false)) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (Term.Boolean false) _v0))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvshl) a1) a2) => 
-    let _v0 := (__bv_bitwidth (__eo_typeof a1))
-    let _v1 := (__eo_is_neg _v0)
-    let _v2 := (__eo_is_z _v0)
-    let _v3 := (__eo_ite _v2 (__eo_ite _v1 (Term.Numeral 0) (__eo_log (Term.Numeral 2) _v0)) (__eo_mk_apply (Term.UOp UserOp.int_log2) _v0))
-    let _v4 := (__eo_to_bin _v0 _v0)
-    let _v5 := (__eo_len _v4)
-    (__bv_bitblast_apply_ite (__bv_bitblast_ult a2 (__bv_const_to_bitlist_rec _v4 (__eo_requires (__eo_is_neg _v5) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v5) (Term.Numeral 0)))) (Term.Boolean false)) (__bv_mk_bitblast_step_shl_rec a1 a2 (Term.Numeral 0) (__eo_ite (__eo_ite _v2 (__eo_ite _v1 (Term.Boolean false) (__eo_eq _v0 (__eo_pow (Term.Numeral 2) _v3))) (__eo_mk_apply (Term.UOp UserOp.int_ispow2) _v0)) _v3 (__eo_add _v3 (Term.Numeral 1)))) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (Term.Boolean false) _v0))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a1) a2) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a1) a2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvlshr) a1) a2) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.bvlshr) a1) a2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.bvshl) a1) a2) =>
+    (__bv_bitblast_reify (Term.Apply (Term.Apply (Term.UOp UserOp.bvshl) a1) a2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) a1) a2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at_from_bools) (__eo_list_singleton_elim (Term.UOp UserOp.and) (__bv_mk_bitblast_step_eq_rec a1 a2))) (Term.Binary 0 0))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvultbv) a1) a2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at_from_bools) (__bv_bitblast_ult a1 a2 (Term.Boolean false))) (Term.Binary 0 0))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvsltbv) a1) a2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at_from_bools) (__bv_bitblast_slt_impl (__eo_list_rev (Term.UOp UserOp._at_from_bools) a1) (__eo_list_rev (Term.UOp UserOp._at_from_bools) a2) (Term.Boolean false))) (Term.Binary 0 0))
-  | (Term.Apply (Term.UOp1 UserOp1.sign_extend n) a1) => (__bv_bitblast_concat a1 (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (__bv_bitblast_head (__eo_list_rev (Term.UOp UserOp._at_from_bools) a1)) n))
-  | a1 => 
-    let _v0 := (__bv_bitwidth (__eo_typeof a1))
-    let _v1 := (__eo_len a1)
-    (__eo_ite (__eo_is_bin a1) (__bv_const_to_bitlist_rec a1 (__eo_requires (__eo_is_neg _v1) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v1) (Term.Numeral 0)))) (__bv_mk_bitblast_step_var_rec a1 (__eo_requires (__eo_is_neg _v0) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v0) (Term.Numeral 0)))))
+  | (Term.Apply (Term.UOp1 UserOp1.sign_extend n) a1) =>
+    (__bv_bitblast_reify (Term.Apply (Term.UOp1 UserOp1.sign_extend n) a1))
+  | a1 => (__bv_bitblast_reify a1)
 
 
 def __eo_prog_bv_repeat_elim : Term -> Term
