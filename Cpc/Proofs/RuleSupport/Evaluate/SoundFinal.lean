@@ -389,7 +389,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_int_to_bv_core
             __smtx_model_eval_int_to_bv
               (SmtValue.Numeral i)
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_129, __smtx_model_eval.eq_2]]
+        rw [smtx_eval_int_to_bv_term_eq, __smtx_model_eval.eq_2]]
       rw [hXEval]
       change
         RuleProofs.smt_value_rel
