@@ -243,4 +243,347 @@ theorem substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_
         hXSubBoth.2 hYSubBoth.2 hZSubBoth.2 hTyApply
 
 
+theorem substitute_simul_quaternary_op_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
+    (op : UserOp) (w z y x xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+          x))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+            x)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hArgExtract :
+      eoHasSmtTranslation
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+            x) ->
+        eoHasSmtTranslation w ∧
+          eoHasSmtTranslation z ∧
+            eoHasSmtTranslation y ∧
+              eoHasSmtTranslation x)
+    (hArgTyNe :
+      ∀ W Z Y X,
+        __eo_typeof
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.UOp op) W) Z) Y)
+              X) ≠
+          Term.Stuck ->
+        __eo_typeof W ≠ Term.Stuck ∧
+          __eo_typeof Z ≠ Term.Stuck ∧
+            __eo_typeof Y ≠ Term.Stuck ∧
+              __eo_typeof X ≠ Term.Stuck)
+    (hTypeCong :
+      ∀ W₁ Z₁ Y₁ X₁ W₂ Z₂ Y₂ X₂,
+        __eo_typeof W₁ = __eo_typeof W₂ ->
+        __eo_typeof Z₁ = __eo_typeof Z₂ ->
+        __eo_typeof Y₁ = __eo_typeof Y₂ ->
+        __eo_typeof X₁ = __eo_typeof X₂ ->
+        __eo_typeof
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.UOp op) W₁) Z₁) Y₁)
+              X₁) =
+          __eo_typeof
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.UOp op) W₂) Z₂) Y₂)
+              X₂))
+    (hBuild :
+      ∀ W Z Y X,
+        RuleProofs.eo_has_smt_translation W ->
+          RuleProofs.eo_has_smt_translation Z ->
+            RuleProofs.eo_has_smt_translation Y ->
+              RuleProofs.eo_has_smt_translation X ->
+                __eo_typeof
+                    (Term.Apply
+                      (Term.Apply
+                        (Term.Apply (Term.Apply (Term.UOp op) W) Z) Y)
+                      X) ≠
+                  Term.Stuck ->
+                RuleProofs.eo_has_smt_translation
+                  (Term.Apply
+                    (Term.Apply
+                      (Term.Apply (Term.Apply (Term.UOp op) W) Z) Y)
+                    X))
+    (hRecW :
+      RuleProofs.eo_has_smt_translation w ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) w xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) w xs ts bvs) =
+          __eo_typeof w ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean isRename) w xs ts bvs))
+    (hRecZ :
+      RuleProofs.eo_has_smt_translation z ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) z xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) z xs ts bvs) =
+          __eo_typeof z ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean isRename) z xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs))
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+            x)
+          xs ts bvs) =
+      __eo_typeof
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+          x) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+            x)
+          xs ts bvs) := by
+  let wSub := __substitute_simul_rec (Term.Boolean isRename) w xs ts bvs
+  let zSub := __substitute_simul_rec (Term.Boolean isRename) z xs ts bvs
+  let ySub := __substitute_simul_rec (Term.Boolean isRename) y xs ts bvs
+  let xSub := __substitute_simul_rec (Term.Boolean isRename) x xs ts bvs
+  have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by
+    cases isRename <;> decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hts : ts ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hTs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  have hFTransEo :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+          x) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hFTrans
+  rcases hArgExtract hFTransEo with
+    ⟨hWTransEo, hZTransEo, hYTransEo, hXTransEo⟩
+  have hWTrans : RuleProofs.eo_has_smt_translation w := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hWTransEo
+  have hZTrans : RuleProofs.eo_has_smt_translation z := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hZTransEo
+  have hYTrans : RuleProofs.eo_has_smt_translation y := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hYTransEo
+  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hXTransEo
+  have hHeadSub :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.UOp op) xs ts bvs =
+        Term.UOp op :=
+    substitute_simul_rec_uop_eq_self op xs ts bvs hXsEnv hBvsEnv hTs
+  have hFirstSub :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply (Term.UOp op) w) xs ts bvs =
+        __eo_mk_apply (Term.UOp op) wSub := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean isRename) (Term.UOp op) w xs ts bvs
+        hisr hxs hts hbvs
+        (by intro q v vs hEq; cases hEq)
+    simpa [wSub, hHeadSub] using hApplyEq
+  have hSecondNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp op) w ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) := by
+    intro q v vs hEq
+    cases hEq
+    exact term_not_eo_list_cons_of_has_smt_translation hWTransEo v vs rfl
+  have hSecondSub :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply (Term.Apply (Term.UOp op) w) z) xs ts bvs =
+        __eo_mk_apply (__eo_mk_apply (Term.UOp op) wSub) zSub := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean isRename) (Term.Apply (Term.UOp op) w)
+        z xs ts bvs hisr hxs hts hbvs hSecondNotBinder
+    simpa [zSub, hFirstSub] using hApplyEq
+  have hThirdNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.Apply (Term.UOp op) w) z ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) := by
+    intro q v vs hEq
+    cases hEq
+    exact term_not_eo_list_cons_of_has_smt_translation hZTransEo v vs rfl
+  have hThirdSub :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+          xs ts bvs =
+        __eo_mk_apply
+          (__eo_mk_apply (__eo_mk_apply (Term.UOp op) wSub) zSub)
+          ySub := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean isRename)
+        (Term.Apply (Term.Apply (Term.UOp op) w) z)
+        y xs ts bvs hisr hxs hts hbvs hThirdNotBinder
+    simpa [ySub, hSecondSub] using hApplyEq
+  have hFourthNotBinder :
+      ∀ q v vs,
+        Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) w) z) y ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) := by
+    intro q v vs hEq
+    cases hEq
+    exact term_not_eo_list_cons_of_has_smt_translation hYTransEo v vs rfl
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+            x)
+          xs ts bvs =
+        __eo_mk_apply
+          (__eo_mk_apply
+            (__eo_mk_apply (__eo_mk_apply (Term.UOp op) wSub) zSub)
+            ySub)
+          xSub := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean isRename)
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp op) w) z) y)
+        x xs ts bvs hisr hxs hts hbvs hFourthNotBinder
+    simpa [xSub, hThirdSub] using hApplyEq
+  have hTyMk :
+      __eo_typeof
+          (__eo_mk_apply
+            (__eo_mk_apply
+              (__eo_mk_apply (__eo_mk_apply (Term.UOp op) wSub) zSub)
+              ySub)
+            xSub) ≠
+        Term.Stuck := by
+    rwa [hSubstEq] at hTy
+  have hOuterNe :
+      __eo_mk_apply
+          (__eo_mk_apply
+            (__eo_mk_apply (__eo_mk_apply (Term.UOp op) wSub) zSub)
+            ySub)
+          xSub ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_ne_stuck_of_typeof_ne_stuck hTyMk
+  have hThirdNe :
+      __eo_mk_apply
+          (__eo_mk_apply (__eo_mk_apply (Term.UOp op) wSub) zSub)
+          ySub ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hOuterNe
+  have hSecondNe :
+      __eo_mk_apply (__eo_mk_apply (Term.UOp op) wSub) zSub ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hThirdNe
+  have hInnerNe :
+      __eo_mk_apply (Term.UOp op) wSub ≠ Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hSecondNe
+  have hInnerMk :
+      __eo_mk_apply (Term.UOp op) wSub =
+        Term.Apply (Term.UOp op) wSub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+      (Term.UOp op) wSub hInnerNe
+  have hSecondMk :
+      __eo_mk_apply (Term.Apply (Term.UOp op) wSub) zSub =
+        Term.Apply (Term.Apply (Term.UOp op) wSub) zSub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+      (Term.Apply (Term.UOp op) wSub) zSub (by
+        rw [← hInnerMk]
+        exact hSecondNe)
+  have hThirdMk :
+      __eo_mk_apply
+          (Term.Apply (Term.Apply (Term.UOp op) wSub) zSub)
+          ySub =
+        Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp op) wSub) zSub)
+          ySub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+      (Term.Apply (Term.Apply (Term.UOp op) wSub) zSub) ySub (by
+        rw [← hSecondMk, ← hInnerMk]
+        exact hThirdNe)
+  have hOuterMk :
+      __eo_mk_apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) wSub) zSub)
+            ySub)
+          xSub =
+        Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp op) wSub) zSub)
+            ySub)
+          xSub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp op) wSub) zSub)
+        ySub)
+      xSub (by
+        rw [← hThirdMk, ← hSecondMk, ← hInnerMk]
+        exact hOuterNe)
+  have hTyApply :
+      __eo_typeof
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) wSub) zSub)
+              ySub)
+            xSub) ≠
+        Term.Stuck := by
+    rwa [hInnerMk, hSecondMk, hThirdMk, hOuterMk] at hTyMk
+  rcases hArgTyNe wSub zSub ySub xSub hTyApply with
+    ⟨hWSubTy, hZSubTy, hYSubTy, hXSubTy⟩
+  have hWSubBoth := hRecW hWTrans hWSubTy
+  have hZSubBoth := hRecZ hZTrans hZSubTy
+  have hYSubBoth := hRecY hYTrans hYSubTy
+  have hXSubBoth := hRecX hXTrans hXSubTy
+  refine ⟨?_, ?_⟩
+  · rw [hSubstEq, hInnerMk, hSecondMk, hThirdMk, hOuterMk]
+    exact
+      hTypeCong wSub zSub ySub xSub w z y x
+        hWSubBoth.1 hZSubBoth.1 hYSubBoth.1 hXSubBoth.1
+  · rw [hSubstEq, hInnerMk, hSecondMk, hThirdMk, hOuterMk]
+    exact
+      hBuild wSub zSub ySub xSub
+        hWSubBoth.2 hZSubBoth.2 hYSubBoth.2 hXSubBoth.2 hTyApply
+
+
 end SubstitutePreservationSupport

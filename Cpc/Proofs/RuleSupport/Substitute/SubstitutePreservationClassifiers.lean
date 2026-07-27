@@ -92,6 +92,7 @@ def applyApplyUOpNeedsSpecialTranslation : UserOp -> Prop
   | UserOp._at_strings_stoi_result => True
   | UserOp._at_strings_itos_result => True
   | UserOp._at_strings_num_occur => True
+  | UserOp._at_strings_num_occur_re => True
   | UserOp.tuple => True
   | UserOp.set_union => True
   | UserOp.set_inter => True
@@ -119,6 +120,13 @@ def applyApplyApplyUOpNeedsSpecialTranslation : UserOp -> Prop
   | UserOp.str_replace_re_all => True
   | UserOp.str_indexof_re => True
   | UserOp.str_indexof_re_split => True
+  | UserOp._at_strings_occur_index => True
+  | UserOp._at_strings_occur_index_re => True
+  | _ => False
+
+def applyApplyApplyApplyUOpNeedsSpecialTranslation : UserOp -> Prop
+  | UserOp._at_strings_replace_all_result => True
+  | UserOp._at_strings_replace_re_all_result => True
   | _ => False
 
 structure ApplyApplyUOpBranchExclusions (g : Term) : Prop where
@@ -196,6 +204,7 @@ structure ApplyApplyUOpBranchExclusions (g : Term) : Prop where
   notStringsStoiResult : g ≠ Term.UOp UserOp._at_strings_stoi_result
   notStringsItosResult : g ≠ Term.UOp UserOp._at_strings_itos_result
   notStringsNumOccur : g ≠ Term.UOp UserOp._at_strings_num_occur
+  notStringsNumOccurRe : g ≠ Term.UOp UserOp._at_strings_num_occur_re
   notTuple : g ≠ Term.UOp UserOp.tuple
   notSetUnion : g ≠ Term.UOp UserOp.set_union
   notSetInter : g ≠ Term.UOp UserOp.set_inter
@@ -227,6 +236,23 @@ structure ApplyApplyApplyUOpBranchExclusions (g : Term) : Prop where
     ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_indexof_re) s
   notStrIndexofReSplit :
     ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_indexof_re_split) s
+  notStringsOccurIndex :
+    ¬ ∃ s, g = Term.Apply (Term.UOp UserOp._at_strings_occur_index) s
+  notStringsOccurIndexRe :
+    ¬ ∃ s, g = Term.Apply (Term.UOp UserOp._at_strings_occur_index_re) s
+
+structure ApplyApplyApplyApplyUOpBranchExclusions (g : Term) : Prop where
+  notStringsReplaceAllResult :
+    ¬ ∃ s p,
+      g =
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at_strings_replace_all_result) s) p
+  notStringsReplaceReAllResult :
+    ¬ ∃ s p,
+      g =
+        Term.Apply
+          (Term.Apply
+            (Term.UOp UserOp._at_strings_replace_re_all_result) s) p
 
 theorem eo_to_smt_apply_apply_generic_of_not_special
     {g x a : Term}
@@ -239,7 +265,11 @@ theorem eo_to_smt_apply_apply_generic_of_not_special
     (hNoApplyUOp :
       ∀ op y,
         applyApplyApplyUOpNeedsSpecialTranslation op ->
-          g ≠ Term.Apply (Term.UOp op) y) :
+          g ≠ Term.Apply (Term.UOp op) y)
+    (hNoApplyApplyUOp :
+      ∀ op w z,
+        applyApplyApplyApplyUOpNeedsSpecialTranslation op ->
+          g ≠ Term.Apply (Term.Apply (Term.UOp op) w) z) :
     __eo_to_smt (Term.Apply (Term.Apply g x) a) =
       SmtTerm.Apply (__eo_to_smt (Term.Apply g x)) (__eo_to_smt a) := by
   cases g <;> try rfl
@@ -260,6 +290,16 @@ theorem eo_to_smt_apply_apply_generic_of_not_special
         exact False.elim
           (hNoApplyUOp _ y
             (by simp [applyApplyApplyUOpNeedsSpecialTranslation]) rfl)
+    · rename_i head' z
+      cases head' <;> try rfl
+      · rename_i op
+        cases op <;> try rfl
+        all_goals
+          exact False.elim
+            (hNoApplyApplyUOp _ z y
+              (by
+                simp [applyApplyApplyApplyUOpNeedsSpecialTranslation])
+              rfl)
 
 theorem eo_to_smt_apply_apply_generic_of_branch_exclusions
     {g x a : Term}
@@ -267,7 +307,8 @@ theorem eo_to_smt_apply_apply_generic_of_branch_exclusions
     (hNoUpdate : ¬ ∃ idx, g = Term.UOp1 UserOp1.update idx)
     (hNoTupleUpdate :
       ¬ ∃ idx, g = Term.UOp1 UserOp1.tuple_update idx)
-    (hApplyUOp : ApplyApplyApplyUOpBranchExclusions g) :
+    (hApplyUOp : ApplyApplyApplyUOpBranchExclusions g)
+    (hApplyApplyUOp : ApplyApplyApplyApplyUOpBranchExclusions g) :
     __eo_to_smt (Term.Apply (Term.Apply g x) a) =
       SmtTerm.Apply (__eo_to_smt (Term.Apply g x)) (__eo_to_smt a) := by
   exact
@@ -289,9 +330,9 @@ theorem eo_to_smt_apply_apply_generic_of_branch_exclusions
             hStrAt, hStrPrefixof, hStrSuffixof, hStrLt, hStrLeq, hReRange,
             hReConcat, hReInter, hReUnion, hReDiff, hStrInRe, hSeqNth,
             hStringsDeqDiff, hStringsStoiResult, hStringsItosResult,
-            hStringsNumOccur, hTuple, hSetUnion, hSetInter, hSetMinus,
-            hSetMember, hSetSubset, hSetInsert, hSetsDeqDiff, hQdiv,
-            hQdivTotal, hForall, hExists⟩
+            hStringsNumOccur, hStringsNumOccurRe, hTuple, hSetUnion,
+            hSetInter, hSetMinus, hSetMember, hSetSubset, hSetInsert,
+            hSetsDeqDiff, hQdiv, hQdivTotal, hForall, hExists⟩
         cases op <;>
           simp [applyApplyUOpNeedsSpecialTranslation] at hSpecial <;>
           contradiction)
@@ -316,6 +357,19 @@ theorem eo_to_smt_apply_apply_generic_of_branch_exclusions
           | exact hApplyUOp.notStrReplaceReAll ⟨y, rfl⟩
           | exact hApplyUOp.notStrIndexofRe ⟨y, rfl⟩
           | exact hApplyUOp.notStrIndexofReSplit ⟨y, rfl⟩
+          | exact hApplyUOp.notStringsOccurIndex ⟨y, rfl⟩
+          | exact hApplyUOp.notStringsOccurIndexRe ⟨y, rfl⟩
+          | contradiction)
+      (by
+        intro op w z hSpecial hEq
+        subst g
+        cases op <;>
+          simp [applyApplyApplyApplyUOpNeedsSpecialTranslation] at hSpecial
+        all_goals
+          first
+          | exact hApplyApplyUOp.notStringsReplaceAllResult ⟨w, z, rfl⟩
+          | exact
+              hApplyApplyUOp.notStringsReplaceReAllResult ⟨w, z, rfl⟩
           | contradiction)
 
 end SubstitutePreservationSupport

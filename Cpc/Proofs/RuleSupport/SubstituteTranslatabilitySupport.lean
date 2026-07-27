@@ -1485,6 +1485,22 @@ theorem instantiate_eo_to_smt_apply_generic_of_has_smt_translation
               (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt b))
                 (__eo_to_smt a)) = SmtType.None
           simp [__smtx_typeof, __smtx_typeof_apply]
+      case Apply f'' c =>
+        cases f'' <;> try rfl
+        case UOp op =>
+          cases op <;> try rfl
+          all_goals
+            exfalso
+            apply hTransF
+            change
+              __smtx_typeof
+                  (SmtTerm.Apply
+                    (SmtTerm.Apply
+                      (SmtTerm.Apply SmtTerm.None (__eo_to_smt c))
+                      (__eo_to_smt b))
+                    (__eo_to_smt a)) =
+                SmtType.None
+            simp [__smtx_typeof, __smtx_typeof_apply]
 
 theorem instantiate_eo_typeof_apply_eq_of_has_smt_translation
     (f x : Term)

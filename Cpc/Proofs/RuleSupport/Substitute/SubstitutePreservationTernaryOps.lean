@@ -12,5 +12,7 @@ public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationStringTern
 import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationStringTernaryOps
 public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationRegexTernaryOps
 import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationRegexTernaryOps
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationStringSkolemOps
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationStringSkolemOps
 
 public section

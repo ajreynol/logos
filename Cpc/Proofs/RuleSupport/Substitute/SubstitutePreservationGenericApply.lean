@@ -829,6 +829,73 @@ private theorem substitute_simul_apply_apply_apply_var_head_ne_untranslatable_ta
         (by simpa [innerSub] using hInnerNe)
         (by simpa [innerSub] using hInnerShape)
 
+/--
+Substitution cannot change the head of a translatable quaternary application
+into an untranslatable atom.
+
+The applied-head case has one more constructor in its substitution spine, an
+atomic head is preserved structurally, and a variable head can only be
+replaced by one of the translatable simultaneous-substitution arguments.
+-/
+theorem substitute_simul_apply_apply_apply_head_ne_untranslatable_target
+    {isRename : Bool}
+    (g w z y x xs ts bvs target gSub wSub zSub ySub : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotTarget : g ≠ target)
+    (hTargetNoTrans : ¬ RuleProofs.eo_has_smt_translation target)
+    (hTargetNotApply : ∀ p q, Term.Apply p q ≠ target)
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.Apply (Term.Apply g w) z) y) x))
+    (hNe :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply (Term.Apply (Term.Apply g w) z) y) xs ts bvs ≠
+        Term.Stuck)
+    (hShape :
+      __substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply (Term.Apply (Term.Apply g w) z) y) xs ts bvs =
+        Term.Apply (Term.Apply (Term.Apply gSub wSub) zSub) ySub) :
+    gSub ≠ target := by
+  intro hGSub
+  subst gSub
+  have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by
+    cases isRename <;> decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hts : ts ≠ Term.Stuck :=
+    SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hTs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  cases g with
+  | Var name T =>
+      exact
+        substitute_simul_apply_apply_apply_var_head_ne_untranslatable_target
+          name T w z y xs ts bvs target wSub zSub ySub
+          hXsEnv hBvsEnv hTs
+          (var_has_smt_translation_of_quaternary_application
+            name T w z y x hFTrans)
+          hNotTarget hTargetNoTrans hNe hShape
+  | Apply f v =>
+      rcases
+          substitute_simul_rec_apply_apply_apply_apply_eq_of_ne_stuck
+            f v w z y xs ts bvs hisr hxs hts hbvs hNe
+        with ⟨fSub, vSub, wSub', zSub', ySub', hShape4⟩
+      rw [hShape4] at hShape
+      have hHeadEq : Term.Apply fSub vSub = target := by
+        injection hShape with hMidEq _
+        injection hMidEq with hInnerEq _
+        injection hInnerEq
+      exact hTargetNotApply fSub vSub hHeadEq
+  | _ =>
+      exact
+        substitute_simul_apply_apply_apply_atom_base_ne_head
+          _ w z y xs ts bvs target wSub zSub ySub
+          hXsEnv hBvsEnv hTs
+          (by intro p q h; cases h)
+          (by intro name T h; cases h)
+          hNotTarget hNe hShape
+
 theorem substitute_simul_apply_apply_var_head_generic_head_typeof_ne_stuck
     {isRename : Bool}
     (name T x a xs ts bvs : Term)
@@ -1651,6 +1718,7 @@ theorem substitute_simul_apply_apply_branch_residual_head_typeof_ne_stuck
     (hNoTupleUpdate :
       ¬ ∃ idx, g = Term.UOp1 UserOp1.tuple_update idx)
     (hApplyUOp : ApplyApplyApplyUOpBranchExclusions g)
+    (hApplyApplyUOp : ApplyApplyApplyApplyUOpBranchExclusions g)
     (hNotUOpTop : ∀ op, g ≠ Term.UOp op)
     (hFTrans :
       RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply g x) a))
@@ -1867,6 +1935,8 @@ theorem substitute_simul_apply_apply_branch_residual_head_typeof_ne_stuck
               | exact hApplyUOp.notStrReplaceReAll ⟨y, rfl⟩
               | exact hApplyUOp.notStrIndexofRe ⟨y, rfl⟩
               | exact hApplyUOp.notStrIndexofReSplit ⟨y, rfl⟩
+              | exact hApplyUOp.notStringsOccurIndex ⟨y, rfl⟩
+              | exact hApplyUOp.notStringsOccurIndexRe ⟨y, rfl⟩
               | exact hFTrans (by
                   change
                     __smtx_typeof
@@ -2159,21 +2229,13 @@ theorem substitute_simul_apply_apply_branch_residual_head_typeof_ne_stuck
                 cases op <;>
                   simp [applyApplyApplyApplyUOpNeedsSpecialType] at hSpecial
                 all_goals
-                  apply hFTrans
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.Apply
-                            (SmtTerm.Apply
-                              (SmtTerm.Apply SmtTerm.None (__eo_to_smt y0))
-                              (__eo_to_smt y))
-                            (__eo_to_smt x))
-                          (__eo_to_smt a)) =
-                      SmtType.None
-                  exact
-                    TranslationProofs.typeof_apply_apply_apply_apply_none_head_eq
-                      (__eo_to_smt y0) (__eo_to_smt y)
-                      (__eo_to_smt x) (__eo_to_smt a)
+                  first
+                  | exact
+                      hApplyApplyUOp.notStringsReplaceAllResult
+                        ⟨y0, y, rfl⟩
+                  | exact
+                      hApplyApplyUOp.notStringsReplaceReAllResult
+                        ⟨y0, y, rfl⟩
               · exact
                   substitute_simul_apply_apply_apply_atom_base_ne_head
                     f0 y0 y x xs ts bvs (Term.UOp op) w z xSub
@@ -2255,6 +2317,7 @@ theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translat
     (hNoTupleUpdate :
       ¬ ∃ idx, g = Term.UOp1 UserOp1.tuple_update idx)
     (hApplyUOp : ApplyApplyApplyUOpBranchExclusions g)
+    (hApplyApplyUOp : ApplyApplyApplyApplyUOpBranchExclusions g)
     (hNotUOpTop : ∀ op, g ≠ Term.UOp op)
     (hFTrans :
       RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply g x) a))
@@ -2296,7 +2359,7 @@ theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translat
         SmtTerm.Apply (__eo_to_smt (Term.Apply g x)) (__eo_to_smt a) :=
     eo_to_smt_apply_apply_generic_of_branch_exclusions
       (g := g) (x := x) (a := a)
-      hUOp hNoUpdate hNoTupleUpdate hApplyUOp
+      hUOp hNoUpdate hNoTupleUpdate hApplyUOp hApplyApplyUOp
   have hHeadSubTy :
       __eo_typeof
           (__substitute_simul_rec (Term.Boolean isRename)
@@ -2304,7 +2367,8 @@ theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translat
         Term.Stuck :=
     substitute_simul_apply_apply_branch_residual_head_typeof_ne_stuck
       g x a xs ts bvs hXsEnv hBvsEnv hTs hNotBinderOuter
-      hUOp hNoUpdate hNoTupleUpdate hApplyUOp hNotUOpTop hFTrans hTy
+      hUOp hNoUpdate hNoTupleUpdate hApplyUOp hApplyApplyUOp hNotUOpTop
+      hFTrans hTy
   exact
     substitute_simul_apply_applied_head_generic_preserves_type_and_translation_of_typeof_ne_stuck
       g x a xs ts bvs
