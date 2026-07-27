@@ -394,6 +394,7 @@ theorem eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
     (hSetSubset : op ≠ UserOp.set_subset)
     (hStringsItosResult : op ≠ UserOp._at_strings_itos_result)
     (hStringsNumOccur : op ≠ UserOp._at_strings_num_occur)
+    (hStringsNumOccurRe : op ≠ UserOp._at_strings_num_occur_re)
     (hArrayDeqDiff : op ≠ UserOp._at_array_deq_diff)
     (hSetsDeqDiff : op ≠ UserOp._at_sets_deq_diff)
     (hTuple : op ≠ UserOp.tuple)
@@ -487,6 +488,7 @@ theorem eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
     | exact hSetSubset rfl
     | exact hStringsItosResult rfl
     | exact hStringsNumOccur rfl
+    | exact hStringsNumOccurRe rfl
     | exact hArrayDeqDiff rfl
     | exact hSetsDeqDiff rfl
     | exact hTuple rfl

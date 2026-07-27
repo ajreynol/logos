@@ -164,20 +164,71 @@ theorem smt_strings_num_occur_typeof_congr
     (hX : __smtx_typeof X₁ = __smtx_typeof X₂)
     (hY : __smtx_typeof Y₁ = __smtx_typeof Y₂) :
     __smtx_typeof
-        (SmtTerm.div
-          (SmtTerm.neg (SmtTerm.str_len X₁)
-            (SmtTerm.str_len
-              (SmtTerm.str_replace_all X₁ Y₁
-                (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
-          (SmtTerm.str_len Y₁)) =
+        (__eo_to_smt_strings_num_occur X₁ Y₁) =
       __smtx_typeof
-        (SmtTerm.div
-          (SmtTerm.neg (SmtTerm.str_len X₂)
-            (SmtTerm.str_len
-              (SmtTerm.str_replace_all X₂ Y₂
-                (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
-          (SmtTerm.str_len Y₂)) := by
-  simp [typeof_div_eq, typeof_neg_eq, typeof_str_len_eq,
-    typeof_str_replace_all_eq, hX, hY]
+        (__eo_to_smt_strings_num_occur X₂ Y₂) := by
+  simp [__eo_to_smt_strings_num_occur, typeof_neg_eq, typeof_str_len_eq,
+    typeof_str_replace_all_eq, typeof_str_substr_eq, hX, hY]
+
+theorem eo_typeof_strings_num_occur_re_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_strings_num_occur_re A B ≠ Term.Stuck) :
+    A = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) ∧
+      B = Term.UOp UserOp.RegLan := by
+  cases A with
+  | Apply f n =>
+      cases f with
+      | UOp opA =>
+          cases opA with
+          | Seq =>
+              cases n with
+              | UOp innerA =>
+                  cases innerA with
+                  | Char =>
+                      cases B with
+                      | UOp opB =>
+                          cases opB with
+                          | RegLan =>
+                              exact ⟨rfl, rfl⟩
+                          | _ =>
+                              simp [__eo_typeof__at_strings_num_occur_re] at h
+                      | _ =>
+                          simp [__eo_typeof__at_strings_num_occur_re] at h
+                  | _ =>
+                      simp [__eo_typeof__at_strings_num_occur_re] at h
+              | _ =>
+                  simp [__eo_typeof__at_strings_num_occur_re] at h
+          | _ =>
+              simp [__eo_typeof__at_strings_num_occur_re] at h
+      | _ =>
+          simp [__eo_typeof__at_strings_num_occur_re] at h
+  | _ =>
+      simp [__eo_typeof__at_strings_num_occur_re] at h
+
+theorem eo_typeof_strings_num_occur_re_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_strings_num_occur_re A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_strings_num_occur_re_arg_types_of_ne_stuck h with
+    ⟨hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+theorem smt_strings_num_occur_re_typeof_congr
+    {X₁ X₂ Y₁ Y₂ : SmtTerm}
+    (hX : __smtx_typeof X₁ = __smtx_typeof X₂)
+    (hY : __smtx_typeof Y₁ = __smtx_typeof Y₂) :
+    __smtx_typeof
+        (__eo_to_smt_strings_num_occur_re X₁ Y₁) =
+      __smtx_typeof
+        (__eo_to_smt_strings_num_occur_re X₂ Y₂) := by
+  simp [__eo_to_smt_strings_num_occur_re, typeof_neg_eq,
+    typeof_str_len_eq, typeof_str_replace_re_all_eq, typeof_str_substr_eq,
+    hX, hY]
 
 end SubstitutePreservationSupport
