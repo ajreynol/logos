@@ -11,26 +11,12 @@ set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
 /-!
-This rule was previously unsound for two independent reasons, both now fixed
-in the corresponding definitions in `Cpc.Logos`.
-
-First, `__bv_bitblast_ult` accepted an `orEqual` argument but did not use it,
-so the `bvule` branch (and the recursive magnitude comparison in the multi-bit
-`bvsle` branch) implemented strict unsigned comparison and gave a wrong answer
-on equal operands.  `__bv_bitblast_ult` now seeds `__bv_bitblast_ult_rec` from
-`orEqual`: the seed is one comparison step applied to the least-significant bit
-with prior result `orEqual`, so equal operands reduce to `orEqual` (`true` for
-`bvule`/`bvsle`, `false` for `bvult`/`bvslt`).  With `orEqual = false` the seed
-reduces to the original strict seed, so `bvult`/`bvslt` are unchanged.
-
-Second, the bitwise, addition, and multiplication fold helpers expect their
-right operand to be a right-nested operator spine ending in the operator's
-identity.  Their fallback case returned the accumulated left operand, silently
-dropping the terminal operand.  Those fallbacks now reject a non-identity
-terminal.  The rule also no longer relies on the unverified fold, division, and
-shift circuits: those branches use `__bv_bitblast_reify`, which represents the
-result uniformly as a little-endian list of `@bit` predicates.  Specialized
-circuits are retained for the operations proved directly below.
+The proof below is for the original specialized `bv_bitblast_step` definition
+in `Cpc.Logos`.  In particular, it reasons directly about the recursive
+little-endian Boolean-list circuits used for comparisons, bitwise folds,
+ripple-carry addition, multiplication, division, shifts, and reification of
+constants and variables.  No replacement reifier or change to the Logos
+definition is assumed.
 
 The `private def`s below exercise the affected paths.  The theorem at the end
 proves the resulting step sound for every total typed SMT model.

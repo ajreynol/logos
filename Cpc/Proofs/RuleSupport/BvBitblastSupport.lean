@@ -4,6 +4,11 @@ public import Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
 import all Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
 public import Cpc.Proofs.RuleSupport.Evaluate.Prelude
 import all Cpc.Proofs.RuleSupport.Evaluate.Prelude
+import Cpc.Proofs.RuleSupport.BvNaryAndSupport
+import Cpc.Proofs.RuleSupport.BvNaryOrSupport
+import Cpc.Proofs.RuleSupport.BvNaryXorSupport
+import Cpc.Proofs.RuleSupport.BvBitwiseElimSupport
+import Cpc.Proofs.RuleSupport.BvNaryAddSupport
 
 open Eo
 open SmtEval
@@ -3756,6 +3761,1579 @@ theorem eval_step_bvsltbv (M : SmtModel) (hM : model_total_typed M)
   rw [hpred]
   cases cb <;> rfl
 
+
+
+
+
+private theorem fold_acc_ne {bf f rest acc : Term}
+    (h : __bv_mk_bitblast_step_bitwise bf f rest acc ≠ Term.Stuck) :
+    acc ≠ Term.Stuck := by
+  intro ha
+  subst acc
+  by_cases hbf : bf = Term.Stuck
+  · subst bf
+    rw [__bv_mk_bitblast_step_bitwise.eq_1] at h
+    exact h rfl
+  by_cases hf : f = Term.Stuck
+  · subst f
+    rw [__bv_mk_bitblast_step_bitwise.eq_2 bf rest Term.Stuck hbf] at h
+    exact h rfl
+  by_cases hr : rest = Term.Stuck
+  · subst rest
+    rw [__bv_mk_bitblast_step_bitwise.eq_3 bf f Term.Stuck hbf hf] at h
+    exact h rfl
+  rw [__bv_mk_bitblast_step_bitwise.eq_4 bf f rest hbf hf hr] at h
+  exact h rfl
+
+private theorem req_refl (t result : Term) (ht : t ≠ Term.Stuck) :
+    __eo_requires t t result = result := by
+  simp [__eo_requires, native_teq, native_ite, native_not, ht]
+
+private theorem smt_typeof_bitsValue (xs : List Bool) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Binary (xs.length : Int)
+            (BvBitblast.bitsValue xs : Int))) =
+      SmtType.BitVec xs.length := by
+  have hW0 : native_zleq 0 (xs.length : Int) = true := by
+    simpa [SmtEval.native_zleq] using Int.natCast_nonneg xs.length
+  have hCanon :
+      native_zeq (BvBitblast.bitsValue xs : Int)
+          (native_mod_total (BvBitblast.bitsValue xs : Int)
+            (native_int_pow2 (xs.length : Int))) =
+        true := by
+    have hWCast :
+        (xs.length : Int) = native_nat_to_int xs.length := by
+      simp [native_nat_to_int, SmtEval.native_nat_to_int]
+    rw [hWCast]
+    rw [BvBitblast.native_int_pow2_native_nat xs.length]
+    have hMod :
+        (BvBitblast.bitsValue xs : Int) % (2 ^ xs.length : Nat) =
+          BvBitblast.bitsValue xs := by
+      exact Int.emod_eq_of_lt (Int.natCast_nonneg _)
+        (by exact_mod_cast BvBitblast.bitsValue_lt xs)
+    simpa [SmtEval.native_zeq, SmtEval.native_mod_total] using hMod.symm
+  change
+    __smtx_typeof
+        (SmtTerm.Binary (xs.length : Int)
+          (BvBitblast.bitsValue xs : Int)) =
+      SmtType.BitVec xs.length
+  simp [__smtx_typeof, native_and, hW0, hCanon, native_ite,
+    native_int_to_nat]
+
+private theorem bitListEval_length_eq_smt_type
+    (M : SmtModel) (hM : model_total_typed M)
+    (t : Term) (xs : List Bool) (W : Nat)
+    (h : BvBitblast.BitListEval M t xs)
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec W) :
+    xs.length = W := by
+  have hnn : term_has_non_none_type (__eo_to_smt t) := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    simp
+  have hpres := type_preservation M hM (__eo_to_smt t) hnn
+  rw [hTy, h.eval] at hpres
+  have hw := bitvec_width_nonneg hpres
+  have hc := bitvec_payload_canonical hpres
+  rw [typeof_value_binary_of_nonneg _ _ hw hc] at hpres
+  injection hpres
+
+private theorem band_assoc_values
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y z : Term) (W : Nat) (xs ys : List Bool)
+    (hx : BvBitblast.BitListEval M x xs)
+    (hy : BvBitblast.BitListEval M y ys)
+    (hxW : xs.length = W) (hyW : ys.length = W)
+    (hzTy : __smtx_typeof (__eo_to_smt z) = SmtType.BitVec W) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvand)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x) y)) z)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) y) z))) := by
+  let xc := Term.Binary (W : Int) (BvBitblast.bitsValue xs : Int)
+  let yc := Term.Binary (W : Int) (BvBitblast.bitsValue ys : Int)
+  have hxcTy : __smtx_typeof (__eo_to_smt xc) = SmtType.BitVec W := by
+    simpa [xc, hxW] using smt_typeof_bitsValue xs
+  have hycTy : __smtx_typeof (__eo_to_smt yc) = SmtType.BitVec W := by
+    simpa [yc, hyW] using smt_typeof_bitsValue ys
+  have hassoc :=
+    BvNaryAndSupport.evalAssoc M hM xc yc z W hxcTy hycTy hzTy
+  change
+    __smtx_model_eval_bvand
+        (__smtx_model_eval_bvand
+          (__smtx_model_eval M (__eo_to_smt x))
+          (__smtx_model_eval M (__eo_to_smt y)))
+        (__smtx_model_eval M (__eo_to_smt z)) =
+      __smtx_model_eval_bvand
+        (__smtx_model_eval M (__eo_to_smt x))
+        (__smtx_model_eval_bvand
+          (__smtx_model_eval M (__eo_to_smt y))
+          (__smtx_model_eval M (__eo_to_smt z)))
+  rw [hx.eval, hy.eval, hxW, hyW]
+  simpa [xc, yc] using hassoc
+
+private theorem testBitsBand
+    (M : SmtModel) (hM : model_total_typed M)
+    (rest acc : Term) (W : Nat) (xs : List Bool)
+    (hacc : BvBitblast.BitListEval M acc xs)
+    (hxW : xs.length = W)
+    (hrestTy : __smtx_typeof (__eo_to_smt rest) = SmtType.BitVec W)
+    (hne :
+      __bv_mk_bitblast_step_bitwise
+          (Term.UOp UserOp.bvand) (Term.UOp UserOp.and) rest acc ≠
+        Term.Stuck) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__bv_mk_bitblast_step_bitwise
+            (Term.UOp UserOp.bvand) (Term.UOp UserOp.and) rest acc)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) acc) rest)) := by
+  generalize hbf : Term.UOp UserOp.bvand = bf at hne ⊢
+  generalize hf : Term.UOp UserOp.and = f at hne ⊢
+  revert hacc hxW hrestTy hne hbf hf
+  fun_cases __bv_mk_bitblast_step_bitwise bf f rest acc <;>
+    subst_vars <;> simp_all
+  case case5 head tail hbfNe hfNe haccNe =>
+    intro hacc hxW hrestTy hbf hf hne
+    subst_vars
+    rename_i g
+    by_cases hg : g = Term.UOp UserOp.bvand
+    · subst g
+      simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne ⊢
+      have hnewNe := fold_acc_ne hne
+      have hs :=
+        BvBitblast.bitblast_apply_binary_same_length
+          (Term.UOp UserOp.and) acc head hnewNe
+      have hparts :=
+        BvNaryAndSupport.binaryArgsSmtType head tail xs.length hrestTy
+      have hheadNN : term_has_non_none_type (__eo_to_smt head) := by
+        unfold term_has_non_none_type
+        rw [hparts.1]
+        simp
+      rcases hs.syntax_right.eval hM hheadNN with ⟨ys, hhead⟩
+      have hlen := hs.eval_length hacc hhead
+      have hnew := hacc.apply_and hhead hlen
+      have hnewLen :
+          (List.zipWith (· && ·) xs ys).length = xs.length := by
+        simp [List.length_zipWith, hlen]
+      have hrec :=
+        testBitsBand M hM tail
+          (__bv_bitblast_apply_binary (Term.UOp UserOp.and) acc head)
+          xs.length (List.zipWith (· && ·) xs ys)
+          hnew hnewLen hparts.2 hne
+      have hnewEval := hacc.eval_bvand hhead hlen
+      calc
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__bv_mk_bitblast_step_bitwise
+                (Term.UOp UserOp.bvand) (Term.UOp UserOp.and) tail
+                (__bv_bitblast_apply_binary
+                  (Term.UOp UserOp.and) acc head))) =
+            __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvand)
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.and) acc head)) tail)) := hrec
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvand)
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.bvand) acc) head))
+                  tail)) := by
+            change __smtx_model_eval_bvand
+                (__smtx_model_eval M
+                  (__eo_to_smt
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.and) acc head)))
+                (__smtx_model_eval M (__eo_to_smt tail)) =
+              __smtx_model_eval_bvand
+                (__smtx_model_eval_bvand
+                  (__smtx_model_eval M (__eo_to_smt acc))
+                  (__smtx_model_eval M (__eo_to_smt head)))
+                (__smtx_model_eval M (__eo_to_smt tail))
+            rw [hnewEval]
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) acc)
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.bvand) head) tail))) :=
+            band_assoc_values M hM acc head tail xs.length xs ys
+              hacc hhead rfl hlen.symm hparts.2
+    · by_cases hgStuck : g = Term.Stuck
+      · subst g
+        simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne
+      have heqFalse :
+          __eo_eq (Term.UOp UserOp.bvand) g = Term.Boolean false := by
+        cases g <;> simp_all [__eo_eq, native_teq]
+      have hfallback :
+          __eo_l_1___bv_mk_bitblast_step_bitwise
+              (Term.UOp UserOp.bvand) (Term.UOp UserOp.and)
+              (Term.Apply (Term.Apply g head) tail) acc ≠
+            Term.Stuck := by
+        simpa [heqFalse, __eo_ite, native_teq, native_ite] using hne
+      have haccNe := hacc.ne_stuck
+      simp [__eo_l_1___bv_mk_bitblast_step_bitwise, haccNe] at hfallback
+      have hsame :=
+        support_eo_requires_cond_eq_of_non_stuck hfallback
+      have hrestEoTy :=
+        EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+          (Term.Apply (Term.Apply g head) tail) xs.length hrestTy
+      rw [hrestEoTy] at hsame
+      have hnilNe :
+          __eo_nil
+              (Term.UOp UserOp.bvand)
+              (Term.Apply (Term.UOp UserOp.BitVec)
+                (Term.Numeral (native_nat_to_int xs.length))) ≠
+            Term.Stuck := by
+        intro hs
+        rw [hs] at hsame
+        cases hsame
+      have hnilEq :=
+        bvand_generated_nil_eq_allOnes xs.length hnilNe
+      rw [hnilEq] at hsame
+      cases hsame
+  case case6 hnotApp haccNe =>
+    intro hacc hxW hrestTy hbf hf hne
+    subst_vars
+    simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hne ⊢
+    have hnil := support_eo_requires_cond_eq_of_non_stuck hne
+    have hreq :
+        __eo_requires rest
+            (__eo_nil (Term.UOp UserOp.bvand) (__eo_typeof rest)) acc =
+          acc := by
+      rw [← hnil]
+      exact req_refl _ _ (by assumption)
+    rw [hreq]
+    let xc :=
+      Term.Binary (xs.length : Int) (BvBitblast.bitsValue xs : Int)
+    have hxcTy :
+        __smtx_typeof (__eo_to_smt xc) =
+          SmtType.BitVec xs.length := by
+      exact smt_typeof_bitsValue xs
+    have hrestEoTy :=
+      EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+        rest xs.length hrestTy
+    have hrestEq :
+        rest =
+          __eo_nil (Term.UOp UserOp.bvand)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int xs.length))) := by
+      simpa [hrestEoTy] using hnil
+    have hnilNe :
+        __eo_nil (Term.UOp UserOp.bvand)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int xs.length))) ≠
+          Term.Stuck := by
+      have hrestNe : rest ≠ Term.Stuck := by
+        intro hs
+        rw [hs] at hrestTy
+        change __smtx_typeof SmtTerm.None = SmtType.BitVec xs.length at hrestTy
+        rw [TranslationProofs.smtx_typeof_none] at hrestTy
+        cases hrestTy
+      rw [← hrestEq]
+      exact hrestNe
+    have hmarker :=
+      bvand_generated_nil_marker xs.length hnilNe
+    have hid :=
+      BvNaryAndSupport.evalRightNil M hM xc rest xs.length
+        (by simpa [hrestEq] using hmarker)
+        hxcTy hrestTy
+    change
+      __smtx_model_eval M (__eo_to_smt acc) =
+        __smtx_model_eval_bvand
+          (__smtx_model_eval M (__eo_to_smt acc))
+          (__smtx_model_eval M (__eo_to_smt rest))
+    rw [hacc.eval]
+    simpa [xc] using hid.symm
+termination_by sizeOf rest
+
+theorem eval_step_bvand_fold
+    (M : SmtModel) (hM : model_total_typed M)
+    (rest acc : Term)
+    (hne :
+      __bv_mk_bitblast_step_bitwise
+          (Term.UOp UserOp.bvand) (Term.UOp UserOp.and) rest acc ≠
+        Term.Stuck)
+    (hnn : term_has_non_none_type
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) acc) rest))) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__bv_mk_bitblast_step_bitwise
+            (Term.UOp UserOp.bvand) (Term.UOp UserOp.and) rest acc)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) acc) rest)) := by
+  change term_has_non_none_type
+      (SmtTerm.bvand (__eo_to_smt acc) (__eo_to_smt rest)) at hnn
+  rcases bv_binop_args_of_non_none
+      (op := SmtTerm.bvand)
+      (t1 := __eo_to_smt acc) (t2 := __eo_to_smt rest)
+      (by rw [__smtx_typeof.eq_def] <;> simp only) hnn with
+    ⟨W, haccTy, hrestTy⟩
+  have hargs :
+      __smtx_typeof (__eo_to_smt acc) = SmtType.BitVec W ∧
+        __smtx_typeof (__eo_to_smt rest) = SmtType.BitVec W :=
+    ⟨haccTy, hrestTy⟩
+  generalize hbf : Term.UOp UserOp.bvand = bf at hne ⊢
+  generalize hf : Term.UOp UserOp.and = f at hne ⊢
+  revert hne hbf hf
+  fun_cases __bv_mk_bitblast_step_bitwise bf f rest acc <;>
+    subst_vars <;> simp_all
+  case case5 head tail hbfNe hfNe haccNe =>
+    intro hbf hf hne
+    subst_vars
+    rename_i g
+    by_cases hg : g = Term.UOp UserOp.bvand
+    · subst g
+      simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne ⊢
+      have hnewNe := fold_acc_ne hne
+      have hs :=
+        BvBitblast.bitblast_apply_binary_same_length
+          (Term.UOp UserOp.and) acc head hnewNe
+      have hparts :=
+        BvNaryAndSupport.binaryArgsSmtType head tail W hargs.2
+      have haccNN : term_has_non_none_type (__eo_to_smt acc) := by
+        unfold term_has_non_none_type
+        rw [hargs.1]
+        simp
+      have hheadNN : term_has_non_none_type (__eo_to_smt head) := by
+        unfold term_has_non_none_type
+        rw [hparts.1]
+        simp
+      rcases hs.syntax_left.eval hM haccNN with ⟨xs, hacc⟩
+      rcases hs.syntax_right.eval hM hheadNN with ⟨ys, hhead⟩
+      have hlen := hs.eval_length hacc hhead
+      have hnew := hacc.apply_and hhead hlen
+      have hnewLen :
+          (List.zipWith (· && ·) xs ys).length = xs.length := by
+        simp [List.length_zipWith, hlen]
+      have hxW :=
+        bitListEval_length_eq_smt_type M hM acc xs W hacc hargs.1
+      have hrec :=
+        testBitsBand M hM tail
+          (__bv_bitblast_apply_binary (Term.UOp UserOp.and) acc head)
+          xs.length (List.zipWith (· && ·) xs ys)
+          hnew hnewLen (by simpa [hxW] using hparts.2) hne
+      have hnewEval := hacc.eval_bvand hhead hlen
+      calc
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__bv_mk_bitblast_step_bitwise
+                (Term.UOp UserOp.bvand) (Term.UOp UserOp.and) tail
+                (__bv_bitblast_apply_binary
+                  (Term.UOp UserOp.and) acc head))) =
+            __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvand)
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.and) acc head)) tail)) := hrec
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvand)
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.bvand) acc) head))
+                  tail)) := by
+            change __smtx_model_eval_bvand
+                (__smtx_model_eval M
+                  (__eo_to_smt
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.and) acc head)))
+                (__smtx_model_eval M (__eo_to_smt tail)) =
+              __smtx_model_eval_bvand
+                (__smtx_model_eval_bvand
+                  (__smtx_model_eval M (__eo_to_smt acc))
+                  (__smtx_model_eval M (__eo_to_smt head)))
+                (__smtx_model_eval M (__eo_to_smt tail))
+            rw [hnewEval]
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) acc)
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.bvand) head) tail))) :=
+            BvNaryAndSupport.evalAssoc M hM acc head tail W
+              hargs.1 hparts.1 hparts.2
+    · by_cases hgStuck : g = Term.Stuck
+      · subst g
+        simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne
+      have heqFalse :
+          __eo_eq (Term.UOp UserOp.bvand) g = Term.Boolean false := by
+        cases g <;> simp_all [__eo_eq, native_teq]
+      have hfallback :
+          __eo_l_1___bv_mk_bitblast_step_bitwise
+              (Term.UOp UserOp.bvand) (Term.UOp UserOp.and)
+              (Term.Apply (Term.Apply g head) tail) acc ≠
+            Term.Stuck := by
+        simpa [heqFalse, __eo_ite, native_teq, native_ite] using hne
+      simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hfallback
+      have hsame :=
+        support_eo_requires_cond_eq_of_non_stuck hfallback
+      have hrestEoTy :=
+        EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+          (Term.Apply (Term.Apply g head) tail) W hargs.2
+      rw [hrestEoTy] at hsame
+      have hnilNe :
+          __eo_nil
+              (Term.UOp UserOp.bvand)
+              (Term.Apply (Term.UOp UserOp.BitVec)
+                (Term.Numeral (native_nat_to_int W))) ≠
+            Term.Stuck := by
+        intro hs
+        rw [hs] at hsame
+        cases hsame
+      have hnilEq :=
+        bvand_generated_nil_eq_allOnes W hnilNe
+      rw [hnilEq] at hsame
+      cases hsame
+  case case6 hnotApp haccNe =>
+    intro hbf hf hne
+    subst_vars
+    simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hne ⊢
+    have hnil := support_eo_requires_cond_eq_of_non_stuck hne
+    have hreq :
+        __eo_requires rest
+            (__eo_nil (Term.UOp UserOp.bvand) (__eo_typeof rest)) acc =
+          acc := by
+      rw [← hnil]
+      exact req_refl _ _ (by assumption)
+    rw [hreq]
+    have hrestEoTy :=
+      EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+        rest W hargs.2
+    have hrestEq :
+        rest =
+          __eo_nil (Term.UOp UserOp.bvand)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int W))) := by
+      simpa [hrestEoTy] using hnil
+    have hrestNe : rest ≠ Term.Stuck := by
+      intro hs
+      have h := hargs.2
+      rw [hs] at h
+      change __smtx_typeof SmtTerm.None = SmtType.BitVec W at h
+      rw [TranslationProofs.smtx_typeof_none] at h
+      cases h
+    have hnilNe :
+        __eo_nil (Term.UOp UserOp.bvand)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int W))) ≠
+          Term.Stuck := by
+      rw [← hrestEq]
+      exact hrestNe
+    have hmarker :=
+      bvand_generated_nil_marker W hnilNe
+    exact (BvNaryAndSupport.evalRightNil M hM acc rest W
+      (by simpa [hrestEq] using hmarker) hargs.1 hargs.2).symm
+
+private theorem bor_assoc_values
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y z : Term) (W : Nat) (xs ys : List Bool)
+    (hx : BvBitblast.BitListEval M x xs)
+    (hy : BvBitblast.BitListEval M y ys)
+    (hxW : xs.length = W) (hyW : ys.length = W)
+    (hzTy : __smtx_typeof (__eo_to_smt z) = SmtType.BitVec W) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvor)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) x) y)) z)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) x)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) y) z))) := by
+  let xc := Term.Binary (W : Int) (BvBitblast.bitsValue xs : Int)
+  let yc := Term.Binary (W : Int) (BvBitblast.bitsValue ys : Int)
+  have hxcTy : __smtx_typeof (__eo_to_smt xc) = SmtType.BitVec W := by
+    simpa [xc, hxW] using smt_typeof_bitsValue xs
+  have hycTy : __smtx_typeof (__eo_to_smt yc) = SmtType.BitVec W := by
+    simpa [yc, hyW] using smt_typeof_bitsValue ys
+  have hassoc :=
+    BvNaryOrSupport.evalAssoc M hM xc yc z W hxcTy hycTy hzTy
+  change
+    __smtx_model_eval_bvor
+        (__smtx_model_eval_bvor
+          (__smtx_model_eval M (__eo_to_smt x))
+          (__smtx_model_eval M (__eo_to_smt y)))
+        (__smtx_model_eval M (__eo_to_smt z)) =
+      __smtx_model_eval_bvor
+        (__smtx_model_eval M (__eo_to_smt x))
+        (__smtx_model_eval_bvor
+          (__smtx_model_eval M (__eo_to_smt y))
+          (__smtx_model_eval M (__eo_to_smt z)))
+  rw [hx.eval, hy.eval, hxW, hyW]
+  simpa [xc, yc] using hassoc
+
+private theorem testBitsOr
+    (M : SmtModel) (hM : model_total_typed M)
+    (rest acc : Term) (W : Nat) (xs : List Bool)
+    (hacc : BvBitblast.BitListEval M acc xs)
+    (hxW : xs.length = W)
+    (hrestTy : __smtx_typeof (__eo_to_smt rest) = SmtType.BitVec W)
+    (hne :
+      __bv_mk_bitblast_step_bitwise
+          (Term.UOp UserOp.bvor) (Term.UOp UserOp.or) rest acc ≠
+        Term.Stuck) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__bv_mk_bitblast_step_bitwise
+            (Term.UOp UserOp.bvor) (Term.UOp UserOp.or) rest acc)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) acc) rest)) := by
+  generalize hbf : Term.UOp UserOp.bvor = bf at hne ⊢
+  generalize hf : Term.UOp UserOp.or = f at hne ⊢
+  revert hacc hxW hrestTy hne hbf hf
+  fun_cases __bv_mk_bitblast_step_bitwise bf f rest acc <;>
+    subst_vars <;> simp_all
+  case case5 head tail hbfNe hfNe haccNe =>
+    intro hacc hxW hrestTy hbf hf hne
+    subst_vars
+    rename_i g
+    by_cases hg : g = Term.UOp UserOp.bvor
+    · subst g
+      simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne ⊢
+      have hnewNe := fold_acc_ne hne
+      have hs :=
+        BvBitblast.bitblast_apply_binary_same_length
+          (Term.UOp UserOp.or) acc head hnewNe
+      have hparts :=
+        BvNaryOrSupport.binaryArgsSmtType head tail xs.length hrestTy
+      have hheadNN : term_has_non_none_type (__eo_to_smt head) := by
+        unfold term_has_non_none_type
+        rw [hparts.1]
+        simp
+      rcases hs.syntax_right.eval hM hheadNN with ⟨ys, hhead⟩
+      have hlen := hs.eval_length hacc hhead
+      have hnew := hacc.apply_or hhead hlen
+      have hnewLen :
+          (List.zipWith (· || ·) xs ys).length = xs.length := by
+        simp [List.length_zipWith, hlen]
+      have hrec :=
+        testBitsOr M hM tail
+          (__bv_bitblast_apply_binary (Term.UOp UserOp.or) acc head)
+          xs.length (List.zipWith (· || ·) xs ys)
+          hnew hnewLen hparts.2 hne
+      have hnewEval := hacc.eval_bvor hhead hlen
+      calc
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__bv_mk_bitblast_step_bitwise
+                (Term.UOp UserOp.bvor) (Term.UOp UserOp.or) tail
+                (__bv_bitblast_apply_binary
+                  (Term.UOp UserOp.or) acc head))) =
+            __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvor)
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.or) acc head)) tail)) := hrec
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvor)
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.bvor) acc) head))
+                  tail)) := by
+            change __smtx_model_eval_bvor
+                (__smtx_model_eval M
+                  (__eo_to_smt
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.or) acc head)))
+                (__smtx_model_eval M (__eo_to_smt tail)) =
+              __smtx_model_eval_bvor
+                (__smtx_model_eval_bvor
+                  (__smtx_model_eval M (__eo_to_smt acc))
+                  (__smtx_model_eval M (__eo_to_smt head)))
+                (__smtx_model_eval M (__eo_to_smt tail))
+            rw [hnewEval]
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) acc)
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.bvor) head) tail))) :=
+            bor_assoc_values M hM acc head tail xs.length xs ys
+              hacc hhead rfl hlen.symm hparts.2
+    · by_cases hgStuck : g = Term.Stuck
+      · subst g
+        simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne
+      have heqFalse :
+          __eo_eq (Term.UOp UserOp.bvor) g = Term.Boolean false := by
+        cases g <;> simp_all [__eo_eq, native_teq]
+      have hfallback :
+          __eo_l_1___bv_mk_bitblast_step_bitwise
+              (Term.UOp UserOp.bvor) (Term.UOp UserOp.or)
+              (Term.Apply (Term.Apply g head) tail) acc ≠
+            Term.Stuck := by
+        simpa [heqFalse, __eo_ite, native_teq, native_ite] using hne
+      have haccNe := hacc.ne_stuck
+      simp [__eo_l_1___bv_mk_bitblast_step_bitwise, haccNe] at hfallback
+      have hsame :=
+        support_eo_requires_cond_eq_of_non_stuck hfallback
+      have hrestEoTy :=
+        EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+          (Term.Apply (Term.Apply g head) tail) xs.length hrestTy
+      rw [hrestEoTy] at hsame
+      have hnilNe :
+          __eo_nil
+              (Term.UOp UserOp.bvor)
+              (Term.Apply (Term.UOp UserOp.BitVec)
+                (Term.Numeral (native_nat_to_int xs.length))) ≠
+            Term.Stuck := by
+        intro hs
+        rw [hs] at hsame
+        cases hsame
+      have hnilEq :=
+        bvor_generated_nil_eq_zero xs.length hnilNe
+      rw [hnilEq] at hsame
+      cases hsame
+  case case6 hnotApp haccNe =>
+    intro hacc hxW hrestTy hbf hf hne
+    subst_vars
+    simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hne ⊢
+    have hnil := support_eo_requires_cond_eq_of_non_stuck hne
+    have hreq :
+        __eo_requires rest
+            (__eo_nil (Term.UOp UserOp.bvor) (__eo_typeof rest)) acc =
+          acc := by
+      rw [← hnil]
+      exact req_refl _ _ (by assumption)
+    rw [hreq]
+    let xc :=
+      Term.Binary (xs.length : Int) (BvBitblast.bitsValue xs : Int)
+    have hxcTy :
+        __smtx_typeof (__eo_to_smt xc) =
+          SmtType.BitVec xs.length := by
+      exact smt_typeof_bitsValue xs
+    have hrestEoTy :=
+      EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+        rest xs.length hrestTy
+    have hrestEq :
+        rest =
+          __eo_nil (Term.UOp UserOp.bvor)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int xs.length))) := by
+      simpa [hrestEoTy] using hnil
+    have hnilNe :
+        __eo_nil (Term.UOp UserOp.bvor)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int xs.length))) ≠
+          Term.Stuck := by
+      have hrestNe : rest ≠ Term.Stuck := by
+        intro hs
+        rw [hs] at hrestTy
+        change __smtx_typeof SmtTerm.None = SmtType.BitVec xs.length at hrestTy
+        rw [TranslationProofs.smtx_typeof_none] at hrestTy
+        cases hrestTy
+      rw [← hrestEq]
+      exact hrestNe
+    have hmarker :=
+      bvor_generated_nil_marker xs.length hnilNe
+    have hid :=
+      BvNaryOrSupport.evalRightNil M hM xc rest xs.length
+        (by simpa [hrestEq] using hmarker)
+        hxcTy hrestTy
+    change
+      __smtx_model_eval M (__eo_to_smt acc) =
+        __smtx_model_eval_bvor
+          (__smtx_model_eval M (__eo_to_smt acc))
+          (__smtx_model_eval M (__eo_to_smt rest))
+    rw [hacc.eval]
+    simpa [xc] using hid.symm
+termination_by sizeOf rest
+
+theorem eval_step_bvor_fold
+    (M : SmtModel) (hM : model_total_typed M)
+    (rest acc : Term)
+    (hne :
+      __bv_mk_bitblast_step_bitwise
+          (Term.UOp UserOp.bvor) (Term.UOp UserOp.or) rest acc ≠
+        Term.Stuck)
+    (hnn : term_has_non_none_type
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) acc) rest))) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__bv_mk_bitblast_step_bitwise
+            (Term.UOp UserOp.bvor) (Term.UOp UserOp.or) rest acc)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) acc) rest)) := by
+  change term_has_non_none_type
+      (SmtTerm.bvand (__eo_to_smt acc) (__eo_to_smt rest)) at hnn
+  rcases bv_binop_args_of_non_none
+      (op := SmtTerm.bvand)
+      (t1 := __eo_to_smt acc) (t2 := __eo_to_smt rest)
+      (by rw [__smtx_typeof.eq_def] <;> simp only) hnn with
+    ⟨W, haccTy, hrestTy⟩
+  have hargs :
+      __smtx_typeof (__eo_to_smt acc) = SmtType.BitVec W ∧
+        __smtx_typeof (__eo_to_smt rest) = SmtType.BitVec W :=
+    ⟨haccTy, hrestTy⟩
+  generalize hbf : Term.UOp UserOp.bvor = bf at hne ⊢
+  generalize hf : Term.UOp UserOp.or = f at hne ⊢
+  revert hne hbf hf
+  fun_cases __bv_mk_bitblast_step_bitwise bf f rest acc <;>
+    subst_vars <;> simp_all
+  case case5 head tail hbfNe hfNe haccNe =>
+    intro hbf hf hne
+    subst_vars
+    rename_i g
+    by_cases hg : g = Term.UOp UserOp.bvor
+    · subst g
+      simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne ⊢
+      have hnewNe := fold_acc_ne hne
+      have hs :=
+        BvBitblast.bitblast_apply_binary_same_length
+          (Term.UOp UserOp.or) acc head hnewNe
+      have hparts :=
+        BvNaryOrSupport.binaryArgsSmtType head tail W hargs.2
+      have haccNN : term_has_non_none_type (__eo_to_smt acc) := by
+        unfold term_has_non_none_type
+        rw [hargs.1]
+        simp
+      have hheadNN : term_has_non_none_type (__eo_to_smt head) := by
+        unfold term_has_non_none_type
+        rw [hparts.1]
+        simp
+      rcases hs.syntax_left.eval hM haccNN with ⟨xs, hacc⟩
+      rcases hs.syntax_right.eval hM hheadNN with ⟨ys, hhead⟩
+      have hlen := hs.eval_length hacc hhead
+      have hnew := hacc.apply_or hhead hlen
+      have hnewLen :
+          (List.zipWith (· || ·) xs ys).length = xs.length := by
+        simp [List.length_zipWith, hlen]
+      have hxW :=
+        bitListEval_length_eq_smt_type M hM acc xs W hacc hargs.1
+      have hrec :=
+        testBitsOr M hM tail
+          (__bv_bitblast_apply_binary (Term.UOp UserOp.or) acc head)
+          xs.length (List.zipWith (· || ·) xs ys)
+          hnew hnewLen (by simpa [hxW] using hparts.2) hne
+      have hnewEval := hacc.eval_bvor hhead hlen
+      calc
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__bv_mk_bitblast_step_bitwise
+                (Term.UOp UserOp.bvor) (Term.UOp UserOp.or) tail
+                (__bv_bitblast_apply_binary
+                  (Term.UOp UserOp.or) acc head))) =
+            __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvor)
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.or) acc head)) tail)) := hrec
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvor)
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.bvor) acc) head))
+                  tail)) := by
+            change __smtx_model_eval_bvor
+                (__smtx_model_eval M
+                  (__eo_to_smt
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.or) acc head)))
+                (__smtx_model_eval M (__eo_to_smt tail)) =
+              __smtx_model_eval_bvor
+                (__smtx_model_eval_bvor
+                  (__smtx_model_eval M (__eo_to_smt acc))
+                  (__smtx_model_eval M (__eo_to_smt head)))
+                (__smtx_model_eval M (__eo_to_smt tail))
+            rw [hnewEval]
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) acc)
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.bvor) head) tail))) :=
+            BvNaryOrSupport.evalAssoc M hM acc head tail W
+              hargs.1 hparts.1 hparts.2
+    · by_cases hgStuck : g = Term.Stuck
+      · subst g
+        simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne
+      have heqFalse :
+          __eo_eq (Term.UOp UserOp.bvor) g = Term.Boolean false := by
+        cases g <;> simp_all [__eo_eq, native_teq]
+      have hfallback :
+          __eo_l_1___bv_mk_bitblast_step_bitwise
+              (Term.UOp UserOp.bvor) (Term.UOp UserOp.or)
+              (Term.Apply (Term.Apply g head) tail) acc ≠
+            Term.Stuck := by
+        simpa [heqFalse, __eo_ite, native_teq, native_ite] using hne
+      simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hfallback
+      have hsame :=
+        support_eo_requires_cond_eq_of_non_stuck hfallback
+      have hrestEoTy :=
+        EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+          (Term.Apply (Term.Apply g head) tail) W hargs.2
+      rw [hrestEoTy] at hsame
+      have hnilNe :
+          __eo_nil
+              (Term.UOp UserOp.bvor)
+              (Term.Apply (Term.UOp UserOp.BitVec)
+                (Term.Numeral (native_nat_to_int W))) ≠
+            Term.Stuck := by
+        intro hs
+        rw [hs] at hsame
+        cases hsame
+      have hnilEq :=
+        bvor_generated_nil_eq_zero W hnilNe
+      rw [hnilEq] at hsame
+      cases hsame
+  case case6 hnotApp haccNe =>
+    intro hbf hf hne
+    subst_vars
+    simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hne ⊢
+    have hnil := support_eo_requires_cond_eq_of_non_stuck hne
+    have hreq :
+        __eo_requires rest
+            (__eo_nil (Term.UOp UserOp.bvor) (__eo_typeof rest)) acc =
+          acc := by
+      rw [← hnil]
+      exact req_refl _ _ (by assumption)
+    rw [hreq]
+    have hrestEoTy :=
+      EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+        rest W hargs.2
+    have hrestEq :
+        rest =
+          __eo_nil (Term.UOp UserOp.bvor)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int W))) := by
+      simpa [hrestEoTy] using hnil
+    have hrestNe : rest ≠ Term.Stuck := by
+      intro hs
+      have h := hargs.2
+      rw [hs] at h
+      change __smtx_typeof SmtTerm.None = SmtType.BitVec W at h
+      rw [TranslationProofs.smtx_typeof_none] at h
+      cases h
+    have hnilNe :
+        __eo_nil (Term.UOp UserOp.bvor)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int W))) ≠
+          Term.Stuck := by
+      rw [← hrestEq]
+      exact hrestNe
+    have hmarker :=
+      bvor_generated_nil_marker W hnilNe
+    exact (BvNaryOrSupport.evalRightNil M hM acc rest W
+      (by simpa [hrestEq] using hmarker) hargs.1 hargs.2).symm
+
+private theorem bxor_assoc_values
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y z : Term) (W : Nat) (xs ys : List Bool)
+    (hx : BvBitblast.BitListEval M x xs)
+    (hy : BvBitblast.BitListEval M y ys)
+    (hxW : xs.length = W) (hyW : ys.length = W)
+    (hzTy : __smtx_typeof (__eo_to_smt z) = SmtType.BitVec W) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) y)) z)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y) z))) := by
+  let xc := Term.Binary (W : Int) (BvBitblast.bitsValue xs : Int)
+  let yc := Term.Binary (W : Int) (BvBitblast.bitsValue ys : Int)
+  have hxcTy : __smtx_typeof (__eo_to_smt xc) = SmtType.BitVec W := by
+    simpa [xc, hxW] using smt_typeof_bitsValue xs
+  have hycTy : __smtx_typeof (__eo_to_smt yc) = SmtType.BitVec W := by
+    simpa [yc, hyW] using smt_typeof_bitsValue ys
+  have hassoc :=
+    BvNaryXorSupport.evalAssoc M hM xc yc z W hxcTy hycTy hzTy
+  change
+    __smtx_model_eval_bvxor
+        (__smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt x))
+          (__smtx_model_eval M (__eo_to_smt y)))
+        (__smtx_model_eval M (__eo_to_smt z)) =
+      __smtx_model_eval_bvxor
+        (__smtx_model_eval M (__eo_to_smt x))
+        (__smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt y))
+          (__smtx_model_eval M (__eo_to_smt z)))
+  rw [hx.eval, hy.eval, hxW, hyW]
+  simpa [xc, yc] using hassoc
+
+private theorem testBitsXor
+    (M : SmtModel) (hM : model_total_typed M)
+    (rest acc : Term) (W : Nat) (xs : List Bool)
+    (hacc : BvBitblast.BitListEval M acc xs)
+    (hxW : xs.length = W)
+    (hrestTy : __smtx_typeof (__eo_to_smt rest) = SmtType.BitVec W)
+    (hne :
+      __bv_mk_bitblast_step_bitwise
+          (Term.UOp UserOp.bvxor) (Term.UOp UserOp.xor) rest acc ≠
+        Term.Stuck) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__bv_mk_bitblast_step_bitwise
+            (Term.UOp UserOp.bvxor) (Term.UOp UserOp.xor) rest acc)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) acc) rest)) := by
+  generalize hbf : Term.UOp UserOp.bvxor = bf at hne ⊢
+  generalize hf : Term.UOp UserOp.xor = f at hne ⊢
+  revert hacc hxW hrestTy hne hbf hf
+  fun_cases __bv_mk_bitblast_step_bitwise bf f rest acc <;>
+    subst_vars <;> simp_all
+  case case5 head tail hbfNe hfNe haccNe =>
+    intro hacc hxW hrestTy hbf hf hne
+    subst_vars
+    rename_i g
+    by_cases hg : g = Term.UOp UserOp.bvxor
+    · subst g
+      simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne ⊢
+      have hnewNe := fold_acc_ne hne
+      have hs :=
+        BvBitblast.bitblast_apply_binary_same_length
+          (Term.UOp UserOp.xor) acc head hnewNe
+      have hparts :=
+        BvNaryXorSupport.binaryArgsSmtType head tail xs.length hrestTy
+      have hheadNN : term_has_non_none_type (__eo_to_smt head) := by
+        unfold term_has_non_none_type
+        rw [hparts.1]
+        simp
+      rcases hs.syntax_right.eval hM hheadNN with ⟨ys, hhead⟩
+      have hlen := hs.eval_length hacc hhead
+      have hnew := hacc.apply_xor hhead hlen
+      have hnewLen :
+          (List.zipWith (· != ·) xs ys).length = xs.length := by
+        simp [List.length_zipWith, hlen]
+      have hrec :=
+        testBitsXor M hM tail
+          (__bv_bitblast_apply_binary (Term.UOp UserOp.xor) acc head)
+          xs.length (List.zipWith (· != ·) xs ys)
+          hnew hnewLen hparts.2 hne
+      have hnewEval := hacc.eval_bvxor hhead hlen
+      calc
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__bv_mk_bitblast_step_bitwise
+                (Term.UOp UserOp.bvxor) (Term.UOp UserOp.xor) tail
+                (__bv_bitblast_apply_binary
+                  (Term.UOp UserOp.xor) acc head))) =
+            __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvxor)
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.xor) acc head)) tail)) := hrec
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvxor)
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.bvxor) acc) head))
+                  tail)) := by
+            change __smtx_model_eval_bvxor
+                (__smtx_model_eval M
+                  (__eo_to_smt
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.xor) acc head)))
+                (__smtx_model_eval M (__eo_to_smt tail)) =
+              __smtx_model_eval_bvxor
+                (__smtx_model_eval_bvxor
+                  (__smtx_model_eval M (__eo_to_smt acc))
+                  (__smtx_model_eval M (__eo_to_smt head)))
+                (__smtx_model_eval M (__eo_to_smt tail))
+            rw [hnewEval]
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) acc)
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.bvxor) head) tail))) :=
+            bxor_assoc_values M hM acc head tail xs.length xs ys
+              hacc hhead rfl hlen.symm hparts.2
+    · by_cases hgStuck : g = Term.Stuck
+      · subst g
+        simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne
+      have heqFalse :
+          __eo_eq (Term.UOp UserOp.bvxor) g = Term.Boolean false := by
+        cases g <;> simp_all [__eo_eq, native_teq]
+      have hfallback :
+          __eo_l_1___bv_mk_bitblast_step_bitwise
+              (Term.UOp UserOp.bvxor) (Term.UOp UserOp.xor)
+              (Term.Apply (Term.Apply g head) tail) acc ≠
+            Term.Stuck := by
+        simpa [heqFalse, __eo_ite, native_teq, native_ite] using hne
+      have haccNe := hacc.ne_stuck
+      simp [__eo_l_1___bv_mk_bitblast_step_bitwise, haccNe] at hfallback
+      have hsame :=
+        support_eo_requires_cond_eq_of_non_stuck hfallback
+      have hrestEoTy :=
+        EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+          (Term.Apply (Term.Apply g head) tail) xs.length hrestTy
+      rw [hrestEoTy] at hsame
+      have hnilNe :
+          __eo_nil
+              (Term.UOp UserOp.bvxor)
+              (Term.Apply (Term.UOp UserOp.BitVec)
+                (Term.Numeral (native_nat_to_int xs.length))) ≠
+            Term.Stuck := by
+        intro hs
+        rw [hs] at hsame
+        cases hsame
+      have hnilEq :=
+        bvxor_generated_nil_eq_zero xs.length hnilNe
+      rw [hnilEq] at hsame
+      cases hsame
+  case case6 hnotApp haccNe =>
+    intro hacc hxW hrestTy hbf hf hne
+    subst_vars
+    simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hne ⊢
+    have hnil := support_eo_requires_cond_eq_of_non_stuck hne
+    have hreq :
+        __eo_requires rest
+            (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof rest)) acc =
+          acc := by
+      rw [← hnil]
+      exact req_refl _ _ (by assumption)
+    rw [hreq]
+    let xc :=
+      Term.Binary (xs.length : Int) (BvBitblast.bitsValue xs : Int)
+    have hxcTy :
+        __smtx_typeof (__eo_to_smt xc) =
+          SmtType.BitVec xs.length := by
+      exact smt_typeof_bitsValue xs
+    have hrestEoTy :=
+      EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+        rest xs.length hrestTy
+    have hrestEq :
+        rest =
+          __eo_nil (Term.UOp UserOp.bvxor)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int xs.length))) := by
+      simpa [hrestEoTy] using hnil
+    have hnilNe :
+        __eo_nil (Term.UOp UserOp.bvxor)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int xs.length))) ≠
+          Term.Stuck := by
+      have hrestNe : rest ≠ Term.Stuck := by
+        intro hs
+        rw [hs] at hrestTy
+        change __smtx_typeof SmtTerm.None = SmtType.BitVec xs.length at hrestTy
+        rw [TranslationProofs.smtx_typeof_none] at hrestTy
+        cases hrestTy
+      rw [← hrestEq]
+      exact hrestNe
+    have hmarker :=
+      bvxor_generated_nil_marker xs.length hnilNe
+    have hid :=
+      BvNaryXorSupport.evalRightNil M hM xc rest xs.length
+        (by simpa [hrestEq] using hmarker)
+        hxcTy hrestTy
+    change
+      __smtx_model_eval M (__eo_to_smt acc) =
+        __smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt acc))
+          (__smtx_model_eval M (__eo_to_smt rest))
+    rw [hacc.eval]
+    simpa [xc] using hid.symm
+termination_by sizeOf rest
+
+theorem eval_step_bvxor_fold
+    (M : SmtModel) (hM : model_total_typed M)
+    (rest acc : Term)
+    (hne :
+      __bv_mk_bitblast_step_bitwise
+          (Term.UOp UserOp.bvxor) (Term.UOp UserOp.xor) rest acc ≠
+        Term.Stuck)
+    (hnn : term_has_non_none_type
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) acc) rest))) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__bv_mk_bitblast_step_bitwise
+            (Term.UOp UserOp.bvxor) (Term.UOp UserOp.xor) rest acc)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) acc) rest)) := by
+  change term_has_non_none_type
+      (SmtTerm.bvand (__eo_to_smt acc) (__eo_to_smt rest)) at hnn
+  rcases bv_binop_args_of_non_none
+      (op := SmtTerm.bvand)
+      (t1 := __eo_to_smt acc) (t2 := __eo_to_smt rest)
+      (by rw [__smtx_typeof.eq_def] <;> simp only) hnn with
+    ⟨W, haccTy, hrestTy⟩
+  have hargs :
+      __smtx_typeof (__eo_to_smt acc) = SmtType.BitVec W ∧
+        __smtx_typeof (__eo_to_smt rest) = SmtType.BitVec W :=
+    ⟨haccTy, hrestTy⟩
+  generalize hbf : Term.UOp UserOp.bvxor = bf at hne ⊢
+  generalize hf : Term.UOp UserOp.xor = f at hne ⊢
+  revert hne hbf hf
+  fun_cases __bv_mk_bitblast_step_bitwise bf f rest acc <;>
+    subst_vars <;> simp_all
+  case case5 head tail hbfNe hfNe haccNe =>
+    intro hbf hf hne
+    subst_vars
+    rename_i g
+    by_cases hg : g = Term.UOp UserOp.bvxor
+    · subst g
+      simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne ⊢
+      have hnewNe := fold_acc_ne hne
+      have hs :=
+        BvBitblast.bitblast_apply_binary_same_length
+          (Term.UOp UserOp.xor) acc head hnewNe
+      have hparts :=
+        BvNaryXorSupport.binaryArgsSmtType head tail W hargs.2
+      have haccNN : term_has_non_none_type (__eo_to_smt acc) := by
+        unfold term_has_non_none_type
+        rw [hargs.1]
+        simp
+      have hheadNN : term_has_non_none_type (__eo_to_smt head) := by
+        unfold term_has_non_none_type
+        rw [hparts.1]
+        simp
+      rcases hs.syntax_left.eval hM haccNN with ⟨xs, hacc⟩
+      rcases hs.syntax_right.eval hM hheadNN with ⟨ys, hhead⟩
+      have hlen := hs.eval_length hacc hhead
+      have hnew := hacc.apply_xor hhead hlen
+      have hnewLen :
+          (List.zipWith (· != ·) xs ys).length = xs.length := by
+        simp [List.length_zipWith, hlen]
+      have hxW :=
+        bitListEval_length_eq_smt_type M hM acc xs W hacc hargs.1
+      have hrec :=
+        testBitsXor M hM tail
+          (__bv_bitblast_apply_binary (Term.UOp UserOp.xor) acc head)
+          xs.length (List.zipWith (· != ·) xs ys)
+          hnew hnewLen (by simpa [hxW] using hparts.2) hne
+      have hnewEval := hacc.eval_bvxor hhead hlen
+      calc
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__bv_mk_bitblast_step_bitwise
+                (Term.UOp UserOp.bvxor) (Term.UOp UserOp.xor) tail
+                (__bv_bitblast_apply_binary
+                  (Term.UOp UserOp.xor) acc head))) =
+            __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvxor)
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.xor) acc head)) tail)) := hrec
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.bvxor)
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.bvxor) acc) head))
+                  tail)) := by
+            change __smtx_model_eval_bvxor
+                (__smtx_model_eval M
+                  (__eo_to_smt
+                    (__bv_bitblast_apply_binary
+                      (Term.UOp UserOp.xor) acc head)))
+                (__smtx_model_eval M (__eo_to_smt tail)) =
+              __smtx_model_eval_bvxor
+                (__smtx_model_eval_bvxor
+                  (__smtx_model_eval M (__eo_to_smt acc))
+                  (__smtx_model_eval M (__eo_to_smt head)))
+                (__smtx_model_eval M (__eo_to_smt tail))
+            rw [hnewEval]
+        _ = __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) acc)
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.bvxor) head) tail))) :=
+            BvNaryXorSupport.evalAssoc M hM acc head tail W
+              hargs.1 hparts.1 hparts.2
+    · by_cases hgStuck : g = Term.Stuck
+      · subst g
+        simp [__eo_eq, __eo_ite, native_teq, native_ite] at hne
+      have heqFalse :
+          __eo_eq (Term.UOp UserOp.bvxor) g = Term.Boolean false := by
+        cases g <;> simp_all [__eo_eq, native_teq]
+      have hfallback :
+          __eo_l_1___bv_mk_bitblast_step_bitwise
+              (Term.UOp UserOp.bvxor) (Term.UOp UserOp.xor)
+              (Term.Apply (Term.Apply g head) tail) acc ≠
+            Term.Stuck := by
+        simpa [heqFalse, __eo_ite, native_teq, native_ite] using hne
+      simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hfallback
+      have hsame :=
+        support_eo_requires_cond_eq_of_non_stuck hfallback
+      have hrestEoTy :=
+        EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+          (Term.Apply (Term.Apply g head) tail) W hargs.2
+      rw [hrestEoTy] at hsame
+      have hnilNe :
+          __eo_nil
+              (Term.UOp UserOp.bvxor)
+              (Term.Apply (Term.UOp UserOp.BitVec)
+                (Term.Numeral (native_nat_to_int W))) ≠
+            Term.Stuck := by
+        intro hs
+        rw [hs] at hsame
+        cases hsame
+      have hnilEq :=
+        bvxor_generated_nil_eq_zero W hnilNe
+      rw [hnilEq] at hsame
+      cases hsame
+  case case6 hnotApp haccNe =>
+    intro hbf hf hne
+    subst_vars
+    simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hne ⊢
+    have hnil := support_eo_requires_cond_eq_of_non_stuck hne
+    have hreq :
+        __eo_requires rest
+            (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof rest)) acc =
+          acc := by
+      rw [← hnil]
+      exact req_refl _ _ (by assumption)
+    rw [hreq]
+    have hrestEoTy :=
+      EvaluateProofInternal.eo_typeof_eq_bitvec_of_smt_bitvec
+        rest W hargs.2
+    have hrestEq :
+        rest =
+          __eo_nil (Term.UOp UserOp.bvxor)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int W))) := by
+      simpa [hrestEoTy] using hnil
+    have hrestNe : rest ≠ Term.Stuck := by
+      intro hs
+      have h := hargs.2
+      rw [hs] at h
+      change __smtx_typeof SmtTerm.None = SmtType.BitVec W at h
+      rw [TranslationProofs.smtx_typeof_none] at h
+      cases h
+    have hnilNe :
+        __eo_nil (Term.UOp UserOp.bvxor)
+            (Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int W))) ≠
+          Term.Stuck := by
+      rw [← hrestEq]
+      exact hrestNe
+    have hmarker :=
+      bvxor_generated_nil_marker W hnilNe
+    exact (BvNaryXorSupport.evalRightNil M hM acc rest W
+      (by simpa [hrestEq] using hmarker) hargs.1 hargs.2).symm
+
+
+private theorem add_acc_ne {rest acc : Term}
+    (h : __bv_mk_bitblast_step_add rest acc ≠ Term.Stuck) :
+    acc ≠ Term.Stuck := by
+  intro ha
+  subst acc
+  apply h
+  cases rest <;> rfl
+
+private theorem add_smt_typeof_bitsValue (xs : List Bool) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Binary (xs.length : Int)
+            (BvBitblast.bitsValue xs : Int))) =
+      SmtType.BitVec xs.length := by
+  have hW0 : native_zleq 0 (xs.length : Int) = true := by
+    simpa [SmtEval.native_zleq] using Int.natCast_nonneg xs.length
+  have hCanon :
+      native_zeq (BvBitblast.bitsValue xs : Int)
+          (native_mod_total (BvBitblast.bitsValue xs : Int)
+            (native_int_pow2 (xs.length : Int))) = true := by
+    have hWCast :
+        (xs.length : Int) = native_nat_to_int xs.length := by
+      simp [native_nat_to_int, SmtEval.native_nat_to_int]
+    rw [hWCast, BvBitblast.native_int_pow2_native_nat xs.length]
+    have hMod :
+        (BvBitblast.bitsValue xs : Int) % (2 ^ xs.length : Nat) =
+          BvBitblast.bitsValue xs := by
+      exact Int.emod_eq_of_lt (Int.natCast_nonneg _)
+        (by exact_mod_cast BvBitblast.bitsValue_lt xs)
+    simpa [SmtEval.native_zeq, SmtEval.native_mod_total] using hMod.symm
+  change
+    __smtx_typeof
+        (SmtTerm.Binary (xs.length : Int)
+          (BvBitblast.bitsValue xs : Int)) =
+      SmtType.BitVec xs.length
+  simp [__smtx_typeof, native_and, hW0, hCanon, native_ite,
+    native_int_to_nat]
+
+private theorem add_assoc_values
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y z : Term) (W : Nat) (xs ys : List Bool)
+    (hx : BvBitblast.BitListEval M x xs)
+    (hy : BvBitblast.BitListEval M y ys)
+    (hxW : xs.length = W) (hyW : ys.length = W)
+    (hzTy : __smtx_typeof (__eo_to_smt z) = SmtType.BitVec W) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (BvNaryAddSupport.add (BvNaryAddSupport.add x y) z)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (BvNaryAddSupport.add x (BvNaryAddSupport.add y z))) := by
+  simp only [BvNaryAddSupport.add_eq]
+  let xc := Term.Binary (W : Int) (BvBitblast.bitsValue xs : Int)
+  let yc := Term.Binary (W : Int) (BvBitblast.bitsValue ys : Int)
+  have hxcTy : __smtx_typeof (__eo_to_smt xc) = SmtType.BitVec W := by
+    simpa [xc, hxW] using add_smt_typeof_bitsValue xs
+  have hycTy : __smtx_typeof (__eo_to_smt yc) = SmtType.BitVec W := by
+    simpa [yc, hyW] using add_smt_typeof_bitsValue ys
+  have hassoc :=
+    BvNaryAddSupport.addAssocEval M hM xc yc z W hxcTy hycTy hzTy
+  change
+    __smtx_model_eval_bvadd
+        (__smtx_model_eval_bvadd
+          (__smtx_model_eval M (__eo_to_smt x))
+          (__smtx_model_eval M (__eo_to_smt y)))
+        (__smtx_model_eval M (__eo_to_smt z)) =
+      __smtx_model_eval_bvadd
+        (__smtx_model_eval M (__eo_to_smt x))
+        (__smtx_model_eval_bvadd
+          (__smtx_model_eval M (__eo_to_smt y))
+          (__smtx_model_eval M (__eo_to_smt z)))
+  rw [hx.eval, hy.eval, hxW, hyW]
+  simpa [xc, yc] using hassoc
+
+private theorem testBitsAdd
+    (M : SmtModel) (hM : model_total_typed M)
+    (rest acc : Term) (W : Nat) (xs : List Bool)
+    (hacc : BvBitblast.BitListEval M acc xs)
+    (hxW : xs.length = W)
+    (hrestTy : __smtx_typeof (__eo_to_smt rest) = SmtType.BitVec W)
+    (hne : __bv_mk_bitblast_step_add rest acc ≠ Term.Stuck) :
+    __smtx_model_eval M
+        (__eo_to_smt (__bv_mk_bitblast_step_add rest acc)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) acc) rest)) := by
+  revert hacc hxW hrestTy hne
+  fun_cases __bv_mk_bitblast_step_add rest acc <;>
+    subst_vars <;> simp_all
+  case case3 head tail haccNe =>
+    intro hacc hxW hrestTy hne
+    have hnewNe := add_acc_ne hne
+    have hripple := BvBitblast.pair_second_arg_ne_stuck hnewNe
+    have hs := BvBitblast.ripple_carry_same_length
+      acc head (Term.Boolean false) (Term.Binary 0 0) hripple
+    have hparts :=
+      BvNaryAddSupport.addArgsOfBitvecType head tail xs.length
+        (by simpa [BvNaryAddSupport.add_eq, hxW] using hrestTy)
+    have hheadNN : term_has_non_none_type (__eo_to_smt head) := by
+      unfold term_has_non_none_type
+      rw [hparts.1]
+      simp
+    rcases hs.syntax_right.eval hM hheadNN with ⟨ys, hhead⟩
+    have hlen := hs.eval_length hacc hhead
+    have hc :
+        __smtx_model_eval M (__eo_to_smt (Term.Boolean false)) =
+          SmtValue.Boolean false := rfl
+    have hp := BvBitblast.ripple_carry_eval hacc hhead hc hlen
+    have hnew := hp.second
+    have hnewLen : (BvBitblast.addBits xs ys false).length = xs.length :=
+      BvBitblast.addBits_length hlen
+    have hrec :=
+      testBitsAdd M hM tail
+        (__pair_second
+          (__bv_ripple_carry_adder_2 acc head (Term.Boolean false)
+            (Term.Binary 0 0)))
+        xs.length (BvBitblast.addBits xs ys false)
+        hnew hnewLen hparts.2 hne
+    have hnewEval := BvBitblast.eval_addBits hacc hhead hlen
+    calc
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__bv_mk_bitblast_step_add tail
+              (__pair_second
+                (__bv_ripple_carry_adder_2 acc head
+                  (Term.Boolean false) (Term.Binary 0 0))))) =
+          __smtx_model_eval M
+            (__eo_to_smt
+              (BvNaryAddSupport.add
+                (__pair_second
+                  (__bv_ripple_carry_adder_2 acc head
+                    (Term.Boolean false) (Term.Binary 0 0)))
+                tail)) := by
+          simpa only [BvNaryAddSupport.add_eq] using hrec
+      _ = __smtx_model_eval M
+            (__eo_to_smt
+              (BvNaryAddSupport.add
+                (BvNaryAddSupport.add acc head) tail)) := by
+          simp only [BvNaryAddSupport.add_eq]
+          change __smtx_model_eval_bvadd
+              (__smtx_model_eval M
+                (__eo_to_smt
+                  (__pair_second
+                    (__bv_ripple_carry_adder_2 acc head
+                      (Term.Boolean false) (Term.Binary 0 0)))))
+              (__smtx_model_eval M (__eo_to_smt tail)) =
+            __smtx_model_eval_bvadd
+              (__smtx_model_eval_bvadd
+                (__smtx_model_eval M (__eo_to_smt acc))
+                (__smtx_model_eval M (__eo_to_smt head)))
+              (__smtx_model_eval M (__eo_to_smt tail))
+          rw [← hnewEval]
+      _ = __smtx_model_eval M
+            (__eo_to_smt
+              (BvNaryAddSupport.add acc
+                (BvNaryAddSupport.add head tail))) :=
+          by
+            simpa only [BvNaryAddSupport.add_eq] using
+              add_assoc_values M hM acc head tail xs.length xs ys
+                hacc hhead rfl hlen.symm hparts.2
+  case case4 hnot =>
+    intro hacc hxW hrestTy hne
+    have hz := support_eo_requires_cond_eq_of_non_stuck hne
+    have hreq :
+        __eo_requires (__eo_to_z rest) (Term.Numeral 0) acc = acc := by
+      rw [hz]
+      simp [__eo_requires, native_ite, native_teq, native_not]
+    rw [hreq]
+    have hnil :
+        __eo_is_list_nil (Term.UOp UserOp.bvadd) rest =
+          Term.Boolean true := by
+      cases rest <;>
+        simp_all [__eo_to_z, __eo_is_list_nil, __eo_is_list_nil_bvadd,
+          __eo_is_eq, native_and, native_not, native_teq, native_zeq]
+    let xc :=
+      Term.Binary (xs.length : Int) (BvBitblast.bitsValue xs : Int)
+    have hxcTy :
+        __smtx_typeof (__eo_to_smt xc) =
+          SmtType.BitVec xs.length := add_smt_typeof_bitsValue xs
+    have hid :=
+      BvNaryAddSupport.evalRightZero M hM xc rest xs.length
+        hxcTy (by simpa [hxW] using hrestTy) hnil
+    change
+      __smtx_model_eval M (__eo_to_smt acc) =
+        __smtx_model_eval_bvadd
+          (__smtx_model_eval M (__eo_to_smt acc))
+          (__smtx_model_eval M (__eo_to_smt rest))
+    rw [hacc.eval]
+    simpa [xc, BvNaryAddSupport.add_eq] using hid.symm
+termination_by sizeOf rest
+
+theorem eval_step_bvadd_fold
+    (M : SmtModel) (hM : model_total_typed M)
+    (rest acc : Term)
+    (hne : __bv_mk_bitblast_step_add rest acc ≠ Term.Stuck)
+    (hnn : term_has_non_none_type
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) acc) rest))) :
+    __smtx_model_eval M
+        (__eo_to_smt (__bv_mk_bitblast_step_add rest acc)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) acc) rest)) := by
+  change term_has_non_none_type
+      (SmtTerm.bvadd (__eo_to_smt acc) (__eo_to_smt rest)) at hnn
+  rcases bv_binop_args_of_non_none
+      (op := SmtTerm.bvadd)
+      (t1 := __eo_to_smt acc) (t2 := __eo_to_smt rest)
+      (by rw [__smtx_typeof.eq_def] <;> simp only) hnn with
+    ⟨W, haccTy, hrestTy⟩
+  revert hne
+  fun_cases __bv_mk_bitblast_step_add rest acc <;>
+    subst_vars <;> simp_all
+  case case3 head tail haccNe =>
+    intro hne
+    have hnewNe := add_acc_ne hne
+    have hripple := BvBitblast.pair_second_arg_ne_stuck hnewNe
+    have hs := BvBitblast.ripple_carry_same_length
+      acc head (Term.Boolean false) (Term.Binary 0 0) hripple
+    have hparts :=
+      BvNaryAddSupport.addArgsOfBitvecType head tail W
+        (by simpa [BvNaryAddSupport.add_eq] using hrestTy)
+    have haccNN : term_has_non_none_type (__eo_to_smt acc) := by
+      unfold term_has_non_none_type
+      rw [haccTy]
+      simp
+    have hheadNN : term_has_non_none_type (__eo_to_smt head) := by
+      unfold term_has_non_none_type
+      rw [hparts.1]
+      simp
+    rcases hs.syntax_left.eval hM haccNN with ⟨xs, hacc⟩
+    rcases hs.syntax_right.eval hM hheadNN with ⟨ys, hhead⟩
+    have hlen := hs.eval_length hacc hhead
+    have hc :
+        __smtx_model_eval M (__eo_to_smt (Term.Boolean false)) =
+          SmtValue.Boolean false := rfl
+    have hp := BvBitblast.ripple_carry_eval hacc hhead hc hlen
+    have hnew := hp.second
+    have hnewLen : (BvBitblast.addBits xs ys false).length = xs.length :=
+      BvBitblast.addBits_length hlen
+    have hxW :=
+      BvBitblast.bitListEval_length_eq_smt_type
+        M hM acc xs W hacc haccTy
+    have hrec :=
+      testBitsAdd M hM tail
+        (__pair_second
+          (__bv_ripple_carry_adder_2 acc head (Term.Boolean false)
+            (Term.Binary 0 0)))
+        xs.length (BvBitblast.addBits xs ys false)
+        hnew hnewLen (by simpa [hxW] using hparts.2) hne
+    have hnewEval := BvBitblast.eval_addBits hacc hhead hlen
+    calc
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__bv_mk_bitblast_step_add tail
+              (__pair_second
+                (__bv_ripple_carry_adder_2 acc head
+                  (Term.Boolean false) (Term.Binary 0 0))))) =
+          __smtx_model_eval M
+            (__eo_to_smt
+              (BvNaryAddSupport.add
+                (__pair_second
+                  (__bv_ripple_carry_adder_2 acc head
+                    (Term.Boolean false) (Term.Binary 0 0)))
+                tail)) := by
+          simpa only [BvNaryAddSupport.add_eq] using hrec
+      _ = __smtx_model_eval M
+            (__eo_to_smt
+              (BvNaryAddSupport.add
+                (BvNaryAddSupport.add acc head) tail)) := by
+          simp only [BvNaryAddSupport.add_eq]
+          change __smtx_model_eval_bvadd
+              (__smtx_model_eval M
+                (__eo_to_smt
+                  (__pair_second
+                    (__bv_ripple_carry_adder_2 acc head
+                      (Term.Boolean false) (Term.Binary 0 0)))))
+              (__smtx_model_eval M (__eo_to_smt tail)) =
+            __smtx_model_eval_bvadd
+              (__smtx_model_eval_bvadd
+                (__smtx_model_eval M (__eo_to_smt acc))
+                (__smtx_model_eval M (__eo_to_smt head)))
+              (__smtx_model_eval M (__eo_to_smt tail))
+          rw [← hnewEval]
+      _ = __smtx_model_eval M
+            (__eo_to_smt
+              (BvNaryAddSupport.add acc
+                (BvNaryAddSupport.add head tail))) :=
+          by
+            simpa only [BvNaryAddSupport.add_eq] using
+              BvNaryAddSupport.addAssocEval M hM acc head tail W
+                haccTy hparts.1 hparts.2
+  case case4 hnot =>
+    intro hne
+    have hz := support_eo_requires_cond_eq_of_non_stuck hne
+    have hreq :
+        __eo_requires (__eo_to_z rest) (Term.Numeral 0) acc = acc := by
+      rw [hz]
+      simp [__eo_requires, native_ite, native_teq, native_not]
+    rw [hreq]
+    have hnil :
+        __eo_is_list_nil (Term.UOp UserOp.bvadd) rest =
+          Term.Boolean true := by
+      cases rest <;>
+        simp_all [__eo_to_z, __eo_is_list_nil, __eo_is_list_nil_bvadd,
+          __eo_is_eq, native_and, native_not, native_teq, native_zeq]
+    simpa only [BvNaryAddSupport.add_eq] using
+      (BvNaryAddSupport.evalRightZero M hM acc rest W
+        haccTy hrestTy hnil).symm
+
 theorem eval_bv_mk_bitblast_step
     (M : SmtModel) (hM : model_total_typed M) (lhs : Term)
     (hne : __bv_mk_bitblast_step lhs ≠ Term.Stuck)
@@ -3772,11 +5350,11 @@ theorem eval_bv_mk_bitblast_step
   case h_7 => exact eval_step_bvsle M hM _ _ hne hnn
   case h_8 => sorry
   case h_9 => sorry
-  case h_10 => sorry
-  case h_11 => sorry
-  case h_12 => sorry
+  case h_10 => exact eval_step_bvor_fold M hM _ _ hne hnn
+  case h_11 => exact eval_step_bvand_fold M hM _ _ hne hnn
+  case h_12 => exact eval_step_bvxor_fold M hM _ _ hne hnn
   case h_13 => exact eval_step_bvxnor M hM _ _ hne hnn
-  case h_14 => sorry
+  case h_14 => exact eval_step_bvadd_fold M hM _ _ hne hnn
   case h_15 => sorry
   case h_16 => sorry
   case h_17 => sorry
