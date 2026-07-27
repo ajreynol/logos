@@ -754,7 +754,7 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
         simpa [RuleProofs.eo_has_smt_translation] using hTrans
       rcases bv_unop_ret_arg_of_non_none
           (op := SmtTerm.ubv_to_int) (ret := SmtType.Int)
-          (by rw [__smtx_typeof.eq_130]) hUbvNN with
+          (by rw [smtx_typeof_ubv_to_int_term_eq]) hUbvNN with
         ⟨w, hXTy⟩
       have hXTrans : RuleProofs.eo_has_smt_translation x := by
         unfold RuleProofs.eo_has_smt_translation
