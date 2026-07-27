@@ -585,7 +585,7 @@ private theorem dtConsSpineRoot_apply_generic
           | root s d i =>
               rfl
           | app x''' hSp'' =>
-              rfl
+              cases hSp'' <;> rfl
 
 private def mkDtSmtAppSpineRev (head : SmtTerm) : List SmtTerm -> SmtTerm
   | [] => head

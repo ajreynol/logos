@@ -3182,21 +3182,16 @@ theorem eo_type_valid_of_smt_wf
       rcases eo_to_smt_type_eq_fun_iff.mp hTy with
         ⟨T1, T2, hT, hT1, hT2, _, _⟩
       subst T
-      have hParts :
-          __smtx_type_wf_rec A = true ∧ __smtx_type_wf_rec B = true := by
-        have hComponents :
-            __smtx_type_wf_component A = true ∧
-              __smtx_type_wf_component B = true := by
-          simpa [__smtx_type_wf, native_and, hTy] using h
-        have hA :
-            native_inhabited_type A = true ∧ __smtx_type_wf_rec A = true := by
-          simpa [__smtx_type_wf_component, native_and] using hComponents.1
-        have hB :
-            native_inhabited_type B = true ∧ __smtx_type_wf_rec B = true := by
-          simpa [__smtx_type_wf_component, native_and] using hComponents.2
-        exact ⟨hA.2, hB.2⟩
-      exact ⟨eo_type_valid_of_smt_wf_rec_aux [] T1 (by simpa [hT1] using hParts.1),
-        eo_type_valid_of_smt_wf_rec_aux [] T2 (by simpa [hT2] using hParts.2)⟩
+      have hComponents :
+          __smtx_type_wf_component A = true ∧
+            __smtx_type_wf B = true := by
+        simpa [__smtx_type_wf, native_and, hTy] using h
+      have hA :
+          native_inhabited_type A = true ∧ __smtx_type_wf_rec A = true := by
+        simpa [__smtx_type_wf_component, native_and] using hComponents.1
+      exact ⟨
+        eo_type_valid_of_smt_wf_rec_aux [] T1 (by simpa [hT1] using hA.2),
+        eo_type_valid_of_smt_wf [] T2 (by simpa [hT2] using hComponents.2)⟩
   case RegLan =>
       exact False.elim (eo_to_smt_type_ne_reglan T hTy)
   all_goals
@@ -3210,6 +3205,7 @@ theorem eo_type_valid_of_smt_wf
           simpa [__smtx_type_wf_component, native_and] using hComponent
         exact hParts.2
       exact eo_type_valid_of_smt_wf_rec_aux refs T hRec
+termination_by T
 
 /-- A non-`None` well-formedness guard validates its translated EO input type. -/
 theorem eo_type_valid_of_guard_wf_non_none

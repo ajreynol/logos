@@ -1231,7 +1231,7 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
             typeof_str_replace_re_all_eq, typeof_str_replace_re_all_eq, hx]
           cases hTeq : native_Teq (__smtx_typeof (__eo_to_smt z))
               (SmtType.Seq SmtType.Char) <;>
-            simp [native_ite, native_Teq, hTeq,
+            simp [native_ite, native_Teq,
               __smtx_typeof_seq_op_1_ret,
               __smtx_typeof_arith_overload_op_2])
       case set_union =>
@@ -1481,8 +1481,7 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
                   rw [typeof_str_replace_all_eq, typeof_str_substr_eq,
                     hIdxNone]
                   cases hA : __smtx_typeof (__eo_to_smt y') <;>
-                    simp [__smtx_typeof_str_substr, __smtx_typeof_seq_op_3,
-                      hA, native_ite, native_Teq])
+                    simp [__smtx_typeof_str_substr, __smtx_typeof_seq_op_3])
               case _at_strings_replace_re_all_result =>
                 exact hTrans (by
                   change

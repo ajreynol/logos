@@ -915,7 +915,7 @@ private theorem tp_smt_fun_components_wf_rec_of_non_none_type
     (x : SmtTerm) (A B : SmtType)
     (hxTy : __smtx_typeof x = SmtType.FunType A B) :
     __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf_rec B = true := by
+      __smtx_type_wf B = true := by
   have hxNN : term_has_non_none_type x := by
     unfold term_has_non_none_type
     rw [hxTy]
@@ -925,30 +925,29 @@ private theorem tp_smt_fun_components_wf_rec_of_non_none_type
   have hFunParts :
       native_inhabited_type A = true ∧
         __smtx_type_wf_rec A = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B = true := by
+          __smtx_type_wf B = true := by
     exact fun_type_wf_parts (by simpa [tp_result_seq_components_wf] using hGood)
-  exact ⟨hFunParts.2.1, hFunParts.2.2.2⟩
+  exact ⟨hFunParts.2.1, hFunParts.2.2⟩
 
 theorem smt_fun_components_wf_rec_of_non_none_type
     (x : SmtTerm) (A B : SmtType)
     (hxTy : __smtx_typeof x = SmtType.FunType A B) :
     __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf_rec B = true :=
+      __smtx_type_wf B = true :=
   tp_smt_fun_components_wf_rec_of_non_none_type x A B hxTy
 
 private theorem tp_smt_ifun_components_wf_rec_of_non_none_type
     (x : SmtTerm) (A B : SmtType)
     (hxTy : __smtx_typeof x = SmtType.FunType A B) :
     __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf_rec B = true := by
+      __smtx_type_wf B = true := by
   exact tp_smt_fun_components_wf_rec_of_non_none_type x A B hxTy
 
 theorem smt_ifun_components_wf_rec_of_non_none_type
     (x : SmtTerm) (A B : SmtType)
     (hxTy : __smtx_typeof x = SmtType.FunType A B) :
     __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf_rec B = true :=
+      __smtx_type_wf B = true :=
   tp_smt_ifun_components_wf_rec_of_non_none_type x A B hxTy
 
 private theorem tp_smt_datatype_wf_of_non_none_type

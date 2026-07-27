@@ -150,25 +150,21 @@ private theorem type_default_typed_canonical_of_wf_rec
       __smtx_value_canonical (__smtx_type_default T) :=
   type_default_typed_canonical_of_native_inhabited_type T hInh _hRec
 
-/-- Every well-formed SMT type has a canonical inhabitant. -/
-theorem canonical_type_inhabited_of_type_wf
+/-- The syntactic default is typed and canonical for every well-formed SMT
+type, including curried function types. -/
+theorem type_default_typed_canonical_of_type_wf
     (T : SmtType)
     (hWF : __smtx_type_wf T = true) :
-    ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v := by
+    __smtx_typeof_value (__smtx_type_default T) = T ∧
+      __smtx_value_canonical (__smtx_type_default T) := by
   by_cases hReg : T = SmtType.RegLan
   · subst T
-    exact ⟨SmtValue.RegLan native_re_none, rfl, by
-      simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+    simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+      __smtx_value_canonical_bool]
   · by_cases hFun : ∃ A B, T = SmtType.FunType A B
     · rcases hFun with ⟨A, B, rfl⟩
-      have hParts :
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A = true ∧
-              native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B = true := by
-        exact fun_type_wf_parts hWF
-      exact ⟨SmtValue.Fun native_default_ifun_id A B, rfl, by
-        simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
     · have hParts :
         native_inhabited_type T = true ∧
           __smtx_type_wf_rec T = true := by
@@ -178,7 +174,14 @@ theorem canonical_type_inhabited_of_type_wf
           first | exact hWF | exact hWF.1
       have hDef :=
         type_default_typed_canonical_of_wf_rec T hParts.1 hParts.2
-      exact ⟨__smtx_type_default T, hDef.1, hDef.2⟩
+      exact hDef
+
+/-- Every well-formed SMT type has a canonical inhabitant. -/
+theorem canonical_type_inhabited_of_type_wf
+    (T : SmtType)
+    (hWF : __smtx_type_wf T = true) :
+    ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v := by
+  exact ⟨__smtx_type_default T, type_default_typed_canonical_of_type_wf T hWF⟩
 
 /-- The syntactic default is typed and canonical for recursively well-formed inhabited types. -/
 theorem type_default_typed_canonical_of_inhabited_wf_rec

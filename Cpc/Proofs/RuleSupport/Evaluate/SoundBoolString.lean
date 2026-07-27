@@ -5069,7 +5069,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_unop_ret_arg_of_non_none
       (op := SmtTerm.ubv_to_int) (ret := SmtType.Int)
-      (by rw [__smtx_typeof.eq_130]) hUbvToIntNN with
+      (by rw [smtx_typeof_ubv_to_int_term_eq]) hUbvToIntNN with
     ⟨w, hxSmtTy⟩
   have hXTrans : RuleProofs.eo_has_smt_translation x := by
     unfold RuleProofs.eo_has_smt_translation
@@ -5168,7 +5168,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core
           __smtx_typeof (SmtTerm.ubv_to_int (__eo_to_smt x)) =
             __smtx_typeof_bv_op_1_ret
               (__smtx_typeof (__eo_to_smt x)) SmtType.Int by
-        rw [__smtx_typeof.eq_130]]
+        rw [smtx_typeof_ubv_to_int_term_eq]]
       rw [hxSmtTy]
       rw [__smtx_typeof.eq_2]
       simp [__smtx_typeof_bv_op_1_ret]
@@ -5192,7 +5192,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core
               (SmtTerm.ubv_to_int (__eo_to_smt x)) =
             __smtx_model_eval_ubv_to_int
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_130]]
+        rw [smtx_eval_ubv_to_int_term_eq]]
       rw [hXEval]
       change
         RuleProofs.smt_value_rel
