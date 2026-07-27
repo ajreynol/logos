@@ -1545,7 +1545,7 @@ private theorem smtx_tuple_select_type_congr_local
   case Datatype.Numeral s dd n =>
     cases dd with
     | nil =>
-        simp [__eo_to_smt_tuple_select]
+        simp
     | cons s2 body rest =>
         cases rest with
         | nil =>
@@ -1553,10 +1553,10 @@ private theorem smtx_tuple_select_type_congr_local
                 (s = native_string_lit "@Tuple" ∧
                   s2 = native_string_lit "@Tuple") ∧
                     native_zleq 0 n = true
-            · simp [__eo_to_smt_tuple_select, hCond, __smtx_typeof, hTy]
-            · simp [__eo_to_smt_tuple_select, hCond]
+            · simp [hCond, __smtx_typeof, hTy]
+            · simp [hCond]
         | cons s3 body3 rest3 =>
-            simp [__eo_to_smt_tuple_select]
+            simp
 
 private theorem tuple_select_type_congr
     (idx x y : Term)
@@ -1644,7 +1644,7 @@ private theorem smtx_tuple_select_eval_congr_local
   case Datatype.Numeral s dd n =>
     cases dd with
     | nil =>
-        simp [__eo_to_smt_tuple_select]
+        simp
     | cons s2 body rest =>
         cases rest with
         | nil =>
@@ -1652,11 +1652,11 @@ private theorem smtx_tuple_select_eval_congr_local
                 (s = native_string_lit "@Tuple" ∧
                   s2 = native_string_lit "@Tuple") ∧
                     native_zleq 0 n = true
-            · simp [__eo_to_smt_tuple_select, hCond,
+            · simp [hCond,
                 __smtx_model_eval, hEval]
-            · simp [__eo_to_smt_tuple_select, hCond]
+            · simp [hCond]
         | cons s3 body3 rest3 =>
-            simp [__eo_to_smt_tuple_select]
+            simp
 
 private theorem tuple_select_eval_congr
     (M : SmtModel) (idx x y : Term)

@@ -356,7 +356,9 @@ private theorem eo_to_smt_apply_generic_of_dtAppSpineRev_dtcons
           dsimp [dtAppSpineRev] at hHead
           cases f' with
           | Apply f'' y'' =>
-              rfl
+              cases f'' with
+              | UOp op => simp [dtAppSpineRev] at hHead
+              | _ => rfl
           | DtCons s' d' i' =>
               simp [dtAppSpineRev] at hHead
               rcases hHead with ⟨rfl, rfl, rfl⟩

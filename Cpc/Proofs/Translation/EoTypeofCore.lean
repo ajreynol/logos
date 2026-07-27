@@ -2644,20 +2644,7 @@ theorem eo_type_valid_of_smt_wf
     (T : Term) (h : __smtx_type_wf (__eo_to_smt_type T) = true) :
     eo_type_valid T := by
   unfold eo_type_valid
-  cases hA : __eo_to_smt_type T
-  case RegLan => simp [noNoneTy]
-  case FunType A B =>
-    have hp : __smtx_type_wf_rec A = true ∧ __smtx_type_wf_rec B = true :=
-      fun_type_wf_rec_components_of_wf (by simpa [hA] using h)
-    simp [noNoneTy, native_and, noNoneTy_of_wf A hp.1,
-      noNoneTy_of_wf B hp.2]
-  all_goals
-    have hRec : __smtx_type_wf_rec (__eo_to_smt_type T) = true :=
-      smtx_type_wf_rec_of_type_wf (by simp [hA])
-        (by intro A B hFun; simp [hA] at hFun)
-        (by intro A B hFun; simp [hA] at hFun) h
-    rw [hA] at hRec
-    exact noNoneTy_of_wf _ hRec
+  exact noNoneTy_of_type_wf (__eo_to_smt_type T) h
 
 theorem eo_requires_self_of_non_stuck
     (T U : Term) (h : T ≠ Term.Stuck) :

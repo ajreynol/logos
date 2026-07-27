@@ -905,7 +905,7 @@ private theorem eo_to_smt_tuple_update_type_congr
   case Datatype.Numeral s dd n =>
     cases dd with
     | nil =>
-        simp [__eo_to_smt_tuple_update]
+        simp
     | cons s2 body rest =>
         cases rest with
         | nil =>
@@ -913,15 +913,15 @@ private theorem eo_to_smt_tuple_update_type_congr
                 (s = native_string_lit "@Tuple" ∧
                   s2 = native_string_lit "@Tuple") ∧
                     native_zleq 0 n = true
-            · simp [__eo_to_smt_tuple_update, hCond]
+            · simp [hCond]
               exact eo_to_smt_updater_type_congr
                 (SmtTerm.DtSel (native_string_lit "@Tuple")
                   (__smtx_tuple_datatype_decl body) native_nat_zero
                   (native_int_to_nat n))
                 t u t' u' ht hu
-            · simp [__eo_to_smt_tuple_update, hCond]
+            · simp [hCond]
         | cons s3 body3 rest3 =>
-            simp [__eo_to_smt_tuple_update]
+            simp
 
 theorem congTypeSpine_tuple_update_eq_has_bool_type
     (idx x₁ x₂ rhs : Term) :
@@ -1360,7 +1360,7 @@ private theorem eo_to_smt_tuple_update_eval_congr
   case Datatype.Numeral s dd n =>
     cases dd with
     | nil =>
-        simp [__eo_to_smt_tuple_update]
+        simp
     | cons s2 body rest =>
         cases rest with
         | nil =>
@@ -1368,15 +1368,15 @@ private theorem eo_to_smt_tuple_update_eval_congr
                 (s = native_string_lit "@Tuple" ∧
                   s2 = native_string_lit "@Tuple") ∧
                     native_zleq 0 n = true
-            · simp [__eo_to_smt_tuple_update, hCond]
+            · simp [hCond]
               exact eo_to_smt_updater_eval_congr M
                 (SmtTerm.DtSel (native_string_lit "@Tuple")
                   (__smtx_tuple_datatype_decl body) native_nat_zero
                   (native_int_to_nat n))
                 t u t' u' ht hu
-            · simp [__eo_to_smt_tuple_update, hCond]
+            · simp [hCond]
         | cons s3 body3 rest3 =>
-            simp [__eo_to_smt_tuple_update]
+            simp
 
 theorem tuple_update_args_non_reg_of_non_none
     (T : SmtType) (idx t u : SmtTerm) :
@@ -1657,12 +1657,12 @@ private theorem eo_to_smt_tuple_prepend_type_congr
                             simp [__eo_to_smt_tuple_prepend_of_type,
                               __smtx_tuple_datatype_decl, native_streq,
                               native_and, native_ite,
-                              hWf, tailD, fullD]
+                              hWf]
                           · dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
                             simp [__eo_to_smt_tuple_prepend_of_type,
                               __smtx_tuple_datatype_decl, native_streq,
                               native_and, native_ite,
-                              hWf, tailD, fullD]
+                              hWf]
                             exact
                               eo_to_smt_tuple_prepend_rec_type_congr tailD
                                 tail tail' seed seed' hTail
@@ -1809,7 +1809,7 @@ theorem tuple_prepend_tail_type_of_non_none
                         by_cases hs2 : s2 = native_string_lit "@Tuple"
                         · subst s2
                           exact ⟨c, by
-                            simpa [__smtx_tuple_datatype_decl] using hTail⟩
+                            simp [__smtx_tuple_datatype_decl]⟩
                         · exact False.elim (hNN (by
                             simp [hTail, __eo_to_smt_tuple_prepend_of_type,
                               hs2]))
@@ -1859,7 +1859,7 @@ theorem tuple_prepend_head_non_reg_of_non_none
       rw [hTailTy]
       dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
       simp [__eo_to_smt_tuple_prepend_of_type, __smtx_tuple_datatype_decl,
-        native_streq, native_and, native_ite, hWf, fullD]
+        native_streq, native_and, native_ite, hWf]
     · rfl
   dsimp [fullD, __smtx_tuple_datatype_decl] at hFullWf
   have hTerm :
@@ -2020,12 +2020,12 @@ theorem eo_to_smt_tuple_prepend_eval_congr
                             simp [__eo_to_smt_tuple_prepend_of_type,
                               __smtx_tuple_datatype_decl, native_streq,
                               native_and, native_ite,
-                              hWf, tailD, fullD]
+                              hWf]
                           · dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
                             simp [__eo_to_smt_tuple_prepend_of_type,
                               __smtx_tuple_datatype_decl, native_streq,
                               native_and, native_ite,
-                              hWf, tailD, fullD]
+                              hWf]
                             exact
                               eo_to_smt_tuple_prepend_rec_eval_congr M tailD
                                 tail tail' seed seed' hTail
