@@ -2768,7 +2768,7 @@ theorem smtTermClosedIn_eo_to_smt_from_bools
     (__eo_to_smt
       (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y)) :=
 by
-  exact ⟨⟨hx, trivial, trivial⟩, hy⟩
+  exact ⟨hy, hx, trivial, trivial⟩
 
 theorem smtTermClosedIn_eo_to_smt_str_concat
     {vars : List SmtVarKey} {x y : Term}

@@ -25,8 +25,11 @@ namespace BvNaryAddSupport
 
 abbrev op : Term := Term.UOp UserOp.bvadd
 
-def add (x y : Term) : Term :=
+@[expose] def add (x y : Term) : Term :=
   Term.Apply (Term.Apply op x) y
+
+@[simp] theorem add_eq (x y : Term) :
+    add x y = Term.Apply (Term.Apply op x) y := rfl
 
 private theorem term_ne_stuck_of_smt_bitvec_type
     {t : Term} {w : Nat} :
@@ -256,6 +259,16 @@ private theorem addRightZeroEval
       (__smtx_model_eval M (__eo_to_smt nil)) = _
   rw [hXEval, hNilEval]
   simp [__smtx_model_eval_bvadd, native_zplus, hMod]
+
+theorem evalRightZero
+    (M : SmtModel) (hM : model_total_typed M)
+    (x nil : Term) (w : Nat)
+    (hXTy : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
+    (hNilTy : __smtx_typeof (__eo_to_smt nil) = SmtType.BitVec w)
+    (hNil : __eo_is_list_nil op nil = Term.Boolean true) :
+    __smtx_model_eval M (__eo_to_smt (add x nil)) =
+      __smtx_model_eval M (__eo_to_smt x) :=
+  addRightZeroEval M hM x nil w hXTy hNilTy hNil
 
 private theorem isListTrueNeStuck {t : Term} :
     __eo_is_list op t = Term.Boolean true -> t ≠ Term.Stuck := by
