@@ -3581,7 +3581,7 @@ by
           (by simpa using hCmdTrans) hPremisesBool hResultTy
 
   | _ =>
-      exact False.elim (hProg (by simp only [__eo_cmd_step_proven]))
+      exact False.elim (hProg rfl)
 
 /-
 Central expansion point for `step_pop` rules.
@@ -3624,4 +3624,4 @@ by
           hATrans hATy hPremisesTrans hPremisesTy hResultTy
 
   | _ =>
-      exact False.elim (hProg (by simp only [__eo_cmd_step_pop_proven]))
+      exact False.elim (hProg rfl)
