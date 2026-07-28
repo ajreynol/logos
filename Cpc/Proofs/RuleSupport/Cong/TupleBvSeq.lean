@@ -1803,11 +1803,11 @@ theorem congTypeSpine_bvite_eq_has_bool_type
 
 def bvFromBoolsTerm (a b : SmtTerm) : SmtTerm :=
   SmtTerm.concat
-    (SmtTerm.ite a (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)) b
+    b (SmtTerm.ite a (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
 
 private def bvFromBoolsEval (a b : SmtValue) : SmtValue :=
   __smtx_model_eval_concat
-    (__smtx_model_eval_ite a (SmtValue.Binary 1 1) (SmtValue.Binary 1 0)) b
+    b (__smtx_model_eval_ite a (SmtValue.Binary 1 1) (SmtValue.Binary 1 0))
 
 theorem bv_from_bools_args_non_reg_of_non_none
     (a b : SmtTerm) :
@@ -1818,9 +1818,9 @@ theorem bv_from_bools_args_non_reg_of_non_none
           A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan := by
   intro hNN
   rcases bv_concat_args_non_reg_of_non_none
-      (SmtTerm.ite a (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)) b
+      b (SmtTerm.ite a (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
       (by simpa [bvFromBoolsTerm] using hNN) with
-    ⟨I, B, hI, hB, hINN, hBNN, _hIReg, hBReg⟩
+    ⟨B, I, hB, hI, hBNN, hINN, hBReg, _hIReg⟩
   have hIteNN :
       __smtx_typeof
           (SmtTerm.ite a (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)) ≠

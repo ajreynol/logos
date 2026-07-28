@@ -685,7 +685,7 @@ theorem dtEoSpine_apply_translation
       | app a'' hSpine' =>
           cases hSpine' with
           | root => rfl
-          | app a''' hSpine'' => rfl
+          | app a''' hSpine'' => cases hSpine'' <;> rfl
 
 theorem dtEoSpine_spine_translation
     {c : Term} {s : native_String} {d : DatatypeDecl} {i : Nat}
@@ -2753,15 +2753,25 @@ theorem dt_get_constructors_apply_stuck_of_wf_not_tuple
   case UOp op =>
     cases op <;>
       simp_all [__dt_get_constructors, __eo_dt_constructors,
-        __eo_dt_constructors_main, __eo_to_smt_type, __smtx_type_wf_rec]
+        __eo_dt_constructors_main, __eo_to_smt_type]
+    all_goals
+      exfalso
+      exact (show __smtx_type_wf SmtType.None ≠ true by native_decide) hWf
   case Apply f U =>
     cases f <;>
       simp_all [__dt_get_constructors, __eo_dt_constructors,
-        __eo_dt_constructors_main, __eo_to_smt_type, __smtx_type_wf_rec]
+        __eo_dt_constructors_main, __eo_to_smt_type]
+    all_goals
+      try
+        exfalso
+        exact (show __smtx_type_wf SmtType.None ≠ true by native_decide) hWf
     case UOp op =>
       cases op <;>
         simp_all [__dt_get_constructors, __eo_dt_constructors,
-          __eo_dt_constructors_main, __eo_to_smt_type, __smtx_type_wf_rec]
+          __eo_dt_constructors_main, __eo_to_smt_type]
+      all_goals
+        exfalso
+        exact (show __smtx_type_wf SmtType.None ≠ true by native_decide) hWf
 
 /--
 The non-datatype tracks of the forward direction: tuple/unit-tuple split

@@ -523,7 +523,7 @@ private theorem dtConsSpineRoot_apply_generic
           | root s d i =>
               rfl
           | app x''' hSp'' =>
-              rfl
+              cases hSp'' <;> rfl
 
 private theorem smtx_typeof_eo_to_smt_stuck_none :
     __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.None := by

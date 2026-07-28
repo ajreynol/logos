@@ -1517,13 +1517,14 @@ theorem substitute_simul_from_bools_preserves_type_and_translation_of_typeof_ne_
         rw [hX, hY])
       (fun X Y hXTrans hYTrans hApp => by
         unfold RuleProofs.eo_has_smt_translation
-        change
-          __smtx_typeof
-              (SmtTerm.concat
-                (SmtTerm.ite (__eo_to_smt X)
-                  (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
-                (__eo_to_smt Y)) ≠
-            SmtType.None
+        rw [show
+          __eo_to_smt
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp._at_from_bools) X) Y) =
+            SmtTerm.concat (__eo_to_smt Y)
+              (SmtTerm.ite (__eo_to_smt X)
+                (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)) by
+          rfl]
         change
           __eo_typeof__at_from_bools (__eo_typeof X) (__eo_typeof Y) ≠
             Term.Stuck at hApp

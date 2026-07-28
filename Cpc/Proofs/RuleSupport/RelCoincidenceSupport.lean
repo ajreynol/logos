@@ -175,25 +175,31 @@ private theorem ne_none_of_wf_component {T : SmtType}
   simp [SmtEval.native_and, __smtx_type_wf_rec] at h
 
 /-- Well-formed types are clean. -/
-private theorem cleanType_of_wf {T : SmtType}
-    (h : __smtx_type_wf T = true) : cleanType T := by
-  cases T with
-  | RegLan => exact True.intro
-  | FunType A B =>
-      have hB : __smtx_type_wf_component B = true := by
-        unfold __smtx_type_wf at h
-        simp [SmtEval.native_and] at h
-        exact h.2
-      exact Or.inr (cleanType_of_wf_component hB)
-  | Map A B => exact cleanType_of_wf_component h
-  | Set A => exact cleanType_of_wf_component h
-  | Seq A => exact cleanType_of_wf_component h
-  | DtcAppType A B =>
+private theorem cleanType_of_wf :
+    ∀ {T : SmtType}, __smtx_type_wf T = true -> cleanType T
+  | SmtType.RegLan, _ => True.intro
+  | SmtType.FunType A B, h => by
+      have hAB : __smtx_type_wf_component A = true ∧
+          __smtx_type_wf B = true := by
+        simpa [__smtx_type_wf, SmtEval.native_and] using h
+      exact Or.inr (cleanType_of_wf hAB.2)
+  | SmtType.Map A B, h => cleanType_of_wf_component h
+  | SmtType.Set A, h => cleanType_of_wf_component h
+  | SmtType.Seq A, h => cleanType_of_wf_component h
+  | SmtType.DtcAppType A B, h => by
       -- not well-formed: `wf_rec _ (DtcAppType _ _) = false`
       exfalso
       unfold __smtx_type_wf __smtx_type_wf_component at h
       simp [SmtEval.native_and, __smtx_type_wf_rec] at h
-  | _ => exact True.intro
+  | SmtType.None, _ => True.intro
+  | SmtType.Bool, _ => True.intro
+  | SmtType.Int, _ => True.intro
+  | SmtType.Real, _ => True.intro
+  | SmtType.BitVec _, _ => True.intro
+  | SmtType.Char, _ => True.intro
+  | SmtType.Datatype _ _, _ => True.intro
+  | SmtType.TypeRef _, _ => True.intro
+  | SmtType.USort _, _ => True.intro
 
 /-! ### Clean-or-`None` composition helpers -/
 
@@ -1268,6 +1274,9 @@ private theorem typeof_cleanOrNone :
       cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.str_replace a b c))
   | SmtTerm.Apply (SmtTerm.str_indexof a b c) x1 =>
       cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.str_indexof a b c))
+  | SmtTerm.Apply (SmtTerm._at_strings_occur_index a b c) x1 =>
+      cleanOrNone_apply _
+        (typeof_cleanOrNone (SmtTerm._at_strings_occur_index a b c))
   | SmtTerm.Apply (SmtTerm.str_at a b) x1 =>
       cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.str_at a b))
   | SmtTerm.Apply (SmtTerm.str_prefixof a b) x1 =>
@@ -1305,6 +1314,9 @@ private theorem typeof_cleanOrNone :
         (typeof_cleanOrNone (SmtTerm.str_replace_re_all a b c))
   | SmtTerm.Apply (SmtTerm.str_indexof_re a b c) x1 =>
       cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.str_indexof_re a b c))
+  | SmtTerm.Apply (SmtTerm._at_strings_occur_index_re a b c) x1 =>
+      cleanOrNone_apply _
+        (typeof_cleanOrNone (SmtTerm._at_strings_occur_index_re a b c))
   | SmtTerm.Apply SmtTerm.re_allchar x1 =>
       cleanOrNone_apply _ (typeof_cleanOrNone SmtTerm.re_allchar)
   | SmtTerm.Apply SmtTerm.re_none x1 =>
@@ -1479,6 +1491,7 @@ private theorem typeof_cleanOrNone :
       cleanOrNone_seq2_ret _ _ (Or.inr True.intro)
   | SmtTerm.str_replace a b c => cleanOrNone_seq3 _ _ (typeof_cleanOrNone a)
   | SmtTerm.str_indexof a b c => cleanOrNone_str_indexof _ _ _
+  | SmtTerm._at_strings_occur_index a b c => cleanOrNone_str_indexof _ _ _
   | SmtTerm.str_at a b => cleanOrNone_str_at _ (typeof_cleanOrNone a)
   | SmtTerm.str_prefixof a b => cleanOrNone_seq2_ret _ _ (Or.inr True.intro)
   | SmtTerm.str_suffixof a b => cleanOrNone_seq2_ret _ _ (Or.inr True.intro)
@@ -1505,6 +1518,9 @@ private theorem typeof_cleanOrNone :
       cleanOrNone_guard'
         (cleanOrNone_guard' (cleanOrNone_guard' (Or.inr cleanSeqChar)))
   | SmtTerm.str_indexof_re a b c =>
+      cleanOrNone_guard'
+        (cleanOrNone_guard' (cleanOrNone_guard' (Or.inr True.intro)))
+  | SmtTerm._at_strings_occur_index_re a b c =>
       cleanOrNone_guard'
         (cleanOrNone_guard' (cleanOrNone_guard' (Or.inr True.intro)))
   | SmtTerm.re_allchar => Or.inr True.intro
@@ -1706,6 +1722,19 @@ private theorem rel_re_loop_congr {v1 v2 b d : SmtValue}
               (rel_re_loop_rec_congr _ _ _ h)
         | _ => exact RuleProofs.smt_value_rel_refl _
     | _ => exact RuleProofs.smt_value_rel_refl _
+
+private theorem rel_strings_occur_index_re_congr {a b b' c : SmtValue}
+    (h : RuleProofs.smt_value_rel b b') :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval__at_strings_occur_index_re a b c)
+      (__smtx_model_eval__at_strings_occur_index_re a b' c) := by
+  rcases CongSupport.smt_value_rel_cases h with rfl | ⟨r, r', rfl, rfl⟩
+  · exact RuleProofs.smt_value_rel_refl _
+  · apply rel_of_eq
+    have hExt := CongSupport.reglan_valid_ext_of_rel h
+    cases a <;> cases c <;>
+      simp [__smtx_model_eval__at_strings_occur_index_re,
+        CongSupport.native_str_occur_index_re_congr _ r r' _ hExt]
 
 /-! ### The `Apply` case -/
 
@@ -2445,6 +2474,15 @@ theorem smt_model_eval_rel_of_var_rel_lt
         simp only [__smtx_model_eval]
         rw [e1, e2, e3]
         exact RuleProofs.smt_value_rel_refl _
+      case _at_strings_occur_index x1 x2 x3 =>
+        have hA := str_indexof_args hTy
+        have e1 := ihEq x1 (by simp; omega) hA.1.1 hA.1.2
+        have e2 := ihEq x2 (by simp; omega) hA.2.1.1 hA.2.1.2
+        have e3 := ihEq x3 (by simp; omega)
+          (tnn_of_typeof_eq hA.2.2 (by simp)) (by rw [hA.2.2]; simp)
+        simp only [__smtx_model_eval]
+        rw [e1, e2, e3]
+        exact RuleProofs.smt_value_rel_refl _
       case str_update x1 x2 x3 =>
         have hA := str_update_args hTy
         have e1 := ihEq x1 (by simp; omega) hA.1.1 hA.1.2
@@ -2531,6 +2569,16 @@ theorem smt_model_eval_rel_of_var_rel_lt
           (ih x1 (by simp; omega) (tnn_of_typeof_eq hA.1 (by simp)))
           (ih x2 (by simp; omega) (tnn_of_typeof_eq hA.2.1 (by simp)))
           (ih x3 (by simp; omega) (tnn_of_typeof_eq hA.2.2 (by simp)))
+      case _at_strings_occur_index_re x1 x2 x3 =>
+        have hA := guard3_args hTy
+        have e1 := ihEq x1 (by simp; omega)
+          (tnn_of_typeof_eq hA.1 (by simp)) (by rw [hA.1]; simp)
+        have e3 := ihEq x3 (by simp; omega)
+          (tnn_of_typeof_eq hA.2.2 (by simp)) (by rw [hA.2.2]; simp)
+        simp only [__smtx_model_eval]
+        rw [e1, e3]
+        exact rel_strings_occur_index_re_congr
+          (ih x2 (by simp; omega) (tnn_of_typeof_eq hA.2.1 (by simp)))
       case str_indexof_re_split x1 x2 x3 =>
         have hA := guard3_args hTy
         simp only [__smtx_model_eval]

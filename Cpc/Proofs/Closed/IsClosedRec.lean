@@ -4495,14 +4495,17 @@ by
   let bit :=
     SmtTerm.ite (__eo_to_smt x) (SmtTerm.Binary 1 1)
       (SmtTerm.Binary 1 0)
-  change
-      __smtx_typeof (SmtTerm.concat bit (__eo_to_smt y)) ≠
-        SmtType.None at hTrans
+  have hTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y) =
+        SmtTerm.concat (__eo_to_smt y) bit := by
+    rfl
   have hNN :
-      term_has_non_none_type (SmtTerm.concat bit (__eo_to_smt y)) := by
+      term_has_non_none_type (SmtTerm.concat (__eo_to_smt y) bit) := by
     unfold term_has_non_none_type
+    rw [← hTranslate]
     exact hTrans
-  rcases bv_concat_args_of_non_none hNN with ⟨w1, w2, hBitTy, hYTy⟩
+  rcases bv_concat_args_of_non_none hNN with ⟨w1, w2, hYTy, hBitTy⟩
   have hBitNN : term_has_non_none_type bit :=
     term_has_non_none_type_of_type_eq_closed hBitTy (by simp)
   rcases ite_args_of_non_none hBitNN with ⟨T, hXTy, hThen, hElse, hT⟩
