@@ -254,9 +254,9 @@ theorem smt_from_bools_non_none_of_eo_typeof_ne_stuck
         Term.Stuck) :
     __smtx_typeof
         (SmtTerm.concat
+          (__eo_to_smt Y)
           (SmtTerm.ite (__eo_to_smt X)
-            (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
-          (__eo_to_smt Y)) ≠
+            (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))) ≠
       SmtType.None := by
   rcases eo_typeof_from_bools_arg_types_of_ne_stuck hApp with
     ⟨n, hXTy, hYTy⟩
@@ -275,7 +275,7 @@ theorem smt_from_bools_non_none_of_eo_typeof_ne_stuck
     rw [typeof_ite_eq, hXSmt, smt_typeof_binary_one_one,
       smt_typeof_binary_one_zero]
     simp [__smtx_typeof_ite, native_ite, native_Teq]
-  rw [typeof_concat_eq, hBitTy, hYSmt]
+  rw [typeof_concat_eq, hYSmt, hBitTy]
   simp [__smtx_typeof_concat]
 
 theorem smt_bv_binop_non_none_of_eo_typeof_bvand_ne_stuck
