@@ -158,10 +158,10 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.step CRule.seq_nth_unit args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.wfElem] args
   | CCmd.step CRule.arith_int_eq_conflict args _ =>
-      cArgListTranslationOkMask [ArgTranslationKind.intTerm, ArgTranslationKind.term] args
+      cArgListTranslationOkMask [ArgTranslationKind.term, ArgTranslationKind.term] args
   | CCmd.step CRule.arith_int_geq_tighten args _ =>
-      cArgListTranslationOkMask [ArgTranslationKind.intTerm, ArgTranslationKind.realTerm,
-        ArgTranslationKind.intTerm] args
+      cArgListTranslationOkMask [ArgTranslationKind.term, ArgTranslationKind.term,
+        ArgTranslationKind.term] args
   | CCmd.step CRule.arith_mod_over_mod args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.intTerm, ArgTranslationKind.intTerm,
         ArgTranslationKind.intTerm, ArgTranslationKind.intTerm] args

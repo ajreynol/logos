@@ -179,6 +179,54 @@ private theorem prog_arith_int_geq_tighten_info
         __eo_eq, native_ite, native_teq, native_not, SmtEval.native_not,
         native_and, conclusionTerm, geqTerm, toRealTerm, eqTerm]
 
+/-- Since `to_real` accepts `Int` only, a well-typed conclusion forces `t : Int`. -/
+private theorem eo_typeof_int_of_to_real_ne_stuck {A : Term}
+    (h : __eo_typeof_to_real A ≠ Term.Stuck) :
+    A = Term.Int := by
+  cases A <;> simp [__eo_typeof_to_real] at h ⊢
+  case UOp op =>
+    cases op <;> simp [__eo_typeof_to_real] at h ⊢
+
+/-- Recovers the argument types of the conclusion from its `Bool` type.
+
+    `to_real t` forces `t : Int`; the `geq` against `c` then forces `c : Real`,
+    and the `geq` of `t` against `cc` forces `cc : Int`. -/
+private theorem arg_types_of_result_bool
+    (t c cc : Term)
+    (hTy : __eo_typeof (conclusionTerm t c cc) = Term.Bool) :
+    __eo_typeof t = Term.Int ∧ __eo_typeof c = Term.Real ∧
+      __eo_typeof cc = Term.Int := by
+  change __eo_typeof_eq
+      (__eo_typeof_lt (__eo_typeof_to_real (__eo_typeof t)) (__eo_typeof c))
+      (__eo_typeof_lt (__eo_typeof t) (__eo_typeof cc)) = Term.Bool at hTy
+  have hTInt : __eo_typeof t = Term.Int := by
+    refine eo_typeof_int_of_to_real_ne_stuck ?_
+    intro hSt
+    rw [hSt] at hTy
+    simp [__eo_typeof_lt, __eo_typeof_eq] at hTy
+  rw [hTInt] at hTy
+  have hCReal : __eo_typeof c = Term.Real := by
+    cases hc : __eo_typeof c with
+    | UOp op =>
+        cases op <;> simp [__eo_typeof_eq, __eo_typeof_lt, __eo_typeof_to_real,
+          __eo_requires, __is_arith_type, __eo_eq, native_ite, native_teq,
+          native_not, SmtEval.native_not, hc] at hTy ⊢
+    | _ =>
+        simp [__eo_typeof_eq, __eo_typeof_lt, __eo_typeof_to_real,
+          __eo_requires, __is_arith_type, __eo_eq, native_ite, native_teq,
+          native_not, SmtEval.native_not, hc] at hTy
+  rw [hCReal] at hTy
+  refine ⟨hTInt, hCReal, ?_⟩
+  cases hcc : __eo_typeof cc with
+  | UOp op =>
+      cases op <;> simp [__eo_typeof_eq, __eo_typeof_lt, __eo_typeof_to_real,
+        __eo_requires, __is_arith_type, __eo_eq, native_ite, native_teq,
+        native_not, SmtEval.native_not, hcc] at hTy ⊢
+  | _ =>
+      simp [__eo_typeof_eq, __eo_typeof_lt, __eo_typeof_to_real,
+        __eo_requires, __is_arith_type, __eo_eq, native_ite, native_teq,
+        native_not, SmtEval.native_not, hcc] at hTy
+
 private theorem geq_to_real_ty
     (t c : Term)
     (hTSmtTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int)
@@ -403,31 +451,23 @@ by
                               let P1 := __eo_state_proven_nth s p1
                               let P2 := __eo_state_proven_nth s p2
                               have hArgsTrans :
-                                  (RuleProofs.eo_has_smt_translation T1 ∧
-                                      __eo_typeof T1 = Term.Int) ∧
-                                    ((RuleProofs.eo_has_smt_translation C1 ∧
-                                        __eo_typeof C1 = Term.Real) ∧
-                                      ((RuleProofs.eo_has_smt_translation CC1 ∧
-                                          __eo_typeof CC1 = Term.Int) ∧ True)) := by
+                                  RuleProofs.eo_has_smt_translation T1 ∧
+                                    (RuleProofs.eo_has_smt_translation C1 ∧
+                                      (RuleProofs.eo_has_smt_translation CC1 ∧
+                                        True)) := by
                                 simpa [cmdTranslationOk, cArgListTranslationOkMask,
                                   argTranslationOkMasked,
                                   RuleProofs.eo_has_smt_translation,
                                   eoHasSmtTranslation] using hCmdTrans
                               have hTTrans :
                                   RuleProofs.eo_has_smt_translation T1 :=
-                                hArgsTrans.1.1
-                              have hTInt : __eo_typeof T1 = Term.Int :=
-                                hArgsTrans.1.2
+                                hArgsTrans.1
                               have hCTrans :
                                   RuleProofs.eo_has_smt_translation C1 :=
-                                hArgsTrans.2.1.1
-                              have hCReal : __eo_typeof C1 = Term.Real :=
-                                hArgsTrans.2.1.2
+                                hArgsTrans.2.1
                               have hCCTrans :
                                   RuleProofs.eo_has_smt_translation CC1 :=
-                                hArgsTrans.2.2.1.1
-                              have hCCInt : __eo_typeof CC1 = Term.Int :=
-                                hArgsTrans.2.2.1.2
+                                hArgsTrans.2.2.1
                               change __eo_typeof
                                 (__eo_prog_arith_int_geq_tighten T1 C1 CC1
                                   (Proof.pf P1) (Proof.pf P2)) = Term.Bool at hResultTy
@@ -437,6 +477,12 @@ by
                                   T1 C1 CC1 P1 P2 hProg with
                                 ⟨C0, C2, CC0, C3, hP1Eq, hP2Eq, hC0Eq,
                                   hC2Eq, hCC0Eq, hC3Eq, hProgEq⟩
+                              have hResultTy' :
+                                  __eo_typeof (conclusionTerm T1 C1 CC1) =
+                                    Term.Bool := by
+                                simpa [hProgEq] using hResultTy
+                              obtain ⟨hTInt, hCReal, hCCInt⟩ :=
+                                arg_types_of_result_bool T1 C1 CC1 hResultTy'
                               refine ⟨?_, ?_⟩
                               · intro hPremTrue
                                 change eo_interprets M
