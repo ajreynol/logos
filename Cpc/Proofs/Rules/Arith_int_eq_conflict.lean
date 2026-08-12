@@ -305,9 +305,9 @@ by
                       have hArgsTrans :
                           RuleProofs.eo_has_smt_translation T1 ∧
                             (RuleProofs.eo_has_smt_translation C1 ∧ True) := by
-                        simpa [cmdTranslationOk, cArgListTranslationOkMask,
-                          argTranslationOkMasked, RuleProofs.eo_has_smt_translation,
-                          eoHasSmtTranslation] using hCmdTrans
+                        simpa [cmdTranslationOk, cArgListTranslationOk,
+                          RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                          using hCmdTrans
                       have hTTrans :
                           RuleProofs.eo_has_smt_translation T1 := hArgsTrans.1
                       have hCTrans :

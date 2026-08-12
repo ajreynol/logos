@@ -455,8 +455,7 @@ by
                                     (RuleProofs.eo_has_smt_translation C1 ∧
                                       (RuleProofs.eo_has_smt_translation CC1 ∧
                                         True)) := by
-                                simpa [cmdTranslationOk, cArgListTranslationOkMask,
-                                  argTranslationOkMasked,
+                                simpa [cmdTranslationOk, cArgListTranslationOk,
                                   RuleProofs.eo_has_smt_translation,
                                   eoHasSmtTranslation] using hCmdTrans
                               have hTTrans :
