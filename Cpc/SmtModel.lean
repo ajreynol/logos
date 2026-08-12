@@ -1069,6 +1069,15 @@ def __smtx_model_eval_to_real : SmtValue -> SmtValue
   | t1 => SmtValue.NotValue
 
 
+/- Coerces an arithmetic value to `Real`. Unlike `to_real`, which applies to
+   `Int` only, this is the implicit coercion used by operators that are
+   overloaded over `Int` and `Real` but always return `Real`. -/
+def __smtx_model_eval_to_real_coerce : SmtValue -> SmtValue
+  | (SmtValue.Numeral x1) => (SmtValue.Rational (native_to_real x1))
+  | (SmtValue.Rational x2) => (SmtValue.Rational x2)
+  | t1 => SmtValue.NotValue
+
+
 def __smtx_model_eval_to_int : SmtValue -> SmtValue
   | (SmtValue.Rational x1) => (SmtValue.Numeral (native_to_int x1))
   | t1 => SmtValue.NotValue
@@ -2401,8 +2410,8 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.set_member x1 x2) => (__smtx_model_eval_set_member (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.set_subset x1 x2) => (__smtx_model_eval_set_subset (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.qdiv x1 x2) => 
-    let _v0 := (__smtx_model_eval_to_real (__smtx_model_eval M x2))
-    let _v1 := (__smtx_model_eval_to_real (__smtx_model_eval M x1))
+    let _v0 := (__smtx_model_eval_to_real_coerce (__smtx_model_eval M x2))
+    let _v1 := (__smtx_model_eval_to_real_coerce (__smtx_model_eval M x1))
     (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Rational (native_mk_rational 0 1))) (__smtx_model_eval_apply M (native_model_lookup M native_qdiv_by_zero_id (SmtType.FunType SmtType.Real SmtType.Real)) _v1) (__smtx_model_eval_qdiv_total _v1 _v0))
   | (SmtTerm.qdiv_total x1 x2) => (__smtx_model_eval_qdiv_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.int_to_bv x1 x2) => (__smtx_model_eval_int_to_bv (__smtx_model_eval M x1) (__smtx_model_eval M x2))

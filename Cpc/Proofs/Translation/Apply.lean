@@ -15611,36 +15611,20 @@ theorem eo_to_smt_typeof_matches_translation_apply
         unfold term_has_non_none_type
         rw [← hTranslate]
         exact hNonNone
-      have hArg : __smtx_typeof (__eo_to_smt x) = SmtType.Int ∨
-          __smtx_typeof (__eo_to_smt x) = SmtType.Real :=
+      have hArgInt : __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
         to_real_arg_of_non_none (t := __eo_to_smt x) hApplyNN
-      cases hArg with
-      | inl hArgInt =>
-          have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-            rw [hArgInt]
-            simp
-          have hXTyped := ihX hXNonNone
-          have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
-            rw [← hXTyped]
-            exact hArgInt
-          have hxEo : __eo_typeof x = (Term.UOp UserOp.Int) := eo_to_smt_type_eq_int hxSmt
-          have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.to_real) x)) = SmtType.Real := by
-            rw [hTranslate, typeof_to_real_eq]
-            simp [hArgInt, native_ite, native_Teq]
-          exact hSmt.trans (eo_to_smt_type_typeof_apply_to_real_of_int x hxEo).symm
-      | inr hArgReal =>
-          have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-            rw [hArgReal]
-            simp
-          have hXTyped := ihX hXNonNone
-          have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Real := by
-            rw [← hXTyped]
-            exact hArgReal
-          have hxEo : __eo_typeof x = (Term.UOp UserOp.Real) := eo_to_smt_type_eq_real hxSmt
-          have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.to_real) x)) = SmtType.Real := by
-            rw [hTranslate, typeof_to_real_eq]
-            simp [hArgReal, native_ite, native_Teq]
-          exact hSmt.trans (eo_to_smt_type_typeof_apply_to_real_of_real x hxEo).symm
+      have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+        rw [hArgInt]
+        simp
+      have hXTyped := ihX hXNonNone
+      have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
+        rw [← hXTyped]
+        exact hArgInt
+      have hxEo : __eo_typeof x = (Term.UOp UserOp.Int) := eo_to_smt_type_eq_int hxSmt
+      have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.to_real) x)) = SmtType.Real := by
+        rw [hTranslate, typeof_to_real_eq]
+        simp [hArgInt, native_ite, native_Teq]
+      exact hSmt.trans (eo_to_smt_type_typeof_apply_to_real_of_int x hxEo).symm
     case to_int =>
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.UOp UserOp.to_int) x) =

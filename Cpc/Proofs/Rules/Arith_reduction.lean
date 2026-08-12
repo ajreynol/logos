@@ -15,8 +15,8 @@ private theorem smt_qdiv_eval_reduction_self
     __smtx_model_eval M (SmtTerm.qdiv x y) =
       (let yv := __smtx_model_eval M y
        let xv := __smtx_model_eval M x
-       let yr := __smtx_model_eval_to_real yv
-       let xr := __smtx_model_eval_to_real xv
+       let yr := __smtx_model_eval_to_real_coerce yv
+       let xr := __smtx_model_eval_to_real_coerce xv
        __smtx_model_eval_ite
          (__smtx_model_eval_eq yr (SmtValue.Rational (native_mk_rational 0 1)))
          (__smtx_model_eval_apply M
@@ -224,10 +224,12 @@ private theorem smt_qdiv_eval_reduction_int_term_rel
     smtx_eval_qdiv_term_eq, smtx_eval_qdiv_total_term_eq,
     __smtx_model_eval.eq_19, __smtx_model_eval.eq_3]
   by_cases hZero : n2 = 0
-  · simp [hx, hy, hZero, __smtx_model_eval_to_real, __smtx_model_eval_eq,
+  · simp [hx, hy, hZero, __smtx_model_eval_to_real, __smtx_model_eval_to_real_coerce,
+      __smtx_model_eval_eq,
       __smtx_model_eval_ite, native_veq, native_to_real_eq_zero_iff]
     exact RuleProofs.smt_value_rel_refl _
-  · simp [hx, hy, hZero, __smtx_model_eval_to_real, __smtx_model_eval_eq,
+  · simp [hx, hy, hZero, __smtx_model_eval_to_real, __smtx_model_eval_to_real_coerce,
+      __smtx_model_eval_eq,
       __smtx_model_eval_ite, __smtx_model_eval_qdiv_total, native_veq,
       native_to_real_eq_zero_iff, native_to_real_qdiv_total]
     exact RuleProofs.smt_value_rel_refl _
@@ -247,11 +249,11 @@ private theorem smt_qdiv_eval_reduction_real_term_rel
     smtx_eval_eq_term_eq, __smtx_model_eval.eq_3,
     smtx_eval_qdiv_term_eq, smtx_eval_qdiv_total_term_eq]
   by_cases hZero : q2 = native_mk_rational 0 1
-  · simp [hx, hy, hZero, __smtx_model_eval_to_real, __smtx_model_eval_eq,
+  · simp [hx, hy, hZero, __smtx_model_eval_to_real_coerce, __smtx_model_eval_eq,
       __smtx_model_eval_ite, __smtx_model_eval_qdiv_total,
       __smtx_model_eval.eq_3, native_veq]
     exact RuleProofs.smt_value_rel_refl _
-  · simp [hx, hy, hZero, __smtx_model_eval_to_real, __smtx_model_eval_eq,
+  · simp [hx, hy, hZero, __smtx_model_eval_to_real_coerce, __smtx_model_eval_eq,
       __smtx_model_eval_ite, __smtx_model_eval_qdiv_total,
       __smtx_model_eval.eq_3, native_veq]
     exact RuleProofs.smt_value_rel_refl _

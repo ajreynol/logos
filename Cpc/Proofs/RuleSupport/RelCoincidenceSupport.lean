@@ -281,23 +281,17 @@ private theorem guard3_args {A B C c1 c2 c3 ret : SmtType}
   exact ⟨teq_eq h1, guard2_args h2⟩
 
 private theorem to_real_arg {A : SmtType}
-    (h : native_ite (native_Teq A SmtType.Int) SmtType.Real
-        (native_ite (native_Teq A SmtType.Real) SmtType.Real SmtType.None) ≠
+    (h : native_ite (native_Teq A SmtType.Int) SmtType.Real SmtType.None ≠
       SmtType.None) :
     A ≠ SmtType.None ∧ A ≠ SmtType.RegLan := by
   by_cases h1 : A = SmtType.Int
   · subst h1
     exact ⟨by simp, by simp⟩
-  · by_cases h2 : A = SmtType.Real
-    · subst h2
-      exact ⟨by simp, by simp⟩
-    · exfalso
-      have hg1 : native_Teq A SmtType.Int = false := by
-        simp [native_Teq, h1]
-      have hg2 : native_Teq A SmtType.Real = false := by
-        simp [native_Teq, h2]
-      rw [hg1] at h
-      simp [native_ite, hg2] at h
+  · exfalso
+    have hg1 : native_Teq A SmtType.Int = false := by
+      simp [native_Teq, h1]
+    rw [hg1] at h
+    simp [native_ite] at h
 
 private theorem arith2_args {A B : SmtType}
     (h : __smtx_typeof_arith_overload_op_2 A B ≠ SmtType.None) :
@@ -1063,10 +1057,9 @@ private theorem cleanSeqChar : cleanType (SmtType.Seq SmtType.Char) :=
   ⟨by simp, by simp, True.intro⟩
 
 private theorem cleanOrNone_to_real (A : SmtType) :
-    cleanOrNone (native_ite (native_Teq A SmtType.Int) SmtType.Real
-      (native_ite (native_Teq A SmtType.Real) SmtType.Real SmtType.None)) := by
+    cleanOrNone (native_ite (native_Teq A SmtType.Int) SmtType.Real SmtType.None) := by
   cases native_Teq A SmtType.Int
-  · exact cleanOrNone_guard' (Or.inr True.intro)
+  · exact Or.inl rfl
   · exact Or.inr True.intro
 
 /-- Every non-`None` `__smtx_typeof` is a clean type. -/

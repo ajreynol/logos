@@ -884,8 +884,7 @@ private theorem false_of_typeof_to_real_eq_dtcapp_full
     (hTy : __eo_typeof_to_real (__eo_typeof x) = Term.DtcAppType A B) :
   False := by
   cases hx : __eo_typeof x <;>
-    simp [__eo_typeof_to_real, __is_arith_type, __eo_requires,
-      native_ite, native_teq, native_not, hx] at hTy
+    simp [__eo_typeof_to_real, hx] at hTy
   case UOp op =>
     cases op <;> simp at hTy
 

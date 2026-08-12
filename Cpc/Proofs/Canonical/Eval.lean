@@ -676,14 +676,14 @@ theorem model_eval_canonical_of_supported
         rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
         have hxTy :
             __smtx_typeof_value
-              (__smtx_model_eval_to_real (__smtx_model_eval M t1)) = SmtType.Real := by
+              (__smtx_model_eval_to_real_coerce (__smtx_model_eval M t1)) = SmtType.Real := by
           rw [hn1]
-          simp [__smtx_model_eval_to_real, __smtx_typeof_value]
+          simp [__smtx_model_eval_to_real_coerce, __smtx_typeof_value]
         simpa [__smtx_model_eval] using
           model_eval_ite_canonical
             (model_eval_apply_lookup_ifun_canonical M hM native_qdiv_by_zero_id
               SmtType.Real SmtType.Real
-              (__smtx_model_eval_to_real (__smtx_model_eval M t1))
+              (__smtx_model_eval_to_real_coerce (__smtx_model_eval M t1))
               ifun_type_wf_real_real hxTy)
             (model_eval_qdiv_total_canonical _ _)
       · have hxTyRaw :
@@ -692,14 +692,14 @@ theorem model_eval_canonical_of_supported
         rcases real_value_canonical hxTyRaw with ⟨q1, hq1⟩
         have hxTy :
             __smtx_typeof_value
-              (__smtx_model_eval_to_real (__smtx_model_eval M t1)) = SmtType.Real := by
+              (__smtx_model_eval_to_real_coerce (__smtx_model_eval M t1)) = SmtType.Real := by
           rw [hq1]
-          simp [__smtx_model_eval_to_real, __smtx_typeof_value]
+          simp [__smtx_model_eval_to_real_coerce, __smtx_typeof_value]
         simpa [__smtx_model_eval] using
           model_eval_ite_canonical
             (model_eval_apply_lookup_ifun_canonical M hM native_qdiv_by_zero_id
               SmtType.Real SmtType.Real
-              (__smtx_model_eval_to_real (__smtx_model_eval M t1))
+              (__smtx_model_eval_to_real_coerce (__smtx_model_eval M t1))
               ifun_type_wf_real_real hxTy)
             (model_eval_qdiv_total_canonical _ _)
   case qdiv_total ht1 hs1 ht2 hs2 ih1 ih2 =>

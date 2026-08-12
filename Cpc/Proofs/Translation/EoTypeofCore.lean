@@ -5338,12 +5338,12 @@ theorem eo_to_smt_type_typeof_apply_to_real_of_int
   rw [hx]
   rfl
 
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_to_real_of_real`. -/
+/-- Shows `to_real` is untyped on `Real` arguments: it only accepts `Int`. -/
 theorem eo_to_smt_type_typeof_apply_to_real_of_real
     (x : Term)
     (hx : __eo_typeof x = (Term.UOp UserOp.Real)) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.to_real) x)) = SmtType.Real := by
-  change __eo_to_smt_type (__eo_typeof_to_real (__eo_typeof x)) = SmtType.Real
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.to_real) x)) = SmtType.None := by
+  change __eo_to_smt_type (__eo_typeof_to_real (__eo_typeof x)) = SmtType.None
   rw [hx]
   rfl
 

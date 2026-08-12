@@ -562,12 +562,12 @@ theorem arith_atom_denote_real_of_smt_arith_type
     refine ⟨native_to_real n, ?_⟩
     unfold arith_atom_denote_real
     rw [hEval]
-    simp [__smtx_model_eval_to_real]
+    simp [__smtx_model_eval_to_real_coerce]
   · rcases smt_eval_real_of_type M hM t hTy with ⟨q, hEval⟩
     refine ⟨q, ?_⟩
     unfold arith_atom_denote_real
     rw [hEval]
-    simp [__smtx_model_eval_to_real]
+    simp [__smtx_model_eval_to_real_coerce]
 
 private theorem smt_type_of_eo_arith
     (t : Term) :
@@ -989,14 +989,14 @@ private theorem eval_lt_of_denotes
         rw [← ha]
         unfold arith_atom_denote_real
         rw [hEvalA]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     have hqb : qb = native_to_real nb := by
       have h : SmtValue.Rational qb = SmtValue.Rational (native_to_real nb) := by
         rw [← hb]
         unfold arith_atom_denote_real
         rw [hEvalB]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.lt) a b) =
         SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b) by rfl]
@@ -1009,14 +1009,14 @@ private theorem eval_lt_of_denotes
         rw [← ha]
         unfold arith_atom_denote_real
         rw [hEvalA]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     have hqb : qb = rb := by
       have h : SmtValue.Rational qb = SmtValue.Rational rb := by
         rw [← hb]
         unfold arith_atom_denote_real
         rw [hEvalB]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.lt) a b) =
         SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b) by rfl]
@@ -1043,14 +1043,14 @@ private theorem eval_leq_of_denotes
         rw [← ha]
         unfold arith_atom_denote_real
         rw [hEvalA]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     have hqb : qb = native_to_real nb := by
       have h : SmtValue.Rational qb = SmtValue.Rational (native_to_real nb) := by
         rw [← hb]
         unfold arith_atom_denote_real
         rw [hEvalB]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.leq) a b) =
         SmtTerm.leq (__eo_to_smt a) (__eo_to_smt b) by rfl]
@@ -1063,14 +1063,14 @@ private theorem eval_leq_of_denotes
         rw [← ha]
         unfold arith_atom_denote_real
         rw [hEvalA]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     have hqb : qb = rb := by
       have h : SmtValue.Rational qb = SmtValue.Rational rb := by
         rw [← hb]
         unfold arith_atom_denote_real
         rw [hEvalB]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.leq) a b) =
         SmtTerm.leq (__eo_to_smt a) (__eo_to_smt b) by rfl]
@@ -1097,14 +1097,14 @@ private theorem eval_eq_of_denotes
         rw [← ha]
         unfold arith_atom_denote_real
         rw [hEvalA]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     have hqb : qb = native_to_real nb := by
       have h : SmtValue.Rational qb = SmtValue.Rational (native_to_real nb) := by
         rw [← hb]
         unfold arith_atom_denote_real
         rw [hEvalB]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.eq) a b) =
         SmtTerm.eq (__eo_to_smt a) (__eo_to_smt b) by rfl]
@@ -1118,14 +1118,14 @@ private theorem eval_eq_of_denotes
         rw [← ha]
         unfold arith_atom_denote_real
         rw [hEvalA]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     have hqb : qb = rb := by
       have h : SmtValue.Rational qb = SmtValue.Rational rb := by
         rw [← hb]
         unfold arith_atom_denote_real
         rw [hEvalB]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.eq) a b) =
         SmtTerm.eq (__eo_to_smt a) (__eo_to_smt b) by rfl]
@@ -1152,14 +1152,14 @@ private theorem eval_gt_of_denotes
         rw [← ha]
         unfold arith_atom_denote_real
         rw [hEvalA]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     have hqb : qb = native_to_real nb := by
       have h : SmtValue.Rational qb = SmtValue.Rational (native_to_real nb) := by
         rw [← hb]
         unfold arith_atom_denote_real
         rw [hEvalB]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.gt) a b) =
         SmtTerm.gt (__eo_to_smt a) (__eo_to_smt b) by rfl]
@@ -1173,14 +1173,14 @@ private theorem eval_gt_of_denotes
         rw [← ha]
         unfold arith_atom_denote_real
         rw [hEvalA]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     have hqb : qb = rb := by
       have h : SmtValue.Rational qb = SmtValue.Rational rb := by
         rw [← hb]
         unfold arith_atom_denote_real
         rw [hEvalB]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.gt) a b) =
         SmtTerm.gt (__eo_to_smt a) (__eo_to_smt b) by rfl]
@@ -1207,14 +1207,14 @@ private theorem eval_geq_of_denotes
         rw [← ha]
         unfold arith_atom_denote_real
         rw [hEvalA]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     have hqb : qb = native_to_real nb := by
       have h : SmtValue.Rational qb = SmtValue.Rational (native_to_real nb) := by
         rw [← hb]
         unfold arith_atom_denote_real
         rw [hEvalB]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.geq) a b) =
         SmtTerm.geq (__eo_to_smt a) (__eo_to_smt b) by rfl]
@@ -1228,14 +1228,14 @@ private theorem eval_geq_of_denotes
         rw [← ha]
         unfold arith_atom_denote_real
         rw [hEvalA]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     have hqb : qb = rb := by
       have h : SmtValue.Rational qb = SmtValue.Rational rb := by
         rw [← hb]
         unfold arith_atom_denote_real
         rw [hEvalB]
-        simp [__smtx_model_eval_to_real]
+        simp [__smtx_model_eval_to_real_coerce]
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.geq) a b) =
         SmtTerm.geq (__eo_to_smt a) (__eo_to_smt b) by rfl]

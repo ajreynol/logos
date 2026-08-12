@@ -158,61 +158,33 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
         simpa [__run_evaluate] using hRunNe
       have hRunXNe : __run_evaluate x ≠ Term.Stuck :=
         EvaluateProofInternal.eo_to_q_arg_ne_stuck hRunToQNe
-      rcases to_real_arg_of_non_none
-          (t := __eo_to_smt x) hToRealNN with
-        hXInt | hXReal
-      · have hXTrans : RuleProofs.eo_has_smt_translation x := by
-          unfold RuleProofs.eo_has_smt_translation
-          rw [hXInt]
-          simp
-        have hXPres :=
-          recX hXTrans hRunXNe
-        have hXMatch :=
-          TranslationProofs.eo_to_smt_typeof_matches_translation
-            x hXTrans
-        have hXEoInt : __eo_typeof x = Term.UOp UserOp.Int :=
-          TranslationProofs.eo_to_smt_type_eq_int
-            (hXMatch.symm.trans hXInt)
-        have hRunXEoInt :
-            __eo_typeof (__run_evaluate x) = Term.UOp UserOp.Int :=
-          hXPres.trans hXEoInt
-        cases hRunX : __run_evaluate x <;>
-          simp [__run_evaluate, hRunX, __eo_to_q] at hRunToQNe hRunXEoInt ⊢
-        all_goals
-          first
-          | change Term.UOp UserOp.Real =
-              Term.UOp UserOp.Int at hRunXEoInt
-            cases hRunXEoInt
-          | change Term.UOp UserOp.Real =
-              __eo_typeof_to_real (__eo_typeof x)
-            rw [hXEoInt]
-            rfl
-      · have hXTrans : RuleProofs.eo_has_smt_translation x := by
-          unfold RuleProofs.eo_has_smt_translation
-          rw [hXReal]
-          simp
-        have hXPres :=
-          recX hXTrans hRunXNe
-        have hXMatch :=
-          TranslationProofs.eo_to_smt_typeof_matches_translation
-            x hXTrans
-        have hXEoReal : __eo_typeof x = Term.UOp UserOp.Real :=
-          TranslationProofs.eo_to_smt_type_eq_real
-            (hXMatch.symm.trans hXReal)
-        have hRunXEoReal :
-            __eo_typeof (__run_evaluate x) = Term.UOp UserOp.Real :=
-          hXPres.trans hXEoReal
-        cases hRunX : __run_evaluate x <;>
-          simp [__run_evaluate, hRunX, __eo_to_q] at hRunToQNe hRunXEoReal ⊢
-        all_goals
-          first
-          | change Term.UOp UserOp.Int =
-              Term.UOp UserOp.Real at hRunXEoReal
-            cases hRunXEoReal
-          | change Term.UOp UserOp.Real =
-              __eo_typeof_to_real (__eo_typeof x)
-            rw [hXEoReal]
-            rfl
+      have hXInt := to_real_arg_of_non_none (t := __eo_to_smt x) hToRealNN
+      have hXTrans : RuleProofs.eo_has_smt_translation x := by
+        unfold RuleProofs.eo_has_smt_translation
+        rw [hXInt]
+        simp
+      have hXPres :=
+        recX hXTrans hRunXNe
+      have hXMatch :=
+        TranslationProofs.eo_to_smt_typeof_matches_translation
+          x hXTrans
+      have hXEoInt : __eo_typeof x = Term.UOp UserOp.Int :=
+        TranslationProofs.eo_to_smt_type_eq_int
+          (hXMatch.symm.trans hXInt)
+      have hRunXEoInt :
+          __eo_typeof (__run_evaluate x) = Term.UOp UserOp.Int :=
+        hXPres.trans hXEoInt
+      cases hRunX : __run_evaluate x <;>
+        simp [__run_evaluate, hRunX, __eo_to_q] at hRunToQNe hRunXEoInt ⊢
+      all_goals
+        first
+        | change Term.UOp UserOp.Real =
+            Term.UOp UserOp.Int at hRunXEoInt
+          cases hRunXEoInt
+        | change Term.UOp UserOp.Real =
+            __eo_typeof_to_real (__eo_typeof x)
+          rw [hXEoInt]
+          rfl
   | to_int =>
       have hToIntNN :
           term_has_non_none_type

@@ -515,8 +515,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_to_real_core
     cases hEvalTy
   have hRunXNe : __run_evaluate x ≠ Term.Stuck :=
     EvaluateProofInternal.eo_to_q_arg_ne_stuck hRunToQNe
-  rcases to_real_arg_of_non_none (t := __eo_to_smt x) hToRealNN with
-    hXInt | hXReal
+  have hXInt := to_real_arg_of_non_none (t := __eo_to_smt x) hToRealNN
   · have hXTrans : RuleProofs.eo_has_smt_translation x := by
       unfold RuleProofs.eo_has_smt_translation
       rw [hXInt]
@@ -572,62 +571,6 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_to_real_core
           (SmtValue.Rational (native_to_real runN))
           (__smtx_model_eval M
             (SmtTerm.Rational (native_to_real runN)))
-      rw [__smtx_model_eval.eq_3]
-      exact RuleProofs.smt_value_rel_refl _
-  · have hXTrans : RuleProofs.eo_has_smt_translation x := by
-      unfold RuleProofs.eo_has_smt_translation
-      rw [hXReal]
-      simp
-    have hXProgTy : __eo_typeof (__eo_prog_evaluate x) = Term.Bool :=
-      EvaluateProofInternal.eo_prog_evaluate_typeof_bool_of_smt_type_real x hXTrans hXReal hRunXNe
-    rcases EvaluateProofInternal.run_evaluate_rec_apply_arg M
-        (Term.UOp UserOp.to_real) x rec hXTrans hXProgTy with
-      ⟨hXSameTy, hXRel⟩
-    have hRunXSmtTy :
-        __smtx_typeof (__eo_to_smt (__run_evaluate x)) = SmtType.Real := by
-      rw [← hXSameTy]
-      exact hXReal
-    rcases EvaluateProofInternal.eo_to_q_real_arg_of_nonstuck
-        (__run_evaluate x) hRunXSmtTy hRunToQNe with
-      ⟨runQ, hRunX⟩
-    change
-      __smtx_typeof (SmtTerm.to_real (__eo_to_smt x)) =
-          __smtx_typeof (__eo_to_smt (__eo_to_q (__run_evaluate x))) ∧
-        RuleProofs.smt_value_rel
-          (__smtx_model_eval M (SmtTerm.to_real (__eo_to_smt x)))
-          (__smtx_model_eval M (__eo_to_smt (__eo_to_q (__run_evaluate x))))
-    rw [hRunX]
-    constructor
-    · change
-        __smtx_typeof (SmtTerm.to_real (__eo_to_smt x)) =
-          __smtx_typeof (SmtTerm.Rational runQ)
-      rw [typeof_to_real_eq, hXReal]
-      simp [native_ite, native_Teq, __smtx_typeof]
-    · have hXRelValue :
-          RuleProofs.smt_value_rel
-            (__smtx_model_eval M (__eo_to_smt x))
-            (SmtValue.Rational runQ) := by
-        rw [hRunX] at hXRel
-        rw [show __eo_to_smt (Term.Rational runQ) =
-            SmtTerm.Rational runQ by
-          rfl] at hXRel
-        rw [__smtx_model_eval.eq_3] at hXRel
-        exact hXRel
-      have hXEval :
-          __smtx_model_eval M (__eo_to_smt x) =
-            SmtValue.Rational runQ :=
-        EvaluateProofInternal.smt_value_rel_rational_eq
-          (__smtx_model_eval M (__eo_to_smt x)) runQ hXRelValue
-      rw [show
-          __smtx_model_eval M (SmtTerm.to_real (__eo_to_smt x)) =
-            __smtx_model_eval_to_real
-              (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_def] <;> simp only]
-      rw [hXEval]
-      change
-        RuleProofs.smt_value_rel
-          (SmtValue.Rational runQ)
-          (__smtx_model_eval M (SmtTerm.Rational runQ))
       rw [__smtx_model_eval.eq_3]
       exact RuleProofs.smt_value_rel_refl _
 

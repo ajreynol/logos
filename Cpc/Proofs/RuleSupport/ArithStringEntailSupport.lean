@@ -29,12 +29,12 @@ private theorem arith_poly_norm_atom_denote_real_str_len_nonneg_of_rational
   intro h
   unfold arith_poly_norm_atom_denote_real at h
   change
-    __smtx_model_eval_to_real
+    __smtx_model_eval_to_real_coerce
         (__smtx_model_eval M (SmtTerm.str_len (__eo_to_smt s))) =
       SmtValue.Rational q at h
   simp [__smtx_model_eval] at h
   cases hEval : __smtx_model_eval M (__eo_to_smt s) <;>
-    simp [hEval, __smtx_model_eval_str_len, __smtx_model_eval_to_real] at h
+    simp [hEval, __smtx_model_eval_str_len, __smtx_model_eval_to_real_coerce] at h
   case Seq x =>
     rw [← h]
     dsimp [native_to_real, native_mk_rational, native_seq_len]
@@ -250,7 +250,7 @@ private theorem geq_zero_eval_true_of_int_denote_nonneg
   have hDenEq : native_to_real z = q := by
     have h :
         SmtValue.Rational (native_to_real z) = SmtValue.Rational q := by
-      simpa [arith_poly_norm_atom_denote_real, hEval, __smtx_model_eval_to_real] using hDen
+      simpa [arith_poly_norm_atom_denote_real, hEval, __smtx_model_eval_to_real_coerce] using hDen
     simpa using h
   have hzNonneg : (0 : Int) ≤ z := by
     have hq' : (0 : Rat) ≤ native_to_real z := by
@@ -314,11 +314,11 @@ private theorem geq_eval_true_of_diff_denote_nonneg
             SmtValue.Rational q := by
         have hDen := hDiffDen
         change
-          __smtx_model_eval_to_real
+          __smtx_model_eval_to_real_coerce
               (__smtx_model_eval M (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m))) =
             SmtValue.Rational q at hDen
         rw [__smtx_model_eval.eq_13, hEvalN, hEvalM] at hDen
-        simpa [__smtx_model_eval_to_real, __smtx_model_eval__, native_to_real_sub] using hDen
+        simpa [__smtx_model_eval_to_real_coerce, __smtx_model_eval__, native_to_real_sub] using hDen
       simpa using h
     have hSubNonneg : (0 : Int) ≤ native_zplus zn (native_zneg zm) := by
       have hRat : (0 : Rat) ≤ native_to_real (native_zplus zn (native_zneg zm)) := by
@@ -357,11 +357,11 @@ private theorem geq_eval_true_of_diff_denote_nonneg
             SmtValue.Rational q := by
         have hDen := hDiffDen
         change
-          __smtx_model_eval_to_real
+          __smtx_model_eval_to_real_coerce
               (__smtx_model_eval M (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m))) =
             SmtValue.Rational q at hDen
         rw [__smtx_model_eval.eq_13, hEvalN, hEvalM] at hDen
-        simpa [__smtx_model_eval_to_real, __smtx_model_eval__] using hDen
+        simpa [__smtx_model_eval_to_real_coerce, __smtx_model_eval__] using hDen
       simpa using h
     have hLe : qm ≤ qn := by
       have hSub : (0 : Rat) ≤ native_qplus qn (native_qneg qm) := by
@@ -473,7 +473,7 @@ private theorem arith_poly_norm_atom_denote_real_eq_of_int_eval
   __smtx_model_eval M (__eo_to_smt t) = SmtValue.Numeral z ->
   arith_poly_norm_atom_denote_real M t = SmtValue.Rational (native_to_real z) := by
   intro hEval
-  simp [arith_poly_norm_atom_denote_real, hEval, __smtx_model_eval_to_real]
+  simp [arith_poly_norm_atom_denote_real, hEval, __smtx_model_eval_to_real_coerce]
 
 private theorem native_to_real_le_iff (a b : native_Int) :
     native_to_real a ≤ native_to_real b ↔ a ≤ b := by
@@ -4401,12 +4401,12 @@ private theorem str_arith_entail_is_approx_int_denote_order
       have hQn : qn = native_to_real zn := by
         have h :
             SmtValue.Rational (native_to_real zn) = SmtValue.Rational qn := by
-          simpa [arith_poly_norm_atom_denote_real, hNEval, __smtx_model_eval_to_real] using hNDen
+          simpa [arith_poly_norm_atom_denote_real, hNEval, __smtx_model_eval_to_real_coerce] using hNDen
         simpa using h.symm
       have hQm : qm = native_to_real zm := by
         have h :
             SmtValue.Rational (native_to_real zm) = SmtValue.Rational qm := by
-          simpa [arith_poly_norm_atom_denote_real, hMEval, __smtx_model_eval_to_real] using hMDen
+          simpa [arith_poly_norm_atom_denote_real, hMEval, __smtx_model_eval_to_real_coerce] using hMDen
         simpa using h.symm
       have hOrder :=
         str_arith_entail_is_approx_int_eval_order M hM n m isUnder zn zm
@@ -4465,7 +4465,7 @@ private theorem arith_string_pred_safe_approx_left_true
     have hDenEq : native_to_real zm = qm := by
       have h :
           SmtValue.Rational (native_to_real zm) = SmtValue.Rational qm := by
-        simpa [arith_poly_norm_atom_denote_real, hEvalM, __smtx_model_eval_to_real] using hMDen
+        simpa [arith_poly_norm_atom_denote_real, hEvalM, __smtx_model_eval_to_real_coerce] using hMDen
       simpa using h
     have hZle : native_zleq 0 zm = true := by
       have hZeroEval :

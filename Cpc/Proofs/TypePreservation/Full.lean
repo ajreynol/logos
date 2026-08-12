@@ -1820,14 +1820,14 @@ private theorem canonical_of_supported
         rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
         have hxTy :
             __smtx_typeof_value
-              (__smtx_model_eval_to_real (__smtx_model_eval M t1)) = SmtType.Real := by
+              (__smtx_model_eval_to_real_coerce (__smtx_model_eval M t1)) = SmtType.Real := by
           rw [hn1]
-          simp [__smtx_model_eval_to_real, __smtx_typeof_value]
+          simp [__smtx_model_eval_to_real_coerce, __smtx_typeof_value]
         simpa [__smtx_model_eval] using
           model_eval_ite_canonical
             (model_eval_apply_lookup_ifun_canonical M hM native_qdiv_by_zero_id
               SmtType.Real SmtType.Real
-              (__smtx_model_eval_to_real (__smtx_model_eval M t1))
+              (__smtx_model_eval_to_real_coerce (__smtx_model_eval M t1))
               ifun_type_wf_real_real hxTy)
             (model_eval_qdiv_total_canonical _ _)
       · have hxTyRaw :
@@ -1836,14 +1836,14 @@ private theorem canonical_of_supported
         rcases real_value_canonical hxTyRaw with ⟨q1, hq1⟩
         have hxTy :
             __smtx_typeof_value
-              (__smtx_model_eval_to_real (__smtx_model_eval M t1)) = SmtType.Real := by
+              (__smtx_model_eval_to_real_coerce (__smtx_model_eval M t1)) = SmtType.Real := by
           rw [hq1]
-          simp [__smtx_model_eval_to_real, __smtx_typeof_value]
+          simp [__smtx_model_eval_to_real_coerce, __smtx_typeof_value]
         simpa [__smtx_model_eval] using
           model_eval_ite_canonical
             (model_eval_apply_lookup_ifun_canonical M hM native_qdiv_by_zero_id
               SmtType.Real SmtType.Real
-              (__smtx_model_eval_to_real (__smtx_model_eval M t1))
+              (__smtx_model_eval_to_real_coerce (__smtx_model_eval M t1))
               ifun_type_wf_real_real hxTy)
             (model_eval_qdiv_total_canonical _ _)
   case qdiv_total ht1 hs1 ht2 hs2 =>
@@ -3987,11 +3987,9 @@ private theorem to_real_type_has_no_none_components_of_non_none
     {t : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.to_real t)) :
     type_has_no_none_components (__smtx_typeof (SmtTerm.to_real t)) := by
-  rcases to_real_arg_of_non_none ht with hArg | hArg
-  · rw [typeof_to_real_eq]
-    simp [native_ite, native_Teq, hArg, type_has_no_none_components]
-  · rw [typeof_to_real_eq]
-    simp [native_ite, native_Teq, hArg, type_has_no_none_components]
+  have hArg := to_real_arg_of_non_none ht
+  rw [typeof_to_real_eq]
+  simp [native_ite, native_Teq, hArg, type_has_no_none_components]
 
 private theorem str_indexof_type_has_no_none_components_of_non_none
     {t1 t2 t3 : SmtTerm}
@@ -4853,11 +4851,9 @@ theorem supported_preservation_term_of_non_none :
           have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2 (by simp)
           exact supported_preservation_term.geq ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.to_real t1 =>
-        rcases to_real_arg_of_non_none ht with hArg | hArg
-        · have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
-          exact supported_preservation_term.to_real ht1 (go t1 ht1)
-        · have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
-          exact supported_preservation_term.to_real ht1 (go t1 ht1)
+        have hArg := to_real_arg_of_non_none ht
+        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
+        exact supported_preservation_term.to_real ht1 (go t1 ht1)
     | SmtTerm.to_int t1 =>
         have hArg : __smtx_typeof t1 = SmtType.Real :=
           real_arg_of_non_none (op := SmtTerm.to_int) (typeof_to_int_eq t1) ht

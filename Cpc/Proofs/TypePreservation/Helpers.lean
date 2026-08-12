@@ -2042,13 +2042,12 @@ theorem arith_unop_arg_of_non_none
 theorem to_real_arg_of_non_none
     {t : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.to_real t)) :
-    __smtx_typeof t = SmtType.Int ∨ __smtx_typeof t = SmtType.Real := by
+    __smtx_typeof t = SmtType.Int := by
   unfold term_has_non_none_type at ht
   rw [__smtx_typeof.eq_19] at ht
   cases h : __smtx_typeof t <;>
     simp [native_ite, native_Teq, h] at ht
-  · exact Or.inl rfl
-  · exact Or.inr rfl
+  rfl
 
 /-- Derives `real_arg` from `non_none`. -/
 theorem real_arg_of_non_none
