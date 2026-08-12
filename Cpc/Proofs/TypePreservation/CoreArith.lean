@@ -103,8 +103,7 @@ theorem typeof_geq_eq (t1 t2 : SmtTerm) :
   rw [__smtx_typeof.eq_def] <;> simp only
 theorem typeof_to_real_eq (t : SmtTerm) :
     __smtx_typeof (SmtTerm.to_real t) =
-      native_ite (native_Teq (__smtx_typeof t) SmtType.Int) SmtType.Real
-        (native_ite (native_Teq (__smtx_typeof t) SmtType.Real) SmtType.Real SmtType.None) := by
+      native_ite (native_Teq (__smtx_typeof t) SmtType.Int) SmtType.Real SmtType.None := by
   rw [__smtx_typeof.eq_def] <;> simp only
 theorem typeof_to_int_eq (t : SmtTerm) :
     __smtx_typeof (SmtTerm.to_int t) =
@@ -818,21 +817,14 @@ theorem typeof_value_model_eval_to_real
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.to_real t)) =
       __smtx_typeof (SmtTerm.to_real t) := by
-  rcases to_real_arg_of_non_none ht with hArg | hArg
-  · rw [show __smtx_typeof (SmtTerm.to_real t) = SmtType.Real by
-      rw [typeof_to_real_eq]
-      simp [native_ite, native_Teq, hArg]]
-    rw [__smtx_model_eval.eq_def] <;> simp only
-    rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
-    rw [hn]
-    rfl
-  · rw [show __smtx_typeof (SmtTerm.to_real t) = SmtType.Real by
-      rw [typeof_to_real_eq]
-      simp [native_ite, native_Teq, hArg]]
-    rw [__smtx_model_eval.eq_def] <;> simp only
-    rcases real_value_canonical (by simpa [hArg] using hpres) with ⟨q, hq⟩
-    rw [hq]
-    rfl
+  have hArg := to_real_arg_of_non_none ht
+  rw [show __smtx_typeof (SmtTerm.to_real t) = SmtType.Real by
+    rw [typeof_to_real_eq]
+    simp [native_ite, native_Teq, hArg]]
+  rw [__smtx_model_eval.eq_def] <;> simp only
+  rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
+  rw [hn]
+  rfl
 
 /-- Shows that evaluating `to_int` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_to_int
@@ -1205,12 +1197,12 @@ theorem typeof_value_model_eval_qdiv
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     by_cases hZero : native_to_real n2 = native_mk_rational 0 1
-    · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real,
+    · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real_coerce,
         __smtx_model_eval_qdiv_total, native_veq, hZero] using
         typeof_value_model_eval_apply_lookup_ifun M hM
           native_qdiv_by_zero_id SmtType.Real SmtType.Real (by simp) type_inhabited_real ifun_type_wf_real_real
           (SmtValue.Rational (native_to_real n1)) rfl
-    · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real,
+    · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real_coerce,
         __smtx_model_eval_qdiv_total, __smtx_typeof_value, native_veq, hZero]
   · rw [show __smtx_typeof (SmtTerm.qdiv t1 t2) = SmtType.Real by
       rw [typeof_qdiv_eq]
@@ -1220,12 +1212,12 @@ theorem typeof_value_model_eval_qdiv
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]
     by_cases hZero : q2 = native_mk_rational 0 1
-    · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real,
+    · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real_coerce,
         __smtx_model_eval_qdiv_total, native_veq, hZero] using
         typeof_value_model_eval_apply_lookup_ifun M hM
           native_qdiv_by_zero_id SmtType.Real SmtType.Real (by simp) type_inhabited_real ifun_type_wf_real_real
           (SmtValue.Rational q1) rfl
-    · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real,
+    · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real_coerce,
         __smtx_model_eval_qdiv_total, __smtx_typeof_value, native_veq, hZero]
 
 end Smtm

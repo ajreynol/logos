@@ -8403,8 +8403,8 @@ def __eo_typeof_lt : Term -> Term -> Term
 
 
 def __eo_typeof_to_real : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | T => (__eo_requires (__is_arith_type T) (Term.Boolean true) (Term.UOp UserOp.Real))
+  | (Term.UOp UserOp.Int) => (Term.UOp UserOp.Real)
+  | _ => Term.Stuck
 
 
 def __eo_typeof_to_int : Term -> Term

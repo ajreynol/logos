@@ -17,7 +17,7 @@ set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
 noncomputable def arith_atom_denote_real (M : SmtModel) (t : Term) : SmtValue :=
-  __smtx_model_eval_to_real (__smtx_model_eval M (__eo_to_smt t))
+  __smtx_model_eval_to_real_coerce (__smtx_model_eval M (__eo_to_smt t))
 
 theorem eo_to_smt_to_real_eq
     (x : Term) :
@@ -79,9 +79,9 @@ theorem eo_to_smt_geq_eq
 
 theorem smtx_model_eval_to_real_idempotent
     (v : SmtValue) :
-  __smtx_model_eval_to_real (__smtx_model_eval_to_real v) =
-    __smtx_model_eval_to_real v := by
-  cases v <;> simp [__smtx_model_eval_to_real]
+  __smtx_model_eval_to_real_coerce (__smtx_model_eval_to_real_coerce v) =
+    __smtx_model_eval_to_real_coerce v := by
+  cases v <;> simp [__smtx_model_eval_to_real_coerce]
 
 theorem eq_operands_same_smt_type_of_eq_has_smt_translation
     (x y : Term) :
@@ -307,13 +307,20 @@ theorem native_to_real_mul
     (Rat.divInt_mul_divInt n1 n2 (d₁ := 1) (d₂ := 1)).symm
 
 theorem arith_atom_denote_real_of_to_real
-    (M : SmtModel) (t : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (hInt : __smtx_typeof (__eo_to_smt t) = SmtType.Int) :
   arith_atom_denote_real M (Term.Apply (Term.UOp UserOp.to_real) t) =
     arith_atom_denote_real M t := by
+  have hEvalTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t)) = SmtType.Int := by
+    simpa [hInt] using
+      Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t)
+        (by simp [term_has_non_none_type, hInt])
+  rcases int_value_canonical hEvalTy with ⟨n, hEval⟩
   unfold arith_atom_denote_real
   rw [eo_to_smt_to_real_eq]
-  rw [__smtx_model_eval.eq_19]
-  exact smtx_model_eval_to_real_idempotent (__smtx_model_eval M (__eo_to_smt t))
+  rw [__smtx_model_eval.eq_19, hEval]
+  simp [__smtx_model_eval_to_real, __smtx_model_eval_to_real_coerce]
 
 theorem arith_atom_denote_real_of_neg
     (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
@@ -365,7 +372,7 @@ theorem arith_atom_denote_real_of_neg
     rcases int_value_canonical hEval2TyInt with ⟨n2, hEval2⟩
     unfold arith_atom_denote_real
     rw [eo_to_smt_neg_eq, __smtx_model_eval.eq_13, hEval1, hEval2]
-    simp only [__smtx_model_eval_to_real, __smtx_model_eval_plus, __smtx_model_eval_uneg,
+    simp only [__smtx_model_eval_to_real_coerce, __smtx_model_eval_plus, __smtx_model_eval_uneg,
       __smtx_model_eval__, native_to_real_sub]
   · have hEval1Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
@@ -395,7 +402,7 @@ theorem arith_atom_denote_real_of_neg
     rcases real_value_canonical hEval2TyReal with ⟨q2, hEval2⟩
     unfold arith_atom_denote_real
     rw [eo_to_smt_neg_eq, __smtx_model_eval.eq_13, hEval1, hEval2]
-    simp only [__smtx_model_eval_to_real, __smtx_model_eval_plus, __smtx_model_eval_uneg,
+    simp only [__smtx_model_eval_to_real_coerce, __smtx_model_eval_plus, __smtx_model_eval_uneg,
       __smtx_model_eval__]
 
 theorem arith_atom_denote_real_of_mult
@@ -448,7 +455,7 @@ theorem arith_atom_denote_real_of_mult
     unfold arith_atom_denote_real
     rw [eo_to_smt_mult_eq]
     rw [__smtx_model_eval.eq_14, hEval1, hEval2]
-    simp only [__smtx_model_eval_to_real,
+    simp only [__smtx_model_eval_to_real_coerce,
       __smtx_model_eval_mult, native_to_real_mul]
   · have hEval1Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
@@ -479,7 +486,7 @@ theorem arith_atom_denote_real_of_mult
     unfold arith_atom_denote_real
     rw [eo_to_smt_mult_eq]
     rw [__smtx_model_eval.eq_14, hEval1, hEval2]
-    simp only [__smtx_model_eval_to_real,
+    simp only [__smtx_model_eval_to_real_coerce,
       __smtx_model_eval_mult]
 
 theorem arith_atom_denote_real_eq_of_smt_value_rel
@@ -492,7 +499,7 @@ theorem arith_atom_denote_real_eq_of_smt_value_rel
   unfold arith_atom_denote_real
   cases hA : __smtx_model_eval M (__eo_to_smt a) <;>
     cases hB : __smtx_model_eval M (__eo_to_smt b) <;>
-    simp [__smtx_model_eval_eq, native_veq, __smtx_model_eval_to_real, hA, hB] at hRel ⊢
+    simp [__smtx_model_eval_eq, native_veq, __smtx_model_eval_to_real_coerce, hA, hB] at hRel ⊢
   all_goals
     try subst_vars
     try rfl
@@ -1217,8 +1224,8 @@ theorem diff_arith_type_of_scaled_factor
           intro hNone
           rw [hNone] at hArgs
           cases hArgs.1
-        exact to_real_arg_of_non_none
-          (t := __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2)) ht
+        exact Or.inl (to_real_arg_of_non_none
+          (t := __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2)) ht)
     · have hInnerTyReal :
           __smtx_typeof (__eo_to_smt inner) = SmtType.Real := by
         rw [show __eo_to_smt inner = SmtTerm.mult (__eo_to_smt x) (__eo_to_smt one) by
@@ -1260,8 +1267,65 @@ theorem diff_arith_type_of_scaled_factor
           intro hNone
           rw [hNone] at hArgs
           cases hArgs.1
-        exact to_real_arg_of_non_none
-          (t := __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2)) ht
+        exact Or.inl (to_real_arg_of_non_none
+          (t := __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2)) ht)
+
+/-- Sharpens `diff_arith_type_of_scaled_factor` for the `to_real` shape: since
+    `to_real` only accepts `Int`, the differenced argument must be `Int`. -/
+theorem diff_int_type_of_scaled_factor_to_real
+    (cx one x1 x2 : Term) :
+  (__smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.mult) cx)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.mult)
+                (Term.Apply (Term.UOp UserOp.to_real)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2))) one))) =
+      SmtType.Int ∨
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.mult) cx)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.mult)
+                (Term.Apply (Term.UOp UserOp.to_real)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2))) one))) =
+      SmtType.Real) ->
+  __smtx_typeof
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2)) =
+      SmtType.Int := by
+  intro hOuterTy
+  rcases diff_arith_type_of_scaled_factor cx
+      (Term.Apply (Term.UOp UserOp.to_real)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2))
+      one x1 x2 hOuterTy (Or.inr rfl) with hInt | hReal
+  · exact hInt
+  · exfalso
+    have hToRealNone :
+        __smtx_typeof
+            (__eo_to_smt
+              (Term.Apply (Term.UOp UserOp.to_real)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2))) =
+          SmtType.None := by
+      rw [eo_to_smt_to_real_eq, typeof_to_real_eq]
+      simp [native_ite, native_Teq, hReal]
+    have hInnerNone :
+        __smtx_typeof
+            (__eo_to_smt
+              (Term.Apply (Term.Apply (Term.UOp UserOp.mult)
+                  (Term.Apply (Term.UOp UserOp.to_real)
+                    (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2))) one)) =
+          SmtType.None := by
+      rw [eo_to_smt_mult_eq, typeof_mult_eq]
+      simp [__smtx_typeof_arith_overload_op_2, hToRealNone]
+    have hOuterNone :
+        __smtx_typeof
+            (__eo_to_smt
+              (Term.Apply (Term.Apply (Term.UOp UserOp.mult) cx)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.mult)
+                    (Term.Apply (Term.UOp UserOp.to_real)
+                      (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2))) one))) =
+          SmtType.None := by
+      rw [eo_to_smt_mult_eq, typeof_mult_eq]
+      simp [__smtx_typeof_arith_overload_op_2, hInnerNone]
+    rcases hOuterTy with h | h <;> · rw [hOuterNone] at h; cases h
 
 theorem arith_rel_eval_bools_of_diff_type
     (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term)
@@ -1320,7 +1384,7 @@ theorem arith_rel_eval_bools_of_diff_type
     · unfold arith_atom_denote_real
       rw [show __eo_to_smt diff = SmtTerm.neg (__eo_to_smt x1) (__eo_to_smt x2) by rfl]
       rw [__smtx_model_eval.eq_13, hEval1, hEval2]
-      simp [__smtx_model_eval_to_real, __smtx_model_eval__, q, native_to_real_sub]
+      simp [__smtx_model_eval_to_real_coerce, __smtx_model_eval__, q, native_to_real_sub]
     · rw [eo_to_smt_lt_eq, __smtx_model_eval.eq_15, hEval1, hEval2]
       simp [__smtx_model_eval_lt, q, native_to_real_sub_lt_zero_eq]
     · rw [eo_to_smt_leq_eq, __smtx_model_eval.eq_16, hEval1, hEval2]
@@ -1349,7 +1413,7 @@ theorem arith_rel_eval_bools_of_diff_type
     · unfold arith_atom_denote_real
       rw [show __eo_to_smt diff = SmtTerm.neg (__eo_to_smt x1) (__eo_to_smt x2) by rfl]
       rw [__smtx_model_eval.eq_13, hEval1, hEval2]
-      simp [__smtx_model_eval_to_real, __smtx_model_eval__, q]
+      simp [__smtx_model_eval_to_real_coerce, __smtx_model_eval__, q]
     · rw [eo_to_smt_lt_eq, __smtx_model_eval.eq_15, hEval1, hEval2]
       simp [__smtx_model_eval_lt, q, native_qsub_lt_zero_eq]
     · rw [eo_to_smt_leq_eq, __smtx_model_eval.eq_16, hEval1, hEval2]

@@ -898,7 +898,7 @@ theorem substitute_simul_rec_atom_head_eq_self_of_apply_subst_trans
 set_option linter.unusedSimpArgs false in
 theorem eo_typeof_to_real_arg_arith_of_ne_stuck {A : Term}
     (h : __eo_typeof_to_real A ≠ Term.Stuck) :
-    A = Term.UOp UserOp.Int ∨ A = Term.UOp UserOp.Real := by
+    A = Term.UOp UserOp.Int := by
   cases A <;>
     simp [__eo_typeof_to_real, __is_arith_type, __eo_requires,
       native_ite, native_teq, native_not, SmtEval.native_not] at h ⊢

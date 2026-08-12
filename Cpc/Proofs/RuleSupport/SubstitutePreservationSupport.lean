@@ -4367,14 +4367,9 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                               (fun X hApp => by
                                 change __eo_typeof_to_real (__eo_typeof X) ≠
                                   Term.Stuck at hApp
-                                rcases eo_typeof_to_real_arg_arith_of_ne_stuck hApp with
-                                  hArg | hArg
-                                · rw [hArg]
-                                  intro h
-                                  cases h
-                                · rw [hArg]
-                                  intro h
-                                  cases h)
+                                rw [eo_typeof_to_real_arg_arith_of_ne_stuck hApp]
+                                intro h
+                                cases h)
                               (fun X Y hXY => by
                                 change __eo_typeof_to_real (__eo_typeof X) =
                                   __eo_typeof_to_real (__eo_typeof Y)
@@ -4392,18 +4387,13 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                 rw [typeof_to_real_eq]
                                 change __eo_typeof_to_real (__eo_typeof X) ≠
                                   Term.Stuck at hApp
-                                rcases eo_typeof_to_real_arg_arith_of_ne_stuck hApp with
-                                  hArgInt | hArgReal
-                                · have hSmtArg :
-                                      __smtx_typeof (__eo_to_smt X) = SmtType.Int := by
-                                    rw [hXMatch, hArgInt]
-                                    rfl
-                                  simp [hSmtArg, native_ite, native_Teq]
-                                · have hSmtArg :
-                                      __smtx_typeof (__eo_to_smt X) = SmtType.Real := by
-                                    rw [hXMatch, hArgReal]
-                                    rfl
-                                  simp [hSmtArg, native_ite, native_Teq])
+                                have hArgInt :=
+                                  eo_typeof_to_real_arg_arith_of_ne_stuck hApp
+                                have hSmtArg :
+                                    __smtx_typeof (__eo_to_smt X) = SmtType.Int := by
+                                  rw [hXMatch, hArgInt]
+                                  rfl
+                                simp [hSmtArg, native_ite, native_Teq])
                               (fun hATrans hATy =>
                                 hRec
                                   (G := a) (bvs' := bvs)

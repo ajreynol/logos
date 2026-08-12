@@ -495,9 +495,8 @@ theorem to_real_args_non_reg_of_non_none
   have hTerm : term_has_non_none_type (SmtTerm.to_real a) := by
     unfold term_has_non_none_type
     exact hNN
-  rcases to_real_arg_of_non_none hTerm with hInt | hReal
-  · exact ⟨SmtType.Int, hInt, by simp, by simp⟩
-  · exact ⟨SmtType.Real, hReal, by simp, by simp⟩
+  have hInt := to_real_arg_of_non_none hTerm
+  exact ⟨SmtType.Int, hInt, by simp, by simp⟩
 
 noncomputable abbrev smtEvalDiv
     (M : SmtModel) (x₁ x₂ : SmtValue) : SmtValue :=
@@ -527,8 +526,8 @@ noncomputable abbrev smtEvalQdiv
     (M : SmtModel) (x₁ x₂ : SmtValue) : SmtValue :=
   let _v0 := x₂
   let _v1 := x₁
-  let _v0r := __smtx_model_eval_to_real _v0
-  let _v1r := __smtx_model_eval_to_real _v1
+  let _v0r := __smtx_model_eval_to_real_coerce _v0
+  let _v1r := __smtx_model_eval_to_real_coerce _v1
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0r
       (SmtValue.Rational (native_mk_rational 0 1)))

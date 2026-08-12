@@ -2661,9 +2661,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
       rw [show
           __smtx_model_eval M
               (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) =
-            let _v0 := __smtx_model_eval_to_real
+            let _v0 := __smtx_model_eval_to_real_coerce
               (__smtx_model_eval M (__eo_to_smt b))
-            let _v1 := __smtx_model_eval_to_real
+            let _v1 := __smtx_model_eval_to_real_coerce
               (__smtx_model_eval M (__eo_to_smt a))
             __smtx_model_eval_ite
               (__smtx_model_eval_eq _v0
@@ -2683,7 +2683,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
           EvaluateProofInternal.native_to_real_qdiv_total_eval]
         rfl]
       rw [__smtx_model_eval.eq_3]
-      simp [__smtx_model_eval_to_real, __smtx_model_eval_eq,
+      simp [__smtx_model_eval_to_real_coerce, __smtx_model_eval_eq,
         __smtx_model_eval_ite, __smtx_model_eval_qdiv_total, native_veq,
         hRunBZeroNe, EvaluateProofInternal.native_to_real_qdiv_total_eval]
       exact RuleProofs.smt_value_rel_refl _
@@ -2802,9 +2802,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
       rw [show
           __smtx_model_eval M
               (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) =
-            let _v0 := __smtx_model_eval_to_real
+            let _v0 := __smtx_model_eval_to_real_coerce
               (__smtx_model_eval M (__eo_to_smt b))
-            let _v1 := __smtx_model_eval_to_real
+            let _v1 := __smtx_model_eval_to_real_coerce
               (__smtx_model_eval M (__eo_to_smt a))
             __smtx_model_eval_ite
               (__smtx_model_eval_eq _v0
@@ -2823,7 +2823,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
         simp [__eo_to_q, __eo_qdiv, native_ite, hNZ]
         rfl]
       rw [__smtx_model_eval.eq_3]
-      simp [__smtx_model_eval_to_real, __smtx_model_eval_eq,
+      simp [__smtx_model_eval_to_real_coerce, __smtx_model_eval_eq,
         __smtx_model_eval_ite, __smtx_model_eval_qdiv_total, native_veq,
         hRunBZeroNe]
       exact RuleProofs.smt_value_rel_refl _

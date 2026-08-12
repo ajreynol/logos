@@ -446,13 +446,19 @@ private theorem facts___eo_prog_arith_poly_norm_rel_impl_shape
     rcases hXMaybe with hXd | hXTo
     · rw [hXd]
       exact hDiffXDen
-    · rw [hXTo, arith_atom_denote_real_of_to_real]
+    · have hLhsArith' := hLhsArith
+      rw [hXTo] at hLhsArith'
+      have hXInt := diff_int_type_of_scaled_factor_to_real cx one x1 x2 hLhsArith'
+      rw [hXTo, arith_atom_denote_real_of_to_real M hM _ hXInt]
       exact hDiffXDen
   have hYDen : arith_atom_denote_real M y = SmtValue.Rational qy := by
     rcases hYMaybe with hYd | hYTo
     · rw [hYd]
       exact hDiffYDen
-    · rw [hYTo, arith_atom_denote_real_of_to_real]
+    · have hRhsArith' := hRhsArith
+      rw [hYTo] at hRhsArith'
+      have hYInt := diff_int_type_of_scaled_factor_to_real cy one y1 y2 hRhsArith'
+      rw [hYTo, arith_atom_denote_real_of_to_real M hM _ hYInt]
       exact hDiffYDen
   rcases is_poly_norm_rel_consts_true_info r cx cy hConsts with
     ⟨c, d, hCxQ, hCyQ, hc0, hd0, hConstsRel⟩
