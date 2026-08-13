@@ -1896,10 +1896,7 @@ theorem model_eval_store_canonical_of_order_laws
       exact eq_of_native_veq_true hParts.2
     exact model_eval_store_canonical_of_set hFlip hTrans hm hDef hi he
 
-/--
-Value-level store preserves canonicality, using the temporary `native_vcmp`
-order-law assumptions.
--/
+/-- Value-level store preserves canonicality under the `native_vcmp` order laws. -/
 theorem model_eval_store_canonical
     {v i e : SmtValue}
     (hv : __smtx_value_canonical v)

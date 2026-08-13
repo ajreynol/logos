@@ -457,10 +457,7 @@ theorem model_eval_store_term_canonical_of_order_laws
       (i := __smtx_model_eval M i)
       (e := __smtx_model_eval M e) ha hi he
 
-/--
-Term-level store preserves canonicality, using the temporary `native_vcmp`
-order-law assumptions.
--/
+/-- Term-level store preserves canonicality under the `native_vcmp` order laws. -/
 theorem model_eval_store_term_canonical
     (M : SmtModel)
     (a i e : SmtTerm)
