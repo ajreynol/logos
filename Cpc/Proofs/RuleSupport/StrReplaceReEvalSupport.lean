@@ -103,6 +103,7 @@ private theorem native_re_prefix_match_go_isSome_iff_exists
   induction xs generalizing r n with
   | nil =>
       refine (fun hValid : native_string_valid [] = true => ?_)
+      simp only [native_string_to_values]
       rw [Smtm.native_re_prefix_match_len?.go.eq_1]
       cases hNull : native_re_nullable r
       · simp [hNull, RuleProofs.nativeListInRe]
@@ -112,6 +113,7 @@ private theorem native_re_prefix_match_go_isSome_iff_exists
       have hParts : native_char_valid c = true ∧ native_string_valid cs = true := by
         simpa [native_string_valid] using hValid
       rcases hParts with ⟨hc, hcs⟩
+      simp only [native_string_to_values]
       rw [Smtm.native_re_prefix_match_len?.go.eq_2]
       cases hNull : native_re_nullable r
       · simp [hc]
@@ -304,7 +306,8 @@ theorem str_first_match_rec_smallest_eq_go
           rw [hReq] at hNullEq
           cases hNullEq
         exact False.elim hFalse
-      · rw [Smtm.native_re_prefix_match_len?.go.eq_1]
+      · simp only [native_string_to_values]
+        rw [Smtm.native_re_prefix_match_len?.go.eq_1]
         simp [hNull]
         exact hStep.trans hReqResult
   | c :: cs, r, rv, n, hValid, hRTy, hREval, hNe => by
@@ -399,7 +402,7 @@ theorem str_first_match_rec_smallest_eq_go
               Smtm.native_re_prefix_match_len?.go
                 (native_re_deriv c rv) cs (n + 1) :=
           CongSupport.native_re_prefix_match_len_go_congr_valid_ext_of_str_ext cs drv
-            (native_re_deriv c rv) (n + 1) (by
+            (native_re_deriv c rv) (n + 1) hcs (by
               intro ys hys
               exact smt_value_rel_reglan_valid_eq hDerRel hys)
         rw [Smtm.native_re_prefix_match_len?.go.eq_2]
@@ -426,6 +429,7 @@ theorem str_eval_prefix_condition_eq
     str_eval_str_in_re_rec_substrWord_eq M hM xs rs
       (native_re_concat rv native_re_all) hValid hRsTy hRsEval hCondNe
   rw [hEval]
+  rw [← RuleProofs.native_str_in_re_eq_model]
   rw [native_str_in_re_concat_all_eq_prefix_isSome rv xs hValid]
 
 private theorem native_string_valid_of_string_type
@@ -657,6 +661,7 @@ private theorem str_first_match_rec_eq_find_aux
       | none =>
           refine hStep.trans ?_
           rw [hCondEq]
+          simp only [native_string_to_values]
           rw [Smtm.native_re_find_idx_aux.eq_1]
           simp [hPref, __eo_ite, native_teq, native_ite]
       | some len =>
@@ -693,6 +698,7 @@ private theorem str_first_match_rec_eq_find_aux
             simpa [substrWord] using hSmall
           refine hStep.trans ?_
           rw [hCondEq]
+          simp only [native_string_to_values]
           rw [Smtm.native_re_find_idx_aux.eq_1]
           simp [hPref, __eo_ite, native_teq, native_ite]
           rw [hSmall', hGoPref]
