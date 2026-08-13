@@ -1408,16 +1408,18 @@ theorem typeof_value_model_eval_str_replace_re
     simpa [__smtx_typeof_value, hss1, hArgs.1] using hpres1
   have hty3 : __smtx_typeof_seq_value ss3 = SmtType.Seq SmtType.Char := by
     simpa [__smtx_typeof_value, hss3, hArgs.2.2] using hpres3
-  have hs1Valid : native_string_valid (native_unpack_string ss1) = true :=
-    native_unpack_string_valid_of_typeof_seq_char hty1
-  have hs3Valid : native_string_valid (native_unpack_string ss3) = true :=
-    native_unpack_string_valid_of_typeof_seq_char hty3
+  have hElem1 : __smtx_elem_typeof_seq_value ss1 = SmtType.Char :=
+    elem_typeof_seq_value_of_typeof_seq_value hty1
+  have hxs1 : list_typed SmtType.Char (native_unpack_seq ss1) :=
+    typed_unpack_seq_of_typeof_seq_value hty1
+  have hxs3 : list_typed SmtType.Char (native_unpack_seq ss3) :=
+    typed_unpack_seq_of_typeof_seq_value hty3
   rw [hss1, hr, hss3]
-  change __smtx_typeof_seq_value
-      (native_pack_string
-        (native_str_replace_re (native_unpack_string ss1) r (native_unpack_string ss3))) =
-    SmtType.Seq SmtType.Char
-  exact typeof_pack_string _ (native_str_replace_re_valid r hs1Valid hs3Valid)
+  simpa [__smtx_model_eval_str_replace_re, hElem1, __smtx_typeof_value] using
+    (typeof_seq_value_pack_seq_of_typed
+      (T := SmtType.Char)
+      (xs := native_str_replace_re (native_unpack_seq ss1) r (native_unpack_seq ss3))
+      (list_typed_replace_re r hxs1 hxs3))
 
 /-- Shows that evaluating `str_replace_re_all` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_replace_re_all
@@ -1451,16 +1453,18 @@ theorem typeof_value_model_eval_str_replace_re_all
     simpa [__smtx_typeof_value, hss1, hArgs.1] using hpres1
   have hty3 : __smtx_typeof_seq_value ss3 = SmtType.Seq SmtType.Char := by
     simpa [__smtx_typeof_value, hss3, hArgs.2.2] using hpres3
-  have hs1Valid : native_string_valid (native_unpack_string ss1) = true :=
-    native_unpack_string_valid_of_typeof_seq_char hty1
-  have hs3Valid : native_string_valid (native_unpack_string ss3) = true :=
-    native_unpack_string_valid_of_typeof_seq_char hty3
+  have hElem1 : __smtx_elem_typeof_seq_value ss1 = SmtType.Char :=
+    elem_typeof_seq_value_of_typeof_seq_value hty1
+  have hxs1 : list_typed SmtType.Char (native_unpack_seq ss1) :=
+    typed_unpack_seq_of_typeof_seq_value hty1
+  have hxs3 : list_typed SmtType.Char (native_unpack_seq ss3) :=
+    typed_unpack_seq_of_typeof_seq_value hty3
   rw [hss1, hr, hss3]
-  change __smtx_typeof_seq_value
-      (native_pack_string
-        (native_str_replace_re_all (native_unpack_string ss1) r (native_unpack_string ss3))) =
-    SmtType.Seq SmtType.Char
-  exact typeof_pack_string _ (native_str_replace_re_all_valid r hs1Valid hs3Valid)
+  simpa [__smtx_model_eval_str_replace_re_all, hElem1, __smtx_typeof_value] using
+    (typeof_seq_value_pack_seq_of_typed
+      (T := SmtType.Char)
+      (xs := native_str_replace_re_all (native_unpack_seq ss1) r (native_unpack_seq ss3))
+      (list_typed_replace_re_all r hxs1 hxs3))
 
 /-- Shows that evaluating `str_indexof_re` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_indexof_re
@@ -1790,7 +1794,7 @@ theorem model_eval_re_exp_rec_reglan :
       ∃ r' : native_RegLan,
         __smtx_model_eval_re_exp_rec n (SmtValue.RegLan r) = SmtValue.RegLan r'
   | native_nat_zero, r =>
-      ⟨native_str_to_re (native_unpack_string (SmtSeq.empty SmtType.Char)), by
+      ⟨native_str_to_re (native_unpack_seq (SmtSeq.empty SmtType.Char)), by
         simp [__smtx_model_eval_re_exp_rec]⟩
   | native_nat_succ n, r => by
       rcases model_eval_re_exp_rec_reglan n r with ⟨r', hr'⟩

@@ -14,8 +14,46 @@ set_option maxHeartbeats 10000000
 
 namespace RuleProofs
 
-def nativeListInRe (xs : List native_Char) (r : native_RegLan) : native_Bool :=
-  native_re_nullable <| xs.foldl (fun acc c => native_re_deriv c acc) r
+def nativeListInRe : List native_Char -> native_RegLan -> native_Bool
+  | [], r => native_re_nullable r
+  | c :: cs, r => nativeListInRe cs (native_re_deriv (SmtValue.Char c) r)
+
+@[simp] theorem native_re_str_valid_string (str : native_String) :
+    Smtm.native_re_str_valid (native_string_to_values str) =
+      native_string_valid str := by
+  induction str with
+  | nil => rfl
+  | cons c cs ih =>
+      change
+        (native_char_valid c &&
+          Smtm.native_re_str_valid (native_string_to_values cs)) =
+        (native_char_valid c && native_string_valid cs)
+      rw [ih]
+
+/-- String-specialized proof view of regular-language membership. -/
+def native_str_in_re (str : native_String) (r : native_RegLan) : native_Bool :=
+  native_string_valid str && nativeListInRe str r
+
+theorem nativeListInRe_eq_model_fold
+    (str : native_String) (r : native_RegLan) :
+    nativeListInRe str r =
+      native_re_nullable
+        ((native_string_to_values str).foldl
+          (fun acc c => Smtm.native_re_deriv c acc) r) := by
+  induction str generalizing r with
+  | nil => rfl
+  | cons c cs ih =>
+      simp only [nativeListInRe, native_string_to_values, List.map_cons,
+        List.foldl_cons]
+      exact ih (Smtm.native_re_deriv (SmtValue.Char c) r)
+
+theorem native_str_in_re_eq_model
+    (str : native_String) (r : native_RegLan) :
+    native_str_in_re str r =
+      Smtm.native_str_in_re (native_string_to_values str) r := by
+  cases hValid : native_string_valid str <;>
+    simp [native_str_in_re, Smtm.native_str_in_re,
+      native_re_str_valid_string, hValid, nativeListInRe_eq_model_fold]
 
 theorem nativeListInRe_empty :
     (xs : List native_Char) -> nativeListInRe xs SmtRegLan.empty = false
@@ -27,13 +65,13 @@ theorem native_re_nullable_mk_union (r s : native_RegLan) :
     native_re_nullable (native_re_mk_union r s) =
       (native_re_nullable r || native_re_nullable s) := by
   cases r <;> cases s <;>
-    simp [native_re_mk_union, native_re_nullable]
+    simp [native_re_mk_union, native_re_union, native_re_nullable]
   all_goals
     split <;> simp_all [native_re_nullable]
 
 private theorem native_re_mk_union_self (r : native_RegLan) :
     native_re_mk_union r r = r := by
-  cases r <;> simp [native_re_mk_union]
+  cases r <;> simp [native_re_mk_union, native_re_union]
 
 private theorem native_re_mk_union_eq_union_of_ne
     (r s : native_RegLan) :
@@ -43,7 +81,7 @@ private theorem native_re_mk_union_eq_union_of_ne
     native_re_mk_union r s = SmtRegLan.union r s := by
   intro hr hs hrs
   cases r <;> cases s <;>
-    simp [native_re_mk_union] at hr hs ⊢
+    simp [native_re_mk_union, native_re_union] at hr hs ⊢
   all_goals
     try exact False.elim (hrs rfl)
     try
@@ -65,10 +103,10 @@ theorem nativeListInRe_mk_union :
   | c :: cs, r, s => by
       by_cases hr : r = SmtRegLan.empty
       · subst r
-        simp [native_re_mk_union, nativeListInRe_empty]
+        simp [native_re_mk_union, native_re_union, nativeListInRe_empty]
       · by_cases hs : s = SmtRegLan.empty
         · subst s
-          simp [native_re_mk_union, nativeListInRe_empty]
+          simp [native_re_mk_union, native_re_union, nativeListInRe_empty]
         · by_cases hEq : r = s
           · subst s
             rw [native_re_mk_union_self]
@@ -80,7 +118,7 @@ theorem nativeListInRe_mk_union :
 
 theorem native_re_mk_inter_self (r : native_RegLan) :
     native_re_mk_inter r r = r := by
-  cases r <;> simp [native_re_mk_inter]
+  cases r <;> simp [native_re_mk_inter, native_re_inter]
 
 private theorem native_re_mk_inter_eq_inter_of_ne
     (r s : native_RegLan) :
@@ -90,7 +128,7 @@ private theorem native_re_mk_inter_eq_inter_of_ne
     native_re_mk_inter r s = SmtRegLan.inter r s := by
   intro hr hs hrs
   cases r <;> cases s <;>
-    simp [native_re_mk_inter] at hr hs ⊢
+    simp [native_re_mk_inter, native_re_inter] at hr hs ⊢
   all_goals
     try exact False.elim (hrs rfl)
     try
@@ -107,7 +145,7 @@ theorem native_re_nullable_mk_inter (r s : native_RegLan) :
     native_re_nullable (native_re_mk_inter r s) =
       (native_re_nullable r && native_re_nullable s) := by
   cases r <;> cases s <;>
-    simp [native_re_mk_inter, native_re_nullable]
+    simp [native_re_mk_inter, native_re_inter, native_re_nullable]
   all_goals
     split <;> simp_all [native_re_nullable]
 
@@ -120,10 +158,10 @@ theorem nativeListInRe_mk_inter :
   | c :: cs, r, s => by
       by_cases hr : r = SmtRegLan.empty
       · subst r
-        simp [native_re_mk_inter, nativeListInRe_empty]
+        simp [native_re_mk_inter, native_re_inter, nativeListInRe_empty]
       · by_cases hs : s = SmtRegLan.empty
         · subst s
-          simp [native_re_mk_inter, nativeListInRe_empty]
+          simp [native_re_mk_inter, native_re_inter, nativeListInRe_empty]
         · by_cases hEq : r = s
           · subst s
             rw [native_re_mk_inter_self]
@@ -137,29 +175,29 @@ theorem native_re_nullable_mk_concat (r s : native_RegLan) :
     native_re_nullable (native_re_mk_concat r s) =
       (native_re_nullable r && native_re_nullable s) := by
   cases r <;> cases s <;>
-    simp [native_re_mk_concat, native_re_nullable]
+    simp [native_re_mk_concat, native_re_concat, native_re_nullable]
 
 theorem nativeListInRe_mk_concat_empty_left
     (xs : List native_Char) (r : native_RegLan) :
     nativeListInRe xs (native_re_mk_concat SmtRegLan.empty r) = false := by
-  simp [native_re_mk_concat, nativeListInRe_empty]
+  simp [native_re_mk_concat, native_re_concat, nativeListInRe_empty]
 
 theorem nativeListInRe_mk_concat_empty_right
     (xs : List native_Char) (r : native_RegLan) :
     nativeListInRe xs (native_re_mk_concat r SmtRegLan.empty) = false := by
-  cases r <;> simp [native_re_mk_concat, nativeListInRe_empty]
+  cases r <;> simp [native_re_mk_concat, native_re_concat, nativeListInRe_empty]
 
 theorem nativeListInRe_mk_concat_epsilon_left
     (xs : List native_Char) (r : native_RegLan) :
     nativeListInRe xs (native_re_mk_concat SmtRegLan.epsilon r) =
       nativeListInRe xs r := by
-  cases r <;> simp [native_re_mk_concat, nativeListInRe_empty]
+  cases r <;> simp [native_re_mk_concat, native_re_concat, nativeListInRe_empty]
 
 theorem nativeListInRe_mk_concat_epsilon_right
     (xs : List native_Char) (r : native_RegLan) :
     nativeListInRe xs (native_re_mk_concat r SmtRegLan.epsilon) =
       nativeListInRe xs r := by
-  cases r <;> simp [native_re_mk_concat, nativeListInRe_empty]
+  cases r <;> simp [native_re_mk_concat, native_re_concat, nativeListInRe_empty]
 
 private theorem native_re_mk_concat_eq_concat_of_ne
     (r s : native_RegLan) :
@@ -170,7 +208,7 @@ private theorem native_re_mk_concat_eq_concat_of_ne
     native_re_mk_concat r s = SmtRegLan.concat r s := by
   intro hrEmpty hsEmpty hrEps hsEps
   cases r <;> cases s <;>
-    simp [native_re_mk_concat] at hrEmpty hsEmpty hrEps hsEps ⊢
+    simp [native_re_mk_concat, native_re_concat] at hrEmpty hsEmpty hrEps hsEps ⊢
 
 theorem nativeListInRe_deriv_mk_concat
     (xs : List native_Char) (c : native_Char) (r s : native_RegLan) :
@@ -181,7 +219,7 @@ theorem nativeListInRe_deriv_mk_concat
           (if native_re_nullable r then native_re_deriv c s else SmtRegLan.empty)) := by
   by_cases hrEmpty : r = SmtRegLan.empty
   · subst r
-    simp [native_re_mk_concat, native_re_deriv, native_re_nullable,
+    simp [native_re_mk_concat, native_re_concat, native_re_deriv, native_re_nullable,
       nativeListInRe_mk_union, nativeListInRe_empty]
   · by_cases hsEmpty : s = SmtRegLan.empty
     · subst s
@@ -189,19 +227,19 @@ theorem nativeListInRe_deriv_mk_concat
           nativeListInRe xs
             (native_re_deriv c (native_re_mk_concat r SmtRegLan.empty)) =
             false := by
-        simp [native_re_mk_concat, native_re_deriv, nativeListInRe_empty]
+        simp [native_re_mk_concat, native_re_concat, native_re_deriv, nativeListInRe_empty]
       rw [hL]
       rw [nativeListInRe_mk_union]
       rw [nativeListInRe_mk_concat_empty_right]
       simp [native_re_deriv, nativeListInRe_empty]
     · by_cases hrEps : r = SmtRegLan.epsilon
       · subst r
-        simp [native_re_mk_concat, native_re_deriv, native_re_nullable,
+        simp [native_re_mk_concat, native_re_concat, native_re_deriv, native_re_nullable,
           nativeListInRe_mk_union, nativeListInRe_empty]
       · by_cases hsEps : s = SmtRegLan.epsilon
         · subst s
           have hMk : native_re_mk_concat r SmtRegLan.epsilon = r := by
-            cases r <;> simp [native_re_mk_concat] at hrEmpty hrEps ⊢
+            cases r <;> simp [native_re_mk_concat, native_re_concat] at hrEmpty hrEps ⊢
           rw [hMk]
           rw [nativeListInRe_mk_union]
           rw [nativeListInRe_mk_concat_epsilon_right]
@@ -209,6 +247,12 @@ theorem nativeListInRe_deriv_mk_concat
         · have hMk :=
             native_re_mk_concat_eq_concat_of_ne r s hrEmpty hsEmpty hrEps hsEps
           rw [hMk]
+          change
+            nativeListInRe xs
+                (native_re_mk_union
+                  (native_re_mk_concat (native_re_deriv c r) s)
+                  (if native_re_nullable r then native_re_deriv c s
+                    else SmtRegLan.empty)) = _
           simp [native_re_deriv, nativeListInRe_mk_union]
 
 def nativeListInReConcat :
@@ -327,62 +371,53 @@ theorem native_str_in_re_re_inter
     (str : native_String) (r s : native_RegLan) :
     native_str_in_re str (native_re_inter r s) =
       (native_str_in_re str r && native_str_in_re str s) := by
-  simp [native_re_inter, native_str_in_re_mk_inter]
+  simpa [native_re_mk_inter] using native_str_in_re_mk_inter str r s
 
 theorem nativeListInRe_mk_comp :
     ∀ (xs : List native_Char) (r : native_RegLan),
-      native_re_nullable
-          (xs.foldl (fun acc c => native_re_deriv c acc)
-            (native_re_mk_comp r)) =
-        Bool.not
-          (native_re_nullable
-            (xs.foldl (fun acc c => native_re_deriv c acc) r))
+      nativeListInRe xs (native_re_mk_comp r) =
+        Bool.not (nativeListInRe xs r)
   | [], r => by
-      cases r <;> simp [native_re_mk_comp, native_re_nullable]
+      cases r <;>
+        simp [nativeListInRe, native_re_mk_comp, native_re_comp,
+          native_re_nullable]
   | c :: cs, r => by
-      have h := nativeListInRe_mk_comp cs (native_re_deriv c r)
-      cases r <;> simp [native_re_mk_comp, native_re_deriv] at h ⊢
+      cases r <;>
+        simp only [nativeListInRe, native_re_mk_comp, native_re_comp,
+          native_re_deriv]
       case comp r =>
-        have hComp := nativeListInRe_mk_comp cs (native_re_deriv c r)
-        have hComp' :
-            native_re_nullable
-                (List.foldl (fun acc c => native_re_deriv c acc)
-                  (match native_re_deriv c r with
-                  | SmtRegLan.comp r => r
-                  | r => SmtRegLan.comp r)
-                  cs) =
-              Bool.not
-                (native_re_nullable
-                    (List.foldl (fun acc c => native_re_deriv c acc)
-                      (native_re_deriv c r) cs)) := by
-          simpa [native_re_mk_comp] using hComp
-        cases hA :
-            native_re_nullable
-              (List.foldl (fun acc c => native_re_deriv c acc)
-                (native_re_deriv c r) cs) <;>
-          cases hB :
-            native_re_nullable
-              (List.foldl (fun acc c => native_re_deriv c acc)
-                (match native_re_deriv c r with
-                | SmtRegLan.comp r => r
-                | r => SmtRegLan.comp r)
-                cs) <;>
-          simp [hA, hB] at hComp' ⊢ <;> assumption
-      all_goals exact h
+        let d := native_re_deriv (SmtValue.Char c) r
+        change nativeListInRe cs d =
+          Bool.not (nativeListInRe cs (native_re_mk_comp d))
+        have h := nativeListInRe_mk_comp cs d
+        cases hA : nativeListInRe cs d <;>
+          cases hB : nativeListInRe cs (native_re_mk_comp d) <;>
+          simp [hA, hB] at h ⊢
+      case empty =>
+        exact nativeListInRe_mk_comp cs SmtRegLan.empty
+      case epsilon =>
+        exact nativeListInRe_mk_comp cs SmtRegLan.empty
+      all_goals
+        simpa [native_re_mk_comp, native_re_comp] using
+          nativeListInRe_mk_comp cs _
 
 theorem native_str_in_re_re_comp
     (str : native_String) (r : native_RegLan) :
     native_str_in_re str (native_re_comp r) =
       (native_string_valid str && Bool.not (native_str_in_re str r)) := by
-  cases hValid : native_string_valid str <;>
-    simp [native_str_in_re, native_re_comp, hValid,
-      nativeListInRe_mk_comp]
+  change native_str_in_re str (native_re_mk_comp r) = _
+  cases hValid : native_string_valid str with
+  | false => simp [native_str_in_re, hValid]
+  | true =>
+      simp only [native_str_in_re, native_re_str_valid_string, hValid, if_pos,
+        Bool.true_and]
+      exact nativeListInRe_mk_comp str r
 
 theorem native_str_in_re_mk_comp
     (str : native_String) (r : native_RegLan) :
     native_str_in_re str (native_re_mk_comp r) =
       (native_string_valid str && Bool.not (native_str_in_re str r)) := by
-  simpa [native_re_comp] using native_str_in_re_re_comp str r
+  simpa [native_re_mk_comp] using native_str_in_re_re_comp str r
 
 theorem native_str_in_re_re_concat_intro
     (s1 s2 : native_String) (r1 r2 : native_RegLan) :
@@ -475,22 +510,24 @@ theorem nativeListInRe_allchar_true_iff (xs : List native_Char) :
       | nil =>
           cases hValid : native_char_valid c <;>
             simp [nativeListInRe, native_re_allchar, native_re_deriv,
-              native_re_nullable, hValid]
+              native_re_elem_valid, native_re_nullable, hValid]
       | cons d ds =>
           have hEmpty := nativeListInRe_empty ds
           cases hValid : native_char_valid c <;>
             simpa [nativeListInRe, native_re_allchar, native_re_deriv,
-              hValid] using hEmpty
+              native_re_elem_valid, hValid] using hEmpty
 
 private theorem native_re_deriv_re_all
     (c : native_Char) (hValid : native_char_valid c = true) :
     native_re_deriv c native_re_all = native_re_all := by
-  simp [native_re_all, native_re_deriv, native_re_mk_concat, hValid]
+  simp [native_re_all, native_re_deriv, native_re_elem_valid,
+    native_re_mk_concat, native_re_concat, hValid]
 
 private theorem native_re_deriv_re_all_invalid
     (c : native_Char) (hValid : native_char_valid c = false) :
     native_re_deriv c native_re_all = SmtRegLan.empty := by
-  simp [native_re_all, native_re_deriv, native_re_mk_concat, hValid]
+  simp [native_re_all, native_re_deriv, native_re_elem_valid,
+    native_re_mk_concat, native_re_concat, hValid]
 
 theorem nativeListInRe_re_all_true_iff (xs : List native_Char) :
     nativeListInRe xs native_re_all = true ↔

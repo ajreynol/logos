@@ -955,19 +955,10 @@ theorem model_eval_str_replace_re_canonical
         have hreplacement :
             __smtx_seq_canonical replacement = true := by
           simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hrepl
-        have hValid :
-            native_string_valid
-              (native_str_replace_re (native_unpack_string s) r
-                (native_unpack_string replacement)) = true :=
-          native_str_replace_re_valid r
-            (native_unpack_string_valid_of_seq_canonical hs)
-            (native_unpack_string_valid_of_seq_canonical hreplacement)
         simpa [__smtx_model_eval_str_replace_re, __smtx_value_canonical,
           __smtx_value_canonical_bool] using
-          seq_canonical_pack_string
-            (native_str_replace_re (native_unpack_string s) r
-              (native_unpack_string replacement))
-            hValid
+          seq_canonical_pack_unpack_replace_re
+            (__smtx_elem_typeof_seq_value s) r hs hreplacement
 
 theorem model_eval_str_replace_re_all_canonical
     {v repl : SmtValue}
@@ -992,19 +983,10 @@ theorem model_eval_str_replace_re_all_canonical
         have hreplacement :
             __smtx_seq_canonical replacement = true := by
           simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hrepl
-        have hValid :
-            native_string_valid
-              (native_str_replace_re_all (native_unpack_string s) r
-                (native_unpack_string replacement)) = true :=
-          native_str_replace_re_all_valid r
-            (native_unpack_string_valid_of_seq_canonical hs)
-            (native_unpack_string_valid_of_seq_canonical hreplacement)
         simpa [__smtx_model_eval_str_replace_re_all, __smtx_value_canonical,
           __smtx_value_canonical_bool] using
-          seq_canonical_pack_string
-            (native_str_replace_re_all (native_unpack_string s) r
-              (native_unpack_string replacement))
-            hValid
+          seq_canonical_pack_unpack_replace_re_all
+            (__smtx_elem_typeof_seq_value s) r hs hreplacement
 
 theorem model_eval_str_len_canonical
     (v : SmtValue) :
@@ -1066,16 +1048,14 @@ private theorem native_re_mk_star_canonical
     (hr : native_re_canonical r = true) :
     native_re_canonical (native_re_mk_star r) = true := by
   cases r <;>
-    simp [native_re_mk_star, native_re_canonical] at hr ⊢ <;>
-    assumption
+    simp_all [native_re_mk_star, native_re_mult, native_re_canonical]
 
 private theorem native_re_mk_comp_canonical
     {r : native_RegLan}
     (hr : native_re_canonical r = true) :
     native_re_canonical (native_re_mk_comp r) = true := by
   cases r <;>
-    simp [native_re_mk_comp, native_re_canonical] at hr ⊢ <;>
-    assumption
+    simp_all [native_re_mk_comp, native_re_comp, native_re_canonical]
 
 private theorem native_re_mk_concat_canonical
     {r1 r2 : native_RegLan}
@@ -1083,7 +1063,7 @@ private theorem native_re_mk_concat_canonical
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_mk_concat r1 r2) = true := by
   cases r1 <;> cases r2 <;>
-    simp_all [native_re_mk_concat, native_re_canonical]
+    simp_all [native_re_mk_concat, native_re_concat, native_re_canonical]
 
 private theorem native_re_mk_inter_canonical
     {r1 r2 : native_RegLan}
@@ -1091,7 +1071,7 @@ private theorem native_re_mk_inter_canonical
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_mk_inter r1 r2) = true := by
   cases r1 <;> cases r2 <;>
-    simp_all [native_re_mk_inter, native_re_canonical] <;>
+    simp_all [native_re_mk_inter, native_re_inter, native_re_canonical] <;>
     split <;> simp_all [native_re_canonical]
 
 private theorem native_re_mk_union_canonical
@@ -1100,7 +1080,7 @@ private theorem native_re_mk_union_canonical
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_mk_union r1 r2) = true := by
   cases r1 <;> cases r2 <;>
-    simp_all [native_re_mk_union, native_re_canonical] <;>
+    simp_all [native_re_mk_union, native_re_union, native_re_canonical] <;>
     split <;> simp_all [native_re_canonical]
 
 private theorem native_re_mult_canonical_of_canonical
@@ -1144,33 +1124,27 @@ private theorem native_re_diff_canonical_of_canonical
   simpa [native_re_diff] using
     native_re_mk_inter_canonical hr1 (native_re_mk_comp_canonical hr2)
 
-private theorem native_str_to_re_canonical_of_valid :
-    ∀ {s : native_String},
-      native_string_valid s = true ->
+private theorem native_str_to_re_canonical_of_typed :
+    ∀ {s : List SmtValue},
+      list_typed SmtType.Char s ->
         native_re_canonical (native_str_to_re s) = true
   | [], _ => by
       simp [native_str_to_re, native_re_of_list, native_re_canonical]
-  | c :: cs, hs => by
-      have hc : native_char_valid c = true := by
-        rw [native_string_valid, List.all_eq_true] at hs
-        exact hs c (by simp)
-      have hcs : native_string_valid cs = true := by
-        rw [native_string_valid, List.all_eq_true] at hs ⊢
-        intro x hx
-        exact hs x (by simp [hx])
+  | v :: vs, hs => by
+      rcases hs with ⟨hv, hvs⟩
+      rcases char_value_canonical hv with ⟨c, rfl, hc⟩
       simpa [native_str_to_re, native_re_of_list] using
         native_re_mk_concat_canonical
-          (r1 := SmtRegLan.char c)
-          (r2 := native_re_of_list cs)
-          (by simpa [native_re_canonical] using hc)
-          (by
-            simpa [native_str_to_re] using
-              native_str_to_re_canonical_of_valid hcs)
+          (r1 := SmtRegLan.char (SmtValue.Char c))
+          (r2 := native_re_of_list vs)
+          (by simpa [native_re_canonical, native_re_elem_valid] using hc)
+          (by simpa [native_str_to_re] using
+            native_str_to_re_canonical_of_typed hvs)
 
-private theorem native_re_range_canonical_of_valid
-    {s1 s2 : native_String}
-    (hs1 : native_string_valid s1 = true)
-    (hs2 : native_string_valid s2 = true) :
+private theorem native_re_range_canonical_of_typed
+    {s1 s2 : List SmtValue}
+    (hs1 : list_typed SmtType.Char s1)
+    (hs2 : list_typed SmtType.Char s2) :
     native_re_canonical (native_re_range s1 s2) = true := by
   cases s1 with
   | nil =>
@@ -1184,11 +1158,12 @@ private theorem native_re_range_canonical_of_valid
           | cons c2 s2Tail =>
               cases s2Tail with
               | nil =>
-                  have hc1 : native_char_valid c1 = true := by
-                    simpa [native_string_valid] using hs1
-                  have hc2 : native_char_valid c2 = true := by
-                    simpa [native_string_valid] using hs2
-                  simp [native_re_range, native_re_canonical, hc1, hc2]
+                  rcases hs1 with ⟨hc1, _⟩
+                  rcases hs2 with ⟨hc2, _⟩
+                  rcases char_value_canonical hc1 with ⟨d1, rfl, hd1⟩
+                  rcases char_value_canonical hc2 with ⟨d2, rfl, hd2⟩
+                  simp [native_re_range, native_re_canonical,
+                    native_re_elem_valid, hd1, hd2]
               | cons _ _ =>
                   simp [native_re_range, native_re_canonical]
       | cons _ _ =>
@@ -1197,25 +1172,24 @@ private theorem native_re_range_canonical_of_valid
 private theorem empty_regex_value_canonical :
     __smtx_value_canonical
       (SmtValue.RegLan
-        (native_str_to_re (native_unpack_string (SmtSeq.empty SmtType.Char)))) := by
+        (native_str_to_re (native_unpack_seq (SmtSeq.empty SmtType.Char)))) := by
   simp [__smtx_value_canonical, __smtx_value_canonical_bool,
-    native_unpack_string, native_unpack_seq, native_str_to_re,
+    native_unpack_seq, native_str_to_re,
     native_re_of_list, native_re_canonical]
 
 theorem model_eval_str_to_re_canonical
     {v : SmtValue}
-    (hv : __smtx_value_canonical v) :
+    (hv : __smtx_value_canonical v)
+    (hTy : __smtx_typeof_value v = SmtType.Seq SmtType.Char) :
     __smtx_value_canonical (__smtx_model_eval_str_to_re v) := by
-  cases v <;>
-    try
-      simpa [__smtx_model_eval_str_to_re] using value_canonical_notValue
-  case Seq s =>
-    have hs : __smtx_seq_canonical s = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
-    exact value_canonical_reglan
-      (native_str_to_re (native_unpack_string s))
-      (native_str_to_re_canonical_of_valid
-        (native_unpack_string_valid_of_seq_canonical hs))
+  rcases seq_value_canonical hTy with ⟨s, rfl⟩
+  have hsTy : __smtx_typeof_seq_value s = SmtType.Seq SmtType.Char := by
+    simpa [__smtx_typeof_value] using hTy
+  simpa [__smtx_model_eval_str_to_re] using
+    value_canonical_reglan
+      (native_str_to_re (native_unpack_seq s))
+      (native_str_to_re_canonical_of_typed
+        (typed_unpack_seq_of_typeof_seq_value hsTy))
 
 theorem model_eval_re_mult_canonical
     {v : SmtValue}
@@ -1330,22 +1304,22 @@ theorem model_eval_re_comp_canonical
 theorem model_eval_re_range_canonical
     {v1 v2 : SmtValue}
     (hv1 : __smtx_value_canonical v1)
-    (hv2 : __smtx_value_canonical v2) :
+    (hv2 : __smtx_value_canonical v2)
+    (hTy1 : __smtx_typeof_value v1 = SmtType.Seq SmtType.Char)
+    (hTy2 : __smtx_typeof_value v2 = SmtType.Seq SmtType.Char) :
     __smtx_value_canonical (__smtx_model_eval_re_range v1 v2) := by
-  cases v1 <;> cases v2 <;>
-    try
-      simpa [__smtx_model_eval_re_range] using value_canonical_notValue
-  case Seq.Seq s1 s2 =>
-    have hs1 : __smtx_seq_canonical s1 = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv1
-    have hs2 : __smtx_seq_canonical s2 = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv2
-    simpa [__smtx_model_eval_re_range] using
-      value_canonical_reglan
-        (native_re_range (native_unpack_string s1) (native_unpack_string s2))
-        (native_re_range_canonical_of_valid
-          (native_unpack_string_valid_of_seq_canonical hs1)
-          (native_unpack_string_valid_of_seq_canonical hs2))
+  rcases seq_value_canonical hTy1 with ⟨s1, rfl⟩
+  rcases seq_value_canonical hTy2 with ⟨s2, rfl⟩
+  have hsTy1 : __smtx_typeof_seq_value s1 = SmtType.Seq SmtType.Char := by
+    simpa [__smtx_typeof_value] using hTy1
+  have hsTy2 : __smtx_typeof_seq_value s2 = SmtType.Seq SmtType.Char := by
+    simpa [__smtx_typeof_value] using hTy2
+  simpa [__smtx_model_eval_re_range] using
+    value_canonical_reglan
+      (native_re_range (native_unpack_seq s1) (native_unpack_seq s2))
+      (native_re_range_canonical_of_typed
+        (typed_unpack_seq_of_typeof_seq_value hsTy1)
+        (typed_unpack_seq_of_typeof_seq_value hsTy2))
 
 theorem model_eval_re_exp_rec_canonical :
     ∀ n {v}, __smtx_value_canonical v ->
