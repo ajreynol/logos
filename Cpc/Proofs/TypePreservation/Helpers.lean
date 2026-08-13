@@ -1459,6 +1459,27 @@ theorem native_unpack_string_valid_of_typeof_seq_char
     typed_unpack_seq_of_typeof_seq_value h
   simpa [native_unpack_string] using native_string_valid_of_list_typed_char hTyped
 
+/-- A sequence value typed as `Seq Char` unpacks to the value-level
+embedding of its native string view. -/
+theorem native_unpack_seq_eq_string_to_values_of_typeof_seq_char
+    {ss : SmtSeq}
+    (h : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char) :
+    native_unpack_seq ss = native_string_to_values (native_unpack_string ss) := by
+  have hTyped : list_typed SmtType.Char (native_unpack_seq ss) :=
+    typed_unpack_seq_of_typeof_seq_value h
+  have hMap : ∀ {xs : List SmtValue},
+      list_typed SmtType.Char xs ->
+        xs.map (fun v => SmtValue.Char (native_ssm_char_of_value v)) = xs := by
+    intro xs hxs
+    induction xs with
+    | nil => rfl
+    | cons v vs ih =>
+        rcases hxs with ⟨hv, hvs⟩
+        rcases char_value_canonical hv with ⟨c, rfl, _hc⟩
+        simpa [native_ssm_char_of_value] using ih hvs
+  unfold native_unpack_string native_string_to_values
+  simpa only [List.map_map, Function.comp_apply] using (hMap hTyped).symm
+
 /-- Appending valid native strings preserves validity. -/
 theorem native_string_valid_append
     {xs ys : native_String}

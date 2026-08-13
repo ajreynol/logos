@@ -645,6 +645,17 @@ theorem native_unpack_string_length_eq (ss : SmtSeq) :
     (native_unpack_string ss).length = (native_unpack_seq ss).length := by
   simp [native_unpack_string]
 
+private theorem eval_str_in_re_of_typed_seq_reglan
+    (M : SmtModel) (s r : Term) (ss : SmtSeq) (rv : native_RegLan)
+    (hTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char)
+    (hs : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
+    (hr : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv) :
+    __smtx_model_eval M (__eo_to_smt (mkStrInRe s r)) =
+      SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv) := by
+  rw [eval_str_in_re_of_seq_reglan M s r ss rv hs hr]
+  rw [native_unpack_seq_eq_string_to_values_of_typeof_seq_char hTy]
+  rw [← native_str_in_re_eq_model]
+
 theorem native_seq_extract_len_le_len
     (xs : List SmtValue) (i n : native_Int) :
     Int.ofNat (native_seq_extract xs i n).length <= Int.ofNat xs.length := by
@@ -797,6 +808,18 @@ theorem re_unfold_neg_concat_fixed_false_eval_true
   rcases negated_str_in_re_re_concat_native_false M hM t r1 r2
       ht hr1 hr2 hPrem with
     ⟨ss, rv1, rv2, htEval, hr1Eval, hr2Eval, hNo⟩
+  have htEvalTy :=
+    smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t) (by
+      unfold term_has_non_none_type
+      rw [ht]
+      simp)
+  have hSsTy :
+      __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+    simpa [htEval, ht, __smtx_typeof_value] using htEvalTy
+  have hSsElem : __smtx_elem_typeof_seq_value ss = SmtType.Char :=
+    elem_typeof_seq_value_of_typeof_seq_value hSsTy
+  have hSsTyped : list_typed SmtType.Char (native_unpack_seq ss) :=
+    typed_unpack_seq_of_typeof_seq_value hSsTy
   rcases smt_eval_reglan_of_smt_type_reglan M hM
       (__eo_to_smt
         (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) r2))
@@ -822,6 +845,18 @@ theorem re_unfold_neg_concat_fixed_false_eval_true
       (native_seq_extract (native_unpack_seq ss) n (len - n))
   let leftStr : native_String := native_unpack_string leftSeq
   let rightStr : native_String := native_unpack_string rightSeq
+  have hLeftSeqTy :
+      __smtx_typeof_seq_value leftSeq = SmtType.Seq SmtType.Char := by
+    dsimp [leftSeq]
+    rw [hSsElem]
+    exact typeof_seq_value_pack_seq_of_typed
+      (list_typed_extract hSsTyped 0 n)
+  have hRightSeqTy :
+      __smtx_typeof_seq_value rightSeq = SmtType.Seq SmtType.Char := by
+    dsimp [rightSeq]
+    rw [hSsElem]
+    exact typeof_seq_value_pack_seq_of_typed
+      (list_typed_extract hSsTyped n (len - n))
   have hLenEval :
       __smtx_model_eval M (__eo_to_smt (mkStrLen t)) =
         SmtValue.Numeral len := by
@@ -863,9 +898,9 @@ theorem re_unfold_neg_concat_fixed_false_eval_true
               (mkSubstr t (Term.Numeral 0) (Term.Numeral n)) r1)) =
         SmtValue.Boolean (native_str_in_re leftStr rv1) := by
     simpa [leftStr] using
-      eval_str_in_re_of_seq_reglan M
+      eval_str_in_re_of_typed_seq_reglan M
         (mkSubstr t (Term.Numeral 0) (Term.Numeral n)) r1 leftSeq rv1
-        hLeftSubEval hr1Eval
+        hLeftSeqTy hLeftSubEval hr1Eval
   have hRightInEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -875,11 +910,11 @@ theorem re_unfold_neg_concat_fixed_false_eval_true
               (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) r2))) =
         SmtValue.Boolean (native_str_in_re rightStr rvTail) := by
     simpa [rightStr] using
-      eval_str_in_re_of_seq_reglan M
+      eval_str_in_re_of_typed_seq_reglan M
         (mkSubstr t (Term.Numeral n)
           (mkNeg (mkStrLen t) (Term.Numeral n)))
         (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) r2)
-        rightSeq rvTail hRightSubEval hTailEval
+        rightSeq rvTail hRightSeqTy hRightSubEval hTailEval
   have hLenEval' :
       __smtx_model_eval_str_len (__smtx_model_eval M (__eo_to_smt t)) =
         SmtValue.Numeral len := by
@@ -1072,6 +1107,18 @@ theorem re_unfold_neg_concat_fixed_true_eval_true
   intro hPrem
   rcases negated_str_in_re_native_false M hM t r ht hr hPrem with
     ⟨ss, rvOrig, htEval, hrEval, hNo⟩
+  have htEvalTy :=
+    smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t) (by
+      unfold term_has_non_none_type
+      rw [ht]
+      simp)
+  have hSsTy :
+      __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+    simpa [htEval, ht, __smtx_typeof_value] using htEvalTy
+  have hSsElem : __smtx_elem_typeof_seq_value ss = SmtType.Char :=
+    elem_typeof_seq_value_of_typeof_seq_value hSsTy
+  have hSsTyped : list_typed SmtType.Char (native_unpack_seq ss) :=
+    typed_unpack_seq_of_typeof_seq_value hSsTy
   rcases smt_eval_reglan_of_smt_type_reglan M hM (__eo_to_smt r1) hr1 with
     ⟨rv1, hr1Eval⟩
   rcases smt_eval_reglan_of_smt_type_reglan M hM
@@ -1109,6 +1156,18 @@ theorem re_unfold_neg_concat_fixed_true_eval_true
       (native_seq_extract (native_unpack_seq ss) 0 cut)
   let suffixStr : native_String := native_unpack_string suffixSeq
   let prefixStr : native_String := native_unpack_string prefixSeq
+  have hSuffixSeqTy :
+      __smtx_typeof_seq_value suffixSeq = SmtType.Seq SmtType.Char := by
+    dsimp [suffixSeq]
+    rw [hSsElem]
+    exact typeof_seq_value_pack_seq_of_typed
+      (list_typed_extract hSsTyped cut n)
+  have hPrefixSeqTy :
+      __smtx_typeof_seq_value prefixSeq = SmtType.Seq SmtType.Char := by
+    dsimp [prefixSeq]
+    rw [hSsElem]
+    exact typeof_seq_value_pack_seq_of_typed
+      (list_typed_extract hSsTyped 0 cut)
   have hLenEval :
       __smtx_model_eval M (__eo_to_smt (mkStrLen t)) =
         SmtValue.Numeral len := by
@@ -1157,10 +1216,10 @@ theorem re_unfold_neg_concat_fixed_true_eval_true
                 (Term.Numeral n)) r1)) =
         SmtValue.Boolean (native_str_in_re suffixStr rv1) := by
     simpa [suffixStr] using
-      eval_str_in_re_of_seq_reglan M
+      eval_str_in_re_of_typed_seq_reglan M
         (mkSubstr t (mkNeg (mkStrLen t) (Term.Numeral n))
           (Term.Numeral n)) r1 suffixSeq rv1
-        hSuffixSubEval hr1Eval
+        hSuffixSeqTy hSuffixSubEval hr1Eval
   have hPrefixInEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -1171,12 +1230,12 @@ theorem re_unfold_neg_concat_fixed_true_eval_true
                 (__eo_list_rev (Term.UOp UserOp.re_concat) r2)))) =
         SmtValue.Boolean (native_str_in_re prefixStr rvTail) := by
     simpa [prefixStr] using
-      eval_str_in_re_of_seq_reglan M
+      eval_str_in_re_of_typed_seq_reglan M
         (mkSubstr t (Term.Numeral 0)
           (mkNeg (mkStrLen t) (Term.Numeral n)))
         (__eo_list_singleton_elim (Term.UOp UserOp.re_concat)
           (__eo_list_rev (Term.UOp UserOp.re_concat) r2))
-        prefixSeq rvTail hPrefixSubEval hTailEval
+        prefixSeq rvTail hPrefixSeqTy hPrefixSubEval hTailEval
   have hLenEval' :
       __smtx_model_eval_str_len (__smtx_model_eval M (__eo_to_smt t)) =
         SmtValue.Numeral len := by
@@ -1397,7 +1456,9 @@ theorem re_unfold_neg_concat_fixed_true_eval_true
       have hEmptyMem :
           native_str_in_re ([] : native_String)
             (native_str_to_re ([] : native_String)) = true := by
-        simp [native_str_in_re, native_str_to_re, native_re_of_list, native_re_nullable, native_string_valid]
+        simp [RuleProofs.native_str_in_re, RuleProofs.nativeListInRe,
+          native_str_to_re, native_re_of_list, native_re_nullable,
+          native_string_valid]
       have hSuffixSingleton :
           native_str_in_re suffixStr
             (native_re_concat rv1 (native_str_to_re ([] : native_String))) =

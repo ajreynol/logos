@@ -2229,6 +2229,13 @@ theorem congTypeSpine_seq_char_binop_eq_has_bool_type
       rw [hTy a b, hTy a' b', ha, hb])
     x₁ x₂ rhs
 
+private theorem native_model_str_in_re_eq_local
+    (str : native_String) (r : native_RegLan) :
+    Smtm.native_str_in_re (native_string_to_values str) r =
+      native_str_in_re str r := by
+  rw [← RuleProofs.native_str_in_re_eq_model]
+  rfl
+
 theorem congTrueSpine_str_in_re_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x₁ x₂ rhs : Term) :
     RuleProofs.eo_has_bool_type
@@ -2283,6 +2290,22 @@ theorem congTrueSpine_str_in_re_eq_true
     have hY₁Eval : __smtx_model_eval M Y₁ = SmtValue.Seq sx := by
       rw [← hEval₁]
       exact hX₁Eval
+    have hX₁ValTy :
+        __smtx_typeof_value (__smtx_model_eval M X₁) =
+          SmtType.Seq SmtType.Char := by
+      simpa [hArgs.1] using
+        smt_model_eval_preserves_type_of_non_none M hM X₁
+          (by simpa [term_has_non_none_type, hArgs.1])
+    have hSxTy :
+        __smtx_typeof_seq_value sx = SmtType.Seq SmtType.Char := by
+      simpa [hX₁Eval, __smtx_typeof_value] using hX₁ValTy
+    have hUnpack :
+        native_unpack_seq sx =
+          native_string_to_values (native_unpack_string sx) :=
+      native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSxTy
+    have hStringValid :
+        native_string_valid (native_unpack_string sx) = true :=
+      native_unpack_string_valid_of_typeof_seq_char hSxTy
     rcases smt_eval_reglan_of_smt_type_reglan M hM X₂ hArgs.2 with
       ⟨rx, hX₂Eval⟩
     rcases smt_eval_reglan_of_smt_type_reglan M hM Y₂ hY₂Ty with
@@ -2293,7 +2316,8 @@ theorem congTrueSpine_str_in_re_eq_true
       exact smt_value_rel_of_eq_true_or_same M x₂ y₂ hArg₂
     have hExt : ∀ str,
         native_string_valid str = true ->
-          native_str_in_re str rx = native_str_in_re str ry := by
+          Smtm.native_str_in_re (native_string_to_values str) rx =
+            Smtm.native_str_in_re (native_string_to_values str) ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel₂
       rw [hX₂Eval, hY₂Eval] at hRel₂
       simpa [__smtx_model_eval_eq] using hRel₂
@@ -2305,8 +2329,8 @@ theorem congTrueSpine_str_in_re_eq_true
           SmtValue.Boolean true
     rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_116,
       hX₁Eval, hY₁Eval, hX₂Eval, hY₂Eval]
-    simp [__smtx_model_eval_str_in_re, __smtx_model_eval_eq,
-      native_veq, native_str_in_re_ext_of_valid_ext hExt (native_unpack_string sx)]
+    simp [__smtx_model_eval_str_in_re, __smtx_model_eval_eq, native_veq,
+      hUnpack, hExt (native_unpack_string sx) hStringValid]
 
 theorem congTypeSpine_str_in_re_eq_has_bool_type
     (x₁ x₂ rhs : Term) :
@@ -2367,12 +2391,19 @@ theorem congTrueSpine_re_comp_eq_true
         RuleProofs.smt_value_rel
           (__smtx_model_eval M X) (__smtx_model_eval M Y) :=
       smt_value_rel_of_eq_true_or_same M x y hArg
-    have hExt : ∀ str,
+    have hModelExt : ∀ str,
         native_string_valid str = true ->
-          native_str_in_re str rx = native_str_in_re str ry := by
+          Smtm.native_str_in_re (native_string_to_values str) rx =
+            Smtm.native_str_in_re (native_string_to_values str) ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
       rw [hXEval, hYEval] at hRel
       simpa [__smtx_model_eval_eq] using hRel
+    have hExt : ∀ str,
+        native_string_valid str = true ->
+          native_str_in_re str rx = native_str_in_re str ry := by
+      intro str hValid
+      simpa only [native_model_str_in_re_eq_local] using
+        hModelExt str hValid
     have hExtComp : ∀ str,
         native_string_valid str = true ->
         native_str_in_re str (native_re_comp rx) =
@@ -2389,7 +2420,7 @@ theorem congTrueSpine_re_comp_eq_true
       hYEval]
     simp [__smtx_model_eval_re_comp, __smtx_model_eval_eq]
     intro s hs
-    exact hExtComp s hs
+    simpa only [native_model_str_in_re_eq_local] using hExtComp s hs
 
 theorem congTypeSpine_re_comp_eq_has_bool_type
     (x rhs : Term) :
@@ -2446,12 +2477,19 @@ theorem congTrueSpine_re_mult_eq_true
         RuleProofs.smt_value_rel
           (__smtx_model_eval M X) (__smtx_model_eval M Y) :=
       smt_value_rel_of_eq_true_or_same M x y hArg
-    have hExt : ∀ str,
+    have hModelExt : ∀ str,
         native_string_valid str = true ->
-          native_str_in_re str rx = native_str_in_re str ry := by
+          Smtm.native_str_in_re (native_string_to_values str) rx =
+            Smtm.native_str_in_re (native_string_to_values str) ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
       rw [hXEval, hYEval] at hRel
       simpa [__smtx_model_eval_eq] using hRel
+    have hExt : ∀ str,
+        native_string_valid str = true ->
+          native_str_in_re str rx = native_str_in_re str ry := by
+      intro str hValid
+      simpa only [native_model_str_in_re_eq_local] using
+        hModelExt str hValid
     have hExtStar : ∀ str,
         native_string_valid str = true ->
         native_str_in_re str (native_re_mult rx) =
@@ -2468,7 +2506,7 @@ theorem congTrueSpine_re_mult_eq_true
       hYEval]
     simp [__smtx_model_eval_re_mult, __smtx_model_eval_eq]
     intro s hs
-    exact hExtStar s hs
+    simpa only [native_model_str_in_re_eq_local] using hExtStar s hs
 
 theorem congTrueSpine_re_plus_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x rhs : Term) :
@@ -2511,12 +2549,19 @@ theorem congTrueSpine_re_plus_eq_true
         RuleProofs.smt_value_rel
           (__smtx_model_eval M X) (__smtx_model_eval M Y) :=
       smt_value_rel_of_eq_true_or_same M x y hArg
-    have hExt : ∀ str,
+    have hModelExt : ∀ str,
         native_string_valid str = true ->
-          native_str_in_re str rx = native_str_in_re str ry := by
+          Smtm.native_str_in_re (native_string_to_values str) rx =
+            Smtm.native_str_in_re (native_string_to_values str) ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
       rw [hXEval, hYEval] at hRel
       simpa [__smtx_model_eval_eq] using hRel
+    have hExt : ∀ str,
+        native_string_valid str = true ->
+          native_str_in_re str rx = native_str_in_re str ry := by
+      intro str hValid
+      simpa only [native_model_str_in_re_eq_local] using
+        hModelExt str hValid
     have hExtPlus : ∀ str,
         native_string_valid str = true ->
         native_str_in_re str (native_re_plus rx) =
@@ -2535,7 +2580,8 @@ theorem congTrueSpine_re_plus_eq_true
       __smtx_model_eval_re_mult, native_re_mult,
       native_re_concat, __smtx_model_eval_eq]
     intro s hs
-    simpa [native_re_plus] using hExtPlus s hs
+    simpa [native_re_plus, native_model_str_in_re_eq_local] using
+      hExtPlus s hs
 
 theorem congTrueSpine_re_opt_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x rhs : Term) :
@@ -2553,7 +2599,7 @@ theorem congTrueSpine_re_opt_eq_true
   · let X : SmtTerm := __eo_to_smt x
     let Y : SmtTerm := __eo_to_smt y
     let eps : native_RegLan :=
-      native_str_to_re (native_unpack_string (SmtSeq.empty SmtType.Char))
+      native_str_to_re (native_unpack_seq (SmtSeq.empty SmtType.Char))
     have hTypes :=
       RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
         (Term.Apply (Term.UOp UserOp.re_opt) x)
@@ -2580,12 +2626,19 @@ theorem congTrueSpine_re_opt_eq_true
         RuleProofs.smt_value_rel
           (__smtx_model_eval M X) (__smtx_model_eval M Y) :=
       smt_value_rel_of_eq_true_or_same M x y hArg
-    have hExt : ∀ str,
+    have hModelExt : ∀ str,
         native_string_valid str = true ->
-          native_str_in_re str rx = native_str_in_re str ry := by
+          Smtm.native_str_in_re (native_string_to_values str) rx =
+            Smtm.native_str_in_re (native_string_to_values str) ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
       rw [hXEval, hYEval] at hRel
       simpa [__smtx_model_eval_eq] using hRel
+    have hExt : ∀ str,
+        native_string_valid str = true ->
+          native_str_in_re str rx = native_str_in_re str ry := by
+      intro str hValid
+      simpa only [native_model_str_in_re_eq_local] using
+        hModelExt str hValid
     have hExtOpt : ∀ str,
         native_string_valid str = true ->
         native_str_in_re str (native_re_union rx eps) =
@@ -2603,7 +2656,7 @@ theorem congTrueSpine_re_opt_eq_true
     simp [__smtx_model_eval_re_opt, __smtx_model_eval_re_union,
       __smtx_model_eval_eq]
     intro s hs
-    exact hExtOpt s hs
+    simpa only [native_model_str_in_re_eq_local] using hExtOpt s hs
 
 theorem congTypeSpine_re_opt_eq_has_bool_type
     (x rhs : Term) :
@@ -2677,7 +2730,7 @@ theorem smt_value_rel_re_exp_reglan_congr
   simp [__smtx_model_eval_re_exp, model_eval_re_exp_rec_reglan_eq,
     __smtx_model_eval_eq]
   intro s hs
-  exact hExtExp s hs
+  simpa only [native_model_str_in_re_eq_local] using hExtExp s hs
 
 theorem re_exp_index_arg_of_non_none (idx t : SmtTerm) :
     __smtx_typeof (SmtTerm.re_exp idx t) ≠ SmtType.None ->
@@ -2767,7 +2820,7 @@ theorem smt_value_rel_re_loop_reglan_congr
       __smtx_model_eval_lt, __smtx_model_eval_ite,
       model_eval_re_loop_rec_reglan_eq, __smtx_model_eval_eq, hLt]
     intro s hs
-    exact hExtLoop s hs
+    simpa only [native_model_str_in_re_eq_local] using hExtLoop s hs
 
 theorem re_loop_index_arg_of_non_none (lo hi t : SmtTerm) :
     __smtx_typeof (SmtTerm.re_loop lo hi t) ≠ SmtType.None ->

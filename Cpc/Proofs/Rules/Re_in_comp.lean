@@ -43,14 +43,22 @@ private theorem eo_typeof_str_in_re_eq_types_of_ne_stuck (T R : Term)
   | _ => simp [__eo_typeof_str_in_re] at h
 
 private theorem smtx_model_eval_re_in_comp (ss : SmtSeq) (r : native_RegLan)
+    (hTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char)
     (hValid : native_string_valid (native_unpack_string ss) = true) :
     __smtx_model_eval_str_in_re (SmtValue.Seq ss)
         (__smtx_model_eval_re_comp (SmtValue.RegLan r)) =
       __smtx_model_eval_not
         (__smtx_model_eval_str_in_re (SmtValue.Seq ss) (SmtValue.RegLan r)) := by
-  change SmtValue.Boolean (native_str_in_re (native_unpack_string ss) (native_re_comp r)) =
+  have hUnpack :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hTy
+  change SmtValue.Boolean
+      (Smtm.native_str_in_re (native_unpack_seq ss) (native_re_comp r)) =
     __smtx_model_eval_not
-      (SmtValue.Boolean (native_str_in_re (native_unpack_string ss) r))
+      (SmtValue.Boolean (Smtm.native_str_in_re (native_unpack_seq ss) r))
+  rw [hUnpack,
+    ← RuleProofs.native_str_in_re_eq_model (native_unpack_string ss)
+      (native_re_comp r),
+    ← RuleProofs.native_str_in_re_eq_model (native_unpack_string ss) r]
   rw [RuleProofs.native_str_in_re_re_comp]
   simp [hValid, __smtx_model_eval_not, SmtEval.native_not]
 
@@ -204,6 +212,9 @@ private theorem facts___eo_prog_re_in_comp_impl
   have hSSValid : native_string_valid (native_unpack_string ss) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
     simpa [hEval1, __smtx_typeof_value] using hA1EvalTy
+  have hSSTy :
+      __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+    simpa [hEval1, __smtx_typeof_value] using hA1EvalTy
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt lhs) =
         __smtx_model_eval M (__eo_to_smt rhs) := by
@@ -214,7 +225,7 @@ private theorem facts___eo_prog_re_in_comp_impl
         (SmtTerm.not
           (SmtTerm.str_in_re (__eo_to_smt a1) (__eo_to_smt a2)))
     simp [__smtx_model_eval, hEval1, hEval2]
-    exact smtx_model_eval_re_in_comp ss r hSSValid
+    exact smtx_model_eval_re_in_comp ss r hSSTy hSSValid
   rw [hProg]
   exact RuleProofs.eo_interprets_eq_of_rel M lhs rhs hBoolEq <| by
     rw [hEvalEq]

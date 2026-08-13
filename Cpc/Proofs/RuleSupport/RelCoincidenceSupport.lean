@@ -2539,12 +2539,27 @@ theorem smt_model_eval_rel_of_var_rel_lt
         have hA := guard2_args hTy
         simp only [__smtx_model_eval]
         exact CongSupport.smt_value_rel_str_in_re_congr
+          (by
+            have hp := smt_model_eval_preserves_type_of_non_none M hM x1
+              (tnn_of_typeof_eq hA.1 (by simp))
+            rw [hA.1] at hp
+            exact hp)
           (ih x1 (by simp; omega) (tnn_of_typeof_eq hA.1 (by simp)))
           (ih x2 (by simp; omega) (tnn_of_typeof_eq hA.2 (by simp)))
       case str_replace_re x1 x2 x3 =>
         have hA := guard3_args hTy
         simp only [__smtx_model_eval]
         exact CongSupport.smt_value_rel_str_replace_re_congr
+          (by
+            have hp := smt_model_eval_preserves_type_of_non_none M hM x1
+              (tnn_of_typeof_eq hA.1 (by simp))
+            rw [hA.1] at hp
+            exact hp)
+          (by
+            have hp := smt_model_eval_preserves_type_of_non_none M hM x3
+              (tnn_of_typeof_eq hA.2.2 (by simp))
+            rw [hA.2.2] at hp
+            exact hp)
           (ih x1 (by simp; omega) (tnn_of_typeof_eq hA.1 (by simp)))
           (ih x2 (by simp; omega) (tnn_of_typeof_eq hA.2.1 (by simp)))
           (ih x3 (by simp; omega) (tnn_of_typeof_eq hA.2.2 (by simp)))
@@ -2552,6 +2567,16 @@ theorem smt_model_eval_rel_of_var_rel_lt
         have hA := guard3_args hTy
         simp only [__smtx_model_eval]
         exact CongSupport.smt_value_rel_str_replace_re_all_congr
+          (by
+            have hp := smt_model_eval_preserves_type_of_non_none M hM x1
+              (tnn_of_typeof_eq hA.1 (by simp))
+            rw [hA.1] at hp
+            exact hp)
+          (by
+            have hp := smt_model_eval_preserves_type_of_non_none M hM x3
+              (tnn_of_typeof_eq hA.2.2 (by simp))
+            rw [hA.2.2] at hp
+            exact hp)
           (ih x1 (by simp; omega) (tnn_of_typeof_eq hA.1 (by simp)))
           (ih x2 (by simp; omega) (tnn_of_typeof_eq hA.2.1 (by simp)))
           (ih x3 (by simp; omega) (tnn_of_typeof_eq hA.2.2 (by simp)))
@@ -2559,6 +2584,11 @@ theorem smt_model_eval_rel_of_var_rel_lt
         have hA := guard3_args hTy
         simp only [__smtx_model_eval]
         exact CongSupport.smt_value_rel_str_indexof_re_congr
+          (by
+            have hp := smt_model_eval_preserves_type_of_non_none M hM x1
+              (tnn_of_typeof_eq hA.1 (by simp))
+            rw [hA.1] at hp
+            exact hp)
           (ih x1 (by simp; omega) (tnn_of_typeof_eq hA.1 (by simp)))
           (ih x2 (by simp; omega) (tnn_of_typeof_eq hA.2.1 (by simp)))
           (ih x3 (by simp; omega) (tnn_of_typeof_eq hA.2.2 (by simp)))
@@ -2576,6 +2606,11 @@ theorem smt_model_eval_rel_of_var_rel_lt
         have hA := guard3_args hTy
         simp only [__smtx_model_eval]
         exact CongSupport.smt_value_rel_str_indexof_re_split_congr
+          (by
+            have hp := smt_model_eval_preserves_type_of_non_none M hM x1
+              (tnn_of_typeof_eq hA.1 (by simp))
+            rw [hA.1] at hp
+            exact hp)
           (ih x1 (by simp; omega) (tnn_of_typeof_eq hA.1 (by simp)))
           (ih x2 (by simp; omega) (tnn_of_typeof_eq hA.2.1 (by simp)))
           (ih x3 (by simp; omega) (tnn_of_typeof_eq hA.2.2 (by simp)))
