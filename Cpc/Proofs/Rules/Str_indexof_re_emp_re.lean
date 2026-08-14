@@ -21,8 +21,14 @@ private theorem native_re_prefix_match_len?_empty_of_nullable
   native_re_prefix_match_len? r xs = some 0 := by
   rw [native_re_prefix_match_len?.eq_1]
   cases xs with
-  | nil => unfold native_re_prefix_match_len?.go; simp [h]
-  | cons c cs => unfold native_re_prefix_match_len?.go; simp [h]
+  | nil =>
+      simp only [native_string_to_values, List.map]
+      rw [native_re_prefix_match_len?.go.eq_1]
+      simp [h]
+  | cons c cs =>
+      simp only [native_string_to_values, List.map]
+      rw [native_re_prefix_match_len?.go.eq_2]
+      simp [h]
 
 private theorem native_re_find_idx_from_empty_of_nullable
     (r : native_RegLan) (xs : native_String) (start : Nat)
@@ -30,7 +36,10 @@ private theorem native_re_find_idx_from_empty_of_nullable
     native_re_find_idx_from r xs start = some (start, 0) := by
   unfold native_re_find_idx_from
   rw [native_re_find_idx_aux.eq_def]
-  rw [native_re_prefix_match_len?_empty_of_nullable r (xs.drop start) h]
+  have hPref :=
+    native_re_prefix_match_len?_empty_of_nullable r (xs.drop start) h
+  simp only [native_string_to_values, List.map_drop] at hPref ⊢
+  rw [hPref]
 
 private theorem native_str_indexof_re_empty_hit
     (s : native_String) (r : native_RegLan) (i : native_Int)
@@ -54,7 +63,9 @@ private theorem native_str_indexof_re_empty_hit
     have hFind :
         native_re_find_idx_from r s n = some (n, 0) :=
       native_re_find_idx_from_empty_of_nullable r s n hNullable
-    simp [native_str_indexof_re, hValid, hStart, hFind]
+    have hStartValues : n <= (native_string_to_values s).length := by
+      simpa [native_string_to_values] using hStart
+    simp [native_str_indexof_re, hStartValues, hFind]
   | negSucc n =>
       cases n with
       | zero =>
@@ -348,13 +359,21 @@ private theorem facts_str_indexof_re_emp_re_body
   rcases int_value_canonical hNEvalTy with ⟨ni, hni⟩
   have hEmpty : native_str_in_re (native_string_lit "") rr = true :=
     eval_empty_in_re_eq_true_of_premise M r rr hrr hPremEmpty
+  have hSsTy :
+      __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+    simpa [hss, __smtx_typeof_value] using hTEvalTy
   have hValid : native_string_valid (native_unpack_string ss) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
-    simpa [hss, __smtx_typeof_value] using hTEvalTy
+    exact hSsTy
   have hLen : ni <= Int.ofNat (native_unpack_string ss).length :=
     eval_len_geq_n_eq_true_of_premise M t n ss ni hss hni hPremLen
   have hGe : (-1 : native_Int) <= ni :=
     eval_geq_neg_one_eq_true_of_premise M n ni hni hPremGe
+  have hIndex :
+      native_str_indexof_re (native_unpack_seq ss) rr ni = ni := by
+    rw [native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSsTy]
+    exact native_str_indexof_re_empty_hit
+      (native_unpack_string ss) rr ni hEmpty hGe hLen hValid
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt lhs) =
         __smtx_model_eval M (__eo_to_smt n) := by
@@ -363,7 +382,7 @@ private theorem facts_str_indexof_re_emp_re_body
           (SmtTerm.str_indexof_re (__eo_to_smt t) (__eo_to_smt r) (__eo_to_smt n)) =
         __smtx_model_eval M (__eo_to_smt n)
     simp [__smtx_model_eval, hss, hrr, hni, __smtx_model_eval_str_indexof_re,
-      native_str_indexof_re_empty_hit (native_unpack_string ss) rr ni hEmpty hGe hLen hValid]
+      hIndex]
   change eo_interprets M (Term.Apply (Term.Apply Term.eq lhs) n) true
   exact RuleProofs.eo_interprets_eq_of_rel M lhs n hBoolEq <| by
     rw [hEvalEq]

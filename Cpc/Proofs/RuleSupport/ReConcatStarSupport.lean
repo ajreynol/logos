@@ -46,7 +46,7 @@ theorem nativeListInRe_epsilon_iff (xs : List native_Char) :
 
 theorem native_re_nullable_mk_star (r : native_RegLan) :
     native_re_nullable (native_re_mk_star r) = true := by
-  cases r <;> simp [native_re_mk_star, native_re_nullable]
+  cases r <;> simp [native_re_mk_star, native_re_mult, native_re_nullable]
 
 theorem nativeListInRe_nil_mk_star (r : native_RegLan) :
     nativeListInRe [] (native_re_mk_star r) = true := by
@@ -96,7 +96,7 @@ decreasing_by
 theorem mk_star_eq_epsilon_or_star (r : native_RegLan) :
     native_re_mk_star r = SmtRegLan.epsilon ∨
       ∃ r', native_re_mk_star r = SmtRegLan.star r' := by
-  cases r <;> simp [native_re_mk_star]
+  cases r <;> simp [native_re_mk_star, native_re_mult]
 
 /-- Append-closure of the language of `mk_star`. -/
 theorem nativeListInRe_mk_star_append
@@ -123,8 +123,9 @@ theorem nativeReExpRec_nullable
   induction k with
   | zero => simp [nativeReExpRec, native_re_nullable]
   | succ k ih =>
-      simp [nativeReExpRec, native_re_concat,
-        native_re_nullable_mk_concat, ih, hr]
+      rw [nativeReExpRec]
+      rw [native_re_nullable_mk_concat, ih, hr]
+      rfl
 
 /-- Any power of `mk_star r` is contained in `mk_star r`. -/
 theorem nativeReExpRec_mk_star_subset
@@ -234,8 +235,8 @@ theorem nativeReLoopRec_mk_star_ext
               (nativeReExpRec (native_int_to_nat hi)
                 (native_re_mk_star r)) = true :=
           nativeReExpRec_mk_star_pos (native_int_to_nat hi) r xs hHiNat h
-        simp only [nativeReLoopRec, native_re_union, nativeListInRe_mk_union,
-          Bool.or_eq_true]
+        rw [nativeReLoopRec, nativeListInRe_mk_union]
+        simp only [Bool.or_eq_true]
         exact Or.inr hMem
 
 /-! ## Nullable absorption: `Σ* · r₁ · t = Σ* · t` for nullable `r₁`
@@ -326,9 +327,16 @@ theorem smt_value_rel_reglan_of_valid_eq {r s : native_RegLan}
         native_string_valid str = true ->
           native_str_in_re str r = native_str_in_re str s) :
     RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s) := by
+  have hModel : ∀ str : native_String,
+      native_string_valid str = true →
+        Smtm.native_str_in_re (native_string_to_values str) r =
+          Smtm.native_str_in_re (native_string_to_values str) s := by
+    intro str hValid
+    rw [← native_str_in_re_eq_model, ← native_str_in_re_eq_model]
+    exact h str hValid
   change __smtx_model_eval_eq (SmtValue.RegLan r) (SmtValue.RegLan s) =
     SmtValue.Boolean true
-  simpa [__smtx_model_eval_eq] using h
+  simpa [__smtx_model_eval_eq] using hModel
 
 /-- Final extensional equality of `re.loop n m (r*)` and `r*`, packaged for the rule. -/
 theorem re_loop_star_smt_value_rel

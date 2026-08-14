@@ -180,6 +180,11 @@ private theorem sr_native_unpack_pack_string_length (s : native_String) :
     (native_unpack_seq (native_pack_string s)).length = s.length := by
   simp [native_pack_string, Smtm.native_unpack_pack_seq]
 
+@[simp] private theorem sr_native_string_to_values_length
+    (s : native_String) :
+    (native_string_to_values s).length = s.length := by
+  simp [native_string_to_values]
+
 private theorem sr_native_pack_string_injective :
     Function.Injective native_pack_string := by
   intro s t h
@@ -244,10 +249,10 @@ private theorem sr_native_pack_unpack_string
 private theorem sr_native_seq_extract_pack_string
     (s : native_String) (i n : native_Int) :
     native_pack_seq SmtType.Char
-        (native_seq_extract (native_unpack_seq (native_pack_string s)) i n) =
+        (native_seq_extract (native_string_to_values s) i n) =
       native_pack_string (native_str_substr s i n) := by
-  simp only [native_pack_string, native_seq_extract, native_str_substr,
-    native_str_len, Smtm.native_unpack_pack_seq]
+  simp only [native_pack_string, native_string_to_values,
+    native_seq_extract, native_str_substr, native_str_len]
   simp only [List.length_map, apply_ite, List.map_nil,
     List.map_take, List.map_drop]
   split <;> simp_all
@@ -264,7 +269,7 @@ private theorem sr_native_seq_extract_pack_string
 private theorem sr_native_seq_extract_pack_string_eval
     (s : native_String) (i n : native_Int) :
     native_pack_seq (__smtx_elem_typeof_seq_value (native_pack_string s))
-        (native_seq_extract (native_unpack_seq (native_pack_string s)) i n) =
+        (native_seq_extract (native_string_to_values s) i n) =
       native_pack_string (native_str_substr s i n) := by
   have hElem :
       __smtx_elem_typeof_seq_value (native_pack_string s) =
@@ -285,7 +290,7 @@ private theorem sr_native_unpack_extract_pack_string
     (s : native_String) (i n : native_Int) :
     native_unpack_string
         (native_pack_seq (__smtx_elem_typeof_seq_value (native_pack_string s))
-          (native_seq_extract (native_unpack_seq (native_pack_string s)) i n)) =
+          (native_seq_extract (native_string_to_values s) i n)) =
       native_str_substr s i n := by
   have hElem :
       __smtx_elem_typeof_seq_value (native_pack_string s) =
@@ -295,6 +300,26 @@ private theorem sr_native_unpack_extract_pack_string
   have h := congrArg native_unpack_string
     (sr_native_seq_extract_pack_string s i n)
   simpa [sr_native_unpack_pack_string] using h
+
+@[simp] private theorem sr_native_unpack_extract_pack_string_char
+    (s : native_String) (i n : native_Int) :
+    native_unpack_string
+        (native_pack_seq SmtType.Char
+          (native_seq_extract (native_string_to_values s) i n)) =
+      native_str_substr s i n := by
+  have h := congrArg native_unpack_string
+    (sr_native_seq_extract_pack_string s i n)
+  simpa [sr_native_unpack_pack_string] using h
+
+@[simp] private theorem sr_native_unpack_seq_extract_pack_string
+    (s : native_String) (i n : native_Int) :
+    native_unpack_seq
+        (native_pack_seq (__smtx_elem_typeof_seq_value (native_pack_string s))
+          (native_seq_extract (native_string_to_values s) i n)) =
+      native_string_to_values (native_str_substr s i n) := by
+  have h := congrArg native_unpack_seq
+    (sr_native_seq_extract_pack_string_eval s i n)
+  simpa [native_pack_string, Smtm.native_unpack_pack_seq] using h
 
 /-- For an in-bounds natural index, extracting one sequence element is the
     corresponding one-element `drop`/`take` slice. -/
@@ -577,6 +602,12 @@ private theorem sr_native_seq_replace_eq_extracts_of_indexof_nonneg
     xs pat repl hIdxNonneg]
   rw [hPre, hSuf]
 
+private theorem sr_native_seq_replace_nil
+    (xs repl : List SmtValue) :
+    native_seq_replace xs [] repl = repl ++ xs := by
+  simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+    StrEqReplSupport.native_seq_indexof_nil_zero]
+
 /-- Search in a dropped suffix, with a successful result shifted back by the
     suffix offset, agrees with search in the original sequence at that offset. -/
 private def sr_native_seq_indexof_offset
@@ -591,8 +622,7 @@ private theorem sr_native_seq_indexof_zero_eq_rec
         native_seq_indexof_rec xs pat 0 (xs.length - pat.length + 1)
       else
         -1 := by
-  unfold native_seq_indexof
-  simp
+  simpa using native_seq_indexof_eq_rec xs pat 0
 
 private theorem sr_native_seq_indexof_offset_drop_eq
     (xs pat : List SmtValue) (off : Nat) (hOff : off ≤ xs.length) :
@@ -600,7 +630,7 @@ private theorem sr_native_seq_indexof_offset_drop_eq
       native_seq_indexof xs pat (Int.ofNat off) := by
   unfold sr_native_seq_indexof_offset
   rw [sr_native_seq_indexof_zero_eq_rec (xs.drop off) pat]
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   have hOffNotNeg : ¬ (Int.ofNat off : Int) < 0 :=
     Int.not_lt.mpr (Int.natCast_nonneg off)
   rw [if_neg hOffNotNeg]
@@ -1237,14 +1267,8 @@ private def sr_nondigit_re : native_RegLan :=
 
 private theorem sr_prefix_empty (xs : native_String) (n : Nat) :
     native_re_prefix_match_len?.go SmtRegLan.empty xs n = none := by
-  induction xs generalizing n with
-  | nil => rfl
-  | cons c cs ih =>
-      rw [native_re_prefix_match_len?.go.eq_2]
-      change (if false then some n else if native_char_valid c then
-        native_re_prefix_match_len?.go SmtRegLan.empty cs (n + 1) else none) =
-          none
-      simp [ih]
+  simpa using
+    native_re_prefix_go_empty (native_string_to_values xs) n
 
 private theorem sr_prefix_digit_dead (xs : native_String) (n : Nat) :
     native_re_prefix_match_len?.go
@@ -1253,9 +1277,14 @@ private theorem sr_prefix_digit_dead (xs : native_String) (n : Nat) :
   cases xs with
   | nil => simp [native_re_prefix_match_len?.go, native_re_nullable]
   | cons c cs =>
+      change native_re_prefix_match_len?.go
+        (SmtRegLan.inter SmtRegLan.epsilon
+          (SmtRegLan.comp SmtRegLan.epsilon))
+        (SmtValue.Char c :: native_string_to_values cs) n = none
       rw [native_re_prefix_match_len?.go.eq_2]
       simp [native_re_nullable, native_re_deriv, native_re_mk_inter,
-        native_re_mk_comp, sr_prefix_empty]
+        native_re_mk_comp, native_re_inter, native_re_comp,
+        native_re_prefix_go_empty, sr_prefix_empty]
 
 private theorem sr_prefix_nondigit_live (xs : native_String) (n : Nat) :
     native_re_prefix_match_len?.go
@@ -1274,13 +1303,15 @@ private theorem sr_nondigit_prefix (c : native_Char) (cs : native_String)
   · have h48 : native_char_valid 48 = true := by native_decide
     have h57 : native_char_valid 57 = true := by native_decide
     simp [native_re_nullable, native_re_deriv, native_re_mk_inter,
-      native_re_mk_comp, hc, h48, h57, hd, native_char_is_digit,
-      sr_prefix_digit_dead]
+      native_re_mk_comp, native_re_elem_valid, native_re_elem_le,
+      native_re_inter, native_re_comp, hc, h48, h57, hd,
+      native_char_is_digit, sr_prefix_digit_dead]
   · have h48 : native_char_valid 48 = true := by native_decide
     have h57 : native_char_valid 57 = true := by native_decide
     simp [native_re_nullable, native_re_deriv, native_re_mk_inter,
-      native_re_mk_comp, hc, h48, h57, hd, native_char_is_digit,
-      sr_prefix_nondigit_live]
+      native_re_mk_comp, native_re_elem_valid, native_re_elem_le,
+      native_re_inter, native_re_comp, hc, h48, h57, hd,
+      native_char_is_digit, sr_prefix_nondigit_live]
 
 private theorem sr_nondigit_find_aux :
     ∀ (xs : native_String) (idx : Nat),
@@ -1295,7 +1326,14 @@ private theorem sr_nondigit_find_aux :
       have hp : native_char_valid c = true ∧
           native_string_valid cs = true := by
         simpa [native_string_valid, Bool.and_eq_true] using hv
-      rw [native_re_find_idx_aux.eq_def, sr_nondigit_prefix c cs hp.1]
+      simp only [native_string_to_values, List.map_cons]
+      have hPrefix :
+          native_re_prefix_match_len? sr_nondigit_re
+              (SmtValue.Char c :: List.map SmtValue.Char cs) =
+            if native_char_is_digit c then none else some 1 := by
+        simpa [native_string_to_values] using
+          sr_nondigit_prefix c cs hp.1
+      rw [native_re_find_idx_aux.eq_def, hPrefix]
       by_cases hc : native_char_is_digit c = true
       · simp [hc]
         have htail : cs.all native_char_is_digit ≠ true := by
@@ -4954,7 +4992,7 @@ private theorem string_reduction_pred_true
                   __smtx_model_eval_str_concat, __smtx_model_eval_str_len,
                   __smtx_model_eval__at_purify, __smtx_model_eval_plus,
                   __smtx_model_eval__, hZEval, hYEval, hXEval, hNilPreEval,
-                  hNilReplEval, hEmptyEval, native_seq_replace,
+                  hNilReplEval, hEmptyEval, sr_native_seq_replace_nil,
                   native_seq_contains, native_seq_len, native_seq_concat,
                   native_and, native_not, native_zplus, native_zneg,
                   Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
@@ -5441,7 +5479,8 @@ private theorem string_reduction_pred_true
                   (by simpa [tz] using hzTy)
               by_cases hnNeg : n < 0
               · have hIndex : native_seq_indexof zs ys n = -1 := by
-                  simp [native_seq_indexof, hnNeg]
+                  rw [native_seq_indexof_eq_rec]
+                  simp [hnNeg]
                 simp [formula, invalid, resultEq, result, resultFound,
                   foundCase, tailDecomp, priorHay, needlePre, suffix, cut,
                   needleLen, preS, tailIdx, tailLen, tail, sourceLen, contains,
@@ -5473,8 +5512,7 @@ private theorem string_reduction_pred_true
               · have hnNonneg : 0 ≤ n := int_nonneg_of_not_neg hnNeg
                 by_cases hnGt : Int.ofNat zs.length < n
                 · have hIndex : native_seq_indexof zs ys n = -1 := by
-                    unfold native_seq_indexof
-                    rw [if_neg hnNeg]
+                    rw [native_seq_indexof_eq_rec, if_neg hnNeg]
                     have hCast : (Int.toNat n : Int) = n :=
                       Int.toNat_of_nonneg hnNonneg
                     have hStartGt : zs.length < Int.toNat n := by

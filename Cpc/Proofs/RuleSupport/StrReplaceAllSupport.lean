@@ -107,7 +107,7 @@ theorem native_seq_indexof_zero_le_of_prefix_at
   rcases native_seq_indexof_rec_le_of_prefix_at pat xs 0
       (xs.length - pat.length + 1) offset hOffsetFuel hPrefix with
     ⟨found, hFoundLe, hRec⟩
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
   simp only [List.drop_zero]
   rw [dif_pos hPatFit, hRec]
@@ -136,8 +136,7 @@ theorem native_seq_prefix_eq_at_index_of_nonneg
   rw [← hDropEq]
   exact native_seq_prefix_eq_append_self pat _
 
-/-- End positions of the greedy leftmost occurrences of `pat` in `xs`;
-mirrors the fuel recursion of `native_seq_replace_all_aux`. -/
+/-- End positions of the greedy leftmost occurrences of `pat` in `xs`. -/
 @[expose] def occEndsAux (fuel : Nat) (pat : List SmtValue) :
     List SmtValue -> List Nat
   | xs =>
@@ -180,19 +179,6 @@ theorem occEndsAux_succ (fuel : Nat) (p : SmtValue) (ps xs : List SmtValue) :
             (· + (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
               (p :: ps).length)) := by
   simp only [occEndsAux]
-
-theorem replaceAllAux_succ (fuel : Nat) (p : SmtValue)
-    (ps repl xs : List SmtValue) :
-    native_seq_replace_all_aux (fuel + 1) (p :: ps) repl xs =
-      if native_seq_indexof xs (p :: ps) 0 < 0 then
-        xs
-      else
-        xs.take (Int.toNat (native_seq_indexof xs (p :: ps) 0)) ++ repl ++
-          native_seq_replace_all_aux fuel (p :: ps) repl
-            (xs.drop
-              (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                (p :: ps).length)) := by
-  simp only [native_seq_replace_all_aux]
 
 /-- The scan consumes at least the pattern, so any sufficient fuel gives the
 same result. -/
@@ -241,57 +227,97 @@ theorem occEndsAux_eq_occEnds (fuel : Nat) (pat xs : List SmtValue)
     occEndsAux fuel pat xs = occEnds pat xs :=
   occEndsAux_congr fuel (xs.length + 1) pat xs h (by omega)
 
-/-- Same fuel-irrelevance fact for `native_seq_replace_all_aux`. -/
-theorem replaceAllAux_congr (fuel₁ : Nat) :
-    ∀ (fuel₂ : Nat) (pat repl xs : List SmtValue),
-      xs.length < fuel₁ -> xs.length < fuel₂ ->
-      native_seq_replace_all_aux fuel₁ pat repl xs =
-        native_seq_replace_all_aux fuel₂ pat repl xs := by
-  induction fuel₁ with
-  | zero => intro fuel₂ pat repl xs h₁ h₂; omega
-  | succ fuel₁ ih =>
-      intro fuel₂ pat repl xs h₁ h₂
-      cases fuel₂ with
-      | zero => omega
-      | succ fuel₂ =>
-          cases pat with
-          | nil =>
-              show native_seq_replace_all_aux (fuel₁ + 1) [] repl xs =
-                native_seq_replace_all_aux (fuel₂ + 1) [] repl xs
-              simp [native_seq_replace_all_aux]
-          | cons p ps =>
-              rw [replaceAllAux_succ, replaceAllAux_succ]
-              by_cases hIdxNeg : native_seq_indexof xs (p :: ps) 0 < 0
-              · rw [if_pos hIdxNeg, if_pos hIdxNeg]
-              · rw [if_neg hIdxNeg, if_neg hIdxNeg]
-                have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
-                  int_nonneg_of_not_neg hIdxNeg
-                have hBounds :=
-                  StrEqReplSupport.native_seq_indexof_zero_bounds_of_nonneg
-                    xs (p :: ps) hNonneg
-                have hPatPos : (p :: ps).length = ps.length + 1 := rfl
-                have hDropLen :
-                    (xs.drop
-                        (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                          (p :: ps).length)).length <
-                      fuel₁ := by
-                  rw [List.length_drop]
-                  omega
-                have hDropLen₂ :
-                    (xs.drop
-                        (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                          (p :: ps).length)).length <
-                      fuel₂ := by
-                  rw [List.length_drop]
-                  omega
-                rw [ih fuel₂ (p :: ps) repl _ hDropLen hDropLen₂]
+theorem positive_prefix_str_to_re_cons
+    (p : SmtValue) (ps xs : List SmtValue) :
+    native_re_positive_prefix_match_len? (native_str_to_re (p :: ps)) xs =
+      if native_seq_prefix_eq (p :: ps) xs then
+        some (p :: ps).length
+      else
+        none := by
+  cases xs with
+  | nil =>
+      simp [native_re_positive_prefix_match_len?, native_str_to_re,
+        native_seq_prefix_eq]
+  | cons x xs =>
+      rw [native_re_positive_prefix_match_len?.eq_2]
+      change
+        (match native_re_prefix_match_len?
+            (native_re_deriv x (native_re_of_list (p :: ps))) xs with
+          | some n => some (n + 1)
+          | none => none) = _
+      rw [native_re_deriv_re_of_list_cons]
+      by_cases hx : x = p
+      · subst x
+        rw [if_pos rfl, native_re_prefix_match_re_of_list]
+        by_cases hPrefix : native_seq_prefix_eq ps xs = true
+        · simp [native_seq_prefix_eq, native_veq, hPrefix]
+        · simp [native_seq_prefix_eq, native_veq, hPrefix]
+      · rw [if_neg hx]
+        have hpx : p ≠ x := Ne.symm hx
+        simp [native_re_prefix_match_len?, native_re_prefix_go_empty,
+          native_seq_prefix_eq, native_veq, hx, hpx]
 
-theorem replaceAllAux_eq_replace_all (fuel : Nat)
-    (pat repl xs : List SmtValue) (h : xs.length < fuel) :
-    native_seq_replace_all_aux fuel pat repl xs =
-      native_seq_replace_all xs pat repl := by
-  unfold native_seq_replace_all
-  exact replaceAllAux_congr fuel (xs.length + 1) pat repl xs h (by omega)
+private theorem replace_aux_fuel_irrel
+    (r : native_RegLan) (replacement xs : List SmtValue)
+    (fuel₁ fuel₂ : Nat)
+    (h₁ : xs.length < fuel₁) (h₂ : xs.length < fuel₂) :
+    native_re_replace_all_nonempty_list_aux fuel₁ r replacement xs =
+      native_re_replace_all_nonempty_list_aux fuel₂ r replacement xs := by
+  generalize hn : xs.length = n
+  induction n using Nat.strongRecOn generalizing xs fuel₁ fuel₂ with
+  | ind outerN ih =>
+      cases fuel₁ with
+      | zero => omega
+      | succ fuel₁ =>
+        cases fuel₂ with
+        | zero => omega
+        | succ fuel₂ =>
+          cases xs with
+          | nil =>
+              simp [native_re_replace_all_nonempty_list_aux,
+                native_re_positive_prefix_match_len?]
+          | cons c cs =>
+              have hn' : cs.length + 1 = outerN := by
+                simpa using hn
+              rw [native_re_replace_all_nonempty_list_aux.eq_3,
+                native_re_replace_all_nonempty_list_aux.eq_3]
+              cases hPref :
+                  native_re_positive_prefix_match_len? r (c :: cs) with
+              | none =>
+                  apply congrArg (List.cons c)
+                  exact ih cs.length (by omega)
+                    cs fuel₁ fuel₂ (by simpa using h₁)
+                      (by simpa using h₂) rfl
+              | some len =>
+                  cases len with
+                  | zero =>
+                      apply congrArg (List.cons c)
+                      exact ih cs.length (by omega)
+                        cs fuel₁ fuel₂ (by simpa using h₁)
+                          (by simpa using h₂) rfl
+                  | succ k =>
+                      apply congrArg (List.append replacement)
+                      exact ih ((c :: cs).drop (k + 1)).length
+                        (by
+                          simp only [List.length_drop, List.length_cons]
+                          omega)
+                        ((c :: cs).drop (k + 1)) fuel₁ fuel₂
+                        (by
+                          simp only [List.length_drop, List.length_cons] at h₁ ⊢
+                          omega)
+                        (by
+                          simp only [List.length_drop, List.length_cons] at h₂ ⊢
+                          omega)
+                        rfl
+
+private theorem replace_aux_eq_replace_all_of_length_lt
+    (r : native_RegLan) (replacement xs : List SmtValue) (fuel : Nat)
+    (hFuel : xs.length < fuel) :
+    native_re_replace_all_nonempty_list_aux fuel r replacement xs =
+      native_re_replace_all_nonempty_list r replacement xs := by
+  unfold native_re_replace_all_nonempty_list
+  exact replace_aux_fuel_irrel r replacement xs fuel (xs.length + 1)
+    hFuel (Nat.lt_succ_self xs.length)
 
 /-! ## Scan-step unfoldings -/
 
@@ -334,15 +360,85 @@ theorem occEnds_step (pat xs : List SmtValue) (hPat : pat ≠ [])
 theorem replace_all_eq_self_of_indexof_neg (pat repl xs : List SmtValue)
     (h : native_seq_indexof xs pat 0 < 0) :
     native_seq_replace_all xs pat repl = xs := by
-  unfold native_seq_replace_all native_seq_replace_all_aux
   cases pat with
-  | nil => simp
-  | cons p ps => simp [h]
+  | nil =>
+      rw [StrEqReplSupport.native_seq_indexof_nil_zero] at h
+      simp at h
+  | cons p ps =>
+      induction xs with
+      | nil =>
+          simp [native_seq_replace_all, native_str_replace_re_all,
+            native_re_replace_all_nonempty_list,
+            native_re_replace_all_nonempty_list_aux,
+            native_re_positive_prefix_match_len?]
+      | cons x xs ih =>
+          have hPrefix : native_seq_prefix_eq (p :: ps) (x :: xs) = false := by
+            cases hp : native_seq_prefix_eq (p :: ps) (x :: xs) with
+            | false => rfl
+            | true =>
+                have hFit : (p :: ps).length ≤ (x :: xs).length :=
+                  native_seq_prefix_eq_length_le (p :: ps) (x :: xs) hp
+                have hFound := native_seq_indexof_zero_le_of_prefix_at
+                  (x :: xs) (p :: ps) 0 (by simpa using hFit) (by simpa using hp)
+                exact False.elim ((Int.not_lt_of_ge hFound.1) h)
+          have hTailNeg : native_seq_indexof xs (p :: ps) 0 < 0 := by
+            rcases native_seq_indexof_eq_neg_one_or_ge xs (p :: ps) 0 with
+              hTailEq | hTailNonneg
+            · rw [hTailEq]
+              simp
+            · let k := Int.toNat (native_seq_indexof xs (p :: ps) 0)
+              have hTailBounds :=
+                StrEqReplSupport.native_seq_indexof_zero_bounds_of_nonneg
+                  xs (p :: ps) hTailNonneg
+              have hTailPrefix := native_seq_prefix_eq_at_index_of_nonneg
+                xs (p :: ps) hTailNonneg
+              have hFullPrefix :
+                  native_seq_prefix_eq (p :: ps)
+                      ((x :: xs).drop (k + 1)) = true := by
+                simpa [k, List.drop_succ_cons] using hTailPrefix
+              have hFullFound := native_seq_indexof_zero_le_of_prefix_at
+                (x :: xs) (p :: ps) (k + 1) (by
+                  simpa [List.length_cons, Nat.add_assoc, Nat.add_comm,
+                    Nat.add_left_comm] using Nat.succ_le_succ hTailBounds)
+                hFullPrefix
+              exact False.elim ((Int.not_lt_of_ge hFullFound.1) h)
+          have hScan :
+              native_seq_replace_all (x :: xs) (p :: ps) repl =
+                x :: native_seq_replace_all xs (p :: ps) repl := by
+            unfold native_seq_replace_all native_str_replace_re_all
+              native_re_replace_all_nonempty_list
+            change native_re_replace_all_nonempty_list_aux
+                ((x :: xs).length + 1) (native_str_to_re (p :: ps)) repl
+                  (x :: xs) = x :: native_seq_replace_all xs (p :: ps) repl
+            rw [native_re_replace_all_nonempty_list_aux.eq_3,
+              positive_prefix_str_to_re_cons, hPrefix]
+            rfl
+          rw [hScan, ih hTailNeg]
 
 theorem replace_all_nil_pat (repl xs : List SmtValue) :
     native_seq_replace_all xs [] repl = xs := by
-  unfold native_seq_replace_all native_seq_replace_all_aux
-  simp
+  induction xs with
+  | nil =>
+      simp [native_seq_replace_all, native_str_replace_re_all,
+        native_re_replace_all_nonempty_list,
+        native_re_replace_all_nonempty_list_aux,
+        native_re_positive_prefix_match_len?]
+  | cons x xs ih =>
+      unfold native_seq_replace_all native_str_replace_re_all
+        native_re_replace_all_nonempty_list
+      change native_re_replace_all_nonempty_list_aux
+          ((x :: xs).length + 1) (native_str_to_re []) repl (x :: xs) =
+        x :: xs
+      rw [native_re_replace_all_nonempty_list_aux.eq_3]
+      have hPref :
+          native_re_positive_prefix_match_len? (native_str_to_re [])
+            (x :: xs) = none := by
+        simp [native_str_to_re, native_re_of_list,
+          native_re_positive_prefix_match_len?, native_re_deriv,
+          native_re_prefix_match_len?, native_re_prefix_go_empty]
+      rw [hPref]
+      change x :: native_seq_replace_all xs [] repl = x :: xs
+      rw [ih]
 
 theorem replace_all_step (pat repl xs : List SmtValue) (hPat : pat ≠ [])
     (h : 0 ≤ native_seq_indexof xs pat 0) :
@@ -351,25 +447,136 @@ theorem replace_all_step (pat repl xs : List SmtValue) (hPat : pat ≠ [])
         native_seq_replace_all
           (xs.drop (Int.toNat (native_seq_indexof xs pat 0) + pat.length))
           pat repl := by
-  have hBounds :=
-    StrEqReplSupport.native_seq_indexof_zero_bounds_of_nonneg xs pat h
-  have hNotNeg : ¬ native_seq_indexof xs pat 0 < 0 := Int.not_lt_of_ge h
-  have hPatPos : 0 < pat.length := by
-    cases pat with
-    | nil => exact absurd rfl hPat
-    | cons => simp
-  have hDropLen :
-      (xs.drop
-          (Int.toNat (native_seq_indexof xs pat 0) + pat.length)).length <
-        xs.length := by
-    rw [List.length_drop]
-    omega
   cases pat with
   | nil => exact absurd rfl hPat
   | cons p ps =>
-      show native_seq_replace_all_aux (xs.length + 1) (p :: ps) repl xs = _
-      rw [replaceAllAux_succ, if_neg hNotNeg,
-        replaceAllAux_eq_replace_all xs.length (p :: ps) repl _ hDropLen]
+      induction xs with
+      | nil =>
+          rw [native_seq_indexof_eq_rec] at h
+          simp [native_seq_prefix_eq] at h
+      | cons x xs ih =>
+          have hBounds :=
+            StrEqReplSupport.native_seq_indexof_zero_bounds_of_nonneg
+              (x :: xs) (p :: ps) h
+          have hFullPrefix := native_seq_prefix_eq_at_index_of_nonneg
+            (x :: xs) (p :: ps) h
+          by_cases hPrefix : native_seq_prefix_eq (p :: ps) (x :: xs) = true
+          · have hFit : (p :: ps).length ≤ (x :: xs).length :=
+              native_seq_prefix_eq_length_le (p :: ps) (x :: xs) hPrefix
+            have hFound := native_seq_indexof_zero_le_of_prefix_at
+              (x :: xs) (p :: ps) 0 (by simpa using hFit) (by simpa using hPrefix)
+            have hIdxZero : native_seq_indexof (x :: xs) (p :: ps) 0 = 0 := by
+              exact Int.le_antisymm hFound.2 hFound.1
+            have hDropLen :
+                ((x :: xs).drop (p :: ps).length).length < (x :: xs).length := by
+              rw [List.length_drop]
+              simpa using Nat.lt_succ_of_le (Nat.sub_le xs.length ps.length)
+            rw [hIdxZero]
+            simp only [Int.toNat_zero, List.take_zero, List.nil_append,
+              Nat.zero_add]
+            unfold native_seq_replace_all native_str_replace_re_all
+              native_re_replace_all_nonempty_list
+            change native_re_replace_all_nonempty_list_aux
+                ((x :: xs).length + 1) (native_str_to_re (p :: ps)) repl
+                  (x :: xs) = _
+            rw [native_re_replace_all_nonempty_list_aux.eq_3,
+              positive_prefix_str_to_re_cons, if_pos hPrefix]
+            apply congrArg (List.append repl)
+            exact replace_aux_eq_replace_all_of_length_lt
+              (native_str_to_re (p :: ps)) repl
+              ((x :: xs).drop (p :: ps).length) (x :: xs).length hDropLen
+          · have hPrefixFalse :
+                native_seq_prefix_eq (p :: ps) (x :: xs) = false := by
+              cases hp : native_seq_prefix_eq (p :: ps) (x :: xs) <;>
+                simp_all
+            let n := Int.toNat (native_seq_indexof (x :: xs) (p :: ps) 0)
+            have hnPos : 0 < n := by
+              cases hn : n with
+              | zero =>
+                  have hAtZero :
+                      native_seq_prefix_eq (p :: ps) (x :: xs) = true := by
+                    simpa [n, hn] using hFullPrefix
+                  rw [hPrefixFalse] at hAtZero
+                  contradiction
+              | succ m => omega
+            have hDrop : xs.drop (n - 1) = (x :: xs).drop n := by
+              cases hn : n with
+              | zero => omega
+              | succ m => simp [hn]
+            have hTailPrefix :
+                native_seq_prefix_eq (p :: ps) (xs.drop (n - 1)) = true := by
+              rw [hDrop]
+              simpa [n] using hFullPrefix
+            have hTailFound := native_seq_indexof_zero_le_of_prefix_at
+              xs (p :: ps) (n - 1) (by
+                have hNBounds :
+                    n + (p :: ps).length ≤ (x :: xs).length := by
+                  simpa [n] using hBounds
+                cases hn : n with
+                | zero => omega
+                | succ m =>
+                    simp only [hn, Nat.succ_sub_one, List.length_cons]
+                    simp only [hn, List.length_cons] at hNBounds
+                    omega) hTailPrefix
+            have hTailNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
+              hTailFound.1
+            let k := Int.toNat (native_seq_indexof xs (p :: ps) 0)
+            have hTailBounds :=
+              StrEqReplSupport.native_seq_indexof_zero_bounds_of_nonneg
+                xs (p :: ps) hTailNonneg
+            have hTailPrefixAt := native_seq_prefix_eq_at_index_of_nonneg
+              xs (p :: ps) hTailNonneg
+            have hFullPrefixAt :
+                native_seq_prefix_eq (p :: ps) ((x :: xs).drop (k + 1)) = true := by
+              simpa [k, List.drop_succ_cons] using hTailPrefixAt
+            have hFullFound := native_seq_indexof_zero_le_of_prefix_at
+              (x :: xs) (p :: ps) (k + 1) (by
+                simpa [List.length_cons, Nat.add_assoc, Nat.add_comm,
+                  Nat.add_left_comm] using Nat.succ_le_succ hTailBounds)
+              hFullPrefixAt
+            have hFullCast :
+                Int.ofNat n = native_seq_indexof (x :: xs) (p :: ps) 0 := by
+              exact Int.toNat_of_nonneg h
+            have hTailCast :
+                Int.ofNat k = native_seq_indexof xs (p :: ps) 0 := by
+              exact Int.toNat_of_nonneg hTailNonneg
+            have hkLe : k ≤ n - 1 := by
+              have hCastLe := hTailFound.2
+              rw [← hTailCast] at hCastLe
+              apply Int.ofNat_le.mp
+              exact hCastLe
+            have hnLe : n ≤ k + 1 := by
+              have hCastLe := hFullFound.2
+              rw [← hFullCast] at hCastLe
+              apply Int.ofNat_le.mp
+              exact hCastLe
+            have hNatShift : n = k + 1 := by omega
+            have hDropShift :
+                (x :: xs).drop ((k + 1) + (p :: ps).length) =
+                  xs.drop (k + (p :: ps).length) := by
+              rw [show (k + 1) + (p :: ps).length =
+                  (k + (p :: ps).length) + 1 by omega]
+              simp
+            have hScan :
+                native_seq_replace_all (x :: xs) (p :: ps) repl =
+                  x :: native_seq_replace_all xs (p :: ps) repl := by
+              unfold native_seq_replace_all native_str_replace_re_all
+                native_re_replace_all_nonempty_list
+              change native_re_replace_all_nonempty_list_aux
+                  ((x :: xs).length + 1) (native_str_to_re (p :: ps)) repl
+                    (x :: xs) = x :: native_seq_replace_all xs (p :: ps) repl
+              rw [native_re_replace_all_nonempty_list_aux.eq_3,
+                positive_prefix_str_to_re_cons, hPrefixFalse]
+              rfl
+            rw [hScan]
+            have hTailStep := ih hTailNonneg
+            have hFullNat :
+                Int.toNat (native_seq_indexof (x :: xs) (p :: ps) 0) =
+                  k + 1 := by
+              simpa [n] using hNatShift
+            rw [hFullNat, hDropShift]
+            simpa [k, List.take_succ_cons] using
+                congrArg (List.cons x) hTailStep
 
 /-! ## Element bounds and sortedness -/
 
@@ -1119,7 +1326,7 @@ theorem indexof_add_offset (xs pat : List SmtValue) (off w : Nat)
       else
         native_seq_indexof (xs.drop off) pat ((w : Nat) : Int) +
           ((off : Nat) : Int) := by
-  unfold native_seq_indexof
+  simp only [native_seq_indexof_eq_rec]
   rw [if_neg (by omega : ¬ ((off + w : Nat) : Int) < 0)]
   rw [if_neg (by omega : ¬ ((w : Nat) : Int) < 0)]
   simp only [Int.toNat_natCast, List.length_drop]

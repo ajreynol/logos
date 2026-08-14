@@ -103,7 +103,7 @@ private theorem native_re_prefix_match_go_isSome_iff_exists
   induction xs generalizing r n with
   | nil =>
       refine (fun hValid : native_string_valid [] = true => ?_)
-      simp only [native_string_to_values]
+      simp only [native_string_to_values, List.map]
       rw [Smtm.native_re_prefix_match_len?.go.eq_1]
       cases hNull : native_re_nullable r
       · simp [hNull, RuleProofs.nativeListInRe]
@@ -113,7 +113,7 @@ private theorem native_re_prefix_match_go_isSome_iff_exists
       have hParts : native_char_valid c = true ∧ native_string_valid cs = true := by
         simpa [native_string_valid] using hValid
       rcases hParts with ⟨hc, hcs⟩
-      simp only [native_string_to_values]
+      simp only [native_string_to_values, List.map]
       rw [Smtm.native_re_prefix_match_len?.go.eq_2]
       cases hNull : native_re_nullable r
       · simp [hc]
@@ -306,7 +306,7 @@ theorem str_first_match_rec_smallest_eq_go
           rw [hReq] at hNullEq
           cases hNullEq
         exact False.elim hFalse
-      · simp only [native_string_to_values]
+      · simp only [native_string_to_values, List.map]
         rw [Smtm.native_re_prefix_match_len?.go.eq_1]
         simp [hNull]
         exact hStep.trans hReqResult
@@ -404,6 +404,10 @@ theorem str_first_match_rec_smallest_eq_go
           CongSupport.native_re_prefix_match_len_go_congr_valid_ext_of_str_ext cs drv
             (native_re_deriv c rv) (n + 1) hcs (by
               intro ys hys
+              change RuleProofs.native_str_in_re ys drv =
+                RuleProofs.native_str_in_re ys (native_re_deriv c rv)
+              rw [RuleProofs.native_str_in_re_eq_model,
+                RuleProofs.native_str_in_re_eq_model]
               exact smt_value_rel_reglan_valid_eq hDerRel hys)
         rw [Smtm.native_re_prefix_match_len?.go.eq_2]
         simp [hNull, hc]
@@ -659,12 +663,14 @@ private theorem str_first_match_rec_eq_find_aux
             (by simpa [substrWord] using hCondNe)
       cases hPref : native_re_prefix_match_len? rv ([] : native_String) with
       | none =>
+          simp only [native_string_to_values, List.map] at hPref
           refine hStep.trans ?_
           rw [hCondEq]
-          simp only [native_string_to_values]
+          simp only [native_string_to_values, List.map]
           rw [Smtm.native_re_find_idx_aux.eq_1]
           simp [hPref, __eo_ite, native_teq, native_ite]
       | some len =>
+          simp only [native_string_to_values, List.map] at hPref
           have hBranchNe :
               __eo_mk_apply
                   ((Term.UOp UserOp._at__at_pair).Apply
@@ -698,7 +704,7 @@ private theorem str_first_match_rec_eq_find_aux
             simpa [substrWord] using hSmall
           refine hStep.trans ?_
           rw [hCondEq]
-          simp only [native_string_to_values]
+          simp only [native_string_to_values, List.map]
           rw [Smtm.native_re_find_idx_aux.eq_1]
           simp [hPref, __eo_ite, native_teq, native_ite]
           rw [hSmall', hGoPref]
@@ -947,8 +953,9 @@ private theorem str_eval_replace_re_eval_eq
     (hSideNe : side ≠ Term.Stuck) :
     __smtx_model_eval M (__eo_to_smt side) =
       SmtValue.Seq
-        (native_pack_string
-          (native_str_replace_re str rv (native_unpack_string repl))) := by
+        (native_pack_seq SmtType.Char
+          (native_str_replace_re (native_string_to_values str) rv
+            (native_unpack_seq repl))) := by
   have hStrValid : native_string_valid str = true :=
     native_string_valid_of_string_type hSTy
   have hRNe : r ≠ Term.Stuck := by
@@ -1023,7 +1030,9 @@ private theorem str_eval_replace_re_eval_eq
         simpa [hFind] using hMatchEval
       rw [hRaw]
       rw [str_eval_replace_re_no_match_eval M str r t hRNe hTNe]
-      simp [native_str_replace_re, native_re_find_idx_from, hFind]
+      simp only [native_str_replace_re, native_re_find_idx_from, List.drop_zero]
+      rw [hFind]
+      rfl
   | some found =>
       rcases found with ⟨idx, len⟩
       have hRaw :
@@ -1034,8 +1043,12 @@ private theorem str_eval_replace_re_eval_eq
       rw [hRaw]
       rw [str_eval_replace_re_pair_eval M str r t idx len repl
         hTEval hReplTy hRNe hTNe]
-      simp [native_str_replace_re, native_re_find_idx_from, hFind,
-        List.append_assoc]
+      simp only [native_str_replace_re, native_re_find_idx_from, List.drop_zero]
+      rw [hFind]
+      simp [
+        native_pack_string, native_string_to_values,
+        native_unpack_seq_eq_string_to_values_of_typeof_seq_char hReplTy,
+        List.map_append, List.append_assoc]
 
 private theorem str_replace_re_eval_valid_properties
     (M : SmtModel) (hM : model_total_typed M)
@@ -1112,16 +1125,19 @@ private theorem str_replace_re_eval_valid_properties
   have hLeftEval :
       __smtx_model_eval M (__eo_to_smt lhs') =
         SmtValue.Seq
-          (native_pack_string
-            (native_str_replace_re str rv (native_unpack_string repl))) := by
+          (native_pack_seq SmtType.Char
+            (native_str_replace_re (native_string_to_values str) rv
+              (native_unpack_seq repl))) := by
     change __smtx_model_eval M
         (SmtTerm.str_replace_re (SmtTerm.String str) (__eo_to_smt r) (__eo_to_smt t)) =
       SmtValue.Seq
-        (native_pack_string
-          (native_str_replace_re str rv (native_unpack_string repl)))
+        (native_pack_seq SmtType.Char
+          (native_str_replace_re (native_string_to_values str) rv
+            (native_unpack_seq repl)))
     rw [__smtx_model_eval.eq_98, __smtx_model_eval.eq_4, hREval, hTEval]
     simp [__smtx_model_eval_str_replace_re,
-      RuleProofs.native_unpack_string_pack_string]
+      native_pack_string, native_string_to_values,
+      Smtm.native_unpack_pack_seq, elem_typeof_pack_seq]
   have hSideDef :
       side =
         __str_eval_replace_re (Term.String str) r t
@@ -1135,8 +1151,9 @@ private theorem str_replace_re_eval_valid_properties
   have hSideEval :
       __smtx_model_eval M (__eo_to_smt side) =
         SmtValue.Seq
-          (native_pack_string
-            (native_str_replace_re str rv (native_unpack_string repl))) :=
+          (native_pack_seq SmtType.Char
+            (native_str_replace_re (native_string_to_values str) rv
+              (native_unpack_seq repl))) :=
     str_eval_replace_re_eval_eq M hM str r t side rv repl hSTy hRTy hREval
       hTEval hReplTy hSideDef hSideNe
   have hResult' :
@@ -1156,8 +1173,9 @@ private theorem str_replace_re_eval_valid_properties
       rw [hLeftEval, hSideEval]
       exact RuleProofs.smt_value_rel_refl
         (SmtValue.Seq
-          (native_pack_string
-            (native_str_replace_re str rv (native_unpack_string repl))))
+          (native_pack_seq SmtType.Char
+            (native_str_replace_re (native_string_to_values str) rv
+              (native_unpack_seq repl))))
   · rw [hResult']
     exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
       (by simpa [lhs'] using hEqBool)
