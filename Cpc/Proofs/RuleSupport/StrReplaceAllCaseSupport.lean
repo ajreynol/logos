@@ -250,28 +250,148 @@ private def oiBody (S T w : SmtTerm) : SmtTerm :=
                 (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
                 (SmtTerm.Numeral 1))) T) w)))
 
+private theorem find_nonempty_aux_str_to_re_cons_eq
+    (p : SmtValue) (ps : List SmtValue) :
+    ∀ (xs : List SmtValue) (idx : Nat),
+      native_re_find_nonempty_idx_aux (native_str_to_re (p :: ps)) xs idx =
+        native_re_find_idx_aux (native_str_to_re (p :: ps)) xs idx
+  | [], idx => by
+      rw [native_re_find_nonempty_idx_aux.eq_def,
+        native_re_find_idx_aux.eq_def,
+        positive_prefix_str_to_re_cons,
+        show native_str_to_re (p :: ps) = native_re_of_list (p :: ps) from rfl,
+        native_re_prefix_match_re_of_list]
+      simp [native_str_to_re, native_seq_prefix_eq]
+  | x :: xs, idx => by
+      rw [native_re_find_nonempty_idx_aux.eq_def,
+        native_re_find_idx_aux.eq_def,
+        positive_prefix_str_to_re_cons,
+        show native_str_to_re (p :: ps) = native_re_of_list (p :: ps) from rfl,
+        native_re_prefix_match_re_of_list]
+      by_cases hPrefix : native_seq_prefix_eq (p :: ps) (x :: xs) = true
+      · simp [hPrefix]
+      · simp only [if_neg hPrefix]
+        exact find_nonempty_aux_str_to_re_cons_eq p ps xs (idx + 1)
+
+private theorem find_nonempty_from_str_to_re_cons_eq
+    (p : SmtValue) (ps xs : List SmtValue) (start : Nat) :
+    native_re_find_nonempty_idx_from (native_str_to_re (p :: ps)) xs start =
+      native_re_find_idx_from (native_str_to_re (p :: ps)) xs start := by
+  unfold native_re_find_nonempty_idx_from native_re_find_idx_from
+  exact find_nonempty_aux_str_to_re_cons_eq p ps _ _
+
+private theorem find_nonempty_aux_add_offset
+    (r : SmtRegLan) :
+    ∀ (xs : List SmtValue) (off base : Nat),
+      native_re_find_nonempty_idx_aux r xs (base + off) =
+        (native_re_find_nonempty_idx_aux r xs off).map
+          (fun result => (base + result.1, result.2))
+  | [], off, base => by
+      simp [native_re_find_nonempty_idx_aux,
+        native_re_positive_prefix_match_len?]
+  | x :: xs, off, base => by
+      rw [native_re_find_nonempty_idx_aux.eq_def,
+        native_re_find_nonempty_idx_aux.eq_def]
+      cases hPrefix : native_re_positive_prefix_match_len? r (x :: xs) with
+      | none =>
+          simp only [hPrefix]
+          simpa [Nat.add_assoc] using
+            find_nonempty_aux_add_offset r xs (off + 1) base
+      | some n =>
+          cases n with
+          | zero =>
+              simp only [hPrefix]
+              simpa [Nat.add_assoc] using
+                find_nonempty_aux_add_offset r xs (off + 1) base
+          | succ n => simp [hPrefix]
+
+private theorem find_nonempty_from_shift
+    (r : SmtRegLan) (xs : List SmtValue) (start : Nat) :
+    native_re_find_nonempty_idx_from r xs start =
+      (native_re_find_nonempty_idx_from r (xs.drop start) 0).map
+        (fun result => (start + result.1, result.2)) := by
+  unfold native_re_find_nonempty_idx_from
+  simpa using find_nonempty_aux_add_offset r (xs.drop start) 0 start
+
+private theorem scan_ends_aux_str_to_re_cons_eq
+    (p : SmtValue) (ps xs : List SmtValue) :
+    ∀ (fuel pos : Nat), pos ≤ xs.length →
+      native_re_scan_ends_aux fuel (native_str_to_re (p :: ps)) xs pos =
+        (occEndsAux fuel (p :: ps) (xs.drop pos)).map
+          (fun endPos => pos + endPos)
+  | 0, pos, hPos => by
+      simp [native_re_scan_ends_aux, occEndsAux]
+  | fuel + 1, pos, hPos => by
+      rw [native_re_scan_ends_aux, occEndsAux_succ,
+        find_nonempty_from_shift,
+        find_nonempty_from_str_to_re_cons_eq]
+      cases hFind : native_re_find_idx_from
+          (native_str_to_re (p :: ps)) (xs.drop pos) 0 with
+      | none =>
+          have hIndex : native_seq_indexof (xs.drop pos) (p :: ps) 0 = -1 := by
+            simp [native_seq_indexof, native_str_indexof_re, hFind]
+          simp [hFind, hIndex]
+      | some result =>
+          rcases result with ⟨idx, matchLen⟩
+          simp only [hFind, Option.map_some]
+          have hMatchLen : matchLen = (p :: ps).length := by
+            apply StrEqReplSupport.native_re_find_idx_aux_re_of_list_length
+              (p :: ps) (xs.drop pos) 0 idx matchLen
+            simpa [native_re_find_idx_from, native_str_to_re] using hFind
+          have hIndex :
+              native_seq_indexof (xs.drop pos) (p :: ps) 0 = Int.ofNat idx := by
+            simp [native_seq_indexof, native_str_indexof_re, hFind]
+          have hBounds : idx + (p :: ps).length ≤ (xs.drop pos).length := by
+            have h := StrEqReplSupport.native_seq_indexof_zero_bounds_of_nonneg
+              (xs.drop pos) (p :: ps) (by rw [hIndex]; exact Int.natCast_nonneg _)
+            simpa [hIndex] using h
+          have hNext : pos + idx + matchLen ≤ xs.length := by
+            rw [hMatchLen]
+            rw [List.length_drop] at hBounds
+            omega
+          rw [scan_ends_aux_str_to_re_cons_eq p ps xs fuel
+            (pos + idx + matchLen) hNext]
+          rw [hIndex]
+          rw [if_neg (show ¬ Int.ofNat idx < 0 from
+            Int.not_lt_of_ge (Int.natCast_nonneg idx))]
+          simp [hFind, hMatchLen, List.drop_drop, List.map_map,
+            Function.comp_def, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+
 private theorem occ_ends_aux_eq (fuel : Nat) (pat xs : List SmtValue) :
-    native_seq_occur_ends_aux fuel pat xs = occEndsAux fuel pat xs := by
-  induction fuel generalizing xs with
-  | zero => simp [native_seq_occur_ends_aux, occEndsAux]
-  | succ fuel ih =>
-      cases pat with
-      | nil => simp [native_seq_occur_ends_aux, occEndsAux]
-      | cons p ps =>
-          unfold native_seq_occur_ends_aux occEndsAux
-          simp only
-          by_cases h : native_seq_indexof xs (p :: ps) 0 < 0
-          · simp [h]
-          · simp [h, ih]
+    native_re_scan_ends_aux fuel (native_str_to_re pat) xs 0 =
+      occEndsAux fuel pat xs := by
+  cases pat with
+  | nil =>
+      have hEpsilon : ∀ (ys : List SmtValue) (idx : Nat),
+          native_re_find_nonempty_idx_aux SmtRegLan.epsilon ys idx = none := by
+        intro ys
+        induction ys with
+        | nil =>
+            intro idx
+            simp [native_re_find_nonempty_idx_aux,
+              native_re_positive_prefix_match_len?]
+        | cons y ys ih =>
+            intro idx
+            rw [native_re_find_nonempty_idx_aux.eq_def]
+            simp [native_re_positive_prefix_match_len?, native_re_deriv,
+              native_re_prefix_match_len?, native_re_prefix_go_empty, ih]
+      have hFind : native_re_find_nonempty_idx_from
+          (native_str_to_re []) xs 0 = none := by
+        simpa [native_re_find_nonempty_idx_from, native_str_to_re,
+          native_re_of_list] using hEpsilon xs 0
+      cases fuel <;> simp [native_re_scan_ends_aux, occEndsAux, hFind]
+  | cons p ps =>
+      simpa using scan_ends_aux_str_to_re_cons_eq p ps xs fuel 0 (by omega)
 
 /-- The native scan-boundary function agrees with `bound` in range. -/
 private theorem occ_index_eq_bound (ss ts : List SmtValue) (nn : Nat)
     (hnn : nn ≤ (occEnds ts ss).length) :
     native_seq_occur_index ss ts ((nn : Nat) : Int) =
       ((bound ts ss nn : Nat) : Int) := by
-  have hAux : native_seq_occur_ends_aux (ss.length + 1) ts ss =
+  have hAux : native_re_scan_ends_aux (ss.length + 1)
+      (native_str_to_re ts) ss 0 =
       occEnds ts ss := occ_ends_aux_eq (ss.length + 1) ts ss
-  simp only [native_seq_occur_index, hAux]
+  simp only [native_seq_occur_index, native_str_occur_index_re, hAux]
   rw [if_pos]
   · rw [Int.toNat_natCast]
     simp only [bound, Int.ofNat_eq_natCast]

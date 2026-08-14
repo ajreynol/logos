@@ -16,7 +16,7 @@ set_option maxHeartbeats 10000000
 
 namespace StrInReFromIntNempDigRangeProof
 
-abbrev digitRange : native_RegLan :=
+abbrev digitRange : SmtRegLan :=
   StrInReFromIntDigRangeProof.digitRange
 
 abbrev rangeTerm : Term :=

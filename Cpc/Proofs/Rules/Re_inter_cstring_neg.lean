@@ -104,7 +104,7 @@ private theorem typed_concl
 
 private theorem str_in_lhs_false_of_prem
     (M : SmtModel) (s x ys : Term) (ss : SmtSeq)
-    (xv ysv : native_RegLan)
+    (xv ysv : SmtRegLan)
     (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
     (hXEval : __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan xv)
     (hYsEval : __smtx_model_eval M (__eo_to_smt ys) = SmtValue.RegLan ysv)
@@ -156,7 +156,7 @@ private theorem str_in_lhs_false_of_prem
   injection hValueEq
 
 private theorem smt_value_rel_inter_cstring_neg
-    (pat : native_String) (xv ysv : native_RegLan)
+    (pat : native_String) (xv ysv : SmtRegLan)
     (hFullFalse :
       native_str_in_re pat
           (native_re_inter (native_str_to_re pat) (native_re_inter xv ysv)) =

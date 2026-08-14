@@ -22,7 +22,7 @@ private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
       simp [__eo_typeof_re_mult] at h
 
 private theorem native_str_in_re_re_union_local
-    (str : native_String) (r s : native_RegLan) :
+    (str : native_String) (r s : SmtRegLan) :
     native_str_in_re str (native_re_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
   by_cases hValid : native_string_valid str = true
@@ -41,7 +41,7 @@ private theorem native_str_in_re_re_none_local (str : native_String) :
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
     simp [native_str_in_re, hInvalid]
 
-private theorem smt_value_rel_re_opt_elim (r : native_RegLan) :
+private theorem smt_value_rel_re_opt_elim (r : SmtRegLan) :
     RuleProofs.smt_value_rel
       (__smtx_model_eval_re_opt (SmtValue.RegLan r))
       (__smtx_model_eval_re_union
@@ -155,7 +155,7 @@ private theorem facts___eo_prog_re_opt_elim_impl
         rw [hA1SmtTy]
         simp)
   have hA1EvalShape :
-      ∃ r : native_RegLan, __smtx_model_eval M (__eo_to_smt a1) = SmtValue.RegLan r := by
+      ∃ r : SmtRegLan, __smtx_model_eval M (__eo_to_smt a1) = SmtValue.RegLan r := by
     exact reglan_value_canonical hA1EvalTy
   rcases hA1EvalShape with ⟨r, hEval⟩
   rw [hProg]

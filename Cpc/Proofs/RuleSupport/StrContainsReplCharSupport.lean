@@ -127,8 +127,8 @@ theorem native_seq_contains_of_decomp
     omega
   have hNe :
       native_seq_indexof (before ++ pat ++ after) pat 0 ≠ -1 := by
-    unfold native_seq_indexof
-    simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
+    rw [native_seq_indexof_eq_rec]
+    simp only [Int.reduceLT, if_false, Int.toNat_zero, Nat.zero_add]
     rw [dif_pos hLen]
     have hFuel :
         before.length <
@@ -180,7 +180,8 @@ theorem native_seq_contains_replacement_of_pattern_present
         (native_seq_replace source pattern replacement) replacement = true := by
   cases pattern with
   | nil =>
-      simpa [native_seq_replace] using
+      simpa [StrEqReplSupport.native_seq_replace_eq_indexof,
+        StrEqReplSupport.native_seq_indexof_nil_zero] using
         native_seq_contains_of_decomp [] replacement source
   | cons p ps =>
       have hNonneg : 0 ≤ native_seq_indexof source (p :: ps) 0 := by
@@ -188,7 +189,7 @@ theorem native_seq_contains_replacement_of_pattern_present
         exact of_decide_eq_true hContains
       have hNotNeg : ¬ native_seq_indexof source (p :: ps) 0 < 0 :=
         Int.not_lt_of_ge hNonneg
-      unfold native_seq_replace
+      rw [StrEqReplSupport.native_seq_replace_eq_indexof]
       rw [if_neg hNotNeg]
       exact native_seq_contains_of_decomp
         (source.take (Int.toNat (native_seq_indexof source (p :: ps) 0)))
@@ -211,7 +212,9 @@ theorem native_seq_contains_pattern_replacement_of_replaced_source
         ⟨outerPrefix, outerSuffix, hSource⟩
       have hLen := congrArg List.length hSource
       have hReplacementLen : replacement.length = 0 := by
-        simp [native_seq_replace, List.length_append] at hLen
+        simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+          StrEqReplSupport.native_seq_indexof_nil_zero,
+          List.length_append] at hLen
         omega
       have hReplacementNil : replacement = [] :=
         List.eq_nil_of_length_eq_zero hReplacementLen
@@ -235,7 +238,8 @@ theorem native_seq_contains_pattern_replacement_of_replaced_source
       have hReplaceEq :
           native_seq_replace source (p :: ps) replacement =
             before ++ replacement ++ after := by
-        simp [native_seq_replace, hIndexNotNeg, before, after, k]
+        simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+          hIndexNotNeg, before, after, k]
       rcases (native_seq_contains_iff_decomp source
           (native_seq_replace source (p :: ps) replacement)).1
           hReplaced with
@@ -737,7 +741,7 @@ theorem native_seq_replace_eq_self_of_contains_false
       rw [hNil] at hContains
       contradiction
   | cons p ps =>
-      simp [native_seq_replace, hNeg]
+      simp [StrEqReplSupport.native_seq_replace_eq_indexof, hNeg]
 
 theorem mem_native_seq_replace_iff_of_not_mem_pattern
     (w : SmtValue) (xs pat repl : List SmtValue)
@@ -747,7 +751,11 @@ theorem mem_native_seq_replace_iff_of_not_mem_pattern
   cases pat with
   | nil =>
       rw [native_seq_contains_nil]
-      simp only [native_seq_replace, List.mem_append, true_and]
+      rw [StrEqReplSupport.native_seq_replace_eq_indexof,
+        StrEqReplSupport.native_seq_indexof_nil_zero]
+      simp only [Int.reduceLT, if_false, Int.toNat_zero, List.take_zero,
+        List.nil_append, Nat.zero_add, List.drop_zero, List.mem_append,
+        true_and]
       exact or_comm
   | cons p ps =>
       by_cases hContains : native_seq_contains xs (p :: ps) = true
@@ -782,7 +790,7 @@ theorem mem_native_seq_replace_iff_of_not_mem_pattern
             rcases hMem with hTake | hDrop
             · exact Or.inl (Or.inl hTake)
             · exact Or.inr hDrop
-        unfold native_seq_replace
+        rw [StrEqReplSupport.native_seq_replace_eq_indexof]
         rw [if_neg hNotNeg]
         change
           w ∈ xs.take n ++ repl ++
@@ -842,11 +850,12 @@ theorem mem_native_seq_replace_self_iff
     w ∈ native_seq_replace xs pat xs ↔ w ∈ xs := by
   cases pat with
   | nil =>
-      simp [native_seq_replace]
+      simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+        StrEqReplSupport.native_seq_indexof_nil_zero]
   | cons p ps =>
       by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
-      · simp [native_seq_replace, hNeg]
-      · unfold native_seq_replace
+      · simp [StrEqReplSupport.native_seq_replace_eq_indexof, hNeg]
+      · rw [StrEqReplSupport.native_seq_replace_eq_indexof]
         rw [if_neg hNeg]
         simp only [List.mem_append]
         constructor

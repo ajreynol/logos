@@ -1866,7 +1866,7 @@ theorem str_re_consume_model_rel
       ∀ (hSideNotFalse : side ≠ Term.Boolean false)
         (hNotMult :
           ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False)
-        (ss : SmtSeq) (rv : native_RegLan),
+        (ss : SmtSeq) (rv : SmtRegLan),
         __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
         __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
           ∃ flatSs sFlatSs flatRv rFlatRv,

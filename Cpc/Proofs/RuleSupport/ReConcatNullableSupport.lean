@@ -85,7 +85,7 @@ theorem mk_apply_eq_apply_eq_of_ne_stuck {x y : Term}
       Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y := by
   rw [mk_apply_ne_stuck_eq (by simp) hx, mk_apply_ne_stuck_eq (by simp) hy]
 
-theorem term_ne_stuck_of_eval_reglan (M : SmtModel) (t : Term) (r : native_RegLan)
+theorem term_ne_stuck_of_eval_reglan (M : SmtModel) (t : Term) (r : SmtRegLan)
     (h : __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r) : t ≠ Term.Stuck := by
   intro hStuck
   subst hStuck
@@ -98,7 +98,7 @@ theorem list_concat_rec_cons (f x y z : Term) (hz : z ≠ Term.Stuck) :
   cases z <;> first | (exact absurd rfl hz) | rfl
 
 /-- `RegLan` semantic equality, read as extensional membership over valid strings. -/
-theorem reglan_rel_valid_eq {r s : native_RegLan} {str : native_String}
+theorem reglan_rel_valid_eq {r s : SmtRegLan} {str : native_String}
     (hRel : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s))
     (hValid : native_string_valid str = true) :
     native_str_in_re str r = native_str_in_re str s := by
@@ -109,7 +109,7 @@ theorem reglan_rel_valid_eq {r s : native_RegLan} {str : native_String}
 
 /-! ## `re_concat` right-congruence (valid strings) -/
 
-theorem native_re_concat_right_congr_valid (w v v' : native_RegLan)
+theorem native_re_concat_right_congr_valid (w v v' : SmtRegLan)
     (h : ∀ s : native_String, native_string_valid s = true ->
         native_str_in_re s v = native_str_in_re s v')
     (s : native_String) (hs : native_string_valid s = true) :
@@ -413,7 +413,7 @@ theorem reConcat_list_concat_rec_smt_typeof_reglan :
 
 /-- The semantic equality underlying `re_concat_star_nullable1`. -/
 theorem nullable1_eval_rel (M : SmtModel)
-    (xs1 r1 ys1 : Term) (r1v ys1v : native_RegLan)
+    (xs1 r1 ys1 : Term) (r1v ys1v : SmtRegLan)
     (hXsList : __eo_is_list (Term.UOp UserOp.re_concat) xs1 = Term.Boolean true)
     (hYsList : __eo_is_list (Term.UOp UserOp.re_concat) ys1 = Term.Boolean true)
     (hR1 : __smtx_model_eval M (__eo_to_smt r1) = SmtValue.RegLan r1v)
@@ -497,7 +497,7 @@ theorem nullable1_eval_rel (M : SmtModel)
 
 /-- The semantic equality underlying `re_concat_star_nullable2`. -/
 theorem nullable2_eval_rel (M : SmtModel)
-    (xs1 r1 ys1 : Term) (r1v ys1v : native_RegLan)
+    (xs1 r1 ys1 : Term) (r1v ys1v : SmtRegLan)
     (hXsList : __eo_is_list (Term.UOp UserOp.re_concat) xs1 = Term.Boolean true)
     (hYsList : __eo_is_list (Term.UOp UserOp.re_concat) ys1 = Term.Boolean true)
     (hR1 : __smtx_model_eval M (__eo_to_smt r1) = SmtValue.RegLan r1v)

@@ -18,7 +18,7 @@ set_option maxHeartbeats 10000000
 namespace RuleProofs
 
 theorem smt_value_rel_re_concat_congr
-    {r r' s s' : native_RegLan}
+    {r r' s s' : SmtRegLan}
     (hr : RuleProofs.smt_value_rel
       (SmtValue.RegLan r) (SmtValue.RegLan r'))
     (hs : RuleProofs.smt_value_rel
@@ -104,7 +104,7 @@ theorem smt_value_rel_re_concat_congr
         xs r s).2 ⟨left, right, hAppend, hLeft', hRight'⟩
 
 theorem smt_value_rel_re_concat_assoc
-    (r s t : native_RegLan) :
+    (r s t : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (native_re_concat (native_re_concat r s) t))
@@ -118,7 +118,7 @@ theorem smt_value_rel_re_concat_assoc
     RuleProofs.nativeListInRe_mk_concat_assoc xs r s t
 
 theorem nativeListInRe_raw_star_once
-    (xs : List native_Char) (r : native_RegLan)
+    (xs : List native_Char) (r : SmtRegLan)
     (hMem : nativeListInRe xs r = true) :
     nativeListInRe xs (SmtRegLan.star r) = true := by
   cases xs with
@@ -139,7 +139,7 @@ theorem nativeListInRe_raw_star_once
       simpa [nativeListInRe, native_re_deriv] using hConcat
 
 theorem nativeListInRe_mk_star_once
-    (xs : List native_Char) (r : native_RegLan)
+    (xs : List native_Char) (r : SmtRegLan)
     (hMem : nativeListInRe xs r = true) :
     nativeListInRe xs (native_re_mk_star r) = true := by
   cases r with
@@ -177,7 +177,7 @@ theorem nativeListInRe_mk_star_once
         nativeListInRe_raw_star_once xs (SmtRegLan.comp r) hMem
 
 theorem nativeListInRe_raw_star_cons_decomp
-    {c : native_Char} {cs : List native_Char} {r : native_RegLan}
+    {c : native_Char} {cs : List native_Char} {r : SmtRegLan}
     (h : nativeListInRe (c :: cs) (SmtRegLan.star r) = true) :
     ∃ firstTail rest,
       firstTail ++ rest = cs ∧
@@ -196,7 +196,7 @@ theorem nativeListInRe_raw_star_cons_decomp
     by simpa [nativeListInRe] using hFirst, hRest⟩
 
 theorem nativeListInRe_raw_star_snoc_decomp :
-    (xs : List native_Char) -> (r : native_RegLan) ->
+    (xs : List native_Char) -> (r : SmtRegLan) ->
       nativeListInRe xs (SmtRegLan.star r) = true ->
       xs = [] ∨
         ∃ pre last,
@@ -235,7 +235,7 @@ decreasing_by
   all_goals omega
 
 theorem nativeListInRe_raw_star_swap
-    (xs : List native_Char) (r : native_RegLan) :
+    (xs : List native_Char) (r : SmtRegLan) :
     nativeListInRe xs
         (native_re_mk_concat (SmtRegLan.star r) r) =
       nativeListInRe xs
@@ -306,7 +306,7 @@ theorem nativeListInRe_raw_star_swap
         _ = xs := hAppend
 
 theorem nativeListInRe_mk_star_swap
-    (xs : List native_Char) (r : native_RegLan) :
+    (xs : List native_Char) (r : SmtRegLan) :
     nativeListInRe xs
         (native_re_mk_concat (native_re_mk_star r) r) =
       nativeListInRe xs
@@ -332,7 +332,7 @@ theorem nativeListInRe_mk_star_swap
       nativeListInRe_raw_star_swap xs (SmtRegLan.comp r)
 
 theorem smt_value_rel_re_concat_star_swap_core
-    (r : native_RegLan) :
+    (r : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (native_re_concat (native_re_mult r) r))
@@ -346,7 +346,7 @@ theorem smt_value_rel_re_concat_star_swap_core
     nativeListInRe_mk_star_swap xs r
 
 theorem smt_value_rel_re_concat_star_repeat_core
-    (r : native_RegLan) :
+    (r : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (native_re_concat (native_re_mult r) (native_re_mult r)))
@@ -374,7 +374,7 @@ theorem smt_value_rel_re_concat_star_repeat_core
         ⟨[], xs, by simp, hNil, by simpa [native_re_mult] using h⟩
 
 theorem smt_value_rel_re_concat_star_repeat
-    (pre r suffix : native_RegLan) :
+    (pre r suffix : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (native_re_concat pre
@@ -394,7 +394,7 @@ theorem smt_value_rel_re_concat_star_repeat
     (RuleProofs.smt_value_rel_refl (SmtValue.RegLan pre)) hTail
 
 theorem smt_value_rel_re_concat_star_swap
-    (pre r suffix : native_RegLan) :
+    (pre r suffix : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (native_re_concat pre
@@ -417,7 +417,7 @@ theorem smt_value_rel_re_concat_star_swap
     (RuleProofs.smt_value_rel_refl (SmtValue.RegLan pre)) hTail
 
 theorem native_includes_union_of
-    {sup r s : native_RegLan}
+    {sup r s : SmtRegLan}
     (hr : NativeIncludes sup r) (hs : NativeIncludes sup s) :
     NativeIncludes sup (native_re_union r s) := by
   intro str hValid hMem
@@ -427,7 +427,7 @@ theorem native_includes_union_of
   · exact hr str hValid hMem
   · exact hs str hValid hMem
 
-theorem native_includes_star_epsilon (r : native_RegLan) :
+theorem native_includes_star_epsilon (r : SmtRegLan) :
     NativeIncludes (native_re_mult r) (native_str_to_re []) := by
   intro str hValid hMem
   have hEq : str = [] :=
@@ -439,7 +439,7 @@ theorem native_includes_star_epsilon (r : native_RegLan) :
     nativeListInRe] using hNil
 
 theorem native_includes_star_closure
-    {r s : native_RegLan}
+    {r s : SmtRegLan}
     (h : NativeIncludes (native_re_mult r) s) :
     NativeIncludes (native_re_mult r) (native_re_mult s) := by
   have hStar := native_includes_star_mono h
@@ -447,7 +447,7 @@ theorem native_includes_star_closure
     simpa [native_re_mult, native_re_mk_star] using hStar
 
 theorem smt_value_rel_re_mult_congr
-    {r s : native_RegLan}
+    {r s : SmtRegLan}
     (h : RuleProofs.smt_value_rel
       (SmtValue.RegLan r) (SmtValue.RegLan s)) :
     RuleProofs.smt_value_rel
@@ -459,7 +459,7 @@ theorem smt_value_rel_re_mult_congr
       (RuleProofs.smt_value_rel_symm _ _ h)))
 
 theorem smt_value_rel_re_star_union_allchar
-    (r s : native_RegLan) :
+    (r s : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (native_re_mult
@@ -481,7 +481,7 @@ theorem smt_value_rel_re_star_union_allchar
         (native_re_union r (native_re_union native_re_allchar s)))
 
 theorem smt_value_rel_re_star_union_drop_epsilon
-    (r s : native_RegLan) :
+    (r s : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (native_re_mult

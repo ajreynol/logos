@@ -160,12 +160,74 @@ theorem smtx_eval_numeral_term_eq (M : SmtModel) (n : native_Int) :
     __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n := by
   rw [__smtx_model_eval.eq_def]
 
+theorem native_seq_indexof_rec_nil
+    (xs : List SmtValue) (i fuel : Nat) (hFuel : fuel ≠ 0) :
+    native_seq_indexof_rec xs [] i fuel = Int.ofNat i := by
+  cases fuel with
+  | zero => exact False.elim (hFuel rfl)
+  | succ fuel =>
+      rw [Smtm.native_seq_indexof_rec.eq_def]
+      simp [native_seq_prefix_eq]
+
+theorem native_seq_indexof_nil_zero (xs : List SmtValue) :
+    native_seq_indexof xs [] 0 = 0 := by
+  rw [native_seq_indexof_eq_rec]
+  simp [native_seq_indexof_rec_nil]
+
+theorem native_re_find_idx_aux_re_of_list_length :
+    ∀ (pat xs : List SmtValue) (i idx len : Nat),
+      native_re_find_idx_aux (native_re_of_list pat) xs i =
+          some (idx, len) →
+        len = pat.length
+  | pat, [], i, idx, len, hFind => by
+      rw [native_re_find_idx_aux.eq_def,
+        native_re_prefix_match_re_of_list] at hFind
+      by_cases hPrefix : native_seq_prefix_eq pat [] = true
+      · simp [hPrefix] at hFind
+        omega
+      · simp [hPrefix] at hFind
+  | pat, x :: xs, i, idx, len, hFind => by
+      rw [native_re_find_idx_aux.eq_def,
+        native_re_prefix_match_re_of_list] at hFind
+      by_cases hPrefix : native_seq_prefix_eq pat (x :: xs) = true
+      · simp [hPrefix] at hFind
+        omega
+      · simp [hPrefix] at hFind
+        exact native_re_find_idx_aux_re_of_list_length
+          pat xs (i + 1) idx len hFind
+
+theorem native_seq_replace_eq_indexof
+    (xs pat repl : List SmtValue) :
+    native_seq_replace xs pat repl =
+      if native_seq_indexof xs pat 0 < 0 then
+        xs
+      else
+        xs.take (Int.toNat (native_seq_indexof xs pat 0)) ++ repl ++
+          xs.drop
+            (Int.toNat (native_seq_indexof xs pat 0) + pat.length) := by
+  unfold native_seq_replace native_seq_indexof native_str_replace_re
+    native_str_indexof_re
+  simp only [Int.reduceLT, if_false, Int.toNat_zero, Nat.zero_le, if_true]
+  cases hFind : native_re_find_idx_from (native_str_to_re pat) xs 0 with
+  | none => simp [hFind]
+  | some result =>
+      rcases result with ⟨idx, len⟩
+      have hLen : len = pat.length := by
+        apply native_re_find_idx_aux_re_of_list_length
+          pat xs 0 idx len
+        simpa [native_re_find_idx_from, native_str_to_re] using hFind
+      have hIdxNonneg : ¬ (Int.ofNat idx : native_Int) < 0 := by simp
+      simp only [hFind]
+      rw [if_neg hIdxNonneg, hLen]
+      simp
+
 theorem native_seq_replace_empty_src (pat repl : List SmtValue) :
     native_seq_replace [] pat repl = if pat = [] then repl else [] := by
   cases pat with
-  | nil => simp [native_seq_replace]
+  | nil => simp [native_seq_replace_eq_indexof, native_seq_indexof_nil_zero]
   | cons p ps =>
-      simp [native_seq_replace, native_seq_indexof]
+      simp [native_seq_replace_eq_indexof, native_seq_indexof_eq_rec,
+        native_seq_prefix_eq]
 
 theorem native_seq_replace_empty_src_eq_iff
     (pat repl target : List SmtValue) (hTarget : target ≠ []) :
@@ -185,22 +247,19 @@ theorem native_seq_replace_of_indexof_nonneg
           (Int.toNat (native_seq_indexof xs pat 0) + pat.length) := by
   cases pat with
   | nil =>
-      have hIdx : native_seq_indexof xs [] 0 = 0 := by
-        unfold native_seq_indexof
-        simp
-        unfold native_seq_indexof_rec
-        simp [native_seq_prefix_eq]
+      have hIdx : native_seq_indexof xs [] 0 = 0 :=
+        native_seq_indexof_nil_zero xs
       rw [hIdx]
-      simp [native_seq_replace]
+      simp [native_seq_replace_eq_indexof, hIdx]
   | cons p ps =>
-      unfold native_seq_replace
+      rw [native_seq_replace_eq_indexof]
       rw [if_neg (Int.not_lt_of_ge hNonneg)]
 
 theorem native_seq_indexof_zero_bounds_of_nonneg
     (xs pat : List SmtValue)
     (hNonneg : 0 ≤ native_seq_indexof xs pat 0) :
     Int.toNat (native_seq_indexof xs pat 0) + pat.length ≤ xs.length := by
-  unfold native_seq_indexof at hNonneg ⊢
+  rw [native_seq_indexof_eq_rec] at hNonneg ⊢
   by_cases hBounds : pat.length ≤ xs.length
   · simp [hBounds] at hNonneg ⊢
     cases hResult :
@@ -247,12 +306,13 @@ theorem native_seq_replace_eq_nil_iff_of_repl_ne_nil
     cases pat with
     | nil =>
         have hExpanded : repl ++ xs = [] := by
-          simpa [native_seq_replace] using hReplace
+          simpa [native_seq_replace_eq_indexof,
+            native_seq_indexof_nil_zero] using hReplace
         exact False.elim (hRepl (List.append_eq_nil_iff.mp hExpanded).1)
     | cons p ps =>
         by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
         · have hXs : xs = [] := by
-            simpa [native_seq_replace, hNeg] using hReplace
+            simpa [native_seq_replace_eq_indexof, hNeg] using hReplace
           exact ⟨hXs, by simp⟩
         · have hExpanded :
               xs.take (Int.toNat (native_seq_indexof xs (p :: ps) 0)) ++
@@ -261,7 +321,7 @@ theorem native_seq_replace_eq_nil_iff_of_repl_ne_nil
                     (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
                       (p :: ps).length) =
                 [] := by
-              simpa [native_seq_replace, hNeg] using hReplace
+              simpa [native_seq_replace_eq_indexof, hNeg] using hReplace
           have hReplNil : repl = [] := by
             have hLen := congrArg List.length hExpanded
             apply List.eq_nil_of_length_eq_zero
@@ -283,7 +343,7 @@ theorem native_seq_indexof_zero_decomp_take_drop
   have hCast : Int.ofNat j = idx := Int.toNat_of_nonneg hIdxNonneg
   have hIdx : native_seq_indexof xs pat 0 = Int.ofNat j := by
     rw [hCast]
-  unfold native_seq_indexof at hIdx
+  rw [native_seq_indexof_eq_rec] at hIdx
   by_cases hBounds : pat.length ≤ xs.length
   · simp [hBounds] at hIdx
 
@@ -308,25 +368,25 @@ theorem native_seq_replace_length_eq_of_same_len
         | nil => rfl
         | cons _ _ => simp at hLen
       subst repl
-      simp [native_seq_replace]
+      simp [native_seq_replace_eq_indexof, native_seq_indexof_nil_zero]
   | cons p ps =>
       by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
-      · simp [native_seq_replace, hNeg]
+      · simp [native_seq_replace_eq_indexof, hNeg]
       · have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
           int_nonneg_of_not_neg hNeg
         have hDecomp :=
           native_seq_indexof_zero_decomp_take_drop xs (p :: ps) hNonneg
         have hLenDecomp := congrArg List.length hDecomp
         simp [List.length_append] at hLenDecomp
-        simp [native_seq_replace, hNeg, List.length_append, ← hLen]
+        simp [native_seq_replace_eq_indexof, hNeg, List.length_append, ← hLen]
         omega
 
 theorem native_seq_replace_self (xs repl : List SmtValue) :
     native_seq_replace xs xs repl = repl := by
   cases xs with
-  | nil => simp [native_seq_replace]
+  | nil => simp [native_seq_replace_eq_indexof, native_seq_indexof_nil_zero]
   | cons x xs =>
-      simp [native_seq_replace, native_seq_indexof_self_zero]
+      simp [native_seq_replace_eq_indexof, native_seq_indexof_self_zero]
 
 theorem native_seq_replace_source_of_pat_len_ge
     (xs pat : List SmtValue) (hLen : xs.length ≤ pat.length) :
@@ -336,10 +396,10 @@ theorem native_seq_replace_source_of_pat_len_ge
       have hXsLen : xs.length = 0 := Nat.eq_zero_of_le_zero hLen
       have hXsNil : xs = [] := List.eq_nil_of_length_eq_zero hXsLen
       subst xs
-      simp [native_seq_replace]
+      simp [native_seq_replace_eq_indexof, native_seq_indexof_nil_zero]
   | cons p ps =>
       by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
-      · simp [native_seq_replace, hNeg]
+      · simp [native_seq_replace_eq_indexof, hNeg]
       · have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
           int_nonneg_of_not_neg hNeg
         let idx := Int.toNat (native_seq_indexof xs (p :: ps) 0)
@@ -361,7 +421,7 @@ theorem native_seq_replace_source_of_pat_len_ge
           change (xs.drop (idx + (ps.length + 1))).length = 0
           simp only [List.length_append, List.length_cons] at hLenDecomp
           omega
-        unfold native_seq_replace
+        rw [native_seq_replace_eq_indexof]
         rw [if_neg hNeg]
         change xs.take idx ++ xs ++ xs.drop (idx + (p :: ps).length) = xs
         rw [hTakeNil, hDropNil]
@@ -372,11 +432,11 @@ theorem native_seq_replace_self_replacement_len_ge
     xs.length ≤ (native_seq_replace xs pat xs).length := by
   cases pat with
   | nil =>
-      simp [native_seq_replace]
+      simp [native_seq_replace_eq_indexof, native_seq_indexof_nil_zero]
   | cons p ps =>
       by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
-      · simp [native_seq_replace, hNeg]
-      · simp [native_seq_replace, hNeg]
+      · simp [native_seq_replace_eq_indexof, hNeg]
+      · simp [native_seq_replace_eq_indexof, hNeg]
         omega
 
 theorem native_seq_replace_dual_self
@@ -390,13 +450,13 @@ theorem native_seq_replace_id
     native_seq_replace xs pat pat = xs := by
   cases pat with
   | nil =>
-      simp [native_seq_replace]
+      simp [native_seq_replace_eq_indexof, native_seq_indexof_nil_zero]
   | cons p ps =>
       by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
-      · simp [native_seq_replace, hNeg]
+      · simp [native_seq_replace_eq_indexof, hNeg]
       · have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
           int_nonneg_of_not_neg hNeg
-        unfold native_seq_replace
+        rw [native_seq_replace_eq_indexof]
         rw [if_neg hNeg]
         exact native_seq_indexof_zero_decomp_take_drop
           xs (p :: ps) hNonneg
@@ -406,7 +466,8 @@ theorem native_seq_replace_tgt_self
     native_seq_replace xs pat (native_seq_replace pat xs pat) = xs := by
   cases pat with
   | nil =>
-      cases xs <;> simp [native_seq_replace, native_seq_indexof]
+      cases xs <;> simp [native_seq_replace_eq_indexof,
+        native_seq_indexof_eq_rec, native_seq_prefix_eq]
   | cons p ps =>
       by_cases hContains : native_seq_contains xs (p :: ps) = true
       · have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 := by
@@ -435,21 +496,7 @@ theorem native_seq_replace_tgt_self
           unfold native_seq_contains at hContainsFalse
           simpa using hContainsFalse
         have hNeg := Int.lt_of_not_ge hNot
-        simp [native_seq_replace, hNeg]
-
-theorem native_seq_indexof_rec_nil
-    (xs : List SmtValue) (i fuel : Nat) (hFuel : fuel ≠ 0) :
-    native_seq_indexof_rec xs [] i fuel = Int.ofNat i := by
-  cases fuel with
-  | zero => exact False.elim (hFuel rfl)
-  | succ fuel =>
-      rw [Smtm.native_seq_indexof_rec.eq_def]
-      simp [native_seq_prefix_eq]
-
-theorem native_seq_indexof_nil_zero (xs : List SmtValue) :
-    native_seq_indexof xs [] 0 = 0 := by
-  unfold native_seq_indexof
-  simp [native_seq_indexof_rec_nil]
+        simp [native_seq_replace_eq_indexof, hNeg]
 
 theorem native_seq_contains_nil (xs : List SmtValue) :
     native_seq_contains xs [] = true := by
@@ -471,7 +518,7 @@ theorem native_seq_replace_eq_self_of_contains_false
       rw [hTrue] at hContains
       contradiction
   | cons p ps =>
-      simp [native_seq_replace, hNeg]
+      simp [native_seq_replace_eq_indexof, hNeg]
 
 theorem native_seq_replace_eq_self_iff_contains_false
     (xs pat repl : List SmtValue) (hPatRepl : pat ≠ repl) :
@@ -489,7 +536,8 @@ theorem native_seq_replace_eq_self_iff_contains_false
         cases pat with
         | nil =>
             have hExpanded : repl ++ xs = xs := by
-              simpa [native_seq_replace] using hReplace
+              simpa [native_seq_replace_eq_indexof,
+                native_seq_indexof_nil_zero] using hReplace
             have hLen := congrArg List.length hExpanded
             have hReplNil : repl = [] := by
               apply List.eq_nil_of_length_eq_zero
@@ -503,7 +551,7 @@ theorem native_seq_replace_eq_self_iff_contains_false
             have hExpanded :
                 xs.take n ++ repl ++
                     xs.drop (n + (p :: ps).length) = xs := by
-              simpa [native_seq_replace, hNotNeg, n] using hReplace
+              simpa [native_seq_replace_eq_indexof, hNotNeg, n] using hReplace
             have hDecomp :
                 xs.take n ++ (p :: ps) ++
                     xs.drop (n + (p :: ps).length) = xs := by
@@ -533,10 +581,10 @@ theorem native_seq_replace_length_le_of_repl_length_le
       have hReplNil : repl = [] :=
         List.eq_nil_of_length_eq_zero (Nat.eq_zero_of_le_zero hReplLe)
       subst repl
-      simp [native_seq_replace]
+      simp [native_seq_replace_eq_indexof, native_seq_indexof_nil_zero]
   | cons p ps =>
       by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
-      · simp [native_seq_replace, hNeg]
+      · simp [native_seq_replace_eq_indexof, hNeg]
       · have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
           int_nonneg_of_not_neg hNeg
         have hReplLe' : repl.length ≤ ps.length + 1 := by
@@ -546,14 +594,15 @@ theorem native_seq_replace_length_le_of_repl_length_le
         have hIndexLe :
             Int.toNat (native_seq_indexof xs (p :: ps) 0) ≤ xs.length := by
           omega
-        simp [native_seq_replace, hNeg, List.length_append,
+        simp [native_seq_replace_eq_indexof, hNeg, List.length_append,
           List.length_take, List.length_drop, Nat.min_eq_left hIndexLe]
         omega
 
 theorem native_seq_contains_false_of_source_len_lt_pattern
     (xs pat : List SmtValue) (hLen : xs.length < pat.length) :
     native_seq_contains xs pat = false := by
-  unfold native_seq_contains native_seq_indexof
+  unfold native_seq_contains
+  rw [native_seq_indexof_eq_rec]
   have hBounds : ¬ pat.length ≤ xs.length := Nat.not_le_of_gt hLen
   simp [hBounds]
 
@@ -656,20 +705,20 @@ theorem native_seq_replace_eq_repl_iff_of_same_len
       have hReplLen : repl.length = 0 := hLen.symm
       have hReplNil : repl = [] := List.eq_nil_of_length_eq_zero hReplLen
       subst repl
-      simp [native_seq_replace]
+      simp [native_seq_replace_eq_indexof, native_seq_indexof_nil_zero]
   | cons p ps =>
       constructor
       · intro hReplace
         by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
         · right
-          simpa [native_seq_replace, hNeg] using hReplace
+          simpa [native_seq_replace_eq_indexof, hNeg] using hReplace
         · have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
             int_nonneg_of_not_neg hNeg
           let n := Int.toNat (native_seq_indexof xs (p :: ps) 0)
           have hExpanded :
               xs.take n ++ repl ++ xs.drop (n + (p :: ps).length) =
                 repl := by
-            simpa [native_seq_replace, hNeg, n] using hReplace
+            simpa [native_seq_replace_eq_indexof, hNeg, n] using hReplace
           have hLenExpanded := congrArg List.length hExpanded
           have hTakeNil : xs.take n = [] := by
             apply List.eq_nil_of_length_eq_zero
@@ -704,13 +753,13 @@ theorem native_seq_replace_empty_repl_eq_nil_iff_of_pat_ne_nil
     | cons p ps =>
         by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
         · left
-          simpa [native_seq_replace, hNeg] using hReplace
+          simpa [native_seq_replace_eq_indexof, hNeg] using hReplace
         · have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
             int_nonneg_of_not_neg hNeg
           let n := Int.toNat (native_seq_indexof xs (p :: ps) 0)
           have hExpanded :
               xs.take n ++ xs.drop (n + (p :: ps).length) = [] := by
-            simpa [native_seq_replace, hNeg, n] using hReplace
+            simpa [native_seq_replace_eq_indexof, hNeg, n] using hReplace
           have hParts := List.append_eq_nil_iff.mp hExpanded
           have hDecomp :
               xs.take n ++ (p :: ps) ++

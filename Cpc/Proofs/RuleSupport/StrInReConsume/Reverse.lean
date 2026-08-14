@@ -401,7 +401,7 @@ def StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_motive
             (__str_membership_re side))))
 
 theorem StrInReConsumeInternal.term_ne_stuck_of_eval_reglan_consume_local
-    (M : SmtModel) (t : Term) (v : native_RegLan)
+    (M : SmtModel) (t : Term) (v : SmtRegLan)
     (h : __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan v) :
     t ≠ Term.Stuck := by
   intro hBad
@@ -444,7 +444,7 @@ theorem StrInReConsumeInternal.eval_rev_map_rev_acc_factor_consume_local
         SmtValue.RegLan v ->
       (∃ accV,
         __smtx_model_eval M (__eo_to_smt acc) = SmtValue.RegLan accV) ∧
-      ∃ C : native_RegLan,
+      ∃ C : SmtRegLan,
         ∀ acc2 accV2,
           __smtx_model_eval M (__eo_to_smt acc2) =
             SmtValue.RegLan accV2 ->
@@ -462,7 +462,7 @@ theorem StrInReConsumeInternal.eval_rev_map_rev_acc_factor_consume_local
           (∃ accV,
             __smtx_model_eval M (__eo_to_smt acc) =
               SmtValue.RegLan accV) ∧
-          ∃ C : native_RegLan,
+          ∃ C : SmtRegLan,
             ∀ acc2 accV2,
               __smtx_model_eval M (__eo_to_smt acc2) =
                 SmtValue.RegLan accV2 ->
@@ -832,7 +832,7 @@ analysis forces the split (the `str_to_re` factor matches exactly
 `u`), so no case analysis on the suffix position is needed.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_snoc_word_suffixes_false_local
-    (w u : native_String) (A : native_RegLan)
+    (w u : native_String) (A : SmtRegLan)
     (hAll :
       ∀ pre suf : native_String,
         pre ++ suf = w -> native_str_in_re suf A = false) :
@@ -888,7 +888,7 @@ length 1 and no suffix of `w` is in `A`, then no suffix of `w ++ u`
 (for any length-1 `u`) is in `A · H`.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_snoc_len_one_suffixes_false_local
-    (w u : native_String) (A H : native_RegLan)
+    (w u : native_String) (A H : SmtRegLan)
     (hLen1 :
       ∀ x : native_String,
         nativeListInRe x H = true -> x.length = 1)
@@ -1181,7 +1181,7 @@ is in `A · H`, for ANY `A` (no induction hypothesis about `A`
 needed — the last character rules everything out).
 -/
 theorem StrInReConsumeInternal.native_str_in_re_snoc_mismatch_suffixes_false_local
-    (w : native_String) (c : native_Char) (A H : native_RegLan)
+    (w : native_String) (c : native_Char) (A H : SmtRegLan)
     (hLen1 :
       ∀ x : native_String,
         nativeListInRe x H = true -> x.length = 1)
@@ -1221,7 +1221,7 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_mismatch_suffixes_false_loc
 
 /-- `StrInReConsumeInternal.native_re_reverse_raw_consume_local` commutes with `mk_star`. -/
 theorem StrInReConsumeInternal.native_re_reverse_raw_mk_star_consume_local
-    (r : native_RegLan) :
+    (r : SmtRegLan) :
     StrInReConsumeInternal.native_re_reverse_raw_consume_local (native_re_mk_star r) =
       native_re_mk_star (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) := by
   cases r <;>
@@ -1232,7 +1232,7 @@ Right-decomposition of star membership: a nonempty member of
 `(r)*` ends with a nonempty chunk in `r`.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_star_nonempty_suffix_local
-    (w : native_String) (r : native_RegLan)
+    (w : native_String) (r : SmtRegLan)
     (hMem : native_str_in_re w (native_re_mult r) = true)
     (hNe : w ≠ []) :
     ∃ pre suf : native_String,
@@ -1300,7 +1300,7 @@ star factor either contributes `ε` (reducing to the `A` case) or ends
 with a nonempty `B`-chunk, which is itself a suffix of `w`.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_concat_star_suffixes_false_local
-    (w : native_String) (A B : native_RegLan)
+    (w : native_String) (A B : SmtRegLan)
     (hAllA :
       ∀ pre suf : native_String,
         pre ++ suf = w -> native_str_in_re suf A = false)
@@ -1371,7 +1371,7 @@ residual (∀q) conclusions: appending a length-1 word that IS in the
 head class preserves and reflects membership.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_snoc_len_one_eq_consume_local
-    (w u : native_String) (A H : native_RegLan)
+    (w u : native_String) (A H : SmtRegLan)
     (hLen1 :
       ∀ x : native_String,
         nativeListInRe x H = true -> x.length = 1)
@@ -1416,7 +1416,7 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_len_one_eq_consume_local
 Equality version of the exact-word snoc cancellation.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_snoc_word_eq_consume_local
-    (w u : native_String) (A : native_RegLan)
+    (w u : native_String) (A : SmtRegLan)
     (hUValid : native_string_valid u = true) :
     native_str_in_re (w ++ u)
         (native_re_concat A (native_str_to_re u)) =
@@ -1493,7 +1493,7 @@ theorem StrInReConsumeInternal.list_append_ne_nil_right_consume_local {α : Type
   | cons a as => simp at hBad
 
 theorem StrInReConsumeInternal.native_str_in_re_congr_of_reglan_rel_consume_local
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (h : RuleProofs.smt_value_rel (SmtValue.RegLan r1)
       (SmtValue.RegLan r2))
     (str : native_String) :
@@ -1508,7 +1508,7 @@ theorem StrInReConsumeInternal.native_str_in_re_nil_str_to_re_nil_consume_local 
     native_re_of_list, native_re_nullable]
 
 theorem StrInReConsumeInternal.smt_value_rel_union_right_none_consume_local
-    (r : native_RegLan) :
+    (r : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan (native_re_union r native_re_none))
       (SmtValue.RegLan r) := by
@@ -1518,7 +1518,7 @@ theorem StrInReConsumeInternal.smt_value_rel_union_right_none_consume_local
     simpa [native_str_in_re_re_union, native_str_in_re_re_none] using hMem
 
 theorem StrInReConsumeInternal.smt_value_rel_inter_right_all_consume_local
-    (r : native_RegLan) :
+    (r : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan (native_re_inter r native_re_all))
       (SmtValue.RegLan r) := by
@@ -1576,7 +1576,7 @@ last character differs from the exact word `[d]` demanded by the
 `A`.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_snoc_word_mismatch_suffixes_false_local
-    (w : native_String) (c d : native_Char) (A : native_RegLan)
+    (w : native_String) (c d : native_Char) (A : SmtRegLan)
     (hNe : c ≠ d) :
     ∀ pre suf : native_String,
       pre ++ suf = w ++ [c] ->
@@ -1624,7 +1624,7 @@ unrev transform of `r2` concatenated with the value of
 `rev_comp head` on the RIGHT.
 -/
 theorem StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_local
-    (M : SmtModel) (head r2 : Term) (rvU headV : native_RegLan)
+    (M : SmtModel) (head r2 : Term) (rvU headV : SmtRegLan)
     (hCompEval :
       __smtx_model_eval M (__eo_to_smt (__re_rev_comp head)) =
         SmtValue.RegLan headV)
@@ -1702,7 +1702,7 @@ value-preserving, so its value is related to the value of the unrev
 transform of `r`.
 -/
 theorem StrInReConsumeInternal.eval_unrev_re_concat_empty_left_bridge_local
-    (M : SmtModel) (r : Term) (rvU : native_RegLan)
+    (M : SmtModel) (r : Term) (rvU : SmtRegLan)
     (hRvU :
       __smtx_model_eval M
           (__eo_to_smt
@@ -1857,7 +1857,7 @@ If no suffix of `w` is in `H`, then no suffix of `w` is in `A · H`
 (the second factor of any witnessing split is itself a suffix).
 -/
 theorem StrInReConsumeInternal.native_str_in_re_concat_no_suffix_right_false_local
-    (w : native_String) (A H : native_RegLan)
+    (w : native_String) (A H : SmtRegLan)
     (hAll :
       ∀ pre suf : native_String,
         pre ++ suf = w -> native_str_in_re suf H = false) :
@@ -1897,7 +1897,7 @@ head, where the head value is not known a priori).
 -/
 theorem StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_exists_local
     (M : SmtModel) (hM : model_total_typed M) (head r2 : Term)
-    (rvU : native_RegLan)
+    (rvU : SmtRegLan)
     (hHeadTy : __smtx_typeof (__eo_to_smt head) = SmtType.RegLan)
     (hRvU :
       __smtx_model_eval M
@@ -1980,7 +1980,7 @@ contradicting the tail's no-suffix conclusion.
 -/
 theorem StrInReConsumeInternal.consume_no_suffix_concat_of_residual_local
     (M : SmtModel)
-    (w' u : native_String) (rvU2 headV : native_RegLan) (r2 : Term)
+    (w' u : native_String) (rvU2 headV : SmtRegLan) (r2 : Term)
     (hRvU2 :
       __smtx_model_eval M (__eo_to_smt (StrInReConsumeInternal.consume_unrev_re_local r2)) =
         SmtValue.RegLan rvU2)
@@ -2372,7 +2372,7 @@ of the tail.
 -/
 theorem StrInReConsumeInternal.re_rev_comp_union_decomp_local
     (M : SmtModel) (hM : model_total_typed M) (c1 c2 : Term)
-    (rvU : native_RegLan)
+    (rvU : SmtRegLan)
     (hTy :
       __smtx_typeof
           (__eo_to_smt
@@ -2458,7 +2458,7 @@ Value decomposition of `__re_rev_comp` on an inter tree.
 -/
 theorem StrInReConsumeInternal.re_rev_comp_inter_decomp_local
     (M : SmtModel) (hM : model_total_typed M) (c1 c2 : Term)
-    (rvU : native_RegLan)
+    (rvU : SmtRegLan)
     (hTy :
       __smtx_typeof
           (__eo_to_smt
@@ -2544,7 +2544,7 @@ theorem StrInReConsumeInternal.re_rev_comp_inter_decomp_local
 `w`: membership through the union must go through the right branch.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_concat_union_left_no_suffix_eq_local
-    (w w' : native_String) (qv v1 v2 : native_RegLan)
+    (w w' : native_String) (qv v1 v2 : SmtRegLan)
     (hNoSuf :
       ∀ pre suf : native_String,
         pre ++ suf = w -> native_str_in_re suf v1 = false)
@@ -2630,7 +2630,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_left_no_suffix_eq_l
 Mirror of the previous lemma with the union branches swapped.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_concat_union_right_no_suffix_eq_local
-    (w w' : native_String) (qv v1 v2 : native_RegLan)
+    (w w' : native_String) (qv v1 v2 : SmtRegLan)
     (hNoSuf :
       ∀ pre suf : native_String,
         pre ++ suf = w -> native_str_in_re suf v2 = false)
@@ -2717,7 +2717,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_right_no_suffix_eq_
 residual equality.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_concat_union_both_eq_local
-    (w w' : native_String) (qv v1 v2 : native_RegLan)
+    (w w' : native_String) (qv v1 v2 : SmtRegLan)
     (hEq1 :
       native_str_in_re w (native_re_concat qv v1) =
         native_str_in_re w' qv)
@@ -2815,7 +2815,7 @@ member of BOTH branches and the LEFT branch satisfies the residual
 equality.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_concat_inter_both_eq_local
-    (w w' u : native_String) (qv v1 v2 : native_RegLan)
+    (w w' u : native_String) (qv v1 v2 : SmtRegLan)
     (hWdec : w = w' ++ u)
     (hU1 : native_str_in_re u v1 = true)
     (hU2 : native_str_in_re u v2 = true)
@@ -4108,7 +4108,7 @@ theorem StrInReConsumeInternal.consume_wf_chain_rev_flatten_local
     StrInReConsumeInternal.consume_wf_chain_eps_local
 
 theorem StrInReConsumeInternal.native_re_concat_right_empty_consume_local
-    (X : native_RegLan) :
+    (X : SmtRegLan) :
     native_re_concat X (native_str_to_re []) = X := by
   cases X <;> rfl
 
@@ -4118,7 +4118,7 @@ nonempty member of `(r)*` splits as a star member followed by a
 nonempty `r`-chunk.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_star_nonempty_suffix_full_local
-    (w : native_String) (r : native_RegLan)
+    (w : native_String) (r : SmtRegLan)
     (hMem : native_str_in_re w (native_re_mult r) = true)
     (hNe : w ≠ []) :
     ∃ pre suf : native_String,
@@ -4203,7 +4203,7 @@ theorem StrInReConsumeInternal.native_str_in_re_star_nonempty_suffix_full_local
 Right-append closure of star membership.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_star_append_local
-    (bs u : native_String) (B : native_RegLan)
+    (bs u : native_String) (B : SmtRegLan)
     (hBs : native_str_in_re bs (native_re_mult B) = true)
     (hU : native_str_in_re u B = true) :
     native_str_in_re (bs ++ u) (native_re_mult B) = true := by
@@ -4262,7 +4262,7 @@ theorem StrInReConsumeInternal.native_str_in_re_star_append_local
 Right-append absorption for `A · B*`.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_concat_star_absorb_local
-    (x u : native_String) (A B : native_RegLan)
+    (x u : native_String) (A B : SmtRegLan)
     (hX :
       native_str_in_re x (native_re_concat A (native_re_mult B)) =
         true)
@@ -4303,7 +4303,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_star_absorb_local
 residual equality lifts to `A · B*` when no suffix of `w` is in `B`.
 -/
 theorem StrInReConsumeInternal.consume_mult_left_false_residual_eq_local
-    (w w3 : native_String) (qv A B : native_RegLan)
+    (w w3 : native_String) (qv A B : SmtRegLan)
     (hNoSufB :
       ∀ pre suf : native_String,
         pre ++ suf = w -> native_str_in_re suf B = false)
@@ -4429,7 +4429,7 @@ split into a suffix of the residual word.
 -/
 theorem StrInReConsumeInternal.consume_mult_retry_no_suffix_local
     (M : SmtModel) (w5 u : native_String)
-    (A B : native_RegLan) (r2t multt : Term)
+    (A B : SmtRegLan) (r2t multt : Term)
     (hAEval :
       __smtx_model_eval M (__eo_to_smt (StrInReConsumeInternal.consume_unrev_re_local r2t)) =
         SmtValue.RegLan A)
@@ -4570,7 +4570,7 @@ theorem StrInReConsumeInternal.consume_mult_retry_no_suffix_local
 -/
 theorem StrInReConsumeInternal.consume_mult_retry_residual_eq_local
     (M : SmtModel) (w5 u u2 w2 : native_String)
-    (A B : native_RegLan) (r2t multt : Term)
+    (A B : SmtRegLan) (r2t multt : Term)
     (hAEval :
       __smtx_model_eval M (__eo_to_smt (StrInReConsumeInternal.consume_unrev_re_local r2t)) =
         SmtValue.RegLan A)
@@ -4743,7 +4743,7 @@ Value decomposition of `__re_rev_comp` on a `re_mult` chunk.
 -/
 theorem StrInReConsumeInternal.re_rev_comp_mult_decomp_local
     (M : SmtModel) (hM : model_total_typed M) (r3 : Term)
-    (headV : native_RegLan)
+    (headV : SmtRegLan)
     (hTy :
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) r3)) =
@@ -6654,7 +6654,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_residual_local
     (StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local M hM s0 r0 fuel0).2
 
 theorem StrInReConsumeInternal.consume_unrev_pair_eval_local
-    (M : SmtModel) (a b : Term) (ssA : SmtSeq) (rvB : native_RegLan)
+    (M : SmtModel) (a b : Term) (ssA : SmtSeq) (rvB : SmtRegLan)
     (hA :
       __smtx_model_eval M (__eo_to_smt (StrInReConsumeInternal.consume_unrev_str_local a)) =
         SmtValue.Seq ssA)
@@ -6696,7 +6696,7 @@ if the star body admits no suffix of `w`, the star factor contributes
 only `ε`.
 -/
 theorem StrInReConsumeInternal.consume_mult_left_false_tail_eq_local
-    (w : native_String) (A B : native_RegLan)
+    (w : native_String) (A B : SmtRegLan)
     (hNoSufB :
       ∀ pre suf : native_String,
         pre ++ suf = w -> native_str_in_re suf B = false) :
@@ -6760,7 +6760,7 @@ whole word and the body residual ∀q equality).
 -/
 theorem StrInReConsumeInternal.consume_mult_retry_step_eq_local
     (M : SmtModel) (w5 u : native_String)
-    (A B : native_RegLan) (r2t multt : Term)
+    (A B : SmtRegLan) (r2t multt : Term)
     (hAEval :
       __smtx_model_eval M (__eo_to_smt (StrInReConsumeInternal.consume_unrev_re_local r2t)) =
         SmtValue.RegLan A)

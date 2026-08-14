@@ -773,9 +773,17 @@ theorem model_eval_canonical_of_supported
   case str_to_int ht hs ih =>
       simpa [__smtx_model_eval] using
         model_eval_str_to_int_canonical (__smtx_model_eval M _)
-  case str_to_re ht hs ih =>
+  case str_to_re t ht hs ih =>
+      have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+        seq_char_arg_of_non_none (op := SmtTerm.str_to_re)
+          (typeof_str_to_re_eq t) hTy
+      have hEvalTy :
+          __smtx_typeof_value (__smtx_model_eval M t) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArg] using
+          smt_model_eval_preserves_type_of_non_none M hM t ht
       simpa [__smtx_model_eval] using
-        model_eval_str_to_re_canonical (ih M hM ht)
+        model_eval_str_to_re_canonical (ih M hM ht) hEvalTy
   case re_mult ht hs ih =>
       simpa [__smtx_model_eval] using
         model_eval_re_mult_canonical (ih M hM ht)
@@ -791,9 +799,22 @@ theorem model_eval_canonical_of_supported
   case re_comp ht hs ih =>
       simpa [__smtx_model_eval] using
         model_eval_re_comp_canonical (ih M hM ht)
-  case re_range ht1 hs1 ht2 hs2 ih1 ih2 =>
+  case re_range t1 t2 ht1 hs1 ht2 hs2 ih1 ih2 =>
+      have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.re_range)
+        (typeof_re_range_eq t1 t2) hTy
+      have hEvalTy1 :
+          __smtx_typeof_value (__smtx_model_eval M t1) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArgs.1] using
+          smt_model_eval_preserves_type_of_non_none M hM t1 ht1
+      have hEvalTy2 :
+          __smtx_typeof_value (__smtx_model_eval M t2) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArgs.2] using
+          smt_model_eval_preserves_type_of_non_none M hM t2 ht2
       simpa [__smtx_model_eval] using
         model_eval_re_range_canonical (ih1 M hM ht1) (ih2 M hM ht2)
+          hEvalTy1 hEvalTy2
   case re_concat ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
         model_eval_re_concat_canonical (ih1 M hM ht1) (ih2 M hM ht2)

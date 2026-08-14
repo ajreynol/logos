@@ -368,17 +368,19 @@ private theorem native_veq_true_symm
   simp
 
 private theorem native_re_ext_eq_true_symm
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (h : (native_re_ext_eq r1 r2) = true) :
     (native_re_ext_eq r2 r1) = true := by
   by_cases hExt :
       ∀ s : native_String,
         native_string_valid s = true ->
-          native_str_in_re s r1 = native_str_in_re s r2
+          native_str_in_re (native_string_to_values s) r1 =
+            native_str_in_re (native_string_to_values s) r2
   · have hExtSymm :
         ∀ s : native_String,
           native_string_valid s = true ->
-            native_str_in_re s r2 = native_str_in_re s r1 := by
+            native_str_in_re (native_string_to_values s) r2 =
+              native_str_in_re (native_string_to_values s) r1 := by
       intro s hs
       exact (hExt s hs).symm
     simp
