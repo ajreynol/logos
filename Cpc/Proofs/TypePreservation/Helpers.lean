@@ -15,29 +15,14 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
-/- Proof-side compatibility names for the regular-language constructors and
-smart constructors.  The model now stores `SmtValue` atoms and exposes the
-smart constructors directly under the non-`mk` names. -/
+/- Proof-side compatibility names for the regular-language smart constructors.
+The model stores `SmtValue` atoms and exposes the smart constructors directly
+under the non-`mk` names. -/
 instance : Coe native_Char SmtValue where
   coe := SmtValue.Char
 
 instance : Coe (List native_Char) (List SmtValue) where
   coe := native_string_to_values
-
-namespace SmtRegLan
-
-@[match_pattern] abbrev empty := SmtRegLan.empty
-@[match_pattern] abbrev epsilon := SmtRegLan.epsilon
-@[match_pattern] abbrev char := SmtRegLan.char
-@[match_pattern] abbrev range := SmtRegLan.range
-@[match_pattern] abbrev allchar := SmtRegLan.allchar
-@[match_pattern] abbrev concat := SmtRegLan.concat
-@[match_pattern] abbrev union := SmtRegLan.union
-@[match_pattern] abbrev inter := SmtRegLan.inter
-@[match_pattern] abbrev star := SmtRegLan.star
-@[match_pattern] abbrev comp := SmtRegLan.comp
-
-end SmtRegLan
 
 abbrev native_re_mk_concat := native_re_concat
 abbrev native_re_mk_union := native_re_union
