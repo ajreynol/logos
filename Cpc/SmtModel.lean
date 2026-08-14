@@ -12,57 +12,6 @@ namespace Smtm
 
 open SmtEval
 
-/- SMT literal evaluation defined -/
-
--- Note: the type of regular languages (SmtRegLan) carries SmtValue as
--- base elements and is hence declared in the mutual block of SMT datatypes
--- below. All regular expression operations are defined after that block.
-
--- SMT Beyond Eunoia
-
-def native_int_log2 : native_Int -> native_Int
-  | x => Int.ofNat (Nat.log2 (Int.toNat x))
-def native_zabs : native_Int -> native_Int
-  | x => if x < 0 then -x else x
-def native_qabs : native_Rat -> native_Rat
-  | x => if x < 0 then -x else x
-  
-def native_char_is_digit (c : native_Char) : native_Bool :=
-  48 <= c && c <= 57
-
-def native_char_to_upper (c : native_Char) : native_Char :=
-  if 97 <= c && c <= 122 then c - 32 else c
-
-def native_char_to_lower (c : native_Char) : native_Char :=
-  if 65 <= c && c <= 90 then c + 32 else c
-
-def native_decimal_digits_to_nat (xs : native_String) : native_Nat :=
-  xs.foldl (fun acc c => 10 * acc + (c - 48)) 0
-
-def native_str_lt : native_String -> native_String -> native_Bool
-  | s₁, s₂ => decide (s₁ < s₂)
-def native_str_from_int : native_Int -> native_String
-  | i => if i < 0 then native_string_lit "" else native_string_lit (toString i)
-def native_str_to_int : native_String -> native_Int
-  | s => match s with
-          | [] => -1
-          | _ => if s.all native_char_is_digit then Int.ofNat (native_decimal_digits_to_nat s) else -1
-def native_str_to_upper : native_String -> native_String
-  | s => s.map native_char_to_upper
-def native_str_to_lower : native_String -> native_String
-  | s => s.map native_char_to_lower
-
--- Partial semantics
-
-def native_qdiv_by_zero_id : native_String := (native_string_lit "@qdiv_by_zero")
-def native_div_by_zero_id : native_String := (native_string_lit "@div_by_zero")
-def native_mod_by_zero_id : native_String := (native_string_lit "@mod_by_zero")
-def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
-  (native_string_lit "@wrong_apply_sel_") ++ (native_string_lit (toString n)) ++ (native_string_lit "_") ++ (native_string_lit (toString m))
-def native_oob_seq_nth_id : native_String := (native_string_lit "@oob_seq_nth")
-def native_uconst_id : native_Nat -> native_String
-  | i => (native_string_lit "@u.") ++ (native_string_lit (toString i))
-
 mutual
 
 /-
@@ -379,8 +328,52 @@ def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
   | Ordering.lt => true
   | _ => false
 
--- Regular expressions
+-- SMT Beyond Eunoia
 
+def native_int_log2 : native_Int -> native_Int
+  | x => Int.ofNat (Nat.log2 (Int.toNat x))
+def native_zabs : native_Int -> native_Int
+  | x => if x < 0 then -x else x
+def native_qabs : native_Rat -> native_Rat
+  | x => if x < 0 then -x else x
+  
+def native_char_is_digit (c : native_Char) : native_Bool :=
+  48 <= c && c <= 57
+
+def native_char_to_upper (c : native_Char) : native_Char :=
+  if 97 <= c && c <= 122 then c - 32 else c
+
+def native_char_to_lower (c : native_Char) : native_Char :=
+  if 65 <= c && c <= 90 then c + 32 else c
+
+def native_decimal_digits_to_nat (xs : native_String) : native_Nat :=
+  xs.foldl (fun acc c => 10 * acc + (c - 48)) 0
+
+def native_str_lt : native_String -> native_String -> native_Bool
+  | s₁, s₂ => decide (s₁ < s₂)
+def native_str_from_int : native_Int -> native_String
+  | i => if i < 0 then native_string_lit "" else native_string_lit (toString i)
+def native_str_to_int : native_String -> native_Int
+  | s => match s with
+          | [] => -1
+          | _ => if s.all native_char_is_digit then Int.ofNat (native_decimal_digits_to_nat s) else -1
+def native_str_to_upper : native_String -> native_String
+  | s => s.map native_char_to_upper
+def native_str_to_lower : native_String -> native_String
+  | s => s.map native_char_to_lower
+
+-- Partial semantics
+
+def native_qdiv_by_zero_id : native_String := (native_string_lit "@qdiv_by_zero")
+def native_div_by_zero_id : native_String := (native_string_lit "@div_by_zero")
+def native_mod_by_zero_id : native_String := (native_string_lit "@mod_by_zero")
+def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
+  (native_string_lit "@wrong_apply_sel_") ++ (native_string_lit (toString n)) ++ (native_string_lit "_") ++ (native_string_lit (toString m))
+def native_oob_seq_nth_id : native_String := (native_string_lit "@oob_seq_nth")
+def native_uconst_id : native_Nat -> native_String
+  | i => (native_string_lit "@u.") ++ (native_string_lit (toString i))
+
+-- Regular expressions
 
 /-- Whether a base element of a regular language is a valid character value.
 This is the well-formedness condition on base elements: a well-formed
