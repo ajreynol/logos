@@ -1044,21 +1044,21 @@ theorem model_eval_str_to_int_canonical
     simp [__smtx_model_eval_str_to_int, value_canonical_notValue, value_canonical_numeral]
 
 private theorem native_re_mk_star_canonical
-    {r : native_RegLan}
+    {r : SmtRegLan}
     (hr : native_re_canonical r = true) :
     native_re_canonical (native_re_mk_star r) = true := by
   cases r <;>
     simp_all [native_re_mk_star, native_re_mult, native_re_canonical]
 
 private theorem native_re_mk_comp_canonical
-    {r : native_RegLan}
+    {r : SmtRegLan}
     (hr : native_re_canonical r = true) :
     native_re_canonical (native_re_mk_comp r) = true := by
   cases r <;>
     simp_all [native_re_mk_comp, native_re_comp, native_re_canonical]
 
 private theorem native_re_mk_concat_canonical
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (hr1 : native_re_canonical r1 = true)
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_mk_concat r1 r2) = true := by
@@ -1066,7 +1066,7 @@ private theorem native_re_mk_concat_canonical
     simp_all [native_re_mk_concat, native_re_concat, native_re_canonical]
 
 private theorem native_re_mk_inter_canonical
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (hr1 : native_re_canonical r1 = true)
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_mk_inter r1 r2) = true := by
@@ -1075,7 +1075,7 @@ private theorem native_re_mk_inter_canonical
     split <;> simp_all [native_re_canonical]
 
 private theorem native_re_mk_union_canonical
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (hr1 : native_re_canonical r1 = true)
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_mk_union r1 r2) = true := by
@@ -1084,40 +1084,40 @@ private theorem native_re_mk_union_canonical
     split <;> simp_all [native_re_canonical]
 
 private theorem native_re_mult_canonical_of_canonical
-    {r : native_RegLan}
+    {r : SmtRegLan}
     (hr : native_re_canonical r = true) :
     native_re_canonical (native_re_mult r) = true := by
   simpa [native_re_mult] using native_re_mk_star_canonical hr
 
 private theorem native_re_comp_canonical_of_canonical
-    {r : native_RegLan}
+    {r : SmtRegLan}
     (hr : native_re_canonical r = true) :
     native_re_canonical (native_re_comp r) = true := by
   simpa [native_re_comp] using native_re_mk_comp_canonical hr
 
 private theorem native_re_concat_canonical_of_canonical
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (hr1 : native_re_canonical r1 = true)
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_concat r1 r2) = true := by
   simpa [native_re_concat] using native_re_mk_concat_canonical hr1 hr2
 
 private theorem native_re_inter_canonical_of_canonical
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (hr1 : native_re_canonical r1 = true)
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_inter r1 r2) = true := by
   simpa [native_re_inter] using native_re_mk_inter_canonical hr1 hr2
 
 private theorem native_re_union_canonical_of_canonical
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (hr1 : native_re_canonical r1 = true)
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_union r1 r2) = true := by
   simpa [native_re_union] using native_re_mk_union_canonical hr1 hr2
 
 private theorem native_re_diff_canonical_of_canonical
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (hr1 : native_re_canonical r1 = true)
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_diff r1 r2) = true := by

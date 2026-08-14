@@ -42,7 +42,7 @@ private theorem eo_typeof_str_in_re_eq_types_of_ne_stuck (T R : Term)
       | _ => simp [__eo_typeof_str_in_re] at h
   | _ => simp [__eo_typeof_str_in_re] at h
 
-private theorem smtx_model_eval_re_in_comp (ss : SmtSeq) (r : native_RegLan)
+private theorem smtx_model_eval_re_in_comp (ss : SmtSeq) (r : SmtRegLan)
     (hTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char)
     (hValid : native_string_valid (native_unpack_string ss) = true) :
     __smtx_model_eval_str_in_re (SmtValue.Seq ss)

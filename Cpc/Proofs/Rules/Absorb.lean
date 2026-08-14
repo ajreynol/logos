@@ -760,7 +760,7 @@ private theorem bvor_result_type_of_non_none (y x : Term) :
     SmtEval.native_nateq]
 
 private theorem native_str_in_re_mk_union
-    (str : native_String) (r s : native_RegLan) :
+    (str : native_String) (r s : SmtRegLan) :
     native_str_in_re str (native_re_mk_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
   by_cases hValid : native_string_valid str = true
@@ -980,7 +980,7 @@ private theorem bvAllOnes_to_bin_eq_of_ne_stuck (w : Nat) :
     exact False.elim (hNe hStuck)
 
 private theorem reUnion_smt_value_rel_left_all_eval
-    (M : SmtModel) (x y : Term) (rx ry : native_RegLan) :
+    (M : SmtModel) (x y : Term) (rx ry : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx ->
     __smtx_model_eval M (__eo_to_smt y) = SmtValue.RegLan ry ->
     RuleProofs.smt_value_rel
@@ -1013,7 +1013,7 @@ private theorem reUnion_smt_value_rel_left_all_eval
   simp
 
 private theorem reUnion_smt_value_rel_right_all_eval
-    (M : SmtModel) (x y : Term) (rx ry : native_RegLan) :
+    (M : SmtModel) (x y : Term) (rx ry : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx ->
     __smtx_model_eval M (__eo_to_smt y) = SmtValue.RegLan ry ->
     RuleProofs.smt_value_rel

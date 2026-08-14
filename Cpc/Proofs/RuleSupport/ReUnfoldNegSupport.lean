@@ -209,14 +209,14 @@ abbrev RegLanEval (M : SmtModel) (t : Term) : Prop :=
   ∃ r, __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r
 
 theorem native_string_valid_of_str_in_re_true
-    {str : native_String} {r : native_RegLan}
+    {str : native_String} {r : SmtRegLan}
     (h : native_str_in_re str r = true) :
     native_string_valid str = true := by
   cases hValid : native_string_valid str <;>
     simp [native_str_in_re, hValid] at h ⊢
 
 theorem native_str_in_re_of_reglan_rel
-    (str : native_String) (r s : native_RegLan) :
+    (str : native_String) (r s : SmtRegLan) :
     RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s) ->
     native_str_in_re str r = true ->
     native_str_in_re str s = true := by
@@ -262,7 +262,7 @@ theorem reConcat_nil_eval_empty_of_is_list_nil_true
               cases hNil
 
 private theorem reConcat_smt_value_rel_right_empty_eval
-    (M : SmtModel) (x id : Term) (r : native_RegLan) :
+    (M : SmtModel) (x id : Term) (r : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
     __smtx_model_eval M (__eo_to_smt id) =
       SmtValue.RegLan (native_str_to_re ([] : native_String)) ->
@@ -519,7 +519,7 @@ theorem smt_eval_int_of_smt_type_int
   exact int_value_canonical hValTy
 
 theorem eval_re_concat_of_reglan (M : SmtModel) (r s : Term)
-    (rv sv : native_RegLan) :
+    (rv sv : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
     __smtx_model_eval M (__eo_to_smt s) = SmtValue.RegLan sv ->
     __smtx_model_eval M (__eo_to_smt (mkReConcat r s)) =
@@ -531,7 +531,7 @@ theorem eval_re_concat_of_reglan (M : SmtModel) (r s : Term)
   simp [__smtx_model_eval, __smtx_model_eval_re_concat, hr, hs]
 
 theorem eval_str_in_re_of_seq_reglan (M : SmtModel)
-    (s r : Term) (ss : SmtSeq) (rv : native_RegLan) :
+    (s r : Term) (ss : SmtSeq) (rv : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
     __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
     __smtx_model_eval M (__eo_to_smt (mkStrInRe s r)) =

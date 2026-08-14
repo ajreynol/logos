@@ -26,16 +26,16 @@ instance : Coe (List native_Char) (List SmtValue) where
 
 namespace SmtRegLan
 
-@[match_pattern] abbrev empty := native_RegLan.empty
-@[match_pattern] abbrev epsilon := native_RegLan.epsilon
-@[match_pattern] abbrev char := native_RegLan.char
-@[match_pattern] abbrev range := native_RegLan.range
-@[match_pattern] abbrev allchar := native_RegLan.allchar
-@[match_pattern] abbrev concat := native_RegLan.concat
-@[match_pattern] abbrev union := native_RegLan.union
-@[match_pattern] abbrev inter := native_RegLan.inter
-@[match_pattern] abbrev star := native_RegLan.star
-@[match_pattern] abbrev comp := native_RegLan.comp
+@[match_pattern] abbrev empty := SmtRegLan.empty
+@[match_pattern] abbrev epsilon := SmtRegLan.epsilon
+@[match_pattern] abbrev char := SmtRegLan.char
+@[match_pattern] abbrev range := SmtRegLan.range
+@[match_pattern] abbrev allchar := SmtRegLan.allchar
+@[match_pattern] abbrev concat := SmtRegLan.concat
+@[match_pattern] abbrev union := SmtRegLan.union
+@[match_pattern] abbrev inter := SmtRegLan.inter
+@[match_pattern] abbrev star := SmtRegLan.star
+@[match_pattern] abbrev comp := SmtRegLan.comp
 
 end SmtRegLan
 
@@ -44,7 +44,7 @@ abbrev native_re_mk_union := native_re_union
 abbrev native_re_mk_inter := native_re_inter
 abbrev native_re_mk_comp := native_re_comp
 abbrev native_re_mk_star := native_re_mult
-abbrev native_re_plus (r : native_RegLan) :=
+abbrev native_re_plus (r : SmtRegLan) :=
   native_re_concat r (native_re_mult r)
 
 /- Legacy list-search primitives retained in the proof layer.  The executable
@@ -1273,7 +1273,7 @@ theorem list_typed_extract
 theorem list_typed_replace_re
     {T : SmtType}
     {xs repl : List SmtValue}
-    (r : native_RegLan)
+    (r : SmtRegLan)
     (hxs : list_typed T xs)
     (hrepl : list_typed T repl) :
     list_typed T (native_str_replace_re xs r repl) := by
@@ -1301,7 +1301,7 @@ theorem list_typed_replace
 /-- Auxiliary lemma for `list_typed_replace_all`. -/
 theorem list_typed_replace_all_aux
     {T : SmtType} :
-    ∀ fuel (r : native_RegLan) (repl : List SmtValue) {xs : List SmtValue},
+    ∀ fuel (r : SmtRegLan) (repl : List SmtValue) {xs : List SmtValue},
       list_typed T repl ->
         list_typed T xs ->
         list_typed T (native_re_replace_all_nonempty_list_aux fuel r repl xs)
@@ -1346,7 +1346,7 @@ theorem list_typed_replace_all
 theorem list_typed_replace_re_all
     {T : SmtType}
     {xs repl : List SmtValue}
-    (r : native_RegLan)
+    (r : SmtRegLan)
     (hxs : list_typed T xs)
     (hrepl : list_typed T repl) :
     list_typed T (native_str_replace_re_all xs r repl) := by
@@ -1574,7 +1574,7 @@ theorem native_str_to_upper_valid
 /-- Regex replacement preserves character-sequence typing. -/
 theorem native_str_replace_re_valid
     {s replacement : List SmtValue}
-    (r : native_RegLan)
+    (r : SmtRegLan)
     (hs : list_typed SmtType.Char s)
     (hreplacement : list_typed SmtType.Char replacement) :
     list_typed SmtType.Char (native_str_replace_re s r replacement) :=
@@ -1582,7 +1582,7 @@ theorem native_str_replace_re_valid
 
 /-- Auxiliary character-sequence typing lemma for regex replace-all. -/
 theorem native_re_replace_all_nonempty_list_aux_valid :
-    ∀ fuel (r : native_RegLan) (replacement : List SmtValue) {xs : List SmtValue},
+    ∀ fuel (r : SmtRegLan) (replacement : List SmtValue) {xs : List SmtValue},
       list_typed SmtType.Char replacement ->
         list_typed SmtType.Char xs ->
           list_typed SmtType.Char
@@ -1592,7 +1592,7 @@ theorem native_re_replace_all_nonempty_list_aux_valid :
 /-- Regex replace-all preserves character-sequence typing. -/
 theorem native_str_replace_re_all_valid
     {s replacement : List SmtValue}
-    (r : native_RegLan)
+    (r : SmtRegLan)
     (hs : list_typed SmtType.Char s)
     (hreplacement : list_typed SmtType.Char replacement) :
     list_typed SmtType.Char (native_str_replace_re_all s r replacement) :=
@@ -1951,7 +1951,7 @@ theorem map_canon_insert_typed
 theorem reglan_value_canonical
     {v : SmtValue}
     (h : __smtx_typeof_value v = SmtType.RegLan) :
-    ∃ r : native_RegLan, v = SmtValue.RegLan r := by
+    ∃ r : SmtRegLan, v = SmtValue.RegLan r := by
   cases v with
   | RegLan r =>
       exact ⟨r, rfl⟩

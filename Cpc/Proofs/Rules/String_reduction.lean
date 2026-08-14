@@ -1260,7 +1260,7 @@ private theorem sr_nondigit_code_outside (s : native_String) (j : Nat)
     rw [Int.sub_add_cancel]
     simpa using Int.add_one_le_iff.mpr hHi'
 
-private def sr_nondigit_re : native_RegLan :=
+private def sr_nondigit_re : SmtRegLan :=
   native_re_inter native_re_allchar
     (native_re_comp
       (native_re_range (native_string_lit "0") (native_string_lit "9")))

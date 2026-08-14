@@ -281,7 +281,7 @@ private theorem find_nonempty_from_str_to_re_cons_eq
   exact find_nonempty_aux_str_to_re_cons_eq p ps _ _
 
 private theorem find_nonempty_aux_add_offset
-    (r : native_RegLan) :
+    (r : SmtRegLan) :
     ∀ (xs : List SmtValue) (off base : Nat),
       native_re_find_nonempty_idx_aux r xs (base + off) =
         (native_re_find_nonempty_idx_aux r xs off).map
@@ -306,7 +306,7 @@ private theorem find_nonempty_aux_add_offset
           | succ n => simp [hPrefix]
 
 private theorem find_nonempty_from_shift
-    (r : native_RegLan) (xs : List SmtValue) (start : Nat) :
+    (r : SmtRegLan) (xs : List SmtValue) (start : Nat) :
     native_re_find_nonempty_idx_from r xs start =
       (native_re_find_nonempty_idx_from r (xs.drop start) 0).map
         (fun result => (start + result.1, result.2)) := by

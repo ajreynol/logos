@@ -162,7 +162,7 @@ theorem seq_canonical_pack_unpack_replace
 theorem seq_canonical_pack_unpack_replace_re
     (T : SmtType)
     {s repl : SmtSeq}
-    (r : native_RegLan)
+    (r : SmtRegLan)
     (hs : __smtx_seq_canonical s = true)
     (hrepl : __smtx_seq_canonical repl = true) :
     __smtx_seq_canonical
@@ -187,7 +187,7 @@ theorem seq_canonical_pack_unpack_replace_re
 /-- Auxiliary canonicality invariant for repeated sequence replacement. -/
 theorem seq_canonical_pack_replace_all_aux
     (T : SmtType)
-    {r : native_RegLan} {repl : List SmtValue}
+    {r : SmtRegLan} {repl : List SmtValue}
     (hrepl : ∀ v, v ∈ repl -> __smtx_value_canonical v) :
     ∀ (fuel : Nat) {xs : List SmtValue},
       (∀ v, v ∈ xs -> __smtx_value_canonical v) ->
@@ -271,7 +271,7 @@ theorem seq_canonical_pack_unpack_replace_all
 theorem seq_canonical_pack_unpack_replace_re_all
     (T : SmtType)
     {s repl : SmtSeq}
-    (r : native_RegLan)
+    (r : SmtRegLan)
     (hs : __smtx_seq_canonical s = true)
     (hrepl : __smtx_seq_canonical repl = true) :
     __smtx_seq_canonical

@@ -176,7 +176,7 @@ private theorem eval_empty_string (M : SmtModel) :
   rw [__smtx_model_eval.eq_def]
 
 private theorem eval_filtered_re
-    (M : SmtModel) (R : SmtTerm) (r : native_RegLan)
+    (M : SmtModel) (R : SmtTerm) (r : SmtRegLan)
     (hR : __smtx_model_eval M R = SmtValue.RegLan r) :
     __smtx_model_eval M
         (SmtTerm.re_diff R (SmtTerm.str_to_re (SmtTerm.String []))) =
@@ -250,7 +250,7 @@ private theorem extract_zero_zero (xs : List SmtValue) :
 
 private theorem eval_num_occur_re
     (M : SmtModel) (S R : SmtTerm)
-    (s : native_String) (r : native_RegLan)
+    (s : native_String) (r : SmtRegLan)
     (hS : __smtx_model_eval M S =
       SmtValue.Seq (native_pack_string s))
     (hR : __smtx_model_eval M R = SmtValue.RegLan r)
@@ -285,7 +285,7 @@ private theorem eval_num_occur_re
 
 private theorem eval_occur_index_re
     (M : SmtModel) (S R w : SmtTerm)
-    (s : native_String) (r : native_RegLan) (n : Nat)
+    (s : native_String) (r : SmtRegLan) (n : Nat)
     (hS : __smtx_model_eval M S =
       SmtValue.Seq (native_pack_string s))
     (hR : __smtx_model_eval M R = SmtValue.RegLan r)
@@ -302,7 +302,7 @@ private theorem eval_occur_index_re
 
 private theorem eval_replace_result
     (M : SmtModel) (S R replacement w : SmtTerm)
-    (s repl : native_String) (r : native_RegLan) (n : Nat)
+    (s repl : native_String) (r : SmtRegLan) (n : Nat)
     (hS : __smtx_model_eval M S =
       SmtValue.Seq (native_pack_string s))
     (hR : __smtx_model_eval M R = SmtValue.RegLan r)
@@ -467,7 +467,7 @@ private theorem eval_shortest_part_true
     (N : SmtModel)
     (tz ty startI matchLen : SmtTerm)
     (lenName : native_String)
-    (source : native_String) (regex : native_RegLan)
+    (source : native_String) (regex : SmtRegLan)
     (start len : Nat)
     (hZAt : ∀ v : SmtValue,
       __smtx_model_eval

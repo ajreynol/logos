@@ -97,7 +97,7 @@ private theorem re_inter_result_has_bool_type_of_premises_bool
     native_ite, native_Teq]
 
 private theorem native_string_valid_of_str_in_re_true
-    {str : native_String} {r : native_RegLan}
+    {str : native_String} {r : SmtRegLan}
     (h : native_str_in_re str r = true) :
     native_string_valid str = true := by
   cases hValid : native_string_valid str <;>

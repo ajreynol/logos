@@ -33,7 +33,7 @@ private theorem valid_take (xs : native_String) (n : Nat)
   exact h c (List.mem_of_mem_take hc)
 
 private theorem in_re_cons
-    (c : native_Char) (cs : native_String) (r : native_RegLan)
+    (c : native_Char) (cs : native_String) (r : SmtRegLan)
     (hValid : native_string_valid (c :: cs) = true) :
     native_str_in_re (c :: cs) r =
       native_str_in_re cs (native_re_deriv c r) := by
@@ -53,7 +53,7 @@ private theorem in_re_cons
   simp only [native_string_to_values, List.map_cons]
   simp [Smtm.native_str_in_re, hValueValid, hTailValueValid]
 
-private theorem prefix_go_some_spec (r : native_RegLan) :
+private theorem prefix_go_some_spec (r : SmtRegLan) :
     ∀ (xs : native_String) (n found : Nat),
       native_string_valid xs = true →
       native_re_prefix_match_len?.go r xs n = some found →
@@ -101,7 +101,7 @@ private theorem prefix_go_some_spec (r : native_RegLan) :
           simpa [native_string_valid, Bool.and_eq_true] using
             And.intro hParts.1 hTakeValid
 
-private theorem prefix_go_none_spec (r : native_RegLan) :
+private theorem prefix_go_none_spec (r : SmtRegLan) :
     ∀ (xs : native_String) (n : Nat),
       native_string_valid xs = true →
       native_re_prefix_match_len?.go r xs n = none →
@@ -145,7 +145,7 @@ private theorem prefix_go_none_spec (r : native_RegLan) :
                 And.intro hParts.1 hTakeValid
 
 private theorem prefix_some_spec
-    (r : native_RegLan) (xs : native_String) (found : Nat)
+    (r : SmtRegLan) (xs : native_String) (found : Nat)
     (hValid : native_string_valid xs = true)
     (hFind : native_re_prefix_match_len? r xs = some found) :
     found ≤ xs.length ∧
@@ -158,7 +158,7 @@ private theorem prefix_some_spec
   exact ⟨hBound, hMatch⟩
 
 private theorem prefix_none_spec
-    (r : native_RegLan) (xs : native_String)
+    (r : SmtRegLan) (xs : native_String)
     (hValid : native_string_valid xs = true)
     (hFind : native_re_prefix_match_len? r xs = none) :
     ∀ k, k ≤ xs.length →
@@ -173,7 +173,7 @@ private theorem valid_drop (xs : native_String) (n : Nat)
   intro c hc
   exact h c (List.mem_of_mem_drop hc)
 
-private theorem find_some_spec (r : native_RegLan) :
+private theorem find_some_spec (r : SmtRegLan) :
     ∀ (xs : native_String) (idx found len : Nat),
       native_string_valid xs = true →
       native_re_find_idx_aux r xs idx = some (found, len) →
@@ -246,7 +246,7 @@ private theorem find_some_spec (r : native_RegLan) :
               simpa [hDropJ] using hMin j hjNext hjHi k (by
                 simpa [hDropJ] using hk)
 
-private theorem find_none_spec (r : native_RegLan) :
+private theorem find_none_spec (r : SmtRegLan) :
     ∀ (xs : native_String) (idx : Nat),
       native_string_valid xs = true →
       native_re_find_idx_aux r xs idx = none →
@@ -337,7 +337,7 @@ private theorem drop_drop_from_start
   omega
 
 theorem search_semantics
-    (s : native_String) (r : native_RegLan) (start : Nat)
+    (s : native_String) (r : SmtRegLan) (start : Nat)
     (hValid : native_string_valid s = true)
     (hStart : start ≤ s.length)
     (hEmpty : native_str_in_re [] r = false) :
@@ -435,7 +435,7 @@ theorem search_semantics
           simpa [native_string_to_values, List.map_take] using hMatch
 
 private theorem prefix_match_zero_of_nullable
-    (r : native_RegLan) (xs : native_String)
+    (r : SmtRegLan) (xs : native_String)
     (h : native_re_nullable r = true) :
     native_re_prefix_match_len? r xs = some 0 := by
   rw [native_re_prefix_match_len?.eq_1]
@@ -448,7 +448,7 @@ private theorem prefix_match_zero_of_nullable
       simp [native_re_prefix_match_len?.go.eq_2, h]
 
 private theorem find_at_start_of_nullable
-    (r : native_RegLan) (xs : native_String) (start : Nat)
+    (r : SmtRegLan) (xs : native_String) (start : Nat)
     (h : native_re_nullable r = true) :
     native_re_find_idx_from r xs start = some (start, 0) := by
   unfold native_re_find_idx_from
@@ -458,7 +458,7 @@ private theorem find_at_start_of_nullable
   rw [hPref]
 
 theorem search_eq_start_of_empty_match
-    (s : native_String) (r : native_RegLan) (start : Nat)
+    (s : native_String) (r : SmtRegLan) (start : Nat)
     (hValid : native_string_valid s = true)
     (hStart : start ≤ s.length)
     (hEmpty : native_str_in_re [] r = true) :
@@ -473,7 +473,7 @@ theorem search_eq_start_of_empty_match
   simp [native_str_indexof_re, hStartValues, hFind]
 
 theorem search_eq_neg_one_of_invalid
-    (s : native_String) (r : native_RegLan) (start : Int)
+    (s : native_String) (r : SmtRegLan) (start : Int)
     (hInvalid : start > (s.length : Int) ∨ 0 > start) :
     native_str_indexof_re s r start = -1 := by
   by_cases hNeg : start < 0
@@ -489,7 +489,7 @@ theorem search_eq_neg_one_of_invalid
 /-- Integer-valued form of regex search semantics, matching the arithmetic
 shape used by the generated string-reduction predicate. -/
 theorem search_semantics_int
-    (s : native_String) (r : native_RegLan) (start : Int)
+    (s : native_String) (r : SmtRegLan) (start : Int)
     (hValid : native_string_valid s = true) :
     let result := native_str_indexof_re s r start
     if start > (s.length : Int) ∨ 0 > start then

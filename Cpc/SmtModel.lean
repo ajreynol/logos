@@ -14,7 +14,7 @@ open SmtEval
 
 /- SMT literal evaluation defined -/
 
--- Note: the type of regular languages (native_RegLan) carries SmtValue as
+-- Note: the type of regular languages (SmtRegLan) carries SmtValue as
 -- base elements and is hence declared in the mutual block of SMT datatypes
 -- below. All regular expression operations are defined after that block.
 
@@ -257,7 +257,7 @@ inductive SmtValue : Type where
   | Seq : SmtSeq -> SmtValue
   | Char : native_Char -> SmtValue
   | UValue : native_Nat -> native_Nat -> SmtValue
-  | RegLan : native_RegLan -> SmtValue
+  | RegLan : SmtRegLan -> SmtValue
   | DtCons : native_String -> SmtDatatypeDecl -> native_Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
 
@@ -270,17 +270,17 @@ sequence representation used by the sequence operations. Well-formed
 regular languages carry only valid character values as base elements
 (see native_re_canonical and native_re_elem_valid below).
 -/
-inductive native_RegLan : Type where
-  | empty : native_RegLan
-  | epsilon : native_RegLan
-  | char : SmtValue -> native_RegLan
-  | range : SmtValue -> SmtValue -> native_RegLan
-  | allchar : native_RegLan
-  | concat : native_RegLan -> native_RegLan -> native_RegLan
-  | union : native_RegLan -> native_RegLan -> native_RegLan
-  | inter : native_RegLan -> native_RegLan -> native_RegLan
-  | star : native_RegLan -> native_RegLan
-  | comp : native_RegLan -> native_RegLan
+inductive SmtRegLan : Type where
+  | empty : SmtRegLan
+  | epsilon : SmtRegLan
+  | char : SmtValue -> SmtRegLan
+  | range : SmtValue -> SmtValue -> SmtRegLan
+  | allchar : SmtRegLan
+  | concat : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | union : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | inter : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | star : SmtRegLan -> SmtRegLan
+  | comp : SmtRegLan -> SmtRegLan
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
@@ -381,7 +381,6 @@ def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
 
 -- Regular expressions
 
-abbrev SmtRegLan := native_RegLan
 
 /-- Whether a base element of a regular language is a valid character value.
 This is the well-formedness condition on base elements: a well-formed
@@ -409,7 +408,7 @@ elements are valid character values. -/
 def native_re_str_valid (xs : List SmtValue) : native_Bool :=
   xs.all native_re_elem_valid
 
-def native_re_nullable : native_RegLan -> native_Bool
+def native_re_nullable : SmtRegLan -> native_Bool
   | .empty => false
   | .epsilon => true
   | .char _ => false
@@ -421,7 +420,7 @@ def native_re_nullable : native_RegLan -> native_Bool
   | .star _ => true
   | .comp r => !(native_re_nullable r)
 
-def native_re_concat (r₁ r₂ : native_RegLan) : native_RegLan :=
+def native_re_concat (r₁ r₂ : SmtRegLan) : SmtRegLan :=
   match r₁, r₂ with
   | .empty, _ => .empty
   | _, .empty => .empty
@@ -429,29 +428,29 @@ def native_re_concat (r₁ r₂ : native_RegLan) : native_RegLan :=
   | r, .epsilon => r
   | r₁, r₂ => .concat r₁ r₂
 
-def native_re_union (r₁ r₂ : native_RegLan) : native_RegLan :=
+def native_re_union (r₁ r₂ : SmtRegLan) : SmtRegLan :=
   match r₁, r₂ with
   | .empty, r => r
   | r, .empty => r
   | r₁, r₂ => if h : r₁ = r₂ then r₁ else .union r₁ r₂
 
-def native_re_inter (r₁ r₂ : native_RegLan) : native_RegLan :=
+def native_re_inter (r₁ r₂ : SmtRegLan) : SmtRegLan :=
   match r₁, r₂ with
   | .empty, _ => .empty
   | _, .empty => .empty
   | r₁, r₂ => if h : r₁ = r₂ then r₁ else .inter r₁ r₂
 
-def native_re_comp : native_RegLan -> native_RegLan
+def native_re_comp : SmtRegLan -> SmtRegLan
   | .comp r => r
   | r => .comp r
 
-def native_re_mult : native_RegLan -> native_RegLan
+def native_re_mult : SmtRegLan -> SmtRegLan
   | .empty => .epsilon
   | .epsilon => .epsilon
   | .star r => .star r
   | r => .star r
 
-def native_re_deriv (c : SmtValue) : native_RegLan -> native_RegLan
+def native_re_deriv (c : SmtValue) : SmtRegLan -> SmtRegLan
   | .empty => .empty
   | .epsilon => .empty
   | .char d => if c = d then .epsilon else .empty
@@ -471,11 +470,11 @@ def native_re_deriv (c : SmtValue) : native_RegLan -> native_RegLan
   | .star r => native_re_concat (native_re_deriv c r) (.star r)
   | .comp r => native_re_comp (native_re_deriv c r)
 
-def native_re_of_list : List SmtValue -> native_RegLan
+def native_re_of_list : List SmtValue -> SmtRegLan
   | [] => .epsilon
   | c :: cs => native_re_concat (.char c) (native_re_of_list cs)
 
-def native_re_prefix_match_len?.go (r : native_RegLan) :
+def native_re_prefix_match_len?.go (r : SmtRegLan) :
     List SmtValue → Nat → Option Nat
   | [], n =>
       if native_re_nullable r then some n else none
@@ -485,11 +484,11 @@ def native_re_prefix_match_len?.go (r : native_RegLan) :
       else
         native_re_prefix_match_len?.go (native_re_deriv c r) cs (n + 1)
 
-def native_re_prefix_match_len? (r : native_RegLan)
+def native_re_prefix_match_len? (r : SmtRegLan)
     (xs : List SmtValue) : Option Nat :=
   native_re_prefix_match_len?.go r xs 0
 
-def native_re_positive_prefix_match_len? (r : native_RegLan) :
+def native_re_positive_prefix_match_len? (r : SmtRegLan) :
     List SmtValue -> Option Nat
   | [] => none
   | c :: cs =>
@@ -497,7 +496,7 @@ def native_re_positive_prefix_match_len? (r : native_RegLan) :
       | some n => some (n + 1)
       | none => none
 
-def native_re_find_idx_aux (r : native_RegLan) (xs : List SmtValue) (idx : Nat) : Option (Nat × Nat) :=
+def native_re_find_idx_aux (r : SmtRegLan) (xs : List SmtValue) (idx : Nat) : Option (Nat × Nat) :=
   match native_re_prefix_match_len? r xs with
   | some n => some (idx, n)
   | none =>
@@ -505,10 +504,10 @@ def native_re_find_idx_aux (r : native_RegLan) (xs : List SmtValue) (idx : Nat) 
       | [] => none
       | _ :: cs => native_re_find_idx_aux r cs (idx + 1)
 
-def native_re_find_idx_from (r : native_RegLan) (xs : List SmtValue) (start : Nat) : Option (Nat × Nat) :=
+def native_re_find_idx_from (r : SmtRegLan) (xs : List SmtValue) (start : Nat) : Option (Nat × Nat) :=
   native_re_find_idx_aux r (xs.drop start) start
 
-def native_re_find_nonempty_idx_aux (r : native_RegLan) (xs : List SmtValue) (idx : Nat) :
+def native_re_find_nonempty_idx_aux (r : SmtRegLan) (xs : List SmtValue) (idx : Nat) :
     Option (Nat × Nat) :=
   match native_re_positive_prefix_match_len? r xs with
   | some (n + 1) => some (idx, n + 1)
@@ -517,11 +516,11 @@ def native_re_find_nonempty_idx_aux (r : native_RegLan) (xs : List SmtValue) (id
       | [] => none
       | _ :: cs => native_re_find_nonempty_idx_aux r cs (idx + 1)
 
-def native_re_find_nonempty_idx_from (r : native_RegLan) (xs : List SmtValue) (start : Nat) :
+def native_re_find_nonempty_idx_from (r : SmtRegLan) (xs : List SmtValue) (start : Nat) :
     Option (Nat × Nat) :=
   native_re_find_nonempty_idx_aux r (xs.drop start) start
 
-def native_re_replace_all_nonempty_list_aux (fuel : Nat) (r : native_RegLan)
+def native_re_replace_all_nonempty_list_aux (fuel : Nat) (r : SmtRegLan)
     (replacement : List SmtValue) : List SmtValue -> List SmtValue
   | xs =>
       match fuel with
@@ -536,26 +535,26 @@ def native_re_replace_all_nonempty_list_aux (fuel : Nat) (r : native_RegLan)
               | [] => []
               | c :: cs => c :: native_re_replace_all_nonempty_list_aux fuel r replacement cs
 
-def native_re_replace_all_nonempty_list (r : native_RegLan) (replacement xs : List SmtValue) :
+def native_re_replace_all_nonempty_list (r : SmtRegLan) (replacement xs : List SmtValue) :
     List SmtValue :=
   native_re_replace_all_nonempty_list_aux (xs.length + 1) r replacement xs
 
-def native_str_to_re : List SmtValue -> native_RegLan
+def native_str_to_re : List SmtValue -> SmtRegLan
   | s => native_re_of_list s
-def native_re_diff : native_RegLan -> native_RegLan -> native_RegLan
+def native_re_diff : SmtRegLan -> SmtRegLan -> SmtRegLan
   | r₁, r₂ => native_re_inter r₁ (native_re_comp r₂)
-def native_re_range : List SmtValue -> List SmtValue -> native_RegLan
+def native_re_range : List SmtValue -> List SmtValue -> SmtRegLan
   | s₁, s₂ =>
       match s₁, s₂ with
       | [v₁], [v₂] => .range v₁ v₂
       | _, _ => .empty
-def native_str_in_re : List SmtValue -> native_RegLan -> native_Bool
+def native_str_in_re : List SmtValue -> SmtRegLan -> native_Bool
   | s, r =>
       if native_re_str_valid s then
         native_re_nullable <| s.foldl (fun acc c => native_re_deriv c acc) r
       else
         false
-def native_str_indexof_re : List SmtValue -> native_RegLan -> native_Int -> native_Int
+def native_str_indexof_re : List SmtValue -> SmtRegLan -> native_Int -> native_Int
   | s, r, i =>
       if i < 0 then
         -1
@@ -570,7 +569,7 @@ def native_str_indexof_re : List SmtValue -> native_RegLan -> native_Int -> nati
 /-- Searches for the smallest split point of `s` into a prefix matching `r1` and a
 suffix matching `r2`.  `pre` is the prefix consumed so far (i.e. `s` with `suf`
 dropped) and `i` its length; recursion is structural on the remaining suffix. -/
-def native_str_indexof_re_split_aux (r1 r2 : native_RegLan) :
+def native_str_indexof_re_split_aux (r1 r2 : SmtRegLan) :
     List SmtValue -> List SmtValue -> native_Nat -> native_Int
   | pre, suf, i =>
       if native_str_in_re pre r1 && native_str_in_re suf r2 then
@@ -579,26 +578,26 @@ def native_str_indexof_re_split_aux (r1 r2 : native_RegLan) :
         match suf with
         | [] => -1
         | c :: cs => native_str_indexof_re_split_aux r1 r2 (pre ++ [c]) cs (i + 1)
-def native_str_indexof_re_split : List SmtValue -> native_RegLan -> native_RegLan -> native_Int
+def native_str_indexof_re_split : List SmtValue -> SmtRegLan -> SmtRegLan -> native_Int
   | s, r1, r2 =>
       if native_re_str_valid s then
         native_str_indexof_re_split_aux r1 r2 [] s 0
       else
         -1
-def native_str_replace_re : List SmtValue -> native_RegLan -> List SmtValue -> List SmtValue
+def native_str_replace_re : List SmtValue -> SmtRegLan -> List SmtValue -> List SmtValue
   | s, r, replacement =>
       match native_re_find_idx_from r s 0 with
       | some (idx, len) =>
           (s.take idx) ++ replacement ++ (s.drop (idx + len))
       | none => s
-def native_str_replace_re_all : List SmtValue -> native_RegLan -> List SmtValue -> List SmtValue
+def native_str_replace_re_all : List SmtValue -> SmtRegLan -> List SmtValue -> List SmtValue
   | s, r, replacement =>
       native_re_replace_all_nonempty_list r replacement s
 /-- End positions of the nonempty-match scan used by `str.replace_re_all`:
 successive leftmost, shortest, nonempty matches of `r` in `s` at or after
 `pos`.  Each step consumes at least one character, so `s.length + 1` fuel is
 always sufficient. -/
-def native_re_scan_ends_aux (fuel : Nat) (r : native_RegLan) (s : List SmtValue) :
+def native_re_scan_ends_aux (fuel : Nat) (r : SmtRegLan) (s : List SmtValue) :
     Nat -> List Nat
   | pos =>
       match fuel with
@@ -614,18 +613,18 @@ def native_re_scan_ends_aux (fuel : Nat) (r : native_RegLan) (s : List SmtValue)
 matches, and `-1` out of range. The sequence occurrence-index operator is
 evaluated by this operator via a singleton regular expression over its
 pattern. -/
-def native_str_occur_index_re (s : List SmtValue) (r : native_RegLan) (n : native_Int) : native_Int :=
+def native_str_occur_index_re (s : List SmtValue) (r : SmtRegLan) (n : native_Int) : native_Int :=
   let bnds := 0 :: native_re_scan_ends_aux (s.length + 1) r s 0
   if 0 ≤ n ∧ Int.toNat n < bnds.length then
     Int.ofNat (bnds.getD (Int.toNat n) 0)
   else
     -1
 
-def native_re_allchar : native_RegLan := .allchar
-def native_re_none : native_RegLan := .empty
-def native_re_all : native_RegLan := .star .allchar
+def native_re_allchar : SmtRegLan := .allchar
+def native_re_none : SmtRegLan := .empty
+def native_re_all : SmtRegLan := .star .allchar
 
-def native_re_canonical : native_RegLan -> native_Bool
+def native_re_canonical : SmtRegLan -> native_Bool
   | .empty => true
   | .epsilon => true
   | .char c => native_re_elem_valid c

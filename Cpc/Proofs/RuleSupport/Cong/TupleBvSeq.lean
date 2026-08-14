@@ -2230,7 +2230,7 @@ theorem congTypeSpine_seq_char_binop_eq_has_bool_type
     x₁ x₂ rhs
 
 private theorem native_model_str_in_re_eq_local
-    (str : native_String) (r : native_RegLan) :
+    (str : native_String) (r : SmtRegLan) :
     Smtm.native_str_in_re (native_string_to_values str) r =
       native_str_in_re str r := by
   rw [← RuleProofs.native_str_in_re_eq_model]
@@ -2598,7 +2598,7 @@ theorem congTrueSpine_re_opt_eq_true
   · exact hEqBool
   · let X : SmtTerm := __eo_to_smt x
     let Y : SmtTerm := __eo_to_smt y
-    let eps : native_RegLan :=
+    let eps : SmtRegLan :=
       native_str_to_re (native_unpack_seq (SmtSeq.empty SmtType.Char))
     have hTypes :=
       RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
@@ -2672,10 +2672,10 @@ theorem congTypeSpine_re_opt_eq_has_bool_type
       rw [typeof_re_opt_eq, typeof_re_opt_eq, h])
     x rhs
 
-private def nativeReEpsilon : native_RegLan :=
+private def nativeReEpsilon : SmtRegLan :=
   native_str_to_re (native_unpack_string (SmtSeq.empty SmtType.Char))
 
-private def nativeReExpRec : native_Nat -> native_RegLan -> native_RegLan
+private def nativeReExpRec : native_Nat -> SmtRegLan -> SmtRegLan
   | native_nat_zero, _ => nativeReEpsilon
   | native_nat_succ n, r => native_re_concat (nativeReExpRec n r) r
 
@@ -2713,7 +2713,7 @@ private theorem native_str_in_re_re_exp_rec_congr :
           (fun s _hs => ih r r' h s) h
 
 theorem smt_value_rel_re_exp_reglan_congr
-    (n : native_Int) {r r' : native_RegLan}
+    (n : native_Int) {r r' : SmtRegLan}
     (hExt : ∀ str, native_string_valid str = true ->
       native_str_in_re str r = native_str_in_re str r') :
     RuleProofs.smt_value_rel
@@ -2746,7 +2746,7 @@ theorem re_exp_index_arg_of_non_none (idx t : SmtTerm) :
     exact ⟨k, rfl, (re_exp_arg_of_non_none hTerm).2⟩
 
 private def nativeReLoopRec :
-    native_Nat -> native_Int -> native_Int -> native_RegLan -> native_RegLan
+    native_Nat -> native_Int -> native_Int -> SmtRegLan -> SmtRegLan
   | native_nat_zero, lo, _hi, r => nativeReExpRec (native_int_to_nat lo) r
   | native_nat_succ n, lo, hi, r =>
       native_re_union
@@ -2791,7 +2791,7 @@ private theorem native_str_in_re_re_loop_rec_congr :
         native_str_in_re_re_exp_rec_congr (native_int_to_nat hi) r r' h str]
 
 theorem smt_value_rel_re_loop_reglan_congr
-    (lo hi : native_Int) {r r' : native_RegLan}
+    (lo hi : native_Int) {r r' : SmtRegLan}
     (hExt : ∀ str, native_string_valid str = true ->
       native_str_in_re str r = native_str_in_re str r') :
     RuleProofs.smt_value_rel

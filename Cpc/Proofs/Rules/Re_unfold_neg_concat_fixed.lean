@@ -646,7 +646,7 @@ theorem native_unpack_string_length_eq (ss : SmtSeq) :
   simp [native_unpack_string]
 
 private theorem eval_str_in_re_of_typed_seq_reglan
-    (M : SmtModel) (s r : Term) (ss : SmtSeq) (rv : native_RegLan)
+    (M : SmtModel) (s r : Term) (ss : SmtSeq) (rv : SmtRegLan)
     (hTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char)
     (hs : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
     (hr : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv) :

@@ -258,7 +258,7 @@ theorem positive_prefix_str_to_re_cons
           native_seq_prefix_eq, native_veq, hx, hpx]
 
 private theorem replace_aux_fuel_irrel
-    (r : native_RegLan) (replacement xs : List SmtValue)
+    (r : SmtRegLan) (replacement xs : List SmtValue)
     (fuel₁ fuel₂ : Nat)
     (h₁ : xs.length < fuel₁) (h₂ : xs.length < fuel₂) :
     native_re_replace_all_nonempty_list_aux fuel₁ r replacement xs =
@@ -311,7 +311,7 @@ private theorem replace_aux_fuel_irrel
                         rfl
 
 private theorem replace_aux_eq_replace_all_of_length_lt
-    (r : native_RegLan) (replacement xs : List SmtValue) (fuel : Nat)
+    (r : SmtRegLan) (replacement xs : List SmtValue) (fuel : Nat)
     (hFuel : xs.length < fuel) :
     native_re_replace_all_nonempty_list_aux fuel r replacement xs =
       native_re_replace_all_nonempty_list r replacement xs := by

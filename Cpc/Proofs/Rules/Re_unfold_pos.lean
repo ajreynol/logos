@@ -137,7 +137,7 @@ private theorem native_string_valid_append_right
   exact hParts.2
 
 private theorem nativeListInRe_mk_comp_list :
-    ∀ (xs : List native_Char) (r : native_RegLan),
+    ∀ (xs : List native_Char) (r : SmtRegLan),
       native_re_nullable
           (xs.foldl (fun acc c => native_re_deriv c acc)
             (native_re_mk_comp r)) =
@@ -178,7 +178,7 @@ private theorem nativeListInRe_mk_comp_list :
       all_goals exact h
 
 private theorem native_str_in_re_re_comp
-    (s : native_String) (r : native_RegLan) :
+    (s : native_String) (r : SmtRegLan) :
     native_str_in_re s (native_re_comp r) =
       (native_string_valid s && Bool.not (native_str_in_re s r)) := by
   cases hValid : native_string_valid s <;>
@@ -186,7 +186,7 @@ private theorem native_str_in_re_re_comp
       nativeListInRe_mk_comp_list]
 
 private theorem native_str_in_re_re_diff
-    (s : native_String) (r₁ r₂ : native_RegLan) :
+    (s : native_String) (r₁ r₂ : SmtRegLan) :
     native_str_in_re s (native_re_diff r₁ r₂) =
       (native_str_in_re s r₁ && Bool.not (native_str_in_re s r₂)) := by
   rw [native_re_diff, RuleProofs.native_str_in_re_mk_inter,
@@ -273,7 +273,7 @@ private theorem native_str_in_re_str_to_re_true_eq
     simpa [native_str_in_re, nativeListInRe] using h
   exact nativeListInRe_str_to_re_true_eq hParts.2
 
-private theorem nativeListInRe_star_append_intro (r : native_RegLan) :
+private theorem nativeListInRe_star_append_intro (r : SmtRegLan) :
     (xs ys : List native_Char) ->
       nativeListInRe xs r = true ->
       nativeListInRe ys (SmtRegLan.star r) = true ->
@@ -291,7 +291,7 @@ private theorem nativeListInRe_star_append_intro (r : native_RegLan) :
           ⟨cs, ys, rfl, by simpa [nativeListInRe] using rMem, ysStar⟩
 
 private theorem nativeListInRe_star_append_closed :
-    (xs ys : List native_Char) -> (r : native_RegLan) ->
+    (xs ys : List native_Char) -> (r : SmtRegLan) ->
       nativeListInRe xs (SmtRegLan.star r) = true ->
       nativeListInRe ys (SmtRegLan.star r) = true ->
       nativeListInRe (xs ++ ys) (SmtRegLan.star r) = true
@@ -330,7 +330,7 @@ decreasing_by
     omega
 
 private theorem nativeListInRe_raw_star_cons_decomp
-    {c : native_Char} {cs : List native_Char} {r : native_RegLan} :
+    {c : native_Char} {cs : List native_Char} {r : SmtRegLan} :
     nativeListInRe (c :: cs) (SmtRegLan.star r) = true ->
       ∃ xs₁ xs₂,
         xs₁ ++ xs₂ = cs ∧
@@ -349,7 +349,7 @@ private theorem nativeListInRe_raw_star_cons_decomp
   exact ⟨xs₁, xs₂, hAppend, by simpa [nativeListInRe] using hLeft, hRight⟩
 
 private theorem nativeListInRe_raw_star_middle_last :
-    (xs : List native_Char) -> (r : native_RegLan) ->
+    (xs : List native_Char) -> (r : SmtRegLan) ->
       nativeListInRe xs (SmtRegLan.star r) = true ->
       xs ≠ [] ->
       nativeListInRe xs r ≠ true ->
@@ -418,7 +418,7 @@ private theorem native_str_in_re_str_to_re_empty_false_of_ne
     exact False.elim (hNe hs)
 
 private theorem native_str_in_re_re_mult_middle_factor
-    (s : native_String) (r : native_RegLan) :
+    (s : native_String) (r : SmtRegLan) :
     native_str_in_re s (native_re_mult r) = true ->
     s ≠ [] ->
     native_str_in_re s r ≠ true ->
@@ -735,7 +735,7 @@ private theorem native_str_in_re_re_mult_middle_factor
   exact hAll
 
 private theorem native_str_indexof_re_split_aux_spec
-    (r1 r2 : native_RegLan) :
+    (r1 r2 : SmtRegLan) :
     ∀ (pre suf : native_String) (i : native_Nat),
       i = pre.length ->
       (∃ mid right : native_String,
@@ -850,7 +850,7 @@ private theorem native_str_indexof_re_split_aux_spec
 termination_by pre suf _ _ _ => suf.length
 
 private theorem native_str_indexof_re_split_spec
-    (s : native_String) (r1 r2 : native_RegLan) :
+    (s : native_String) (r1 r2 : SmtRegLan) :
     native_str_in_re s (native_re_concat r1 r2) = true ->
       ∃ left right : native_String,
         left ++ right = s ∧
@@ -994,7 +994,7 @@ private theorem eval_str_to_re_of_seq (M : SmtModel)
   simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hs]
 
 private theorem eval_re_diff_of_reglan (M : SmtModel)
-    (r s : Term) (rv sv : native_RegLan) :
+    (r s : Term) (rv sv : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
     __smtx_model_eval M (__eo_to_smt s) = SmtValue.RegLan sv ->
     __smtx_model_eval M (__eo_to_smt (mkReDiff r s)) =
@@ -1006,7 +1006,7 @@ private theorem eval_re_diff_of_reglan (M : SmtModel)
   simp [__smtx_model_eval, __smtx_model_eval_re_diff, hr, hs]
 
 private theorem eval_re_mult_of_reglan (M : SmtModel)
-    (r : Term) (rv : native_RegLan) :
+    (r : Term) (rv : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
     __smtx_model_eval M (__eo_to_smt (mkReMult r)) =
       SmtValue.RegLan (native_re_mult rv) := by
@@ -1047,7 +1047,7 @@ private theorem eval_smt_neg_of_ints (M : SmtModel)
 
 private theorem eval_smt_str_indexof_re_split_of_seq_reglan
     (M : SmtModel) (s r1 r2 : SmtTerm)
-    (ss : SmtSeq) (rv1 rv2 : native_RegLan) :
+    (ss : SmtSeq) (rv1 rv2 : SmtRegLan) :
     __smtx_model_eval M s = SmtValue.Seq ss ->
     __smtx_model_eval M r1 = SmtValue.RegLan rv1 ->
     __smtx_model_eval M r2 = SmtValue.RegLan rv2 ->
@@ -1322,7 +1322,7 @@ private theorem re_unfold_pos_concat_rec_eval_true
     (M : SmtModel) (hM : model_total_typed M)
     (t ro : Term) :
     ∀ (r : Term) (idx : Nat) (curS : SmtTerm) (ss : SmtSeq)
-      (rv : native_RegLan),
+      (rv : SmtRegLan),
       (∀ j : Nat,
         __eo_to_smt (mkAtReUnfoldPosComponent t ro (idxTerm (idx + j))) =
           __eo_to_smt_re_unfold_pos_component curS (__eo_to_smt r) j) ->

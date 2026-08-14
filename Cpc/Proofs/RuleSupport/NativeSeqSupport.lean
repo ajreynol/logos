@@ -38,7 +38,7 @@ matcher.  The following lemmas connect an exact-list regular expression back
 to the structurally recursive list scanner used throughout these proofs. -/
 
 theorem native_re_concat_char_eq
-    (c : SmtValue) (r : native_RegLan)
+    (c : SmtValue) (r : SmtRegLan)
     (hEmpty : r ≠ SmtRegLan.empty) (hEpsilon : r ≠ SmtRegLan.epsilon) :
     native_re_concat (SmtRegLan.char c) r =
       SmtRegLan.concat (SmtRegLan.char c) r := by

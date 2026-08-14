@@ -80,7 +80,7 @@ theorem seq_eval_of_type
 theorem reglan_eval_of_type
     (M : SmtModel) (hM : model_total_typed M) (r : Term)
     (hTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan) :
-    ∃ rv : native_RegLan,
+    ∃ rv : SmtRegLan,
       __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv := by
   have hPres :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt r)) =
@@ -93,7 +93,7 @@ theorem reglan_eval_of_type
   exact reglan_value_canonical hPres
 
 private theorem native_re_prefix_match_go_isSome_iff_exists
-    (r : native_RegLan) :
+    (r : SmtRegLan) :
   ∀ (xs : native_String) (n : Nat),
       native_string_valid xs = true ->
       ((Smtm.native_re_prefix_match_len?.go r xs n).isSome = true ↔
@@ -147,7 +147,7 @@ private theorem native_re_prefix_match_go_isSome_iff_exists
         · simpa [RuleProofs.nativeListInRe] using hNull
 
 private theorem native_re_prefix_match_isSome_iff_exists
-    (r : native_RegLan) (xs : native_String)
+    (r : SmtRegLan) (xs : native_String)
     (hValid : native_string_valid xs = true) :
     (native_re_prefix_match_len? r xs).isSome = true ↔
       ∃ pre : native_String, (∃ post : native_String,
@@ -157,7 +157,7 @@ private theorem native_re_prefix_match_isSome_iff_exists
   exact h hValid
 
 private theorem nativeListInRe_concat_all_true_iff_exists
-    (r : native_RegLan) (xs : native_String)
+    (r : SmtRegLan) (xs : native_String)
     (hValid : native_string_valid xs = true) :
     RuleProofs.nativeListInRe xs (native_re_concat r native_re_all) = true ↔
       ∃ pre : native_String, (∃ post : native_String,
@@ -187,7 +187,7 @@ private theorem nativeListInRe_concat_all_true_iff_exists
         ⟨pre, post, hAppend, hLeft, hRight⟩
 
 private theorem native_re_prefix_match_isSome_iff_concat_all
-    (r : native_RegLan) (xs : native_String)
+    (r : SmtRegLan) (xs : native_String)
     (hValid : native_string_valid xs = true) :
     (native_re_prefix_match_len? r xs).isSome = true ↔
       RuleProofs.nativeListInRe xs (native_re_concat r native_re_all) = true := by
@@ -195,7 +195,7 @@ private theorem native_re_prefix_match_isSome_iff_concat_all
     nativeListInRe_concat_all_true_iff_exists r xs hValid]
 
 private theorem native_str_in_re_concat_all_eq_prefix_isSome
-    (r : native_RegLan) (xs : native_String)
+    (r : SmtRegLan) (xs : native_String)
     (hValid : native_string_valid xs = true) :
     native_str_in_re xs (native_re_concat r native_re_all) =
       (native_re_prefix_match_len? r xs).isSome := by
@@ -215,7 +215,7 @@ def replace_re_search_re (r : Term) : Term :=
       (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
 
 theorem replace_re_search_re_eval
-    (M : SmtModel) (r : Term) (rv : native_RegLan)
+    (M : SmtModel) (r : Term) (rv : SmtRegLan)
     (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
     (hREval : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv) :
     __smtx_typeof (__eo_to_smt (replace_re_search_re r)) = SmtType.RegLan ∧
@@ -243,7 +243,7 @@ theorem replace_re_search_re_eval
 
 theorem str_first_match_rec_smallest_eq_go
     (M : SmtModel) (hM : model_total_typed M) :
-    ∀ (xs : native_String) (r : Term) (rv : native_RegLan) (n : Nat),
+    ∀ (xs : native_String) (r : Term) (rv : SmtRegLan) (n : Nat),
       native_string_valid xs = true ->
       __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
       __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
@@ -419,7 +419,7 @@ theorem str_first_match_rec_smallest_eq_go
 
 theorem str_eval_prefix_condition_eq
     (M : SmtModel) (hM : model_total_typed M)
-    (xs : native_String) (rs : Term) (rv : native_RegLan)
+    (xs : native_String) (rs : Term) (rv : SmtRegLan)
     (hValid : native_string_valid xs = true)
     (hRsTy : __smtx_typeof (__eo_to_smt rs) = SmtType.RegLan)
     (hRsEval :
@@ -587,7 +587,7 @@ private def replace_re_no_match_pair : Term :=
 
 private theorem str_first_match_rec_eq_find_aux
     (M : SmtModel) (hM : model_total_typed M) :
-    ∀ (xs : native_String) (r rs : Term) (rv : native_RegLan) (n : Nat),
+    ∀ (xs : native_String) (r rs : Term) (rv : SmtRegLan) (n : Nat),
       native_string_valid xs = true ->
       __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
       __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
@@ -934,7 +934,7 @@ private theorem replace_re_match_ne_stuck_of_eval_ne_stuck
 
 private theorem str_eval_replace_re_eval_eq
     (M : SmtModel) (hM : model_total_typed M)
-    (str : native_String) (r t side : Term) (rv : native_RegLan) (repl : SmtSeq)
+    (str : native_String) (r t side : Term) (rv : SmtRegLan) (repl : SmtSeq)
     (hSTy : __smtx_typeof (__eo_to_smt (Term.String str)) =
       SmtType.Seq SmtType.Char)
     (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)

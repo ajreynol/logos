@@ -17,14 +17,14 @@ namespace CongSupport
 attribute [local simp] native_streq native_and native_ite
 
 private theorem native_model_str_in_re_eq_local
-    (str : native_String) (r : native_RegLan) :
+    (str : native_String) (r : SmtRegLan) :
     Smtm.native_str_in_re (native_string_to_values str) r =
       native_str_in_re str r := by
   rw [← RuleProofs.native_str_in_re_eq_model]
   rfl
 
 private theorem native_str_ext_of_reglan_rel_local
-    {r r' : native_RegLan}
+    {r r' : SmtRegLan}
     (hRel : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan r')) :
     ∀ str : native_String,
       native_string_valid str = true ->
@@ -155,7 +155,7 @@ theorem congTrueSpine_re_loop_eq_true
 private theorem congTrueSpine_reglan_binop_eq_true
     (M : SmtModel) (hM : model_total_typed M)
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
-    (nativeOp : native_RegLan -> native_RegLan -> native_RegLan)
+    (nativeOp : SmtRegLan -> SmtRegLan -> SmtRegLan)
     (hToSmt :
       ∀ a b,
         __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) a) b) =

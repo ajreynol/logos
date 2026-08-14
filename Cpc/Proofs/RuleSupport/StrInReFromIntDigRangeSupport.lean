@@ -19,7 +19,7 @@ namespace StrInReFromIntDigRangeProof
 abbrev zeroStr : native_String := native_string_lit "0"
 abbrev nineStr : native_String := native_string_lit "9"
 
-abbrev digitRange : native_RegLan :=
+abbrev digitRange : SmtRegLan :=
   native_re_range zeroStr nineStr
 
 abbrev rangeTerm : Term :=

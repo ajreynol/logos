@@ -53,7 +53,7 @@ private theorem valid_drop (xs : native_String) (n : Nat)
   exact h c (List.mem_of_mem_drop hc)
 
 private theorem in_re_cons
-    (c : native_Char) (cs : native_String) (r : native_RegLan)
+    (c : native_Char) (cs : native_String) (r : SmtRegLan)
     (hValid : native_string_valid (c :: cs) = true) :
     native_str_in_re (c :: cs) r =
       native_str_in_re cs (native_re_deriv c r) := by
@@ -72,7 +72,7 @@ private theorem in_re_cons
   simp only [native_string_to_values, List.map_cons] at hValueValid hTailValueValid ⊢
   simp [Smtm.native_str_in_re, hValueValid, hTailValueValid]
 
-private theorem prefix_go_shift (r : native_RegLan) :
+private theorem prefix_go_shift (r : SmtRegLan) :
     ∀ (xs : List SmtValue) (n : Nat),
       native_re_prefix_match_len?.go r xs n =
         (native_re_prefix_match_len? r xs).map (n + ·)
@@ -92,7 +92,7 @@ private theorem prefix_go_shift (r : native_RegLan) :
         cases native_re_prefix_match_len? (native_re_deriv c r) cs <;>
           simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
 
-private theorem prefix_some_shortest (r : native_RegLan) :
+private theorem prefix_some_shortest (r : SmtRegLan) :
     ∀ (xs : native_String) (found : Nat),
       native_string_valid xs = true →
       native_re_prefix_match_len? r xs = some found →
@@ -172,7 +172,7 @@ private theorem prefix_some_shortest (r : native_RegLan) :
                     simpa [native_string_valid, Bool.and_eq_true] using
                       And.intro hParts.1 hTakeValid
 
-private theorem prefix_none_spec (r : native_RegLan) :
+private theorem prefix_none_spec (r : SmtRegLan) :
     ∀ (xs : native_String),
       native_string_valid xs = true →
       native_re_prefix_match_len? r xs = none →
@@ -225,7 +225,7 @@ private theorem prefix_none_spec (r : native_RegLan) :
               simpa [native_string_valid, Bool.and_eq_true] using
                 And.intro hParts.1 hTakeValid
 
-private theorem find_some_shortest (r : native_RegLan) :
+private theorem find_some_shortest (r : SmtRegLan) :
     ∀ (xs : native_String) (idx found len : Nat),
       native_string_valid xs = true →
       native_re_find_idx_aux r xs idx = some (found, len) →
@@ -287,7 +287,7 @@ private theorem find_some_shortest (r : native_RegLan) :
               List.map_take] using hMin k hk
 
 private theorem prefix_ne_zero_of_nonnullable
-    (r : native_RegLan) (xs : List SmtValue) (n : Nat)
+    (r : SmtRegLan) (xs : List SmtValue) (n : Nat)
     (hNull : native_re_nullable r = false)
     (h : native_re_prefix_match_len? r xs = some n) :
     n ≠ 0 := by
@@ -304,7 +304,7 @@ private theorem prefix_ne_zero_of_nonnullable
         simp at h
 
 private theorem positive_prefix_eq_of_nonnullable
-    (r : native_RegLan) (xs : List SmtValue)
+    (r : SmtRegLan) (xs : List SmtValue)
     (hNull : native_re_nullable r = false) :
     native_re_positive_prefix_match_len? r xs =
       native_re_prefix_match_len? r xs := by
@@ -324,7 +324,7 @@ private theorem positive_prefix_eq_of_nonnullable
         simp [hPref, Nat.add_comm]
 
 private theorem find_nonempty_aux_eq_of_nonnullable
-    (r : native_RegLan) (hNull : native_re_nullable r = false) :
+    (r : SmtRegLan) (hNull : native_re_nullable r = false) :
     ∀ (xs : List SmtValue) (idx : Nat),
       native_re_find_nonempty_idx_aux r xs idx =
         native_re_find_idx_aux r xs idx
@@ -349,7 +349,7 @@ private theorem find_nonempty_aux_eq_of_nonnullable
           | succ n => simp [hPref]
 
 private theorem find_nonempty_from_eq_of_nonnullable
-    (r : native_RegLan) (s : native_String) (start : Nat)
+    (r : SmtRegLan) (s : native_String) (start : Nat)
     (hNull : native_re_nullable r = false) :
     native_re_find_nonempty_idx_from r s start =
       native_re_find_idx_from r s start := by
@@ -358,7 +358,7 @@ private theorem find_nonempty_from_eq_of_nonnullable
     ((native_string_to_values s).drop start) start
 
 private theorem prefix_zero_of_nullable
-    (r : native_RegLan) (xs : List SmtValue)
+    (r : SmtRegLan) (xs : List SmtValue)
     (hNull : native_re_nullable r = true) :
     native_re_prefix_match_len? r xs = some 0 := by
   rw [native_re_prefix_match_len?.eq_1]
@@ -367,7 +367,7 @@ private theorem prefix_zero_of_nullable
   | cons c cs => simp [native_re_prefix_match_len?.go.eq_2, hNull]
 
 private theorem find_from_zero_of_nullable
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hNull : native_re_nullable r = true) :
     native_re_find_idx_from r s 0 = some (0, 0) := by
   unfold native_re_find_idx_from
@@ -376,18 +376,18 @@ private theorem find_from_zero_of_nullable
       (List.drop 0 (native_string_to_values s)) hNull]
 
 private theorem occur_index_re_zero
-    (s : native_String) (r : native_RegLan) :
+    (s : native_String) (r : SmtRegLan) :
     native_str_occur_index_re s r 0 = 0 := by
   simp [native_str_occur_index_re]
 
 private theorem occur_index_re_one_of_find
-    (s : native_String) (r : native_RegLan) (idx len : Nat)
+    (s : native_String) (r : SmtRegLan) (idx len : Nat)
     (hFind : native_re_find_nonempty_idx_from r s 0 = some (idx, len)) :
     native_str_occur_index_re s r 1 = Int.ofNat (idx + len) := by
   simp [native_str_occur_index_re, native_re_scan_ends_aux, hFind]
 
 private theorem occur_index_re_one_of_none
-    (s : native_String) (r : native_RegLan)
+    (s : native_String) (r : SmtRegLan)
     (hFind : native_re_find_nonempty_idx_from r s 0 = none) :
     native_str_occur_index_re s r 1 = -1 := by
   simp [native_str_occur_index_re, native_re_scan_ends_aux, hFind]

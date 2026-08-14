@@ -1790,8 +1790,8 @@ theorem typeof_value_model_eval_re_plus
 
 /-- Lemma about `model_eval_re_exp_rec_reglan`. -/
 theorem model_eval_re_exp_rec_reglan :
-    ∀ (n : native_Nat) (r : native_RegLan),
-      ∃ r' : native_RegLan,
+    ∀ (n : native_Nat) (r : SmtRegLan),
+      ∃ r' : SmtRegLan,
         __smtx_model_eval_re_exp_rec n (SmtValue.RegLan r) = SmtValue.RegLan r'
   | native_nat_zero, r =>
       ⟨native_str_to_re (native_unpack_seq (SmtSeq.empty SmtType.Char)), by
@@ -1804,8 +1804,8 @@ theorem model_eval_re_exp_rec_reglan :
 /-- Lemma about `model_eval_re_exp_reglan`. -/
 theorem model_eval_re_exp_reglan
     (n : native_Int)
-    (r : native_RegLan) :
-    ∃ r' : native_RegLan,
+    (r : SmtRegLan) :
+    ∃ r' : SmtRegLan,
       __smtx_model_eval_re_exp (SmtValue.Numeral n) (SmtValue.RegLan r) = SmtValue.RegLan r' := by
   rcases model_eval_re_exp_rec_reglan (native_int_to_nat n) r with ⟨r', hr'⟩
   exact ⟨r', by simpa [__smtx_model_eval_re_exp] using hr'⟩
@@ -1986,8 +1986,8 @@ theorem typeof_value_model_eval_re_diff
 
 /-- Lemma about `model_eval_re_loop_rec_reglan`. -/
 theorem model_eval_re_loop_rec_reglan :
-    ∀ (n : native_Nat) (n1 n2 : native_Int) (r : native_RegLan),
-      ∃ r' : native_RegLan,
+    ∀ (n : native_Nat) (n1 n2 : native_Int) (r : SmtRegLan),
+      ∃ r' : SmtRegLan,
         __smtx_model_eval_re_loop_rec n (SmtValue.Numeral n1) (SmtValue.Numeral n2)
           (SmtValue.RegLan r) = SmtValue.RegLan r'
   | native_nat_zero, n1, n2, r => by

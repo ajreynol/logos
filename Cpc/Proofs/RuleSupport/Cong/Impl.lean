@@ -1887,7 +1887,7 @@ end CongSupport
 
 namespace Smtm
 
-private theorem reglan_rel_model_ext {r r' : native_RegLan}
+private theorem reglan_rel_model_ext {r r' : SmtRegLan}
     (h : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan r')) :
     ∀ s : native_String, native_string_valid s = true ->
       Smtm.native_str_in_re (native_string_to_values s) r =
@@ -1904,7 +1904,7 @@ private theorem reglan_rel_model_ext {r r' : native_RegLan}
   · rw [dif_neg hAll] at hb
     cases hb
 
-private theorem reglan_rel_of_model_ext {r r' : native_RegLan}
+private theorem reglan_rel_of_model_ext {r r' : SmtRegLan}
     (h : ∀ s : native_String, native_string_valid s = true ->
       Smtm.native_str_in_re (native_string_to_values s) r =
         Smtm.native_str_in_re (native_string_to_values s) r') :
@@ -1939,7 +1939,7 @@ theorem smt_value_rel_cases {a b : SmtValue}
     simpa [native_veq] using hveq
 
 /-- Rel-related `RegLan` values agree on membership of valid strings. -/
-theorem reglan_valid_ext_of_rel {r r' : native_RegLan}
+theorem reglan_valid_ext_of_rel {r r' : SmtRegLan}
     (h : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan r')) :
     ∀ s : native_String, native_string_valid s = true ->
       RuleProofs.native_str_in_re s r = RuleProofs.native_str_in_re s r' := by
@@ -1949,14 +1949,14 @@ theorem reglan_valid_ext_of_rel {r r' : native_RegLan}
 
 /-- Rel-related `RegLan` values agree on membership of all strings, valid or
 not (invalid strings are never members). -/
-theorem reglan_ext_of_rel {r r' : native_RegLan}
+theorem reglan_ext_of_rel {r r' : SmtRegLan}
     (h : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan r')) :
     ∀ s : native_String,
       RuleProofs.native_str_in_re s r = RuleProofs.native_str_in_re s r' :=
   native_str_in_re_ext_of_valid_ext (reglan_valid_ext_of_rel h)
 
 /-- Converse: agreement on valid strings makes `RegLan` values rel-related. -/
-theorem smt_value_rel_reglan_of_valid_ext {r r' : native_RegLan}
+theorem smt_value_rel_reglan_of_valid_ext {r r' : SmtRegLan}
     (h : ∀ s : native_String, native_string_valid s = true ->
       RuleProofs.native_str_in_re s r = RuleProofs.native_str_in_re s r') :
     RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan r') := by
@@ -1964,13 +1964,13 @@ theorem smt_value_rel_reglan_of_valid_ext {r r' : native_RegLan}
     intro s hs
     simpa only [← RuleProofs.native_str_in_re_eq_model] using h s hs)
 
-private theorem valid_ext_refl (r : native_RegLan) :
+private theorem valid_ext_refl (r : SmtRegLan) :
     ∀ s : native_String, native_string_valid s = true ->
       RuleProofs.native_str_in_re s r = RuleProofs.native_str_in_re s r :=
   fun _ _ => rfl
 
 private theorem native_re_union_valid_ext_congr
-    {r1 r1' r2 r2' : native_RegLan}
+    {r1 r1' r2 r2' : SmtRegLan}
     (h1 : ∀ s : native_String, native_string_valid s = true ->
       RuleProofs.native_str_in_re s r1 = RuleProofs.native_str_in_re s r1')
     (h2 : ∀ s : native_String, native_string_valid s = true ->
@@ -1990,7 +1990,7 @@ private theorem native_re_union_valid_ext_congr
   rw [native_str_in_re_re_union, native_str_in_re_re_union, h1', h2']
 
 private theorem native_re_inter_valid_ext_congr
-    {r1 r1' r2 r2' : native_RegLan}
+    {r1 r1' r2 r2' : SmtRegLan}
     (h1 : ∀ s : native_String, native_string_valid s = true ->
       RuleProofs.native_str_in_re s r1 = RuleProofs.native_str_in_re s r1')
     (h2 : ∀ s : native_String, native_string_valid s = true ->
@@ -2003,7 +2003,7 @@ private theorem native_re_inter_valid_ext_congr
     RuleProofs.native_str_in_re_re_inter, h1 s hs, h2 s hs]
 
 private theorem native_re_diff_valid_ext_congr
-    {r1 r1' r2 r2' : native_RegLan}
+    {r1 r1' r2 r2' : SmtRegLan}
     (h1 : ∀ s : native_String, native_string_valid s = true ->
       RuleProofs.native_str_in_re s r1 = RuleProofs.native_str_in_re s r1')
     (h2 : ∀ s : native_String, native_string_valid s = true ->
@@ -2023,7 +2023,7 @@ private theorem native_re_diff_valid_ext_congr
   rw [native_str_in_re_re_diff, native_str_in_re_re_diff, h1', h2']
 
 private theorem native_re_comp_valid_ext_congr
-    {r r' : native_RegLan}
+    {r r' : SmtRegLan}
     (h : ∀ s : native_String, native_string_valid s = true ->
       RuleProofs.native_str_in_re s r = RuleProofs.native_str_in_re s r') :
     ∀ s : native_String, native_string_valid s = true ->
@@ -2034,7 +2034,7 @@ private theorem native_re_comp_valid_ext_congr
     RuleProofs.native_str_in_re_re_comp, h s hs]
 
 private theorem native_re_concat_valid_ext_congr
-    {r1 r1' r2 r2' : native_RegLan}
+    {r1 r1' r2 r2' : SmtRegLan}
     (h1 : ∀ s : native_String, native_string_valid s = true ->
       RuleProofs.native_str_in_re s r1 = RuleProofs.native_str_in_re s r1')
     (h2 : ∀ s : native_String, native_string_valid s = true ->
@@ -2045,7 +2045,7 @@ private theorem native_re_concat_valid_ext_congr
   fun s _ => native_str_in_re_re_concat_congr s r1 r1' r2 r2' h1 h2
 
 private theorem native_re_mult_valid_ext_congr
-    {r r' : native_RegLan}
+    {r r' : SmtRegLan}
     (h : ∀ s : native_String, native_string_valid s = true ->
       RuleProofs.native_str_in_re s r = RuleProofs.native_str_in_re s r') :
     ∀ s : native_String, native_string_valid s = true ->

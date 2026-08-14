@@ -368,7 +368,7 @@ private theorem native_veq_true_symm
   simp
 
 private theorem native_re_ext_eq_true_symm
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (h : (native_re_ext_eq r1 r2) = true) :
     (native_re_ext_eq r2 r1) = true := by
   by_cases hExt :

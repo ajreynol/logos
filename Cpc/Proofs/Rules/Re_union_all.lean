@@ -140,7 +140,7 @@ private theorem smtx_typeof_re_union_of_args (x y : Term) :
   simp [hx, hy, native_ite, native_Teq]
 
 private theorem smt_value_rel_union_all
-    (rxs rys : native_RegLan) :
+    (rxs rys : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (native_re_union rxs (native_re_union native_re_all rys)))

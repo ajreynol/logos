@@ -43,13 +43,13 @@ private def replace_re_all_nonempty_re (r : Term) : Term :=
           (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))
       (Term.UOp UserOp.re_all))
 
-private def filteredRe (rv : native_RegLan) : native_RegLan :=
+private def filteredRe (rv : SmtRegLan) : SmtRegLan :=
   native_re_inter rv
     (native_re_inter (native_re_comp (native_str_to_re [])) native_re_all)
 
 /-- Proof-level string view of the model's value-list replacement recursion. -/
 private def native_re_replace_all_nonempty_list_aux :
-    Nat -> native_RegLan -> native_String -> native_String -> native_String
+    Nat -> SmtRegLan -> native_String -> native_String -> native_String
   | 0, _r, _replacement, xs => xs
   | _fuel + 1, _r, _replacement, [] => []
   | fuel + 1, r, replacement, c :: cs =>
@@ -63,16 +63,16 @@ private def native_re_replace_all_nonempty_list_aux :
           c :: native_re_replace_all_nonempty_list_aux fuel r replacement cs
 
 private def native_re_replace_all_nonempty_list
-    (r : native_RegLan) (replacement xs : native_String) : native_String :=
+    (r : SmtRegLan) (replacement xs : native_String) : native_String :=
   native_re_replace_all_nonempty_list_aux (xs.length + 1) r replacement xs
 
 private def native_str_replace_re_all
-    (s : native_String) (r : native_RegLan) (replacement : native_String) :
+    (s : native_String) (r : SmtRegLan) (replacement : native_String) :
     native_String :=
   native_re_replace_all_nonempty_list r replacement s
 
 private theorem native_string_to_values_replace_all_aux :
-    ∀ (fuel : Nat) (r : native_RegLan) (replacement xs : native_String),
+    ∀ (fuel : Nat) (r : SmtRegLan) (replacement xs : native_String),
       native_string_to_values
           (native_re_replace_all_nonempty_list_aux fuel r replacement xs) =
         Smtm.native_re_replace_all_nonempty_list_aux fuel r
@@ -106,7 +106,7 @@ private theorem native_string_to_values_replace_all_aux :
                     (cs.drop n))
 
 private theorem native_string_to_values_str_replace_re_all
-    (s : native_String) (r : native_RegLan) (replacement : native_String) :
+    (s : native_String) (r : SmtRegLan) (replacement : native_String) :
     native_string_to_values (native_str_replace_re_all s r replacement) =
       Smtm.native_str_replace_re_all (native_string_to_values s) r
         (native_string_to_values replacement) := by
@@ -117,7 +117,7 @@ private theorem native_string_to_values_str_replace_re_all
     native_string_to_values_replace_all_aux (s.length + 1) r replacement s
 
 private theorem native_str_replace_re_all_string_valid
-    (s replacement : native_String) (r : native_RegLan)
+    (s replacement : native_String) (r : SmtRegLan)
     (hs : native_string_valid s = true)
     (hreplacement : native_string_valid replacement = true) :
     native_string_valid (native_str_replace_re_all s r replacement) = true := by
@@ -133,7 +133,7 @@ private theorem native_str_replace_re_all_string_valid
     native_string_valid_of_list_typed_char hTyped
 
 private theorem replace_re_all_nonempty_re_eval
-    (M : SmtModel) (r : Term) (rv : native_RegLan)
+    (M : SmtModel) (r : Term) (rv : SmtRegLan)
     (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
     (hREval : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv) :
     __smtx_typeof (__eo_to_smt (replace_re_all_nonempty_re r)) = SmtType.RegLan ∧
@@ -157,7 +157,7 @@ private theorem replace_re_all_nonempty_re_eval
       __smtx_model_eval_re_comp, __smtx_model_eval_str_to_re, hREval,
       RuleProofs.native_unpack_string_pack_string]
 
-private theorem filteredRe_nullable_false (rv : native_RegLan) :
+private theorem filteredRe_nullable_false (rv : SmtRegLan) :
     native_re_nullable (filteredRe rv) = false := by
   unfold filteredRe
   rw [RuleProofs.native_re_nullable_mk_inter]
@@ -166,7 +166,7 @@ private theorem filteredRe_nullable_false (rv : native_RegLan) :
     native_re_of_list, native_re_all, native_re_nullable]
 
 private theorem native_str_in_re_deriv_eq_cons
-    (c : native_Char) (r : native_RegLan) (ys : native_String)
+    (c : native_Char) (r : SmtRegLan) (ys : native_String)
     (hc : native_char_valid c = true)
     (hys : native_string_valid ys = true) :
     native_str_in_re ys (native_re_deriv c r) =
@@ -176,7 +176,7 @@ private theorem native_str_in_re_deriv_eq_cons
   simp [native_str_in_re, RuleProofs.nativeListInRe, hys, hCons]
 
 private theorem native_re_prefix_match_len_go_shift :
-    ∀ (xs : native_String) (r : native_RegLan) (n : Nat),
+    ∀ (xs : native_String) (r : SmtRegLan) (n : Nat),
       native_re_prefix_match_len?.go r xs n =
         (native_re_prefix_match_len? r xs).map (fun m => m + n)
   | [], r, n => by
@@ -203,7 +203,7 @@ private theorem native_re_prefix_match_len_go_shift :
           Nat.add_left_comm]
 
 private theorem native_re_prefix_match_len_eq_positive_of_not_nullable
-    (r : native_RegLan) (xs : native_String)
+    (r : SmtRegLan) (xs : native_String)
     (hNull : native_re_nullable r = false) :
     native_re_prefix_match_len? r xs =
       native_re_positive_prefix_match_len? r xs := by
@@ -227,7 +227,7 @@ private theorem native_re_prefix_match_len_eq_positive_of_not_nullable
         simp [hPref, native_re_positive_prefix_match_len?]
 
 private theorem native_re_positive_prefix_match_len_congr_nonempty
-    (r r' : native_RegLan) :
+    (r r' : SmtRegLan) :
     ∀ xs : native_String,
       native_string_valid xs = true ->
       (∀ ys : native_String,
@@ -262,7 +262,7 @@ private theorem native_re_positive_prefix_match_len_congr_nonempty
         Smtm.native_re_prefix_match_len?.eq_1, hGo]
 
 private theorem native_re_replace_all_nonempty_list_aux_congr_nonempty :
-    ∀ (fuel : Nat) (xs replacement : native_String) (r r' : native_RegLan),
+    ∀ (fuel : Nat) (xs replacement : native_String) (r r' : SmtRegLan),
       native_string_valid xs = true ->
       (∀ ys : native_String,
         ys ≠ [] ->
@@ -300,7 +300,7 @@ private theorem native_re_replace_all_nonempty_list_aux_congr_nonempty :
                   (Smtm.native_string_valid_drop n hcs) hExt
 
 private theorem native_str_replace_re_all_congr_nonempty
-    (s : native_String) (r r' : native_RegLan) (replacement : native_String)
+    (s : native_String) (r r' : SmtRegLan) (replacement : native_String)
     (hValid : native_string_valid s = true)
     (hExt :
       ∀ ys : native_String,
@@ -326,7 +326,7 @@ private theorem native_str_in_re_empty_re_of_nonempty
         RuleProofs.nativeListInRe_empty cs
 
 private theorem native_str_replace_re_all_filtered_eq
-    (s : native_String) (rv : native_RegLan) (replacement : native_String)
+    (s : native_String) (rv : SmtRegLan) (replacement : native_String)
     (hValid : native_string_valid s = true) :
     native_str_replace_re_all s (filteredRe rv) replacement =
       native_str_replace_re_all s rv replacement := by
@@ -339,7 +339,7 @@ private theorem native_str_replace_re_all_filtered_eq
   simp [hValid, hEmpty, hAll]
 
 private theorem native_re_replace_all_nonempty_list_aux_nil
-    (fuel : Nat) (r : native_RegLan) (replacement : native_String) :
+    (fuel : Nat) (r : SmtRegLan) (replacement : native_String) :
     native_re_replace_all_nonempty_list_aux fuel r replacement [] = [] := by
   cases fuel with
   | zero => rfl
@@ -400,7 +400,7 @@ private theorem str_concat_eval_replacement_left
 private theorem str_eval_replace_re_all_rec_properties
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ (xs acc : native_String) (fuel skip : Nat)
-      (r : Term) (rv : native_RegLan) (t : Term) (repl : SmtSeq),
+      (r : Term) (rv : SmtRegLan) (t : Term) (repl : SmtSeq),
       native_string_valid xs = true ->
       native_string_valid acc = true ->
       xs.length + 1 ≤ fuel + skip ->

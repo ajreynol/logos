@@ -16,7 +16,7 @@ private theorem native_string_lit_empty :
   simp [native_string_lit]
 
 private theorem native_re_prefix_match_len?_empty_of_nullable
-    (r : native_RegLan) (xs : native_String)
+    (r : SmtRegLan) (xs : native_String)
     (h : native_re_nullable r = true) :
   native_re_prefix_match_len? r xs = some 0 := by
   rw [native_re_prefix_match_len?.eq_1]
@@ -31,7 +31,7 @@ private theorem native_re_prefix_match_len?_empty_of_nullable
       simp [h]
 
 private theorem native_re_find_idx_from_empty_of_nullable
-    (r : native_RegLan) (xs : native_String) (start : Nat)
+    (r : SmtRegLan) (xs : native_String) (start : Nat)
     (h : native_re_nullable r = true) :
     native_re_find_idx_from r xs start = some (start, 0) := by
   unfold native_re_find_idx_from
@@ -42,7 +42,7 @@ private theorem native_re_find_idx_from_empty_of_nullable
   rw [hPref]
 
 private theorem native_str_indexof_re_empty_hit
-    (s : native_String) (r : native_RegLan) (i : native_Int)
+    (s : native_String) (r : SmtRegLan) (i : native_Int)
     (hEmpty : native_str_in_re (native_string_lit "") r = true)
     (hGe : (-1 : native_Int) <= i)
     (hLe : i <= Int.ofNat s.length)
@@ -167,7 +167,7 @@ private theorem typed_str_indexof_re_emp_re_body
 
 private theorem eval_empty_in_re_eq_true_of_premise
     (M : SmtModel) (r : Term)
-    (rr : native_RegLan)
+    (rr : SmtRegLan)
     (hrEval : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rr)
     (hPrem :
       eo_interprets M

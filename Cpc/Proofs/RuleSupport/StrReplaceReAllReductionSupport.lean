@@ -58,26 +58,26 @@ namespace StrReplaceReAllReduction
 
 /-- The regex with its empty word removed, as used by the generated
 `str_replace_re_all` predicate. -/
-@[expose] def nonemptyRe (r : native_RegLan) : native_RegLan :=
+@[expose] def nonemptyRe (r : SmtRegLan) : SmtRegLan :=
   native_re_diff r SmtRegLan.epsilon
 
 /-- End positions of the nonempty-match scan. -/
-@[expose] def reEnds (r : native_RegLan) (s : native_String) : List Nat :=
+@[expose] def reEnds (r : SmtRegLan) (s : native_String) : List Nat :=
   native_re_scan_ends_aux (s.length + 1) r (native_string_to_values s) 0
 
 /-- Scan boundary zero is `0`; later boundaries are elements of `reEnds`. -/
-@[expose] def reBound (r : native_RegLan) (s : native_String) (n : Nat) : Nat :=
+@[expose] def reBound (r : SmtRegLan) (s : native_String) (n : Nat) : Nat :=
   (0 :: reEnds r s).getD n 0
 
-theorem reBound_zero (r : native_RegLan) (s : native_String) :
+theorem reBound_zero (r : SmtRegLan) (s : native_String) :
     reBound r s 0 = 0 := rfl
 
-theorem reBound_succ (r : native_RegLan) (s : native_String) (n : Nat) :
+theorem reBound_succ (r : SmtRegLan) (s : native_String) (n : Nat) :
     reBound r s (n + 1) = (reEnds r s).getD n 0 := rfl
 
 /-- Evaluation of the occurrence-boundary skolem at a natural count. -/
 theorem occur_index_re_ofNat_eq_reBound
-    (s : native_String) (r : native_RegLan) (n : Nat) :
+    (s : native_String) (r : SmtRegLan) (n : Nat) :
     native_str_occur_index_re (native_string_to_values s) r (Int.ofNat n) =
       if n ≤ (reEnds r s).length then
         Int.ofNat (reBound r s n)
@@ -86,7 +86,7 @@ theorem occur_index_re_ofNat_eq_reBound
   simp [native_str_occur_index_re, reEnds, reBound, Nat.lt_succ_iff]
 
 /-- Removing epsilon really makes the regex non-nullable. -/
-theorem nonemptyRe_nullable_false (r : native_RegLan) :
+theorem nonemptyRe_nullable_false (r : SmtRegLan) :
     native_re_nullable (nonemptyRe r) = false := by
   rw [nonemptyRe, native_re_diff, RuleProofs.native_re_nullable_mk_inter]
   have hComp :
@@ -96,7 +96,7 @@ theorem nonemptyRe_nullable_false (r : native_RegLan) :
 
 /-- On a nonempty valid word, removing epsilon does not change membership. -/
 theorem in_nonemptyRe_iff
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true) (hNe : s ≠ []) :
     RuleProofs.native_str_in_re s (nonemptyRe r) =
       RuleProofs.native_str_in_re s r := by
@@ -112,7 +112,7 @@ theorem in_nonemptyRe_iff
   simp [hValid, hEps]
 
 /-- The empty word is not in `nonemptyRe`. -/
-theorem empty_not_in_nonemptyRe (r : native_RegLan) :
+theorem empty_not_in_nonemptyRe (r : SmtRegLan) :
     RuleProofs.native_str_in_re [] (nonemptyRe r) = false := by
   rw [nonemptyRe, native_re_diff, RuleProofs.native_str_in_re_re_inter,
     RuleProofs.native_str_in_re_re_comp]
@@ -167,7 +167,7 @@ private theorem substr_of_ofNat_bounds_nonneg
   · exact substr_of_ofNat_bounds s j k (by omega) (Nat.pos_of_ne_zero hk0) hk
 
 private theorem in_re_cons
-    (c : native_Char) (cs : native_String) (r : native_RegLan)
+    (c : native_Char) (cs : native_String) (r : SmtRegLan)
     (hValid : native_string_valid (c :: cs) = true) :
     RuleProofs.native_str_in_re (c :: cs) r =
       RuleProofs.native_str_in_re cs (native_re_deriv c r) := by
@@ -178,7 +178,7 @@ private theorem in_re_cons
   simp [RuleProofs.native_str_in_re, RuleProofs.nativeListInRe, hValid, hTail]
 
 /-- A successful prefix search returns the shortest accepted prefix. -/
-private theorem prefix_go_some_minimal (r : native_RegLan) :
+private theorem prefix_go_some_minimal (r : SmtRegLan) :
     ∀ (xs : native_String) (n found : Nat),
       native_string_valid xs = true →
       native_re_prefix_match_len?.go r xs n = some found →
@@ -241,7 +241,7 @@ private theorem prefix_go_some_minimal (r : native_RegLan) :
 
 /-- Semantic specification of a successful positive prefix match. -/
 theorem positive_prefix_some_spec
-    (r : native_RegLan) (xs : native_String) (len : Nat)
+    (r : SmtRegLan) (xs : native_String) (len : Nat)
     (hValid : native_string_valid xs = true)
     (hFind : native_re_positive_prefix_match_len? r xs = some len) :
     0 < len ∧ len ≤ xs.length ∧
@@ -285,7 +285,7 @@ theorem positive_prefix_some_spec
                   simpa [native_string_valid, Bool.and_eq_true] using
                     And.intro hParts.1 hTakeValid
 
-private theorem prefix_go_shift (r : native_RegLan) :
+private theorem prefix_go_shift (r : SmtRegLan) :
     ∀ (xs : List SmtValue) (n : Nat),
       native_re_prefix_match_len?.go r xs n =
         (native_re_prefix_match_len? r xs).map (n + ·)
@@ -306,7 +306,7 @@ private theorem prefix_go_shift (r : native_RegLan) :
           simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
 
 private theorem prefix_match_eq_positive_of_not_nullable
-    (r : native_RegLan) (xs : List SmtValue)
+    (r : SmtRegLan) (xs : List SmtValue)
     (hNull : native_re_nullable r = false) :
     native_re_prefix_match_len? r xs =
       native_re_positive_prefix_match_len? r xs := by
@@ -324,7 +324,7 @@ private theorem prefix_match_eq_positive_of_not_nullable
         simp [Nat.add_comm]
 
 private theorem positive_prefix_congr_nonempty
-    (r r' : native_RegLan) :
+    (r r' : SmtRegLan) :
     ∀ xs : native_String,
       native_string_valid xs = true →
       (∀ ys : native_String,
@@ -369,7 +369,7 @@ private theorem positive_prefix_congr_nonempty
 /-- Prefix matching against `r \ epsilon` is exactly positive prefix matching
 against `r`. -/
 theorem prefix_nonemptyRe_eq_positive
-    (r : native_RegLan) (xs : native_String)
+    (r : SmtRegLan) (xs : native_String)
     (hValid : native_string_valid xs = true) :
     native_re_prefix_match_len? (nonemptyRe r) (native_string_to_values xs) =
       native_re_positive_prefix_match_len? r (native_string_to_values xs) := by
@@ -379,7 +379,7 @@ theorem prefix_nonemptyRe_eq_positive
     (fun ys hNe hys => in_nonemptyRe_iff r ys hys hNe)
 
 private theorem positive_prefix_some_is_succ
-    (r : native_RegLan) (xs : List SmtValue) (n : Nat)
+    (r : SmtRegLan) (xs : List SmtValue) (n : Nat)
     (h : native_re_positive_prefix_match_len? r xs = some n) :
     ∃ k, n = k + 1 := by
   cases xs with
@@ -395,7 +395,7 @@ private theorem positive_prefix_some_is_succ
 /-- Searching with `r \ epsilon` is definitionally the same leftmost search as
 the positive-match search used by replacement-all. -/
 theorem find_nonempty_eq_find_nonemptyRe :
-    ∀ (r : native_RegLan) (xs : native_String) (idx : Nat),
+    ∀ (r : SmtRegLan) (xs : native_String) (idx : Nat),
       native_string_valid xs = true →
       native_re_find_nonempty_idx_aux r (native_string_to_values xs) idx =
         native_re_find_idx_aux (nonemptyRe r) (native_string_to_values xs) idx
@@ -428,7 +428,7 @@ theorem find_nonempty_eq_find_nonemptyRe :
           simp [hPref]
 
 theorem find_nonempty_from_eq_find_nonemptyRe
-    (r : native_RegLan) (xs : native_String) (start : Nat)
+    (r : SmtRegLan) (xs : native_String) (start : Nat)
     (hValid : native_string_valid xs = true) :
     native_re_find_nonempty_idx_from r (native_string_to_values xs) start =
       native_re_find_idx_from (nonemptyRe r) (native_string_to_values xs) start := by
@@ -439,7 +439,7 @@ theorem find_nonempty_from_eq_find_nonemptyRe
 
 /-- A successful nonempty search returns a positive, in-bounds, shortest
 match. -/
-theorem find_nonempty_some_spec (r : native_RegLan) :
+theorem find_nonempty_some_spec (r : SmtRegLan) :
     ∀ (xs : native_String) (base found len : Nat),
       native_string_valid xs = true →
       native_re_find_nonempty_idx_aux r xs base = some (found, len) →
@@ -488,7 +488,7 @@ theorem find_nonempty_some_spec (r : native_RegLan) :
           simpa using hSpec
 
 private theorem find_nonempty_aux_add_offset
-    (r : native_RegLan) :
+    (r : SmtRegLan) :
     ∀ (xs : List SmtValue) (off base : Nat),
       native_re_find_nonempty_idx_aux r xs (base + off) =
         (native_re_find_nonempty_idx_aux r xs off).map
@@ -513,7 +513,7 @@ private theorem find_nonempty_aux_add_offset
 /-- Searching a suffix at offset zero is the shifted form of searching the
 original string from that offset. -/
 theorem find_nonempty_from_shift
-    (r : native_RegLan) (s : List SmtValue) (start : Nat) :
+    (r : SmtRegLan) (s : List SmtValue) (start : Nat) :
     native_re_find_nonempty_idx_from r s start =
       (native_re_find_nonempty_idx_from r (s.drop start) 0).map
         (fun p => (start + p.1, p.2)) := by
@@ -523,7 +523,7 @@ theorem find_nonempty_from_shift
 /-- Once fuel exceeds the remaining string length, regex replacement-all is
 independent of the precise fuel. -/
 theorem replace_aux_fuel_irrel
-    (r : native_RegLan) (replacement xs : List SmtValue)
+    (r : SmtRegLan) (replacement xs : List SmtValue)
     (fuel₁ fuel₂ : Nat)
     (h₁ : xs.length < fuel₁) (h₂ : xs.length < fuel₂) :
     native_re_replace_all_nonempty_list_aux fuel₁ r replacement xs =
@@ -574,7 +574,7 @@ theorem replace_aux_fuel_irrel
                         rfl
 
 theorem replace_aux_eq_replace_all_of_length_lt
-    (r : native_RegLan) (replacement xs : List SmtValue) (fuel : Nat)
+    (r : SmtRegLan) (replacement xs : List SmtValue) (fuel : Nat)
     (hFuel : xs.length < fuel) :
     native_re_replace_all_nonempty_list_aux fuel r replacement xs =
       native_re_replace_all_nonempty_list r replacement xs := by
@@ -583,7 +583,7 @@ theorem replace_aux_eq_replace_all_of_length_lt
     hFuel (Nat.lt_succ_self xs.length)
 
 theorem replace_all_eq_of_find_nonempty_idx_aux
-    (r : native_RegLan) (replacement xs : List SmtValue)
+    (r : SmtRegLan) (replacement xs : List SmtValue)
     (base found len : Nat)
     (hFind :
       native_re_find_nonempty_idx_aux r xs base = some (found, len)) :
@@ -667,7 +667,7 @@ theorem replace_all_eq_of_find_nonempty_idx_aux
 
 /-- Replacement-all on a boundary suffix decomposes at the next scan match. -/
 theorem replace_all_suffix_eq_of_find_nonempty_idx_from
-    (s replacement : native_String) (r : native_RegLan)
+    (s replacement : native_String) (r : SmtRegLan)
     (pos found len : Nat)
     (hFind :
       native_re_find_nonempty_idx_from r s pos = some (found, len)) :
@@ -700,7 +700,7 @@ theorem replace_all_suffix_eq_of_find_nonempty_idx_from
   simp only [native_string_to_values_take, native_string_to_values_drop]
 
 theorem replace_all_eq_self_of_find_nonempty_idx_aux_none
-    (r : native_RegLan) (replacement xs : List SmtValue) (base : Nat)
+    (r : SmtRegLan) (replacement xs : List SmtValue) (base : Nat)
     (hFind : native_re_find_nonempty_idx_aux r xs base = none) :
     native_re_replace_all_nonempty_list r replacement xs = xs := by
   induction xs generalizing base with
@@ -740,7 +740,7 @@ theorem replace_all_eq_self_of_find_nonempty_idx_aux_none
               simp [hPref] at hFind
 
 theorem replace_all_suffix_eq_self_of_find_nonempty_idx_from_none
-    (s replacement : native_String) (r : native_RegLan) (pos : Nat)
+    (s replacement : native_String) (r : SmtRegLan) (pos : Nat)
     (hFind : native_re_find_nonempty_idx_from r s pos = none) :
     native_str_replace_re_all (s.drop pos) r replacement = s.drop pos := by
   change native_re_replace_all_nonempty_list r replacement (s.drop pos) =
@@ -754,7 +754,7 @@ theorem replace_all_suffix_eq_self_of_find_nonempty_idx_from_none
 /-- Replacing each match by a one-character word rather than the empty word
 changes the output length by exactly the number of scan matches. -/
 theorem replace_all_length_diff_eq_scan_ends_aux
-    (s one : native_String) (r : native_RegLan)
+    (s one : native_String) (r : SmtRegLan)
     (hValid : native_string_valid s = true)
     (hOne : one.length = 1) :
     ∀ (fuel pos : Nat), pos ≤ s.length →
@@ -820,7 +820,7 @@ theorem replace_all_length_diff_eq_scan_ends_aux
           omega
 
 theorem replace_all_take_one_length_diff_eq_reEnds
-    (s : native_String) (r : native_RegLan)
+    (s : native_String) (r : SmtRegLan)
     (hValid : native_string_valid s = true) :
     Int.ofNat (native_str_replace_re_all s r (s.take 1)).length -
         Int.ofNat (native_str_replace_re_all s r []).length =
@@ -845,7 +845,7 @@ theorem replace_all_take_one_length_diff_eq_reEnds
 /-- Bounds and strict monotonicity of all endpoints returned by the native
 scan. -/
 private theorem scan_ends_aux_pairwise_bounds
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true) :
     ∀ (fuel pos : Nat), pos ≤ s.length →
       let es := native_re_scan_ends_aux fuel r s pos
@@ -883,21 +883,21 @@ private theorem scan_ends_aux_pairwise_bounds
             · exact ⟨Nat.lt_trans hEndLo (ih.2 e he).1, (ih.2 e he).2⟩
 
 theorem reEnds_pairwise
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true) :
     (reEnds r s).Pairwise (· < ·) := by
   exact (scan_ends_aux_pairwise_bounds r s hValid (s.length + 1) 0
     (Nat.zero_le _)).1
 
 theorem reEnds_mem_bounds
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true) :
     ∀ e ∈ reEnds r s, 0 < e ∧ e ≤ s.length := by
   exact (scan_ends_aux_pairwise_bounds r s hValid (s.length + 1) 0
     (Nat.zero_le _)).2
 
 theorem reBound_mem
-    (r : native_RegLan) (s : native_String) (n : Nat)
+    (r : SmtRegLan) (s : native_String) (n : Nat)
     (h1 : 1 ≤ n) (h2 : n ≤ (reEnds r s).length) :
     reBound r s n ∈ reEnds r s := by
   cases n with
@@ -907,7 +907,7 @@ theorem reBound_mem
       exact StrReplaceAllSupport.getD_mem_of_lt _ n (by omega)
 
 theorem reBound_le_length
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true)
     (n : Nat) (hn : n ≤ (reEnds r s).length) :
     reBound r s n ≤ s.length := by
@@ -918,7 +918,7 @@ theorem reBound_le_length
         (reBound_mem r s (n + 1) (by omega) hn)).2
 
 theorem reBound_strict_mono
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true)
     (n : Nat) (hn : n < (reEnds r s).length) :
     reBound r s n < reBound r s (n + 1) := by
@@ -952,13 +952,13 @@ private theorem pairwise_interval_length
       omega
 
 theorem reEnds_length_le
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true) :
     (reEnds r s).length ≤ s.length := by
   exact pairwise_interval_length 0 s.length (reEnds r s)
     (reEnds_pairwise r s hValid) (reEnds_mem_bounds r s hValid)
 
-private def scanSteps (r : native_RegLan) (s : native_String) :
+private def scanSteps (r : SmtRegLan) (s : native_String) :
     Nat → List Nat → Prop
   | _prev, [] => True
   | prev, e :: es =>
@@ -967,7 +967,7 @@ private def scanSteps (r : native_RegLan) (s : native_String) :
           e = found + len ∧ scanSteps r s e es
 
 private theorem native_scan_has_steps
-    (r : native_RegLan) (s : native_String) :
+    (r : SmtRegLan) (s : native_String) :
     ∀ (fuel pos : Nat),
       scanSteps r s pos (native_re_scan_ends_aux fuel r s pos)
   | 0, pos => by simp [native_re_scan_ends_aux, scanSteps]
@@ -990,7 +990,7 @@ private theorem getD_default_irrel
 /-- If a scan has enough fuel left to run past every endpoint it returned,
 then its final boundary has no further nonempty match. -/
 private theorem native_scan_last_find_none
-    (r : native_RegLan) (s : native_String) :
+    (r : SmtRegLan) (s : native_String) :
     ∀ (fuel pos : Nat),
       let es := native_re_scan_ends_aux fuel r s pos
       es.length < fuel →
@@ -1028,7 +1028,7 @@ private theorem native_scan_last_find_none
           exact hLast
 
 private theorem scanSteps_nth
-    (r : native_RegLan) (s : native_String) :
+    (r : SmtRegLan) (s : native_String) :
     ∀ (es : List Nat) (prev n : Nat),
       scanSteps r s prev es →
       n < es.length →
@@ -1058,7 +1058,7 @@ private theorem scanSteps_nth
 /-- At every in-range occurrence number, the adjacent boundaries are exactly
 the start-search position and end of the next shortest nonempty match. -/
 theorem reBound_step
-    (r : native_RegLan) (s : native_String) (n : Nat)
+    (r : SmtRegLan) (s : native_String) (n : Nat)
     (hn : n < (reEnds r s).length) :
     ∃ found len,
       native_re_find_nonempty_idx_from r s (reBound r s n) =
@@ -1068,7 +1068,7 @@ theorem reBound_step
     (native_scan_has_steps r s (s.length + 1) 0) hn
 
 theorem reBound_last_find_none
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true) :
     native_re_find_nonempty_idx_from r s
         (reBound r s (reEnds r s).length) = none := by
@@ -1080,7 +1080,7 @@ theorem reBound_last_find_none
 /-- At the final boundary, filtered regex search reports no match and
 replacement-all leaves the remaining suffix unchanged. -/
 theorem reBound_last_spec
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true) :
     native_str_indexof_re s (nonemptyRe r)
         (Int.ofNat (reBound r s (reEnds r s).length)) = -1 ∧
@@ -1109,7 +1109,7 @@ theorem reBound_last_spec
 /-- The native `str.indexof_re` on the epsilon-filtered regex returns the
 start of the next scan match at an in-range boundary. -/
 theorem indexof_nonemptyRe_at_reBound
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true)
     (n : Nat) (hn : n < (reEnds r s).length) :
     ∃ len : Nat,
@@ -1195,7 +1195,7 @@ theorem indexof_nonemptyRe_at_reBound
 counterpart of the quantified recurrence in the generated reduction
 predicate. -/
 theorem reBound_step_spec
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true)
     (n : Nat) (hn : n < (reEnds r s).length) :
     ∃ start len : Nat,
@@ -1303,14 +1303,14 @@ theorem reBound_step_spec
     exact hReplace
 
 theorem indexof_nonemptyRe_at_final_reBound_eq_neg_one
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true) :
     native_str_indexof_re s (nonemptyRe r)
         (Int.ofNat (reBound r s (reEnds r s).length)) = -1 :=
   (reBound_last_spec r s hValid).1
 
 theorem replace_all_at_final_reBound_eq_self
-    (r : native_RegLan) (s replacement : native_String)
+    (r : SmtRegLan) (s replacement : native_String)
     (hValid : native_string_valid s = true) :
     native_str_replace_re_all
         (s.drop (reBound r s (reEnds r s).length)) r replacement =
@@ -1353,7 +1353,7 @@ theorem full_substr_eq_drop
 /-- Native value of the generated replacement-result skolem at any
 in-range scan boundary. -/
 theorem replace_all_full_substr_at_reBound
-    (r : native_RegLan) (s replacement : native_String)
+    (r : SmtRegLan) (s replacement : native_String)
     (hValid : native_string_valid s = true)
     (n : Nat) (hn : n ≤ (reEnds r s).length) :
     native_str_replace_re_all
@@ -1368,7 +1368,7 @@ theorem replace_all_full_substr_at_reBound
 /-- The final generated replacement-result value is precisely the untouched
 final suffix. -/
 theorem replace_all_full_substr_at_final_reBound_eq_substr
-    (r : native_RegLan) (s replacement : native_String)
+    (r : SmtRegLan) (s replacement : native_String)
     (hValid : native_string_valid s = true) :
     native_str_replace_re_all
         (native_str_substr s
@@ -1388,7 +1388,7 @@ theorem replace_all_full_substr_at_final_reBound_eq_substr
 nonempty match.  This is the exact shape generated by the terminal EO
 conjunct. -/
 theorem indexof_nonemptyRe_on_final_suffix_eq_neg_one
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true) :
     native_str_indexof_re
         (s.drop (reBound r s (reEnds r s).length))
@@ -1418,7 +1418,7 @@ theorem indexof_nonemptyRe_on_final_suffix_eq_neg_one
 /-- The outer no-match branch of the generated predicate: if the initial
 filtered search fails, replacement-all is the identity. -/
 theorem replace_all_eq_self_of_initial_index_neg_one
-    (r : native_RegLan) (s replacement : native_String)
+    (r : SmtRegLan) (s replacement : native_String)
     (hValid : native_string_valid s = true)
     (hIndex :
       native_str_indexof_re s (nonemptyRe r) 0 = -1) :
@@ -1441,7 +1441,7 @@ theorem replace_all_eq_self_of_initial_index_neg_one
 /-- If the outer no-match guard is false, the scan contains at least one
 match, so the generated count is strictly positive. -/
 theorem reEnds_length_pos_of_initial_index_ne_neg_one
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true)
     (hIndex :
       native_str_indexof_re s (nonemptyRe r) 0 ≠ -1) :
@@ -1456,7 +1456,7 @@ theorem reEnds_length_pos_of_initial_index_ne_neg_one
 
 /-- Named bundle of all native facts consumed by the EO proof of the
 `str_replace_re_all` reduction branch. -/
-structure NativeScanSpec (r : native_RegLan) (s : native_String) : Prop where
+structure NativeScanSpec (r : SmtRegLan) (s : native_String) : Prop where
   count :
     Int.ofNat (native_str_replace_re_all s r (s.take 1)).length -
         Int.ofNat (native_str_replace_re_all s r []).length =
@@ -1495,7 +1495,7 @@ structure NativeScanSpec (r : native_RegLan) (s : native_String) : Prop where
                   (s.drop (reBound r s (n + 1))) r replacement
 
 theorem native_scan_spec
-    (r : native_RegLan) (s : native_String)
+    (r : SmtRegLan) (s : native_String)
     (hValid : native_string_valid s = true) :
     NativeScanSpec r s := by
   refine
