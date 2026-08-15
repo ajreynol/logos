@@ -29,18 +29,6 @@ attribute [local simp] Smtm.__smtx_type_wf_component
       SmtType.FunType A B := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
-@[simp] private theorem guarded_datatype_type_ne_ifun
-    (s : native_String) (d : SmtDatatypeDecl) (A B : SmtType) :
-    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
-      SmtType.FunType A B := by
-  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
-
-@[simp] private theorem guarded_typeref_type_ne_ifun
-    (s : native_String) (A B : SmtType) :
-    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
-      SmtType.FunType A B := by
-  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
-
 @[simp] private theorem guarded_datatype_type_ne_dtc_app
     (s : native_String) (d : SmtDatatypeDecl) (A B : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
@@ -548,27 +536,6 @@ theorem eo_to_smt_type_eq_fun_iff
     simp [eo_to_smt_type_fun, hT1, hT2, hANN, hBNN,
       __smtx_typeof_guard, native_ite, native_Teq]
 
-/-- Characterizes translated EO types equal to an SMT interpreted function type. -/
-theorem eo_to_smt_type_eq_ifun_iff
-    {T : Term} {A B : SmtType} :
-    __eo_to_smt_type T = SmtType.FunType A B ↔
-      ∃ T1 T2,
-        T = Term.Apply (Term.Apply Term.FunType T1) T2 ∧
-        __eo_to_smt_type T1 = A ∧
-        __eo_to_smt_type T2 = B ∧
-        __eo_to_smt_type T1 ≠ SmtType.None ∧
-        __eo_to_smt_type T2 ≠ SmtType.None ∧
-        __smtx_is_finite_type (SmtType.FunType A B) = false := by
-  constructor
-  · intro h
-    rcases eo_to_smt_type_eq_fun_iff.mp h with
-      ⟨T1, T2, hT, hT1, hT2, hT1NN, hT2NN⟩
-    exact ⟨T1, T2, hT, hT1, hT2, hT1NN, hT2NN, by
-      simp [__smtx_is_finite_type, __smtx_type_bounded]⟩
-  · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN, hFin⟩
-    exact eo_to_smt_type_eq_fun_iff.mpr ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
-
-/-- Characterizes `__smtx_typeof_guard` producing a constructor-application type. -/
 private theorem smtx_typeof_guard_eq_dtc_app_iff
     {T U A B : SmtType} :
     __smtx_typeof_guard T U = SmtType.DtcAppType A B ↔
@@ -1033,29 +1000,6 @@ theorem eo_typeof_eq_translated_eo_fun_of_smt_fun
     rw [← hRec, hx]
   exact eo_to_smt_type_eq_fun_iff.mp hTy
 
-/--
-Extracts the EO function-type witness carried by a translated SMT interpreted
-function typing equality.
--/
-theorem eo_typeof_eq_translated_eo_ifun_of_smt_ifun
-    {x : Term} {A B : SmtType}
-    (hRec : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.FunType A B) :
-    ∃ T1 T2,
-      __eo_typeof x = Term.Apply (Term.Apply Term.FunType T1) T2 ∧
-      __eo_to_smt_type T1 = A ∧
-      __eo_to_smt_type T2 = B ∧
-      __eo_to_smt_type T1 ≠ SmtType.None ∧
-      __eo_to_smt_type T2 ≠ SmtType.None ∧
-      __smtx_is_finite_type (SmtType.FunType A B) = false := by
-  have hTy : __eo_to_smt_type (__eo_typeof x) = SmtType.FunType A B := by
-    rw [← hRec, hx]
-  exact eo_to_smt_type_eq_ifun_iff.mp hTy
-
-/--
-Extracts the EO constructor-application-type witness carried by a translated
-SMT constructor-application typing equality.
--/
 theorem eo_typeof_eq_translated_eo_dtc_app_of_smt_dtc_app
     {x : Term} {A B : SmtType}
     (hRec : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
@@ -1368,8 +1312,8 @@ private theorem eo_to_smt_type_unique_of_valid_rec
               SmtType.FunType (__eo_to_smt_type T1) (__eo_to_smt_type T2) := by
           simpa [eo_to_smt_type_fun, hT1NN, hT2NN, __smtx_typeof_guard,
             native_ite, native_Teq, hFinFalse] using hEq.symm
-        rcases eo_to_smt_type_eq_ifun_iff.mp hU with
-          ⟨U1, U2, hU', hU1, hU2, _, _, _⟩
+        rcases eo_to_smt_type_eq_fun_iff.mp hU with
+          ⟨U1, U2, hU', hU1, hU2, _, _⟩
         subst hU'
         have hSub1 : T1 = U1 :=
           eo_to_smt_type_unique_of_valid_rec [] hT1 hU1.symm
@@ -1468,8 +1412,8 @@ private theorem eo_to_smt_type_unique_of_valid_rec
                       SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x) := by
                   simpa [eo_to_smt_type_fun, hyNN, hxNN, __smtx_typeof_guard,
                     native_ite, native_Teq, hFinFalse] using hEq.symm
-                rcases eo_to_smt_type_eq_ifun_iff.mp hU with
-                  ⟨U1, U2, hU', hU1, hU2, _, _, _⟩
+                rcases eo_to_smt_type_eq_fun_iff.mp hU with
+                  ⟨U1, U2, hU', hU1, hU2, _, _⟩
                 subst hU'
                 have hSub1 : y = U1 := eo_to_smt_type_unique_of_valid_rec [] hy hU1.symm
                 have hSub2 : x = U2 := eo_to_smt_type_unique_of_valid_rec [] hx hU2.symm

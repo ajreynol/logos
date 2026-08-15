@@ -115,16 +115,6 @@ theorem fun_type_wf_parts
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
   exact ⟨hAll.1.1, hAll.1.2, hAll.2⟩
 
-/-- Compatibility name for the former native-function well-formedness helper. -/
-theorem ifun_type_wf_parts
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    native_inhabited_type A = true ∧
-      __smtx_type_wf_rec A = true ∧
-        __smtx_type_wf B = true := by
-  exact fun_type_wf_parts h
-
-/-- Extracts semantic inhabitation from a non-`None` guarded type. -/
 theorem smtx_typeof_guard_wf_inhabited_of_non_none
     (T U : SmtType) :
     __smtx_typeof_guard_wf T U ≠ SmtType.None ->
@@ -137,7 +127,7 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
     exact ⟨SmtValue.RegLan native_re_none, rfl⟩
   · by_cases hFun : ∃ A B, T = SmtType.FunType A B
     · rcases hFun with ⟨A, B, rfl⟩
-      exact ⟨SmtValue.Fun native_default_ifun_id A B, by
+      exact ⟨SmtValue.Fun native_default_fun_id A B, by
         simp [__smtx_typeof_value]⟩
     · have hPair :
         native_inhabited_type T = true ∧
@@ -199,7 +189,7 @@ theorem type_inhabited_of_type_wf
     exact ⟨SmtValue.RegLan native_re_none, rfl⟩
   · by_cases hFun : ∃ A B, T = SmtType.FunType A B
     · rcases hFun with ⟨A, B, rfl⟩
-      exact ⟨SmtValue.Fun native_default_ifun_id A B, rfl⟩
+      exact ⟨SmtValue.Fun native_default_fun_id A B, rfl⟩
     · have hInh : native_inhabited_type T = true := by
         cases T <;>
           simp [__smtx_type_wf, __smtx_type_wf_component, native_and] at hWF hReg hFun ⊢
@@ -263,15 +253,6 @@ theorem fun_type_wf_components_of_wf
   exact ⟨type_wf_of_inhabited_and_wf_rec hAll.1.1 hAll.1.2,
     hAll.2⟩
 
-/-- Compatibility name for the former native-function component helper. -/
-theorem ifun_type_wf_components_of_wf
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
-  exact fun_type_wf_components_of_wf h
-
-/-- Extracts recursive well-formedness of the domain and public
-well-formedness of the (possibly functional) codomain. -/
 theorem fun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
@@ -279,15 +260,6 @@ theorem fun_type_wf_rec_components_of_wf
       __smtx_type_wf B = true := by
   exact ⟨(fun_type_wf_parts h).2.1, (fun_type_wf_parts h).2.2⟩
 
-/-- Compatibility name for the former native-function recursive component helper. -/
-theorem ifun_type_wf_rec_components_of_wf
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf B = true := by
-  exact fun_type_wf_rec_components_of_wf h
-
-/-- The domain of a well-formed function type is not `RegLan`. -/
 theorem fun_type_domain_ne_reglan_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
@@ -488,16 +460,10 @@ theorem seq_nth_wrong_map_type_wf
     native_and, hTInh, hRec, hIntInh, hSeqInh,
     hMapInh, hOuterInh]
 
-/-- Shows that the SMT type `fun` is inhabited when its result type is inhabited. -/
-theorem type_inhabited_fun {A B : SmtType} (hB : type_inhabited B) :
-    type_inhabited (SmtType.FunType A B) := by
-  rcases hB with ⟨v, hv⟩
-  exact ⟨SmtValue.Fun native_default_ifun_id A B, rfl⟩
-
-/-- Compatibility name for the former native function handle inhabitation helper. -/
-theorem type_inhabited_ifun (A B : SmtType) :
+/-- Shows that the SMT type `fun` is inhabited. -/
+theorem type_inhabited_fun (A B : SmtType) :
     type_inhabited (SmtType.FunType A B) :=
-  ⟨SmtValue.Fun native_default_ifun_id A B, rfl⟩
+  ⟨SmtValue.Fun native_default_fun_id A B, rfl⟩
 
 /-- Shows that the SMT type `set` is inhabited. -/
 theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
@@ -554,15 +520,8 @@ theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
     __smtx_typeof_map_value, __smtx_map_to_set_type,
     native_and]
 
-/-- Function types have a generated default witness when their codomain does. -/
-theorem native_inhabited_type_fun {A B : SmtType}
-    (hB : native_inhabited_type B = true) :
-    native_inhabited_type (SmtType.FunType A B) = true := by
-  simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value, native_not, native_Teq,
-    native_and]
-
-/-- Compatibility name for the former native-function inhabitation helper. -/
-@[simp] theorem native_inhabited_type_ifun (A B : SmtType) :
+/-- The generated Boolean inhabitation check accepts function types. -/
+@[simp] theorem native_inhabited_type_fun (A B : SmtType) :
     native_inhabited_type (SmtType.FunType A B) = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value, native_not, native_Teq,
     native_and]
