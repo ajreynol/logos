@@ -19,12 +19,12 @@ private theorem native_string_lit_empty :
     native_string_lit "" = ([] : native_String) := by
   simp [native_string_lit]
 
-private def nativeSigmaState (n : Nat) (exact : Bool) (r : native_RegLan) :
-    native_RegLan :=
+private def nativeSigmaState (n : Nat) (exact : Bool) (r : SmtRegLan) :
+    SmtRegLan :=
   native_re_mk_concat (if exact then nativeSigmaExact n else nativeSigmaAtLeast n) r
 
 private theorem nativeListInRe_sigmaState_allchar
-    (xs : List native_Char) (n : Nat) (exact : Bool) (r : native_RegLan) :
+    (xs : List native_Char) (n : Nat) (exact : Bool) (r : SmtRegLan) :
     nativeListInRe xs
         (nativeSigmaState n exact (native_re_concat native_re_allchar r)) =
       nativeListInRe xs (nativeSigmaState (n + 1) exact r) := by
@@ -33,7 +33,7 @@ private theorem nativeListInRe_sigmaState_allchar
       nativeListInRe_mk_concat_assoc]
 
 private theorem nativeListInRe_sigmaState_star
-    (xs : List native_Char) (n : Nat) (exact : Bool) (r : native_RegLan) :
+    (xs : List native_Char) (n : Nat) (exact : Bool) (r : SmtRegLan) :
     nativeListInRe xs
         (nativeSigmaState n exact (native_re_concat (native_re_mult native_re_allchar) r)) =
       nativeListInRe xs (nativeSigmaState n false r) := by
@@ -173,7 +173,7 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
     (hSNe : s ≠ Term.Stuck)
     (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
     (hSSValid : native_string_valid (native_unpack_string ss) = true)
-    (r : Term) (rv : native_RegLan) (n : Nat) (exact : Bool) :
+    (r : Term) (rv : SmtRegLan) (n : Nat) (exact : Bool) :
       __str_mk_str_in_re_sigma_rec s r
           (Term.Numeral (Int.ofNat n)) (Term.Boolean exact) ≠ Term.Stuck ->
       __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
@@ -449,7 +449,7 @@ private theorem str_in_re_args_smt_types_of_has_translation
     (op := SmtTerm.str_in_re) (typeof_str_in_re_eq (__eo_to_smt s) (__eo_to_smt r)) hNN
 
 private theorem smtx_model_eval_str_in_re_eq_sigma_side
-    (M : SmtModel) (s r side : Term) (ss : SmtSeq) (rv : native_RegLan)
+    (M : SmtModel) (s r side : Term) (ss : SmtSeq) (rv : SmtRegLan)
     (hSNe : s ≠ Term.Stuck)
     (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
     (hSSValid : native_string_valid (native_unpack_string ss) = true)

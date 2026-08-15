@@ -28,7 +28,7 @@ private theorem one_le_toNat_lo {lo hi : Int}
 /-! ## Bridging `native_str_in_re` and `nativeListInRe` -/
 
 theorem native_str_in_re_eq_nativeListInRe
-    (s : native_String) (r : native_RegLan)
+    (s : native_String) (r : SmtRegLan)
     (hValid : native_string_valid s = true) :
     native_str_in_re s r = nativeListInRe s r := by
   simp [native_str_in_re, hValid, nativeListInRe]
@@ -44,17 +44,17 @@ theorem nativeListInRe_epsilon_iff (xs : List native_Char) :
         simpa [nativeListInRe, native_re_deriv] using nativeListInRe_empty cs
       simp [hFalse]
 
-theorem native_re_nullable_mk_star (r : native_RegLan) :
+theorem native_re_nullable_mk_star (r : SmtRegLan) :
     native_re_nullable (native_re_mk_star r) = true := by
-  cases r <;> simp [native_re_mk_star, native_re_nullable]
+  cases r <;> simp [native_re_mk_star, native_re_mult, native_re_nullable]
 
-theorem nativeListInRe_nil_mk_star (r : native_RegLan) :
+theorem nativeListInRe_nil_mk_star (r : SmtRegLan) :
     nativeListInRe [] (native_re_mk_star r) = true := by
   simp [nativeListInRe, native_re_nullable_mk_star]
 
 /-- Append-closure of the language of a raw `star`. -/
 theorem nativeListInRe_raw_star_append :
-    (xs ys : List native_Char) -> (r : native_RegLan) ->
+    (xs ys : List native_Char) -> (r : SmtRegLan) ->
       nativeListInRe xs (SmtRegLan.star r) = true ->
       nativeListInRe ys (SmtRegLan.star r) = true ->
       nativeListInRe (xs ++ ys) (SmtRegLan.star r) = true
@@ -93,14 +93,14 @@ decreasing_by
     omega
 
 /-- `native_re_mk_star r` is either `epsilon` or a raw `star`. -/
-theorem mk_star_eq_epsilon_or_star (r : native_RegLan) :
+theorem mk_star_eq_epsilon_or_star (r : SmtRegLan) :
     native_re_mk_star r = SmtRegLan.epsilon ∨
       ∃ r', native_re_mk_star r = SmtRegLan.star r' := by
-  cases r <;> simp [native_re_mk_star]
+  cases r <;> simp [native_re_mk_star, native_re_mult]
 
 /-- Append-closure of the language of `mk_star`. -/
 theorem nativeListInRe_mk_star_append
-    (xs ys : List native_Char) (r : native_RegLan)
+    (xs ys : List native_Char) (r : SmtRegLan)
     (hxs : nativeListInRe xs (native_re_mk_star r) = true)
     (hys : nativeListInRe ys (native_re_mk_star r) = true) :
     nativeListInRe (xs ++ ys) (native_re_mk_star r) = true := by
@@ -117,18 +117,19 @@ theorem nativeListInRe_mk_star_append
 
 /-- The exponentiation of a nullable language is nullable. -/
 theorem nativeReExpRec_nullable
-    (k : native_Nat) (r : native_RegLan)
+    (k : native_Nat) (r : SmtRegLan)
     (hr : native_re_nullable r = true) :
     native_re_nullable (nativeReExpRec k r) = true := by
   induction k with
   | zero => simp [nativeReExpRec, native_re_nullable]
   | succ k ih =>
-      simp [nativeReExpRec, native_re_concat,
-        native_re_nullable_mk_concat, ih, hr]
+      rw [nativeReExpRec]
+      rw [native_re_nullable_mk_concat, ih, hr]
+      rfl
 
 /-- Any power of `mk_star r` is contained in `mk_star r`. -/
 theorem nativeReExpRec_mk_star_subset
-    (k : native_Nat) (r : native_RegLan) (xs : List native_Char)
+    (k : native_Nat) (r : SmtRegLan) (xs : List native_Char)
     (h : nativeListInRe xs (nativeReExpRec k (native_re_mk_star r)) = true) :
     nativeListInRe xs (native_re_mk_star r) = true := by
   induction k generalizing xs with
@@ -155,7 +156,7 @@ theorem nativeReExpRec_mk_star_subset
 
 /-- Positive powers of `mk_star r` contain all of `mk_star r`. -/
 theorem nativeReExpRec_mk_star_pos
-    (k : native_Nat) (r : native_RegLan) (xs : List native_Char)
+    (k : native_Nat) (r : SmtRegLan) (xs : List native_Char)
     (hk : 1 ≤ k)
     (h : nativeListInRe xs (native_re_mk_star r) = true) :
     nativeListInRe xs (nativeReExpRec k (native_re_mk_star r)) = true := by
@@ -180,7 +181,7 @@ theorem nativeReExpRec_mk_star_pos
 
 /-- Every clause of the loop unrolling is contained in `mk_star r`. -/
 theorem nativeReLoopRec_mk_star_subset
-    (k : native_Nat) (lo hi : native_Int) (r : native_RegLan)
+    (k : native_Nat) (lo hi : native_Int) (r : SmtRegLan)
     (xs : List native_Char)
     (h : nativeListInRe xs
         (nativeReLoopRec k lo hi (native_re_mk_star r)) = true) :
@@ -206,7 +207,7 @@ theorem nativeReLoopRec_mk_star_subset
 
 /-- Extensional equality of the loop unrolling and `mk_star r` for `hi ≥ 1`. -/
 theorem nativeReLoopRec_mk_star_ext
-    (lo hi : native_Int) (r : native_RegLan) (xs : List native_Char)
+    (lo hi : native_Int) (r : SmtRegLan) (xs : List native_Char)
     (hhi : 1 ≤ hi) (hlohi : lo ≤ hi) :
     nativeListInRe xs
         (nativeReLoopRec (native_int_to_nat (native_zplus hi (native_zneg lo)))
@@ -234,8 +235,8 @@ theorem nativeReLoopRec_mk_star_ext
               (nativeReExpRec (native_int_to_nat hi)
                 (native_re_mk_star r)) = true :=
           nativeReExpRec_mk_star_pos (native_int_to_nat hi) r xs hHiNat h
-        simp only [nativeReLoopRec, native_re_union, nativeListInRe_mk_union,
-          Bool.or_eq_true]
+        rw [nativeReLoopRec, nativeListInRe_mk_union]
+        simp only [Bool.or_eq_true]
         exact Or.inr hMem
 
 /-! ## Nullable absorption: `Σ* · r₁ · t = Σ* · t` for nullable `r₁`
@@ -246,7 +247,7 @@ holds at the `native_str_in_re` level even though it can fail at the raw
 `nativeListInRe` level (a `comp`-style `r₁` can match invalid characters). -/
 
 theorem native_str_in_re_all_concat_nullable_absorb
-    (r1 t : native_RegLan) (hNull : native_re_nullable r1 = true)
+    (r1 t : SmtRegLan) (hNull : native_re_nullable r1 = true)
     (s : native_String) (hValid : native_string_valid s = true) :
     native_str_in_re s
         (native_re_mk_concat native_re_all (native_re_mk_concat r1 t)) =
@@ -285,7 +286,7 @@ theorem native_str_in_re_all_concat_nullable_absorb
 
 /-- Left variant: `r₁ · (Σ* · t) = Σ* · t` for nullable `r₁` (over valid strings). -/
 theorem native_str_in_re_nullable_concat_all_absorb
-    (r1 t : native_RegLan) (hNull : native_re_nullable r1 = true)
+    (r1 t : SmtRegLan) (hNull : native_re_nullable r1 = true)
     (s : native_String) (hValid : native_string_valid s = true) :
     native_str_in_re s
         (native_re_mk_concat r1 (native_re_mk_concat native_re_all t)) =
@@ -321,18 +322,25 @@ theorem native_str_in_re_nullable_concat_all_absorb
 /-! ## Bridge to `smt_value_rel` -/
 
 /-- Build a `RegLan` semantic equality from extensional membership equality. -/
-theorem smt_value_rel_reglan_of_valid_eq {r s : native_RegLan}
+theorem smt_value_rel_reglan_of_valid_eq {r s : SmtRegLan}
     (h : ∀ str : native_String,
         native_string_valid str = true ->
           native_str_in_re str r = native_str_in_re str s) :
     RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s) := by
+  have hModel : ∀ str : native_String,
+      native_string_valid str = true →
+        Smtm.native_str_in_re (native_string_to_values str) r =
+          Smtm.native_str_in_re (native_string_to_values str) s := by
+    intro str hValid
+    rw [← native_str_in_re_eq_model, ← native_str_in_re_eq_model]
+    exact h str hValid
   change __smtx_model_eval_eq (SmtValue.RegLan r) (SmtValue.RegLan s) =
     SmtValue.Boolean true
-  simpa [__smtx_model_eval_eq] using h
+  simpa [__smtx_model_eval_eq] using hModel
 
 /-- Final extensional equality of `re.loop n m (r*)` and `r*`, packaged for the rule. -/
 theorem re_loop_star_smt_value_rel
-    (lo hi : native_Int) (rv : native_RegLan)
+    (lo hi : native_Int) (rv : SmtRegLan)
     (hhi : 1 ≤ hi) (hlohi : lo ≤ hi) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan

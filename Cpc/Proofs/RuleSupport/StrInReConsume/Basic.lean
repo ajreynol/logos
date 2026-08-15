@@ -1721,7 +1721,7 @@ theorem str_collect_singleton_elim_type_local
     hCollectList hCollectTy
 
 theorem smt_value_rel_of_native_includes_local
-    {r s : native_RegLan}
+    {r s : SmtRegLan}
     (hrs : NativeIncludes r s) (hsr : NativeIncludes s r) :
     RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s) := by
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
@@ -1735,7 +1735,7 @@ theorem smt_value_rel_of_native_includes_local
     exact hrs str hValid hMem
 
 theorem smt_value_rel_re_concat_consume_local
-    {r r' s s' : native_RegLan}
+    {r r' s s' : SmtRegLan}
     (hr : RuleProofs.smt_value_rel (SmtValue.RegLan r)
       (SmtValue.RegLan r'))
     (hs : RuleProofs.smt_value_rel (SmtValue.RegLan s)
@@ -1753,7 +1753,7 @@ theorem smt_value_rel_re_concat_consume_local
         (RuleProofs.smt_value_rel_symm _ _ hs)))
 
 theorem smt_value_rel_re_concat_assoc_consume_local
-    (r s t : native_RegLan) :
+    (r s t : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan (native_re_concat (native_re_concat r s) t))
       (SmtValue.RegLan (native_re_concat r (native_re_concat s t))) := by
@@ -1764,7 +1764,7 @@ theorem smt_value_rel_re_concat_assoc_consume_local
     nativeListInRe_mk_concat_assoc str r s t
 
 theorem native_str_in_re_re_concat_assoc_consume_local
-    (str : native_String) (r s t : native_RegLan) :
+    (str : native_String) (r s t : SmtRegLan) :
     native_str_in_re str (native_re_concat (native_re_concat r s) t) =
       native_str_in_re str (native_re_concat r (native_re_concat s t)) := by
   by_cases hValid : native_string_valid str = true
@@ -1773,7 +1773,7 @@ theorem native_str_in_re_re_concat_assoc_consume_local
   · simp [native_str_in_re, hValid]
 
 theorem native_str_in_re_re_union_right_none_consume_local
-    (str : native_String) (r : native_RegLan) :
+    (str : native_String) (r : SmtRegLan) :
     native_str_in_re str (native_re_union r native_re_none) =
       native_str_in_re str r := by
   have hUnionNoneRel :
@@ -1791,7 +1791,7 @@ theorem native_str_in_re_re_union_right_none_consume_local
     simp [native_str_in_re, hInvalid]
 
 theorem native_str_in_re_re_inter_right_all_consume_local
-    (str : native_String) (r : native_RegLan) :
+    (str : native_String) (r : SmtRegLan) :
     native_str_in_re str (native_re_inter r native_re_all) =
       native_str_in_re str r := by
   have hInterAllRel :
@@ -1810,7 +1810,7 @@ theorem native_str_in_re_re_inter_right_all_consume_local
     simp [native_str_in_re, hInvalid]
 
 theorem native_str_in_re_re_concat_union_right_none_consume_local
-    (str : native_String) (r q : native_RegLan) :
+    (str : native_String) (r q : SmtRegLan) :
     native_str_in_re str
         (native_re_concat (native_re_union r native_re_none) q) =
       native_str_in_re str (native_re_concat r q) := by
@@ -1836,7 +1836,7 @@ theorem native_str_in_re_re_concat_union_right_none_consume_local
     simp [native_str_in_re, hInvalid]
 
 theorem native_str_in_re_re_concat_inter_right_all_consume_local
-    (str : native_String) (r q : native_RegLan) :
+    (str : native_String) (r q : SmtRegLan) :
     native_str_in_re str
         (native_re_concat (native_re_inter r native_re_all) q) =
       native_str_in_re str (native_re_concat r q) := by
@@ -1863,7 +1863,7 @@ theorem native_str_in_re_re_concat_inter_right_all_consume_local
     simp [native_str_in_re, hInvalid]
 
 theorem smt_value_rel_re_mult_consume_local
-    {r r' : native_RegLan}
+    {r r' : SmtRegLan}
     (hr : RuleProofs.smt_value_rel (SmtValue.RegLan r)
       (SmtValue.RegLan r')) :
     RuleProofs.smt_value_rel
@@ -1876,7 +1876,7 @@ theorem smt_value_rel_re_mult_consume_local
         (RuleProofs.smt_value_rel_symm _ _ hr)))
 
 theorem smt_value_rel_re_union_consume_local
-    {r r' s s' : native_RegLan}
+    {r r' s s' : SmtRegLan}
     (hr : RuleProofs.smt_value_rel (SmtValue.RegLan r)
       (SmtValue.RegLan r'))
     (hs : RuleProofs.smt_value_rel (SmtValue.RegLan s)
@@ -1892,7 +1892,7 @@ theorem smt_value_rel_re_union_consume_local
     smt_value_rel_reglan_valid_eq hs hValid]
 
 theorem smt_value_rel_re_inter_consume_local
-    {r r' s s' : native_RegLan}
+    {r r' s s' : SmtRegLan}
     (hr : RuleProofs.smt_value_rel (SmtValue.RegLan r)
       (SmtValue.RegLan r'))
     (hs : RuleProofs.smt_value_rel (SmtValue.RegLan s)
@@ -1939,7 +1939,7 @@ theorem smt_value_rel_str_to_re_of_seq_rel_consume_local
   exact RuleProofs.smt_value_rel_refl _
 
 theorem smt_value_rel_reglan_right_consume_local
-    {v : SmtValue} {r : native_RegLan}
+    {v : SmtValue} {r : SmtRegLan}
     (hRel : RuleProofs.smt_value_rel v (SmtValue.RegLan r)) :
     ∃ r', v = SmtValue.RegLan r' ∧
       RuleProofs.smt_value_rel (SmtValue.RegLan r') (SmtValue.RegLan r) := by
@@ -1954,7 +1954,7 @@ theorem smt_value_rel_reglan_right_consume_local
     simpa using hRel
 
 theorem reConcat_singleton_elim_eval_rel_consume_local
-    (M : SmtModel) (c : Term) (rv : native_RegLan)
+    (M : SmtModel) (c : Term) (rv : SmtRegLan)
     (hList :
       __eo_is_list (Term.UOp UserOp.re_concat) c =
         Term.Boolean true)
@@ -1986,7 +1986,7 @@ theorem eval_str_to_re_reglan_consume_local
   simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hEval]
 
 theorem eval_re_concat_reglan_consume_local
-    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (M : SmtModel) (a b : Term) (ra rb : SmtRegLan)
     (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
     (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb) :
     __smtx_model_eval M
@@ -1999,7 +1999,7 @@ theorem eval_re_concat_reglan_consume_local
   simp [__smtx_model_eval, __smtx_model_eval_re_concat, hAEval, hBEval]
 
 theorem eval_re_union_reglan_consume_local
-    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (M : SmtModel) (a b : Term) (ra rb : SmtRegLan)
     (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
     (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb) :
     __smtx_model_eval M
@@ -2012,7 +2012,7 @@ theorem eval_re_union_reglan_consume_local
   simp [__smtx_model_eval, __smtx_model_eval_re_union, hAEval, hBEval]
 
 theorem eval_re_inter_reglan_consume_local
-    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (M : SmtModel) (a b : Term) (ra rb : SmtRegLan)
     (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
     (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb) :
     __smtx_model_eval M
@@ -2025,7 +2025,7 @@ theorem eval_re_inter_reglan_consume_local
   simp [__smtx_model_eval, __smtx_model_eval_re_inter, hAEval, hBEval]
 
 theorem eval_re_mult_reglan_consume_local
-    (M : SmtModel) (body : Term) (rv : native_RegLan)
+    (M : SmtModel) (body : Term) (rv : SmtRegLan)
     (hEval : __smtx_model_eval M (__eo_to_smt body) = SmtValue.RegLan rv) :
     __smtx_model_eval M
         (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) body)) =
@@ -2118,7 +2118,7 @@ theorem smt_typeof_re_mult_of_reglan_consume_local
 theorem re_unflatten_str_finish_eval_rel_local
     (M : SmtModel) (hM : model_total_typed M)
     (acc unflatB : Term) (accSs : SmtSeq)
-    (rb rb' : native_RegLan)
+    (rb rb' : SmtRegLan)
     (hAccList :
       __eo_is_list (Term.UOp UserOp.str_concat) acc =
         Term.Boolean true)
@@ -2357,7 +2357,7 @@ theorem str_re_consume_model_rel_of_side_false
   exact RuleProofs.smt_value_rel_refl _
 
 theorem native_str_in_re_eq_of_seq_reglan_rel
-    {ss ss' : SmtSeq} {rv rv' : native_RegLan}
+    {ss ss' : SmtSeq} {rv rv' : SmtRegLan}
     (hSeqTy :
       __smtx_typeof_value (SmtValue.Seq ss) =
         SmtType.Seq SmtType.Char)
@@ -2378,7 +2378,7 @@ theorem native_str_in_re_eq_of_seq_reglan_rel
   exact smt_value_rel_reglan_valid_eq hRegRel hValid
 
 theorem native_str_in_re_eq_of_seq_reglan_rel_symm
-    {ss ss' : SmtSeq} {rv rv' : native_RegLan}
+    {ss ss' : SmtSeq} {rv rv' : SmtRegLan}
     (hSeqTy :
       __smtx_typeof_value (SmtValue.Seq ss) =
         SmtType.Seq SmtType.Char)
@@ -2393,7 +2393,7 @@ theorem native_str_in_re_eq_of_seq_reglan_rel_symm
 
 theorem native_str_in_re_eq_of_seq_reglan_rel_chain
     {ss midSs nextSs : SmtSeq}
-    {rv midRv nextRv : native_RegLan}
+    {rv midRv nextRv : SmtRegLan}
     (hSeqTy :
       __smtx_typeof_value (SmtValue.Seq ss) =
         SmtType.Seq SmtType.Char)
@@ -2660,12 +2660,12 @@ theorem str_re_consume_rec_re_all_model_rel
   exact str_re_consume_model_rel_of_side_eq_str_in_re M s
     (Term.UOp UserOp.re_all) side hSideEq
 
-theorem native_re_concat_left_empty_local (r : native_RegLan) :
+theorem native_re_concat_left_empty_local (r : SmtRegLan) :
     native_re_concat (native_str_to_re []) r = r := by
   cases r <;> simp [native_re_concat, native_str_to_re, native_re_of_list,
     native_re_mk_concat]
 
-theorem native_re_concat_right_empty_local (r : native_RegLan) :
+theorem native_re_concat_right_empty_local (r : SmtRegLan) :
     native_re_concat r (native_str_to_re []) = r := by
   cases r <;> simp [native_re_concat, native_str_to_re, native_re_of_list,
     native_re_mk_concat]
@@ -2754,7 +2754,7 @@ theorem smt_value_rel_str_to_re_append_consume_local
       native_str_in_re_str_to_re_self_local (xs ++ ys) hAppendValid
 
 theorem native_str_in_re_str_to_re_concat_left_local
-    (xs ys : native_String) (r : native_RegLan)
+    (xs ys : native_String) (r : SmtRegLan)
     (hXsValid : native_string_valid xs = true) :
     native_str_in_re (xs ++ ys) (native_re_concat (native_str_to_re xs) r) =
       native_str_in_re ys r := by
@@ -2799,7 +2799,7 @@ theorem native_str_in_re_str_to_re_concat_left_local
     · simp [native_str_in_re, hYsValid] at hMem
 
 theorem native_str_in_re_str_to_re_concat_prefix_false_of_tail_no_prefix_local
-    (xs ys : native_String) (r : native_RegLan)
+    (xs ys : native_String) (r : SmtRegLan)
     (hNoTail :
       ∀ pre suf : native_String,
         pre ++ suf = ys ->
@@ -2849,7 +2849,7 @@ theorem native_str_in_re_str_to_re_concat_prefix_false_of_tail_no_prefix_local
   · simp [native_str_in_re, hPreValid]
 
 theorem native_str_in_re_re_concat_false_of_no_split_local
-    (xs : native_String) (r1 r2 : native_RegLan)
+    (xs : native_String) (r1 r2 : SmtRegLan)
     (hNoSplit :
       ∀ pre suf : native_String,
         pre ++ suf = xs ->
@@ -2876,7 +2876,7 @@ theorem native_str_in_re_re_concat_false_of_no_split_local
   · simp [native_str_in_re, hValid]
 
 theorem native_str_in_re_re_concat_append_str_to_re_intro_local
-    (pre suf : native_String) (r1 r2 : native_RegLan)
+    (pre suf : native_String) (r1 r2 : SmtRegLan)
     (hMem : native_str_in_re pre (native_re_concat r1 r2) = true)
     (hSufValid : native_string_valid suf = true) :
     native_str_in_re (pre ++ suf)
@@ -2909,7 +2909,7 @@ theorem native_str_in_re_re_concat_append_str_to_re_intro_local
   · simp [native_str_in_re, hValid] at hAssocLeft
 
 theorem native_str_in_re_re_concat_union_eq_or_local
-    (xs : native_String) (r1 r2 q : native_RegLan) :
+    (xs : native_String) (r1 r2 q : SmtRegLan) :
     native_str_in_re xs (native_re_concat (native_re_union r1 r2) q) =
       (native_str_in_re xs (native_re_concat r1 q) ||
         native_str_in_re xs (native_re_concat r2 q)) := by
@@ -3020,7 +3020,7 @@ theorem native_str_in_re_re_concat_union_eq_or_local
     simp [native_str_in_re, hInvalid]
 
 theorem native_str_in_re_re_concat_union_left_no_prefix_local
-    (xs : native_String) (r1 r2 q : native_RegLan)
+    (xs : native_String) (r1 r2 q : SmtRegLan)
     (hNoLeft :
       ∀ pre suf : native_String,
         pre ++ suf = xs ->
@@ -3035,7 +3035,7 @@ theorem native_str_in_re_re_concat_union_left_no_prefix_local
   rfl
 
 theorem native_str_in_re_re_concat_union_right_no_prefix_local
-    (xs : native_String) (r1 r2 q : native_RegLan)
+    (xs : native_String) (r1 r2 q : SmtRegLan)
     (hNoRight :
       ∀ pre suf : native_String,
         pre ++ suf = xs ->
@@ -3050,7 +3050,7 @@ theorem native_str_in_re_re_concat_union_right_no_prefix_local
   cases native_str_in_re xs (native_re_concat r1 q) <;> rfl
 
 theorem native_str_in_re_re_concat_union_same_residual_local
-    (xs tail : native_String) (r1 r2 q : native_RegLan)
+    (xs tail : native_String) (r1 r2 q : SmtRegLan)
     (hLeft :
       native_str_in_re xs (native_re_concat r1 q) =
         native_str_in_re tail q)
@@ -3063,7 +3063,7 @@ theorem native_str_in_re_re_concat_union_same_residual_local
   cases native_str_in_re tail q <;> rfl
 
 theorem native_str_in_re_re_concat_inter_false_of_left_no_split_local
-    (xs : native_String) (r1 r2 q : native_RegLan)
+    (xs : native_String) (r1 r2 q : SmtRegLan)
     (hNoLeft :
       ∀ pre suf : native_String,
         pre ++ suf = xs ->
@@ -3077,7 +3077,7 @@ theorem native_str_in_re_re_concat_inter_false_of_left_no_split_local
       rfl)
 
 theorem native_str_in_re_re_concat_inter_false_of_right_no_split_local
-    (xs : native_String) (r1 r2 q : native_RegLan)
+    (xs : native_String) (r1 r2 q : SmtRegLan)
     (hNoRight :
       ∀ pre suf : native_String,
         pre ++ suf = xs ->
@@ -3091,7 +3091,7 @@ theorem native_str_in_re_re_concat_inter_false_of_right_no_split_local
       cases native_str_in_re pre r1 <;> rfl)
 
 theorem native_str_in_re_re_concat_inter_same_residual_local
-    (xs tail : native_String) (r1 r2 q : native_RegLan)
+    (xs tail : native_String) (r1 r2 q : SmtRegLan)
     (hTailValid : native_string_valid tail = true)
     (hLeft :
       native_str_in_re xs (native_re_concat r1 q) =
@@ -3206,7 +3206,7 @@ theorem native_str_in_re_re_concat_inter_same_residual_local
     · simp [native_str_in_re, hXsValid] at hLeftTail
 
 theorem nativeListInRe_raw_star_cons_decomp_local
-    {c : native_Char} {cs : List native_Char} {r : native_RegLan} :
+    {c : native_Char} {cs : List native_Char} {r : SmtRegLan} :
     nativeListInRe (c :: cs) (SmtRegLan.star r) = true ->
       ∃ xs1 xs2,
         xs1 ++ xs2 = cs ∧
@@ -3225,13 +3225,13 @@ theorem nativeListInRe_raw_star_cons_decomp_local
   exact ⟨xs1, xs2, hAppend, by simpa [nativeListInRe] using hHead,
     hTail⟩
 
-theorem native_str_in_re_re_mult_empty_local (r : native_RegLan) :
+theorem native_str_in_re_re_mult_empty_local (r : SmtRegLan) :
     native_str_in_re [] (native_re_mult r) = true := by
   cases r <;> simp [native_str_in_re, native_string_valid,
     native_re_mult, native_re_mk_star, native_re_nullable]
 
 theorem nativeListInRe_re_mult_nonempty_prefix_decomp_local
-    (xs : native_String) (r : native_RegLan)
+    (xs : native_String) (r : SmtRegLan)
     (hStar : nativeListInRe xs (native_re_mult r) = true)
     (hNe : xs ≠ []) :
     ∃ pre suf : native_String,
@@ -3317,7 +3317,7 @@ theorem nativeListInRe_re_mult_nonempty_prefix_decomp_local
             by simpa [native_re_mult, native_re_mk_star] using hSuf⟩
 
 theorem nativeListInRe_re_mult_nonempty_prefix_local
-    (xs : native_String) (r : native_RegLan)
+    (xs : native_String) (r : SmtRegLan)
     (hStar : nativeListInRe xs (native_re_mult r) = true)
     (hNe : xs ≠ []) :
     ∃ pre suf : native_String,
@@ -3344,7 +3344,7 @@ theorem StrInReConsumeInternal.native_string_valid_reverse_consume_local
     StrInReConsumeInternal.list_all_reverse_eq_consume_local native_char_valid str
 
 def StrInReConsumeInternal.native_re_reverse_raw_consume_local :
-    native_RegLan -> native_RegLan
+    SmtRegLan -> SmtRegLan
   | SmtRegLan.empty => SmtRegLan.empty
   | SmtRegLan.epsilon => SmtRegLan.epsilon
   | SmtRegLan.char c => SmtRegLan.char c
@@ -3395,7 +3395,7 @@ theorem StrInReConsumeInternal.native_str_in_re_reverse_str_to_re_consume_local
     simp [native_str_in_re, hInvalid, hRevInvalid]
 
 theorem StrInReConsumeInternal.nativeListInRe_raw_star_once_consume_local :
-    (xs : List native_Char) -> (r : native_RegLan) ->
+    (xs : List native_Char) -> (r : SmtRegLan) ->
       nativeListInRe xs r = true ->
         nativeListInRe xs (SmtRegLan.star r) = true
   | [], r, _hMem => by
@@ -3569,7 +3569,7 @@ theorem StrInReConsumeInternal.nativeListInRe_reverse_epsilon_consume_local
     simp [nativeListInRe, native_re_nullable]
 
 theorem StrInReConsumeInternal.nativeListInRe_raw_union_consume_local :
-    ∀ (xs : native_String) (r s : native_RegLan),
+    ∀ (xs : native_String) (r s : SmtRegLan),
       nativeListInRe xs (SmtRegLan.union r s) =
         (nativeListInRe xs r || nativeListInRe xs s)
   | [], r, s => by
@@ -3584,7 +3584,7 @@ theorem StrInReConsumeInternal.nativeListInRe_raw_union_consume_local :
       rw [nativeListInRe_mk_union]
 
 theorem StrInReConsumeInternal.nativeListInRe_raw_inter_consume_local :
-    ∀ (xs : native_String) (r s : native_RegLan),
+    ∀ (xs : native_String) (r s : SmtRegLan),
       nativeListInRe xs (SmtRegLan.inter r s) =
         (nativeListInRe xs r && nativeListInRe xs s)
   | [], r, s => by
@@ -3599,7 +3599,7 @@ theorem StrInReConsumeInternal.nativeListInRe_raw_inter_consume_local :
       rw [nativeListInRe_mk_inter]
 
 theorem StrInReConsumeInternal.nativeListInRe_raw_comp_consume_local :
-    ∀ (xs : native_String) (r : native_RegLan),
+    ∀ (xs : native_String) (r : SmtRegLan),
       nativeListInRe xs (SmtRegLan.comp r) =
         Bool.not (nativeListInRe xs r)
   | [], r => by
@@ -3610,7 +3610,7 @@ theorem StrInReConsumeInternal.nativeListInRe_raw_comp_consume_local :
         StrInReConsumeInternal.nativeListInRe_raw_comp_consume_local cs] using hComp
 
 theorem StrInReConsumeInternal.nativeListInRe_raw_concat_true_iff_exists_append_consume_local :
-    ∀ (xs : native_String) (r s : native_RegLan),
+    ∀ (xs : native_String) (r s : SmtRegLan),
       nativeListInRe xs (SmtRegLan.concat r s) = true ↔
         ∃ xs₁ xs₂ : native_String,
           xs₁ ++ xs₂ = xs ∧
@@ -3721,7 +3721,7 @@ theorem StrInReConsumeInternal.nativeListInRe_raw_concat_true_iff_exists_append_
             simpa [nativeListInRe, native_re_deriv] using hUnion
 
 theorem StrInReConsumeInternal.nativeListInRe_reverse_raw_concat_consume_local
-    (xs : native_String) (r1 r2 rr1 rr2 : native_RegLan)
+    (xs : native_String) (r1 r2 rr1 rr2 : SmtRegLan)
     (h1 : ∀ ys,
       nativeListInRe ys.reverse rr1 = nativeListInRe ys r1)
     (h2 : ∀ ys,
@@ -3775,7 +3775,7 @@ theorem StrInReConsumeInternal.nativeListInRe_reverse_raw_concat_consume_local
         ⟨ys2.reverse, ys1.reverse, hRevAppend, hLeft, hRight⟩
 
 theorem StrInReConsumeInternal.nativeListInRe_raw_star_nonempty_prefix_decomp_consume_local
-    (xs : native_String) (r : native_RegLan)
+    (xs : native_String) (r : SmtRegLan)
     (hStar : nativeListInRe xs (SmtRegLan.star r) = true)
     (hNe : xs ≠ []) :
     ∃ pre suf : native_String,
@@ -3792,7 +3792,7 @@ theorem StrInReConsumeInternal.nativeListInRe_raw_star_nonempty_prefix_decomp_co
         hSuf⟩
 
 theorem StrInReConsumeInternal.nativeListInRe_reverse_raw_star_consume_local
-    (r rr : native_RegLan)
+    (r rr : SmtRegLan)
     (h : ∀ ys,
       nativeListInRe ys.reverse rr = nativeListInRe ys r) :
     ∀ xs : native_String,
@@ -3876,7 +3876,7 @@ decreasing_by
     omega
 
 theorem StrInReConsumeInternal.nativeListInRe_reverse_re_consume_local :
-    ∀ (r : native_RegLan) (xs : native_String),
+    ∀ (r : SmtRegLan) (xs : native_String),
       nativeListInRe xs.reverse (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) =
         nativeListInRe xs r
   | SmtRegLan.empty, xs => by
@@ -3922,7 +3922,7 @@ theorem StrInReConsumeInternal.nativeListInRe_reverse_re_consume_local :
       rw [StrInReConsumeInternal.nativeListInRe_reverse_re_consume_local r xs]
 
 theorem StrInReConsumeInternal.native_str_in_re_reverse_re_consume_local
-    (xs : native_String) (r : native_RegLan) :
+    (xs : native_String) (r : SmtRegLan) :
     native_str_in_re xs.reverse (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) =
       native_str_in_re xs r := by
   by_cases hValid : native_string_valid xs = true
@@ -3954,13 +3954,13 @@ theorem StrInReConsumeInternal.native_str_in_re_reverse_re_consume_local
     simp
 
 theorem StrInReConsumeInternal.native_str_in_re_eq_reverse_re_consume_local
-    (xs : native_String) (r : native_RegLan) :
+    (xs : native_String) (r : SmtRegLan) :
     native_str_in_re xs r =
       native_str_in_re xs.reverse (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) := by
   exact (StrInReConsumeInternal.native_str_in_re_reverse_re_consume_local xs r).symm
 
 theorem StrInReConsumeInternal.smt_value_rel_native_re_reverse_raw_consume_local
-    {r s : native_RegLan}
+    {r s : SmtRegLan}
     (hRel :
       RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s)) :
     RuleProofs.smt_value_rel
@@ -4011,7 +4011,7 @@ theorem StrInReConsumeInternal.smt_value_rel_native_re_reverse_raw_str_to_re_con
   rw [hRaw, hStrToRe]
 
 theorem StrInReConsumeInternal.smt_value_rel_native_re_reverse_raw_reverse_raw_consume_local
-    (r : native_RegLan) :
+    (r : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (StrInReConsumeInternal.native_re_reverse_raw_consume_local
@@ -4040,7 +4040,7 @@ theorem StrInReConsumeInternal.smt_value_rel_native_re_reverse_raw_reverse_raw_c
   rw [hFirst, hSecond]
 
 theorem StrInReConsumeInternal.native_str_in_re_false_of_reverse_re_false_consume_local
-    (xs : native_String) (r : native_RegLan)
+    (xs : native_String) (r : SmtRegLan)
     (hFalse :
       native_str_in_re xs.reverse (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) =
         false) :
@@ -4049,7 +4049,7 @@ theorem StrInReConsumeInternal.native_str_in_re_false_of_reverse_re_false_consum
   exact hFalse
 
 theorem StrInReConsumeInternal.native_str_in_re_reverse_re_false_of_false_consume_local
-    (xs : native_String) (r : native_RegLan)
+    (xs : native_String) (r : SmtRegLan)
     (hFalse : native_str_in_re xs r = false) :
     native_str_in_re xs.reverse (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) =
       false := by
@@ -4057,7 +4057,7 @@ theorem StrInReConsumeInternal.native_str_in_re_reverse_re_false_of_false_consum
   exact hFalse
 
 theorem StrInReConsumeInternal.native_str_in_re_eq_of_unpack_reverse_reglan_rel_consume_local
-    {ss revSs : SmtSeq} {rv revRv : native_RegLan}
+    {ss revSs : SmtSeq} {rv revRv : SmtRegLan}
     (hSeqTy :
       __smtx_typeof_value (SmtValue.Seq ss) =
         SmtType.Seq SmtType.Char)
@@ -4504,7 +4504,7 @@ theorem StrInReConsumeInternal.consume_native_unpack_string_eq_of_seq_rel
 
 theorem StrInReConsumeInternal.consume_intro_word_view_reverse_native_bridge
     (M : SmtModel) (t : Term) (S revS : SmtSeq) (T : SmtType)
-    (rv revRv : native_RegLan)
+    (rv revRv : SmtRegLan)
     (hSeqTy :
       __smtx_typeof_value (SmtValue.Seq S) =
         SmtType.Seq SmtType.Char)
@@ -4529,7 +4529,7 @@ theorem StrInReConsumeInternal.consume_intro_word_view_reverse_native_bridge
 
 theorem StrInReConsumeInternal.consume_intro_word_view_flat_rel_reverse_native_bridge
     (M : SmtModel) (t : Term) (ss flatSs revSs : SmtSeq)
-    (T : SmtType) (rv revRv : native_RegLan)
+    (T : SmtType) (rv revRv : SmtRegLan)
     (hSeqTy :
       __smtx_typeof_value (SmtValue.Seq ss) =
         SmtType.Seq SmtType.Char)
@@ -4570,7 +4570,7 @@ theorem StrInReConsumeInternal.consume_intro_word_view_flat_rel_reverse_native_b
 theorem StrInReConsumeInternal.consume_string_flat_rel_reverse_native_bridge
     (M : SmtModel) (w : native_String)
     (ss flatSs revSs : SmtSeq) (T : SmtType)
-    (rv revRv : native_RegLan)
+    (rv revRv : SmtRegLan)
     (hSeqTy :
       __smtx_typeof_value (SmtValue.Seq ss) =
         SmtType.Seq SmtType.Char)
@@ -4606,7 +4606,7 @@ theorem StrInReConsumeInternal.consume_string_flat_rel_reverse_native_bridge
     hRegRel
 
 theorem native_str_in_re_re_mult_concat_eq_tail_of_no_prefix_local
-    (xs : native_String) (r tail : native_RegLan)
+    (xs : native_String) (r tail : SmtRegLan)
     (hNoPrefix :
       ∀ pre suf : native_String,
         pre ++ suf = xs ->
@@ -4656,7 +4656,7 @@ theorem native_str_in_re_re_mult_concat_eq_tail_of_no_prefix_local
       (native_str_in_re_re_mult_empty_local r) hTail
 
 theorem native_str_in_re_re_mult_concat_nonempty_decomp_local
-    (xs : native_String) (r tail : native_RegLan)
+    (xs : native_String) (r tail : SmtRegLan)
     (hTailFalse : native_str_in_re xs tail = false)
     (hMem :
       native_str_in_re xs
@@ -4724,7 +4724,7 @@ theorem native_str_in_re_re_mult_concat_nonempty_decomp_local
   · simp [native_str_in_re, hValid] at hMem
 
 theorem native_str_in_re_re_mult_concat_cons_local
-    (xs : native_String) (r tail : native_RegLan)
+    (xs : native_String) (r tail : SmtRegLan)
     (hMem :
       native_str_in_re xs
         (native_re_concat r (native_re_concat (native_re_mult r) tail)) =
@@ -4782,7 +4782,7 @@ theorem native_str_in_re_re_mult_concat_cons_local
   · simp [native_str_in_re, hValid] at hMem
 
 theorem native_str_in_re_re_mult_concat_residual_eq_local
-    (xs tailStr : native_String) (r tail : native_RegLan)
+    (xs tailStr : native_String) (r tail : SmtRegLan)
     (hTailFalse : native_str_in_re xs tail = false)
     (hResidual :
       native_str_in_re xs
@@ -4817,7 +4817,7 @@ theorem native_str_in_re_re_mult_concat_residual_eq_local
     exact native_str_in_re_re_mult_concat_cons_local xs r tail hConcat
 
 theorem native_str_in_re_re_mult_residual_eq_nonempty_local
-    (xs tailStr : native_String) (r : native_RegLan)
+    (xs tailStr : native_String) (r : SmtRegLan)
     (hXsNe : xs ≠ [])
     (hResidual :
       native_str_in_re xs (native_re_concat r (native_re_mult r)) =
@@ -4871,7 +4871,7 @@ theorem native_str_in_re_re_mult_residual_eq_nonempty_local
     simpa [native_re_concat_right_empty_local] using hCons
 
 theorem native_str_in_re_re_mult_concat_no_prefix_local
-    (xs : native_String) (r tail : native_RegLan)
+    (xs : native_String) (r tail : SmtRegLan)
     (hTailNoPrefix :
       ∀ pre suf : native_String,
         pre ++ suf = xs ->
@@ -4906,10 +4906,10 @@ theorem native_str_in_re_re_mult_concat_no_prefix_local
   cases hConsMem
 
 theorem native_str_in_re_re_concat_no_prefix_of_residual_local
-    (xs tail : native_String) (r1 r2 : native_RegLan)
+    (xs tail : native_String) (r1 r2 : SmtRegLan)
     (hXsValid : native_string_valid xs = true)
     (hResidual :
-      ∀ q : native_RegLan,
+      ∀ q : SmtRegLan,
         native_str_in_re xs (native_re_concat r1 q) =
           native_str_in_re tail q)
     (hTailNoPrefix :
@@ -4944,7 +4944,7 @@ theorem native_str_in_re_re_concat_no_prefix_of_residual_local
   cases hWholeMem
 
 theorem native_str_in_re_re_concat_no_prefix_of_residual_suffix_local
-    (xs tail : native_String) (r1 r2 : native_RegLan)
+    (xs tail : native_String) (r1 r2 : SmtRegLan)
     (hXsValid : native_string_valid xs = true)
     (hResidual :
       ∀ suf : native_String,
@@ -4985,7 +4985,7 @@ theorem native_str_in_re_re_concat_no_prefix_of_residual_suffix_local
   cases hWholeMem
 
 theorem native_str_in_re_re_union_false_of_both_local
-    (xs : native_String) (r1 r2 : native_RegLan)
+    (xs : native_String) (r1 r2 : SmtRegLan)
     (hLeft : native_str_in_re xs r1 = false)
     (hRight : native_str_in_re xs r2 = false) :
     native_str_in_re xs (native_re_union r1 r2) = false := by
@@ -4993,7 +4993,7 @@ theorem native_str_in_re_re_union_false_of_both_local
   rfl
 
 theorem native_str_in_re_re_union_false_of_no_split_local
-    (xs : native_String) (r1 r2 : native_RegLan)
+    (xs : native_String) (r1 r2 : SmtRegLan)
     (hLeft :
       ∀ pre suf : native_String,
         pre ++ suf = xs ->
@@ -5010,21 +5010,21 @@ theorem native_str_in_re_re_union_false_of_no_split_local
     (hLeft pre suf hAppend) (hRight pre suf hAppend)
 
 theorem native_str_in_re_re_inter_false_of_left_local
-    (xs : native_String) (r1 r2 : native_RegLan)
+    (xs : native_String) (r1 r2 : SmtRegLan)
     (hLeft : native_str_in_re xs r1 = false) :
     native_str_in_re xs (native_re_inter r1 r2) = false := by
   rw [native_str_in_re_re_inter, hLeft]
   rfl
 
 theorem native_str_in_re_re_inter_false_of_right_local
-    (xs : native_String) (r1 r2 : native_RegLan)
+    (xs : native_String) (r1 r2 : SmtRegLan)
     (hRight : native_str_in_re xs r2 = false) :
     native_str_in_re xs (native_re_inter r1 r2) = false := by
   rw [native_str_in_re_re_inter, hRight]
   cases native_str_in_re xs r1 <;> rfl
 
 theorem native_str_in_re_re_inter_false_of_left_no_split_local
-    (xs : native_String) (r1 r2 : native_RegLan)
+    (xs : native_String) (r1 r2 : SmtRegLan)
     (hLeft :
       ∀ pre suf : native_String,
         pre ++ suf = xs ->
@@ -5037,7 +5037,7 @@ theorem native_str_in_re_re_inter_false_of_left_no_split_local
     (hLeft pre suf hAppend)
 
 theorem native_str_in_re_re_inter_false_of_right_no_split_local
-    (xs : native_String) (r1 r2 : native_RegLan)
+    (xs : native_String) (r1 r2 : SmtRegLan)
     (hRight :
       ∀ pre suf : native_String,
         pre ++ suf = xs ->
@@ -5050,7 +5050,7 @@ theorem native_str_in_re_re_inter_false_of_right_no_split_local
     (hRight pre suf hAppend)
 
 theorem native_str_in_re_str_to_re_concat_singleton_false_local
-    (c d : native_Char) (ys : native_String) (r : native_RegLan)
+    (c d : native_Char) (ys : native_String) (r : SmtRegLan)
     (hNe : c ≠ d) :
     native_str_in_re (c :: ys)
         (native_re_concat (native_str_to_re [d]) r) =
@@ -5081,7 +5081,7 @@ theorem native_str_in_re_str_to_re_concat_singleton_false_local
   · simp [native_str_in_re, hValid]
 
 theorem native_str_in_re_str_to_re_concat_singleton_prefix_false_local
-    (c d : native_Char) (ys : native_String) (r : native_RegLan)
+    (c d : native_Char) (ys : native_String) (r : SmtRegLan)
     (hNe : c ≠ d) :
     ∀ pre suf : native_String,
       pre ++ suf = c :: ys ->
@@ -5102,7 +5102,7 @@ theorem native_str_in_re_str_to_re_concat_singleton_prefix_false_local
         r hNe
 
 theorem native_str_in_re_re_allchar_concat_singleton_left_local
-    (c : native_Char) (ys : native_String) (r : native_RegLan)
+    (c : native_Char) (ys : native_String) (r : SmtRegLan)
     (hc : native_char_valid c = true) :
     native_str_in_re (c :: ys) (native_re_concat native_re_allchar r) =
       native_str_in_re ys r := by
@@ -5148,7 +5148,7 @@ theorem native_str_in_re_re_allchar_concat_singleton_left_local
       hAllchar hMem
 
 theorem native_str_in_re_re_allchar_concat_singleton_prefix_false_of_tail_no_prefix_local
-    (c : native_Char) (ys : native_String) (r : native_RegLan)
+    (c : native_Char) (ys : native_String) (r : SmtRegLan)
     (hNoTail :
       ∀ pre suf : native_String,
         pre ++ suf = ys ->
@@ -5224,7 +5224,7 @@ theorem native_str_in_re_re_range_singleton_length_local
               native_re_nullable_fold_empty_false_local, hMatch] at hMem
 
 theorem native_str_in_re_re_range_concat_singleton_left_true_local
-    (c lo hi : native_Char) (ys : native_String) (r : native_RegLan)
+    (c lo hi : native_Char) (ys : native_String) (r : SmtRegLan)
     (hHead :
       native_str_in_re [c] (native_re_range [lo] [hi]) = true) :
     native_str_in_re (c :: ys)
@@ -5272,7 +5272,7 @@ theorem native_str_in_re_re_range_concat_singleton_left_true_local
       (native_re_range [lo] [hi]) r hHead hMem
 
 theorem native_str_in_re_re_range_concat_singleton_prefix_false_of_tail_no_prefix_local
-    (c lo hi : native_Char) (ys : native_String) (r : native_RegLan)
+    (c lo hi : native_Char) (ys : native_String) (r : SmtRegLan)
     (hNoTail :
       ∀ pre suf : native_String,
         pre ++ suf = ys ->
@@ -5328,7 +5328,7 @@ theorem native_str_in_re_re_range_concat_singleton_prefix_false_of_tail_no_prefi
   · simp [native_str_in_re, hPreValid]
 
 theorem native_str_in_re_re_range_concat_singleton_left_false_local
-    (c lo hi : native_Char) (ys : native_String) (r : native_RegLan)
+    (c lo hi : native_Char) (ys : native_String) (r : SmtRegLan)
     (hHead :
       native_str_in_re [c] (native_re_range [lo] [hi]) = false) :
     native_str_in_re (c :: ys)
@@ -5370,7 +5370,7 @@ theorem native_str_in_re_re_range_concat_singleton_left_false_local
   · simp [native_str_in_re, hValid]
 
 theorem native_str_in_re_re_range_concat_singleton_left_prefix_false_local
-    (c lo hi : native_Char) (ys : native_String) (r : native_RegLan)
+    (c lo hi : native_Char) (ys : native_String) (r : SmtRegLan)
     (hHead :
       native_str_in_re [c] (native_re_range [lo] [hi]) = false) :
     ∀ pre suf : native_String,
@@ -6280,7 +6280,7 @@ theorem str_nary_intro_str_to_re_rel_local
 
 theorem re_unflatten_false_re_mult_eval_rel_step_local
     (M : SmtModel) (hM : model_total_typed M)
-    (body : Term) (rv flatRv : native_RegLan)
+    (body : Term) (rv flatRv : SmtRegLan)
     (hBodyEval :
       __smtx_model_eval M (__eo_to_smt body) =
         SmtValue.RegLan rv)
@@ -6372,7 +6372,7 @@ theorem re_unflatten_false_re_mult_eval_rel_step_local
 
 theorem re_unflatten_false_re_inter_eval_rel_step_local
     (M : SmtModel) (hM : model_total_typed M)
-    (c1 c2 : Term) (rv1 rv2 flatRv1 flatRv2 : native_RegLan)
+    (c1 c2 : Term) (rv1 rv2 flatRv1 flatRv2 : SmtRegLan)
     (hC1Eval :
       __smtx_model_eval M (__eo_to_smt c1) =
         SmtValue.RegLan rv1)
@@ -6511,7 +6511,7 @@ theorem re_unflatten_false_re_inter_eval_rel_step_local
 
 theorem re_unflatten_false_re_union_eval_rel_step_local
     (M : SmtModel) (hM : model_total_typed M)
-    (c1 c2 : Term) (rv1 rv2 flatRv1 flatRv2 : native_RegLan)
+    (c1 c2 : Term) (rv1 rv2 flatRv1 flatRv2 : SmtRegLan)
     (hC1Eval :
       __smtx_model_eval M (__eo_to_smt c1) =
         SmtValue.RegLan rv1)
@@ -6651,7 +6651,7 @@ theorem re_unflatten_false_re_union_eval_rel_step_local
 theorem re_unflatten_str_false_str_to_re_eval_rel_step_local
     (M : SmtModel)
     (acc s b : Term) (accSs ss newSs : SmtSeq)
-    (rb recRv : native_RegLan)
+    (rb recRv : SmtRegLan)
     (hAccNe : acc ≠ Term.Stuck)
     (hNewAccEval :
       __smtx_model_eval M
@@ -6776,7 +6776,7 @@ theorem re_unflatten_str_false_str_to_re_eval_rel_step_local
 
 theorem re_unflatten_str_false_default_eval_rel_step_local
     (M : SmtModel) (hM : model_total_typed M)
-    (acc b : Term) (accSs : SmtSeq) (rb rb' : native_RegLan)
+    (acc b : Term) (accSs : SmtSeq) (rb rb' : SmtRegLan)
     (hAccNe : acc ≠ Term.Stuck)
     (hBNe : b ≠ Term.Stuck)
     (hNotStrPrefix :
@@ -6915,7 +6915,7 @@ theorem re_unflatten_str_false_default_eval_rel_step_local
 
 theorem re_unflatten_false_true_re_concat_eval_rel_step_local
     (M : SmtModel) (hM : model_total_typed M)
-    (a b : Term) (ra rb flatRa flatRb : native_RegLan)
+    (a b : Term) (ra rb flatRa flatRb : SmtRegLan)
     (hANotStrToRe :
       ∀ s : Term,
         a = Term.Apply (Term.UOp UserOp.str_to_re) s -> False)
@@ -7044,7 +7044,7 @@ theorem re_unflatten_false_true_re_concat_eval_rel_step_local
 
 theorem re_unflatten_false_true_str_to_re_eval_rel_step_local
     (M : SmtModel)
-    (s b : Term) (ss introSs : SmtSeq) (rb outRv : native_RegLan)
+    (s b : Term) (ss introSs : SmtSeq) (rb outRv : SmtRegLan)
     (hIntroStrRel :
       RuleProofs.smt_value_rel
         (SmtValue.RegLan
@@ -7111,7 +7111,7 @@ theorem re_unflatten_false_true_str_to_re_eval_rel_step_local
     RuleProofs.smt_value_rel_trans _ _ _ hStrRel hTailRel⟩
 
 theorem re_unflatten_false_true_default_eval_rel_step_local
-    (M : SmtModel) (r : Term) (rv : native_RegLan)
+    (M : SmtModel) (r : Term) (rv : SmtRegLan)
     (hRNe : r ≠ Term.Stuck)
     (hNotStrPrefix :
       ∀ (s tail : Term),
@@ -7148,7 +7148,7 @@ theorem re_unflatten_false_true_default_eval_rel_step_local
     RuleProofs.smt_value_rel_refl _⟩
 
 theorem re_unflatten_false_false_default_eval_rel_step_local
-    (M : SmtModel) (r : Term) (rv : native_RegLan)
+    (M : SmtModel) (r : Term) (rv : SmtRegLan)
     (hRNe : r ≠ Term.Stuck)
     (hNotMult :
       ∀ body : Term,
@@ -7403,7 +7403,7 @@ theorem re_unflatten_str_false_default_children_ne_stuck_local
 
 theorem re_unflatten_str_false_default_eval_rel_from_true_local
     (M : SmtModel) (hM : model_total_typed M)
-    (acc b : Term) (accSs : SmtSeq) (rb : native_RegLan)
+    (acc b : Term) (accSs : SmtSeq) (rb : SmtRegLan)
     (hTrue :
       ∀ rb',
         __smtx_typeof (__eo_to_smt b) = SmtType.RegLan ->
@@ -7501,7 +7501,7 @@ theorem smt_eval_seq_char_of_smt_type_seq_char_consume_local
 
 theorem eval_re_concat_parts_consume_local
     (M : SmtModel) (hM : model_total_typed M)
-    (a b : Term) (rv : native_RegLan)
+    (a b : Term) (rv : SmtRegLan)
     (hTy :
       __smtx_typeof
           (__eo_to_smt
@@ -7548,7 +7548,7 @@ theorem eval_re_concat_parts_consume_local
 
 theorem eval_re_union_parts_consume_local
     (M : SmtModel) (hM : model_total_typed M)
-    (a b : Term) (rv : native_RegLan)
+    (a b : Term) (rv : SmtRegLan)
     (hTy :
       __smtx_typeof
           (__eo_to_smt
@@ -7595,7 +7595,7 @@ theorem eval_re_union_parts_consume_local
 
 theorem eval_re_inter_parts_consume_local
     (M : SmtModel) (hM : model_total_typed M)
-    (a b : Term) (rv : native_RegLan)
+    (a b : Term) (rv : SmtRegLan)
     (hTy :
       __smtx_typeof
           (__eo_to_smt
@@ -8944,7 +8944,7 @@ decreasing_by
 
 theorem re_unflatten_false_true_eval_rel_consume_local
     (M : SmtModel) (hM : model_total_typed M)
-    (r : Term) (rv : native_RegLan)
+    (r : Term) (rv : SmtRegLan)
     (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
     (hREval :
       __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv)
@@ -8966,7 +8966,7 @@ theorem re_unflatten_false_true_eval_rel_consume_local
 
 theorem re_unflatten_singleton_elim_eval_rel_consume_local
     (M : SmtModel) (hM : model_total_typed M)
-    (r : Term) (rv : native_RegLan)
+    (r : Term) (rv : SmtRegLan)
     (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
     (hREval :
       __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv)

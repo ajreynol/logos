@@ -177,26 +177,6 @@ theorem natListOfKey_natListKey (xs : List Nat) :
   | nil => rfl
   | cons x xs ih => simp [natListKey, natListOfKey, natKey, ih]
 
-@[expose] def regLanOfKey : Key → Option SmtRegLan
-  | .pair (.atom 0) (.atom 0) => some .empty
-  | .pair (.atom 1) (.atom 0) => some .epsilon
-  | .pair (.atom 2) (.pair (.atom c) (.atom 0)) => some (.char c)
-  | .pair (.atom 3) (.pair (.atom lo) (.pair (.atom hi) (.atom 0))) => some (.range lo hi)
-  | .pair (.atom 4) (.atom 0) => some .allchar
-  | .pair (.atom 5) (.pair kr₁ (.pair kr₂ (.atom 0))) =>
-      return .concat (← regLanOfKey kr₁) (← regLanOfKey kr₂)
-  | .pair (.atom 6) (.pair kr₁ (.pair kr₂ (.atom 0))) =>
-      return .union (← regLanOfKey kr₁) (← regLanOfKey kr₂)
-  | .pair (.atom 7) (.pair kr₁ (.pair kr₂ (.atom 0))) =>
-      return .inter (← regLanOfKey kr₁) (← regLanOfKey kr₂)
-  | .pair (.atom 8) (.pair kr (.atom 0)) => return .star (← regLanOfKey kr)
-  | .pair (.atom 9) (.pair kr (.atom 0)) => return .comp (← regLanOfKey kr)
-  | _ => none
-
-theorem regLanOfKey_regLanKey (r : SmtRegLan) :
-    regLanOfKey (regLanKey r) = some r := by
-  induction r <;> simp_all [regLanKey, regLanOfKey, node, fields, natKey]
-
 mutual
 
 @[expose] def typeOfKey : Key → Option SmtType
@@ -244,6 +224,23 @@ mutual
       return .Apply (← valueOfKey kf) (← valueOfKey ka)
   | _ => none
 
+@[expose] def regLanOfKey : Key → Option SmtRegLan
+  | .pair (.atom 0) (.atom 0) => some .empty
+  | .pair (.atom 1) (.atom 0) => some .epsilon
+  | .pair (.atom 2) (.pair kc (.atom 0)) => return .char (← valueOfKey kc)
+  | .pair (.atom 3) (.pair klo (.pair khi (.atom 0))) =>
+      return .range (← valueOfKey klo) (← valueOfKey khi)
+  | .pair (.atom 4) (.atom 0) => some .allchar
+  | .pair (.atom 5) (.pair kr₁ (.pair kr₂ (.atom 0))) =>
+      return .concat (← regLanOfKey kr₁) (← regLanOfKey kr₂)
+  | .pair (.atom 6) (.pair kr₁ (.pair kr₂ (.atom 0))) =>
+      return .union (← regLanOfKey kr₁) (← regLanOfKey kr₂)
+  | .pair (.atom 7) (.pair kr₁ (.pair kr₂ (.atom 0))) =>
+      return .inter (← regLanOfKey kr₁) (← regLanOfKey kr₂)
+  | .pair (.atom 8) (.pair kr (.atom 0)) => return .star (← regLanOfKey kr)
+  | .pair (.atom 9) (.pair kr (.atom 0)) => return .comp (← regLanOfKey kr)
+  | _ => none
+
 @[expose] def mapOfKey : Key → Option SmtMap
   | .pair (.atom 0) (.pair ki (.pair ke (.pair km (.atom 0)))) =>
       return .cons (← valueOfKey ki) (← valueOfKey ke) (← mapOfKey km)
@@ -289,6 +286,11 @@ theorem valueOfKey_valueKey (v : SmtValue) : valueOfKey (valueKey v) = some v :=
     typeOfKey_typeKey, valueOfKey_valueKey, mapOfKey_mapKey, seqOfKey_seqKey,
     datatypeDeclOfKey_datatypeDeclKey]
   case Boolean b => cases b <;> rfl
+
+theorem regLanOfKey_regLanKey (r : SmtRegLan) :
+    regLanOfKey (regLanKey r) = some r := by
+  cases r <;> simp [regLanKey, regLanOfKey, node, fields,
+    valueOfKey_valueKey, regLanOfKey_regLanKey]
 
 theorem mapOfKey_mapKey (m : SmtMap) : mapOfKey (mapKey m) = some m := by
   cases m <;> simp [mapKey, mapOfKey, node, fields,

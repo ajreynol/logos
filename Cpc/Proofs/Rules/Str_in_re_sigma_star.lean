@@ -19,7 +19,7 @@ private theorem native_string_lit_empty :
     native_string_lit "" = ([] : native_String) := by
   simp [native_string_lit]
 
-private def nativeSigmaPrefix : Nat -> native_RegLan
+private def nativeSigmaPrefix : Nat -> SmtRegLan
   | 0 => SmtRegLan.epsilon
   | 1 => native_re_allchar
   | n + 2 => SmtRegLan.concat native_re_allchar (nativeSigmaPrefix (n + 1))
@@ -140,7 +140,7 @@ private theorem native_re_mult_sigmaPrefix_eq_star
       cases n <;> simp [native_re_mult, native_re_mk_star, nativeSigmaPrefix,
         native_re_allchar]
 
-private theorem nativeListInRe_star_append_intro (r : native_RegLan) :
+private theorem nativeListInRe_star_append_intro (r : SmtRegLan) :
     (xs ys : List native_Char) ->
       nativeListInRe xs r = true ->
       nativeListInRe ys (SmtRegLan.star r) = true ->
@@ -409,7 +409,7 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
     (hSNe : s ≠ Term.Stuck)
     (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
     (hSSValid : native_string_valid (native_unpack_string ss) = true)
-    (r : Term) (rv : native_RegLan) (n : Nat) :
+    (r : Term) (rv : SmtRegLan) (n : Nat) :
       __str_mk_str_in_re_sigma_star_rec s r
           (Term.Numeral (Int.ofNat n)) ≠ Term.Stuck ->
       __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
@@ -637,7 +637,7 @@ private theorem str_in_re_args_smt_types_of_has_translation
     (op := SmtTerm.str_in_re) (typeof_str_in_re_eq (__eo_to_smt s) (__eo_to_smt r)) hNN
 
 private theorem smtx_model_eval_str_in_re_eq_sigma_star_side
-    (M : SmtModel) (s r side : Term) (ss : SmtSeq) (rv : native_RegLan)
+    (M : SmtModel) (s r side : Term) (ss : SmtSeq) (rv : SmtRegLan)
     (hSNe : s ≠ Term.Stuck)
     (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
     (hSSValid : native_string_valid (native_unpack_string ss) = true)

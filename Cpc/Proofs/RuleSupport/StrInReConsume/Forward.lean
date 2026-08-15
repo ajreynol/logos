@@ -1933,7 +1933,7 @@ theorem StrInReConsumeInternal.re_rev_map_rev_action_double_eps_local
   simpa [hEpsA] using hMain
 
 theorem StrInReConsumeInternal.re_rev_map_rev_action_double_eps_reglan_rel_local
-    (M : SmtModel) (t : Term) (rv nextRv : native_RegLan)
+    (M : SmtModel) (t : Term) (rv nextRv : SmtRegLan)
     (hRev :
       __re_rev_map_rev t StrInReConsumeInternal.re_empty_string_re_consume_local ≠
         Term.Stuck)
@@ -1965,7 +1965,7 @@ theorem StrInReConsumeInternal.re_rev_map_rev_action_double_eps_reglan_rel_local
   exact RuleProofs.smt_value_rel_refl (SmtValue.RegLan nextRv)
 
 theorem StrInReConsumeInternal.eval_re_action_double_rev_reglan_rel_consume_local
-    (M : SmtModel) (rParts : Term) (rv : native_RegLan)
+    (M : SmtModel) (rParts : Term) (rv : SmtRegLan)
     (hEval : __smtx_model_eval M (__eo_to_smt rParts) = SmtValue.RegLan rv)
     (hRev :
       __re_rev_map_rev rParts StrInReConsumeInternal.re_empty_string_re_consume_local ≠
@@ -1996,7 +1996,7 @@ theorem StrInReConsumeInternal.re_action_frontier_true_double_rev_eq_local
       (by simp [StrInReConsumeInternal.re_empty_string_re_consume_local]))
 
 theorem StrInReConsumeInternal.re_action_frontier_true_double_rev_reglan_rel_local
-    (M : SmtModel) (t : Term) (rv nextRv : native_RegLan)
+    (M : SmtModel) (t : Term) (rv nextRv : SmtRegLan)
     (hFrontier : StrInReConsumeInternal.re_action_frontier_true_local t)
     (hEval : __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan rv)
     (hNextEval :
@@ -2767,7 +2767,7 @@ theorem StrInReConsumeInternal.re_flatten_true_action_double_eps_local
       (by simp [StrInReConsumeInternal.re_empty_string_re_consume_local]))
 
 theorem StrInReConsumeInternal.eval_re_flatten_action_double_rev_reglan_rel_consume_local
-    (M : SmtModel) (r : Term) (rv : native_RegLan)
+    (M : SmtModel) (r : Term) (rv : SmtRegLan)
     (hEval :
       __smtx_model_eval M
           (__eo_to_smt (__re_flatten (Term.Boolean true) r)) =
@@ -3294,7 +3294,7 @@ theorem StrInReConsumeInternal.re_flatten_true_str_to_re_eval_rel_consume_local
 
 theorem StrInReConsumeInternal.re_flatten_true_str_to_re_eval_value_rel_consume_local
     (M : SmtModel) (hM : model_total_typed M)
-    (s : Term) (ss : SmtSeq) (flatRv : native_RegLan)
+    (s : Term) (ss : SmtSeq) (flatRv : SmtRegLan)
     (hSTy :
       __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
     (hSEval :
@@ -3609,7 +3609,7 @@ theorem StrInReConsumeInternal.eval_str_concat_double_rev_seq_rel_consume_local
 
 theorem StrInReConsumeInternal.native_str_in_re_eq_of_double_rev_action_evals_consume_local
     (M : SmtModel) (hM : model_total_typed M)
-    (sParts rParts : Term) (ss : SmtSeq) (rv : native_RegLan)
+    (sParts rParts : Term) (ss : SmtSeq) (rv : SmtRegLan)
     (hSList :
       __eo_is_list (Term.UOp UserOp.str_concat) sParts =
         Term.Boolean true)
@@ -3661,7 +3661,7 @@ theorem StrInReConsumeInternal.native_str_in_re_eq_of_double_rev_action_evals_co
 theorem StrInReConsumeInternal.native_str_in_re_eq_of_double_rev_action_eval_values_consume_local
     (M : SmtModel) (hM : model_total_typed M)
     (sParts rParts : Term) (ss nextSs : SmtSeq)
-    (rv nextRv : native_RegLan)
+    (rv nextRv : SmtRegLan)
     (hSList :
       __eo_is_list (Term.UOp UserOp.str_concat) sParts =
         Term.Boolean true)
@@ -3710,7 +3710,7 @@ theorem StrInReConsumeInternal.native_str_in_re_eq_of_double_rev_action_eval_val
 theorem StrInReConsumeInternal.native_str_in_re_eq_of_rel_double_rev_action_eval_values_consume_local
     (M : SmtModel) (hM : model_total_typed M)
     (sParts rParts : Term) (ss partsSs nextSs : SmtSeq)
-    (rv partsRv nextRv : native_RegLan)
+    (rv partsRv nextRv : SmtRegLan)
     (hSeqRel :
       RuleProofs.smt_value_rel (SmtValue.Seq partsSs)
         (SmtValue.Seq ss))
@@ -3992,7 +3992,7 @@ theorem StrInReConsumeInternal.smt_value_rel_re_concat_double_rev_consume_local
     (__smtx_model_eval M (__eo_to_smt a))
 
 theorem StrInReConsumeInternal.eval_re_concat_double_rev_reglan_rel_consume_local
-    (M : SmtModel) (a : Term) (rv : native_RegLan)
+    (M : SmtModel) (a : Term) (rv : SmtRegLan)
     (hList :
       __eo_is_list (Term.UOp UserOp.re_concat) a = Term.Boolean true)
     (hEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan rv)
@@ -4019,7 +4019,7 @@ theorem StrInReConsumeInternal.eval_re_concat_double_rev_reglan_rel_consume_loca
 theorem StrInReConsumeInternal.native_str_in_re_eq_of_double_rev_evals_consume_local
     (M : SmtModel) (hM : model_total_typed M)
     (sParts rParts : Term) (ss : SmtSeq)
-    (rv : native_RegLan)
+    (rv : SmtRegLan)
     (hSList :
       __eo_is_list (Term.UOp UserOp.str_concat) sParts =
         Term.Boolean true)
@@ -4072,7 +4072,7 @@ theorem StrInReConsumeInternal.native_str_in_re_eq_of_double_rev_evals_consume_l
 theorem StrInReConsumeInternal.native_str_in_re_eq_of_double_rev_eval_values_consume_local
     (M : SmtModel) (hM : model_total_typed M)
     (sParts rParts : Term) (ss nextSs : SmtSeq)
-    (rv nextRv : native_RegLan)
+    (rv nextRv : SmtRegLan)
     (hSList :
       __eo_is_list (Term.UOp UserOp.str_concat) sParts =
         Term.Boolean true)

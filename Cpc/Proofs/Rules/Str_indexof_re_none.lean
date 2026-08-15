@@ -56,42 +56,40 @@ private theorem smtx_typeof_of_eo_int
   simpa [TranslationProofs.eo_to_smt_type_int] using hTyRaw
 
 private theorem native_re_prefix_match_len_go_none :
-    ∀ (xs : native_String) (n : Nat),
+    ∀ (xs : List SmtValue) (n : Nat),
       native_re_prefix_match_len?.go native_re_none xs n = none
   | [], n => by
-      unfold native_re_prefix_match_len?.go
+      rw [native_re_prefix_match_len?.go.eq_1]
       simp [native_re_none, native_re_nullable]
   | c :: cs, n => by
-      unfold native_re_prefix_match_len?.go
-      cases hChar : native_char_valid c
-      · simp [hChar, native_re_none, native_re_nullable]
-      · simp [hChar, native_re_none, native_re_nullable, native_re_deriv]
-        change native_re_prefix_match_len?.go native_re_none cs (n + 1) = none
-        exact native_re_prefix_match_len_go_none cs (n + 1)
+      rw [native_re_prefix_match_len?.go.eq_2]
+      simp [native_re_none, native_re_nullable, native_re_deriv]
+      exact native_re_prefix_match_len_go_none cs (n + 1)
 
-private theorem native_re_prefix_match_len_none (xs : native_String) :
+private theorem native_re_prefix_match_len_none (xs : List SmtValue) :
     native_re_prefix_match_len? native_re_none xs = none := by
   rw [native_re_prefix_match_len?.eq_1]
   exact native_re_prefix_match_len_go_none xs 0
 
 private theorem native_re_find_idx_aux_none :
-    ∀ (xs : native_String) (idx : Nat),
+    ∀ (xs : List SmtValue) (idx : Nat),
       native_re_find_idx_aux native_re_none xs idx = none
   | [], idx => by
-      rw [native_re_find_idx_aux]
+      rw [native_re_find_idx_aux.eq_def]
       simp [native_re_prefix_match_len_none]
   | _ :: cs, idx => by
-      rw [native_re_find_idx_aux]
+      rw [native_re_find_idx_aux.eq_def]
       simp [native_re_prefix_match_len_none,
         native_re_find_idx_aux_none cs (idx + 1)]
 
 private theorem native_re_find_idx_from_none
-    (xs : native_String) (start : Nat) :
+    (xs : List SmtValue) (start : Nat) :
     native_re_find_idx_from native_re_none xs start = none := by
-  simp [native_re_find_idx_from, native_re_find_idx_aux_none]
+  unfold native_re_find_idx_from
+  exact native_re_find_idx_aux_none (xs.drop start) start
 
 private theorem native_str_indexof_re_none
-    (s : native_String) (i : native_Int) :
+    (s : List SmtValue) (i : native_Int) :
     native_str_indexof_re s native_re_none i = -1 := by
   by_cases hNeg : i < 0
   · simp [native_str_indexof_re, hNeg]

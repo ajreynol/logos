@@ -49,18 +49,6 @@ termination_by a b => sizeOf a + sizeOf b
   | [] => .atom 0
   | n :: ns => .pair (natKey n) (natListKey ns)
 
-@[expose] def regLanKey : SmtRegLan → Key
-  | .empty => node 0 []
-  | .epsilon => node 1 []
-  | .char c => node 2 [natKey c]
-  | .range lo hi => node 3 [natKey lo, natKey hi]
-  | .allchar => node 4 []
-  | .concat r₁ r₂ => node 5 [regLanKey r₁, regLanKey r₂]
-  | .union r₁ r₂ => node 6 [regLanKey r₁, regLanKey r₂]
-  | .inter r₁ r₂ => node 7 [regLanKey r₁, regLanKey r₂]
-  | .star r => node 8 [regLanKey r]
-  | .comp r => node 9 [regLanKey r]
-
 mutual
 
 @[expose] def typeKey : SmtType → Key
@@ -96,6 +84,18 @@ mutual
   | .DtCons s dd n => node 12 [natListKey s, datatypeDeclKey dd, natKey n]
   | .Apply f a => node 13 [valueKey f, valueKey a]
 
+@[expose] def regLanKey : SmtRegLan → Key
+  | .empty => node 0 []
+  | .epsilon => node 1 []
+  | .char c => node 2 [valueKey c]
+  | .range lo hi => node 3 [valueKey lo, valueKey hi]
+  | .allchar => node 4 []
+  | .concat r₁ r₂ => node 5 [regLanKey r₁, regLanKey r₂]
+  | .union r₁ r₂ => node 6 [regLanKey r₁, regLanKey r₂]
+  | .inter r₁ r₂ => node 7 [regLanKey r₁, regLanKey r₂]
+  | .star r => node 8 [regLanKey r]
+  | .comp r => node 9 [regLanKey r]
+
 @[expose] def mapKey : SmtMap → Key
   | .cons i e m => node 0 [valueKey i, valueKey e, mapKey m]
   | .default t e => node 1 [typeKey t, valueKey e]
@@ -123,4 +123,3 @@ end
 end SmtValueOrder
 
 end Smtm
-

@@ -1943,7 +1943,7 @@ theorem StrInReConsumeInternal.consume_rev_flat_chain_rev_flatten_local (r : Ter
     exact StrInReConsumeInternal.rev_map_rev_not_chain_stuck_consume_local Term.Stuck _
       (by intro h; cases h) (by intro a b h; cases h)
 
-theorem StrInReConsumeInternal.consume_re_concat_eps_right_local (C : native_RegLan) :
+theorem StrInReConsumeInternal.consume_re_concat_eps_right_local (C : SmtRegLan) :
     native_re_concat C (native_str_to_re []) = C := by
   cases C <;> rfl
 
@@ -1966,12 +1966,12 @@ theorem StrInReConsumeInternal.consume_eval_eps_re_local (M : SmtModel) :
   simp [__smtx_model_eval_str_to_re, native_unpack_string_pack_string]
 
 theorem StrInReConsumeInternal.consume_eval_re_concat_inv_local (M : SmtModel)
-    (A B : Term) (v : native_RegLan)
+    (A B : Term) (v : SmtRegLan)
     (h : __smtx_model_eval M
         (__eo_to_smt
           (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) A) B)) =
       SmtValue.RegLan v) :
-    ∃ av bv : native_RegLan,
+    ∃ av bv : SmtRegLan,
       __smtx_model_eval M (__eo_to_smt A) = SmtValue.RegLan av ∧
       __smtx_model_eval M (__eo_to_smt B) = SmtValue.RegLan bv ∧
       v = native_re_concat av bv := by
@@ -2005,11 +2005,11 @@ theorem StrInReConsumeInternal.consume_eval_re_concat_inv_local (M : SmtModel)
       exact absurd h' (by simp [__smtx_model_eval_re_concat])
 
 theorem StrInReConsumeInternal.consume_eval_re_mult_inv_local (M : SmtModel)
-    (A : Term) (v : native_RegLan)
+    (A : Term) (v : SmtRegLan)
     (h : __smtx_model_eval M
         (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) A)) =
       SmtValue.RegLan v) :
-    ∃ av : native_RegLan,
+    ∃ av : SmtRegLan,
       __smtx_model_eval M (__eo_to_smt A) = SmtValue.RegLan av ∧
       v = native_re_mult av := by
   change __smtx_model_eval M
@@ -2033,12 +2033,12 @@ theorem StrInReConsumeInternal.consume_eval_re_mult_inv_local (M : SmtModel)
       exact absurd h' (by simp [__smtx_model_eval_re_mult])
 
 theorem StrInReConsumeInternal.consume_eval_re_inter_inv_local (M : SmtModel)
-    (A B : Term) (v : native_RegLan)
+    (A B : Term) (v : SmtRegLan)
     (h : __smtx_model_eval M
         (__eo_to_smt
           (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) A) B)) =
       SmtValue.RegLan v) :
-    ∃ av bv : native_RegLan,
+    ∃ av bv : SmtRegLan,
       __smtx_model_eval M (__eo_to_smt A) = SmtValue.RegLan av ∧
       __smtx_model_eval M (__eo_to_smt B) = SmtValue.RegLan bv ∧
       v = native_re_inter av bv := by
@@ -2072,12 +2072,12 @@ theorem StrInReConsumeInternal.consume_eval_re_inter_inv_local (M : SmtModel)
       exact absurd h' (by simp [__smtx_model_eval_re_inter])
 
 theorem StrInReConsumeInternal.consume_eval_re_union_inv_local (M : SmtModel)
-    (A B : Term) (v : native_RegLan)
+    (A B : Term) (v : SmtRegLan)
     (h : __smtx_model_eval M
         (__eo_to_smt
           (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) A) B)) =
       SmtValue.RegLan v) :
-    ∃ av bv : native_RegLan,
+    ∃ av bv : SmtRegLan,
       __smtx_model_eval M (__eo_to_smt A) = SmtValue.RegLan av ∧
       __smtx_model_eval M (__eo_to_smt B) = SmtValue.RegLan bv ∧
       v = native_re_union av bv := by
@@ -2111,7 +2111,7 @@ theorem StrInReConsumeInternal.consume_eval_re_union_inv_local (M : SmtModel)
       exact absurd h' (by simp [__smtx_model_eval_re_union])
 
 theorem StrInReConsumeInternal.consume_eval_str_to_re_inv_local (M : SmtModel)
-    (A : Term) (v : native_RegLan)
+    (A : Term) (v : SmtRegLan)
     (h : __smtx_model_eval M
         (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_re) A)) =
       SmtValue.RegLan v) :
@@ -2140,7 +2140,7 @@ theorem StrInReConsumeInternal.consume_eval_str_to_re_inv_local (M : SmtModel)
       exact absurd h' (by simp [__smtx_model_eval_str_to_re])
 
 theorem StrInReConsumeInternal.consume_eval_str_to_re_seq_empty_local (M : SmtModel)
-    (U : Term) (v : native_RegLan)
+    (U : Term) (v : SmtRegLan)
     (h : __smtx_model_eval M
         (__eo_to_smt
           (Term.Apply (Term.UOp UserOp.str_to_re)
@@ -2171,7 +2171,7 @@ theorem StrInReConsumeInternal.consume_eval_str_to_re_seq_empty_local (M : SmtMo
       cases hSv
 
 theorem StrInReConsumeInternal.consume_smt_value_rel_re_mult_congr_local
-    {r r' : native_RegLan}
+    {r r' : SmtRegLan}
     (hr : RuleProofs.smt_value_rel (SmtValue.RegLan r)
       (SmtValue.RegLan r')) :
     RuleProofs.smt_value_rel (SmtValue.RegLan (native_re_mult r))
@@ -2183,7 +2183,7 @@ theorem StrInReConsumeInternal.consume_smt_value_rel_re_mult_congr_local
         (RuleProofs.smt_value_rel_symm _ _ hr)))
 
 theorem StrInReConsumeInternal.consume_smt_value_rel_re_union_congr_local
-    {r r' s s' : native_RegLan}
+    {r r' s s' : SmtRegLan}
     (hr : RuleProofs.smt_value_rel (SmtValue.RegLan r)
       (SmtValue.RegLan r'))
     (hs : RuleProofs.smt_value_rel (SmtValue.RegLan s)
@@ -2199,7 +2199,7 @@ theorem StrInReConsumeInternal.consume_smt_value_rel_re_union_congr_local
     smt_value_rel_reglan_valid_eq hs hValid]
 
 theorem StrInReConsumeInternal.consume_smt_value_rel_re_inter_congr_local
-    {r r' s s' : native_RegLan}
+    {r r' s s' : SmtRegLan}
     (hr : RuleProofs.smt_value_rel (SmtValue.RegLan r)
       (SmtValue.RegLan r'))
     (hs : RuleProofs.smt_value_rel (SmtValue.RegLan s)
@@ -2215,14 +2215,14 @@ theorem StrInReConsumeInternal.consume_smt_value_rel_re_inter_congr_local
     smt_value_rel_reglan_valid_eq hs hValid]
 
 theorem StrInReConsumeInternal.consume_eval_det_local {M : SmtModel} {A : SmtTerm}
-    {v1 v2 : native_RegLan}
+    {v1 v2 : SmtRegLan}
     (h1 : __smtx_model_eval M A = SmtValue.RegLan v1)
     (h2 : __smtx_model_eval M A = SmtValue.RegLan v2) : v1 = v2 := by
   rw [h1] at h2
   injection h2
 
 theorem StrInReConsumeInternal.consume_eval_stuck_not_reglan_local {M : SmtModel}
-    {v : native_RegLan}
+    {v : SmtRegLan}
     (h : __smtx_model_eval M (__eo_to_smt Term.Stuck) =
       SmtValue.RegLan v) : False := by
   change __smtx_model_eval M SmtTerm.None = SmtValue.RegLan v at h
@@ -2274,7 +2274,7 @@ single-chunk accumulator `(re.++ K eps)`; the tails are value-related
 full values are related.
 -/
 theorem StrInReConsumeInternal.consume_core_step_local (M : SmtModel)
-    (T1 T2 K1 K2 : Term) (v1 v2 : native_RegLan)
+    (T1 T2 K1 K2 : Term) (v1 v2 : SmtRegLan)
     (hEval1 : __smtx_model_eval M
         (__eo_to_smt
           (__re_rev_map_rev T1
@@ -2289,7 +2289,7 @@ theorem StrInReConsumeInternal.consume_core_step_local (M : SmtModel)
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))) =
       SmtValue.RegLan v2)
-    (hIH : ∀ w1 w2 : native_RegLan,
+    (hIH : ∀ w1 w2 : SmtRegLan,
       __smtx_model_eval M
           (__eo_to_smt
             (__re_rev_map_rev T1
@@ -2304,7 +2304,7 @@ theorem StrInReConsumeInternal.consume_core_step_local (M : SmtModel)
         SmtValue.RegLan w2 ->
       RuleProofs.smt_value_rel (SmtValue.RegLan w1)
         (SmtValue.RegLan w2))
-    (hK : ∀ k1 k2 : native_RegLan,
+    (hK : ∀ k1 k2 : SmtRegLan,
       __smtx_model_eval M (__eo_to_smt K1) = SmtValue.RegLan k1 ->
       __smtx_model_eval M (__eo_to_smt K2) = SmtValue.RegLan k2 ->
       RuleProofs.smt_value_rel (SmtValue.RegLan k1)
@@ -2360,7 +2360,7 @@ combinator recursion.
 theorem StrInReConsumeInternal.consume_core_rel_fuel_local (M : SmtModel) :
     ∀ n : Nat, ∀ t : Term, sizeOf t < n ->
       (StrInReConsumeInternal.consume_rev_flat_chain_local t ->
-        ∀ v1 v2 : native_RegLan,
+        ∀ v1 v2 : SmtRegLan,
           __smtx_model_eval M
               (__eo_to_smt
                 (__re_rev_map_rev (__re_flatten (Term.Boolean true) t)
@@ -2376,7 +2376,7 @@ theorem StrInReConsumeInternal.consume_core_rel_fuel_local (M : SmtModel) :
           RuleProofs.smt_value_rel (SmtValue.RegLan v1)
             (SmtValue.RegLan v2)) ∧
       (StrInReConsumeInternal.consume_rev_flat_chunk_local t ->
-        ∀ v1 v2 : native_RegLan,
+        ∀ v1 v2 : SmtRegLan,
           __smtx_model_eval M
               (__eo_to_smt
                 (__re_rev_comp (__re_flatten (Term.Boolean false) t))) =
@@ -2386,7 +2386,7 @@ theorem StrInReConsumeInternal.consume_core_rel_fuel_local (M : SmtModel) :
           RuleProofs.smt_value_rel (SmtValue.RegLan v1)
             (SmtValue.RegLan v2)) ∧
       (StrInReConsumeInternal.consume_rev_flat_inter_tail_local t ->
-        ∀ v1 v2 : native_RegLan,
+        ∀ v1 v2 : SmtRegLan,
           __smtx_model_eval M
               (__eo_to_smt
                 (__re_rev_comp (__re_flatten (Term.Boolean false) t))) =
@@ -2404,7 +2404,7 @@ theorem StrInReConsumeInternal.consume_core_rel_fuel_local (M : SmtModel) :
       intro t ht
       -- combinator-component handler shared by the chunk and tail
       -- conjuncts
-      have hComb : ∀ v1 v2 : native_RegLan,
+      have hComb : ∀ v1 v2 : SmtRegLan,
           (∃ body,
             t = Term.Apply (Term.UOp UserOp.re_mult) body ∧
               StrInReConsumeInternal.consume_rev_flat_chain_local body) ∨
@@ -2792,7 +2792,7 @@ theorem StrInReConsumeInternal.consume_core_rel_fuel_local (M : SmtModel) :
                           StrInReConsumeInternal.consume_smt_value_rel_re_union_congr_local
                             hLeft hRight
       -- identity handler for all other chunk shapes
-      have hIdent : ∀ v1 v2 : native_RegLan,
+      have hIdent : ∀ v1 v2 : SmtRegLan,
           (∀ body, t = Term.Apply (Term.UOp UserOp.re_mult) body ->
             False) ->
           (∀ c1 c2,
@@ -3127,7 +3127,7 @@ theorem StrInReConsumeInternal.eval_rev_flatten_rev_rflat_rel_local
       __re_rev_map_rev (__re_flatten (Term.Boolean true) rSrc)
           (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) ≠
         Term.Stuck)
-    (nRv flatRv : native_RegLan)
+    (nRv flatRv : SmtRegLan)
     (hNEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -3450,7 +3450,7 @@ theorem StrInReConsumeInternal.consume_eval_unrev_pair_inv_local (M : SmtModel)
     (h : __smtx_model_eval M
         (__eo_to_smt (StrInReConsumeInternal.consume_unrev_pair_local A B)) =
       SmtValue.Boolean b) :
-    ∃ (sv : SmtSeq) (rv : native_RegLan),
+    ∃ (sv : SmtSeq) (rv : SmtRegLan),
       __smtx_model_eval M
           (__eo_to_smt (StrInReConsumeInternal.consume_unrev_str_local A)) =
         SmtValue.Seq sv ∧
@@ -3513,7 +3513,7 @@ theorem StrInReConsumeInternal.eval_first_residual_unrev_rel_local
       __re_rev_map_rev (__re_flatten (Term.Boolean true) rSrc)
           (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) ≠
         Term.Stuck)
-    (nRv mRv : native_RegLan)
+    (nRv mRv : SmtRegLan)
     (hNEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -4551,7 +4551,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_false_nonempty_local
 A nonempty word with no suffix in `r` is not in `(r)*`.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_star_false_of_no_suffix_local
-    (w : native_String) (r : native_RegLan)
+    (w : native_String) (r : SmtRegLan)
     (hNe : w ≠ [])
     (hNoSuffix :
       ∀ pre suf : native_String,
@@ -4571,7 +4571,7 @@ theorem StrInReConsumeInternal.native_str_in_re_star_false_of_no_suffix_local
 A nonempty word with no prefix in `r` is not in `(r)*`.
 -/
 theorem StrInReConsumeInternal.native_str_in_re_star_false_of_no_prefix_consume_local
-    (w : native_String) (r : native_RegLan)
+    (w : native_String) (r : SmtRegLan)
     (hNe : w ≠ [])
     (hNoPrefix :
       ∀ pre suf : native_String,
@@ -4668,7 +4668,7 @@ theorem StrInReConsumeInternal.consume_eval_re_all_local (M : SmtModel) :
   simp [__smtx_model_eval]
 
 theorem StrInReConsumeInternal.consume_str_in_re_concat_intro_local
-    (x1 x2 : native_String) (r s : native_RegLan)
+    (x1 x2 : native_String) (r s : SmtRegLan)
     (hV : native_string_valid (x1 ++ x2) = true)
     (h1 : native_str_in_re x1 r = true)
     (h2 : native_str_in_re x2 s = true) :
@@ -4689,7 +4689,7 @@ theorem StrInReConsumeInternal.consume_str_in_re_concat_intro_local
     using hL
 
 theorem StrInReConsumeInternal.consume_str_in_re_concat_elim_local
-    (w : native_String) (r s : native_RegLan)
+    (w : native_String) (r s : SmtRegLan)
     (hV : native_string_valid w = true)
     (h : native_str_in_re w (native_re_concat r s) = true) :
     ∃ x1 x2 : native_String,
@@ -4715,7 +4715,7 @@ and `w` decomposes as `wPre ++ u` with `u ∈ B` (covering the empty
 word).
 -/
 theorem StrInReConsumeInternal.consume_star_concat_right_eq_local
-    (w wPre u : native_String) (A B : native_RegLan)
+    (w wPre u : native_String) (A B : SmtRegLan)
     (hWValid : native_string_valid w = true)
     (hPtwise : ∀ str, native_str_in_re str B = native_str_in_re str A)
     (hDecomp : w = wPre ++ u)
@@ -4762,7 +4762,7 @@ theorem StrInReConsumeInternal.consume_star_concat_right_eq_local
 and the empty word is in `B` whenever `w` is empty.
 -/
 theorem StrInReConsumeInternal.consume_star_concat_left_eq_local
-    (w : native_String) (A B : native_RegLan)
+    (w : native_String) (A B : SmtRegLan)
     (hWValid : native_string_valid w = true)
     (hPtwise : ∀ str, native_str_in_re str B = native_str_in_re str A)
     (hEpsB : w = [] -> native_str_in_re [] B = true) :

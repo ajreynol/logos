@@ -52,54 +52,50 @@ private theorem smtx_typeof_of_eo_seq_char
     using hTyRaw
 
 private theorem native_re_prefix_match_len_go_none :
-    ∀ (xs : native_String) (n : Nat),
+    ∀ (xs : List SmtValue) (n : Nat),
       native_re_prefix_match_len?.go native_re_none xs n = none
   | [], n => by
-      unfold native_re_prefix_match_len?.go
+      rw [native_re_prefix_match_len?.go.eq_1]
       simp [native_re_none, native_re_nullable]
   | c :: cs, n => by
-      unfold native_re_prefix_match_len?.go
-      cases hChar : native_char_valid c
-      · simp [hChar, native_re_none, native_re_nullable]
-      · simp [hChar, native_re_none, native_re_nullable, native_re_deriv]
-        change native_re_prefix_match_len?.go native_re_none cs (n + 1) = none
-        exact native_re_prefix_match_len_go_none cs (n + 1)
+      rw [native_re_prefix_match_len?.go.eq_2]
+      simp [native_re_none, native_re_nullable, native_re_deriv]
+      exact native_re_prefix_match_len_go_none cs (n + 1)
 
-private theorem native_re_prefix_match_len_none (xs : native_String) :
+private theorem native_re_prefix_match_len_none (xs : List SmtValue) :
     native_re_prefix_match_len? native_re_none xs = none := by
   rw [native_re_prefix_match_len?.eq_1]
   exact native_re_prefix_match_len_go_none xs 0
 
 private theorem native_re_positive_prefix_match_len_none :
-    ∀ (xs : native_String),
+    ∀ (xs : List SmtValue),
       native_re_positive_prefix_match_len? native_re_none xs = none
   | [] => by
-      rw [native_re_positive_prefix_match_len?]
+      rw [native_re_positive_prefix_match_len?.eq_def]
   | c :: cs => by
-      rw [native_re_positive_prefix_match_len?]
-      cases hChar : native_char_valid c
-      · simp
-      · simp [native_re_none, native_re_deriv]
-        change (match native_re_prefix_match_len? native_re_none cs with
-          | some n => some (n + 1)
-          | none => none) = none
-        rw [native_re_prefix_match_len_none]
+      rw [native_re_positive_prefix_match_len?.eq_def]
+      have hDer : native_re_deriv c native_re_none = native_re_none := by
+        simp [native_re_none, native_re_deriv]
+      change (match native_re_prefix_match_len? (native_re_deriv c native_re_none) cs with
+        | some n => some (n + 1)
+        | none => none) = none
+      rw [hDer, native_re_prefix_match_len_none]
 
 private theorem native_re_replace_all_nonempty_list_aux_none :
-    ∀ (fuel : Nat) (replacement xs : native_String),
+    ∀ (fuel : Nat) (replacement xs : List SmtValue),
       native_re_replace_all_nonempty_list_aux fuel native_re_none replacement xs = xs
   | 0, _replacement, xs => by
-      rw [native_re_replace_all_nonempty_list_aux]
+      rw [native_re_replace_all_nonempty_list_aux.eq_def]
   | fuel + 1, replacement, [] => by
-      rw [native_re_replace_all_nonempty_list_aux]
+      rw [native_re_replace_all_nonempty_list_aux.eq_def]
       simp [native_re_positive_prefix_match_len_none]
   | fuel + 1, replacement, c :: cs => by
-      rw [native_re_replace_all_nonempty_list_aux]
+      rw [native_re_replace_all_nonempty_list_aux.eq_def]
       simp [native_re_positive_prefix_match_len_none,
         native_re_replace_all_nonempty_list_aux_none fuel replacement cs]
 
 private theorem native_str_replace_re_all_none
-    (s repl : native_String) :
+    (s repl : List SmtValue) :
     native_str_replace_re_all s native_re_none repl = s := by
   unfold native_str_replace_re_all native_re_replace_all_nonempty_list
   exact native_re_replace_all_nonempty_list_aux_none (s.length + 1) repl s
@@ -264,8 +260,6 @@ private theorem facts___eo_prog_str_replace_re_all_none_impl
         simp)
   rcases seq_value_canonical hTEvalTy with ⟨ss, hTEval⟩
   rcases seq_value_canonical hReplEvalTy with ⟨replSeq, hReplEval⟩
-  have hSeqTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
-    simpa [__smtx_typeof_value, hTEval] using hTEvalTy
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt lhs) =
         __smtx_model_eval M (__eo_to_smt rhs) := by
@@ -278,7 +272,7 @@ private theorem facts___eo_prog_str_replace_re_all_none_impl
       rw [__smtx_model_eval.eq_def]
     rw [hTEval, hReplEval, hNoneEval]
     simp [__smtx_model_eval_str_replace_re_all, native_str_replace_re_all_none,
-      native_pack_string_unpack_string_of_typeof_seq_char ss hSeqTy]
+      native_pack_unpack_seq_local]
   rw [hProg]
   exact RuleProofs.eo_interprets_eq_of_rel M lhs rhs hBoolEq <| by
     rw [hEvalEq]

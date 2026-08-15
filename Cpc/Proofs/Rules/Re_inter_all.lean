@@ -146,7 +146,7 @@ private theorem smtx_typeof_re_inter_of_args (x y : Term) :
   simp [hx, hy, native_ite, native_Teq]
 
 private theorem smt_value_rel_inter_all
-    (rxs rys : native_RegLan) :
+    (rxs rys : SmtRegLan) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (native_re_inter rxs (native_re_inter native_re_all rys)))

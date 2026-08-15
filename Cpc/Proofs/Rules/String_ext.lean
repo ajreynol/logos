@@ -745,7 +745,7 @@ private theorem list_typed_getD (T : SmtType) :
   | [], j, _, hlt => by simp at hlt
 
 private theorem getD_ne_reglan (xs : List SmtValue) (As : SmtType)
-    (hAs : As ≠ SmtType.RegLan) (hxs : list_typed As xs) (j : Nat) (r : native_RegLan) :
+    (hAs : As ≠ SmtType.RegLan) (hxs : list_typed As xs) (j : Nat) (r : SmtRegLan) :
     xs.getD j SmtValue.NotValue ≠ SmtValue.RegLan r := by
   intro h
   by_cases hj : j < xs.length

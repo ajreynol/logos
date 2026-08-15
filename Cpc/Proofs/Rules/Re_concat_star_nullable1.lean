@@ -57,7 +57,7 @@ theorem prog_form (xs1 r1 ys1 P1 : Term)
   · exact absurd rfl hNe
 
 /-- The premise yields nullability of the regex argument. -/
-theorem nullable_of_premise (M : SmtModel) (r1 : Term) (r1v : native_RegLan)
+theorem nullable_of_premise (M : SmtModel) (r1 : Term) (r1v : SmtRegLan)
     (hR1 : __smtx_model_eval M (__eo_to_smt r1) = SmtValue.RegLan r1v)
     (hP : eo_interprets M (mkStrInReEmpty r1) true) :
     native_re_nullable r1v = true := by

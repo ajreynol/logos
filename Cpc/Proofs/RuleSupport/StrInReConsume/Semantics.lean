@@ -104,7 +104,7 @@ theorem StrInReConsumeInternal.consume_eval_eps_re_early_local (M : SmtModel) :
   simp [__smtx_model_eval_str_to_re, native_unpack_string_pack_string]
 
 theorem StrInReConsumeInternal.native_str_in_re_congr_of_reglan_rel_early_local
-    {r1 r2 : native_RegLan}
+    {r1 r2 : SmtRegLan}
     (h : RuleProofs.smt_value_rel (SmtValue.RegLan r1)
       (SmtValue.RegLan r2))
     (str : native_String) :
@@ -401,7 +401,7 @@ theorem str_re_consume_rec_semantic_of_false_local
     (hNoPrefix :
       ∀ (hSTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
         (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
-        (ss : SmtSeq) (rv : native_RegLan),
+        (ss : SmtSeq) (rv : SmtRegLan),
         __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
         __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
           ∀ pre suf : native_String,
@@ -426,7 +426,7 @@ theorem str_re_consume_union_semantic_of_false_local
     (hNoPrefix :
       ∀ (hSTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
         (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
-        (ss : SmtSeq) (rv : native_RegLan),
+        (ss : SmtSeq) (rv : SmtRegLan),
         __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
         __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
           ∀ pre suf : native_String,
@@ -451,7 +451,7 @@ theorem str_re_consume_inter_semantic_of_false_local
     (hNoPrefix :
       ∀ (hSTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
         (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
-        (ss : SmtSeq) (rv : native_RegLan),
+        (ss : SmtSeq) (rv : SmtRegLan),
         __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
         __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
           ∀ pre suf : native_String,

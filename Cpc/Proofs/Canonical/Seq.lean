@@ -142,62 +142,112 @@ theorem seq_canonical_pack_unpack_replace
       (native_pack_seq T
         (native_seq_replace (native_unpack_seq s)
           (native_unpack_seq pat) (native_unpack_seq repl))) = true := by
-  unfold native_seq_replace
-  cases hpat : native_unpack_seq pat with
-  | nil =>
-      simp
+  unfold native_seq_replace native_str_replace_re
+  cases hFind : native_re_find_idx_from
+      (native_str_to_re (native_unpack_seq pat)) (native_unpack_seq s) 0 with
+  | none =>
+      simpa [hFind] using seq_canonical_pack_unpack T hs
+  | some found =>
+      rcases found with ⟨idx, len⟩
+      simp [hFind]
       apply seq_canonical_pack_seq
       intro v hv
       simp [List.mem_append] at hv
-      rcases hv with hv | hv
+      rcases hv with hv | hv | hv
+      · exact seq_unpack_values_canonical hs v (List.mem_of_mem_take hv)
       · exact seq_unpack_values_canonical hrepl v hv
-      · exact seq_unpack_values_canonical hs v hv
-  | cons p ps =>
-      simp
-      split
-      · exact seq_canonical_pack_unpack T hs
-      · apply seq_canonical_pack_seq
-        intro v hv
-        simp [List.mem_append] at hv
-        rcases hv with hv | hv | hv
-        · exact seq_unpack_values_canonical hs v
-            (List.mem_of_mem_take hv)
-        · exact seq_unpack_values_canonical hrepl v hv
-        · exact seq_unpack_values_canonical hs v
-            (List.mem_of_mem_drop hv)
+      · exact seq_unpack_values_canonical hs v (List.mem_of_mem_drop hv)
+
+/-- Repacking a regex replacement of canonical value sequences is canonical. -/
+theorem seq_canonical_pack_unpack_replace_re
+    (T : SmtType)
+    {s repl : SmtSeq}
+    (r : SmtRegLan)
+    (hs : __smtx_seq_canonical s = true)
+    (hrepl : __smtx_seq_canonical repl = true) :
+    __smtx_seq_canonical
+      (native_pack_seq T
+        (native_str_replace_re (native_unpack_seq s) r
+          (native_unpack_seq repl))) = true := by
+  unfold native_str_replace_re
+  cases hFind : native_re_find_idx_from r (native_unpack_seq s) 0 with
+  | none =>
+      simpa [hFind] using seq_canonical_pack_unpack T hs
+  | some found =>
+      rcases found with ⟨idx, len⟩
+      simp [hFind]
+      apply seq_canonical_pack_seq
+      intro v hv
+      simp [List.mem_append] at hv
+      rcases hv with hv | hv | hv
+      · exact seq_unpack_values_canonical hs v (List.mem_of_mem_take hv)
+      · exact seq_unpack_values_canonical hrepl v hv
+      · exact seq_unpack_values_canonical hs v (List.mem_of_mem_drop hv)
 
 /-- Auxiliary canonicality invariant for repeated sequence replacement. -/
 theorem seq_canonical_pack_replace_all_aux
     (T : SmtType)
-    {pat repl : List SmtValue}
+    {r : SmtRegLan} {repl : List SmtValue}
     (hrepl : ∀ v, v ∈ repl -> __smtx_value_canonical v) :
     ∀ (fuel : Nat) {xs : List SmtValue},
       (∀ v, v ∈ xs -> __smtx_value_canonical v) ->
         __smtx_seq_canonical
-          (native_pack_seq T (native_seq_replace_all_aux fuel pat repl xs)) = true
+          (native_pack_seq T
+            (native_re_replace_all_nonempty_list_aux fuel r repl xs)) = true
   | 0, xs, hxs => by
-      simpa [native_seq_replace_all_aux] using
+      simpa [native_re_replace_all_nonempty_list_aux] using
         seq_canonical_pack_seq T hxs
   | fuel + 1, xs, hxs => by
-      cases pat with
-      | nil =>
-          simpa [native_seq_replace_all_aux] using
-            seq_canonical_pack_seq T hxs
-      | cons p ps =>
-          simp [native_seq_replace_all_aux]
-          split
-          · exact seq_canonical_pack_seq T hxs
-          · apply seq_canonical_pack_seq
-            intro v hv
-            simp [List.mem_append] at hv
-            rcases hv with hv | hv | hv
-            · exact hxs v (List.mem_of_mem_take hv)
-            · exact hrepl v hv
-            · exact
-                (seq_unpack_values_canonical
+      cases hMatch : native_re_positive_prefix_match_len? r xs with
+      | none =>
+          cases xs with
+          | nil =>
+              simpa [native_re_replace_all_nonempty_list_aux] using
+                seq_canonical_pack_seq T hxs
+          | cons x xs =>
+              have hx : __smtx_value_canonical x := hxs x List.mem_cons_self
+              have htail : ∀ u, u ∈ xs -> __smtx_value_canonical u :=
+                fun u hu => hxs u (List.mem_cons_of_mem x hu)
+              apply seq_canonical_pack_seq
+              intro u hu
+              simp [native_re_replace_all_nonempty_list_aux, hMatch] at hu
+              rcases hu with rfl | hu
+              · exact hx
+              · exact seq_unpack_values_canonical
+                  (seq_canonical_pack_replace_all_aux T hrepl fuel
+                    htail) u
+                  (by simpa [native_unpack_pack_seq] using hu)
+      | some len =>
+          cases len with
+          | zero =>
+              cases xs with
+              | nil =>
+                  simpa [native_re_replace_all_nonempty_list_aux] using
+                    seq_canonical_pack_seq T hxs
+              | cons x xs =>
+                  have hx : __smtx_value_canonical x := hxs x List.mem_cons_self
+                  have htail : ∀ u, u ∈ xs -> __smtx_value_canonical u :=
+                    fun u hu => hxs u (List.mem_cons_of_mem x hu)
+                  apply seq_canonical_pack_seq
+                  intro u hu
+                  simp [native_re_replace_all_nonempty_list_aux, hMatch] at hu
+                  rcases hu with rfl | hu
+                  · exact hx
+                  · exact seq_unpack_values_canonical
+                      (seq_canonical_pack_replace_all_aux T hrepl fuel
+                        htail) u
+                      (by simpa [native_unpack_pack_seq] using hu)
+          | succ len =>
+              apply seq_canonical_pack_seq
+              intro v hv
+              simp [native_re_replace_all_nonempty_list_aux, hMatch,
+                List.mem_append] at hv
+              rcases hv with hv | hv
+              · exact hrepl v hv
+              · exact seq_unpack_values_canonical
                   (seq_canonical_pack_replace_all_aux T hrepl fuel
                     (fun u hu => hxs u (List.mem_of_mem_drop hu))) v
-                  (by simpa [native_unpack_pack_seq] using hv))
+                  (by simpa [native_unpack_pack_seq] using hv)
 
 /-- Repacking a repeated replacement of canonical sequences is canonical. -/
 theorem seq_canonical_pack_unpack_replace_all
@@ -211,6 +261,24 @@ theorem seq_canonical_pack_unpack_replace_all
         (native_seq_replace_all (native_unpack_seq s)
           (native_unpack_seq pat) (native_unpack_seq repl))) = true := by
   unfold native_seq_replace_all
+  unfold native_str_replace_re_all native_re_replace_all_nonempty_list
+  exact seq_canonical_pack_replace_all_aux T
+    (fun u hu => seq_unpack_values_canonical hrepl u hu)
+    ((native_unpack_seq s).length + 1)
+    (fun u hu => seq_unpack_values_canonical hs u hu)
+
+/-- Repacking regex replace-all over canonical value sequences is canonical. -/
+theorem seq_canonical_pack_unpack_replace_re_all
+    (T : SmtType)
+    {s repl : SmtSeq}
+    (r : SmtRegLan)
+    (hs : __smtx_seq_canonical s = true)
+    (hrepl : __smtx_seq_canonical repl = true) :
+    __smtx_seq_canonical
+      (native_pack_seq T
+        (native_str_replace_re_all (native_unpack_seq s) r
+          (native_unpack_seq repl))) = true := by
+  unfold native_str_replace_re_all native_re_replace_all_nonempty_list
   exact seq_canonical_pack_replace_all_aux T
     (fun u hu => seq_unpack_values_canonical hrepl u hu)
     ((native_unpack_seq s).length + 1)

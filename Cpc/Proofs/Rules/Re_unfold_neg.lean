@@ -457,7 +457,7 @@ theorem native_unpack_string_substr_split
   rw [hLeft, hRight]
   simp [xs, native_unpack_seq_pack_seq, List.take_append_drop]
 
-private theorem nativeListInRe_star_append_intro (r : native_RegLan) :
+private theorem nativeListInRe_star_append_intro (r : SmtRegLan) :
     (xs ys : List native_Char) ->
       nativeListInRe xs r = true ->
       nativeListInRe ys (SmtRegLan.star r) = true ->
@@ -474,7 +474,7 @@ private theorem nativeListInRe_star_append_intro (r : native_RegLan) :
         ⟨cs, ys, rfl, by simpa [nativeListInRe] using hLeft, hRight⟩
 
 private theorem nativeListInRe_star_append_closed :
-    (xs ys : List native_Char) -> (r : native_RegLan) ->
+    (xs ys : List native_Char) -> (r : SmtRegLan) ->
       nativeListInRe xs (SmtRegLan.star r) = true ->
       nativeListInRe ys (SmtRegLan.star r) = true ->
       nativeListInRe (xs ++ ys) (SmtRegLan.star r) = true
@@ -512,7 +512,7 @@ decreasing_by
     omega
 
 private theorem native_str_in_re_re_mult_append_intro
-    (s1 s2 : native_String) (r : native_RegLan) :
+    (s1 s2 : native_String) (r : SmtRegLan) :
     native_str_in_re s1 r = true ->
     native_str_in_re s2 (native_re_mult r) = true ->
     native_str_in_re (s1 ++ s2) (native_re_mult r) = true := by
@@ -589,7 +589,7 @@ private theorem native_str_in_re_re_mult_append_intro
           h1Parts.2 h2Parts.2
   simpa [native_str_in_re, hValidAppend, nativeListInRe] using hList
 
-private theorem native_str_in_re_re_mult_empty (r : native_RegLan) :
+private theorem native_str_in_re_re_mult_empty (r : SmtRegLan) :
     native_str_in_re [] (native_re_mult r) = true := by
   cases r <;> simp [native_str_in_re, native_string_valid, native_re_mult,
     native_re_mk_star, native_re_nullable]
@@ -598,14 +598,14 @@ abbrev RegLanEval (M : SmtModel) (t : Term) : Prop :=
   ∃ r, __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r
 
 theorem native_string_valid_of_str_in_re_true
-    {str : native_String} {r : native_RegLan}
+    {str : native_String} {r : SmtRegLan}
     (h : native_str_in_re str r = true) :
     native_string_valid str = true := by
   cases hValid : native_string_valid str <;>
     simp [native_str_in_re, hValid] at h ⊢
 
 theorem native_str_in_re_of_reglan_rel
-    (str : native_String) (r s : native_RegLan) :
+    (str : native_String) (r s : SmtRegLan) :
     RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s) ->
     native_str_in_re str r = true ->
     native_str_in_re str s = true := by
@@ -643,7 +643,7 @@ theorem reConcat_nil_eval_empty_of_is_list_nil_true
               simp at hNil
 
 private theorem reConcat_smt_value_rel_right_empty_eval
-    (M : SmtModel) (x id : Term) (r : native_RegLan) :
+    (M : SmtModel) (x id : Term) (r : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
     __smtx_model_eval M (__eo_to_smt id) =
       SmtValue.RegLan (native_str_to_re ([] : native_String)) ->
@@ -900,7 +900,7 @@ theorem smt_eval_int_of_smt_type_int
   exact int_value_canonical hValTy
 
 theorem eval_re_mult_of_reglan (M : SmtModel) (r : Term)
-    (rv : native_RegLan) :
+    (rv : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
     __smtx_model_eval M (__eo_to_smt (mkReMult r)) =
       SmtValue.RegLan (native_re_mult rv) := by
@@ -910,7 +910,7 @@ theorem eval_re_mult_of_reglan (M : SmtModel) (r : Term)
   simp [__smtx_model_eval, __smtx_model_eval_re_mult, hEval]
 
 theorem eval_re_concat_of_reglan (M : SmtModel) (r s : Term)
-    (rv sv : native_RegLan) :
+    (rv sv : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
     __smtx_model_eval M (__eo_to_smt s) = SmtValue.RegLan sv ->
     __smtx_model_eval M (__eo_to_smt (mkReConcat r s)) =
@@ -922,7 +922,7 @@ theorem eval_re_concat_of_reglan (M : SmtModel) (r s : Term)
   simp [__smtx_model_eval, __smtx_model_eval_re_concat, hr, hs]
 
 theorem eval_str_in_re_of_seq_reglan (M : SmtModel)
-    (s r : Term) (ss : SmtSeq) (rv : native_RegLan) :
+    (s r : Term) (ss : SmtSeq) (rv : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
     __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
     __smtx_model_eval M (__eo_to_smt (mkStrInRe s r)) =

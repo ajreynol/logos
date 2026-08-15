@@ -1948,9 +1948,17 @@ private theorem canonical_of_supported
   case str_from_int ht1 hs1 =>
       simpa [__smtx_model_eval] using
         model_eval_str_from_int_canonical (__smtx_model_eval M _)
-  case str_to_re ht1 hs1 =>
+  case str_to_re t ht1 hs1 =>
+      have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+        seq_char_arg_of_non_none (op := SmtTerm.str_to_re)
+          (typeof_str_to_re_eq t) ht
+      have hEvalTy :
+          __smtx_typeof_value (__smtx_model_eval M t) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArg] using supported_type_preservation M hM t ht1 hs1
       simpa [__smtx_model_eval] using
-        model_eval_str_to_re_canonical (canonical_of_supported M hM _ ht1 hs1)
+        model_eval_str_to_re_canonical
+          (canonical_of_supported M hM t ht1 hs1) hEvalTy
   case re_mult ht1 hs1 =>
       simpa [__smtx_model_eval] using
         model_eval_re_mult_canonical (canonical_of_supported M hM _ ht1 hs1)
@@ -1967,11 +1975,22 @@ private theorem canonical_of_supported
   case re_comp ht1 hs1 =>
       simpa [__smtx_model_eval] using
         model_eval_re_comp_canonical (canonical_of_supported M hM _ ht1 hs1)
-  case re_range ht1 hs1 ht2 hs2 =>
+  case re_range t1 t2 ht1 hs1 ht2 hs2 =>
+      have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.re_range)
+        (typeof_re_range_eq t1 t2) ht
+      have hEvalTy1 :
+          __smtx_typeof_value (__smtx_model_eval M t1) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArgs.1] using supported_type_preservation M hM t1 ht1 hs1
+      have hEvalTy2 :
+          __smtx_typeof_value (__smtx_model_eval M t2) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArgs.2] using supported_type_preservation M hM t2 ht2 hs2
       simpa [__smtx_model_eval] using
         model_eval_re_range_canonical
-          (canonical_of_supported M hM _ ht1 hs1)
-          (canonical_of_supported M hM _ ht2 hs2)
+          (canonical_of_supported M hM t1 ht1 hs1)
+          (canonical_of_supported M hM t2 ht2 hs2)
+          hEvalTy1 hEvalTy2
   case re_concat ht1 hs1 ht2 hs2 =>
       simpa [__smtx_model_eval] using
         model_eval_re_concat_canonical

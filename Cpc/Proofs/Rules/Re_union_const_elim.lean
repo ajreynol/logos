@@ -188,7 +188,7 @@ private theorem typed_concl
     (by rw [hLhsTy, hRTy]) (by rw [hLhsTy]; simp)
 
 private theorem str_in_re_true_of_prem
-    (M : SmtModel) (s r : Term) (ss : SmtSeq) (rv : native_RegLan)
+    (M : SmtModel) (s r : Term) (ss : SmtSeq) (rv : SmtRegLan)
     (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
     (hREval : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv)
     (hPrem : eo_interprets M (prem s r) true) :
@@ -221,7 +221,7 @@ private theorem str_in_re_true_of_prem
   injection hValueEq
 
 private theorem smt_value_rel_union_const_elim
-    (pat : native_String) (rv : native_RegLan)
+    (pat : native_String) (rv : SmtRegLan)
     (hPatValid : native_string_valid pat = true)
     (hPatMem : native_str_in_re pat rv = true) :
     RuleProofs.smt_value_rel

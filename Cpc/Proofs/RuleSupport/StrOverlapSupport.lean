@@ -8,6 +8,8 @@ public import Cpc.Proofs.RuleSupport.StringSupport
 import all Cpc.Proofs.RuleSupport.StringSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrEqReplSupport
+import all Cpc.Proofs.RuleSupport.StrEqReplSupport
 public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
 import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
 public import Cpc.Proofs.RuleSupport.DistinctTermsSupport
@@ -149,7 +151,7 @@ theorem native_seq_contains_of_decomp (before pat after : List SmtValue) :
     simp [List.length_append]; omega
   have hNe :
       native_seq_indexof (before ++ pat ++ after) pat 0 ≠ -1 := by
-    unfold native_seq_indexof
+    rw [native_seq_indexof_eq_rec]
     simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
     rw [dif_pos hLen]
     have hFuel :
@@ -4088,7 +4090,7 @@ theorem native_seq_indexof_append_right_of_no_endpoint_overlap
             intro hRight
             exact hLeft (Nat.le_trans hRight (by simp))
           rw [dif_neg hLeft, dif_neg hRightFalse]
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec, native_seq_indexof_eq_rec]
   simp
   simpa [P] using hSearch S 0
 
@@ -4098,7 +4100,7 @@ theorem native_seq_indexof_le_len_sub_pat_of_pat_le_len
       native_seq_indexof xs pat i ≤
         Int.ofNat xs.length - Int.ofNat pat.length := by
   intro hPatLe
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   split
   · have hNonneg :
         (0 : Int) ≤ Int.ofNat xs.length - Int.ofNat pat.length := by
@@ -4136,7 +4138,7 @@ theorem native_seq_indexof_zero_nonneg_pat_le_len
     0 ≤ native_seq_indexof xs pat 0 →
       pat.length ≤ xs.length := by
   intro hIdx
-  unfold native_seq_indexof at hIdx
+  rw [native_seq_indexof_eq_rec] at hIdx
   simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add] at hIdx
   split at hIdx
   · assumption
@@ -4277,14 +4279,14 @@ theorem native_seq_indexof_append_left_of_no_endpoint_overlap
     have hSidxRec :
         native_seq_indexof S P 0 =
           native_seq_indexof_rec S P 0 (S.length - P.length + 1) := by
-      unfold native_seq_indexof
+      rw [native_seq_indexof_eq_rec]
       simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
       rw [dif_pos hPatLe]
       simp
     have hTotalIdxRec :
         native_seq_indexof (C ++ S) P 0 =
           native_seq_indexof_rec (C ++ S) P 0 ((C ++ S).length - P.length + 1) := by
-      unfold native_seq_indexof
+      rw [native_seq_indexof_eq_rec]
       simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
       rw [dif_pos hTotalLe]
       simp
@@ -4344,7 +4346,7 @@ theorem native_seq_replace_append_right_of_no_endpoint_overlap
             simpa [hC] using hCompat
           exact hNo 0 hLenC hCompatC
     subst C
-    simp [native_seq_replace, hPnil]
+    simp [StrEqReplSupport.native_seq_replace_eq_indexof, hPnil]
   · cases hPat : L ++ D with
     | nil => exact False.elim (hPnil hPat)
     | cons p ps =>
@@ -4359,7 +4361,8 @@ theorem native_seq_replace_append_right_of_no_endpoint_overlap
         by_cases hNeg : native_seq_indexof S (L ++ D) 0 < 0
         · have hNegPat : native_seq_indexof S (p :: ps) 0 < 0 := by
             simpa [hPat] using hNeg
-          simp [native_seq_replace, hIdxPat, hNegPat]
+          simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+            hIdxPat, hNegPat]
         · have hNonneg : 0 ≤ native_seq_indexof S (L ++ D) 0 :=
             Int.le_of_not_gt hNeg
           have hBound :
@@ -4383,7 +4386,8 @@ theorem native_seq_replace_append_right_of_no_endpoint_overlap
               Int.toNat (native_seq_indexof S (p :: ps) 0) +
                   (ps.length + 1) ≤ S.length := by
             simpa using hBoundPat
-          simp [native_seq_replace, hIdxPat, hNegPat]
+          simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+            hIdxPat, hNegPat]
           rw [List.take_append_of_le_length hTakePat]
           rw [List.drop_append_of_le_length hBoundPs]
 
@@ -4412,7 +4416,7 @@ theorem native_seq_replace_append_left_of_no_endpoint_overlap
             simpa [hC] using hCompat
           exact hNo 0 hLenC hCompatC
     subst C
-    simp [native_seq_replace, hPnil]
+    simp [StrEqReplSupport.native_seq_replace_eq_indexof, hPnil]
   · cases hPat : D ++ R with
     | nil => exact False.elim (hPnil hPat)
     | cons p ps =>
@@ -4427,7 +4431,8 @@ theorem native_seq_replace_append_left_of_no_endpoint_overlap
             simpa [hPat] using hIdxNeg
           have hNegPat : native_seq_indexof S (p :: ps) 0 < 0 := by
             simpa [hPat] using hNeg
-          simp [native_seq_replace, hIdxNegPat, hNegPat]
+          simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+            hIdxNegPat, hNegPat]
         · have hSnonneg : 0 ≤ native_seq_indexof S (D ++ R) 0 :=
             Int.le_of_not_gt hNeg
           have hIdxOffset :
@@ -4469,8 +4474,7 @@ theorem native_seq_replace_append_left_of_no_endpoint_overlap
             simpa [Int.ofNat_eq_natCast] using
               Int.toNat_natCast
                 (C.length + Int.toNat (native_seq_indexof S (p :: ps) 0))
-          unfold native_seq_replace
-          simp only
+          simp only [StrEqReplSupport.native_seq_replace_eq_indexof]
           rw [hIdxOffsetPat]
           rw [if_neg hTotalNonneg]
           rw [hToNatCast]

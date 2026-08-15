@@ -26,7 +26,7 @@ private theorem eo_typeof_re_concat_eq_reglan_of_ne_stuck (T U : Term)
       cases U <;> simp [__eo_typeof_re_concat] at h
 
 private theorem nativeListInRe_mk_comp_local :
-    ∀ (xs : List native_Char) (r : native_RegLan),
+    ∀ (xs : List native_Char) (r : SmtRegLan),
       native_re_nullable
           (xs.foldl (fun acc c => native_re_deriv c acc)
             (native_re_mk_comp r)) =
@@ -67,7 +67,7 @@ private theorem nativeListInRe_mk_comp_local :
       all_goals exact h
 
 private theorem native_str_in_re_re_comp_local
-    (str : native_String) (r : native_RegLan) :
+    (str : native_String) (r : SmtRegLan) :
     native_str_in_re str (native_re_comp r) =
       (native_string_valid str && Bool.not (native_str_in_re str r)) := by
   cases hValid : native_string_valid str <;>
@@ -75,12 +75,12 @@ private theorem native_str_in_re_re_comp_local
       nativeListInRe_mk_comp_local]
 
 private theorem native_str_in_re_mk_comp_local
-    (str : native_String) (r : native_RegLan) :
+    (str : native_String) (r : SmtRegLan) :
     native_str_in_re str (native_re_mk_comp r) =
       (native_string_valid str && Bool.not (native_str_in_re str r)) := by
   simpa [native_re_comp] using native_str_in_re_re_comp_local str r
 
-private theorem smt_value_rel_re_diff_elim (r s : native_RegLan) :
+private theorem smt_value_rel_re_diff_elim (r s : SmtRegLan) :
     RuleProofs.smt_value_rel
       (__smtx_model_eval_re_diff (SmtValue.RegLan r) (SmtValue.RegLan s))
       (__smtx_model_eval_re_inter (SmtValue.RegLan r)

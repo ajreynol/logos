@@ -14508,7 +14508,7 @@ private theorem smt_value_rel_get_a_norm_concat
     hNormRel
 
 private theorem native_str_in_re_mk_union
-    (str : native_String) (r s : native_RegLan) :
+    (str : native_String) (r s : SmtRegLan) :
     native_str_in_re str (native_re_mk_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
   by_cases hValid : native_string_valid str = true
@@ -14519,13 +14519,13 @@ private theorem native_str_in_re_mk_union
     simp [native_str_in_re, hInvalid]
 
 private theorem native_str_in_re_mk_inter
-    (str : native_String) (r s : native_RegLan) :
+    (str : native_String) (r s : SmtRegLan) :
     native_str_in_re str (native_re_mk_inter r s) =
       (native_str_in_re str r && native_str_in_re str s) := by
   exact RuleProofs.native_str_in_re_mk_inter str r s
 
 private theorem native_str_in_re_mk_concat_assoc
-    (str : native_String) (r s t : native_RegLan) :
+    (str : native_String) (r s t : SmtRegLan) :
     native_str_in_re str
         (native_re_mk_concat (native_re_mk_concat r s) t) =
       native_str_in_re str
@@ -14566,7 +14566,7 @@ private theorem native_string_valid_right_of_append
   simpa [native_string_valid] using hParts.2
 
 private theorem native_str_in_re_mk_concat_congr
-    (str : native_String) (r r' s s' : native_RegLan)
+    (str : native_String) (r r' s s' : SmtRegLan)
     (hr : ∀ str : native_String, native_string_valid str = true ->
       native_str_in_re str r = native_str_in_re str r')
     (hs : ∀ str : native_String, native_string_valid str = true ->
@@ -14657,7 +14657,7 @@ private theorem native_str_in_re_all (str : native_String)
   exact RuleProofs.native_str_in_re_re_all str hValid
 
 private theorem reUnion_smt_value_rel_right_none_eval
-    (M : SmtModel) (x id : Term) (r : native_RegLan) :
+    (M : SmtModel) (x id : Term) (r : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
     __smtx_model_eval M (__eo_to_smt id) = SmtValue.RegLan native_re_none ->
     RuleProofs.smt_value_rel
@@ -14675,7 +14675,7 @@ private theorem reUnion_smt_value_rel_right_none_eval
     native_str_in_re_mk_union, native_str_in_re_empty]
 
 private theorem reUnion_smt_value_rel_left_none_eval
-    (M : SmtModel) (id x : Term) (r : native_RegLan) :
+    (M : SmtModel) (id x : Term) (r : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt id) = SmtValue.RegLan native_re_none ->
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
     RuleProofs.smt_value_rel
@@ -14693,7 +14693,7 @@ private theorem reUnion_smt_value_rel_left_none_eval
     native_str_in_re_mk_union, native_str_in_re_empty]
 
 private theorem reUnion_smt_value_rel_self_eval
-    (M : SmtModel) (x : Term) (r : native_RegLan) :
+    (M : SmtModel) (x : Term) (r : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
     RuleProofs.smt_value_rel
       (__smtx_model_eval M (__eo_to_smt (mkReUnion x x)))
@@ -14709,7 +14709,7 @@ private theorem reUnion_smt_value_rel_self_eval
   simp [__smtx_model_eval_eq, native_re_union, native_str_in_re_mk_union]
 
 private theorem reUnion_smt_value_rel_comm_eval
-    (M : SmtModel) (x y : Term) (rx ry : native_RegLan) :
+    (M : SmtModel) (x y : Term) (rx ry : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx ->
     __smtx_model_eval M (__eo_to_smt y) = SmtValue.RegLan ry ->
     RuleProofs.smt_value_rel
@@ -14728,7 +14728,7 @@ private theorem reUnion_smt_value_rel_comm_eval
     Bool.or_comm]
 
 private theorem reUnion_smt_value_rel_assoc_eval
-    (M : SmtModel) (x y z : Term) (rx ry rz : native_RegLan) :
+    (M : SmtModel) (x y z : Term) (rx ry rz : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx ->
     __smtx_model_eval M (__eo_to_smt y) = SmtValue.RegLan ry ->
     __smtx_model_eval M (__eo_to_smt z) = SmtValue.RegLan rz ->
@@ -14795,7 +14795,7 @@ private theorem reUnion_smt_value_rel_congr_eval
   rw [hxExt str hValid, hyExt str hValid]
 
 private theorem reInter_smt_value_rel_right_all_eval
-    (M : SmtModel) (x id : Term) (r : native_RegLan) :
+    (M : SmtModel) (x id : Term) (r : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
     __smtx_model_eval M (__eo_to_smt id) = SmtValue.RegLan native_re_all ->
     RuleProofs.smt_value_rel
@@ -14814,7 +14814,7 @@ private theorem reInter_smt_value_rel_right_all_eval
   exact native_str_in_re_all str hValid
 
 private theorem reInter_smt_value_rel_left_all_eval
-    (M : SmtModel) (id x : Term) (r : native_RegLan) :
+    (M : SmtModel) (id x : Term) (r : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt id) = SmtValue.RegLan native_re_all ->
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
     RuleProofs.smt_value_rel
@@ -14833,7 +14833,7 @@ private theorem reInter_smt_value_rel_left_all_eval
   exact native_str_in_re_all str hValid
 
 private theorem reInter_smt_value_rel_self_eval
-    (M : SmtModel) (x : Term) (r : native_RegLan) :
+    (M : SmtModel) (x : Term) (r : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
     RuleProofs.smt_value_rel
       (__smtx_model_eval M (__eo_to_smt (mkReInter x x)))
@@ -14849,7 +14849,7 @@ private theorem reInter_smt_value_rel_self_eval
   simp [__smtx_model_eval_eq, native_re_inter, native_str_in_re_mk_inter]
 
 private theorem reInter_smt_value_rel_comm_eval
-    (M : SmtModel) (x y : Term) (rx ry : native_RegLan) :
+    (M : SmtModel) (x y : Term) (rx ry : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx ->
     __smtx_model_eval M (__eo_to_smt y) = SmtValue.RegLan ry ->
     RuleProofs.smt_value_rel
@@ -14868,7 +14868,7 @@ private theorem reInter_smt_value_rel_comm_eval
     Bool.and_comm]
 
 private theorem reInter_smt_value_rel_assoc_eval
-    (M : SmtModel) (x y z : Term) (rx ry rz : native_RegLan) :
+    (M : SmtModel) (x y z : Term) (rx ry rz : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx ->
     __smtx_model_eval M (__eo_to_smt y) = SmtValue.RegLan ry ->
     __smtx_model_eval M (__eo_to_smt z) = SmtValue.RegLan rz ->
@@ -15167,7 +15167,7 @@ private theorem aci_norm_same_marker_eq_true_cases_of_payload_reglan_eval
       exact Or.inr hSplit.2
 
 private theorem reConcat_smt_value_rel_right_empty_eval
-    (M : SmtModel) (x id : Term) (r : native_RegLan) :
+    (M : SmtModel) (x id : Term) (r : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
     __smtx_model_eval M (__eo_to_smt id) =
       SmtValue.RegLan (native_str_to_re (native_string_lit "")) ->
@@ -15187,7 +15187,7 @@ private theorem reConcat_smt_value_rel_right_empty_eval
       native_str_to_re, native_re_of_list, native_string_lit_empty]
 
 private theorem reConcat_smt_value_rel_left_empty_eval
-    (M : SmtModel) (id x : Term) (r : native_RegLan) :
+    (M : SmtModel) (id x : Term) (r : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt id) =
       SmtValue.RegLan (native_str_to_re (native_string_lit "")) ->
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
@@ -15221,7 +15221,7 @@ private theorem reConcat_eval_reglan_of_reglan_args
     simp [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hyEval]⟩
 
 private theorem reConcat_smt_value_rel_assoc_eval
-    (M : SmtModel) (x y z : Term) (rx ry rz : native_RegLan) :
+    (M : SmtModel) (x y z : Term) (rx ry rz : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx ->
     __smtx_model_eval M (__eo_to_smt y) = SmtValue.RegLan ry ->
     __smtx_model_eval M (__eo_to_smt z) = SmtValue.RegLan rz ->
@@ -15927,7 +15927,7 @@ private theorem reUnion_is_list_true_ne_stuck {t : Term} :
 
 private theorem reUnion_smt_value_rel_left_rotate_eval
     (M : SmtModel) (a b c : Term)
-    (ra rb rc : native_RegLan) :
+    (ra rb rc : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra ->
     __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb ->
     __smtx_model_eval M (__eo_to_smt c) = SmtValue.RegLan rc ->
@@ -15976,7 +15976,7 @@ private theorem reUnion_smt_value_rel_left_rotate_eval
       hComm hAssoc₂)
 
 private theorem reUnion_smt_value_rel_insert_duplicate_eval
-    (M : SmtModel) (x y : Term) (rx ry : native_RegLan) :
+    (M : SmtModel) (x y : Term) (rx ry : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx ->
     __smtx_model_eval M (__eo_to_smt y) = SmtValue.RegLan ry ->
     RuleProofs.smt_value_rel
@@ -17650,7 +17650,7 @@ private theorem reInter_is_list_true_ne_stuck {t : Term} :
 
 private theorem reInter_smt_value_rel_left_rotate_eval
     (M : SmtModel) (a b c : Term)
-    (ra rb rc : native_RegLan) :
+    (ra rb rc : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra ->
     __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb ->
     __smtx_model_eval M (__eo_to_smt c) = SmtValue.RegLan rc ->
@@ -17699,7 +17699,7 @@ private theorem reInter_smt_value_rel_left_rotate_eval
       hComm hAssoc₂)
 
 private theorem reInter_smt_value_rel_insert_duplicate_eval
-    (M : SmtModel) (x y : Term) (rx ry : native_RegLan) :
+    (M : SmtModel) (x y : Term) (rx ry : SmtRegLan) :
     __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx ->
     __smtx_model_eval M (__eo_to_smt y) = SmtValue.RegLan ry ->
     RuleProofs.smt_value_rel

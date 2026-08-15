@@ -11,20 +11,6 @@ namespace Smtm
 
 open SmtEval
 
-inductive SmtRegLan : Type where
-  | empty : SmtRegLan
-  | epsilon : SmtRegLan
-  | char : native_Char -> SmtRegLan
-  | range : native_Char -> native_Char -> SmtRegLan
-  | allchar : SmtRegLan
-  | concat : SmtRegLan -> SmtRegLan -> SmtRegLan
-  | union : SmtRegLan -> SmtRegLan -> SmtRegLan
-  | inter : SmtRegLan -> SmtRegLan -> SmtRegLan
-  | star : SmtRegLan -> SmtRegLan
-  | comp : SmtRegLan -> SmtRegLan
-deriving Repr, DecidableEq, Inhabited, Ord
-abbrev native_RegLan := SmtRegLan
-
 mutual
 
 /-
@@ -219,10 +205,29 @@ inductive SmtValue : Type where
   | Seq : SmtSeq -> SmtValue
   | Char : native_Char -> SmtValue
   | UValue : native_Nat -> native_Nat -> SmtValue
-  | RegLan : native_RegLan -> SmtValue
+  | RegLan : SmtRegLan -> SmtValue
   | DtCons : native_String -> SmtDatatypeDecl -> native_Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
 
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+Regular languages. Base elements are SmtValue, which allows regular
+expression operations to be defined uniformly over the same (unpacked)
+sequence representation used by the sequence operations. Well-formed
+regular languages carry only valid character values as base elements.
+-/
+inductive SmtRegLan : Type where
+  | empty : SmtRegLan
+  | epsilon : SmtRegLan
+  | char : SmtValue -> SmtRegLan
+  | range : SmtValue -> SmtValue -> SmtRegLan
+  | allchar : SmtRegLan
+  | concat : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | union : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | inter : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | star : SmtRegLan -> SmtRegLan
+  | comp : SmtRegLan -> SmtRegLan
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
@@ -268,4 +273,3 @@ deriving Repr, DecidableEq, Inhabited, Ord
 end
 
 end Smtm
-

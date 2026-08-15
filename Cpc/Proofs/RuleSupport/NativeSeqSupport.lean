@@ -33,6 +33,200 @@ theorem int_nonneg_of_not_neg {i : native_Int} (hi : ¬ i < 0) :
       exfalso
       exact hi (by simp)
 
+/-! The executable sequence search now delegates to the regular-expression
+matcher.  The following lemmas connect an exact-list regular expression back
+to the structurally recursive list scanner used throughout these proofs. -/
+
+theorem native_re_concat_char_eq
+    (c : SmtValue) (r : SmtRegLan)
+    (hEmpty : r ≠ SmtRegLan.empty) (hEpsilon : r ≠ SmtRegLan.epsilon) :
+    native_re_concat (SmtRegLan.char c) r =
+      SmtRegLan.concat (SmtRegLan.char c) r := by
+  cases r <;> simp_all [native_re_concat]
+
+theorem native_re_of_list_cons_ne :
+    ∀ (c : SmtValue) (cs : List SmtValue),
+      native_re_of_list (c :: cs) ≠ SmtRegLan.empty ∧
+        native_re_of_list (c :: cs) ≠ SmtRegLan.epsilon
+  | c, [] => by
+      simp [native_re_of_list, native_re_concat]
+  | c, d :: ds => by
+      have h := native_re_of_list_cons_ne d ds
+      rw [native_re_of_list.eq_2,
+        native_re_concat_char_eq c (native_re_of_list (d :: ds)) h.1 h.2]
+      simp
+
+theorem native_re_deriv_re_of_list_cons
+    (x c : SmtValue) (cs : List SmtValue) :
+    native_re_deriv x (native_re_of_list (c :: cs)) =
+      if x = c then native_re_of_list cs else SmtRegLan.empty := by
+  cases cs with
+  | nil =>
+      simp [native_re_of_list, native_re_concat, native_re_deriv]
+  | cons d ds =>
+      have h := native_re_of_list_cons_ne d ds
+      rw [native_re_of_list.eq_2,
+        native_re_concat_char_eq c (native_re_of_list (d :: ds)) h.1 h.2]
+      by_cases hx : x = c <;>
+        simp [native_re_deriv, native_re_nullable, native_re_concat,
+          native_re_union, hx, h.1]
+
+theorem native_re_nullable_re_of_list (pat : List SmtValue) :
+    native_re_nullable (native_re_of_list pat) = decide (pat = []) := by
+  cases pat with
+  | nil => simp [native_re_of_list, native_re_nullable]
+  | cons c cs =>
+      cases cs with
+      | nil => simp [native_re_of_list, native_re_concat, native_re_nullable]
+      | cons d ds =>
+          have ht := native_re_of_list_cons_ne d ds
+          rw [native_re_of_list.eq_2,
+            native_re_concat_char_eq c (native_re_of_list (d :: ds)) ht.1 ht.2]
+          simp [native_re_nullable]
+
+theorem native_re_prefix_go_empty (xs : List SmtValue) (n : Nat) :
+    native_re_prefix_match_len?.go SmtRegLan.empty xs n = none := by
+  induction xs generalizing n with
+  | nil => simp [native_re_prefix_match_len?.go, native_re_nullable]
+  | cons x xs ih =>
+      rw [native_re_prefix_match_len?.go.eq_2]
+      simp [native_re_nullable, native_re_deriv, ih]
+
+theorem native_re_prefix_go_re_of_list :
+    ∀ (pat xs : List SmtValue) (n : Nat),
+      native_re_prefix_match_len?.go (native_re_of_list pat) xs n =
+        if native_seq_prefix_eq pat xs then some (n + pat.length) else none
+  | [], xs, n => by
+      cases xs <;>
+        simp [native_re_prefix_match_len?.go, native_re_of_list,
+          native_re_nullable, native_seq_prefix_eq]
+  | c :: cs, [], n => by
+      rw [native_re_prefix_match_len?.go.eq_1]
+      simp [native_re_nullable_re_of_list, native_seq_prefix_eq]
+  | c :: cs, x :: xs, n => by
+      rw [native_re_prefix_match_len?.go.eq_2]
+      rw [native_re_nullable_re_of_list]
+      simp only [List.cons_ne_nil, decide_false, Bool.false_eq_true, if_false]
+      rw [native_re_deriv_re_of_list_cons]
+      by_cases hx : x = c
+      · subst x
+        rw [if_pos rfl]
+        rw [native_re_prefix_go_re_of_list cs xs (n + 1)]
+        by_cases hp : native_seq_prefix_eq cs xs = true
+        · simp [native_seq_prefix_eq, native_veq, hp]
+          omega
+        · simp [native_seq_prefix_eq, native_veq, hp]
+      · rw [if_neg hx]
+        have hcx : c ≠ x := Ne.symm hx
+        simp [native_re_prefix_go_empty, native_seq_prefix_eq, native_veq,
+          hcx]
+
+theorem native_re_prefix_match_re_of_list
+    (pat xs : List SmtValue) :
+    native_re_prefix_match_len? (native_re_of_list pat) xs =
+      if native_seq_prefix_eq pat xs then some pat.length else none := by
+  simp [native_re_prefix_match_len?, native_re_prefix_go_re_of_list]
+
+theorem native_seq_prefix_eq_length_le :
+    ∀ (pat xs : List SmtValue),
+      native_seq_prefix_eq pat xs = true → pat.length ≤ xs.length
+  | [], xs, h => by simp
+  | p :: ps, [], h => by simp [native_seq_prefix_eq] at h
+  | p :: ps, x :: xs, h => by
+      have hParts : p = x ∧ native_seq_prefix_eq ps xs = true := by
+        simpa [native_seq_prefix_eq, native_veq] using h
+      simpa using native_seq_prefix_eq_length_le ps xs hParts.2
+
+theorem native_re_find_idx_aux_re_of_list_value :
+    ∀ (pat xs : List SmtValue) (i : Nat),
+      (match native_re_find_idx_aux (native_re_of_list pat) xs i with
+       | some (idx, _) => Int.ofNat idx
+       | none => -1) =
+        if _h : pat.length ≤ xs.length then
+          native_seq_indexof_rec xs pat i (xs.length - pat.length + 1)
+        else
+          -1
+  | pat, [], i => by
+      cases pat with
+      | nil =>
+          simp [native_re_find_idx_aux, native_re_prefix_match_re_of_list,
+            native_seq_prefix_eq, native_seq_indexof_rec]
+      | cons p ps =>
+          simp [native_re_find_idx_aux, native_re_prefix_match_re_of_list,
+            native_seq_prefix_eq]
+  | pat, x :: xs, i => by
+      rw [native_re_find_idx_aux.eq_def, native_re_prefix_match_re_of_list]
+      by_cases hp : native_seq_prefix_eq pat (x :: xs) = true
+      · rw [if_pos hp]
+        have hLen : pat.length ≤ (x :: xs).length :=
+          native_seq_prefix_eq_length_le pat (x :: xs) hp
+        rw [dif_pos hLen]
+        have hFuelPos : 0 < (x :: xs).length - pat.length + 1 := by omega
+        obtain ⟨fuel, hFuel⟩ := Nat.exists_eq_succ_of_ne_zero
+          (Nat.ne_of_gt hFuelPos)
+        rw [hFuel]
+        simp [native_seq_indexof_rec, hp]
+      · rw [if_neg hp]
+        rw [native_re_find_idx_aux_re_of_list_value pat xs (i + 1)]
+        by_cases hTail : pat.length ≤ xs.length
+        · have hFull : pat.length ≤ (x :: xs).length := by
+            simpa using Nat.le.step hTail
+          rw [dif_pos hTail, dif_pos hFull]
+          have hFuel :
+              (x :: xs).length - pat.length + 1 =
+                (xs.length - pat.length + 1) + 1 := by
+            simp
+            omega
+          rw [hFuel]
+          simp [native_seq_indexof_rec, hp]
+        · rw [dif_neg hTail]
+          by_cases hFull : pat.length ≤ (x :: xs).length
+          · rw [dif_pos hFull]
+            have hEq : pat.length = (x :: xs).length := by
+              have hGt : xs.length < pat.length := Nat.lt_of_not_ge hTail
+              simp only [List.length_cons] at hFull ⊢
+              omega
+            have hFuel : (x :: xs).length - pat.length + 1 = 1 := by
+              omega
+            rw [hFuel]
+            simp [native_seq_indexof_rec, hp]
+          · rw [dif_neg hFull]
+
+theorem native_seq_indexof_eq_rec
+    (xs pat : List SmtValue) (i : native_Int) :
+    native_seq_indexof xs pat i =
+      if i < 0 then
+        -1
+      else if _h : Int.toNat i + pat.length ≤ xs.length then
+        native_seq_indexof_rec (xs.drop (Int.toNat i)) pat (Int.toNat i)
+          (xs.length - (Int.toNat i + pat.length) + 1)
+      else
+        -1 := by
+  unfold native_seq_indexof native_str_indexof_re native_str_to_re
+  by_cases hi : i < 0
+  · simp [hi]
+  · simp only [if_neg hi]
+    by_cases hStart : Int.toNat i ≤ xs.length
+    · rw [if_pos hStart]
+      unfold native_re_find_idx_from
+      refine (native_re_find_idx_aux_re_of_list_value pat
+        (xs.drop (Int.toNat i)) (Int.toNat i)).trans ?_
+      by_cases hBounds : Int.toNat i + pat.length ≤ xs.length
+      · have hTail : pat.length ≤ (xs.drop (Int.toNat i)).length := by
+          rw [List.length_drop]
+          omega
+        rw [dif_pos hBounds, dif_pos hTail]
+        congr 1
+        rw [List.length_drop]
+        omega
+      · have hTail : ¬ pat.length ≤ (xs.drop (Int.toNat i)).length := by
+          rw [List.length_drop]
+          omega
+        rw [dif_neg hBounds, dif_neg hTail]
+    · have hBounds : ¬ Int.toNat i + pat.length ≤ xs.length := by
+        omega
+      rw [if_neg hStart, dif_neg hBounds]
+
 theorem native_seq_indexof_rec_eq_neg_one_or_ge
     (xs pat : List SmtValue) :
     (i fuel : Nat) ->
@@ -60,7 +254,7 @@ theorem native_seq_indexof_rec_eq_neg_one_or_ge
 theorem native_seq_indexof_eq_neg_one_or_ge
     (xs pat : List SmtValue) (i : native_Int) :
     native_seq_indexof xs pat i = -1 ∨ i ≤ native_seq_indexof xs pat i := by
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   by_cases hi : i < 0
   · simp [hi]
   · have hi0 : 0 ≤ i := int_nonneg_of_not_neg hi
@@ -109,7 +303,7 @@ theorem native_seq_indexof_rec_bound
 theorem native_seq_indexof_le_len
     (xs pat : List SmtValue) (i : native_Int) :
     native_seq_indexof xs pat i ≤ Int.ofNat xs.length := by
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   split
   · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
   · dsimp
@@ -372,7 +566,7 @@ theorem native_seq_prefix_eq_self
 theorem native_seq_indexof_self_zero
     (xs : List SmtValue) :
     native_seq_indexof xs xs 0 = 0 := by
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   have hBounds : xs.length ≤ xs.length := Nat.le_refl _
   simp
   unfold native_seq_indexof_rec
@@ -423,7 +617,7 @@ theorem native_seq_indexof_zero_decomp_of_nat
         native_seq_extract xs (Int.ofNat j + Int.ofNat pat.length)
           (Int.ofNat xs.length - (Int.ofNat j + Int.ofNat pat.length)) =
       xs := by
-  unfold native_seq_indexof at hIdx
+  rw [native_seq_indexof_eq_rec] at hIdx
   by_cases hBounds : pat.length ≤ xs.length
   · simp [hBounds] at hIdx
     rcases native_seq_indexof_rec_decomp xs pat 0
@@ -504,7 +698,7 @@ theorem native_seq_extract_prefix_length_of_indexof_nonneg
   have hCast : Int.ofNat j = idx := Int.toNat_of_nonneg hIdxNonneg
   have hIdx : native_seq_indexof xs pat 0 = Int.ofNat j := by
     rw [hCast]
-  unfold native_seq_indexof at hIdx
+  rw [native_seq_indexof_eq_rec] at hIdx
   by_cases hBounds : pat.length ≤ xs.length
   · simp [hBounds] at hIdx
     rcases native_seq_indexof_rec_decomp xs pat 0
@@ -637,7 +831,8 @@ theorem native_seq_indexof_append_of_nonneg
   have hStartNonneg : ¬ i < 0 := by
     intro hNeg
     have hResult : native_seq_indexof xs pat i = -1 := by
-      simp [native_seq_indexof, hNeg]
+      rw [native_seq_indexof_eq_rec]
+      simp [hNeg]
     rw [hResult] at hNonneg
     simp at hNonneg
   let start := Int.toNat i
@@ -645,7 +840,8 @@ theorem native_seq_indexof_append_of_nonneg
     by_cases hBounds : start + pat.length ≤ xs.length
     · exact hBounds
     · have hResult : native_seq_indexof xs pat i = -1 := by
-        simp [native_seq_indexof, hStartNonneg, start, hBounds]
+        rw [native_seq_indexof_eq_rec]
+        simp [hStartNonneg, start, hBounds]
       rw [hResult] at hNonneg
       simp at hNonneg
   have hStartLe : start ≤ xs.length := by omega
@@ -666,9 +862,9 @@ theorem native_seq_indexof_append_of_nonneg
     omega
   have hNonnegRec :
       0 ≤ native_seq_indexof_rec (xs.drop start) pat start fuel := by
-    simpa [native_seq_indexof, hStartNonneg, start, fuel, hBoundsRaw]
+    simpa [native_seq_indexof_eq_rec, hStartNonneg, start, fuel, hBoundsRaw]
       using hNonneg
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec, native_seq_indexof_eq_rec]
   simp only [if_neg hStartNonneg]
   rw [dif_pos hBoundsAppendRaw, dif_pos hBoundsRaw]
   change native_seq_indexof_rec ((xs ++ suffix).drop start) pat start

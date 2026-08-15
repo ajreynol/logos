@@ -19,7 +19,7 @@ namespace StrInReFromIntDigRangeProof
 abbrev zeroStr : native_String := native_string_lit "0"
 abbrev nineStr : native_String := native_string_lit "9"
 
-abbrev digitRange : native_RegLan :=
+abbrev digitRange : SmtRegLan :=
   native_re_range zeroStr nineStr
 
 abbrev rangeTerm : Term :=
@@ -142,31 +142,32 @@ theorem native_digit_bounds
 theorem nativeListInRe_digit_range_singleton
     (c : native_Char)
     (hDigit : native_char_is_digit c = true) :
-    _root_.nativeListInRe [c] digitRange = true := by
+    RuleProofs.nativeListInRe [c] digitRange = true := by
   have hValid : native_char_valid c = true :=
     native_char_valid_of_digit c hDigit
   have hBounds := native_digit_bounds c hDigit
   have hLoValid : native_char_valid 48 = true := by native_decide
   have hHiValid : native_char_valid 57 = true := by native_decide
   simp [digitRange, zeroStr, nineStr, native_re_range, native_string_lit,
-    _root_.nativeListInRe, native_re_deriv, native_re_nullable, hValid, hLoValid,
-    hHiValid, hBounds.1, hBounds.2]
+    RuleProofs.nativeListInRe, native_re_deriv, native_re_nullable,
+    native_re_elem_valid, native_re_elem_le, hValid, hLoValid, hHiValid,
+    hBounds.1, hBounds.2]
 
 theorem native_str_in_re_digit_range_singleton
     (c : native_Char)
     (hDigit : native_char_is_digit c = true) :
-    native_str_in_re [c] digitRange = true := by
+    RuleProofs.native_str_in_re [c] digitRange = true := by
   have hValidChar : native_char_valid c = true :=
     native_char_valid_of_digit c hDigit
   have hValidString : native_string_valid [c] = true := by
     simpa [native_string_valid, hValidChar]
   have hList := nativeListInRe_digit_range_singleton c hDigit
-  simpa [native_str_in_re, hValidString, _root_.nativeListInRe] using hList
+  simpa [RuleProofs.native_str_in_re, hValidString] using hList
 
 theorem nativeListInRe_digit_star_of_all_digits
     (xs : native_String)
     (hDigits : xs.all native_char_is_digit = true) :
-    _root_.nativeListInRe xs (native_re_mult digitRange) = true := by
+    RuleProofs.nativeListInRe xs (native_re_mult digitRange) = true := by
   induction xs with
   | nil =>
       simpa [native_re_mult] using
@@ -179,17 +180,19 @@ theorem nativeListInRe_digit_star_of_all_digits
       have hCValid : native_string_valid [c] = true := by
         have hValidChar := native_char_valid_of_digit c hParts.1
         simpa [native_string_valid, hValidChar]
-      have hCBase : native_str_in_re [c] digitRange = true :=
+      have hCBase : RuleProofs.native_str_in_re [c] digitRange = true :=
         native_str_in_re_digit_range_singleton c hParts.1
       have hCStarStr :
-          native_str_in_re [c] (native_re_mult digitRange) = true :=
+          RuleProofs.native_str_in_re [c] (native_re_mult digitRange) = true :=
         RuleProofs.native_includes_star_self digitRange [c] hCValid hCBase
       have hCStar :
-          _root_.nativeListInRe [c] (native_re_mk_star digitRange) = true := by
-        simpa [native_str_in_re, hCValid, native_re_mult, _root_.nativeListInRe]
+          RuleProofs.nativeListInRe [c]
+            (native_re_mk_star digitRange) = true := by
+        simpa [RuleProofs.native_str_in_re, hCValid, native_re_mult]
           using hCStarStr
       have hCsStar :
-          _root_.nativeListInRe cs (native_re_mk_star digitRange) = true := by
+          RuleProofs.nativeListInRe cs
+            (native_re_mk_star digitRange) = true := by
         simpa [native_re_mult] using ih hParts.2
       have hAppend :=
         RuleProofs.nativeListInRe_mk_star_append [c] cs digitRange
@@ -198,14 +201,15 @@ theorem nativeListInRe_digit_star_of_all_digits
 
 private theorem native_str_in_re_from_int_digit_range_star
     (i : native_Int) :
-    native_str_in_re (native_str_from_int i) (native_re_mult digitRange) = true := by
+    RuleProofs.native_str_in_re (native_str_from_int i)
+      (native_re_mult digitRange) = true := by
   have hValid : native_string_valid (native_str_from_int i) = true :=
     native_str_from_int_valid i
   have hDigits : (native_str_from_int i).all native_char_is_digit = true :=
     native_str_from_int_all_digits i
   have hList :=
     nativeListInRe_digit_star_of_all_digits (native_str_from_int i) hDigits
-  simpa [native_str_in_re, hValid, _root_.nativeListInRe] using hList
+  simpa [RuleProofs.native_str_in_re, hValid] using hList
 
 private theorem eo_typeof_star_range_term :
     __eo_typeof starRangeTerm = Term.UOp UserOp.RegLan := by
@@ -405,6 +409,12 @@ theorem facts
         SmtValue.Seq (native_pack_string (native_str_from_int z)) := by
     rw [smtx_eval_str_from_int_term_eq, hNEval]
     rfl
+  have hFromIntMem :
+      Smtm.native_str_in_re
+          (native_string_to_values (native_str_from_int z))
+          (native_re_mult digitRange) = true := by
+    rw [← RuleProofs.native_str_in_re_eq_model]
+    exact native_str_in_re_from_int_digit_range_star z
   have hLhsEval :
       __smtx_model_eval M (__eo_to_smt (lhs n)) =
         SmtValue.Boolean true := by
@@ -419,7 +429,7 @@ theorem facts
     rw [hFromEval, smtx_eval_star_range]
     simp [__smtx_model_eval_str_in_re,
       RuleProofs.native_unpack_string_pack_string,
-      native_str_in_re_from_int_digit_range_star]
+      hFromIntMem]
   exact RuleProofs.eo_interprets_eq_of_rel M (lhs n) (Term.Boolean true)
     hBool <| by
       have hTrueEval :
