@@ -149,15 +149,15 @@ theorem native_model_var_lookup_eq_of_env
 by
   exact hAgree.vars_eq s T hMem
 
-theorem native_eval_ifun_apply_eq_of_globals
+theorem native_eval_fun_apply_eq_of_globals
     {M N : SmtModel} (hAgree : model_agrees_on_globals M N)
     (fid : native_String) (T U : SmtType) (i : SmtValue) :
-  native_eval_ifun_apply M fid T U i =
-    native_eval_ifun_apply N fid T U i :=
+  native_eval_fun_apply M fid T U i =
+    native_eval_fun_apply N fid T U i :=
 by
-  by_cases hDefault : fid = native_default_ifun_id
-  · simp [native_eval_ifun_apply, hDefault]
-  · simp [native_eval_ifun_apply, hDefault, hAgree.2 fid T U]
+  by_cases hDefault : fid = native_default_fun_id
+  · simp [native_eval_fun_apply, hDefault]
+  · simp [native_eval_fun_apply, hDefault, hAgree.2 fid T U]
 
 theorem smtx_model_eval_apply_eq_of_globals
     {M N : SmtModel} (hAgree : model_agrees_on_globals M N)
@@ -166,7 +166,7 @@ theorem smtx_model_eval_apply_eq_of_globals
     __smtx_model_eval_apply N f i :=
 by
   cases f <;> cases i <;>
-    simp [__smtx_model_eval_apply, native_eval_ifun_apply_eq_of_globals hAgree]
+    simp [__smtx_model_eval_apply, native_eval_fun_apply_eq_of_globals hAgree]
 
 theorem smtx_seq_nth_wrong_eq_of_globals
     {M N : SmtModel} (hAgree : model_agrees_on_globals M N)

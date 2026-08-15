@@ -201,24 +201,13 @@ theorem model_eval_apply_fun_canonical
     simp [__smtx_typeof_value] at hxTy
     exact False.elim (hANN hxTy.symm)
   · have hCan :
-        __smtx_value_canonical (native_eval_ifun_apply M fid A B x) :=
+        __smtx_value_canonical (native_eval_fun_apply M fid A B x) :=
       (model_total_typed_native_fun_typed hM fid A B x hFunWF hxTy).2
     have hApply :
         __smtx_model_eval_apply M (SmtValue.Fun fid A B) x =
-          native_eval_ifun_apply M fid A B x := by
+          native_eval_fun_apply M fid A B x := by
       cases x <;> simp [__smtx_model_eval_apply] at hxNot ⊢
     simpa [hApply] using hCan
-
-theorem model_eval_apply_ifun_canonical
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    (fid : native_String)
-    (A B : SmtType)
-    (x : SmtValue)
-    (hxTy : __smtx_typeof_value x = A)
-    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_value_canonical (__smtx_model_eval_apply M (SmtValue.Fun fid A B) x) := by
-  exact model_eval_apply_fun_canonical M hM fid A B x hxTy hFunWF
 
 private theorem model_eval_apply_not_value_canonical
     (M : SmtModel) (x : SmtValue) :
@@ -248,19 +237,6 @@ theorem model_eval_apply_lookup_fun_canonical
   rcases fun_value_canonical hLookupTy with ⟨fid, hLookupEq⟩
   rw [hLookupEq] at hLookupCan ⊢
   exact model_eval_apply_fun_canonical M hM fid A B x hxTy hFunWF
-
-theorem model_eval_apply_lookup_ifun_canonical
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    (s : native_String)
-    (A B : SmtType)
-    (x : SmtValue)
-    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
-    (hxTy : __smtx_typeof_value x = A) :
-    __smtx_value_canonical
-      (__smtx_model_eval_apply M
-        (native_model_lookup M s (SmtType.FunType A B)) x) := by
-  exact model_eval_apply_lookup_fun_canonical M hM s A B x hFunWF hxTy
 
 theorem model_eval_apply_canonical
     (M : SmtModel)
