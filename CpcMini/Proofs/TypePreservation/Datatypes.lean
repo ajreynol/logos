@@ -1013,7 +1013,7 @@ theorem typeof_value_model_eval_dt_sel_wrong
     simp [D, __smtx_typeof_value] at hvD
   have hApply :
       __smtx_model_eval_apply M (SmtValue.Fun fid D R) v =
-        native_eval_ifun_apply M fid D R v := by
+        native_eval_fun_apply M fid D R v := by
     cases v <;> simp [__smtx_model_eval_apply] at hvNN ⊢
   rw [hApply]
   exact (model_total_typed_native_fun_typed hM fid D R v hFunWF hvD).1
@@ -1197,25 +1197,11 @@ theorem typeof_value_model_eval_apply_fun
     exact hA hi.symm
   have hApply :
       __smtx_model_eval_apply M (SmtValue.Fun fid A B) i =
-        native_eval_ifun_apply M fid A B i := by
+        native_eval_fun_apply M fid A B i := by
     cases i <;> simp [__smtx_model_eval_apply] at hiNN ⊢
   rw [hApply]
   exact (model_total_typed_native_fun_typed hM fid A B i hFunWF hi).1
 
-/-- Shows that evaluating `apply_ifun` terms produces values of the expected type. -/
-theorem typeof_value_model_eval_apply_ifun
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    {fid : native_String}
-    {i : SmtValue}
-    {A B : SmtType}
-    (hA : A ≠ SmtType.None)
-    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
-    (hi : __smtx_typeof_value i = A) :
-    __smtx_typeof_value (__smtx_model_eval_apply M (SmtValue.Fun fid A B) i) = B :=
-  typeof_value_model_eval_apply_fun M hM hA hFunWF hi
-
-/-- Shows that applying any function-typed value produces a value of the codomain type. -/
 theorem typeof_value_model_eval_apply_fun_value
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -1229,20 +1215,6 @@ theorem typeof_value_model_eval_apply_fun_value
   rcases fun_value_canonical hf with ⟨fid, rfl⟩
   exact typeof_value_model_eval_apply_fun M hM hA hFunWF hi
 
-/-- Shows that applying any native-function-typed value produces a value of the codomain type. -/
-theorem typeof_value_model_eval_apply_ifun_value
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    {f i : SmtValue}
-    {A B : SmtType}
-    (hA : A ≠ SmtType.None)
-    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
-    (hf : __smtx_typeof_value f = SmtType.FunType A B)
-    (hi : __smtx_typeof_value i = A) :
-    __smtx_typeof_value (__smtx_model_eval_apply M f i) = B :=
-  typeof_value_model_eval_apply_fun_value M hM hA hFunWF hf hi
-
-/-- Shows that evaluating `apply_dt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_dt
     (M : SmtModel)
     {f i : SmtValue}

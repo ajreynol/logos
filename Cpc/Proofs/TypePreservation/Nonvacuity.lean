@@ -43,9 +43,9 @@ private theorem default_typed_model_of_native_fun_typed
   have hDefaultCan :
       __smtx_value_canonical_bool (__smtx_type_default B) = true := by
     simpa [__smtx_value_canonical] using hDefault.2
-  by_cases hDefaultId : fid = native_default_ifun_id
-  · simp [native_eval_ifun_apply, hDefaultId, hDefault.1, hDefaultCan]
-  · simp [native_eval_ifun_apply, native_model_fun_lookup,
+  by_cases hDefaultId : fid = native_default_fun_id
+  · simp [native_eval_fun_apply, hDefaultId, hDefault.1, hDefaultCan]
+  · simp [native_eval_fun_apply, native_model_fun_lookup,
       default_typed_model_of, native_model_key, hDefaultId, hDefault.1, hDefaultCan]
 
 /--

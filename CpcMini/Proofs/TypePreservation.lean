@@ -436,12 +436,12 @@ private theorem mini_model_eval_apply_fun_canonical
   by_cases hxNot : x = SmtValue.NotValue
   · subst x
     simp [__smtx_model_eval_apply, __smtx_value_canonical, __smtx_value_canonical_bool]
-  · have hCan : __smtx_value_canonical (native_eval_ifun_apply M fid A B x) := by
+  · have hCan : __smtx_value_canonical (native_eval_fun_apply M fid A B x) := by
       have hRaw := (model_total_typed_native_fun_typed hM fid A B x hFunWF hxTy).2
       simpa [__smtx_value_canonical] using hRaw
     have hApply :
         __smtx_model_eval_apply M (SmtValue.Fun fid A B) x =
-          native_eval_ifun_apply M fid A B x := by
+          native_eval_fun_apply M fid A B x := by
       cases x <;> simp [__smtx_model_eval_apply] at hxNot ⊢
     simpa [hApply] using hCan
 

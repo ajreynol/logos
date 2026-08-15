@@ -801,15 +801,6 @@ theorem smt_term_fun_like_arg_ne_reglan_of_non_none
     rw [hDtc] at hGood
     exact hGood.1
 
-theorem smt_term_ifun_type_wf_of_non_none
-    (x : SmtTerm)
-    (hxNN : term_has_non_none_type x)
-    {A B : SmtType}
-    (hxTy : __smtx_typeof x = SmtType.FunType A B) :
-    __smtx_type_wf (SmtType.FunType A B) = true := by
-  have hGood := tp_smt_term_result_seq_components_wf_of_non_none x hxNN
-  simpa [tp_result_seq_components_wf, hxTy] using hGood
-
 theorem smt_term_seq_type_wf_of_non_none
     (x : SmtTerm)
     (hxNN : term_has_non_none_type x)
@@ -935,20 +926,6 @@ theorem smt_fun_components_wf_rec_of_non_none_type
     __smtx_type_wf_rec A = true ∧
       __smtx_type_wf B = true :=
   tp_smt_fun_components_wf_rec_of_non_none_type x A B hxTy
-
-private theorem tp_smt_ifun_components_wf_rec_of_non_none_type
-    (x : SmtTerm) (A B : SmtType)
-    (hxTy : __smtx_typeof x = SmtType.FunType A B) :
-    __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf B = true := by
-  exact tp_smt_fun_components_wf_rec_of_non_none_type x A B hxTy
-
-theorem smt_ifun_components_wf_rec_of_non_none_type
-    (x : SmtTerm) (A B : SmtType)
-    (hxTy : __smtx_typeof x = SmtType.FunType A B) :
-    __smtx_type_wf_rec A = true ∧
-      __smtx_type_wf B = true :=
-  tp_smt_ifun_components_wf_rec_of_non_none_type x A B hxTy
 
 private theorem tp_smt_datatype_wf_of_non_none_type
     (x : SmtTerm) (s : native_String) (d : SmtDatatypeDecl)
@@ -1786,16 +1763,16 @@ private theorem canonical_of_supported
       have hxTy := (supported_type_preservation M hM _ ht1 hs1).trans hArgs.1
       simpa [__smtx_model_eval] using
         model_eval_ite_canonical
-          (model_eval_apply_lookup_ifun_canonical M hM native_div_by_zero_id
-            SmtType.Int SmtType.Int _ ifun_type_wf_int_int hxTy)
+          (model_eval_apply_lookup_fun_canonical M hM native_div_by_zero_id
+            SmtType.Int SmtType.Int _ fun_type_wf_int_int hxTy)
           (model_eval_div_total_canonical _ _)
   case mod ht1 hs1 ht2 hs2 =>
       have hArgs := int_binop_args_of_non_none (op := SmtTerm.mod) (typeof_mod_eq _ _) ht
       have hxTy := (supported_type_preservation M hM _ ht1 hs1).trans hArgs.1
       simpa [__smtx_model_eval] using
         model_eval_ite_canonical
-          (model_eval_apply_lookup_ifun_canonical M hM native_mod_by_zero_id
-            SmtType.Int SmtType.Int _ ifun_type_wf_int_int hxTy)
+          (model_eval_apply_lookup_fun_canonical M hM native_mod_by_zero_id
+            SmtType.Int SmtType.Int _ fun_type_wf_int_int hxTy)
           (model_eval_mod_total_canonical _ _)
   case divisible ht1 hs1 ht2 hs2 =>
       simpa [__smtx_model_eval] using
@@ -1825,10 +1802,10 @@ private theorem canonical_of_supported
           simp [__smtx_model_eval_to_real_coerce, __smtx_typeof_value]
         simpa [__smtx_model_eval] using
           model_eval_ite_canonical
-            (model_eval_apply_lookup_ifun_canonical M hM native_qdiv_by_zero_id
+            (model_eval_apply_lookup_fun_canonical M hM native_qdiv_by_zero_id
               SmtType.Real SmtType.Real
               (__smtx_model_eval_to_real_coerce (__smtx_model_eval M t1))
-              ifun_type_wf_real_real hxTy)
+              fun_type_wf_real_real hxTy)
             (model_eval_qdiv_total_canonical _ _)
       · have hxTyRaw :
             __smtx_typeof_value (__smtx_model_eval M t1) = SmtType.Real := by
@@ -1841,10 +1818,10 @@ private theorem canonical_of_supported
           simp [__smtx_model_eval_to_real_coerce, __smtx_typeof_value]
         simpa [__smtx_model_eval] using
           model_eval_ite_canonical
-            (model_eval_apply_lookup_ifun_canonical M hM native_qdiv_by_zero_id
+            (model_eval_apply_lookup_fun_canonical M hM native_qdiv_by_zero_id
               SmtType.Real SmtType.Real
               (__smtx_model_eval_to_real_coerce (__smtx_model_eval M t1))
-              ifun_type_wf_real_real hxTy)
+              fun_type_wf_real_real hxTy)
             (model_eval_qdiv_total_canonical _ _)
   case qdiv_total ht1 hs1 ht2 hs2 =>
       simpa [__smtx_model_eval] using
@@ -2968,13 +2945,6 @@ private theorem type_has_no_none_components_map_components_non_none
     type_has_no_none_components_non_none h.2⟩
 
 theorem type_has_no_none_components_fun_components_non_none
-    {A B : SmtType}
-    (h : type_has_no_none_components (SmtType.FunType A B)) :
-    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
-  exact ⟨type_has_no_none_components_non_none h.1,
-    type_has_no_none_components_non_none h.2⟩
-
-theorem type_has_no_none_components_ifun_components_non_none
     {A B : SmtType}
     (h : type_has_no_none_components (SmtType.FunType A B)) :
     A ≠ SmtType.None ∧ B ≠ SmtType.None := by
