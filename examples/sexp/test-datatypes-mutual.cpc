@@ -1,0 +1,8 @@
+; Exercises mutually recursive datatypes and selectors.
+(declare-datatypes ((A 0) (B 0))
+  (((mkA (unA B)))
+   ((mkB (unB A)) (nilB))))
+(declare-const a A)
+(assume @p0 (not (= (unA a) (unA a))))
+(step @p1 :rule refl :args ((unA a)))
+(step @p2 :rule contra :premises (@p1 @p0))

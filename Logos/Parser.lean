@@ -122,6 +122,114 @@ def Arity.admits : Arity T → Nat → Bool
   | .rightAssocNil _, _ => true
 
 /-!
+## Literals
+
+Lexing literals is the same for every calculus, so it happens here; a `Config`
+only has to say how to turn a lexed literal into a term.
+-/
+
+/-- A literal, before it is mapped into the term language of a calculus. -/
+inductive Literal where
+  /-- An integer literal, e.g. `12` or `-12`. -/
+  | numeral (n : Int)
+  /-- A rational literal, e.g. `1/2` or `0.5`.  The denominator is positive. -/
+  | rational (num den : Int)
+  /-- A string literal; the enclosing quotes are removed and `""` unescaped to `"`. -/
+  | string (s : String)
+  /-- A bit-vector literal, e.g. `#b0110` or `#x1f`, of the given width and value. -/
+  | binary (width : Nat) (value : Nat)
+deriving Repr, BEq, Inhabited
+
+namespace Literal
+
+private def digitsToNat (base : Nat) (digitValue : Char → Option Nat) :
+    List Char → Option Nat
+  | [] => none
+  | ds => ds.foldlM (fun acc c => do return base * acc + (← digitValue c)) 0
+
+private def binDigit (c : Char) : Option Nat :=
+  if c == '0' then some 0 else if c == '1' then some 1 else none
+
+private def decDigit (c : Char) : Option Nat :=
+  if c.isDigit then some (c.toNat - '0'.toNat) else none
+
+private def hexDigit (c : Char) : Option Nat :=
+  if c.isDigit then some (c.toNat - '0'.toNat)
+  else if 'a' ≤ c && c ≤ 'f' then some (c.toNat - 'a'.toNat + 10)
+  else if 'A' ≤ c && c ≤ 'F' then some (c.toNat - 'A'.toNat + 10)
+  else none
+
+/-- Replace each `""` by a single `"`, as in the SMT-LIB string escape. -/
+private def unescape : List Char → List Char
+  | '"' :: '"' :: cs => '"' :: unescape cs
+  | c :: cs => c :: unescape cs
+  | [] => []
+
+/-- Normalize a fraction so that its denominator is positive; fails on `0`. -/
+private def mkRational (num den : Int) : Option Literal :=
+  if den == 0 then none
+  else if den < 0 then some (.rational (-num) (-den))
+  else some (.rational num den)
+
+/-- A decimal literal such as `1.5` or `-0.25`, as a fraction. -/
+private def ofDecimal (s : String) : Option Literal := do
+  let [intPart, fracPart] := s.splitOn "." | none
+  if fracPart.isEmpty then none
+  let sign := if intPart.startsWith "-" then -1 else 1
+  let intPart := if intPart.startsWith "-" then (intPart.drop 1).toString else intPart
+  let whole ← digitsToNat 10 decDigit intPart.toList
+  let frac ← digitsToNat 10 decDigit fracPart.toList
+  let scale := 10 ^ fracPart.length
+  mkRational (sign * (Int.ofNat (whole * scale + frac))) (Int.ofNat scale)
+
+/-- Lex an atom as a literal, if it is one. -/
+def ofString (value : String) : Option Literal :=
+  if value.startsWith "\"" && value.endsWith "\"" && value.length ≥ 2 then
+    some (.string (String.ofList (unescape (value.drop 1).toString.toList.dropLast)))
+  else if value.startsWith "#b" then
+    let digits := (value.drop 2).toString.toList
+    (digitsToNat 2 binDigit digits).map (.binary digits.length)
+  else if value.startsWith "#x" then
+    let digits := (value.drop 2).toString.toList
+    (digitsToNat 16 hexDigit digits).map (.binary (4 * digits.length))
+  else
+    match value.splitOn "/" with
+    | [num, den] => do mkRational (← num.toInt?) (← den.toInt?)
+    | _ => match value.toInt? with
+      | some n => some (.numeral n)
+      | none => ofDecimal value
+
+end Literal
+
+/-!
+## Datatypes
+-/
+
+/-- A constructor of a datatype: its name and its selectors, with their argument types. -/
+structure ConsSpec (T : Type) where
+  name : String
+  selectors : List (String × T)
+
+/-- One datatype of a `declare-datatypes` block. -/
+structure DatatypeSpec (T : Type) where
+  name : String
+  constructors : List (ConsSpec T)
+
+/-- How a calculus represents the contents of a `declare-datatypes` block. -/
+structure DatatypeOps (T : Type) where
+  /--
+  A reference to a datatype of the block currently being declared.  Occurrences
+  of the block's own datatypes in its constructors' argument types are parsed as
+  such references, since the block is not yet built when they are read.
+  -/
+  mkRef : String → T
+  /--
+  The bindings (one per sort, constructor and selector) introduced by a block.
+  The datatypes and their constructors are in declaration order.
+  -/
+  mkDecls : List (DatatypeSpec T) → Option (List (String × T))
+
+/-!
 ## Configuration
 -/
 
@@ -134,8 +242,8 @@ command lists.
 structure Config (T R C CL : Type) where
   /-- The operators of the signature. -/
   ops : List (OpDecl T)
-  /-- Interpret an atom as a literal (numeral, rational, string, bit-vector, …). -/
-  parseLiteral : String → Option T
+  /-- Interpret a literal (numeral, rational, string, bit-vector) as a term. -/
+  parseLiteral : Literal → Option T
   /-- Whether a term is the sort of sorts, i.e. whether `declare-const` declares a sort. -/
   isType : T → Bool
   /-- The `n`-th uninterpreted sort. -/
@@ -151,6 +259,8 @@ structure Config (T R C CL : Type) where
   mkStep : R → List T → List Nat → C
   mkStepPop : R → List T → List Nat → C
   mkCmdList : List C → CL
+  /-- Datatype support; `none` if the calculus has no datatypes. -/
+  datatypes : Option (DatatypeOps T) := none
 
 /-!
 ## Parser state
@@ -249,7 +359,7 @@ partial def parseTermCore (cfg : Config T R C CL) : Sexp → ParserM T T
         return t
     if let some t := (← get).terms[a]? then
       return t
-    if let some t := cfg.parseLiteral a then
+    if let some t := (Literal.ofString a).bind cfg.parseLiteral then
       return t
     throw s!"Error: unknown identifier {a}"
   | .expr [] => throw "Error: empty s-expression"
@@ -291,6 +401,49 @@ end
 def parseName : Sexp → ParserM T String
   | .atom a => return a
   | s => throw s!"Error: expected a name, got {s}"
+
+/-- Parse `(name arity)` from the sort list of a `declare-datatypes` block. -/
+def parseDatatypeName : Sexp → ParserM T String
+  | .expr [.atom name, .atom arity] =>
+    if arity == "0" then return name
+    else throw s!"Error: parametric datatype {name} (arity {arity}) is not supported"
+  | s => throw s!"Error: expected a datatype name and arity, got {s}"
+
+/-- Parse one constructor, `(cname (sel type) …)`. -/
+def parseConsSpec (cfg : Config T R C CL) : Sexp → ParserM T (ConsSpec T)
+  | .expr (.atom name :: sels) => do
+    let selectors ← sels.mapM fun
+      | .expr [.atom sel, ty] => do return (sel, ← parseTerm cfg ty)
+      | s => throw s!"Error: expected a selector and its type, got {s}"
+    return { name, selectors }
+  | s => throw s!"Error: expected a datatype constructor, got {s}"
+
+/--
+Parse a `declare-datatypes` block and bind the sorts, constructors and selectors
+it introduces.
+-/
+def parseDatatypes (cfg : Config T R C CL) (sorts bodies : List Sexp) : ParserM T Unit := do
+  let some dtOps := cfg.datatypes
+    | throw "Error: this calculus does not support declare-datatypes"
+  let names ← sorts.mapM parseDatatypeName
+  if names.length != bodies.length then
+    throw s!"Error: {names.length} datatype names but {bodies.length} datatype bodies"
+  -- While the block is being read, occurrences of its own datatypes in the
+  -- constructors' argument types are parsed as references.
+  let saved := (← get).terms
+  modify fun s =>
+    { s with terms := names.foldl (fun m n => m.insert n (dtOps.mkRef n)) s.terms }
+  let specs ← (names.zip bodies).mapM fun (name, body) => do
+    let .expr ctors := body | throw s!"Error: expected a list of constructors, got {body}"
+    if let .atom "par" :: _ := ctors then
+      throw s!"Error: parametric datatype {name} is not supported"
+    let constructors ← ctors.mapM (parseConsSpec cfg)
+    return ({ name, constructors } : DatatypeSpec T)
+  modify fun s => { s with terms := saved }
+  let some bindings := dtOps.mkDecls specs
+    | throw s!"Error: could not build the declaration of {String.intercalate ", " names}"
+  modify fun s =>
+    { s with terms := bindings.foldl (fun m (n, t) => m.insert n t) s.terms }
 
 /-- Resolve a premise, given by step name, to its offset from the top of the stack. -/
 def parsePremise (p : Sexp) : ParserM T Nat := do
@@ -364,6 +517,9 @@ where
             ufCount := s.ufCount + 1,
             terms := s.terms.insert name (cfg.mkUConst (s.ufCount + 1) ty) }
       return .decl
+    | .expr [.atom "declare-datatypes", .expr sorts, .expr bodies] => do
+      parseDatatypes cfg sorts bodies
+      return .decl
     | .expr [.atom "define", name, .expr [], body] => do
       let name ← parseName name
       let body ← parseTerm cfg body
@@ -389,8 +545,8 @@ where
       let (rule, args, premises) ← annots rest
       registerStepPop name
       return .cmd (cfg.mkStepPop rule args premises)
-    | s => throw s!"Error: unrecognized command {s}, expected one of declare-const, define, \
-                    assume, assume-push, step or step-pop"
+    | s => throw s!"Error: unrecognized command {s}, expected one of declare-const, \
+                    declare-datatypes, define, assume, assume-push, step or step-pop"
 
 /--
 Some producers wrap the whole proof in a single pair of parentheses; accept both

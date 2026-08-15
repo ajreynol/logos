@@ -116,9 +116,16 @@ Everything signature-specific is a `Logos.Parser.Config`, and those are auto-gen
 the calculus alongside `Cpc/Logos.lean` — `Cpc/Parser.lean` lists the 196 operator
 declarations and 591 proof rules of CPC, and `CpcMini/Parser.lean` the corresponding subset.
 
-The parser currently supports `declare-const`, `define`, `assume`, `assume-push`, `step` and
-`step-pop`; proofs that declare datatypes are not yet supported.
+The parser supports the commands `declare-const`, `declare-datatypes`, `define`, `assume`,
+`assume-push`, `step` and `step-pop`.
+Datatypes may be mutually recursive; parametric datatypes (a non-zero arity, or a `par` body)
+are rejected, since Logos has no representation for them.
 The conclusion printed on a `step` is ignored, since Logos recomputes it from the rule.
+
+Literals are lexed by `Logos.Parser.Literal.ofString`, which a configuration only has to map
+into its own term language: integers (`12`, `-12`), rationals in both fractional and decimal
+form (`1/2`, `-1.25`), bit-vectors in binary and hexadecimal (`#b0110`, `#x1f`) and strings
+with the SMT-LIB `""` escape.
 
 ## Correctness
 
