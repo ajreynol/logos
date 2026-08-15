@@ -12,14 +12,13 @@ public import Std.Internal.Parsec.String
 
 public section
 
+namespace Logos
+
 /-- The type of S-expressions. -/
 inductive Sexp where
   | atom : String → Sexp
   | expr : List Sexp → Sexp
 deriving Repr, BEq, Inhabited
-
-class ToSexp (α : Type u) where
-  toSexp : α → Sexp
 
 namespace Sexp
 
@@ -145,3 +144,5 @@ def sexp! : Parser Sexp := do
   return s
 
 end Sexp.Parser
+
+end Logos

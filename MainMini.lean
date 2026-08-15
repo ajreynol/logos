@@ -1,10 +1,9 @@
-import Cpc.Parser
+import CpcMini.Parser
 
 def checkProof (path : String) : IO UInt32 := do
   let proof ← IO.FS.readFile path
   match Eo.parseProof proof with
   | .ok (assums, cmds) =>
-    -- TODO: turn the following 4 lines into a logos API function.
     let state := Eo.logos_init_state
     let state := assums.foldl Eo.logos_invoke_assume state
     let state := Eo.__eo_invoke_cmd_list state cmds
@@ -17,9 +16,9 @@ def checkProof (path : String) : IO UInt32 := do
 
 def main (args : List String) : IO UInt32 := do
   let [path] := args
-    | IO.eprintln "usage: logos2 <path-to-proof-file>"
+    | IO.eprintln "usage: logos-mini <path-to-proof-file>"
       return 1
   checkProof path
 
--- To build, run "lake build logos2" in this directory.
--- To run "lake exe logos2 <path-to-query-file>"
+-- To build, run "lake build logos-mini" in this directory.
+-- To run "lake exe logos-mini <path-to-query-file>"

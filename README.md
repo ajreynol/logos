@@ -86,6 +86,40 @@ for details see https://github.com/cvc5/ethos/blob/main/user_manual.md.
 Note that Logos has not (yet) been optimized for performance, so it is significantly slower
 that performant proof checkers for SMT.
 
+### Checking proofs in s-expression syntax
+
+Logos can also read proofs directly in the s-expression (Eunoia) syntax, i.e. the output of
+`cvc5 --dump-proofs --proof-format=cpc`, without going through the Lean parser:
+
+```bash
+lake build logos2
+lake exe logos2 examples/sexp/test-simple.cpc
+```
+
+```
+(declare-const x Int)
+(declare-const y Int)
+(assume @p0 (= y x))
+(assume @p1 (not (= x y)))
+(step @p2 :rule symm :premises (@p1))
+(step @p3 :rule contra :premises (@p0 @p2))
+```
+
+As above, checking succeeds if `logos2` prints `true`.
+The same tool for the `CpcMini` calculus is `logos-mini`, which reads the examples in
+`examples/sexp-mini/`.
+
+This parser is split into two parts.
+`Logos/Parser.lean` is signature-independent: it reads the command and term grammar and
+resolves premise references, but knows nothing about any particular operator or proof rule.
+Everything signature-specific is a `Logos.Parser.Config`, and those are auto-generated from
+the calculus alongside `Cpc/Logos.lean` — `Cpc/Parser.lean` lists the 196 operator
+declarations and 591 proof rules of CPC, and `CpcMini/Parser.lean` the corresponding subset.
+
+The parser currently supports `declare-const`, `define`, `assume`, `assume-push`, `step` and
+`step-pop`; proofs that declare datatypes are not yet supported.
+The conclusion printed on a `step` is ignored, since Logos recomputes it from the rule.
+
 ## Correctness
 
 Logos additionally has a (partially proven) correctness specification.

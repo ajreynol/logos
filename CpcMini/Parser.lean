@@ -108,13 +108,18 @@ private def parserOps : List (Logos.Parser.OpDecl Term) := [
       | _ => none },
 ]
 
-private def parserRule : String → Option CRule
-  | "scope" => some .scope
-  | "contra" => some .contra
-  | "refl" => some .refl
-  | "symm" => some .symm
-  | "trans" => some .trans
-  | _ => none
+/-- The proof rules of the calculus, by their name in the Eunoia signature. -/
+private def parserRules : List (String × CRule) := [
+  ("scope", .scope),
+  ("contra", .contra),
+  ("refl", .refl),
+  ("symm", .symm),
+  ("trans", .trans)
+]
+
+private def parserRuleMap : Std.HashMap String CRule := .ofList parserRules
+
+private def parserRule (name : String) : Option CRule := parserRuleMap[name]?
 
 def parserConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
   ops := parserOps

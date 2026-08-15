@@ -6,23 +6,24 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 cd "${repo_root}"
 
-run_regressions() {
-  echo "Building logos executable..."
-  lake build logos
+# Run every example in a directory through a checker executable, requiring each
+# to report "true".
+run_examples() {
+  local exe="$1" dir="$2" pattern="$3"
 
   shopt -s nullglob
-  local examples=(examples/*.cpc.lean)
+  local examples=("${dir}"/${pattern})
 
   if [ "${#examples[@]}" -eq 0 ]; then
-    echo "No regression examples found under examples/." >&2
+    echo "No examples found under ${dir}/." >&2
     exit 1
   fi
 
-  echo "Running ${#examples[@]} regression examples..."
+  echo "Running ${#examples[@]} examples from ${dir} through ${exe}..."
   local example output result
   for example in "${examples[@]}"; do
     echo "::group::${example}"
-    if ! output="$(lake exe logos "${example}" 2>&1)"; then
+    if ! output="$(lake exe "${exe}" "${example}" 2>&1)"; then
       printf '%s\n' "${output}"
       echo "Regression run failed for ${example}" >&2
       exit 1
@@ -36,6 +37,16 @@ run_regressions() {
     fi
     echo "::endgroup::"
   done
+}
+
+run_regressions() {
+  echo "Building logos and logos2 executables..."
+  lake build logos logos2
+
+  # Proofs in the Lean term syntax, checked by logos.
+  run_examples logos examples '*.cpc.lean'
+  # The same proofs in s-expression syntax, checked by logos2 (Cpc.Parser).
+  run_examples logos2 examples/sexp '*.cpc'
 }
 
 run_cpc_examples() {
@@ -84,6 +95,10 @@ run_cpcmini() {
 
   echo "Compiling CpcMini proof and example targets..."
   lake build "${targets[@]}"
+
+  echo "Building logos-mini executable..."
+  lake build logos-mini
+  run_examples logos-mini examples/sexp-mini '*.cpc'
 }
 
 group="${1:-all}"

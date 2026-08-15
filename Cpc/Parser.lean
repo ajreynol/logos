@@ -1188,599 +1188,604 @@ private def parserOps : List (Logos.Parser.OpDecl Term) := [
       | _ => none },
 ]
 
-private def parserRule : String → Option CRule
-  | "scope" => some .scope
-  | "process_scope" => some .process_scope
-  | "ite_eq" => some .ite_eq
-  | "split" => some .split
-  | "resolution" => some .resolution
-  | "chain_resolution" => some .chain_resolution
-  | "chain_m_resolution" => some .chain_m_resolution
-  | "factoring" => some .factoring
-  | "reordering" => some .reordering
-  | "eq_resolve" => some .eq_resolve
-  | "modus_ponens" => some .modus_ponens
-  | "not_not_elim" => some .not_not_elim
-  | "contra" => some .contra
-  | "and_elim" => some .and_elim
-  | "and_intro" => some .and_intro
-  | "not_or_elim" => some .not_or_elim
-  | "implies_elim" => some .implies_elim
-  | "not_implies_elim1" => some .not_implies_elim1
-  | "not_implies_elim2" => some .not_implies_elim2
-  | "equiv_elim1" => some .equiv_elim1
-  | "equiv_elim2" => some .equiv_elim2
-  | "not_equiv_elim1" => some .not_equiv_elim1
-  | "not_equiv_elim2" => some .not_equiv_elim2
-  | "xor_elim1" => some .xor_elim1
-  | "xor_elim2" => some .xor_elim2
-  | "not_xor_elim1" => some .not_xor_elim1
-  | "not_xor_elim2" => some .not_xor_elim2
-  | "ite_elim1" => some .ite_elim1
-  | "ite_elim2" => some .ite_elim2
-  | "not_ite_elim1" => some .not_ite_elim1
-  | "not_ite_elim2" => some .not_ite_elim2
-  | "not_and" => some .not_and
-  | "cnf_and_pos" => some .cnf_and_pos
-  | "cnf_and_neg" => some .cnf_and_neg
-  | "cnf_or_pos" => some .cnf_or_pos
-  | "cnf_or_neg" => some .cnf_or_neg
-  | "cnf_implies_pos" => some .cnf_implies_pos
-  | "cnf_implies_neg1" => some .cnf_implies_neg1
-  | "cnf_implies_neg2" => some .cnf_implies_neg2
-  | "cnf_equiv_pos1" => some .cnf_equiv_pos1
-  | "cnf_equiv_pos2" => some .cnf_equiv_pos2
-  | "cnf_equiv_neg1" => some .cnf_equiv_neg1
-  | "cnf_equiv_neg2" => some .cnf_equiv_neg2
-  | "cnf_xor_pos1" => some .cnf_xor_pos1
-  | "cnf_xor_pos2" => some .cnf_xor_pos2
-  | "cnf_xor_neg1" => some .cnf_xor_neg1
-  | "cnf_xor_neg2" => some .cnf_xor_neg2
-  | "cnf_ite_pos1" => some .cnf_ite_pos1
-  | "cnf_ite_pos2" => some .cnf_ite_pos2
-  | "cnf_ite_pos3" => some .cnf_ite_pos3
-  | "cnf_ite_neg1" => some .cnf_ite_neg1
-  | "cnf_ite_neg2" => some .cnf_ite_neg2
-  | "cnf_ite_neg3" => some .cnf_ite_neg3
-  | "arrays_read_over_write" => some .arrays_read_over_write
-  | "arrays_read_over_write_contra" => some .arrays_read_over_write_contra
-  | "arrays_read_over_write_1" => some .arrays_read_over_write_1
-  | "arrays_ext" => some .arrays_ext
-  | "refl" => some .refl
-  | "symm" => some .symm
-  | "trans" => some .trans
-  | "cong" => some .cong
-  | "nary_cong" => some .nary_cong
-  | "pairwise_cong" => some .pairwise_cong
-  | "true_intro" => some .true_intro
-  | "true_elim" => some .true_elim
-  | "false_intro" => some .false_intro
-  | "false_elim" => some .false_elim
-  | "ho_cong" => some .ho_cong
-  | "distinct-elim" => some .distinct_elim
-  | "distinct-true" => some .distinct_true
-  | "distinct-false" => some .distinct_false
-  | "arith_sum_ub" => some .arith_sum_ub
-  | "arith_mult_pos" => some .arith_mult_pos
-  | "arith_mult_neg" => some .arith_mult_neg
-  | "arith_trichotomy" => some .arith_trichotomy
-  | "int_tight_ub" => some .int_tight_ub
-  | "int_tight_lb" => some .int_tight_lb
-  | "arith_mult_tangent" => some .arith_mult_tangent
-  | "arith_mult_sign" => some .arith_mult_sign
-  | "arith_mult_abs_comparison" => some .arith_mult_abs_comparison
-  | "arith_reduction" => some .arith_reduction
-  | "arith_poly_norm" => some .arith_poly_norm
-  | "arith_poly_norm_rel" => some .arith_poly_norm_rel
-  | "bv-repeat-elim" => some .bv_repeat_elim
-  | "bv-smulo-elim" => some .bv_smulo_elim
-  | "bv-umulo-elim" => some .bv_umulo_elim
-  | "bv-bitwise-slicing" => some .bv_bitwise_slicing
-  | "bv_bitblast_step" => some .bv_bitblast_step
-  | "bv_poly_norm" => some .bv_poly_norm
-  | "bv_poly_norm_eq" => some .bv_poly_norm_eq
-  | "string_length_pos" => some .string_length_pos
-  | "string_length_non_empty" => some .string_length_non_empty
-  | "concat_eq" => some .concat_eq
-  | "concat_unify" => some .concat_unify
-  | "concat_csplit" => some .concat_csplit
-  | "concat_split" => some .concat_split
-  | "concat_lprop" => some .concat_lprop
-  | "concat_cprop" => some .concat_cprop
-  | "string_decompose" => some .string_decompose
-  | "exists_string_length" => some .exists_string_length
-  | "string_code_inj" => some .string_code_inj
-  | "string_seq_unit_inj" => some .string_seq_unit_inj
-  | "re_inter" => some .re_inter
-  | "re_concat" => some .re_concat
-  | "re_unfold_pos" => some .re_unfold_pos
-  | "re_unfold_neg_concat_fixed" => some .re_unfold_neg_concat_fixed
-  | "re_unfold_neg" => some .re_unfold_neg
-  | "string_ext" => some .string_ext
-  | "string_reduction" => some .string_reduction
-  | "string_eager_reduction" => some .string_eager_reduction
-  | "arith-string-pred-entail" => some .arith_string_pred_entail
-  | "arith-string-pred-safe-approx" => some .arith_string_pred_safe_approx
-  | "str-in-re-eval" => some .str_in_re_eval
-  | "str-in-re-consume" => some .str_in_re_consume
-  | "re-loop-elim" => some .re_loop_elim
-  | "re-eq-elim" => some .re_eq_elim
-  | "re-inter-inclusion" => some .re_inter_inclusion
-  | "re-union-inclusion" => some .re_union_inclusion
-  | "str-in-re-concat-star-char" => some .str_in_re_concat_star_char
-  | "str-in-re-sigma" => some .str_in_re_sigma
-  | "str-in-re-sigma-star" => some .str_in_re_sigma_star
-  | "str-ctn-multiset-subset" => some .str_ctn_multiset_subset
-  | "str-overlap-split-ctn" => some .str_overlap_split_ctn
-  | "str-overlap-endpoints-ctn" => some .str_overlap_endpoints_ctn
-  | "str-overlap-endpoints-indexof" => some .str_overlap_endpoints_indexof
-  | "str-overlap-endpoints-replace" => some .str_overlap_endpoints_replace
-  | "str-indexof-re-eval" => some .str_indexof_re_eval
-  | "str-replace-re-eval" => some .str_replace_re_eval
-  | "str-replace-re-all-eval" => some .str_replace_re_all_eval
-  | "seq-eval-op" => some .seq_eval_op
-  | "sets_singleton_inj" => some .sets_singleton_inj
-  | "sets_ext" => some .sets_ext
-  | "sets-eval-op" => some .sets_eval_op
-  | "sets-insert-elim" => some .sets_insert_elim
-  | "ubv-to-int-elim" => some .ubv_to_int_elim
-  | "int-to-bv-elim" => some .int_to_bv_elim
-  | "instantiate" => some .instantiate
-  | "skolemize" => some .skolemize
-  | "skolem_intro" => some .skolem_intro
-  | "alpha_equiv" => some .alpha_equiv
-  | "quant_var_reordering" => some .quant_var_reordering
-  | "exists-elim" => some .exists_elim
-  | "quant-unused-vars" => some .quant_unused_vars
-  | "quant-merge-prenex" => some .quant_merge_prenex
-  | "quant-miniscope-and" => some .quant_miniscope_and
-  | "quant-miniscope-or" => some .quant_miniscope_or
-  | "quant-miniscope-ite" => some .quant_miniscope_ite
-  | "quant-var-elim-eq" => some .quant_var_elim_eq
-  | "quant-dt-split" => some .quant_dt_split
-  | "dt_split" => some .dt_split
-  | "dt-inst" => some .dt_inst
-  | "dt-collapse-selector" => some .dt_collapse_selector
-  | "dt-collapse-tester" => some .dt_collapse_tester
-  | "dt-collapse-tester-singleton" => some .dt_collapse_tester_singleton
-  | "dt-cons-eq" => some .dt_cons_eq
-  | "dt-cons-eq-clash" => some .dt_cons_eq_clash
-  | "dt-cycle" => some .dt_cycle
-  | "dt-collapse-updater" => some .dt_collapse_updater
-  | "dt-updater-elim" => some .dt_updater_elim
-  | "arith-div-total-zero-real" => some .arith_div_total_zero_real
-  | "arith-div-total-zero-int" => some .arith_div_total_zero_int
-  | "arith-int-div-total" => some .arith_int_div_total
-  | "arith-int-div-total-one" => some .arith_int_div_total_one
-  | "arith-int-div-total-zero" => some .arith_int_div_total_zero
-  | "arith-int-div-total-neg" => some .arith_int_div_total_neg
-  | "arith-int-mod-total" => some .arith_int_mod_total
-  | "arith-int-mod-total-one" => some .arith_int_mod_total_one
-  | "arith-int-mod-total-zero" => some .arith_int_mod_total_zero
-  | "arith-int-mod-total-neg" => some .arith_int_mod_total_neg
-  | "arith-elim-gt" => some .arith_elim_gt
-  | "arith-elim-lt" => some .arith_elim_lt
-  | "arith-elim-int-gt" => some .arith_elim_int_gt
-  | "arith-elim-int-lt" => some .arith_elim_int_lt
-  | "arith-elim-leq" => some .arith_elim_leq
-  | "arith-leq-norm" => some .arith_leq_norm
-  | "arith-geq-tighten" => some .arith_geq_tighten
-  | "arith-geq-norm1-int" => some .arith_geq_norm1_int
-  | "arith-geq-norm1-real" => some .arith_geq_norm1_real
-  | "arith-eq-elim-real" => some .arith_eq_elim_real
-  | "arith-eq-elim-int" => some .arith_eq_elim_int
-  | "arith-to-int-elim-to-real" => some .arith_to_int_elim_to_real
-  | "arith-mod-over-mod-1" => some .arith_mod_over_mod_1
-  | "arith-mod-over-mod" => some .arith_mod_over_mod
-  | "arith-mod-over-mod-mult" => some .arith_mod_over_mod_mult
-  | "arith-int-eq-conflict" => some .arith_int_eq_conflict
-  | "arith-int-geq-tighten" => some .arith_int_geq_tighten
-  | "arith-divisible-elim" => some .arith_divisible_elim
-  | "arith-abs-eq" => some .arith_abs_eq
-  | "arith-abs-int-gt" => some .arith_abs_int_gt
-  | "arith-abs-real-gt" => some .arith_abs_real_gt
-  | "arith-geq-ite-lift" => some .arith_geq_ite_lift
-  | "arith-leq-ite-lift" => some .arith_leq_ite_lift
-  | "arith-min-lt1" => some .arith_min_lt1
-  | "arith-min-lt2" => some .arith_min_lt2
-  | "arith-max-geq1" => some .arith_max_geq1
-  | "arith-max-geq2" => some .arith_max_geq2
-  | "array-read-over-write" => some .array_read_over_write
-  | "array-read-over-write2" => some .array_read_over_write2
-  | "array-store-overwrite" => some .array_store_overwrite
-  | "array-store-self" => some .array_store_self
-  | "array-read-over-write-split" => some .array_read_over_write_split
-  | "array-store-swap" => some .array_store_swap
-  | "bool-double-not-elim" => some .bool_double_not_elim
-  | "bool-not-true" => some .bool_not_true
-  | "bool-not-false" => some .bool_not_false
-  | "bool-eq-true" => some .bool_eq_true
-  | "bool-eq-false" => some .bool_eq_false
-  | "bool-eq-nrefl" => some .bool_eq_nrefl
-  | "bool-impl-false1" => some .bool_impl_false1
-  | "bool-impl-false2" => some .bool_impl_false2
-  | "bool-impl-true1" => some .bool_impl_true1
-  | "bool-impl-true2" => some .bool_impl_true2
-  | "bool-impl-elim" => some .bool_impl_elim
-  | "bool-dual-impl-eq" => some .bool_dual_impl_eq
-  | "bool-and-conf" => some .bool_and_conf
-  | "bool-and-conf2" => some .bool_and_conf2
-  | "bool-or-taut" => some .bool_or_taut
-  | "bool-or-taut2" => some .bool_or_taut2
-  | "bool-or-de-morgan" => some .bool_or_de_morgan
-  | "bool-implies-de-morgan" => some .bool_implies_de_morgan
-  | "bool-and-de-morgan" => some .bool_and_de_morgan
-  | "bool-or-and-distrib" => some .bool_or_and_distrib
-  | "bool-implies-or-distrib" => some .bool_implies_or_distrib
-  | "bool-xor-refl" => some .bool_xor_refl
-  | "bool-xor-nrefl" => some .bool_xor_nrefl
-  | "bool-xor-false" => some .bool_xor_false
-  | "bool-xor-true" => some .bool_xor_true
-  | "bool-xor-comm" => some .bool_xor_comm
-  | "bool-xor-elim" => some .bool_xor_elim
-  | "bool-not-xor-elim" => some .bool_not_xor_elim
-  | "bool-not-eq-elim1" => some .bool_not_eq_elim1
-  | "bool-not-eq-elim2" => some .bool_not_eq_elim2
-  | "ite-neg-branch" => some .ite_neg_branch
-  | "ite-then-true" => some .ite_then_true
-  | "ite-else-false" => some .ite_else_false
-  | "ite-then-false" => some .ite_then_false
-  | "ite-else-true" => some .ite_else_true
-  | "ite-then-lookahead-self" => some .ite_then_lookahead_self
-  | "ite-else-lookahead-self" => some .ite_else_lookahead_self
-  | "ite-then-lookahead-not-self" => some .ite_then_lookahead_not_self
-  | "ite-else-lookahead-not-self" => some .ite_else_lookahead_not_self
-  | "ite-expand" => some .ite_expand
-  | "bool-not-ite-elim" => some .bool_not_ite_elim
-  | "ite-true-cond" => some .ite_true_cond
-  | "ite-false-cond" => some .ite_false_cond
-  | "ite-not-cond" => some .ite_not_cond
-  | "ite-eq-branch" => some .ite_eq_branch
-  | "ite-then-lookahead" => some .ite_then_lookahead
-  | "ite-else-lookahead" => some .ite_else_lookahead
-  | "ite-then-neg-lookahead" => some .ite_then_neg_lookahead
-  | "ite-else-neg-lookahead" => some .ite_else_neg_lookahead
-  | "bv-concat-extract-merge" => some .bv_concat_extract_merge
-  | "bv-extract-extract" => some .bv_extract_extract
-  | "bv-extract-whole" => some .bv_extract_whole
-  | "bv-extract-concat-1" => some .bv_extract_concat_1
-  | "bv-extract-concat-2" => some .bv_extract_concat_2
-  | "bv-extract-concat-3" => some .bv_extract_concat_3
-  | "bv-extract-concat-4" => some .bv_extract_concat_4
-  | "bv-eq-extract-elim1" => some .bv_eq_extract_elim1
-  | "bv-eq-extract-elim2" => some .bv_eq_extract_elim2
-  | "bv-eq-extract-elim3" => some .bv_eq_extract_elim3
-  | "bv-extract-not" => some .bv_extract_not
-  | "bv-extract-sign-extend-1" => some .bv_extract_sign_extend_1
-  | "bv-extract-sign-extend-2" => some .bv_extract_sign_extend_2
-  | "bv-extract-sign-extend-3" => some .bv_extract_sign_extend_3
-  | "bv-not-xor" => some .bv_not_xor
-  | "bv-and-simplify-1" => some .bv_and_simplify_1
-  | "bv-and-simplify-2" => some .bv_and_simplify_2
-  | "bv-or-simplify-1" => some .bv_or_simplify_1
-  | "bv-or-simplify-2" => some .bv_or_simplify_2
-  | "bv-xor-simplify-1" => some .bv_xor_simplify_1
-  | "bv-xor-simplify-2" => some .bv_xor_simplify_2
-  | "bv-xor-simplify-3" => some .bv_xor_simplify_3
-  | "bv-ult-add-one" => some .bv_ult_add_one
-  | "bv-mult-slt-mult-1" => some .bv_mult_slt_mult_1
-  | "bv-mult-slt-mult-2" => some .bv_mult_slt_mult_2
-  | "bv-commutative-xor" => some .bv_commutative_xor
-  | "bv-commutative-comp" => some .bv_commutative_comp
-  | "bv-zero-extend-eliminate-0" => some .bv_zero_extend_eliminate_0
-  | "bv-sign-extend-eliminate-0" => some .bv_sign_extend_eliminate_0
-  | "bv-not-neq" => some .bv_not_neq
-  | "bv-ult-ones" => some .bv_ult_ones
-  | "bv-concat-merge-const" => some .bv_concat_merge_const
-  | "bv-commutative-add" => some .bv_commutative_add
-  | "bv-sub-eliminate" => some .bv_sub_eliminate
-  | "bv-ite-width-one" => some .bv_ite_width_one
-  | "bv-ite-width-one-not" => some .bv_ite_width_one_not
-  | "bv-eq-xor-solve" => some .bv_eq_xor_solve
-  | "bv-eq-not-solve" => some .bv_eq_not_solve
-  | "bv-ugt-eliminate" => some .bv_ugt_eliminate
-  | "bv-uge-eliminate" => some .bv_uge_eliminate
-  | "bv-sgt-eliminate" => some .bv_sgt_eliminate
-  | "bv-sge-eliminate" => some .bv_sge_eliminate
-  | "bv-sle-eliminate" => some .bv_sle_eliminate
-  | "bv-redor-eliminate" => some .bv_redor_eliminate
-  | "bv-redand-eliminate" => some .bv_redand_eliminate
-  | "bv-ule-eliminate" => some .bv_ule_eliminate
-  | "bv-comp-eliminate" => some .bv_comp_eliminate
-  | "bv-rotate-left-eliminate-1" => some .bv_rotate_left_eliminate_1
-  | "bv-rotate-left-eliminate-2" => some .bv_rotate_left_eliminate_2
-  | "bv-rotate-right-eliminate-1" => some .bv_rotate_right_eliminate_1
-  | "bv-rotate-right-eliminate-2" => some .bv_rotate_right_eliminate_2
-  | "bv-nand-eliminate" => some .bv_nand_eliminate
-  | "bv-nor-eliminate" => some .bv_nor_eliminate
-  | "bv-xnor-eliminate" => some .bv_xnor_eliminate
-  | "bv-sdiv-eliminate" => some .bv_sdiv_eliminate
-  | "bv-zero-extend-eliminate" => some .bv_zero_extend_eliminate
-  | "bv-uaddo-eliminate" => some .bv_uaddo_eliminate
-  | "bv-saddo-eliminate" => some .bv_saddo_eliminate
-  | "bv-sdivo-eliminate" => some .bv_sdivo_eliminate
-  | "bv-smod-eliminate" => some .bv_smod_eliminate
-  | "bv-srem-eliminate" => some .bv_srem_eliminate
-  | "bv-usubo-eliminate" => some .bv_usubo_eliminate
-  | "bv-ssubo-eliminate" => some .bv_ssubo_eliminate
-  | "bv-nego-eliminate" => some .bv_nego_eliminate
-  | "bv-ite-equal-children" => some .bv_ite_equal_children
-  | "bv-ite-const-children-1" => some .bv_ite_const_children_1
-  | "bv-ite-const-children-2" => some .bv_ite_const_children_2
-  | "bv-ite-equal-cond-1" => some .bv_ite_equal_cond_1
-  | "bv-ite-equal-cond-2" => some .bv_ite_equal_cond_2
-  | "bv-ite-equal-cond-3" => some .bv_ite_equal_cond_3
-  | "bv-ite-merge-then-if" => some .bv_ite_merge_then_if
-  | "bv-ite-merge-else-if" => some .bv_ite_merge_else_if
-  | "bv-ite-merge-then-else" => some .bv_ite_merge_then_else
-  | "bv-ite-merge-else-else" => some .bv_ite_merge_else_else
-  | "bv-shl-by-const-0" => some .bv_shl_by_const_0
-  | "bv-shl-by-const-1" => some .bv_shl_by_const_1
-  | "bv-shl-by-const-2" => some .bv_shl_by_const_2
-  | "bv-lshr-by-const-0" => some .bv_lshr_by_const_0
-  | "bv-lshr-by-const-1" => some .bv_lshr_by_const_1
-  | "bv-lshr-by-const-2" => some .bv_lshr_by_const_2
-  | "bv-ashr-by-const-0" => some .bv_ashr_by_const_0
-  | "bv-ashr-by-const-1" => some .bv_ashr_by_const_1
-  | "bv-ashr-by-const-2" => some .bv_ashr_by_const_2
-  | "bv-and-concat-pullup" => some .bv_and_concat_pullup
-  | "bv-or-concat-pullup" => some .bv_or_concat_pullup
-  | "bv-xor-concat-pullup" => some .bv_xor_concat_pullup
-  | "bv-and-concat-pullup2" => some .bv_and_concat_pullup2
-  | "bv-or-concat-pullup2" => some .bv_or_concat_pullup2
-  | "bv-xor-concat-pullup2" => some .bv_xor_concat_pullup2
-  | "bv-and-concat-pullup3" => some .bv_and_concat_pullup3
-  | "bv-or-concat-pullup3" => some .bv_or_concat_pullup3
-  | "bv-xor-concat-pullup3" => some .bv_xor_concat_pullup3
-  | "bv-xor-duplicate" => some .bv_xor_duplicate
-  | "bv-xor-ones" => some .bv_xor_ones
-  | "bv-xor-not" => some .bv_xor_not
-  | "bv-not-idemp" => some .bv_not_idemp
-  | "bv-ult-zero-1" => some .bv_ult_zero_1
-  | "bv-ult-zero-2" => some .bv_ult_zero_2
-  | "bv-ult-self" => some .bv_ult_self
-  | "bv-lt-self" => some .bv_lt_self
-  | "bv-ule-self" => some .bv_ule_self
-  | "bv-ule-zero" => some .bv_ule_zero
-  | "bv-zero-ule" => some .bv_zero_ule
-  | "bv-sle-self" => some .bv_sle_self
-  | "bv-ule-max" => some .bv_ule_max
-  | "bv-not-ult" => some .bv_not_ult
-  | "bv-mult-pow2-1" => some .bv_mult_pow2_1
-  | "bv-mult-pow2-2" => some .bv_mult_pow2_2
-  | "bv-mult-pow2-2b" => some .bv_mult_pow2_2b
-  | "bv-extract-mult-leading-bit" => some .bv_extract_mult_leading_bit
-  | "bv-udiv-pow2-not-one" => some .bv_udiv_pow2_not_one
-  | "bv-udiv-zero" => some .bv_udiv_zero
-  | "bv-udiv-one" => some .bv_udiv_one
-  | "bv-urem-pow2-not-one" => some .bv_urem_pow2_not_one
-  | "bv-urem-one" => some .bv_urem_one
-  | "bv-urem-self" => some .bv_urem_self
-  | "bv-shl-zero" => some .bv_shl_zero
-  | "bv-lshr-zero" => some .bv_lshr_zero
-  | "bv-ashr-zero" => some .bv_ashr_zero
-  | "bv-ugt-urem" => some .bv_ugt_urem
-  | "bv-ult-one" => some .bv_ult_one
-  | "bv-merge-sign-extend-1" => some .bv_merge_sign_extend_1
-  | "bv-merge-sign-extend-2" => some .bv_merge_sign_extend_2
-  | "bv-sign-extend-eq-const-1" => some .bv_sign_extend_eq_const_1
-  | "bv-sign-extend-eq-const-2" => some .bv_sign_extend_eq_const_2
-  | "bv-zero-extend-eq-const-1" => some .bv_zero_extend_eq_const_1
-  | "bv-zero-extend-eq-const-2" => some .bv_zero_extend_eq_const_2
-  | "bv-zero-extend-ult-const-1" => some .bv_zero_extend_ult_const_1
-  | "bv-zero-extend-ult-const-2" => some .bv_zero_extend_ult_const_2
-  | "bv-sign-extend-ult-const-1" => some .bv_sign_extend_ult_const_1
-  | "bv-sign-extend-ult-const-2" => some .bv_sign_extend_ult_const_2
-  | "bv-sign-extend-ult-const-3" => some .bv_sign_extend_ult_const_3
-  | "bv-sign-extend-ult-const-4" => some .bv_sign_extend_ult_const_4
-  | "sets-eq-singleton-emp" => some .sets_eq_singleton_emp
-  | "sets-member-singleton" => some .sets_member_singleton
-  | "sets-member-emp" => some .sets_member_emp
-  | "sets-subset-elim" => some .sets_subset_elim
-  | "sets-union-comm" => some .sets_union_comm
-  | "sets-inter-comm" => some .sets_inter_comm
-  | "sets-inter-emp1" => some .sets_inter_emp1
-  | "sets-inter-emp2" => some .sets_inter_emp2
-  | "sets-minus-emp1" => some .sets_minus_emp1
-  | "sets-minus-emp2" => some .sets_minus_emp2
-  | "sets-union-emp1" => some .sets_union_emp1
-  | "sets-union-emp2" => some .sets_union_emp2
-  | "sets-inter-member" => some .sets_inter_member
-  | "sets-minus-member" => some .sets_minus_member
-  | "sets-union-member" => some .sets_union_member
-  | "sets-choose-singleton" => some .sets_choose_singleton
-  | "sets-minus-self" => some .sets_minus_self
-  | "sets-is-empty-elim" => some .sets_is_empty_elim
-  | "sets-is-singleton-elim" => some .sets_is_singleton_elim
-  | "str-eq-ctn-false" => some .str_eq_ctn_false
-  | "str-eq-ctn-full-false1" => some .str_eq_ctn_full_false1
-  | "str-eq-ctn-full-false2" => some .str_eq_ctn_full_false2
-  | "str-eq-len-false" => some .str_eq_len_false
-  | "str-substr-empty-str" => some .str_substr_empty_str
-  | "str-substr-empty-range" => some .str_substr_empty_range
-  | "str-substr-empty-start" => some .str_substr_empty_start
-  | "str-substr-empty-start-neg" => some .str_substr_empty_start_neg
-  | "str-substr-substr-start-geq-len" => some .str_substr_substr_start_geq_len
-  | "str-substr-eq-empty" => some .str_substr_eq_empty
-  | "str-substr-z-eq-empty-leq" => some .str_substr_z_eq_empty_leq
-  | "str-substr-eq-empty-leq-len" => some .str_substr_eq_empty_leq_len
-  | "str-len-replace-inv" => some .str_len_replace_inv
-  | "str-len-replace-all-inv" => some .str_len_replace_all_inv
-  | "str-len-update-inv" => some .str_len_update_inv
-  | "str-update-in-first-concat" => some .str_update_in_first_concat
-  | "str-len-substr-in-range" => some .str_len_substr_in_range
-  | "str-concat-clash" => some .str_concat_clash
-  | "str-concat-clash-rev" => some .str_concat_clash_rev
-  | "str-concat-clash2" => some .str_concat_clash2
-  | "str-concat-clash2-rev" => some .str_concat_clash2_rev
-  | "str-concat-unify" => some .str_concat_unify
-  | "str-concat-unify-rev" => some .str_concat_unify_rev
-  | "str-concat-unify-base" => some .str_concat_unify_base
-  | "str-concat-unify-base-rev" => some .str_concat_unify_base_rev
-  | "str-prefixof-elim" => some .str_prefixof_elim
-  | "str-suffixof-elim" => some .str_suffixof_elim
-  | "str-prefixof-eq" => some .str_prefixof_eq
-  | "str-suffixof-eq" => some .str_suffixof_eq
-  | "str-prefixof-one" => some .str_prefixof_one
-  | "str-suffixof-one" => some .str_suffixof_one
-  | "str-substr-combine1" => some .str_substr_combine1
-  | "str-substr-combine2" => some .str_substr_combine2
-  | "str-substr-combine3" => some .str_substr_combine3
-  | "str-substr-combine4" => some .str_substr_combine4
-  | "str-substr-concat1" => some .str_substr_concat1
-  | "str-substr-concat2" => some .str_substr_concat2
-  | "str-substr-replace" => some .str_substr_replace
-  | "str-substr-full" => some .str_substr_full
-  | "str-substr-full-eq" => some .str_substr_full_eq
-  | "str-contains-refl" => some .str_contains_refl
-  | "str-contains-concat-find" => some .str_contains_concat_find
-  | "str-contains-concat-find-contra" => some .str_contains_concat_find_contra
-  | "str-contains-split-char" => some .str_contains_split_char
-  | "str-contains-leq-len-eq" => some .str_contains_leq_len_eq
-  | "str-contains-emp" => some .str_contains_emp
-  | "str-contains-char" => some .str_contains_char
-  | "str-at-elim" => some .str_at_elim
-  | "str-replace-self" => some .str_replace_self
-  | "str-replace-id" => some .str_replace_id
-  | "str-replace-prefix" => some .str_replace_prefix
-  | "str-replace-no-contains" => some .str_replace_no_contains
-  | "str-replace-find-base" => some .str_replace_find_base
-  | "str-replace-find-first-concat" => some .str_replace_find_first_concat
-  | "str-replace-empty" => some .str_replace_empty
-  | "str-replace-one-pre" => some .str_replace_one_pre
-  | "str-replace-find-pre" => some .str_replace_find_pre
-  | "str-replace-all-no-contains" => some .str_replace_all_no_contains
-  | "str-replace-all-empty" => some .str_replace_all_empty
-  | "str-replace-all-id" => some .str_replace_all_id
-  | "str-replace-all-self" => some .str_replace_all_self
-  | "str-replace-re-none" => some .str_replace_re_none
-  | "str-replace-re-all-none" => some .str_replace_re_all_none
-  | "str-len-concat-rec" => some .str_len_concat_rec
-  | "str-len-eq-zero-concat-rec" => some .str_len_eq_zero_concat_rec
-  | "str-len-eq-zero-base" => some .str_len_eq_zero_base
-  | "str-indexof-self" => some .str_indexof_self
-  | "str-indexof-no-contains" => some .str_indexof_no_contains
-  | "str-indexof-oob" => some .str_indexof_oob
-  | "str-indexof-oob2" => some .str_indexof_oob2
-  | "str-indexof-contains-pre" => some .str_indexof_contains_pre
-  | "str-indexof-contains-concat-pre" => some .str_indexof_contains_concat_pre
-  | "str-indexof-find-emp" => some .str_indexof_find_emp
-  | "str-indexof-eq-irr" => some .str_indexof_eq_irr
-  | "str-indexof-re-none" => some .str_indexof_re_none
-  | "str-indexof-re-emp-re" => some .str_indexof_re_emp_re
-  | "str-to-lower-concat" => some .str_to_lower_concat
-  | "str-to-upper-concat" => some .str_to_upper_concat
-  | "str-to-lower-upper" => some .str_to_lower_upper
-  | "str-to-upper-lower" => some .str_to_upper_lower
-  | "str-to-lower-len" => some .str_to_lower_len
-  | "str-to-upper-len" => some .str_to_upper_len
-  | "str-to-lower-from-int" => some .str_to_lower_from_int
-  | "str-to-upper-from-int" => some .str_to_upper_from_int
-  | "str-to-int-concat-neg-one" => some .str_to_int_concat_neg_one
-  | "str-is-digit-elim" => some .str_is_digit_elim
-  | "str-leq-empty" => some .str_leq_empty
-  | "str-leq-empty-eq" => some .str_leq_empty_eq
-  | "str-leq-concat-false" => some .str_leq_concat_false
-  | "str-leq-concat-true" => some .str_leq_concat_true
-  | "str-leq-concat-base-1" => some .str_leq_concat_base_1
-  | "str-leq-concat-base-2" => some .str_leq_concat_base_2
-  | "str-lt-elim" => some .str_lt_elim
-  | "str-from-int-no-ctn-nondigit" => some .str_from_int_no_ctn_nondigit
-  | "str-substr-ctn-contra" => some .str_substr_ctn_contra
-  | "str-substr-ctn" => some .str_substr_ctn
-  | "str-replace-dual-ctn" => some .str_replace_dual_ctn
-  | "str-replace-dual-ctn-false" => some .str_replace_dual_ctn_false
-  | "str-replace-self-ctn-simp" => some .str_replace_self_ctn_simp
-  | "str-replace-emp-ctn-src" => some .str_replace_emp_ctn_src
-  | "str-substr-char-start-eq-len" => some .str_substr_char_start_eq_len
-  | "str-contains-repl-char" => some .str_contains_repl_char
-  | "str-contains-repl-self-tgt-char" => some .str_contains_repl_self_tgt_char
-  | "str-contains-repl-self" => some .str_contains_repl_self
-  | "str-contains-repl-tgt" => some .str_contains_repl_tgt
-  | "str-repl-repl-len-id" => some .str_repl_repl_len_id
-  | "str-repl-repl-src-tgt-no-ctn" => some .str_repl_repl_src_tgt_no_ctn
-  | "str-repl-repl-tgt-self" => some .str_repl_repl_tgt_self
-  | "str-repl-repl-tgt-no-ctn" => some .str_repl_repl_tgt_no_ctn
-  | "str-repl-repl-src-self" => some .str_repl_repl_src_self
-  | "str-repl-repl-src-inv-no-ctn1" => some .str_repl_repl_src_inv_no_ctn1
-  | "str-repl-repl-src-inv-no-ctn2" => some .str_repl_repl_src_inv_no_ctn2
-  | "str-repl-repl-src-inv-no-ctn3" => some .str_repl_repl_src_inv_no_ctn3
-  | "str-repl-repl-dual-self" => some .str_repl_repl_dual_self
-  | "str-repl-repl-dual-ite1" => some .str_repl_repl_dual_ite1
-  | "str-repl-repl-dual-ite2" => some .str_repl_repl_dual_ite2
-  | "str-repl-repl-lookahead-id-simp" => some .str_repl_repl_lookahead_id_simp
-  | "re-all-elim" => some .re_all_elim
-  | "re-opt-elim" => some .re_opt_elim
-  | "re-diff-elim" => some .re_diff_elim
-  | "re-plus-elim" => some .re_plus_elim
-  | "re-repeat-elim" => some .re_repeat_elim
-  | "re-concat-star-swap" => some .re_concat_star_swap
-  | "re-concat-star-repeat" => some .re_concat_star_repeat
-  | "re-concat-star-nullable1" => some .re_concat_star_nullable1
-  | "re-concat-star-nullable2" => some .re_concat_star_nullable2
-  | "re-concat-merge" => some .re_concat_merge
-  | "re-union-all" => some .re_union_all
-  | "re-union-const-elim" => some .re_union_const_elim
-  | "re-inter-all" => some .re_inter_all
-  | "re-star-none" => some .re_star_none
-  | "re-star-emp" => some .re_star_emp
-  | "re-star-star" => some .re_star_star
-  | "re-range-refl" => some .re_range_refl
-  | "re-range-emp" => some .re_range_emp
-  | "re-range-non-singleton-1" => some .re_range_non_singleton_1
-  | "re-range-non-singleton-2" => some .re_range_non_singleton_2
-  | "re-star-union-char" => some .re_star_union_char
-  | "re-star-union-drop-emp" => some .re_star_union_drop_emp
-  | "re-loop-neg" => some .re_loop_neg
-  | "re-loop-star" => some .re_loop_star
-  | "re-inter-cstring" => some .re_inter_cstring
-  | "re-inter-cstring-neg" => some .re_inter_cstring_neg
-  | "str-substr-len-include" => some .str_substr_len_include
-  | "str-substr-len-include-pre" => some .str_substr_len_include_pre
-  | "str-substr-len-norm" => some .str_substr_len_norm
-  | "seq-len-rev" => some .seq_len_rev
-  | "seq-rev-rev" => some .seq_rev_rev
-  | "seq-rev-concat" => some .seq_rev_concat
-  | "str-eq-repl-self-emp" => some .str_eq_repl_self_emp
-  | "str-eq-repl-no-change" => some .str_eq_repl_no_change
-  | "str-eq-repl-tgt-eq-len" => some .str_eq_repl_tgt_eq_len
-  | "str-eq-repl-len-one-emp-prefix" => some .str_eq_repl_len_one_emp_prefix
-  | "str-eq-repl-emp-tgt-nemp" => some .str_eq_repl_emp_tgt_nemp
-  | "str-eq-repl-nemp-src-emp" => some .str_eq_repl_nemp_src_emp
-  | "str-eq-repl-self-src" => some .str_eq_repl_self_src
-  | "seq-len-unit" => some .seq_len_unit
-  | "seq-nth-unit" => some .seq_nth_unit
-  | "seq-rev-unit" => some .seq_rev_unit
-  | "re-in-empty" => some .re_in_empty
-  | "re-in-sigma" => some .re_in_sigma
-  | "re-in-sigma-star" => some .re_in_sigma_star
-  | "re-in-cstring" => some .re_in_cstring
-  | "re-in-comp" => some .re_in_comp
-  | "str-in-re-union-elim" => some .str_in_re_union_elim
-  | "str-in-re-inter-elim" => some .str_in_re_inter_elim
-  | "str-in-re-range-elim" => some .str_in_re_range_elim
-  | "str-in-re-contains" => some .str_in_re_contains
-  | "str-in-re-from-int-nemp-dig-range" => some .str_in_re_from_int_nemp_dig_range
-  | "str-in-re-from-int-dig-range" => some .str_in_re_from_int_dig_range
-  | "eq-refl" => some .eq_refl
-  | "eq-symm" => some .eq_symm
-  | "eq-cond-deq" => some .eq_cond_deq
-  | "eq-ite-lift" => some .eq_ite_lift
-  | "distinct-binary-elim" => some .distinct_binary_elim
-  | "uf-bv2nat-int2bv" => some .uf_bv2nat_int2bv
-  | "uf-bv2nat-int2bv-extend" => some .uf_bv2nat_int2bv_extend
-  | "uf-bv2nat-int2bv-extract" => some .uf_bv2nat_int2bv_extract
-  | "uf-int2bv-bv2nat" => some .uf_int2bv_bv2nat
-  | "uf-bv2nat-geq-elim" => some .uf_bv2nat_geq_elim
-  | "uf-int2bv-bvult-equiv" => some .uf_int2bv_bvult_equiv
-  | "uf-int2bv-bvule-equiv" => some .uf_int2bv_bvule_equiv
-  | "uf-sbv-to-int-elim" => some .uf_sbv_to_int_elim
-  | "evaluate" => some .evaluate
-  | "distinct_values" => some .distinct_values
-  | "aci_norm" => some .aci_norm
-  | "absorb" => some .absorb
-  | "distinct-card-conflict" => some .distinct_card_conflict
-  | _ => none
+/-- The proof rules of the calculus, by their name in the Eunoia signature. -/
+private def parserRules : List (String × CRule) := [
+  ("scope", .scope),
+  ("process_scope", .process_scope),
+  ("ite_eq", .ite_eq),
+  ("split", .split),
+  ("resolution", .resolution),
+  ("chain_resolution", .chain_resolution),
+  ("chain_m_resolution", .chain_m_resolution),
+  ("factoring", .factoring),
+  ("reordering", .reordering),
+  ("eq_resolve", .eq_resolve),
+  ("modus_ponens", .modus_ponens),
+  ("not_not_elim", .not_not_elim),
+  ("contra", .contra),
+  ("and_elim", .and_elim),
+  ("and_intro", .and_intro),
+  ("not_or_elim", .not_or_elim),
+  ("implies_elim", .implies_elim),
+  ("not_implies_elim1", .not_implies_elim1),
+  ("not_implies_elim2", .not_implies_elim2),
+  ("equiv_elim1", .equiv_elim1),
+  ("equiv_elim2", .equiv_elim2),
+  ("not_equiv_elim1", .not_equiv_elim1),
+  ("not_equiv_elim2", .not_equiv_elim2),
+  ("xor_elim1", .xor_elim1),
+  ("xor_elim2", .xor_elim2),
+  ("not_xor_elim1", .not_xor_elim1),
+  ("not_xor_elim2", .not_xor_elim2),
+  ("ite_elim1", .ite_elim1),
+  ("ite_elim2", .ite_elim2),
+  ("not_ite_elim1", .not_ite_elim1),
+  ("not_ite_elim2", .not_ite_elim2),
+  ("not_and", .not_and),
+  ("cnf_and_pos", .cnf_and_pos),
+  ("cnf_and_neg", .cnf_and_neg),
+  ("cnf_or_pos", .cnf_or_pos),
+  ("cnf_or_neg", .cnf_or_neg),
+  ("cnf_implies_pos", .cnf_implies_pos),
+  ("cnf_implies_neg1", .cnf_implies_neg1),
+  ("cnf_implies_neg2", .cnf_implies_neg2),
+  ("cnf_equiv_pos1", .cnf_equiv_pos1),
+  ("cnf_equiv_pos2", .cnf_equiv_pos2),
+  ("cnf_equiv_neg1", .cnf_equiv_neg1),
+  ("cnf_equiv_neg2", .cnf_equiv_neg2),
+  ("cnf_xor_pos1", .cnf_xor_pos1),
+  ("cnf_xor_pos2", .cnf_xor_pos2),
+  ("cnf_xor_neg1", .cnf_xor_neg1),
+  ("cnf_xor_neg2", .cnf_xor_neg2),
+  ("cnf_ite_pos1", .cnf_ite_pos1),
+  ("cnf_ite_pos2", .cnf_ite_pos2),
+  ("cnf_ite_pos3", .cnf_ite_pos3),
+  ("cnf_ite_neg1", .cnf_ite_neg1),
+  ("cnf_ite_neg2", .cnf_ite_neg2),
+  ("cnf_ite_neg3", .cnf_ite_neg3),
+  ("arrays_read_over_write", .arrays_read_over_write),
+  ("arrays_read_over_write_contra", .arrays_read_over_write_contra),
+  ("arrays_read_over_write_1", .arrays_read_over_write_1),
+  ("arrays_ext", .arrays_ext),
+  ("refl", .refl),
+  ("symm", .symm),
+  ("trans", .trans),
+  ("cong", .cong),
+  ("nary_cong", .nary_cong),
+  ("pairwise_cong", .pairwise_cong),
+  ("true_intro", .true_intro),
+  ("true_elim", .true_elim),
+  ("false_intro", .false_intro),
+  ("false_elim", .false_elim),
+  ("ho_cong", .ho_cong),
+  ("distinct-elim", .distinct_elim),
+  ("distinct-true", .distinct_true),
+  ("distinct-false", .distinct_false),
+  ("arith_sum_ub", .arith_sum_ub),
+  ("arith_mult_pos", .arith_mult_pos),
+  ("arith_mult_neg", .arith_mult_neg),
+  ("arith_trichotomy", .arith_trichotomy),
+  ("int_tight_ub", .int_tight_ub),
+  ("int_tight_lb", .int_tight_lb),
+  ("arith_mult_tangent", .arith_mult_tangent),
+  ("arith_mult_sign", .arith_mult_sign),
+  ("arith_mult_abs_comparison", .arith_mult_abs_comparison),
+  ("arith_reduction", .arith_reduction),
+  ("arith_poly_norm", .arith_poly_norm),
+  ("arith_poly_norm_rel", .arith_poly_norm_rel),
+  ("bv-repeat-elim", .bv_repeat_elim),
+  ("bv-smulo-elim", .bv_smulo_elim),
+  ("bv-umulo-elim", .bv_umulo_elim),
+  ("bv-bitwise-slicing", .bv_bitwise_slicing),
+  ("bv_bitblast_step", .bv_bitblast_step),
+  ("bv_poly_norm", .bv_poly_norm),
+  ("bv_poly_norm_eq", .bv_poly_norm_eq),
+  ("string_length_pos", .string_length_pos),
+  ("string_length_non_empty", .string_length_non_empty),
+  ("concat_eq", .concat_eq),
+  ("concat_unify", .concat_unify),
+  ("concat_csplit", .concat_csplit),
+  ("concat_split", .concat_split),
+  ("concat_lprop", .concat_lprop),
+  ("concat_cprop", .concat_cprop),
+  ("string_decompose", .string_decompose),
+  ("exists_string_length", .exists_string_length),
+  ("string_code_inj", .string_code_inj),
+  ("string_seq_unit_inj", .string_seq_unit_inj),
+  ("re_inter", .re_inter),
+  ("re_concat", .re_concat),
+  ("re_unfold_pos", .re_unfold_pos),
+  ("re_unfold_neg_concat_fixed", .re_unfold_neg_concat_fixed),
+  ("re_unfold_neg", .re_unfold_neg),
+  ("string_ext", .string_ext),
+  ("string_reduction", .string_reduction),
+  ("string_eager_reduction", .string_eager_reduction),
+  ("arith-string-pred-entail", .arith_string_pred_entail),
+  ("arith-string-pred-safe-approx", .arith_string_pred_safe_approx),
+  ("str-in-re-eval", .str_in_re_eval),
+  ("str-in-re-consume", .str_in_re_consume),
+  ("re-loop-elim", .re_loop_elim),
+  ("re-eq-elim", .re_eq_elim),
+  ("re-inter-inclusion", .re_inter_inclusion),
+  ("re-union-inclusion", .re_union_inclusion),
+  ("str-in-re-concat-star-char", .str_in_re_concat_star_char),
+  ("str-in-re-sigma", .str_in_re_sigma),
+  ("str-in-re-sigma-star", .str_in_re_sigma_star),
+  ("str-ctn-multiset-subset", .str_ctn_multiset_subset),
+  ("str-overlap-split-ctn", .str_overlap_split_ctn),
+  ("str-overlap-endpoints-ctn", .str_overlap_endpoints_ctn),
+  ("str-overlap-endpoints-indexof", .str_overlap_endpoints_indexof),
+  ("str-overlap-endpoints-replace", .str_overlap_endpoints_replace),
+  ("str-indexof-re-eval", .str_indexof_re_eval),
+  ("str-replace-re-eval", .str_replace_re_eval),
+  ("str-replace-re-all-eval", .str_replace_re_all_eval),
+  ("seq-eval-op", .seq_eval_op),
+  ("sets_singleton_inj", .sets_singleton_inj),
+  ("sets_ext", .sets_ext),
+  ("sets-eval-op", .sets_eval_op),
+  ("sets-insert-elim", .sets_insert_elim),
+  ("ubv-to-int-elim", .ubv_to_int_elim),
+  ("int-to-bv-elim", .int_to_bv_elim),
+  ("instantiate", .instantiate),
+  ("skolemize", .skolemize),
+  ("skolem_intro", .skolem_intro),
+  ("alpha_equiv", .alpha_equiv),
+  ("quant_var_reordering", .quant_var_reordering),
+  ("exists-elim", .exists_elim),
+  ("quant-unused-vars", .quant_unused_vars),
+  ("quant-merge-prenex", .quant_merge_prenex),
+  ("quant-miniscope-and", .quant_miniscope_and),
+  ("quant-miniscope-or", .quant_miniscope_or),
+  ("quant-miniscope-ite", .quant_miniscope_ite),
+  ("quant-var-elim-eq", .quant_var_elim_eq),
+  ("quant-dt-split", .quant_dt_split),
+  ("dt_split", .dt_split),
+  ("dt-inst", .dt_inst),
+  ("dt-collapse-selector", .dt_collapse_selector),
+  ("dt-collapse-tester", .dt_collapse_tester),
+  ("dt-collapse-tester-singleton", .dt_collapse_tester_singleton),
+  ("dt-cons-eq", .dt_cons_eq),
+  ("dt-cons-eq-clash", .dt_cons_eq_clash),
+  ("dt-cycle", .dt_cycle),
+  ("dt-collapse-updater", .dt_collapse_updater),
+  ("dt-updater-elim", .dt_updater_elim),
+  ("arith-div-total-zero-real", .arith_div_total_zero_real),
+  ("arith-div-total-zero-int", .arith_div_total_zero_int),
+  ("arith-int-div-total", .arith_int_div_total),
+  ("arith-int-div-total-one", .arith_int_div_total_one),
+  ("arith-int-div-total-zero", .arith_int_div_total_zero),
+  ("arith-int-div-total-neg", .arith_int_div_total_neg),
+  ("arith-int-mod-total", .arith_int_mod_total),
+  ("arith-int-mod-total-one", .arith_int_mod_total_one),
+  ("arith-int-mod-total-zero", .arith_int_mod_total_zero),
+  ("arith-int-mod-total-neg", .arith_int_mod_total_neg),
+  ("arith-elim-gt", .arith_elim_gt),
+  ("arith-elim-lt", .arith_elim_lt),
+  ("arith-elim-int-gt", .arith_elim_int_gt),
+  ("arith-elim-int-lt", .arith_elim_int_lt),
+  ("arith-elim-leq", .arith_elim_leq),
+  ("arith-leq-norm", .arith_leq_norm),
+  ("arith-geq-tighten", .arith_geq_tighten),
+  ("arith-geq-norm1-int", .arith_geq_norm1_int),
+  ("arith-geq-norm1-real", .arith_geq_norm1_real),
+  ("arith-eq-elim-real", .arith_eq_elim_real),
+  ("arith-eq-elim-int", .arith_eq_elim_int),
+  ("arith-to-int-elim-to-real", .arith_to_int_elim_to_real),
+  ("arith-mod-over-mod-1", .arith_mod_over_mod_1),
+  ("arith-mod-over-mod", .arith_mod_over_mod),
+  ("arith-mod-over-mod-mult", .arith_mod_over_mod_mult),
+  ("arith-int-eq-conflict", .arith_int_eq_conflict),
+  ("arith-int-geq-tighten", .arith_int_geq_tighten),
+  ("arith-divisible-elim", .arith_divisible_elim),
+  ("arith-abs-eq", .arith_abs_eq),
+  ("arith-abs-int-gt", .arith_abs_int_gt),
+  ("arith-abs-real-gt", .arith_abs_real_gt),
+  ("arith-geq-ite-lift", .arith_geq_ite_lift),
+  ("arith-leq-ite-lift", .arith_leq_ite_lift),
+  ("arith-min-lt1", .arith_min_lt1),
+  ("arith-min-lt2", .arith_min_lt2),
+  ("arith-max-geq1", .arith_max_geq1),
+  ("arith-max-geq2", .arith_max_geq2),
+  ("array-read-over-write", .array_read_over_write),
+  ("array-read-over-write2", .array_read_over_write2),
+  ("array-store-overwrite", .array_store_overwrite),
+  ("array-store-self", .array_store_self),
+  ("array-read-over-write-split", .array_read_over_write_split),
+  ("array-store-swap", .array_store_swap),
+  ("bool-double-not-elim", .bool_double_not_elim),
+  ("bool-not-true", .bool_not_true),
+  ("bool-not-false", .bool_not_false),
+  ("bool-eq-true", .bool_eq_true),
+  ("bool-eq-false", .bool_eq_false),
+  ("bool-eq-nrefl", .bool_eq_nrefl),
+  ("bool-impl-false1", .bool_impl_false1),
+  ("bool-impl-false2", .bool_impl_false2),
+  ("bool-impl-true1", .bool_impl_true1),
+  ("bool-impl-true2", .bool_impl_true2),
+  ("bool-impl-elim", .bool_impl_elim),
+  ("bool-dual-impl-eq", .bool_dual_impl_eq),
+  ("bool-and-conf", .bool_and_conf),
+  ("bool-and-conf2", .bool_and_conf2),
+  ("bool-or-taut", .bool_or_taut),
+  ("bool-or-taut2", .bool_or_taut2),
+  ("bool-or-de-morgan", .bool_or_de_morgan),
+  ("bool-implies-de-morgan", .bool_implies_de_morgan),
+  ("bool-and-de-morgan", .bool_and_de_morgan),
+  ("bool-or-and-distrib", .bool_or_and_distrib),
+  ("bool-implies-or-distrib", .bool_implies_or_distrib),
+  ("bool-xor-refl", .bool_xor_refl),
+  ("bool-xor-nrefl", .bool_xor_nrefl),
+  ("bool-xor-false", .bool_xor_false),
+  ("bool-xor-true", .bool_xor_true),
+  ("bool-xor-comm", .bool_xor_comm),
+  ("bool-xor-elim", .bool_xor_elim),
+  ("bool-not-xor-elim", .bool_not_xor_elim),
+  ("bool-not-eq-elim1", .bool_not_eq_elim1),
+  ("bool-not-eq-elim2", .bool_not_eq_elim2),
+  ("ite-neg-branch", .ite_neg_branch),
+  ("ite-then-true", .ite_then_true),
+  ("ite-else-false", .ite_else_false),
+  ("ite-then-false", .ite_then_false),
+  ("ite-else-true", .ite_else_true),
+  ("ite-then-lookahead-self", .ite_then_lookahead_self),
+  ("ite-else-lookahead-self", .ite_else_lookahead_self),
+  ("ite-then-lookahead-not-self", .ite_then_lookahead_not_self),
+  ("ite-else-lookahead-not-self", .ite_else_lookahead_not_self),
+  ("ite-expand", .ite_expand),
+  ("bool-not-ite-elim", .bool_not_ite_elim),
+  ("ite-true-cond", .ite_true_cond),
+  ("ite-false-cond", .ite_false_cond),
+  ("ite-not-cond", .ite_not_cond),
+  ("ite-eq-branch", .ite_eq_branch),
+  ("ite-then-lookahead", .ite_then_lookahead),
+  ("ite-else-lookahead", .ite_else_lookahead),
+  ("ite-then-neg-lookahead", .ite_then_neg_lookahead),
+  ("ite-else-neg-lookahead", .ite_else_neg_lookahead),
+  ("bv-concat-extract-merge", .bv_concat_extract_merge),
+  ("bv-extract-extract", .bv_extract_extract),
+  ("bv-extract-whole", .bv_extract_whole),
+  ("bv-extract-concat-1", .bv_extract_concat_1),
+  ("bv-extract-concat-2", .bv_extract_concat_2),
+  ("bv-extract-concat-3", .bv_extract_concat_3),
+  ("bv-extract-concat-4", .bv_extract_concat_4),
+  ("bv-eq-extract-elim1", .bv_eq_extract_elim1),
+  ("bv-eq-extract-elim2", .bv_eq_extract_elim2),
+  ("bv-eq-extract-elim3", .bv_eq_extract_elim3),
+  ("bv-extract-not", .bv_extract_not),
+  ("bv-extract-sign-extend-1", .bv_extract_sign_extend_1),
+  ("bv-extract-sign-extend-2", .bv_extract_sign_extend_2),
+  ("bv-extract-sign-extend-3", .bv_extract_sign_extend_3),
+  ("bv-not-xor", .bv_not_xor),
+  ("bv-and-simplify-1", .bv_and_simplify_1),
+  ("bv-and-simplify-2", .bv_and_simplify_2),
+  ("bv-or-simplify-1", .bv_or_simplify_1),
+  ("bv-or-simplify-2", .bv_or_simplify_2),
+  ("bv-xor-simplify-1", .bv_xor_simplify_1),
+  ("bv-xor-simplify-2", .bv_xor_simplify_2),
+  ("bv-xor-simplify-3", .bv_xor_simplify_3),
+  ("bv-ult-add-one", .bv_ult_add_one),
+  ("bv-mult-slt-mult-1", .bv_mult_slt_mult_1),
+  ("bv-mult-slt-mult-2", .bv_mult_slt_mult_2),
+  ("bv-commutative-xor", .bv_commutative_xor),
+  ("bv-commutative-comp", .bv_commutative_comp),
+  ("bv-zero-extend-eliminate-0", .bv_zero_extend_eliminate_0),
+  ("bv-sign-extend-eliminate-0", .bv_sign_extend_eliminate_0),
+  ("bv-not-neq", .bv_not_neq),
+  ("bv-ult-ones", .bv_ult_ones),
+  ("bv-concat-merge-const", .bv_concat_merge_const),
+  ("bv-commutative-add", .bv_commutative_add),
+  ("bv-sub-eliminate", .bv_sub_eliminate),
+  ("bv-ite-width-one", .bv_ite_width_one),
+  ("bv-ite-width-one-not", .bv_ite_width_one_not),
+  ("bv-eq-xor-solve", .bv_eq_xor_solve),
+  ("bv-eq-not-solve", .bv_eq_not_solve),
+  ("bv-ugt-eliminate", .bv_ugt_eliminate),
+  ("bv-uge-eliminate", .bv_uge_eliminate),
+  ("bv-sgt-eliminate", .bv_sgt_eliminate),
+  ("bv-sge-eliminate", .bv_sge_eliminate),
+  ("bv-sle-eliminate", .bv_sle_eliminate),
+  ("bv-redor-eliminate", .bv_redor_eliminate),
+  ("bv-redand-eliminate", .bv_redand_eliminate),
+  ("bv-ule-eliminate", .bv_ule_eliminate),
+  ("bv-comp-eliminate", .bv_comp_eliminate),
+  ("bv-rotate-left-eliminate-1", .bv_rotate_left_eliminate_1),
+  ("bv-rotate-left-eliminate-2", .bv_rotate_left_eliminate_2),
+  ("bv-rotate-right-eliminate-1", .bv_rotate_right_eliminate_1),
+  ("bv-rotate-right-eliminate-2", .bv_rotate_right_eliminate_2),
+  ("bv-nand-eliminate", .bv_nand_eliminate),
+  ("bv-nor-eliminate", .bv_nor_eliminate),
+  ("bv-xnor-eliminate", .bv_xnor_eliminate),
+  ("bv-sdiv-eliminate", .bv_sdiv_eliminate),
+  ("bv-zero-extend-eliminate", .bv_zero_extend_eliminate),
+  ("bv-uaddo-eliminate", .bv_uaddo_eliminate),
+  ("bv-saddo-eliminate", .bv_saddo_eliminate),
+  ("bv-sdivo-eliminate", .bv_sdivo_eliminate),
+  ("bv-smod-eliminate", .bv_smod_eliminate),
+  ("bv-srem-eliminate", .bv_srem_eliminate),
+  ("bv-usubo-eliminate", .bv_usubo_eliminate),
+  ("bv-ssubo-eliminate", .bv_ssubo_eliminate),
+  ("bv-nego-eliminate", .bv_nego_eliminate),
+  ("bv-ite-equal-children", .bv_ite_equal_children),
+  ("bv-ite-const-children-1", .bv_ite_const_children_1),
+  ("bv-ite-const-children-2", .bv_ite_const_children_2),
+  ("bv-ite-equal-cond-1", .bv_ite_equal_cond_1),
+  ("bv-ite-equal-cond-2", .bv_ite_equal_cond_2),
+  ("bv-ite-equal-cond-3", .bv_ite_equal_cond_3),
+  ("bv-ite-merge-then-if", .bv_ite_merge_then_if),
+  ("bv-ite-merge-else-if", .bv_ite_merge_else_if),
+  ("bv-ite-merge-then-else", .bv_ite_merge_then_else),
+  ("bv-ite-merge-else-else", .bv_ite_merge_else_else),
+  ("bv-shl-by-const-0", .bv_shl_by_const_0),
+  ("bv-shl-by-const-1", .bv_shl_by_const_1),
+  ("bv-shl-by-const-2", .bv_shl_by_const_2),
+  ("bv-lshr-by-const-0", .bv_lshr_by_const_0),
+  ("bv-lshr-by-const-1", .bv_lshr_by_const_1),
+  ("bv-lshr-by-const-2", .bv_lshr_by_const_2),
+  ("bv-ashr-by-const-0", .bv_ashr_by_const_0),
+  ("bv-ashr-by-const-1", .bv_ashr_by_const_1),
+  ("bv-ashr-by-const-2", .bv_ashr_by_const_2),
+  ("bv-and-concat-pullup", .bv_and_concat_pullup),
+  ("bv-or-concat-pullup", .bv_or_concat_pullup),
+  ("bv-xor-concat-pullup", .bv_xor_concat_pullup),
+  ("bv-and-concat-pullup2", .bv_and_concat_pullup2),
+  ("bv-or-concat-pullup2", .bv_or_concat_pullup2),
+  ("bv-xor-concat-pullup2", .bv_xor_concat_pullup2),
+  ("bv-and-concat-pullup3", .bv_and_concat_pullup3),
+  ("bv-or-concat-pullup3", .bv_or_concat_pullup3),
+  ("bv-xor-concat-pullup3", .bv_xor_concat_pullup3),
+  ("bv-xor-duplicate", .bv_xor_duplicate),
+  ("bv-xor-ones", .bv_xor_ones),
+  ("bv-xor-not", .bv_xor_not),
+  ("bv-not-idemp", .bv_not_idemp),
+  ("bv-ult-zero-1", .bv_ult_zero_1),
+  ("bv-ult-zero-2", .bv_ult_zero_2),
+  ("bv-ult-self", .bv_ult_self),
+  ("bv-lt-self", .bv_lt_self),
+  ("bv-ule-self", .bv_ule_self),
+  ("bv-ule-zero", .bv_ule_zero),
+  ("bv-zero-ule", .bv_zero_ule),
+  ("bv-sle-self", .bv_sle_self),
+  ("bv-ule-max", .bv_ule_max),
+  ("bv-not-ult", .bv_not_ult),
+  ("bv-mult-pow2-1", .bv_mult_pow2_1),
+  ("bv-mult-pow2-2", .bv_mult_pow2_2),
+  ("bv-mult-pow2-2b", .bv_mult_pow2_2b),
+  ("bv-extract-mult-leading-bit", .bv_extract_mult_leading_bit),
+  ("bv-udiv-pow2-not-one", .bv_udiv_pow2_not_one),
+  ("bv-udiv-zero", .bv_udiv_zero),
+  ("bv-udiv-one", .bv_udiv_one),
+  ("bv-urem-pow2-not-one", .bv_urem_pow2_not_one),
+  ("bv-urem-one", .bv_urem_one),
+  ("bv-urem-self", .bv_urem_self),
+  ("bv-shl-zero", .bv_shl_zero),
+  ("bv-lshr-zero", .bv_lshr_zero),
+  ("bv-ashr-zero", .bv_ashr_zero),
+  ("bv-ugt-urem", .bv_ugt_urem),
+  ("bv-ult-one", .bv_ult_one),
+  ("bv-merge-sign-extend-1", .bv_merge_sign_extend_1),
+  ("bv-merge-sign-extend-2", .bv_merge_sign_extend_2),
+  ("bv-sign-extend-eq-const-1", .bv_sign_extend_eq_const_1),
+  ("bv-sign-extend-eq-const-2", .bv_sign_extend_eq_const_2),
+  ("bv-zero-extend-eq-const-1", .bv_zero_extend_eq_const_1),
+  ("bv-zero-extend-eq-const-2", .bv_zero_extend_eq_const_2),
+  ("bv-zero-extend-ult-const-1", .bv_zero_extend_ult_const_1),
+  ("bv-zero-extend-ult-const-2", .bv_zero_extend_ult_const_2),
+  ("bv-sign-extend-ult-const-1", .bv_sign_extend_ult_const_1),
+  ("bv-sign-extend-ult-const-2", .bv_sign_extend_ult_const_2),
+  ("bv-sign-extend-ult-const-3", .bv_sign_extend_ult_const_3),
+  ("bv-sign-extend-ult-const-4", .bv_sign_extend_ult_const_4),
+  ("sets-eq-singleton-emp", .sets_eq_singleton_emp),
+  ("sets-member-singleton", .sets_member_singleton),
+  ("sets-member-emp", .sets_member_emp),
+  ("sets-subset-elim", .sets_subset_elim),
+  ("sets-union-comm", .sets_union_comm),
+  ("sets-inter-comm", .sets_inter_comm),
+  ("sets-inter-emp1", .sets_inter_emp1),
+  ("sets-inter-emp2", .sets_inter_emp2),
+  ("sets-minus-emp1", .sets_minus_emp1),
+  ("sets-minus-emp2", .sets_minus_emp2),
+  ("sets-union-emp1", .sets_union_emp1),
+  ("sets-union-emp2", .sets_union_emp2),
+  ("sets-inter-member", .sets_inter_member),
+  ("sets-minus-member", .sets_minus_member),
+  ("sets-union-member", .sets_union_member),
+  ("sets-choose-singleton", .sets_choose_singleton),
+  ("sets-minus-self", .sets_minus_self),
+  ("sets-is-empty-elim", .sets_is_empty_elim),
+  ("sets-is-singleton-elim", .sets_is_singleton_elim),
+  ("str-eq-ctn-false", .str_eq_ctn_false),
+  ("str-eq-ctn-full-false1", .str_eq_ctn_full_false1),
+  ("str-eq-ctn-full-false2", .str_eq_ctn_full_false2),
+  ("str-eq-len-false", .str_eq_len_false),
+  ("str-substr-empty-str", .str_substr_empty_str),
+  ("str-substr-empty-range", .str_substr_empty_range),
+  ("str-substr-empty-start", .str_substr_empty_start),
+  ("str-substr-empty-start-neg", .str_substr_empty_start_neg),
+  ("str-substr-substr-start-geq-len", .str_substr_substr_start_geq_len),
+  ("str-substr-eq-empty", .str_substr_eq_empty),
+  ("str-substr-z-eq-empty-leq", .str_substr_z_eq_empty_leq),
+  ("str-substr-eq-empty-leq-len", .str_substr_eq_empty_leq_len),
+  ("str-len-replace-inv", .str_len_replace_inv),
+  ("str-len-replace-all-inv", .str_len_replace_all_inv),
+  ("str-len-update-inv", .str_len_update_inv),
+  ("str-update-in-first-concat", .str_update_in_first_concat),
+  ("str-len-substr-in-range", .str_len_substr_in_range),
+  ("str-concat-clash", .str_concat_clash),
+  ("str-concat-clash-rev", .str_concat_clash_rev),
+  ("str-concat-clash2", .str_concat_clash2),
+  ("str-concat-clash2-rev", .str_concat_clash2_rev),
+  ("str-concat-unify", .str_concat_unify),
+  ("str-concat-unify-rev", .str_concat_unify_rev),
+  ("str-concat-unify-base", .str_concat_unify_base),
+  ("str-concat-unify-base-rev", .str_concat_unify_base_rev),
+  ("str-prefixof-elim", .str_prefixof_elim),
+  ("str-suffixof-elim", .str_suffixof_elim),
+  ("str-prefixof-eq", .str_prefixof_eq),
+  ("str-suffixof-eq", .str_suffixof_eq),
+  ("str-prefixof-one", .str_prefixof_one),
+  ("str-suffixof-one", .str_suffixof_one),
+  ("str-substr-combine1", .str_substr_combine1),
+  ("str-substr-combine2", .str_substr_combine2),
+  ("str-substr-combine3", .str_substr_combine3),
+  ("str-substr-combine4", .str_substr_combine4),
+  ("str-substr-concat1", .str_substr_concat1),
+  ("str-substr-concat2", .str_substr_concat2),
+  ("str-substr-replace", .str_substr_replace),
+  ("str-substr-full", .str_substr_full),
+  ("str-substr-full-eq", .str_substr_full_eq),
+  ("str-contains-refl", .str_contains_refl),
+  ("str-contains-concat-find", .str_contains_concat_find),
+  ("str-contains-concat-find-contra", .str_contains_concat_find_contra),
+  ("str-contains-split-char", .str_contains_split_char),
+  ("str-contains-leq-len-eq", .str_contains_leq_len_eq),
+  ("str-contains-emp", .str_contains_emp),
+  ("str-contains-char", .str_contains_char),
+  ("str-at-elim", .str_at_elim),
+  ("str-replace-self", .str_replace_self),
+  ("str-replace-id", .str_replace_id),
+  ("str-replace-prefix", .str_replace_prefix),
+  ("str-replace-no-contains", .str_replace_no_contains),
+  ("str-replace-find-base", .str_replace_find_base),
+  ("str-replace-find-first-concat", .str_replace_find_first_concat),
+  ("str-replace-empty", .str_replace_empty),
+  ("str-replace-one-pre", .str_replace_one_pre),
+  ("str-replace-find-pre", .str_replace_find_pre),
+  ("str-replace-all-no-contains", .str_replace_all_no_contains),
+  ("str-replace-all-empty", .str_replace_all_empty),
+  ("str-replace-all-id", .str_replace_all_id),
+  ("str-replace-all-self", .str_replace_all_self),
+  ("str-replace-re-none", .str_replace_re_none),
+  ("str-replace-re-all-none", .str_replace_re_all_none),
+  ("str-len-concat-rec", .str_len_concat_rec),
+  ("str-len-eq-zero-concat-rec", .str_len_eq_zero_concat_rec),
+  ("str-len-eq-zero-base", .str_len_eq_zero_base),
+  ("str-indexof-self", .str_indexof_self),
+  ("str-indexof-no-contains", .str_indexof_no_contains),
+  ("str-indexof-oob", .str_indexof_oob),
+  ("str-indexof-oob2", .str_indexof_oob2),
+  ("str-indexof-contains-pre", .str_indexof_contains_pre),
+  ("str-indexof-contains-concat-pre", .str_indexof_contains_concat_pre),
+  ("str-indexof-find-emp", .str_indexof_find_emp),
+  ("str-indexof-eq-irr", .str_indexof_eq_irr),
+  ("str-indexof-re-none", .str_indexof_re_none),
+  ("str-indexof-re-emp-re", .str_indexof_re_emp_re),
+  ("str-to-lower-concat", .str_to_lower_concat),
+  ("str-to-upper-concat", .str_to_upper_concat),
+  ("str-to-lower-upper", .str_to_lower_upper),
+  ("str-to-upper-lower", .str_to_upper_lower),
+  ("str-to-lower-len", .str_to_lower_len),
+  ("str-to-upper-len", .str_to_upper_len),
+  ("str-to-lower-from-int", .str_to_lower_from_int),
+  ("str-to-upper-from-int", .str_to_upper_from_int),
+  ("str-to-int-concat-neg-one", .str_to_int_concat_neg_one),
+  ("str-is-digit-elim", .str_is_digit_elim),
+  ("str-leq-empty", .str_leq_empty),
+  ("str-leq-empty-eq", .str_leq_empty_eq),
+  ("str-leq-concat-false", .str_leq_concat_false),
+  ("str-leq-concat-true", .str_leq_concat_true),
+  ("str-leq-concat-base-1", .str_leq_concat_base_1),
+  ("str-leq-concat-base-2", .str_leq_concat_base_2),
+  ("str-lt-elim", .str_lt_elim),
+  ("str-from-int-no-ctn-nondigit", .str_from_int_no_ctn_nondigit),
+  ("str-substr-ctn-contra", .str_substr_ctn_contra),
+  ("str-substr-ctn", .str_substr_ctn),
+  ("str-replace-dual-ctn", .str_replace_dual_ctn),
+  ("str-replace-dual-ctn-false", .str_replace_dual_ctn_false),
+  ("str-replace-self-ctn-simp", .str_replace_self_ctn_simp),
+  ("str-replace-emp-ctn-src", .str_replace_emp_ctn_src),
+  ("str-substr-char-start-eq-len", .str_substr_char_start_eq_len),
+  ("str-contains-repl-char", .str_contains_repl_char),
+  ("str-contains-repl-self-tgt-char", .str_contains_repl_self_tgt_char),
+  ("str-contains-repl-self", .str_contains_repl_self),
+  ("str-contains-repl-tgt", .str_contains_repl_tgt),
+  ("str-repl-repl-len-id", .str_repl_repl_len_id),
+  ("str-repl-repl-src-tgt-no-ctn", .str_repl_repl_src_tgt_no_ctn),
+  ("str-repl-repl-tgt-self", .str_repl_repl_tgt_self),
+  ("str-repl-repl-tgt-no-ctn", .str_repl_repl_tgt_no_ctn),
+  ("str-repl-repl-src-self", .str_repl_repl_src_self),
+  ("str-repl-repl-src-inv-no-ctn1", .str_repl_repl_src_inv_no_ctn1),
+  ("str-repl-repl-src-inv-no-ctn2", .str_repl_repl_src_inv_no_ctn2),
+  ("str-repl-repl-src-inv-no-ctn3", .str_repl_repl_src_inv_no_ctn3),
+  ("str-repl-repl-dual-self", .str_repl_repl_dual_self),
+  ("str-repl-repl-dual-ite1", .str_repl_repl_dual_ite1),
+  ("str-repl-repl-dual-ite2", .str_repl_repl_dual_ite2),
+  ("str-repl-repl-lookahead-id-simp", .str_repl_repl_lookahead_id_simp),
+  ("re-all-elim", .re_all_elim),
+  ("re-opt-elim", .re_opt_elim),
+  ("re-diff-elim", .re_diff_elim),
+  ("re-plus-elim", .re_plus_elim),
+  ("re-repeat-elim", .re_repeat_elim),
+  ("re-concat-star-swap", .re_concat_star_swap),
+  ("re-concat-star-repeat", .re_concat_star_repeat),
+  ("re-concat-star-nullable1", .re_concat_star_nullable1),
+  ("re-concat-star-nullable2", .re_concat_star_nullable2),
+  ("re-concat-merge", .re_concat_merge),
+  ("re-union-all", .re_union_all),
+  ("re-union-const-elim", .re_union_const_elim),
+  ("re-inter-all", .re_inter_all),
+  ("re-star-none", .re_star_none),
+  ("re-star-emp", .re_star_emp),
+  ("re-star-star", .re_star_star),
+  ("re-range-refl", .re_range_refl),
+  ("re-range-emp", .re_range_emp),
+  ("re-range-non-singleton-1", .re_range_non_singleton_1),
+  ("re-range-non-singleton-2", .re_range_non_singleton_2),
+  ("re-star-union-char", .re_star_union_char),
+  ("re-star-union-drop-emp", .re_star_union_drop_emp),
+  ("re-loop-neg", .re_loop_neg),
+  ("re-loop-star", .re_loop_star),
+  ("re-inter-cstring", .re_inter_cstring),
+  ("re-inter-cstring-neg", .re_inter_cstring_neg),
+  ("str-substr-len-include", .str_substr_len_include),
+  ("str-substr-len-include-pre", .str_substr_len_include_pre),
+  ("str-substr-len-norm", .str_substr_len_norm),
+  ("seq-len-rev", .seq_len_rev),
+  ("seq-rev-rev", .seq_rev_rev),
+  ("seq-rev-concat", .seq_rev_concat),
+  ("str-eq-repl-self-emp", .str_eq_repl_self_emp),
+  ("str-eq-repl-no-change", .str_eq_repl_no_change),
+  ("str-eq-repl-tgt-eq-len", .str_eq_repl_tgt_eq_len),
+  ("str-eq-repl-len-one-emp-prefix", .str_eq_repl_len_one_emp_prefix),
+  ("str-eq-repl-emp-tgt-nemp", .str_eq_repl_emp_tgt_nemp),
+  ("str-eq-repl-nemp-src-emp", .str_eq_repl_nemp_src_emp),
+  ("str-eq-repl-self-src", .str_eq_repl_self_src),
+  ("seq-len-unit", .seq_len_unit),
+  ("seq-nth-unit", .seq_nth_unit),
+  ("seq-rev-unit", .seq_rev_unit),
+  ("re-in-empty", .re_in_empty),
+  ("re-in-sigma", .re_in_sigma),
+  ("re-in-sigma-star", .re_in_sigma_star),
+  ("re-in-cstring", .re_in_cstring),
+  ("re-in-comp", .re_in_comp),
+  ("str-in-re-union-elim", .str_in_re_union_elim),
+  ("str-in-re-inter-elim", .str_in_re_inter_elim),
+  ("str-in-re-range-elim", .str_in_re_range_elim),
+  ("str-in-re-contains", .str_in_re_contains),
+  ("str-in-re-from-int-nemp-dig-range", .str_in_re_from_int_nemp_dig_range),
+  ("str-in-re-from-int-dig-range", .str_in_re_from_int_dig_range),
+  ("eq-refl", .eq_refl),
+  ("eq-symm", .eq_symm),
+  ("eq-cond-deq", .eq_cond_deq),
+  ("eq-ite-lift", .eq_ite_lift),
+  ("distinct-binary-elim", .distinct_binary_elim),
+  ("uf-bv2nat-int2bv", .uf_bv2nat_int2bv),
+  ("uf-bv2nat-int2bv-extend", .uf_bv2nat_int2bv_extend),
+  ("uf-bv2nat-int2bv-extract", .uf_bv2nat_int2bv_extract),
+  ("uf-int2bv-bv2nat", .uf_int2bv_bv2nat),
+  ("uf-bv2nat-geq-elim", .uf_bv2nat_geq_elim),
+  ("uf-int2bv-bvult-equiv", .uf_int2bv_bvult_equiv),
+  ("uf-int2bv-bvule-equiv", .uf_int2bv_bvule_equiv),
+  ("uf-sbv-to-int-elim", .uf_sbv_to_int_elim),
+  ("evaluate", .evaluate),
+  ("distinct_values", .distinct_values),
+  ("aci_norm", .aci_norm),
+  ("absorb", .absorb),
+  ("distinct-card-conflict", .distinct_card_conflict)
+]
+
+private def parserRuleMap : Std.HashMap String CRule := .ofList parserRules
+
+private def parserRule (name : String) : Option CRule := parserRuleMap[name]?
 
 def parserConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
   ops := parserOps

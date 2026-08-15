@@ -1,6 +1,9 @@
 name = "Cpc"
 version = "0.1.0"
-defaultTargets = ["Cpc", "CpcMini"]
+defaultTargets = ["Logos", "Cpc", "CpcMini"]
+
+[[lean_lib]]
+name = "Logos"
 
 [[lean_lib]]
 name = "Cpc"
@@ -17,3 +20,7 @@ supportInterpreter = true
 [[lean_exe]]
 name = "logos2"
 root = "Main2"
+
+[[lean_exe]]
+name = "logos-mini"
+root = "MainMini"

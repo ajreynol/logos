@@ -1,0 +1,6 @@
+; Exercises assume-push/step-pop and the scope rule.
+(declare-const x Bool)
+(assume @p0 (not (=> x x)))
+(assume-push @p1 x)
+(step-pop @p2 :rule scope :premises (@p1))
+(step @p3 :rule contra :premises (@p2 @p0))
