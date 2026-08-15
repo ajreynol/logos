@@ -2,10 +2,10 @@
 (declare-const x Int)
 (declare-const y Int)
 (declare-const z Int)
-(assume @p0 (distinct (@@TypedList.cons z y x)))
+(assume @p0 (distinct z y x))
 (assume @p1 (or (= z y) (= y x)))
 (step @p2 :rule distinct-elim
-  :args ((= (distinct (@@TypedList.cons z y x))
+  :args ((= (distinct z y x)
             (and (not (= z y)) (not (= z x)) (not (= y x))))))
 (step @p3 :rule eq_resolve :premises (@p0 @p2))
 (step @p4 :rule and_elim :premises (@p3) :args (2))

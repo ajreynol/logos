@@ -40,6 +40,9 @@ run_examples() {
 }
 
 run_regressions() {
+  echo "Checking the generated parser tables against the signature..."
+  python3 scripts/check-parser-tables.py
+
   echo "Building logos and logos2 executables..."
   lake build logos logos2
 

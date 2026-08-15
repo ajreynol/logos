@@ -49,6 +49,14 @@ inductive Arity (T : Type) where
   binary application is *not* wrapped, i.e. `(f a b)` denotes `(f a b)`.
   -/
   | chainable (mk : List T → T)
+  /--
+  The operator's first argument is a list that gathers the leading explicit
+  arguments, and `rest` further arguments follow it.  This is how SMT-LIB writes
+  the operators that Eunoia declares over a `@@TypedList`: `(distinct a b c)`
+  denotes `(distinct (mk [a, b, c]))` and `(set.insert a b c S)` denotes
+  `(set.insert (mk [a, b, c]) S)`.  At least one element must be gathered.
+  -/
+  | listArg (rest : Nat) (mk : List T → T)
 
 /--
 The declaration of a single operator of the signature.
@@ -108,6 +116,11 @@ def mkOpApp (apply : T → T → T) (arity : Arity T) (op : T) (args : List T) :
     | [_] => none
     | [a, b] => some (apply (apply op a) b)
     | args => some (mk (chainSteps apply op args))
+  | .listArg rest mk =>
+    if args.length ≤ rest then none
+    else
+      let (gathered, trailing) := args.splitAt (args.length - rest)
+      some (trailing.foldl apply (apply op (mk gathered)))
 
 /--
 Whether an arity admits the given number of explicit arguments.  Operators of a
@@ -119,6 +132,7 @@ def Arity.admits : Arity T → Nat → Bool
   | .leftAssoc, k => k ≥ 2
   | .rightAssoc, k => k ≥ 2
   | .chainable _, k => k ≥ 2
+  | .listArg rest _, k => k > rest
   | .rightAssocNil _, _ => true
 
 /-!
