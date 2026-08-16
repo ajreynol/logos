@@ -1066,7 +1066,7 @@ private def parserOps : List (Logos.Parser.OpDecl Term) := [
       | _ => none },
   { name := "set.insert"
     indexArity := 0
-    arity := .listArg 1 (fun ts => Logos.Parser.rightAssocNil Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) (parserNil (Term.UOp UserOp._at__at_TypedList_cons)) ts)
+    arity := .exact 2
     build := fun
       | [] => some (Term.UOp UserOp.set_insert)
       | _ => none },
