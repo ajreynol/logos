@@ -147,9 +147,9 @@ theorem Key.lt_trans : ∀ {a b c}, Key.lt a b = true → Key.lt b c = true → 
           else none
   | _ => none
 
-@[expose] def natListOfKey : Key → Option (List Nat)
+@[expose] def stringOfKey : Key → Option native_String
   | .atom 0 => some []
-  | .pair (.atom n) ks => return n :: (← natListOfKey ks)
+  | .pair (.atom c) ks => return c :: (← stringOfKey ks)
   | _ => none
 
 theorem intOfKey_intKey (i : Int) : intOfKey (intKey i) = some i := by
@@ -171,11 +171,11 @@ theorem ratOfKey_ratKey (q : Rat) : ratOfKey (ratKey q) = some q := by
       apply Rat.ext <;> rfl
     · exact False.elim (‹¬q.num.natAbs.Coprime q.den› q.reduced)
 
-theorem natListOfKey_natListKey (xs : List Nat) :
-    natListOfKey (natListKey xs) = some xs := by
-  induction xs with
+theorem stringOfKey_stringKey (s : native_String) :
+    stringOfKey (stringKey s) = some s := by
+  induction s with
   | nil => rfl
-  | cons x xs ih => simp [natListKey, natListOfKey, natKey, ih]
+  | cons c cs ih => simp [stringKey, stringOfKey, charKey, ih]
 
 mutual
 
@@ -192,8 +192,8 @@ mutual
   | .pair (.atom 8) (.pair kt (.atom 0)) => return .Seq (← typeOfKey kt)
   | .pair (.atom 9) (.atom 0) => some .Char
   | .pair (.atom 10) (.pair ks (.pair kdd (.atom 0))) =>
-      return .Datatype (← natListOfKey ks) (← datatypeDeclOfKey kdd)
-  | .pair (.atom 11) (.pair ks (.atom 0)) => return .TypeRef (← natListOfKey ks)
+      return .Datatype (← stringOfKey ks) (← datatypeDeclOfKey kdd)
+  | .pair (.atom 11) (.pair ks (.atom 0)) => return .TypeRef (← stringOfKey ks)
   | .pair (.atom 12) (.pair (.atom n) (.atom 0)) => some (.USort n)
   | .pair (.atom 13) (.pair kt (.pair ku (.atom 0))) =>
       return .FunType (← typeOfKey kt) (← typeOfKey ku)
@@ -211,7 +211,7 @@ mutual
       return .Binary (← intOfKey kw) (← intOfKey ki)
   | .pair (.atom 5) (.pair km (.atom 0)) => return .Map (← mapOfKey km)
   | .pair (.atom 6) (.pair ks (.pair kt (.pair ku (.atom 0)))) =>
-      return .Fun (← natListOfKey ks) (← typeOfKey kt) (← typeOfKey ku)
+      return .Fun (← stringOfKey ks) (← typeOfKey kt) (← typeOfKey ku)
   | .pair (.atom 7) (.pair km (.atom 0)) => return .Set (← mapOfKey km)
   | .pair (.atom 8) (.pair ks (.atom 0)) => return .Seq (← seqOfKey ks)
   | .pair (.atom 9) (.pair (.atom c) (.atom 0)) => some (.Char c)
@@ -219,7 +219,7 @@ mutual
       some (.UValue i n)
   | .pair (.atom 11) (.pair kr (.atom 0)) => return .RegLan (← regLanOfKey kr)
   | .pair (.atom 12) (.pair ks (.pair kdd (.pair (.atom n) (.atom 0)))) =>
-      return .DtCons (← natListOfKey ks) (← datatypeDeclOfKey kdd) n
+      return .DtCons (← stringOfKey ks) (← datatypeDeclOfKey kdd) n
   | .pair (.atom 13) (.pair kf (.pair ka (.atom 0))) =>
       return .Apply (← valueOfKey kf) (← valueOfKey ka)
   | _ => none
@@ -257,7 +257,7 @@ mutual
 @[expose] def datatypeDeclOfKey : Key → Option SmtDatatypeDecl
   | .pair (.atom 0) (.atom 0) => some .nil
   | .pair (.atom 1) (.pair ks (.pair kd (.pair kdd (.atom 0)))) =>
-      return .cons (← natListOfKey ks) (← datatypeOfKey kd) (← datatypeDeclOfKey kdd)
+      return .cons (← stringOfKey ks) (← datatypeOfKey kd) (← datatypeDeclOfKey kdd)
   | _ => none
 
 @[expose] def datatypeOfKey : Key → Option SmtDatatype
@@ -277,12 +277,12 @@ end
 mutual
 
 theorem typeOfKey_typeKey (t : SmtType) : typeOfKey (typeKey t) = some t := by
-  cases t <;> simp [typeKey, typeOfKey, node, fields, natKey,
-    natListOfKey_natListKey, typeOfKey_typeKey, datatypeDeclOfKey_datatypeDeclKey]
+  cases t <;> simp [typeKey, typeOfKey, node, fields, natKey, stringOfKey_stringKey,
+    typeOfKey_typeKey, datatypeDeclOfKey_datatypeDeclKey]
 
 theorem valueOfKey_valueKey (v : SmtValue) : valueOfKey (valueKey v) = some v := by
-  cases v <;> simp [valueKey, valueOfKey, node, fields, natKey, boolKey,
-    intOfKey_intKey, ratOfKey_ratKey, natListOfKey_natListKey, regLanOfKey_regLanKey,
+  cases v <;> simp [valueKey, valueOfKey, node, fields, natKey, boolKey, charKey,
+    intOfKey_intKey, ratOfKey_ratKey, stringOfKey_stringKey, regLanOfKey_regLanKey,
     typeOfKey_typeKey, valueOfKey_valueKey, mapOfKey_mapKey, seqOfKey_seqKey,
     datatypeDeclOfKey_datatypeDeclKey]
   case Boolean b => cases b <;> rfl
@@ -303,7 +303,7 @@ theorem seqOfKey_seqKey (s : SmtSeq) : seqOfKey (seqKey s) = some s := by
 theorem datatypeDeclOfKey_datatypeDeclKey (dd : SmtDatatypeDecl) :
     datatypeDeclOfKey (datatypeDeclKey dd) = some dd := by
   cases dd <;> simp [datatypeDeclKey, datatypeDeclOfKey, node, fields,
-    natListOfKey_natListKey, datatypeOfKey_datatypeKey,
+    stringOfKey_stringKey, datatypeOfKey_datatypeKey,
     datatypeDeclOfKey_datatypeDeclKey]
 
 theorem datatypeOfKey_datatypeKey (d : SmtDatatype) :

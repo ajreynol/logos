@@ -147,9 +147,7 @@ The correctness proof for the checker lives in `Cpc/Proofs/Checker.lean`,
 whose final theorem `correct___eo_is_refutation` states that
 a successfully checked proof in Logos implies that the input assumptions to that proof are indeed unsatisfiable.
 That theorem is proven, as are the correctness proofs of the individual proof rules it relies on.
-The only assumptions that remain are the three order laws of the native value comparator in
-`Cpc/Proofs/Canonical/Order.lean` (irreflexivity, trichotomy and transitivity of `native_vcmp`),
-which are properties of Lean's generated comparator rather than of the checker.
+There are no `sorry`s in the soundness proof or its dependencies.
 
 The proof of the core checker is agnostic to the proof rules being used, i.e.
 the core definition of Logos and its correctness does not depend on the particular rules of the calculus.
