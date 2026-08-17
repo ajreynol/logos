@@ -44,6 +44,7 @@ run_regressions() {
   python3 scripts/check-parser-tables.py
 
   echo "Checking parser tests..."
+  lake build Logos.Parser
   lake env lean test/Parser.lean
 
   echo "Building the CPC executables..."
