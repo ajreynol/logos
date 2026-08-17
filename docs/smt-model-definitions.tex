@@ -104,6 +104,10 @@
 
 \pagestyle{empty}
 
+% Allow extra interword stretch so long typewriter identifiers do not push
+% text into the margins.
+\emergencystretch=3em
+
 \begin{document}
 
 \section{Introduction}
@@ -325,15 +329,16 @@ and we write \code{if}/\code{then}/\code{else} for the method \code{native_ite}.
 We additionally use a small number of friendlier names, e.g.
 \code{model_wf} for the Lean definition \code{model_total_typed},
 and \code{Cmd} and \code{CmdList} for the checker types \code{CCmd} and \code{CCmdList}.
-Places where a figure diverges from the code beyond this renaming are marked
-with bracketed notes.
+Beyond renaming, figures may inline or abbreviate helper definitions,
+reorder declarations, and elide cases (indicated by ellipses);
+the presentation is otherwise faithful to the code.
 
 \subsection{Types}
 
 \begin{figure}
 \begin{lstlisting}
-abbrev Ch := Nat
-abbrev String := List Ch
+abbrev Char := Nat
+abbrev String := List Char
 
 inductive SmtType : Type where
   | None : SmtType
@@ -441,13 +446,6 @@ are inhabited (\code{Inhabited})
 and orderable (\code{Ord}).
 Due to decidable equality, we can define (syntactic) equality on types,
 as \code{Teq}.
-
-\noindent\emph{[Note on Figure~\ref{fig:smt-types} vs. the code:
-in the Lean sources, the constructors of \code{SmtType} are ordered with
-\code{USort} before \code{FunType} and \code{DtcAppType},
-and all of these inductive types are declared in a single \code{mutual} block
-together with \code{SmtTerm}, \code{SmtValue} and the value payload types.
-The figure otherwise matches the code.]}
 
 \subsection{Datatypes}
 \label{sec:datatypes}
@@ -1330,7 +1328,7 @@ Maps and sets use a default (constant) map, where maps store the default
 value of the element type and sets store false.
 Sequence default value is the empty sequence.
 Function types have a default value which uses a reserved default identifier
-\code{"@default"} (named \code{"@native_default_fun"} in the code),
+\code{"@default"},
 where note that "@" is used as a prefix to
 avoid name clashes with user symbols.\footnote{
 SMT-LIB uses a convention that user symbols cannot be prefixed by "@".}
@@ -1373,33 +1371,25 @@ def smt_map_canonical : SmtMap -> Bool
       smt_value_canonical e &&
       smt_map_canonical m &&
       smt_map_entries_ordered_after i m &&
-      !(veq e smt_map_get_default m)
+      !(veq e (smt_map_get_default m))
 
 def smt_seq_canonical : SmtSeq -> Bool
   | (SmtSeq.empty T) => true
   | (SmtSeq.cons v s) => (smt_value_canonical v) && (smt_seq_canonical s)
 
 def smt_value_canonical : SmtValue -> Bool
+  | (SmtValue.Binary w n) => (if (0 <= w) then (n = n % (2 ^ w)) else true)
+  | (SmtValue.Char c) => (c < 196608)
   | (SmtValue.Map m) => (smt_map_canonical m)
   | (SmtValue.Set m) => (smt_map_canonical m) && (veq (smt_map_get_default m) (SmtValue.Boolean false))
   | (SmtValue.Seq s) => (smt_seq_canonical s)
+  | (SmtValue.RegLan r) => (re_canonical r)
   | (SmtValue.Apply f v) => (smt_value_canonical f) && (smt_value_canonical v)
   | v => true
 \end{lstlisting}
 \caption{Canonicality checks for maps, sequences, and values.}
 \label{fig:canonical}
 \end{figure}
-
-\noindent\emph{[Note on Figure~\ref{fig:canonical} vs. the code:
-the code contains three further cases of \code{smt_value_canonical}
-elided in the figure:
-\code{Binary} values are canonical when their payload is reduced modulo
-$2^w$ for non-negative bitwidth $w$,
-\code{Char} values are canonical when in the legal character range, and
-\code{RegLan} values are canonical when all base elements of the regular
-expression are valid character values.
-The map-default case is also stated slightly differently in the code
-(via a helper \code{smt_map_default_canonical}), with the same meaning.]}
 
 Given definitions of finiteness of types
 and a default value method,
@@ -1428,7 +1418,7 @@ we require the following things.
 First, \code{i} and \code{e} must themselves be canonical values.
 Second, the tail of the map must also be canonical.
 Third, the indices must be sorted.
-We use the strict total ordering \code{veq} for this.
+We use the strict total ordering \code{vcmp} for this.
 In particular, the submethod \code{smt_map_entries_ordered_after}
 ensures that the index is strictly less than the next stored index,
 which by transitivity ensures that the index list is sorted.
@@ -1484,7 +1474,16 @@ and default values \emph{always} matter for maps of infinite index types
 Sets are similar to maps, but for canonical values, their default value is false,
 regardless of the index type.
 Defining canonicity for the other types is trivial.
-For composite SMT-LIB values, we simply traverse their structure 
+Bit-vector and character values are canonical exactly when they satisfy the
+same range constraints imposed by their typing:
+the payload of a bit-vector must be reduced modulo $2^w$,
+and a character must lie in the legal character range.
+Regular language values are canonical when the base elements of the regular
+expression are valid character values, as checked by \code{re_canonical}
+(not shown); note this is a structural condition and does not provide
+canonicity in the semantic sense above,
+which is why equality on regular languages is defined extensionally.
+For the remaining composite SMT-LIB values, we simply traverse their structure
 and confirm that all values they are built from are also canonical.
 
 \subsection{Well-Formedness of Types}
@@ -1648,6 +1647,9 @@ def model_lookup (M : SmtModel) (isVar : Bool) (s : String) (T : SmtType) : SmtV
 def model_fun_lookup (M : SmtModel) (fid : String) (T U : SmtType) : SmtValue -> SmtValue :=
   M.nativeFuns { isVar := false, name := fid, ty := (SmtType.FunType T U) }
 
+def eval_fun_apply (M : SmtModel) (fid : String) (T U : SmtType) (i : SmtValue) : SmtValue :=
+  if (fid = "@default") then (smt_type_default U) else (model_fun_lookup M fid T U i)
+
 def model_wf (M : SmtModel) : Prop :=
   (∀ isVar s T, smt_type_wf T = true ->
     smt_typeof_value (model_lookup M isVar s T) = T ∧
@@ -1655,8 +1657,8 @@ def model_wf (M : SmtModel) : Prop :=
   (∀ fid A B i,
     smt_type_wf (SmtType.FunType A B) = true ->
     smt_typeof_value i = A ->
-    smt_typeof_value (model_fun_lookup M fid A B i) = B ∧
-      smt_value_canonical (model_fun_lookup M fid A B i) = true)
+    smt_typeof_value (eval_fun_apply M fid A B i) = B ∧
+      smt_value_canonical (eval_fun_apply M fid A B i) = true)
 \end{lstlisting}
 \caption{Total typed model conditions.}
 \label{fig:model-typed}
@@ -1679,21 +1681,19 @@ the latter requirement can be seen as a base case on the leafs when interpreting
 The second clause says that for all keys,
 the \code{M.nativeFuns} has similar requirements,
 but where now the functions stored in the domain behave like properly typed functions of the given type.
-In particular, for functions stored in the domain of \code{M.nativeFuns} for keys having type \code{(SmtType.FunType A B)},
+Function behavior is accessed through the method \code{eval_fun_apply},
+which behaves as the direct lookup \code{model_fun_lookup} except on the
+reserved default function identifier \code{"@default"},
+for which it returns the default value of the range type regardless of the
+model; this guarantees that the default function value from
+Figure~\ref{fig:default-value} is well-behaved in every model.
+Model evaluation of function applications will go through the same method.
+In particular, the second clause requires that for keys having type \code{(SmtType.FunType A B)},
 for all inputs \code{i} whose type is \code{A},
-the function at that lookup (\code{model_fun_lookup M fid A B})
-when applied to \code{i} results in a value of type \code{B}, and moreover the returned value is canonical.
+applying \code{(eval_fun_apply M fid A B)}
+to \code{i} results in a value of type \code{B}, and moreover the returned value is canonical.
 
 Notice that for both clauses, we insist that the respective components of \code{M} are total mappings.
-
-\noindent\emph{[Note on Figure~\ref{fig:model-typed} vs. the code:
-the Lean definition is named \code{model_total_typed},
-and its first clause is split into two conjuncts (typing and canonicity).
-Moreover, the function clause is stated in terms of the wrapper
-\code{eval_fun_apply} (defined in Figure~\ref{fig:model-eval})
-rather than \code{model_fun_lookup} directly,
-which special-cases the reserved default function identifier
-\code{"@default"} to return the default value of the range type.]}
 
 \subsection{Terms}
 \label{sec:terms}
@@ -1843,12 +1843,12 @@ when evaluating binders), where the interpretation of a constant is fixed.
 def smt_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
   (if (smt_type_wf T) then U else SmtType.None)
   
-def smt_typeof_not : SmtType -> SmtType :=
+def smt_typeof_not : SmtType -> SmtType
   | SmtType.Bool => SmtType.Bool
   | T => SmtType.None
 
 def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
-  (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
+  (smt_typeof_guard T (if (Teq T U) then SmtType.Bool else SmtType.None))
 
 def smt_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
   | SmtType.Int, SmtType.Int => SmtType.Int
@@ -1856,19 +1856,19 @@ def smt_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
   | T, U => SmtType.None
   
 def smt_typeof_select : SmtType -> SmtType -> SmtType
-  | (SmtType.Map T U), V => (if (native_Teq T V) then U else SmtType.None)
+  | (SmtType.Map T U), V => (if (Teq T V) then U else SmtType.None)
   | T, U => SmtType.None
 
 def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> Nat -> SmtType
-  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero =>
-      (SmtType.DtcAppType U (smt_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), Nat.zero => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), Nat.zero =>
+      (SmtType.DtcAppType U (smt_typeof_dt_cons_rec T (SmtDatatype.sum c d) Nat.zero))
   | (SmtDatatype.sum c d), (Nat.succ n) => (smt_typeof_dt_cons_rec T d n)
   | d, n => SmtType.None
 
 def smt_typeof_apply : SmtType -> SmtType -> SmtType
-  | (SmtType.FunType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
-  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | (SmtType.FunType T U), V => (smt_typeof_guard T (if (Teq T V) then U else SmtType.None))
+  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (Teq T V) then U else SmtType.None))
   | T, U => SmtType.None
 
 def smt_typeof : SmtTerm -> SmtType
@@ -1948,12 +1948,6 @@ constructor \code{i},
 and an applied tester \code{(DtTester s dd i)} is typed like a predicate on
 \code{(Datatype s dd)}, guarded by the constructor index being in bounds.
 
-\noindent\emph{[Note on Figure~\ref{fig:typeof-term} vs. the code:
-the figure writes \code{native_Teq} in some helpers and \code{Teq} in
-others; these are the same method (recall the naming conventions above).
-The header of \code{smt_typeof_not} contains a stray \code{:=} and should
-read \code{def smt_typeof_not : SmtType -> SmtType}.]}
-
 \subsection{Model Evaluation}
 
 \begin{figure}
@@ -1981,9 +1975,6 @@ noncomputable def eval_texists (M : SmtModel) (s : String)
       smt_typeof_value v = T ∧
         smt_value_canonical v = true ∧
         smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true))
-
-def eval_fun_apply (M : SmtModel) (fid : String) (T U : SmtType) (i : SmtValue) : SmtValue :=
-  if (fid = "@default") then (smt_type_default U) else (model_fun_lookup M fid T U i)
 
 def smt_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | v, SmtValue.NotValue => SmtValue.NotValue
@@ -2098,12 +2089,7 @@ It is the case by induction that the only \code{SmtValue.Apply} values
 returned by model evaluation necessarily have datatype constructors as their heads.
 In the fourth case, if the head was a function value,
 we look up its behavior in the model and apply it to the argument,
-via the wrapper \code{eval_fun_apply} shown in the figure:
-this behaves as \code{model_fun_lookup} except on the reserved default
-identifier \code{"@default"},
-for which it returns the default value of the range type regardless of the
-model, guaranteeing that the default function value from
-Figure~\ref{fig:default-value} is well-behaved in every model.
+via the method \code{eval_fun_apply} from Figure~\ref{fig:model-typed}.
 Otherwise, we fail to evaluate.
 
 Applications of datatype selectors and testers are given dedicated cases in
@@ -2178,14 +2164,6 @@ This theorem relies on the fact that for well-formed models, in the base case,
 variables and constants are mapped to canonical values.
 It then proceeds by induction on the structure of terms.
 
-\noindent\emph{[Note on Figure~\ref{fig:type-preservation} vs. the code:
-the model-existence theorem is named
-\code{total_typed_model_nonvacuous} in the code
-(recall \code{model_wf} abbreviates \code{model_total_typed}),
-and the well-typedness hypotheses of the latter two theorems are phrased via a
-definition \code{term_has_non_none_type t},
-which unfolds to \code{smt_typeof t} $\neq$ \code{SmtType.None}.]}
-
 \section{Specification}
 
 This section presents the \emph{specification} layer of Logos.
@@ -2208,6 +2186,7 @@ We first will introduce the term embedding.
 inductive UserOp : Type where
   | Int : UserOp
   | Real : UserOp
+  | BitVec : UserOp
   ...
   | not : UserOp
   | eq : UserOp
@@ -2216,7 +2195,6 @@ inductive UserOp : Type where
 
 /- User operators with indexed arguments -/
 inductive UserOp1 : Type where
-  | BitVec : UserOp
   | repeat : UserOp1
   | zero_extend : UserOp1
   ...
@@ -2364,19 +2342,15 @@ Variables in Eunoia are first-class objects taking their name (intended to be a 
 and their type.
 Based on the operational semantics of Eunoia, these are indexed arguments,
 i.e. variables are considered atomic terms indexed by their name and type.
-
-\noindent\emph{[Note on Figure~\ref{fig:eo-term} vs. the code:
-in the code, \code{BitVec} is an \emph{ordinary} operator
-(a member of \code{UserOp}, applied to its width via \code{Apply}),
-not a member of \code{UserOp1} as shown;
-the same holds for \code{Char} and \code{Seq}.
-The code's \code{UserOp1} instead contains operators such as
-\code{repeat}, \code{zero_extend}, \code{seq_empty} and the
-datatype tester and updater operators \code{is} and \code{update},
-and there is additionally an enumeration \code{UserOp3} for operators with
-three indexed arguments.
-The builtin list constructors are named
-\code{__eo_List}, \code{__eo_List_nil} and \code{__eo_List_cons}.]}
+Note that type constructors such as \code{BitVec} are \emph{ordinary}
+operators applied to their arguments via \code{Apply}
+(e.g. the bit-vector type of width 8 is
+\code{(Apply (UOp UserOp.BitVec) (Numeral 8))}),
+while \code{UserOp1} contains operators
+such as \code{repeat}, \code{zero_extend} and the datatype tester and
+updater operators \code{is} and \code{update};
+the stratification continues with \code{UserOp2}, \code{UserOp3}, etc.
+as needed by the signature.
 
 \subsection{Translation from Eunoia term to SMT terms}
 
@@ -2393,8 +2367,8 @@ def eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | (Term.UOp UserOp.Int) => SmtType.Int
   ...
-  | (Term.UOp1 UserOp1.BitVec (Term.Numeral n1)) =>
-    (if (native_zleq 0 n1) then (SmtType.BitVec (Int.toNat n1)) else SmtType.None)
+  | (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n1)) =>
+    (if (0 <= n1) then (SmtType.BitVec (Int.toNat n1)) else SmtType.None)
   | (Term.Apply (Term.Apply Term.FunType T1) T2) =>
     let _v0 := (eo_to_smt_type T1)
     let _v1 := (eo_to_smt_type T2)
@@ -2444,16 +2418,6 @@ Each of these cases is guarded so that datatype names beginning with the
 reserved prefix "@" fail to translate;
 such names are reserved for internal datatypes (e.g. tuples) whose
 translation is handled specially.
-
-\noindent\emph{[Note on Figure~\ref{fig:eo-to-smt} vs. the code:
-the bit-vector type case matches
-\code{(Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n1))}
-in the code, since \code{BitVec} is an ordinary (non-indexed) operator;
-the reserved-name check is a helper
-(\code{native_reserved_datatype_name}) rather than
-\code{s.startsWith "@"}; and the \code{FunType} and other binary cases
-evaluate their subterm translations through \code{let} bindings in a
-different order than shown. The figure is otherwise representative.]}
 
 \subsection{Satisfiability for Eunoia terms}
 
@@ -2524,9 +2488,9 @@ the translation of the Eunoia type is the SMT-LIB type of the translation.
 def eo_typeof : Term -> Term
   | (Term.Boolean b) => Term.Bool
   | (Term.Var (Term.String s) T) => T
-  | (Term.DtCons s dd i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s dd) (__eo_dd_resolve s dd) i)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) eo_x1) eo_x2) => (__eo_typeof_eq (__eo_typeof eo_x1) (__eo_typeof eo_x2))
-  | (Term.Apply eo_f eo_x) => (__eo_typeof_apply (__eo_typeof eo_f) (__eo_typeof eo_x))
+  | (Term.DtCons s dd i) => (eo_typeof_dt_cons_rec (Term.DatatypeType s dd) (eo_dd_resolve s dd) i)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) eo_x1) eo_x2) => (eo_typeof_eq (eo_typeof eo_x1) (eo_typeof eo_x2))
+  | (Term.Apply eo_f eo_x) => (eo_typeof_apply (eo_typeof eo_f) (eo_typeof eo_x))
   | ... => ...
 \end{lstlisting}
 \caption{Selected Eunoia type-synthesis clauses.}
@@ -2658,13 +2622,13 @@ def eo_StateObj_proven : CStateObj -> Term
   | (CStateObj.proven F) => F
 
 def eo_state_proven_nth : CState -> Int -> Term
-  | (CState.cons so s), 0 => (__eo_StateObj_proven so)
-  | (CState.cons so s), n => (__eo_state_proven_nth s (n - 1))
+  | (CState.cons so s), 0 => (eo_StateObj_proven so)
+  | (CState.cons so s), n => (eo_state_proven_nth s (n - 1))
   | s, n => (Term.Boolean true)
 
 def eo_state_is_closed : CState -> Bool
   | (CState.cons (CStateObj.assume_push F) s) => false
-  | (CState.cons so s) => (__eo_state_is_closed s)
+  | (CState.cons so s) => (eo_state_is_closed s)
   | CState.nil => true
   | s => false
 
@@ -2681,14 +2645,14 @@ def eo_push_proven_check : Term -> Term -> CState -> CState
   | b, F, s => CState.Stuck
 
 def eo_push_proven : Term -> CState -> CState
-  | F, s => (__eo_push_proven_check (__eo_is_bool_type F) F s)
+  | F, s => (eo_push_proven_check (eo_is_bool_type F) F s)
 
 def eo_mk_premise_list : Term -> CIndexList -> CState -> Term
-  | f, CIndexList.nil, S => (__eo_nil f Term.Bool)
-  | f, (CIndexList.cons n pl), S => (__eo_cons f (__eo_state_proven_nth S n) (__eo_mk_premise_list f pl S))
+  | f, CIndexList.nil, S => (eo_nil f Term.Bool)
+  | f, (CIndexList.cons n pl), S => (eo_cons f (eo_state_proven_nth S n) (eo_mk_premise_list f pl S))
 
 def eo_invoke_cmd_check_proven : CState -> Term -> CState
-  | (CState.cons (CStateObj.proven F) S), proven => (__eo_push_proven_check (__eo_eq F proven) F S)
+  | (CState.cons (CStateObj.proven F) S), proven => (eo_push_proven_check (eo_eq F proven) F S)
   | S, proven => CState.Stuck
 \end{lstlisting}
 \caption{Basic checker stack and state operations.}
@@ -2698,48 +2662,48 @@ def eo_invoke_cmd_check_proven : CState -> Term -> CState
 \begin{figure}[p]
 \begin{lstlisting}
 def eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
-  | CRule.contra, CArgList.nil, (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) => (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)))
-  | CRule.refl, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_refl a1)
-  | CRule.symm, CArgList.nil, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1)))
-  | CRule.trans, CArgList.nil, premises => (__eo_prog_trans (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises S)))
+  | CRule.contra, CArgList.nil, (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) => (eo_prog_contra (Proof.pf (eo_state_proven_nth S n1)) (Proof.pf (eo_state_proven_nth S n2)))
+  | CRule.refl, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (eo_prog_refl a1)
+  | CRule.symm, CArgList.nil, (CIndexList.cons n1 CIndexList.nil) => (eo_prog_symm (Proof.pf (eo_state_proven_nth S n1)))
+  | CRule.trans, CArgList.nil, premises => (eo_prog_trans (Proof.pf (eo_mk_premise_list (Term.UOp UserOp.and) premises S)))
   | ... => ...
 
 def eo_cmd_step_pop_proven (S : CState) : CRule -> CArgList -> Term -> CIndexList -> Term
-  | CRule.scope, CArgList.nil, A, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_scope A (Proof.pf (__eo_state_proven_nth S n1)))
+  | CRule.scope, CArgList.nil, A, (CIndexList.cons n1 CIndexList.nil) => (eo_prog_scope A (Proof.pf (eo_state_proven_nth S n1)))
   | ... => ...
 
 def eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CIndexList -> CState
-  | (CState.cons (CStateObj.assume_push A) s2), r, args, premises => (__eo_push_proven (__eo_cmd_step_pop_proven s r args A premises) s2)
-  | (CState.cons so s2), r, args, premises => (__eo_invoke_cmd_step_pop s s2 r args premises)
+  | (CState.cons (CStateObj.assume_push A) s2), r, args, premises => (eo_push_proven (eo_cmd_step_pop_proven s r args A premises) s2)
+  | (CState.cons so s2), r, args, premises => (eo_invoke_cmd_step_pop s s2 r args premises)
   | s2, r, args, premises => CState.Stuck
 
 def eo_invoke_cmd : CState -> Cmd -> CState
   | CState.Stuck, c => CState.Stuck
   | S, (Cmd.assume_push proven) =>
-      (__eo_push_assume_check (__eo_and (__eo_is_bool_type proven) (__eo_is_closed proven)) proven S)
-  | S, (Cmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
-  | S, (Cmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
-  | S, (Cmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
+      (eo_push_assume_check (eo_and (eo_is_bool_type proven) (eo_is_closed proven)) proven S)
+  | S, (Cmd.check_proven proven) => (eo_invoke_cmd_check_proven S proven)
+  | S, (Cmd.step r args premises) => (eo_push_proven (eo_cmd_step_proven S r args premises) S)
+  | S, (Cmd.step_pop r args premises) => (eo_invoke_cmd_step_pop S S r args premises)
 
 def eo_invoke_cmd_list (S : CState) : CmdList -> CState
   | CmdList.nil => S
-  | (CmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
+  | (CmdList.cons c cmds) => (eo_invoke_cmd_list (eo_invoke_cmd S c) cmds)
 
 def eo_state_is_refutation (s : CState) : Bool :=
-  (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
+  (eo_state_is_closed (eo_invoke_cmd_check_proven s (Term.Boolean false)))
 
 def eo_invoke_assume_list (S : CState) : Term -> CState
   | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) =>
-      (__eo_push_input_assume_check (__eo_and (__eo_is_bool_type F) (__eo_is_closed F)) F (__eo_invoke_assume_list S as))
+      (eo_push_input_assume_check (eo_and (eo_is_bool_type F) (eo_is_closed F)) F (eo_invoke_assume_list S as))
   | (Term.Boolean true) => S
   | as => CState.Stuck
 
 def eo_checker_is_refutation : Term -> CmdList -> Bool
-  | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
+  | as, cs => (eo_state_is_refutation (eo_invoke_cmd_list (eo_invoke_assume_list CState.nil as) cs))
 
 inductive eo_is_refutation : Term -> CmdList -> Prop
   | intro (F : Term) (c : CmdList) :
-      (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
+      (eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 \end{lstlisting}
 \caption{Checker command execution and refutation recognition.}
 \label{fig:checker-exec}
@@ -2750,34 +2714,34 @@ inductive eo_is_refutation : Term -> CmdList -> Prop
 def eo_is_closed_rec : Term -> Term -> Term
   | Term.Stuck, _ => Term.Stuck
   | _, Term.Stuck => Term.Stuck
-  | (Term.Var s T), Term.__eo_List_nil => (Term.Boolean false)
-  | (Term.Var s T), (Term.Apply (Term.Apply Term.__eo_List_cons x) vs) =>
+  | (Term.Var s T), Term.eo_List_nil => (Term.Boolean false)
+  | (Term.Var s T), (Term.Apply (Term.Apply Term.eo_List_cons x) vs) =>
       let _v0 := (Term.Var s T)
-      (__eo_ite (__eo_eq _v0 x) (Term.Boolean true) (__eo_is_closed_rec _v0 vs))
+      (eo_ite (eo_eq _v0 x) (Term.Boolean true) (eo_is_closed_rec _v0 vs))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) x), env =>
-      (__eo_is_closed_rec x (__eo_list_concat Term.__eo_List_cons vs env))
+      (eo_is_closed_rec x (eo_list_concat Term.eo_List_cons vs env))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.exists) vs) x), env =>
-      (__eo_is_closed_rec x (__eo_list_concat Term.__eo_List_cons vs env))
+      (eo_is_closed_rec x (eo_list_concat Term.eo_List_cons vs env))
   | (Term.Apply f x), env =>
-      (__eo_and (__eo_is_closed_rec f env) (__eo_is_closed_rec x env))
-  | (Term.UOp1 u x), env => (__eo_is_closed_rec x env)
+      (eo_and (eo_is_closed_rec f env) (eo_is_closed_rec x env))
+  | (Term.UOp1 u x), env => (eo_is_closed_rec x env)
   | (Term.UOp2 u x x2), env =>
-      (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env))
+      (eo_and (eo_is_closed_rec x env) (eo_is_closed_rec x2 env))
   | (Term.UOp3 u x x2 x3), env =>
-      (__eo_and (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env))
-        (__eo_is_closed_rec x3 env))
+      (eo_and (eo_and (eo_is_closed_rec x env) (eo_is_closed_rec x2 env))
+        (eo_is_closed_rec x3 env))
   | x, env => (Term.Boolean true)
 
 def eo_is_closed : Term -> Term
   | Term.Stuck => Term.Stuck
-  | t => (__eo_is_closed_rec t Term.__eo_List_nil)
+  | t => (eo_is_closed_rec t Term.eo_List_nil)
 
 def assumptionCheckGuard (A : Term) : Term :=
-  eo_and (__eo_is_bool_type A) (__eo_is_closed A)
+  eo_and (eo_is_bool_type A) (eo_is_closed A)
 
 /-- Two models agree on the global part of the interpretation. -/
 def model_agrees_on_globals (M N : SmtModel) : Prop :=
-  (∀ s T, model_const_lookup M s T = model_const_lookup N s T) ∧
+  (∀ s T, model_lookup M false s T = model_lookup N false s T) ∧
   (∀ fid T U, model_fun_lookup M fid T U = model_fun_lookup N fid T U)
 
 theorem smt_model_eval_eq_of_eo_closed
@@ -2819,15 +2783,10 @@ globals (\code{stableWhenTrueInAnyVarModel_of_closed}).
 Stability is what lets the checker's assumptions constrain every model
 considered during the soundness argument, even as quantifier evaluation
 re-assigns variables.
-
-\noindent\emph{[Note on Figure~\ref{fig:eo-closed} vs. the code:
-\code{assumptionCheckGuard} is a presentation-only abbreviation;
-in the code the guard
-\code{(eo_and (eo_is_bool_type A) (eo_is_closed A))}
-appears inline in the \code{assume_push} and input-assumption cases of
-command execution (Figure~\ref{fig:checker-exec}).
-Also, \code{model_agrees_on_globals} is stated via the constant lookup
-method named \code{model_lookup} in Figure~\ref{fig:smt-model}.]}
+The guard \code{assumptionCheckGuard} packages the executable checks
+performed when an assumption is pushed, as used in the
+\code{assume_push} and input-assumption cases of command execution
+(Figure~\ref{fig:checker-exec}).
 
 Figure~\ref{fig:translation-ok} defines the translation obligations under
 which soundness is stated:
@@ -2881,7 +2840,7 @@ inductive CmdListTranslationOk : CmdList -> Prop
 
 \begin{figure}[p]
 \begin{lstlisting}
-theorem correct___eo_is_refutation (F : Term) (pf : CmdList) :
+theorem correct_eo_is_refutation (F : Term) (pf : CmdList) :
   TranslatableAssumptionList F ->
   CmdListTranslationOk pf ->
   (eo_is_refutation F pf) ->
@@ -2990,7 +2949,7 @@ structure StepRuleProperties
     RulePremiseEvidence M premises ->
     eo_interprets M P true
   has_smt_translation :
-    RuleProofs.eo_has_smt_translation P
+    eoHasSmtTranslation P
 
 structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
   true_of_context :
@@ -3004,7 +2963,7 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
       eo_interprets N (statePushes s) true ->
       eo_interprets N P true
   has_smt_translation :
-    RuleProofs.eo_has_smt_translation P
+    eoHasSmtTranslation P
 
 theorem cmd_step_proven_facts_of_invariants
     (M : SmtModel) (hM : model_wf M)
@@ -3015,8 +2974,8 @@ theorem cmd_step_proven_facts_of_invariants
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   cmdTranslationOk (Cmd.step r args premises) ->
-  eo_typeof (__eo_cmd_step_proven s r args premises) = Term.Bool ->
-  CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
+  eo_typeof (eo_cmd_step_proven s r args premises) = Term.Bool ->
+  CmdStepFacts M s (eo_cmd_step_proven s r args premises)
 \end{lstlisting}
 \caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; plain \texttt{Cmd.step} reasoning uses local truth plus assumption stability, and rule proofs receive contextual premise evidence that is stable across variable-model changes.}
 \label{fig:rule-lemmas}
@@ -3033,10 +2992,10 @@ inductive Proof : Type where
 def eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 =>
       (if (teq x1 x2) then
-        (if (native_not (teq x1 Term.Stuck)) then x3 else Term.Stuck)
+        (if (!(teq x1 Term.Stuck)) then x3 else Term.Stuck)
         else Term.Stuck)
 
-def __mk_trans : Term -> Term -> Term -> Term
+def mk_trans : Term -> Term -> Term -> Term
   | Term.Stuck, _, _ => Term.Stuck
   | _, Term.Stuck, _ => Term.Stuck
   | t1, t2,
@@ -3044,7 +3003,7 @@ def __mk_trans : Term -> Term -> Term -> Term
         (Term.Apply (Term.UOp UserOp.and)
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4))
         tail) =>
-      (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
+      (eo_requires t2 t3 (mk_trans t1 t4 tail))
   | t1, t2, (Term.Boolean true) =>
       (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)
   | _, _, _ => Term.Stuck
@@ -3055,7 +3014,7 @@ def eo_prog_trans : Proof -> Term
         (Term.Apply (Term.UOp UserOp.and)
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2))
         tail)) =>
-      (__mk_trans t1 t2 tail)
+      (mk_trans t1 t2 tail)
   | _ => Term.Stuck
 \end{lstlisting}
 \caption{The \texttt{Logos.lean} definition of the \texttt{trans} rule program and its immediate dependencies.}
@@ -3069,9 +3028,9 @@ theorem cmd_step_trans_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (Cmd.step CRule.trans args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  eo_typeof (__eo_cmd_step_proven s CRule.trans args premises) = Term.Bool ->
+  eo_typeof (eo_cmd_step_proven s CRule.trans args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
-    (__eo_cmd_step_proven s CRule.trans args premises)
+    (eo_cmd_step_proven s CRule.trans args premises)
 \end{lstlisting}
 \caption{An example rule proof: the \texttt{trans} step packages contextual premise evidence and SMT translatability into \texttt{StepRuleProperties}.}
 \label{fig:trans-rule}
