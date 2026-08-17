@@ -25,6 +25,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+
 def inductive_constructors(source: str, name: str) -> list[str]:
     """The constructor names of `inductive <name>`, in declaration order."""
     start = source.index(f"inductive {name} : Type where")
