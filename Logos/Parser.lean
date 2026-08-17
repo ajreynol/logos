@@ -276,6 +276,16 @@ structure Config (T R C CL : Type) where
 ## Parser state
 -/
 
+/--
+A `define` that takes parameters.  Eunoia has no lambda, so such a definition is
+a macro: its body is kept as an s-expression and read again wherever the defined
+symbol is applied, with the parameters bound to the arguments given there.
+-/
+structure Macro where
+  /-- The names of the parameters, in order; their declared types are unused. -/
+  params : List String
+  body : Sexp
+
 structure State (T : Type) where
   /-- Number of uninterpreted sorts declared so far. -/
   usCount : Nat := 0
@@ -289,6 +299,10 @@ structure State (T : Type) where
   idToPos : Std.HashMap String Nat := {}
   /-- Terms bound by `declare-const`/`define`, by name. -/
   terms : Std.HashMap String T := {}
+  /-- Macros introduced by a `define` with parameters, by name. -/
+  macros : Std.HashMap String Macro := {}
+  /-- The macros currently being expanded, used to reject recursive `define`s. -/
+  expanding : List String := []
   /-- The operators of the signature, indexed by name. -/
   ops : Std.HashMap String (List (OpDecl T)) := {}
 
@@ -371,6 +385,8 @@ partial def parseTermCore (cfg : Config T R C CL) : Sexp → ParserM T T
       return t
     if let some t := (Literal.ofString a).bind cfg.parseLiteral then
       return t
+    if let some m := (← get).macros[a]? then
+      throw s!"Error: {a} takes {m.params.length} arguments and cannot be used unapplied"
     throw s!"Error: unknown identifier {a}"
   | .expr [] => throw "Error: empty s-expression"
   | .expr (.atom "_" :: rest) => do
@@ -388,6 +404,14 @@ Build the application of the operator (or declared symbol) `name`, indexed by
 -/
 partial def parseApp (cfg : Config T R C CL) (name : String) (idxs : List Sexp)
     (args : List T) : ParserM T T := do
+  if let some m := (← get).macros[name]? then
+    if !idxs.isEmpty then
+      throw s!"Error: {name} is defined by define and cannot be indexed"
+    if args.length < m.params.length then
+      throw s!"Error: {name} takes {m.params.length} arguments but is applied to {args.length}"
+    -- A macro whose body denotes a function may be applied to further arguments.
+    let (args, extra) := args.splitAt m.params.length
+    return extra.foldl cfg.apply (← expandMacro cfg name m args)
   let decls := (← get).ops.getD name []
   if !decls.isEmpty then
     let idxs ← idxs.mapM (parseTerm cfg)
@@ -401,6 +425,30 @@ partial def parseApp (cfg : Config T R C CL) (name : String) (idxs : List Sexp)
   if !idxs.isEmpty then
     throw s!"Error: unknown indexed operator {name}"
   return args.foldl cfg.apply (← parseTermCore cfg (.atom name))
+
+/--
+Expand the macro `name` at a use site: read its body with the parameters bound to
+`args`.  The bindings are undone afterwards, so a parameter shadows any symbol of
+the same name only within the body.
+-/
+partial def expandMacro (cfg : Config T R C CL) (name : String) (m : Macro)
+    (args : List T) : ParserM T T := do
+  if (← get).expanding.contains name then
+    throw s!"Error: recursive define {name}"
+  let saved := (← get).terms
+  modify fun s =>
+    { s with
+      terms := (m.params.zip args).foldl (fun ts (p, t) => ts.insert p t) s.terms,
+      expanding := name :: s.expanding }
+  let restore : ParserM T Unit :=
+    modify fun s => { s with terms := saved, expanding := s.expanding.tail }
+  try
+    let t ← parseTerm cfg m.body
+    restore
+    return t
+  catch e =>
+    restore
+    throw e
 
 end
 
@@ -455,6 +503,52 @@ def parseDatatypes (cfg : Config T R C CL) (sorts bodies : List Sexp) : ParserM 
   modify fun s =>
     { s with terms := bindings.foldl (fun m (n, t) => m.insert n t) s.terms }
 
+/-!
+## Declarations
+-/
+
+/-- Bind `name` to a fresh uninterpreted sort or constant, according to `ty`. -/
+def declareSymbol (cfg : Config T R C CL) (name : String) (ty : T) : ParserM T Unit :=
+  if cfg.isType ty then
+    modify fun s =>
+      { s with
+        usCount := s.usCount + 1,
+        terms := s.terms.insert name (cfg.mkUSort (s.usCount + 1)) }
+  else
+    modify fun s =>
+      { s with
+        ufCount := s.ufCount + 1,
+        terms := s.terms.insert name (cfg.mkUConst (s.ufCount + 1) ty) }
+
+/--
+The type `(-> t₁ … tₙ res)` of a symbol declared by `declare-fun`, `declare-sort`
+or `declare-type`.  It is built from the signature's own `->` operator, so a
+calculus without function types simply rejects these commands with more than
+zero arguments.
+-/
+def parseFunType (cfg : Config T R C CL) (args : List Sexp) (res : Sexp) : ParserM T T :=
+  match args with
+  | [] => parseTerm cfg res
+  | args => parseTerm cfg (.expr (.atom "->" :: (args ++ [res])))
+
+/--
+Parse the parameter list of a `define`.  Only the parameter names are recorded:
+the body is read where the macro is used, so its parameters are given the types
+of the arguments they stand for.
+-/
+def parseMacroParams : List Sexp → ParserM T (List String)
+  | [] => return []
+  | .expr (.atom name :: _ :: _) :: rest => return name :: (← parseMacroParams rest)
+  | s :: _ => throw s!"Error: expected a parameter and its type, got {s}"
+
+/-- Parse the arity of a `declare-sort`. -/
+def parseArity : Sexp → ParserM T Nat
+  | .atom a =>
+    match a.toNat? with
+    | some n => return n
+    | none => throw s!"Error: expected a sort arity, got {a}"
+  | s => throw s!"Error: expected a sort arity, got {s}"
+
 /-- Resolve a premise, given by step name, to its offset from the top of the stack. -/
 def parsePremise (p : Sexp) : ParserM T Nat := do
   let name ← parseName p
@@ -496,7 +590,10 @@ inductive Command (T C : Type) where
   | assumption (t : T)
   /-- A proof-stack command. -/
   | cmd (c : C)
-  /-- A declaration or definition, which only updates the parser state. -/
+  /--
+  A command that does not extend the proof: a declaration or definition, which
+  only updates the parser state, or an ignored command such as `include`.
+  -/
   | decl
 
 def parseCommand (cfg : Config T R C CL) (s : Sexp) : ParserM T (Command T C) := do
@@ -514,26 +611,41 @@ where
     return (rule, args, premises)
   go : Sexp → ParserM T (Command T C)
     | .expr [.atom "declare-const", name, ty] => do
-      let name ← parseName name
-      let ty ← parseTerm cfg ty
-      if cfg.isType ty then
-        modify fun s =>
-          { s with
-            usCount := s.usCount + 1,
-            terms := s.terms.insert name (cfg.mkUSort (s.usCount + 1)) }
-      else
-        modify fun s =>
-          { s with
-            ufCount := s.ufCount + 1,
-            terms := s.terms.insert name (cfg.mkUConst (s.ufCount + 1) ty) }
+      declareSymbol cfg (← parseName name) (← parseTerm cfg ty)
+      return .decl
+    | .expr [.atom "declare-fun", name, .expr args, ty] => do
+      declareSymbol cfg (← parseName name) (← parseFunType cfg args ty)
+      return .decl
+    | .expr [.atom "declare-sort", name, arity] => do
+      -- `(declare-sort S n)` declares a symbol of type `(-> Type … Type)`; for
+      -- `n = 0` that is `Type` itself, i.e. an uninterpreted sort.
+      let arity ← parseArity arity
+      let ty ← parseFunType cfg (List.replicate arity (.atom "Type")) (.atom "Type")
+      declareSymbol cfg (← parseName name) ty
+      return .decl
+    | .expr [.atom "declare-type", name, .expr args] => do
+      -- The Eunoia spelling of `declare-sort`, whose arguments are given by type.
+      declareSymbol cfg (← parseName name) (← parseFunType cfg args (.atom "Type"))
       return .decl
     | .expr [.atom "declare-datatypes", .expr sorts, .expr bodies] => do
       parseDatatypes cfg sorts bodies
       return .decl
     | .expr [.atom "define", name, .expr [], body] => do
+      -- A definition without parameters is read once, where it is given.
       let name ← parseName name
       let body ← parseTerm cfg body
       modify fun s => { s with terms := s.terms.insert name body }
+      return .decl
+    | .expr [.atom "define", name, .expr params, body] => do
+      let name ← parseName name
+      let params ← parseMacroParams params
+      modify fun s => { s with macros := s.macros.insert name { params, body } }
+      return .decl
+    | .expr (.atom "include" :: _) =>
+      -- Logos has the whole signature built in, so included files are ignored.
+      return .decl
+    | .expr (.atom "reference" :: _) =>
+      -- The input problem is not checked against, so references are ignored.
       return .decl
     | .expr [.atom "assume", name, t] => do
       let name ← parseName name
@@ -556,7 +668,8 @@ where
       registerStepPop name
       return .cmd (cfg.mkStepPop rule args premises)
     | s => throw s!"Error: unrecognized command {s}, expected one of declare-const, \
-                    declare-datatypes, define, assume, assume-push, step or step-pop"
+                    declare-fun, declare-sort, declare-type, declare-datatypes, define, \
+                    include, reference, assume, assume-push, step or step-pop"
 
 /--
 Some producers wrap the whole proof in a single pair of parentheses; accept both

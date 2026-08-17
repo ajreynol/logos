@@ -1,0 +1,11 @@
+; Exercises define: a definition with parameters is a macro, expanded where it
+; is used, and a definition without parameters is read where it is given.
+(declare-sort U 0)
+(declare-fun f (U U) U)
+(declare-const a U)
+(declare-const b U)
+(define swap ((x U) (y U)) (f y x))
+(define fba () (f b a))
+(assume @p0 (not (= (swap a b) fba)))
+(step @p1 :rule refl :args (fba))
+(step @p2 :rule contra :premises (@p1 @p0))
