@@ -43,11 +43,7 @@ PROOF_GAP_RE = re.compile(
     r"(?<![A-Za-z0-9_'!?])(?:sorry|admit|sorryAx)(?![A-Za-z0-9_'!?])"
 )
 PROOF_GAP_DECL_KINDS = {"axiom"}
-IGNORED_PROOF_GAP_FILES = frozenset(
-    (
-        Path("Cpc/Proofs/Canonical/Order.lean"),
-    )
-)
+IGNORED_PROOF_GAP_FILES = frozenset()
 STATUS_CATEGORIES = ("Proven", "Unproven", "OutOfScope")
 
 
