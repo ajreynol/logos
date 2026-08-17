@@ -96,6 +96,17 @@ lake build logos2
 lake exe logos2 examples/sexp/test-simple.cpc
 ```
 
+After building, `logos2` can also be run directly as a standalone executable,
+without invoking Lake:
+
+```bash
+./.lake/build/bin/logos2 examples/sexp/test-simple.cpc
+```
+
+The executable accepts exactly one proof path.  A successful check prints `correct` and exits
+with status 0.  A well-formed proof that does not establish a refutation prints `incorrect`
+and exits with status 1; parse and usage errors also exit with status 1.
+
 ```
 (declare-const x Int)
 (declare-const y Int)
@@ -105,9 +116,9 @@ lake exe logos2 examples/sexp/test-simple.cpc
 (step @p3 :rule contra :premises (@p0 @p2))
 ```
 
-As above, checking succeeds if `logos2` prints `true`.
+As above, checking succeeds if `logos2` prints `correct`.
 The same tool for the `CpcMini` calculus is `logos-mini`, which reads the examples in
-`examples/sexp-mini/`.
+`examples/sexp-mini/` and uses the same output and exit-code convention.
 
 This parser is split into two parts.
 `Logos/Parser.lean` is signature-independent: it reads the command and term grammar and

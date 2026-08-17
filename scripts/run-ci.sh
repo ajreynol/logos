@@ -6,10 +6,10 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 cd "${repo_root}"
 
-# Run every example in a directory through a checker executable, requiring each
-# to report "true".
+# Run every example in a directory through a checker executable, requiring its
+# final nonempty output line to match the expected success marker.
 run_examples() {
-  local exe="$1" dir="$2" pattern="$3"
+  local exe="$1" dir="$2" pattern="$3" expected="$4"
 
   shopt -s nullglob
   local examples=("${dir}"/${pattern})
@@ -31,8 +31,8 @@ run_examples() {
 
     printf '%s\n' "${output}"
     result="$(printf '%s\n' "${output}" | awk 'NF { line = $0 } END { print line }')"
-    if [ "${result}" != "true" ]; then
-      echo "Expected ${example} to evaluate to true, got: ${result}" >&2
+    if [ "${result}" != "${expected}" ]; then
+      echo "Expected ${example} to report ${expected}, got: ${result}" >&2
       exit 1
     fi
     echo "::endgroup::"
@@ -50,9 +50,9 @@ run_regressions() {
   lake build logos logos2
 
   # Proofs in the Lean term syntax, checked by logos.
-  run_examples logos examples '*.cpc.lean'
+  run_examples logos examples '*.cpc.lean' true
   # The same proofs in s-expression syntax, checked by logos2 (Cpc.Parser).
-  run_examples logos2 examples/sexp '*.cpc'
+  run_examples logos2 examples/sexp '*.cpc' correct
 }
 
 run_cpc_examples() {
@@ -104,7 +104,7 @@ run_cpcmini() {
 
   echo "Building logos-mini executable..."
   lake build logos-mini
-  run_examples logos-mini examples/sexp-mini '*.cpc'
+  run_examples logos-mini examples/sexp-mini '*.cpc' correct
 }
 
 group="${1:-all}"
