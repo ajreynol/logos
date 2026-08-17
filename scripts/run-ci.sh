@@ -46,13 +46,13 @@ run_regressions() {
   echo "Checking parser tests..."
   lake env lean test/Parser.lean
 
-  echo "Building the logos executables..."
-  lake build logos logos2
+  echo "Building the CPC executables..."
+  lake build logos logos-native
 
-  # Proofs in the Lean term syntax, checked by logos.
-  run_examples logos examples '*.cpc.lean' true
-  # The same proofs in s-expression syntax, checked by logos2 (Cpc.Parser).
-  run_examples logos2 examples/sexp '*.cpc' correct
+  # Proofs in the Lean term syntax, checked by logos-native.
+  run_examples logos-native examples '*.cpc.lean' true
+  # The same proofs in s-expression syntax, checked by logos (Cpc.Parser).
+  run_examples logos examples/sexp '*.cpc' correct
 }
 
 run_cpc_examples() {
@@ -102,8 +102,8 @@ run_cpcmini() {
   echo "Compiling CpcMini proof and example targets..."
   lake build "${targets[@]}"
 
-  echo "Building logos-mini executable..."
-  lake build logos-mini
+  echo "Building the CpcMini executables..."
+  lake build logos-mini logos-mini-native
   run_examples logos-mini examples/sexp-mini '*.cpc' correct
 }
 

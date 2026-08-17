@@ -25,4 +25,4 @@ def main (args : List String) : IO UInt32 := do
   checkProof path
 
 -- To build, run "lake build logos-mini" in this directory.
--- To run "lake exe logos-mini <path-to-query-file>"
+-- To run, use "lake exe logos-mini <path-to-proof-file>".

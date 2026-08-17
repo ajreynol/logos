@@ -15,12 +15,17 @@ name = "CpcMini"
 [[lean_exe]]
 name = "logos"
 root = "Main"
-supportInterpreter = true
 
 [[lean_exe]]
-name = "logos2"
-root = "Main2"
+name = "logos-native"
+root = "MainNative"
+supportInterpreter = true
 
 [[lean_exe]]
 name = "logos-mini"
 root = "MainMini"
+
+[[lean_exe]]
+name = "logos-mini-native"
+root = "MainMiniNative"
+supportInterpreter = true
