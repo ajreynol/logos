@@ -6,6 +6,7 @@ import all Cpc.SmtEval
 public section
 
 set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
 
 namespace Smtm
 
@@ -215,7 +216,8 @@ deriving Repr, DecidableEq, Inhabited, Ord
 Regular languages. Base elements are SmtValue, which allows regular
 expression operations to be defined uniformly over the same (unpacked)
 sequence representation used by the sequence operations. Well-formed
-regular languages carry only valid character values as base elements.
+regular languages carry only valid character values as base elements
+(see native_re_canonical and native_re_elem_valid below).
 -/
 inductive SmtRegLan : Type where
   | empty : SmtRegLan

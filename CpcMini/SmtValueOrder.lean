@@ -1,7 +1,7 @@
 module
 
-public import Cpc.SmtModelDefs
-import all Cpc.SmtModelDefs
+public import CpcMini.SmtModelDefs
+import all CpcMini.SmtModelDefs
 
 public section
 
