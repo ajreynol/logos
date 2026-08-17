@@ -43,8 +43,8 @@ run_regressions() {
   echo "Checking the generated parser tables against the signature..."
   python3 scripts/check-parser-tables.py
 
-  echo "Building logos and logos2 executables..."
-  lake build logos logos2
+  echo "Building parser tests and the logos executables..."
+  lake build Logos.Parser.Tests logos logos2
 
   # Proofs in the Lean term syntax, checked by logos.
   run_examples logos examples '*.cpc.lean'

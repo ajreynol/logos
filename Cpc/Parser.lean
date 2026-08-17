@@ -136,7 +136,7 @@ private def parserOps : List (Logos.Parser.OpDecl Term) := [
       | _ => none },
   { name := "distinct"
     indexArity := 0
-    arity := .listArg 0 (fun ts => Logos.Parser.rightAssocNil Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) (parserNil (Term.UOp UserOp._at__at_TypedList_cons)) ts)
+    arity := .argList (fun ts => Logos.Parser.rightAssocNil Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) (parserNil (Term.UOp UserOp._at__at_TypedList_cons)) ts)
     build := fun
       | [] => some (Term.UOp UserOp.distinct)
       | _ => none },

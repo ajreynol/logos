@@ -116,14 +116,12 @@ Everything signature-specific is a `Logos.Parser.Config`, and those are auto-gen
 the calculus alongside `Cpc/Logos.lean` — `Cpc/Parser.lean` lists the 196 operator
 declarations and 591 proof rules of CPC, and `CpcMini/Parser.lean` the corresponding subset.
 
-Because the configurations are generated, the surface syntax of an operator has to be derived
-from its declaration rather than assumed.  In particular an operator declared over a
-`@@TypedList`, such as `distinct` or `set.insert`, is written n-ary in SMT-LIB
-(`(distinct a b c)`, not the desugared list), so it is generated with the gathered-list arity
-`.listArg`.  `scripts/check-parser-tables.py` re-derives these facts from the signature in
-`Cpc/Logos.lean` and fails if the generated table disagrees, so that a signature change which
-adds an operator or a rule cannot silently leave the parser behind.  It runs as part of the
-`regressions` CI group.
+Because the configurations are generated, an operator's surface syntax comes from its Eunoia
+declaration metadata.  The generic `.argList` arity implements Eunoia's `:arg-list` attribute:
+the surface arguments are gathered with the declared n-ary helper and passed as the annotated
+operator's single argument.  `scripts/check-parser-tables.py` checks that the generated tables
+cover every operator and proof rule.  Generic arity behavior is tested separately; it is not
+inferred from calculus-specific term types.  Both checks run in the `regressions` CI group.
 
 The parser supports the commands `declare-const`, `declare-datatypes`, `define`, `assume`,
 `assume-push`, `step` and `step-pop`.

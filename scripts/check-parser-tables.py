@@ -7,20 +7,11 @@ re-derives from the signature the facts the generator has to get right, and
 fails if the parser table disagrees:
 
   * every operator of the signature is declared exactly once;
-  * every proof rule of the calculus is named exactly once;
-  * an operator whose *first* parameter is a `@@TypedList` is declared with the
-    gathered-list arity `.listArg`, and no other operator is.
+  * every proof rule of the calculus is named exactly once.
 
-The last one is the surface-syntax policy for n-ary operators.  Eunoia declares
-`distinct` as `(-> (@@TypedList T) Bool)` and `set.insert` as
-`(-> (@@TypedList T) (Set T) (Set T))`, but SMT-LIB writes `(distinct a b c)`
-and `(set.insert a b c S)` rather than the desugared list, so the parser has to
-gather the leading arguments.  Deriving the arity from the arrow shape alone
-loses that, which is how `@@TypedList` ended up leaking into input proofs.
-
-Operators whose *later* parameters are `@@TypedList`s are reported too: the list
-constructors themselves are expected (`@@TypedList.cons` is n-ary in its own
-right), but anything else is a shape the parser's arity model cannot express.
+Surface arities such as Eunoia's `:arg-list` are explicit declaration metadata;
+they cannot be reconstructed from the generated term types and are exercised by
+the generic parser tests instead.
 
 Usage: scripts/check-parser-tables.py [Cpc ...]
 """
@@ -34,80 +25,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# The list constructors are declared over `@@TypedList` but build one rather
-# than consume one, so the gathered-list policy does not apply to them.
-LIST_BUILTINS = {
-    "UserOp._at__at_TypedList",
-    "UserOp._at__at_TypedList_nil",
-    "UserOp._at__at_TypedList_cons",
-}
-
-TYPED_LIST_PARAM = re.compile(r"^\(Term\.Apply\s*\(Term\.UOp\s+UserOp\._at__at_TypedList\)")
-
-
 def inductive_constructors(source: str, name: str) -> list[str]:
     """The constructor names of `inductive <name>`, in declaration order."""
     start = source.index(f"inductive {name} : Type where")
     body = source[start:]
     body = body[: body.index("deriving")]
     return re.findall(r"^\s*\|\s*([A-Za-z_0-9]+)\s*:", body, re.M)
-
-
-def split_top_level(text: str, sep: str = ",") -> list[str]:
-    """Split on `sep`, ignoring separators nested inside parentheses."""
-    parts, depth, current = [], 0, []
-    for ch in text:
-        if ch in "([":
-            depth += 1
-        elif ch in ")]":
-            depth -= 1
-        if ch == sep and depth == 0:
-            parts.append("".join(current).strip())
-            current = []
-        else:
-            current.append(ch)
-    parts.append("".join(current).strip())
-    return parts
-
-
-def typeof_definitions(source: str) -> dict[str, list[list[str]]]:
-    """For each `__eo_typeof*` definition, the parameter patterns of each arm."""
-    definitions: dict[str, list[list[str]]] = {}
-    for block in source.split("\ndef "):
-        name = block.split(None, 1)[0] if block.split() else ""
-        if not name.startswith("__eo_typeof"):
-            continue
-        body = block.split("\n", 1)[1] if "\n" in block else ""
-        arms = []
-        for line in body.splitlines():
-            match = re.match(r"\s*\|(.+?)=>", line)
-            if match:
-                arms.append(split_top_level(match.group(1).strip()))
-        definitions[name] = arms
-    return definitions
-
-
-def typeof_dispatch(source: str) -> dict[str, tuple[int, str]]:
-    """Map each applied `UserOp` to its argument count and its typing function.
-
-    Read off the `__eo_typeof` dispatcher, which is generated from the same
-    declarations as the parser table, so it is the authority on both.
-    """
-    start = source.index("\ndef __eo_typeof : Term -> Term")
-    body = source[start + 1 :]
-    body = body[: body.index("\n\n\ndef ")] if "\n\n\ndef " in body else body
-    dispatch: dict[str, tuple[int, str]] = {}
-    for line in body.splitlines():
-        match = re.match(r"\s*\|\s*(.+?)\s*=>\s*(.*)$", line)
-        if not match:
-            continue
-        pattern, result = match.groups()
-        op = re.search(r"Term\.UOp\s+(UserOp\.[A-Za-z_0-9]+)\)", pattern)
-        callee = re.search(r"\((__eo_typeof[A-Za-z_0-9]+)", result)
-        if not op or not callee:
-            continue
-        dispatch[op.group(1)] = (pattern.count("Term.Apply"), callee.group(1))
-    return dispatch
 
 
 def parser_entries(source: str) -> list[dict]:
@@ -117,14 +40,12 @@ def parser_entries(source: str) -> list[dict]:
     entries = []
     for chunk in table.split("\n  { name := ")[1:]:
         name = re.match(r'"((?:[^"\\]|\\.)*)"', chunk).group(1)
-        # `arity` may itself mention operators (a chainable's chaining operator,
-        # a gathered list's constructor), so only `build` says what is declared.
+        # `arity` may itself mention helper operators, so only `build` says what
+        # is declared by this entry.
         build = chunk.split("build :=", 1)[1] if "build :=" in chunk else ""
-        arity = chunk.split("arity :=", 1)[1].split("build :=")[0].strip()
         entries.append(
             {
                 "name": name,
-                "arity": arity,
                 "ops": re.findall(r"\b(UserOp[123]?\.[A-Za-z_0-9]+)", build),
             }
         )
@@ -169,41 +90,6 @@ def check(calculus: str) -> list[str]:
     for rule in named:
         if rule not in rules:
             errors.append(f"parser table names rule {rule}, which the calculus does not have")
-
-    # 3. The gathered-list policy for operators declared over a `@@TypedList`.
-    definitions = typeof_definitions(logos_src)
-    expected: dict[str, int] = {}
-    for op, (nargs, callee) in typeof_dispatch(logos_src).items():
-        if op in LIST_BUILTINS:
-            continue
-        arms = definitions.get(callee, [])
-        if any(arm and TYPED_LIST_PARAM.match(arm[0]) for arm in arms):
-            expected[op] = nargs - 1
-        elif any(TYPED_LIST_PARAM.match(param) for arm in arms for param in arm[1:]):
-            errors.append(
-                f"{op} takes a @@TypedList in a position other than the first, "
-                f"which the parser's arity model cannot express"
-            )
-
-    actual: dict[str, int] = {}
-    for entry in entries:
-        match = re.match(r"\.listArg\s+(\d+)\b", entry["arity"])
-        if match:
-            for op in entry["ops"]:
-                actual[op] = int(match.group(1))
-
-    arity_of = {op: entry["arity"] for entry in entries for op in entry["ops"]}
-    for op, rest in expected.items():
-        if op not in actual:
-            errors.append(
-                f"{op} is declared over a @@TypedList, so it must use .listArg {rest}, "
-                f"but the parser table says {arity_of.get(op, 'nothing')}"
-            )
-        elif actual[op] != rest:
-            errors.append(f"{op} uses .listArg {actual[op]} but takes {rest} further arguments")
-    for op in actual:
-        if op not in expected:
-            errors.append(f"{op} uses .listArg but is not declared over a @@TypedList")
 
     return errors
 
