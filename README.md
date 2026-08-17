@@ -151,6 +151,11 @@ check the proof against the original input problem.
 A `declare-sort` of arity `n` (equivalently, a `declare-type` with `n` arguments) declares a
 symbol of type `(-> Type … Type)`, so that arity `0` declares an uninterpreted sort; the
 function type is built from the signature's own `->`, as it is for `declare-fun`.
+A `define` with parameters is a macro, since Eunoia has no lambda: its body is kept as an
+s-expression and read again wherever the defined symbol is applied, with the parameters bound
+to the arguments given there.  Consequently a parameter's declared type is not used, an error
+in the body is reported at the use site, and a recursive `define` is rejected.  A `define`
+without parameters is read where it is given, as before.
 Datatypes may be mutually recursive; parametric datatypes (a non-zero arity, or a `par` body)
 are rejected, since Logos has no representation for them.
 The conclusion printed on a `step` is ignored, since Logos recomputes it from the rule.

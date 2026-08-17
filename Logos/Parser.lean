@@ -276,6 +276,16 @@ structure Config (T R C CL : Type) where
 ## Parser state
 -/
 
+/--
+A `define` that takes parameters.  Eunoia has no lambda, so such a definition is
+a macro: its body is kept as an s-expression and read again wherever the defined
+symbol is applied, with the parameters bound to the arguments given there.
+-/
+structure Macro where
+  /-- The names of the parameters, in order; their declared types are unused. -/
+  params : List String
+  body : Sexp
+
 structure State (T : Type) where
   /-- Number of uninterpreted sorts declared so far. -/
   usCount : Nat := 0
@@ -289,6 +299,10 @@ structure State (T : Type) where
   idToPos : Std.HashMap String Nat := {}
   /-- Terms bound by `declare-const`/`define`, by name. -/
   terms : Std.HashMap String T := {}
+  /-- Macros introduced by a `define` with parameters, by name. -/
+  macros : Std.HashMap String Macro := {}
+  /-- The macros currently being expanded, used to reject recursive `define`s. -/
+  expanding : List String := []
   /-- The operators of the signature, indexed by name. -/
   ops : Std.HashMap String (List (OpDecl T)) := {}
 
@@ -371,6 +385,8 @@ partial def parseTermCore (cfg : Config T R C CL) : Sexp → ParserM T T
       return t
     if let some t := (Literal.ofString a).bind cfg.parseLiteral then
       return t
+    if let some m := (← get).macros[a]? then
+      throw s!"Error: {a} takes {m.params.length} arguments and cannot be used unapplied"
     throw s!"Error: unknown identifier {a}"
   | .expr [] => throw "Error: empty s-expression"
   | .expr (.atom "_" :: rest) => do
@@ -388,6 +404,14 @@ Build the application of the operator (or declared symbol) `name`, indexed by
 -/
 partial def parseApp (cfg : Config T R C CL) (name : String) (idxs : List Sexp)
     (args : List T) : ParserM T T := do
+  if let some m := (← get).macros[name]? then
+    if !idxs.isEmpty then
+      throw s!"Error: {name} is defined by define and cannot be indexed"
+    if args.length < m.params.length then
+      throw s!"Error: {name} takes {m.params.length} arguments but is applied to {args.length}"
+    -- A macro whose body denotes a function may be applied to further arguments.
+    let (args, extra) := args.splitAt m.params.length
+    return extra.foldl cfg.apply (← expandMacro cfg name m args)
   let decls := (← get).ops.getD name []
   if !decls.isEmpty then
     let idxs ← idxs.mapM (parseTerm cfg)
@@ -401,6 +425,30 @@ partial def parseApp (cfg : Config T R C CL) (name : String) (idxs : List Sexp)
   if !idxs.isEmpty then
     throw s!"Error: unknown indexed operator {name}"
   return args.foldl cfg.apply (← parseTermCore cfg (.atom name))
+
+/--
+Expand the macro `name` at a use site: read its body with the parameters bound to
+`args`.  The bindings are undone afterwards, so a parameter shadows any symbol of
+the same name only within the body.
+-/
+partial def expandMacro (cfg : Config T R C CL) (name : String) (m : Macro)
+    (args : List T) : ParserM T T := do
+  if (← get).expanding.contains name then
+    throw s!"Error: recursive define {name}"
+  let saved := (← get).terms
+  modify fun s =>
+    { s with
+      terms := (m.params.zip args).foldl (fun ts (p, t) => ts.insert p t) s.terms,
+      expanding := name :: s.expanding }
+  let restore : ParserM T Unit :=
+    modify fun s => { s with terms := saved, expanding := s.expanding.tail }
+  try
+    let t ← parseTerm cfg m.body
+    restore
+    return t
+  catch e =>
+    restore
+    throw e
 
 end
 
@@ -482,6 +530,16 @@ def parseFunType (cfg : Config T R C CL) (args : List Sexp) (res : Sexp) : Parse
   match args with
   | [] => parseTerm cfg res
   | args => parseTerm cfg (.expr (.atom "->" :: (args ++ [res])))
+
+/--
+Parse the parameter list of a `define`.  Only the parameter names are recorded:
+the body is read where the macro is used, so its parameters are given the types
+of the arguments they stand for.
+-/
+def parseMacroParams : List Sexp → ParserM T (List String)
+  | [] => return []
+  | .expr (.atom name :: _ :: _) :: rest => return name :: (← parseMacroParams rest)
+  | s :: _ => throw s!"Error: expected a parameter and its type, got {s}"
 
 /-- Parse the arity of a `declare-sort`. -/
 def parseArity : Sexp → ParserM T Nat
@@ -573,12 +631,16 @@ where
       parseDatatypes cfg sorts bodies
       return .decl
     | .expr [.atom "define", name, .expr [], body] => do
+      -- A definition without parameters is read once, where it is given.
       let name ← parseName name
       let body ← parseTerm cfg body
       modify fun s => { s with terms := s.terms.insert name body }
       return .decl
-    | .expr [.atom "define", _, .expr (_ :: _), _] =>
-      throw "Error: define with arguments is not supported"
+    | .expr [.atom "define", name, .expr params, body] => do
+      let name ← parseName name
+      let params ← parseMacroParams params
+      modify fun s => { s with macros := s.macros.insert name { params, body } }
+      return .decl
     | .expr (.atom "include" :: _) =>
       -- Logos has the whole signature built in, so included files are ignored.
       return .decl

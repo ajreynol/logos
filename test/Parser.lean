@@ -105,12 +105,49 @@ private def arrow (dom cod : TestTerm) : TestTerm := .app (.app (.atom "->") dom
      (assume @p0 x)"
   == some [.uconst 1 (.usort 1)]
 
--- A `define` with arguments is rejected rather than silently ignored.
-#guard assumptions
-    "(declare-sort U 0)
-     (declare-const x U)
-     (define f ((y U)) y)
-     (assume @p0 x)"
+/-!
+### `define`
+
+A `define` with parameters is a macro: it is expanded wherever it is applied.
+-/
+
+private def binary : String := "(declare-sort U 0) (declare-fun g (U U) U)
+  (declare-const a U) (declare-const b U)"
+
+private def gTy : TestTerm := arrow (.usort 1) (arrow (.usort 1) (.usort 1))
+
+-- The body is read with the parameters bound to the arguments at the use site.
+#guard assumptions (binary ++ "(define swap ((x U) (y U)) (g y x)) (assume @p0 (swap a b))")
+  == some [.app (.app (.uconst 1 gTy) (.uconst 3 (.usort 1))) (.uconst 2 (.usort 1))]
+
+-- Macros may be used in the body of another macro.
+#guard assumptions (binary ++
+    "(define dup ((x U)) (g x x)) (define dupA () (dup a)) (assume @p0 (dupA))")
+  == some [.app (.app (.uconst 1 gTy) (.uconst 2 (.usort 1))) (.uconst 2 (.usort 1))]
+
+-- A parameter shadows a symbol of the same name only inside the body.
+#guard assumptions (binary ++
+    "(define f ((a U)) (g a a)) (assume @p0 (f b)) (assume @p1 a)")
+  == some
+    [.app (.app (.uconst 1 gTy) (.uconst 3 (.usort 1))) (.uconst 3 (.usort 1)),
+     .uconst 2 (.usort 1)]
+
+-- A macro whose body denotes a function may be applied to further arguments.
+#guard assumptions (binary ++ "(define ap ((h U)) (g h)) (assume @p0 (ap a b))")
+  == some [.app (.app (.uconst 1 gTy) (.uconst 2 (.usort 1))) (.uconst 3 (.usort 1))]
+
+-- A macro may not be under-applied, or used unapplied.
+#guard assumptions (binary ++ "(define swap ((x U) (y U)) (g y x)) (assume @p0 (swap a))")
   == none
+#guard assumptions (binary ++ "(define swap ((x U) (y U)) (g y x)) (assume @p0 swap)")
+  == none
+
+-- A recursive `define` is rejected rather than expanded forever.
+#guard assumptions (binary ++ "(define f ((x U)) (g x (f x))) (assume @p0 (f a))")
+  == none
+
+-- A `define` without parameters is still read where it is given.
+#guard assumptions (binary ++ "(define ga () (g a a)) (assume @p0 ga)")
+  == some [.app (.app (.uconst 1 gTy) (.uconst 2 (.usort 1))) (.uconst 2 (.usort 1))]
 
 end Logos.Parser.Tests
