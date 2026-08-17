@@ -455,6 +455,42 @@ def parseDatatypes (cfg : Config T R C CL) (sorts bodies : List Sexp) : ParserM 
   modify fun s =>
     { s with terms := bindings.foldl (fun m (n, t) => m.insert n t) s.terms }
 
+/-!
+## Declarations
+-/
+
+/-- Bind `name` to a fresh uninterpreted sort or constant, according to `ty`. -/
+def declareSymbol (cfg : Config T R C CL) (name : String) (ty : T) : ParserM T Unit :=
+  if cfg.isType ty then
+    modify fun s =>
+      { s with
+        usCount := s.usCount + 1,
+        terms := s.terms.insert name (cfg.mkUSort (s.usCount + 1)) }
+  else
+    modify fun s =>
+      { s with
+        ufCount := s.ufCount + 1,
+        terms := s.terms.insert name (cfg.mkUConst (s.ufCount + 1) ty) }
+
+/--
+The type `(-> t₁ … tₙ res)` of a symbol declared by `declare-fun`, `declare-sort`
+or `declare-type`.  It is built from the signature's own `->` operator, so a
+calculus without function types simply rejects these commands with more than
+zero arguments.
+-/
+def parseFunType (cfg : Config T R C CL) (args : List Sexp) (res : Sexp) : ParserM T T :=
+  match args with
+  | [] => parseTerm cfg res
+  | args => parseTerm cfg (.expr (.atom "->" :: (args ++ [res])))
+
+/-- Parse the arity of a `declare-sort`. -/
+def parseArity : Sexp → ParserM T Nat
+  | .atom a =>
+    match a.toNat? with
+    | some n => return n
+    | none => throw s!"Error: expected a sort arity, got {a}"
+  | s => throw s!"Error: expected a sort arity, got {s}"
+
 /-- Resolve a premise, given by step name, to its offset from the top of the stack. -/
 def parsePremise (p : Sexp) : ParserM T Nat := do
   let name ← parseName p
@@ -496,7 +532,10 @@ inductive Command (T C : Type) where
   | assumption (t : T)
   /-- A proof-stack command. -/
   | cmd (c : C)
-  /-- A declaration or definition, which only updates the parser state. -/
+  /--
+  A command that does not extend the proof: a declaration or definition, which
+  only updates the parser state, or an ignored command such as `include`.
+  -/
   | decl
 
 def parseCommand (cfg : Config T R C CL) (s : Sexp) : ParserM T (Command T C) := do
@@ -514,18 +553,21 @@ where
     return (rule, args, premises)
   go : Sexp → ParserM T (Command T C)
     | .expr [.atom "declare-const", name, ty] => do
-      let name ← parseName name
-      let ty ← parseTerm cfg ty
-      if cfg.isType ty then
-        modify fun s =>
-          { s with
-            usCount := s.usCount + 1,
-            terms := s.terms.insert name (cfg.mkUSort (s.usCount + 1)) }
-      else
-        modify fun s =>
-          { s with
-            ufCount := s.ufCount + 1,
-            terms := s.terms.insert name (cfg.mkUConst (s.ufCount + 1) ty) }
+      declareSymbol cfg (← parseName name) (← parseTerm cfg ty)
+      return .decl
+    | .expr [.atom "declare-fun", name, .expr args, ty] => do
+      declareSymbol cfg (← parseName name) (← parseFunType cfg args ty)
+      return .decl
+    | .expr [.atom "declare-sort", name, arity] => do
+      -- `(declare-sort S n)` declares a symbol of type `(-> Type … Type)`; for
+      -- `n = 0` that is `Type` itself, i.e. an uninterpreted sort.
+      let arity ← parseArity arity
+      let ty ← parseFunType cfg (List.replicate arity (.atom "Type")) (.atom "Type")
+      declareSymbol cfg (← parseName name) ty
+      return .decl
+    | .expr [.atom "declare-type", name, .expr args] => do
+      -- The Eunoia spelling of `declare-sort`, whose arguments are given by type.
+      declareSymbol cfg (← parseName name) (← parseFunType cfg args (.atom "Type"))
       return .decl
     | .expr [.atom "declare-datatypes", .expr sorts, .expr bodies] => do
       parseDatatypes cfg sorts bodies
@@ -534,6 +576,14 @@ where
       let name ← parseName name
       let body ← parseTerm cfg body
       modify fun s => { s with terms := s.terms.insert name body }
+      return .decl
+    | .expr [.atom "define", _, .expr (_ :: _), _] =>
+      throw "Error: define with arguments is not supported"
+    | .expr (.atom "include" :: _) =>
+      -- Logos has the whole signature built in, so included files are ignored.
+      return .decl
+    | .expr (.atom "reference" :: _) =>
+      -- The input problem is not checked against, so references are ignored.
       return .decl
     | .expr [.atom "assume", name, t] => do
       let name ← parseName name
@@ -556,7 +606,8 @@ where
       registerStepPop name
       return .cmd (cfg.mkStepPop rule args premises)
     | s => throw s!"Error: unrecognized command {s}, expected one of declare-const, \
-                    declare-datatypes, define, assume, assume-push, step or step-pop"
+                    declare-fun, declare-sort, declare-type, declare-datatypes, define, \
+                    include, reference, assume, assume-push, step or step-pop"
 
 /--
 Some producers wrap the whole proof in a single pair of parentheses; accept both

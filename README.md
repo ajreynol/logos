@@ -144,8 +144,13 @@ operator's single argument.  `scripts/check-parser-tables.py` checks that the ge
 cover every operator and proof rule.  Generic arity behavior is tested separately; it is not
 inferred from calculus-specific term types.  Both checks run in the `regressions` CI group.
 
-The parser supports the commands `declare-const`, `declare-datatypes`, `define`, `assume`,
-`assume-push`, `step` and `step-pop`.
+The parser supports the commands `declare-const`, `declare-fun`, `declare-sort`,
+`declare-type`, `declare-datatypes`, `define`, `assume`, `assume-push`, `step` and `step-pop`.
+`include` and `reference` commands are ignored: Logos has the signature built in and does not
+check the proof against the original input problem.
+A `declare-sort` of arity `n` (equivalently, a `declare-type` with `n` arguments) declares a
+symbol of type `(-> Type … Type)`, so that arity `0` declares an uninterpreted sort; the
+function type is built from the signature's own `->`, as it is for `declare-fun`.
 Datatypes may be mutually recursive; parametric datatypes (a non-zero arity, or a `par` body)
 are rejected, since Logos has no representation for them.
 The conclusion printed on a `step` is ignored, since Logos recomputes it from the rule.
