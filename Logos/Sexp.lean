@@ -12,14 +12,13 @@ public import Std.Internal.Parsec.String
 
 public section
 
+namespace Logos
+
 /-- The type of S-expressions. -/
 inductive Sexp where
   | atom : String → Sexp
   | expr : List Sexp → Sexp
 deriving Repr, BEq, Inhabited
-
-class ToSexp (α : Type u) where
-  toSexp : α → Sexp
 
 namespace Sexp
 
@@ -63,11 +62,19 @@ def misc : Parser Unit := do
   ws
   discard <| many (comment *> ws)
 
+/-- The body of a string literal, keeping each `""` escape as written. -/
+private partial def strLitBody (acc : String) : Parser String := do
+  let acc := acc ++ (← manyChars (satisfy (· ≠ '"')))
+  skipChar '"'
+  if (← peek?) == some '"' then
+    skipChar '"'
+    strLitBody (acc ++ "\"\"")
+  else
+    return acc
+
 def strLit : Parser String := do
-  let cstart ← pchar '"'
-  let s ← manyCharsCore (satisfy (· ≠ '"')) cstart.toString
-  let cend ← pchar '"'
-  return s.push cend
+  skipChar '"'
+  return "\"" ++ (← strLitBody "") ++ "\""
 
 def quotedSym : Parser String := do
   let cstart ← pchar '|'
@@ -145,3 +152,5 @@ def sexp! : Parser Sexp := do
   return s
 
 end Sexp.Parser
+
+end Logos

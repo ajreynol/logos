@@ -598,7 +598,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec_apply
             (by
               intro A B
               simpa [raw] using
-                eo_to_smt_type_tuple_ne_ifun (__eo_to_smt_type T1) (__eo_to_smt_type T2) A B)
+                eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type T1) (__eo_to_smt_type T2) A B)
             hWfRaw)
       exact
         eo_to_smt_type_injective_of_field_wf_rec
@@ -736,7 +736,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec_apply
                         (by
                           intro A B
                           simpa [raw] using
-                            eo_to_smt_type_tuple_ne_ifun (__eo_to_smt_type y) (__eo_to_smt_type x) A B)
+                            eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type y) (__eo_to_smt_type x) A B)
                         hWfRaw)
                   exact
                     eo_to_smt_type_injective_of_field_wf_rec
@@ -2131,7 +2131,7 @@ private theorem eo_type_valid_of_folded_smt_wf_rec
             (by
               intro A B
               simpa [raw] using
-                eo_to_smt_type_tuple_ne_ifun (__eo_to_smt_type T) (__eo_to_smt_type U) A B)
+                eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type T) (__eo_to_smt_type U) A B)
             hWf)
       -- `tuple_diag_wf_components` hands back the diagonal well-formedness of the two tuple
       -- component translations from that of the whole (non-`None`) tuple; each then recurses.
@@ -2311,7 +2311,7 @@ private theorem eo_type_valid_of_folded_smt_wf_rec
                           (by
                             intro A B
                             simpa [raw] using
-                              eo_to_smt_type_tuple_ne_ifun (__eo_to_smt_type y) (__eo_to_smt_type x) A B)
+                              eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type y) (__eo_to_smt_type x) A B)
                           hWf)
                     simpa [smtx_type_field_wf_rec] using hRawField
                   obtain ⟨hTwf, hUwf⟩ := tuple_diag_wf_components y x hRawRec hRawNN

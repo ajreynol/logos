@@ -1,0 +1,10 @@
+; Exercises ignored include commands, declare-sort (including a non-zero arity)
+; and declare-fun.
+(include "../theories/Builtin.eo")
+(declare-sort U 0)
+(declare-sort Box 1)
+(declare-fun f ((Box U)) U)
+(declare-const b (Box U))
+(assume @p0 (not (= (f b) (f b))))
+(step @p1 :rule refl :args ((f b)))
+(step @p2 :rule contra :premises (@p1 @p0))

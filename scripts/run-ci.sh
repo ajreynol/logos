@@ -6,23 +6,24 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 cd "${repo_root}"
 
-run_regressions() {
-  echo "Building logos executable..."
-  lake build logos
+# Run every example in a directory through a checker executable, requiring its
+# final nonempty output line to match the expected success marker.
+run_examples() {
+  local exe="$1" dir="$2" pattern="$3" expected="$4"
 
   shopt -s nullglob
-  local examples=(examples/*.cpc.lean)
+  local examples=("${dir}"/${pattern})
 
   if [ "${#examples[@]}" -eq 0 ]; then
-    echo "No regression examples found under examples/." >&2
+    echo "No examples found under ${dir}/." >&2
     exit 1
   fi
 
-  echo "Running ${#examples[@]} regression examples..."
+  echo "Running ${#examples[@]} examples from ${dir} through ${exe}..."
   local example output result
   for example in "${examples[@]}"; do
     echo "::group::${example}"
-    if ! output="$(lake exe logos "${example}" 2>&1)"; then
+    if ! output="$(lake exe "${exe}" "${example}" 2>&1)"; then
       printf '%s\n' "${output}"
       echo "Regression run failed for ${example}" >&2
       exit 1
@@ -30,12 +31,29 @@ run_regressions() {
 
     printf '%s\n' "${output}"
     result="$(printf '%s\n' "${output}" | awk 'NF { line = $0 } END { print line }')"
-    if [ "${result}" != "true" ]; then
-      echo "Expected ${example} to evaluate to true, got: ${result}" >&2
+    if [ "${result}" != "${expected}" ]; then
+      echo "Expected ${example} to report ${expected}, got: ${result}" >&2
       exit 1
     fi
     echo "::endgroup::"
   done
+}
+
+run_regressions() {
+  echo "Checking the generated parser tables against the signature..."
+  python3 scripts/check-parser-tables.py
+
+  echo "Checking parser tests..."
+  lake build Logos.Parser
+  lake env lean test/Parser.lean
+
+  echo "Building the CPC executables..."
+  lake build logos logos-native
+
+  # Proofs in the Lean term syntax, checked by logos-native.
+  run_examples logos-native examples '*.cpc.lean' true
+  # The same proofs in s-expression syntax, checked by logos (Cpc.Parser).
+  run_examples logos examples/sexp '*.cpc' correct
 }
 
 run_cpc_examples() {
@@ -84,6 +102,10 @@ run_cpcmini() {
 
   echo "Compiling CpcMini proof and example targets..."
   lake build "${targets[@]}"
+
+  echo "Building the CpcMini executables..."
+  lake build logos-mini logos-mini-native
+  run_examples logos-mini examples/sexp-mini '*.cpc' correct
 }
 
 group="${1:-all}"

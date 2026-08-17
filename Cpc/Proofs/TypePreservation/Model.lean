@@ -127,7 +127,7 @@ theorem model_total_typed_push
       · simp [native_model_push, hKey]
         exact hM.2.1 isVar s' T' hT'
     · intro fid A B i hFunWF hi
-      simpa [native_fun_typed, native_eval_ifun_apply, native_model_fun_lookup,
+      simpa [native_fun_typed, native_eval_fun_apply, native_model_fun_lookup,
         native_model_push]
         using model_total_typed_native_fun_typed hM fid A B i hFunWF hi
 
