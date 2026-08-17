@@ -1,0 +1,5 @@
+; Exercises indexed operators, bit-vector sorts and literals.
+(declare-const a (BitVec 4))
+(assume @p0 (not (= ((_ extract 1 0) a) ((_ extract 1 0) a))))
+(step @p1 :rule refl :args (((_ extract 1 0) a)))
+(step @p2 :rule contra :premises (@p1 @p0))

@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""Check a generated parser configuration against the generated signature.
+
+`Cpc/Parser.lean` and `CpcMini/Parser.lean` are auto-generated from the same
+Eunoia signature as `Cpc/Logos.lean` and `CpcMini/Logos.lean`.  This script
+re-derives from the signature the facts the generator has to get right, and
+fails if the parser table disagrees:
+
+  * every operator of the signature is declared exactly once;
+  * every proof rule of the calculus is named exactly once.
+
+Surface arities such as Eunoia's `:arg-list` are explicit declaration metadata;
+they cannot be reconstructed from the generated term types and are exercised by
+the generic parser tests instead.
+
+Usage: scripts/check-parser-tables.py [Cpc ...]
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def inductive_constructors(source: str, name: str) -> list[str]:
+    """The constructor names of `inductive <name>`, in declaration order."""
+    start = source.index(f"inductive {name} : Type where")
+    body = source[start:]
+    body = body[: body.index("deriving")]
+    return re.findall(r"^\s*\|\s*([A-Za-z_0-9]+)\s*:", body, re.M)
+
+
+def parser_entries(source: str) -> list[dict]:
+    """The operator declarations of a generated parser table."""
+    start = source.index("private def parserOps")
+    table = source[start : source.index("/-- The proof rules of the calculus")]
+    entries = []
+    for chunk in table.split("\n  { name := ")[1:]:
+        name = re.match(r'"((?:[^"\\]|\\.)*)"', chunk).group(1)
+        # `arity` may itself mention helper operators, so only `build` says what
+        # is declared by this entry.
+        build = chunk.split("build :=", 1)[1] if "build :=" in chunk else ""
+        entries.append(
+            {
+                "name": name,
+                "ops": re.findall(r"\b(UserOp[123]?\.[A-Za-z_0-9]+)", build),
+            }
+        )
+    return entries
+
+
+def check(calculus: str) -> list[str]:
+    errors: list[str] = []
+    term_src = (REPO_ROOT / calculus / "LogosTerm.lean").read_text()
+    logos_src = (REPO_ROOT / calculus / "Logos.lean").read_text()
+    parser_src = (REPO_ROOT / calculus / "Parser.lean").read_text()
+
+    # 1. Operator coverage.
+    declared: list[str] = []
+    for family in ["UserOp", "UserOp1", "UserOp2", "UserOp3"]:
+        # `None` is the generator's placeholder for a family with no members, so
+        # it has no surface syntax and no entry in the parser table.
+        declared += [
+            f"{family}.{c}" for c in inductive_constructors(term_src, family) if c != "None"
+        ]
+    entries = parser_entries(parser_src)
+    referenced = Counter(op for entry in entries for op in entry["ops"])
+    for op in declared:
+        if referenced[op] == 0:
+            errors.append(f"operator {op} is not declared in the parser table")
+        elif referenced[op] > 1:
+            errors.append(f"operator {op} is declared {referenced[op]} times")
+    for op in referenced:
+        if op not in declared:
+            errors.append(f"parser table declares {op}, which the signature does not")
+
+    # 2. Rule coverage.
+    rules = inductive_constructors(logos_src, "CRule")
+    table = parser_src[parser_src.index("private def parserRules") :]
+    table = table[: table.index("\n]")]
+    named = Counter(c for _, c in re.findall(r'\("([^"]+)",\s*\.([A-Za-z_0-9]+)\)', table))
+    for rule in rules:
+        if named[rule] == 0:
+            errors.append(f"rule {rule} is not named in the parser table")
+        elif named[rule] > 1:
+            errors.append(f"rule {rule} is named {named[rule]} times")
+    for rule in named:
+        if rule not in rules:
+            errors.append(f"parser table names rule {rule}, which the calculus does not have")
+
+    return errors
+
+
+def main(argv: list[str]) -> int:
+    calculi = argv[1:] or ["Cpc", "CpcMini"]
+    status = 0
+    for calculus in calculi:
+        errors = check(calculus)
+        if errors:
+            status = 1
+            print(f"{calculus}/Parser.lean disagrees with the signature:", file=sys.stderr)
+            for error in errors:
+                print(f"  {error}", file=sys.stderr)
+        else:
+            print(f"{calculus}/Parser.lean agrees with the signature.")
+    return status
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

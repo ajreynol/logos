@@ -1,0 +1,1826 @@
+module
+
+public import Logos.Parser
+import all Logos.Parser
+public import Cpc.Logos
+import all Cpc.Logos
+
+public section
+
+namespace Eo
+
+open SmtEval
+
+private def parserNil (op : Term) : Option Term → Term
+  | some seed => __eo_nil op (__eo_typeof seed)
+  | none => __eo_nil op Term.Type
+
+private def parserLiteral : Logos.Parser.Literal → Option Term
+  | .numeral n => some (.Numeral n)
+  | .rational num den => some (.Rational (native_mk_rational num den))
+  | .string s => some (.String (native_string_lit s))
+  | .binary width value => some (.Binary width value)
+
+private def parserOps : List (Logos.Parser.OpDecl Term) := [
+  { name := "Type", arity := .exact 0, build := fun | [] => some .Type | _ => none },
+  { name := "Bool", arity := .exact 0, build := fun | [] => some .Bool | _ => none },
+  { name := "false", arity := .exact 0,
+    build := fun | [] => some (.Boolean false) | _ => none },
+  { name := "true", arity := .exact 0,
+    build := fun | [] => some (.Boolean true) | _ => none },
+  { name := "->", arity := .rightAssoc,
+    build := fun | [] => some .FunType | _ => none },
+  { name := "@list", arity := .rightAssocNil (fun _ => .__eo_List_nil),
+    build := fun | [] => some .__eo_List_cons | _ => none },
+  { name := "Int"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp.Int)
+      | _ => none },
+  { name := "Real"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp.Real)
+      | _ => none },
+  { name := "BitVec"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.BitVec)
+      | _ => none },
+  { name := "Char"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp.Char)
+      | _ => none },
+  { name := "Seq"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.Seq)
+      | _ => none },
+  { name := "@@Pair"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_Pair)
+      | _ => none },
+  { name := "@@pair"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_pair)
+      | _ => none },
+  { name := "@@TypedList"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_TypedList)
+      | _ => none },
+  { name := "@@TypedList.nil"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_TypedList_nil)
+      | _ => none },
+  { name := "@@TypedList.cons"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp._at__at_TypedList_cons))
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_TypedList_cons)
+      | _ => none },
+  { name := "ite"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.ite)
+      | _ => none },
+  { name := "not"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.not)
+      | _ => none },
+  { name := "or"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.or))
+    build := fun
+      | [] => some (Term.UOp UserOp.or)
+      | _ => none },
+  { name := "and"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.and))
+    build := fun
+      | [] => some (Term.UOp UserOp.and)
+      | _ => none },
+  { name := "=>"
+    indexArity := 0
+    arity := .rightAssoc
+    build := fun
+      | [] => some (Term.UOp UserOp.imp)
+      | _ => none },
+  { name := "xor"
+    indexArity := 0
+    arity := .leftAssoc
+    build := fun
+      | [] => some (Term.UOp UserOp.xor)
+      | _ => none },
+  { name := "="
+    indexArity := 0
+    arity := .chainable (fun ts => Logos.Parser.rightAssocNil Term.Apply (Term.UOp UserOp.and) (parserNil (Term.UOp UserOp.and)) ts)
+    build := fun
+      | [] => some (Term.UOp UserOp.eq)
+      | _ => none },
+  { name := "distinct"
+    indexArity := 0
+    arity := .argList (fun ts => Logos.Parser.rightAssocNil Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) (parserNil (Term.UOp UserOp._at__at_TypedList_cons)) ts)
+    build := fun
+      | [] => some (Term.UOp UserOp.distinct)
+      | _ => none },
+  { name := "@purify"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp._at_purify)
+      | _ => none },
+  { name := "+"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.plus))
+    build := fun
+      | [] => some (Term.UOp UserOp.plus)
+      | _ => none },
+  { name := "-"
+    indexArity := 0
+    arity := .leftAssoc
+    build := fun
+      | [] => some (Term.UOp UserOp.neg)
+      | _ => none },
+  { name := "*"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.mult))
+    build := fun
+      | [] => some (Term.UOp UserOp.mult)
+      | _ => none },
+  { name := "<"
+    indexArity := 0
+    arity := .chainable (fun ts => Logos.Parser.rightAssocNil Term.Apply (Term.UOp UserOp.and) (parserNil (Term.UOp UserOp.and)) ts)
+    build := fun
+      | [] => some (Term.UOp UserOp.lt)
+      | _ => none },
+  { name := "<="
+    indexArity := 0
+    arity := .chainable (fun ts => Logos.Parser.rightAssocNil Term.Apply (Term.UOp UserOp.and) (parserNil (Term.UOp UserOp.and)) ts)
+    build := fun
+      | [] => some (Term.UOp UserOp.leq)
+      | _ => none },
+  { name := ">"
+    indexArity := 0
+    arity := .chainable (fun ts => Logos.Parser.rightAssocNil Term.Apply (Term.UOp UserOp.and) (parserNil (Term.UOp UserOp.and)) ts)
+    build := fun
+      | [] => some (Term.UOp UserOp.gt)
+      | _ => none },
+  { name := ">="
+    indexArity := 0
+    arity := .chainable (fun ts => Logos.Parser.rightAssocNil Term.Apply (Term.UOp UserOp.and) (parserNil (Term.UOp UserOp.and)) ts)
+    build := fun
+      | [] => some (Term.UOp UserOp.geq)
+      | _ => none },
+  { name := "to_real"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.to_real)
+      | _ => none },
+  { name := "to_int"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.to_int)
+      | _ => none },
+  { name := "is_int"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.is_int)
+      | _ => none },
+  { name := "abs"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.abs)
+      | _ => none },
+  { name := "-"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.__eoo_neg_2)
+      | _ => none },
+  { name := "div"
+    indexArity := 0
+    arity := .leftAssoc
+    build := fun
+      | [] => some (Term.UOp UserOp.div)
+      | _ => none },
+  { name := "mod"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.mod)
+      | _ => none },
+  { name := "divisible"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.divisible)
+      | _ => none },
+  { name := "int.pow2"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.int_pow2)
+      | _ => none },
+  { name := "int.log2"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.int_log2)
+      | _ => none },
+  { name := "int.ispow2"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.int_ispow2)
+      | _ => none },
+  { name := "div_total"
+    indexArity := 0
+    arity := .leftAssoc
+    build := fun
+      | [] => some (Term.UOp UserOp.div_total)
+      | _ => none },
+  { name := "mod_total"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.mod_total)
+      | _ => none },
+  { name := "@int_div_by_zero"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp._at_int_div_by_zero)
+      | _ => none },
+  { name := "@mod_by_zero"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp._at_mod_by_zero)
+      | _ => none },
+  { name := "Array"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.Array)
+      | _ => none },
+  { name := "select"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.select)
+      | _ => none },
+  { name := "store"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.store)
+      | _ => none },
+  { name := "@array_deq_diff"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at_array_deq_diff)
+      | _ => none },
+  { name := "@bvsize"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp._at_bvsize)
+      | _ => none },
+  { name := "concat"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.concat))
+    build := fun
+      | [] => some (Term.UOp UserOp.concat)
+      | _ => none },
+  { name := "extract"
+    indexArity := 2
+    arity := .exact 1
+    build := fun
+      | [x1, x2] => some (Term.UOp2 UserOp2.extract x1 x2)
+      | _ => none },
+  { name := "repeat"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.repeat x1)
+      | _ => none },
+  { name := "bvnot"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.bvnot)
+      | _ => none },
+  { name := "bvand"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.bvand))
+    build := fun
+      | [] => some (Term.UOp UserOp.bvand)
+      | _ => none },
+  { name := "bvor"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.bvor))
+    build := fun
+      | [] => some (Term.UOp UserOp.bvor)
+      | _ => none },
+  { name := "bvnand"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvnand)
+      | _ => none },
+  { name := "bvnor"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvnor)
+      | _ => none },
+  { name := "bvxor"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.bvxor))
+    build := fun
+      | [] => some (Term.UOp UserOp.bvxor)
+      | _ => none },
+  { name := "bvxnor"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvxnor)
+      | _ => none },
+  { name := "bvcomp"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvcomp)
+      | _ => none },
+  { name := "bvneg"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.bvneg)
+      | _ => none },
+  { name := "bvadd"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.bvadd))
+    build := fun
+      | [] => some (Term.UOp UserOp.bvadd)
+      | _ => none },
+  { name := "bvmul"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.bvmul))
+    build := fun
+      | [] => some (Term.UOp UserOp.bvmul)
+      | _ => none },
+  { name := "bvudiv"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvudiv)
+      | _ => none },
+  { name := "bvurem"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvurem)
+      | _ => none },
+  { name := "bvsub"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsub)
+      | _ => none },
+  { name := "bvsdiv"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsdiv)
+      | _ => none },
+  { name := "bvsrem"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsrem)
+      | _ => none },
+  { name := "bvsmod"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsmod)
+      | _ => none },
+  { name := "bvult"
+    indexArity := 0
+    arity := .chainable (fun ts => Logos.Parser.rightAssocNil Term.Apply (Term.UOp UserOp.and) (parserNil (Term.UOp UserOp.and)) ts)
+    build := fun
+      | [] => some (Term.UOp UserOp.bvult)
+      | _ => none },
+  { name := "bvule"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvule)
+      | _ => none },
+  { name := "bvugt"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvugt)
+      | _ => none },
+  { name := "bvuge"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvuge)
+      | _ => none },
+  { name := "bvslt"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvslt)
+      | _ => none },
+  { name := "bvsle"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsle)
+      | _ => none },
+  { name := "bvsgt"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsgt)
+      | _ => none },
+  { name := "bvsge"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsge)
+      | _ => none },
+  { name := "bvshl"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvshl)
+      | _ => none },
+  { name := "bvlshr"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvlshr)
+      | _ => none },
+  { name := "bvashr"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvashr)
+      | _ => none },
+  { name := "zero_extend"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.zero_extend x1)
+      | _ => none },
+  { name := "sign_extend"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.sign_extend x1)
+      | _ => none },
+  { name := "rotate_left"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.rotate_left x1)
+      | _ => none },
+  { name := "rotate_right"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.rotate_right x1)
+      | _ => none },
+  { name := "bvite"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.bvite)
+      | _ => none },
+  { name := "bvuaddo"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvuaddo)
+      | _ => none },
+  { name := "bvnego"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.bvnego)
+      | _ => none },
+  { name := "bvsaddo"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsaddo)
+      | _ => none },
+  { name := "bvumulo"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvumulo)
+      | _ => none },
+  { name := "bvsmulo"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsmulo)
+      | _ => none },
+  { name := "bvusubo"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvusubo)
+      | _ => none },
+  { name := "bvssubo"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvssubo)
+      | _ => none },
+  { name := "bvsdivo"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsdivo)
+      | _ => none },
+  { name := "bvultbv"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvultbv)
+      | _ => none },
+  { name := "bvsltbv"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.bvsltbv)
+      | _ => none },
+  { name := "bvredand"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.bvredand)
+      | _ => none },
+  { name := "bvredor"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.bvredor)
+      | _ => none },
+  { name := "@bit"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1._at_bit x1)
+      | _ => none },
+  { name := "@from_bools"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp._at_from_bools))
+    build := fun
+      | [] => some (Term.UOp UserOp._at_from_bools)
+      | _ => none },
+  { name := "RegLan"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp.RegLan)
+      | _ => none },
+  { name := "seq.empty"
+    indexArity := 1
+    arity := .exact 0
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.seq_empty x1)
+      | _ => none },
+  { name := "str.len"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_len)
+      | _ => none },
+  { name := "str.++"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.str_concat))
+    build := fun
+      | [] => some (Term.UOp UserOp.str_concat)
+      | _ => none },
+  { name := "str.substr"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_substr)
+      | _ => none },
+  { name := "str.contains"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_contains)
+      | _ => none },
+  { name := "str.replace"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_replace)
+      | _ => none },
+  { name := "str.indexof"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_indexof)
+      | _ => none },
+  { name := "str.at"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_at)
+      | _ => none },
+  { name := "str.prefixof"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_prefixof)
+      | _ => none },
+  { name := "str.suffixof"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_suffixof)
+      | _ => none },
+  { name := "str.rev"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_rev)
+      | _ => none },
+  { name := "str.update"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_update)
+      | _ => none },
+  { name := "str.to_lower"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_to_lower)
+      | _ => none },
+  { name := "str.to_upper"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_to_upper)
+      | _ => none },
+  { name := "str.to_code"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_to_code)
+      | _ => none },
+  { name := "str.from_code"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_from_code)
+      | _ => none },
+  { name := "str.is_digit"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_is_digit)
+      | _ => none },
+  { name := "str.to_int"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_to_int)
+      | _ => none },
+  { name := "str.from_int"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_from_int)
+      | _ => none },
+  { name := "str.<"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_lt)
+      | _ => none },
+  { name := "str.<="
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_leq)
+      | _ => none },
+  { name := "str.replace_all"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_replace_all)
+      | _ => none },
+  { name := "str.replace_re"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_replace_re)
+      | _ => none },
+  { name := "str.replace_re_all"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_replace_re_all)
+      | _ => none },
+  { name := "str.indexof_re"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_indexof_re)
+      | _ => none },
+  { name := "re.allchar"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp.re_allchar)
+      | _ => none },
+  { name := "re.none"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp.re_none)
+      | _ => none },
+  { name := "re.all"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp.re_all)
+      | _ => none },
+  { name := "str.to_re"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_to_re)
+      | _ => none },
+  { name := "re.*"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.re_mult)
+      | _ => none },
+  { name := "re.+"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.re_plus)
+      | _ => none },
+  { name := "re.^"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.re_exp x1)
+      | _ => none },
+  { name := "re.opt"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.re_opt)
+      | _ => none },
+  { name := "re.comp"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.re_comp)
+      | _ => none },
+  { name := "re.range"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.re_range)
+      | _ => none },
+  { name := "re.++"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.re_concat))
+    build := fun
+      | [] => some (Term.UOp UserOp.re_concat)
+      | _ => none },
+  { name := "re.inter"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.re_inter))
+    build := fun
+      | [] => some (Term.UOp UserOp.re_inter)
+      | _ => none },
+  { name := "re.union"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.re_union))
+    build := fun
+      | [] => some (Term.UOp UserOp.re_union)
+      | _ => none },
+  { name := "re.diff"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.re_diff)
+      | _ => none },
+  { name := "re.loop"
+    indexArity := 2
+    arity := .exact 1
+    build := fun
+      | [x1, x2] => some (Term.UOp2 UserOp2.re_loop x1 x2)
+      | _ => none },
+  { name := "str.in_re"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_in_re)
+      | _ => none },
+  { name := "str.indexof_re_split"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_indexof_re_split)
+      | _ => none },
+  { name := "seq.unit"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.seq_unit)
+      | _ => none },
+  { name := "seq.nth"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.seq_nth)
+      | _ => none },
+  { name := "@re_unfold_pos_component"
+    indexArity := 3
+    arity := .exact 0
+    build := fun
+      | [x1, x2, x3] => some (Term.UOp3 UserOp3._at_re_unfold_pos_component x1 x2 x3)
+      | _ => none },
+  { name := "@strings_deq_diff"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at_strings_deq_diff)
+      | _ => none },
+  { name := "@strings_stoi_result"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at_strings_stoi_result)
+      | _ => none },
+  { name := "@strings_stoi_non_digit"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp._at_strings_stoi_non_digit)
+      | _ => none },
+  { name := "@strings_itos_result"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at_strings_itos_result)
+      | _ => none },
+  { name := "@strings_num_occur"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at_strings_num_occur)
+      | _ => none },
+  { name := "@strings_num_occur_re"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at_strings_num_occur_re)
+      | _ => none },
+  { name := "@strings_occur_index"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp._at_strings_occur_index)
+      | _ => none },
+  { name := "@strings_occur_index_re"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp._at_strings_occur_index_re)
+      | _ => none },
+  { name := "@strings_replace_all_result"
+    indexArity := 0
+    arity := .exact 4
+    build := fun
+      | [] => some (Term.UOp UserOp._at_strings_replace_all_result)
+      | _ => none },
+  { name := "@strings_replace_re_all_result"
+    indexArity := 0
+    arity := .exact 4
+    build := fun
+      | [] => some (Term.UOp UserOp._at_strings_replace_re_all_result)
+      | _ => none },
+  { name := "@witness_string_length"
+    indexArity := 3
+    arity := .exact 0
+    build := fun
+      | [x1, x2, x3] => some (Term.UOp3 UserOp3._at_witness_string_length x1 x2 x3)
+      | _ => none },
+  { name := "is"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.is x1)
+      | _ => none },
+  { name := "update"
+    indexArity := 1
+    arity := .exact 2
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.update x1)
+      | _ => none },
+  { name := "UnitTuple"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp.UnitTuple)
+      | _ => none },
+  { name := "Tuple"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.Tuple))
+    build := fun
+      | [] => some (Term.UOp UserOp.Tuple)
+      | _ => none },
+  { name := "tuple.unit"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp.tuple_unit)
+      | _ => none },
+  { name := "tuple"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.tuple))
+    build := fun
+      | [] => some (Term.UOp UserOp.tuple)
+      | _ => none },
+  { name := "tuple.select"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.tuple_select x1)
+      | _ => none },
+  { name := "tuple.update"
+    indexArity := 1
+    arity := .exact 2
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.tuple_update x1)
+      | _ => none },
+  { name := "Set"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.Set)
+      | _ => none },
+  { name := "set.empty"
+    indexArity := 1
+    arity := .exact 0
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.set_empty x1)
+      | _ => none },
+  { name := "set.singleton"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.set_singleton)
+      | _ => none },
+  { name := "set.union"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.set_union)
+      | _ => none },
+  { name := "set.inter"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.set_inter)
+      | _ => none },
+  { name := "set.minus"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.set_minus)
+      | _ => none },
+  { name := "set.member"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.set_member)
+      | _ => none },
+  { name := "set.subset"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.set_subset)
+      | _ => none },
+  { name := "set.choose"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.set_choose)
+      | _ => none },
+  { name := "set.is_empty"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.set_is_empty)
+      | _ => none },
+  { name := "set.is_singleton"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.set_is_singleton)
+      | _ => none },
+  { name := "set.insert"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.set_insert)
+      | _ => none },
+  { name := "@sets_deq_diff"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at_sets_deq_diff)
+      | _ => none },
+  { name := "/"
+    indexArity := 0
+    arity := .leftAssoc
+    build := fun
+      | [] => some (Term.UOp UserOp.qdiv)
+      | _ => none },
+  { name := "/_total"
+    indexArity := 0
+    arity := .leftAssoc
+    build := fun
+      | [] => some (Term.UOp UserOp.qdiv_total)
+      | _ => none },
+  { name := "@div_by_zero"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp._at_div_by_zero)
+      | _ => none },
+  { name := "@@Monomial"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_Monomial)
+      | _ => none },
+  { name := "@@mon"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_mon)
+      | _ => none },
+  { name := "@@Polynomial"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_Polynomial)
+      | _ => none },
+  { name := "@@poly.zero"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_poly_zero)
+      | _ => none },
+  { name := "@@poly"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp._at__at_poly))
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_poly)
+      | _ => none },
+  { name := "forall"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.forall)
+      | _ => none },
+  { name := "exists"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.exists)
+      | _ => none },
+  { name := "@quantifiers_skolemize"
+    indexArity := 2
+    arity := .exact 0
+    build := fun
+      | [x1, x2] => some (Term.UOp2 UserOp2._at_quantifiers_skolemize x1 x2)
+      | _ => none },
+  { name := "int_to_bv"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.int_to_bv x1)
+      | _ => none },
+  { name := "ubv_to_int"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.ubv_to_int)
+      | _ => none },
+  { name := "sbv_to_int"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.sbv_to_int)
+      | _ => none },
+  { name := "@@aci_sorted"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_aci_sorted)
+      | _ => none },
+  { name := "@const"
+    indexArity := 2
+    arity := .exact 0
+    build := fun
+      | [x1, x2] => some (Term.UOp2 UserOp2._at_const x1 x2)
+      | _ => none },
+]
+
+/-- The proof rules of the calculus, by their name in the Eunoia signature. -/
+private def parserRules : List (String × CRule) := [
+  ("scope", .scope),
+  ("process_scope", .process_scope),
+  ("ite_eq", .ite_eq),
+  ("split", .split),
+  ("resolution", .resolution),
+  ("chain_resolution", .chain_resolution),
+  ("chain_m_resolution", .chain_m_resolution),
+  ("factoring", .factoring),
+  ("reordering", .reordering),
+  ("eq_resolve", .eq_resolve),
+  ("modus_ponens", .modus_ponens),
+  ("not_not_elim", .not_not_elim),
+  ("contra", .contra),
+  ("and_elim", .and_elim),
+  ("and_intro", .and_intro),
+  ("not_or_elim", .not_or_elim),
+  ("implies_elim", .implies_elim),
+  ("not_implies_elim1", .not_implies_elim1),
+  ("not_implies_elim2", .not_implies_elim2),
+  ("equiv_elim1", .equiv_elim1),
+  ("equiv_elim2", .equiv_elim2),
+  ("not_equiv_elim1", .not_equiv_elim1),
+  ("not_equiv_elim2", .not_equiv_elim2),
+  ("xor_elim1", .xor_elim1),
+  ("xor_elim2", .xor_elim2),
+  ("not_xor_elim1", .not_xor_elim1),
+  ("not_xor_elim2", .not_xor_elim2),
+  ("ite_elim1", .ite_elim1),
+  ("ite_elim2", .ite_elim2),
+  ("not_ite_elim1", .not_ite_elim1),
+  ("not_ite_elim2", .not_ite_elim2),
+  ("not_and", .not_and),
+  ("cnf_and_pos", .cnf_and_pos),
+  ("cnf_and_neg", .cnf_and_neg),
+  ("cnf_or_pos", .cnf_or_pos),
+  ("cnf_or_neg", .cnf_or_neg),
+  ("cnf_implies_pos", .cnf_implies_pos),
+  ("cnf_implies_neg1", .cnf_implies_neg1),
+  ("cnf_implies_neg2", .cnf_implies_neg2),
+  ("cnf_equiv_pos1", .cnf_equiv_pos1),
+  ("cnf_equiv_pos2", .cnf_equiv_pos2),
+  ("cnf_equiv_neg1", .cnf_equiv_neg1),
+  ("cnf_equiv_neg2", .cnf_equiv_neg2),
+  ("cnf_xor_pos1", .cnf_xor_pos1),
+  ("cnf_xor_pos2", .cnf_xor_pos2),
+  ("cnf_xor_neg1", .cnf_xor_neg1),
+  ("cnf_xor_neg2", .cnf_xor_neg2),
+  ("cnf_ite_pos1", .cnf_ite_pos1),
+  ("cnf_ite_pos2", .cnf_ite_pos2),
+  ("cnf_ite_pos3", .cnf_ite_pos3),
+  ("cnf_ite_neg1", .cnf_ite_neg1),
+  ("cnf_ite_neg2", .cnf_ite_neg2),
+  ("cnf_ite_neg3", .cnf_ite_neg3),
+  ("arrays_read_over_write", .arrays_read_over_write),
+  ("arrays_read_over_write_contra", .arrays_read_over_write_contra),
+  ("arrays_read_over_write_1", .arrays_read_over_write_1),
+  ("arrays_ext", .arrays_ext),
+  ("refl", .refl),
+  ("symm", .symm),
+  ("trans", .trans),
+  ("cong", .cong),
+  ("nary_cong", .nary_cong),
+  ("pairwise_cong", .pairwise_cong),
+  ("true_intro", .true_intro),
+  ("true_elim", .true_elim),
+  ("false_intro", .false_intro),
+  ("false_elim", .false_elim),
+  ("ho_cong", .ho_cong),
+  ("distinct-elim", .distinct_elim),
+  ("distinct-true", .distinct_true),
+  ("distinct-false", .distinct_false),
+  ("arith_sum_ub", .arith_sum_ub),
+  ("arith_mult_pos", .arith_mult_pos),
+  ("arith_mult_neg", .arith_mult_neg),
+  ("arith_trichotomy", .arith_trichotomy),
+  ("int_tight_ub", .int_tight_ub),
+  ("int_tight_lb", .int_tight_lb),
+  ("arith_mult_tangent", .arith_mult_tangent),
+  ("arith_mult_sign", .arith_mult_sign),
+  ("arith_mult_abs_comparison", .arith_mult_abs_comparison),
+  ("arith_reduction", .arith_reduction),
+  ("arith_poly_norm", .arith_poly_norm),
+  ("arith_poly_norm_rel", .arith_poly_norm_rel),
+  ("bv-repeat-elim", .bv_repeat_elim),
+  ("bv-smulo-elim", .bv_smulo_elim),
+  ("bv-umulo-elim", .bv_umulo_elim),
+  ("bv-bitwise-slicing", .bv_bitwise_slicing),
+  ("bv_bitblast_step", .bv_bitblast_step),
+  ("bv_poly_norm", .bv_poly_norm),
+  ("bv_poly_norm_eq", .bv_poly_norm_eq),
+  ("string_length_pos", .string_length_pos),
+  ("string_length_non_empty", .string_length_non_empty),
+  ("concat_eq", .concat_eq),
+  ("concat_unify", .concat_unify),
+  ("concat_csplit", .concat_csplit),
+  ("concat_split", .concat_split),
+  ("concat_lprop", .concat_lprop),
+  ("concat_cprop", .concat_cprop),
+  ("string_decompose", .string_decompose),
+  ("exists_string_length", .exists_string_length),
+  ("string_code_inj", .string_code_inj),
+  ("string_seq_unit_inj", .string_seq_unit_inj),
+  ("re_inter", .re_inter),
+  ("re_concat", .re_concat),
+  ("re_unfold_pos", .re_unfold_pos),
+  ("re_unfold_neg_concat_fixed", .re_unfold_neg_concat_fixed),
+  ("re_unfold_neg", .re_unfold_neg),
+  ("string_ext", .string_ext),
+  ("string_reduction", .string_reduction),
+  ("string_eager_reduction", .string_eager_reduction),
+  ("arith-string-pred-entail", .arith_string_pred_entail),
+  ("arith-string-pred-safe-approx", .arith_string_pred_safe_approx),
+  ("str-in-re-eval", .str_in_re_eval),
+  ("str-in-re-consume", .str_in_re_consume),
+  ("re-loop-elim", .re_loop_elim),
+  ("re-eq-elim", .re_eq_elim),
+  ("re-inter-inclusion", .re_inter_inclusion),
+  ("re-union-inclusion", .re_union_inclusion),
+  ("str-in-re-concat-star-char", .str_in_re_concat_star_char),
+  ("str-in-re-sigma", .str_in_re_sigma),
+  ("str-in-re-sigma-star", .str_in_re_sigma_star),
+  ("str-ctn-multiset-subset", .str_ctn_multiset_subset),
+  ("str-overlap-split-ctn", .str_overlap_split_ctn),
+  ("str-overlap-endpoints-ctn", .str_overlap_endpoints_ctn),
+  ("str-overlap-endpoints-indexof", .str_overlap_endpoints_indexof),
+  ("str-overlap-endpoints-replace", .str_overlap_endpoints_replace),
+  ("str-indexof-re-eval", .str_indexof_re_eval),
+  ("str-replace-re-eval", .str_replace_re_eval),
+  ("str-replace-re-all-eval", .str_replace_re_all_eval),
+  ("seq-eval-op", .seq_eval_op),
+  ("sets_singleton_inj", .sets_singleton_inj),
+  ("sets_ext", .sets_ext),
+  ("sets-eval-op", .sets_eval_op),
+  ("sets-insert-elim", .sets_insert_elim),
+  ("ubv-to-int-elim", .ubv_to_int_elim),
+  ("int-to-bv-elim", .int_to_bv_elim),
+  ("instantiate", .instantiate),
+  ("skolemize", .skolemize),
+  ("skolem_intro", .skolem_intro),
+  ("alpha_equiv", .alpha_equiv),
+  ("quant_var_reordering", .quant_var_reordering),
+  ("exists-elim", .exists_elim),
+  ("quant-unused-vars", .quant_unused_vars),
+  ("quant-merge-prenex", .quant_merge_prenex),
+  ("quant-miniscope-and", .quant_miniscope_and),
+  ("quant-miniscope-or", .quant_miniscope_or),
+  ("quant-miniscope-ite", .quant_miniscope_ite),
+  ("quant-var-elim-eq", .quant_var_elim_eq),
+  ("quant-dt-split", .quant_dt_split),
+  ("dt_split", .dt_split),
+  ("dt-inst", .dt_inst),
+  ("dt-collapse-selector", .dt_collapse_selector),
+  ("dt-collapse-tester", .dt_collapse_tester),
+  ("dt-collapse-tester-singleton", .dt_collapse_tester_singleton),
+  ("dt-cons-eq", .dt_cons_eq),
+  ("dt-cons-eq-clash", .dt_cons_eq_clash),
+  ("dt-cycle", .dt_cycle),
+  ("dt-collapse-updater", .dt_collapse_updater),
+  ("dt-updater-elim", .dt_updater_elim),
+  ("arith-div-total-zero-real", .arith_div_total_zero_real),
+  ("arith-div-total-zero-int", .arith_div_total_zero_int),
+  ("arith-int-div-total", .arith_int_div_total),
+  ("arith-int-div-total-one", .arith_int_div_total_one),
+  ("arith-int-div-total-zero", .arith_int_div_total_zero),
+  ("arith-int-div-total-neg", .arith_int_div_total_neg),
+  ("arith-int-mod-total", .arith_int_mod_total),
+  ("arith-int-mod-total-one", .arith_int_mod_total_one),
+  ("arith-int-mod-total-zero", .arith_int_mod_total_zero),
+  ("arith-int-mod-total-neg", .arith_int_mod_total_neg),
+  ("arith-elim-gt", .arith_elim_gt),
+  ("arith-elim-lt", .arith_elim_lt),
+  ("arith-elim-int-gt", .arith_elim_int_gt),
+  ("arith-elim-int-lt", .arith_elim_int_lt),
+  ("arith-elim-leq", .arith_elim_leq),
+  ("arith-leq-norm", .arith_leq_norm),
+  ("arith-geq-tighten", .arith_geq_tighten),
+  ("arith-geq-norm1-int", .arith_geq_norm1_int),
+  ("arith-geq-norm1-real", .arith_geq_norm1_real),
+  ("arith-eq-elim-real", .arith_eq_elim_real),
+  ("arith-eq-elim-int", .arith_eq_elim_int),
+  ("arith-to-int-elim-to-real", .arith_to_int_elim_to_real),
+  ("arith-mod-over-mod-1", .arith_mod_over_mod_1),
+  ("arith-mod-over-mod", .arith_mod_over_mod),
+  ("arith-mod-over-mod-mult", .arith_mod_over_mod_mult),
+  ("arith-int-eq-conflict", .arith_int_eq_conflict),
+  ("arith-int-geq-tighten", .arith_int_geq_tighten),
+  ("arith-divisible-elim", .arith_divisible_elim),
+  ("arith-abs-eq", .arith_abs_eq),
+  ("arith-abs-int-gt", .arith_abs_int_gt),
+  ("arith-abs-real-gt", .arith_abs_real_gt),
+  ("arith-geq-ite-lift", .arith_geq_ite_lift),
+  ("arith-leq-ite-lift", .arith_leq_ite_lift),
+  ("arith-min-lt1", .arith_min_lt1),
+  ("arith-min-lt2", .arith_min_lt2),
+  ("arith-max-geq1", .arith_max_geq1),
+  ("arith-max-geq2", .arith_max_geq2),
+  ("array-read-over-write", .array_read_over_write),
+  ("array-read-over-write2", .array_read_over_write2),
+  ("array-store-overwrite", .array_store_overwrite),
+  ("array-store-self", .array_store_self),
+  ("array-read-over-write-split", .array_read_over_write_split),
+  ("array-store-swap", .array_store_swap),
+  ("bool-double-not-elim", .bool_double_not_elim),
+  ("bool-not-true", .bool_not_true),
+  ("bool-not-false", .bool_not_false),
+  ("bool-eq-true", .bool_eq_true),
+  ("bool-eq-false", .bool_eq_false),
+  ("bool-eq-nrefl", .bool_eq_nrefl),
+  ("bool-impl-false1", .bool_impl_false1),
+  ("bool-impl-false2", .bool_impl_false2),
+  ("bool-impl-true1", .bool_impl_true1),
+  ("bool-impl-true2", .bool_impl_true2),
+  ("bool-impl-elim", .bool_impl_elim),
+  ("bool-dual-impl-eq", .bool_dual_impl_eq),
+  ("bool-and-conf", .bool_and_conf),
+  ("bool-and-conf2", .bool_and_conf2),
+  ("bool-or-taut", .bool_or_taut),
+  ("bool-or-taut2", .bool_or_taut2),
+  ("bool-or-de-morgan", .bool_or_de_morgan),
+  ("bool-implies-de-morgan", .bool_implies_de_morgan),
+  ("bool-and-de-morgan", .bool_and_de_morgan),
+  ("bool-or-and-distrib", .bool_or_and_distrib),
+  ("bool-implies-or-distrib", .bool_implies_or_distrib),
+  ("bool-xor-refl", .bool_xor_refl),
+  ("bool-xor-nrefl", .bool_xor_nrefl),
+  ("bool-xor-false", .bool_xor_false),
+  ("bool-xor-true", .bool_xor_true),
+  ("bool-xor-comm", .bool_xor_comm),
+  ("bool-xor-elim", .bool_xor_elim),
+  ("bool-not-xor-elim", .bool_not_xor_elim),
+  ("bool-not-eq-elim1", .bool_not_eq_elim1),
+  ("bool-not-eq-elim2", .bool_not_eq_elim2),
+  ("ite-neg-branch", .ite_neg_branch),
+  ("ite-then-true", .ite_then_true),
+  ("ite-else-false", .ite_else_false),
+  ("ite-then-false", .ite_then_false),
+  ("ite-else-true", .ite_else_true),
+  ("ite-then-lookahead-self", .ite_then_lookahead_self),
+  ("ite-else-lookahead-self", .ite_else_lookahead_self),
+  ("ite-then-lookahead-not-self", .ite_then_lookahead_not_self),
+  ("ite-else-lookahead-not-self", .ite_else_lookahead_not_self),
+  ("ite-expand", .ite_expand),
+  ("bool-not-ite-elim", .bool_not_ite_elim),
+  ("ite-true-cond", .ite_true_cond),
+  ("ite-false-cond", .ite_false_cond),
+  ("ite-not-cond", .ite_not_cond),
+  ("ite-eq-branch", .ite_eq_branch),
+  ("ite-then-lookahead", .ite_then_lookahead),
+  ("ite-else-lookahead", .ite_else_lookahead),
+  ("ite-then-neg-lookahead", .ite_then_neg_lookahead),
+  ("ite-else-neg-lookahead", .ite_else_neg_lookahead),
+  ("bv-concat-extract-merge", .bv_concat_extract_merge),
+  ("bv-extract-extract", .bv_extract_extract),
+  ("bv-extract-whole", .bv_extract_whole),
+  ("bv-extract-concat-1", .bv_extract_concat_1),
+  ("bv-extract-concat-2", .bv_extract_concat_2),
+  ("bv-extract-concat-3", .bv_extract_concat_3),
+  ("bv-extract-concat-4", .bv_extract_concat_4),
+  ("bv-eq-extract-elim1", .bv_eq_extract_elim1),
+  ("bv-eq-extract-elim2", .bv_eq_extract_elim2),
+  ("bv-eq-extract-elim3", .bv_eq_extract_elim3),
+  ("bv-extract-not", .bv_extract_not),
+  ("bv-extract-sign-extend-1", .bv_extract_sign_extend_1),
+  ("bv-extract-sign-extend-2", .bv_extract_sign_extend_2),
+  ("bv-extract-sign-extend-3", .bv_extract_sign_extend_3),
+  ("bv-not-xor", .bv_not_xor),
+  ("bv-and-simplify-1", .bv_and_simplify_1),
+  ("bv-and-simplify-2", .bv_and_simplify_2),
+  ("bv-or-simplify-1", .bv_or_simplify_1),
+  ("bv-or-simplify-2", .bv_or_simplify_2),
+  ("bv-xor-simplify-1", .bv_xor_simplify_1),
+  ("bv-xor-simplify-2", .bv_xor_simplify_2),
+  ("bv-xor-simplify-3", .bv_xor_simplify_3),
+  ("bv-ult-add-one", .bv_ult_add_one),
+  ("bv-mult-slt-mult-1", .bv_mult_slt_mult_1),
+  ("bv-mult-slt-mult-2", .bv_mult_slt_mult_2),
+  ("bv-commutative-xor", .bv_commutative_xor),
+  ("bv-commutative-comp", .bv_commutative_comp),
+  ("bv-zero-extend-eliminate-0", .bv_zero_extend_eliminate_0),
+  ("bv-sign-extend-eliminate-0", .bv_sign_extend_eliminate_0),
+  ("bv-not-neq", .bv_not_neq),
+  ("bv-ult-ones", .bv_ult_ones),
+  ("bv-concat-merge-const", .bv_concat_merge_const),
+  ("bv-commutative-add", .bv_commutative_add),
+  ("bv-sub-eliminate", .bv_sub_eliminate),
+  ("bv-ite-width-one", .bv_ite_width_one),
+  ("bv-ite-width-one-not", .bv_ite_width_one_not),
+  ("bv-eq-xor-solve", .bv_eq_xor_solve),
+  ("bv-eq-not-solve", .bv_eq_not_solve),
+  ("bv-ugt-eliminate", .bv_ugt_eliminate),
+  ("bv-uge-eliminate", .bv_uge_eliminate),
+  ("bv-sgt-eliminate", .bv_sgt_eliminate),
+  ("bv-sge-eliminate", .bv_sge_eliminate),
+  ("bv-sle-eliminate", .bv_sle_eliminate),
+  ("bv-redor-eliminate", .bv_redor_eliminate),
+  ("bv-redand-eliminate", .bv_redand_eliminate),
+  ("bv-ule-eliminate", .bv_ule_eliminate),
+  ("bv-comp-eliminate", .bv_comp_eliminate),
+  ("bv-rotate-left-eliminate-1", .bv_rotate_left_eliminate_1),
+  ("bv-rotate-left-eliminate-2", .bv_rotate_left_eliminate_2),
+  ("bv-rotate-right-eliminate-1", .bv_rotate_right_eliminate_1),
+  ("bv-rotate-right-eliminate-2", .bv_rotate_right_eliminate_2),
+  ("bv-nand-eliminate", .bv_nand_eliminate),
+  ("bv-nor-eliminate", .bv_nor_eliminate),
+  ("bv-xnor-eliminate", .bv_xnor_eliminate),
+  ("bv-sdiv-eliminate", .bv_sdiv_eliminate),
+  ("bv-zero-extend-eliminate", .bv_zero_extend_eliminate),
+  ("bv-uaddo-eliminate", .bv_uaddo_eliminate),
+  ("bv-saddo-eliminate", .bv_saddo_eliminate),
+  ("bv-sdivo-eliminate", .bv_sdivo_eliminate),
+  ("bv-smod-eliminate", .bv_smod_eliminate),
+  ("bv-srem-eliminate", .bv_srem_eliminate),
+  ("bv-usubo-eliminate", .bv_usubo_eliminate),
+  ("bv-ssubo-eliminate", .bv_ssubo_eliminate),
+  ("bv-nego-eliminate", .bv_nego_eliminate),
+  ("bv-ite-equal-children", .bv_ite_equal_children),
+  ("bv-ite-const-children-1", .bv_ite_const_children_1),
+  ("bv-ite-const-children-2", .bv_ite_const_children_2),
+  ("bv-ite-equal-cond-1", .bv_ite_equal_cond_1),
+  ("bv-ite-equal-cond-2", .bv_ite_equal_cond_2),
+  ("bv-ite-equal-cond-3", .bv_ite_equal_cond_3),
+  ("bv-ite-merge-then-if", .bv_ite_merge_then_if),
+  ("bv-ite-merge-else-if", .bv_ite_merge_else_if),
+  ("bv-ite-merge-then-else", .bv_ite_merge_then_else),
+  ("bv-ite-merge-else-else", .bv_ite_merge_else_else),
+  ("bv-shl-by-const-0", .bv_shl_by_const_0),
+  ("bv-shl-by-const-1", .bv_shl_by_const_1),
+  ("bv-shl-by-const-2", .bv_shl_by_const_2),
+  ("bv-lshr-by-const-0", .bv_lshr_by_const_0),
+  ("bv-lshr-by-const-1", .bv_lshr_by_const_1),
+  ("bv-lshr-by-const-2", .bv_lshr_by_const_2),
+  ("bv-ashr-by-const-0", .bv_ashr_by_const_0),
+  ("bv-ashr-by-const-1", .bv_ashr_by_const_1),
+  ("bv-ashr-by-const-2", .bv_ashr_by_const_2),
+  ("bv-and-concat-pullup", .bv_and_concat_pullup),
+  ("bv-or-concat-pullup", .bv_or_concat_pullup),
+  ("bv-xor-concat-pullup", .bv_xor_concat_pullup),
+  ("bv-and-concat-pullup2", .bv_and_concat_pullup2),
+  ("bv-or-concat-pullup2", .bv_or_concat_pullup2),
+  ("bv-xor-concat-pullup2", .bv_xor_concat_pullup2),
+  ("bv-and-concat-pullup3", .bv_and_concat_pullup3),
+  ("bv-or-concat-pullup3", .bv_or_concat_pullup3),
+  ("bv-xor-concat-pullup3", .bv_xor_concat_pullup3),
+  ("bv-xor-duplicate", .bv_xor_duplicate),
+  ("bv-xor-ones", .bv_xor_ones),
+  ("bv-xor-not", .bv_xor_not),
+  ("bv-not-idemp", .bv_not_idemp),
+  ("bv-ult-zero-1", .bv_ult_zero_1),
+  ("bv-ult-zero-2", .bv_ult_zero_2),
+  ("bv-ult-self", .bv_ult_self),
+  ("bv-lt-self", .bv_lt_self),
+  ("bv-ule-self", .bv_ule_self),
+  ("bv-ule-zero", .bv_ule_zero),
+  ("bv-zero-ule", .bv_zero_ule),
+  ("bv-sle-self", .bv_sle_self),
+  ("bv-ule-max", .bv_ule_max),
+  ("bv-not-ult", .bv_not_ult),
+  ("bv-mult-pow2-1", .bv_mult_pow2_1),
+  ("bv-mult-pow2-2", .bv_mult_pow2_2),
+  ("bv-mult-pow2-2b", .bv_mult_pow2_2b),
+  ("bv-extract-mult-leading-bit", .bv_extract_mult_leading_bit),
+  ("bv-udiv-pow2-not-one", .bv_udiv_pow2_not_one),
+  ("bv-udiv-zero", .bv_udiv_zero),
+  ("bv-udiv-one", .bv_udiv_one),
+  ("bv-urem-pow2-not-one", .bv_urem_pow2_not_one),
+  ("bv-urem-one", .bv_urem_one),
+  ("bv-urem-self", .bv_urem_self),
+  ("bv-shl-zero", .bv_shl_zero),
+  ("bv-lshr-zero", .bv_lshr_zero),
+  ("bv-ashr-zero", .bv_ashr_zero),
+  ("bv-ugt-urem", .bv_ugt_urem),
+  ("bv-ult-one", .bv_ult_one),
+  ("bv-merge-sign-extend-1", .bv_merge_sign_extend_1),
+  ("bv-merge-sign-extend-2", .bv_merge_sign_extend_2),
+  ("bv-sign-extend-eq-const-1", .bv_sign_extend_eq_const_1),
+  ("bv-sign-extend-eq-const-2", .bv_sign_extend_eq_const_2),
+  ("bv-zero-extend-eq-const-1", .bv_zero_extend_eq_const_1),
+  ("bv-zero-extend-eq-const-2", .bv_zero_extend_eq_const_2),
+  ("bv-zero-extend-ult-const-1", .bv_zero_extend_ult_const_1),
+  ("bv-zero-extend-ult-const-2", .bv_zero_extend_ult_const_2),
+  ("bv-sign-extend-ult-const-1", .bv_sign_extend_ult_const_1),
+  ("bv-sign-extend-ult-const-2", .bv_sign_extend_ult_const_2),
+  ("bv-sign-extend-ult-const-3", .bv_sign_extend_ult_const_3),
+  ("bv-sign-extend-ult-const-4", .bv_sign_extend_ult_const_4),
+  ("sets-eq-singleton-emp", .sets_eq_singleton_emp),
+  ("sets-member-singleton", .sets_member_singleton),
+  ("sets-member-emp", .sets_member_emp),
+  ("sets-subset-elim", .sets_subset_elim),
+  ("sets-union-comm", .sets_union_comm),
+  ("sets-inter-comm", .sets_inter_comm),
+  ("sets-inter-emp1", .sets_inter_emp1),
+  ("sets-inter-emp2", .sets_inter_emp2),
+  ("sets-minus-emp1", .sets_minus_emp1),
+  ("sets-minus-emp2", .sets_minus_emp2),
+  ("sets-union-emp1", .sets_union_emp1),
+  ("sets-union-emp2", .sets_union_emp2),
+  ("sets-inter-member", .sets_inter_member),
+  ("sets-minus-member", .sets_minus_member),
+  ("sets-union-member", .sets_union_member),
+  ("sets-choose-singleton", .sets_choose_singleton),
+  ("sets-minus-self", .sets_minus_self),
+  ("sets-is-empty-elim", .sets_is_empty_elim),
+  ("sets-is-singleton-elim", .sets_is_singleton_elim),
+  ("str-eq-ctn-false", .str_eq_ctn_false),
+  ("str-eq-ctn-full-false1", .str_eq_ctn_full_false1),
+  ("str-eq-ctn-full-false2", .str_eq_ctn_full_false2),
+  ("str-eq-len-false", .str_eq_len_false),
+  ("str-substr-empty-str", .str_substr_empty_str),
+  ("str-substr-empty-range", .str_substr_empty_range),
+  ("str-substr-empty-start", .str_substr_empty_start),
+  ("str-substr-empty-start-neg", .str_substr_empty_start_neg),
+  ("str-substr-substr-start-geq-len", .str_substr_substr_start_geq_len),
+  ("str-substr-eq-empty", .str_substr_eq_empty),
+  ("str-substr-z-eq-empty-leq", .str_substr_z_eq_empty_leq),
+  ("str-substr-eq-empty-leq-len", .str_substr_eq_empty_leq_len),
+  ("str-len-replace-inv", .str_len_replace_inv),
+  ("str-len-replace-all-inv", .str_len_replace_all_inv),
+  ("str-len-update-inv", .str_len_update_inv),
+  ("str-update-in-first-concat", .str_update_in_first_concat),
+  ("str-len-substr-in-range", .str_len_substr_in_range),
+  ("str-concat-clash", .str_concat_clash),
+  ("str-concat-clash-rev", .str_concat_clash_rev),
+  ("str-concat-clash2", .str_concat_clash2),
+  ("str-concat-clash2-rev", .str_concat_clash2_rev),
+  ("str-concat-unify", .str_concat_unify),
+  ("str-concat-unify-rev", .str_concat_unify_rev),
+  ("str-concat-unify-base", .str_concat_unify_base),
+  ("str-concat-unify-base-rev", .str_concat_unify_base_rev),
+  ("str-prefixof-elim", .str_prefixof_elim),
+  ("str-suffixof-elim", .str_suffixof_elim),
+  ("str-prefixof-eq", .str_prefixof_eq),
+  ("str-suffixof-eq", .str_suffixof_eq),
+  ("str-prefixof-one", .str_prefixof_one),
+  ("str-suffixof-one", .str_suffixof_one),
+  ("str-substr-combine1", .str_substr_combine1),
+  ("str-substr-combine2", .str_substr_combine2),
+  ("str-substr-combine3", .str_substr_combine3),
+  ("str-substr-combine4", .str_substr_combine4),
+  ("str-substr-concat1", .str_substr_concat1),
+  ("str-substr-concat2", .str_substr_concat2),
+  ("str-substr-replace", .str_substr_replace),
+  ("str-substr-full", .str_substr_full),
+  ("str-substr-full-eq", .str_substr_full_eq),
+  ("str-contains-refl", .str_contains_refl),
+  ("str-contains-concat-find", .str_contains_concat_find),
+  ("str-contains-concat-find-contra", .str_contains_concat_find_contra),
+  ("str-contains-split-char", .str_contains_split_char),
+  ("str-contains-leq-len-eq", .str_contains_leq_len_eq),
+  ("str-contains-emp", .str_contains_emp),
+  ("str-contains-char", .str_contains_char),
+  ("str-at-elim", .str_at_elim),
+  ("str-replace-self", .str_replace_self),
+  ("str-replace-id", .str_replace_id),
+  ("str-replace-prefix", .str_replace_prefix),
+  ("str-replace-no-contains", .str_replace_no_contains),
+  ("str-replace-find-base", .str_replace_find_base),
+  ("str-replace-find-first-concat", .str_replace_find_first_concat),
+  ("str-replace-empty", .str_replace_empty),
+  ("str-replace-one-pre", .str_replace_one_pre),
+  ("str-replace-find-pre", .str_replace_find_pre),
+  ("str-replace-all-no-contains", .str_replace_all_no_contains),
+  ("str-replace-all-empty", .str_replace_all_empty),
+  ("str-replace-all-id", .str_replace_all_id),
+  ("str-replace-all-self", .str_replace_all_self),
+  ("str-replace-re-none", .str_replace_re_none),
+  ("str-replace-re-all-none", .str_replace_re_all_none),
+  ("str-len-concat-rec", .str_len_concat_rec),
+  ("str-len-eq-zero-concat-rec", .str_len_eq_zero_concat_rec),
+  ("str-len-eq-zero-base", .str_len_eq_zero_base),
+  ("str-indexof-self", .str_indexof_self),
+  ("str-indexof-no-contains", .str_indexof_no_contains),
+  ("str-indexof-oob", .str_indexof_oob),
+  ("str-indexof-oob2", .str_indexof_oob2),
+  ("str-indexof-contains-pre", .str_indexof_contains_pre),
+  ("str-indexof-contains-concat-pre", .str_indexof_contains_concat_pre),
+  ("str-indexof-find-emp", .str_indexof_find_emp),
+  ("str-indexof-eq-irr", .str_indexof_eq_irr),
+  ("str-indexof-re-none", .str_indexof_re_none),
+  ("str-indexof-re-emp-re", .str_indexof_re_emp_re),
+  ("str-to-lower-concat", .str_to_lower_concat),
+  ("str-to-upper-concat", .str_to_upper_concat),
+  ("str-to-lower-upper", .str_to_lower_upper),
+  ("str-to-upper-lower", .str_to_upper_lower),
+  ("str-to-lower-len", .str_to_lower_len),
+  ("str-to-upper-len", .str_to_upper_len),
+  ("str-to-lower-from-int", .str_to_lower_from_int),
+  ("str-to-upper-from-int", .str_to_upper_from_int),
+  ("str-to-int-concat-neg-one", .str_to_int_concat_neg_one),
+  ("str-is-digit-elim", .str_is_digit_elim),
+  ("str-leq-empty", .str_leq_empty),
+  ("str-leq-empty-eq", .str_leq_empty_eq),
+  ("str-leq-concat-false", .str_leq_concat_false),
+  ("str-leq-concat-true", .str_leq_concat_true),
+  ("str-leq-concat-base-1", .str_leq_concat_base_1),
+  ("str-leq-concat-base-2", .str_leq_concat_base_2),
+  ("str-lt-elim", .str_lt_elim),
+  ("str-from-int-no-ctn-nondigit", .str_from_int_no_ctn_nondigit),
+  ("str-substr-ctn-contra", .str_substr_ctn_contra),
+  ("str-substr-ctn", .str_substr_ctn),
+  ("str-replace-dual-ctn", .str_replace_dual_ctn),
+  ("str-replace-dual-ctn-false", .str_replace_dual_ctn_false),
+  ("str-replace-self-ctn-simp", .str_replace_self_ctn_simp),
+  ("str-replace-emp-ctn-src", .str_replace_emp_ctn_src),
+  ("str-substr-char-start-eq-len", .str_substr_char_start_eq_len),
+  ("str-contains-repl-char", .str_contains_repl_char),
+  ("str-contains-repl-self-tgt-char", .str_contains_repl_self_tgt_char),
+  ("str-contains-repl-self", .str_contains_repl_self),
+  ("str-contains-repl-tgt", .str_contains_repl_tgt),
+  ("str-repl-repl-len-id", .str_repl_repl_len_id),
+  ("str-repl-repl-src-tgt-no-ctn", .str_repl_repl_src_tgt_no_ctn),
+  ("str-repl-repl-tgt-self", .str_repl_repl_tgt_self),
+  ("str-repl-repl-tgt-no-ctn", .str_repl_repl_tgt_no_ctn),
+  ("str-repl-repl-src-self", .str_repl_repl_src_self),
+  ("str-repl-repl-src-inv-no-ctn1", .str_repl_repl_src_inv_no_ctn1),
+  ("str-repl-repl-src-inv-no-ctn2", .str_repl_repl_src_inv_no_ctn2),
+  ("str-repl-repl-src-inv-no-ctn3", .str_repl_repl_src_inv_no_ctn3),
+  ("str-repl-repl-dual-self", .str_repl_repl_dual_self),
+  ("str-repl-repl-dual-ite1", .str_repl_repl_dual_ite1),
+  ("str-repl-repl-dual-ite2", .str_repl_repl_dual_ite2),
+  ("str-repl-repl-lookahead-id-simp", .str_repl_repl_lookahead_id_simp),
+  ("re-all-elim", .re_all_elim),
+  ("re-opt-elim", .re_opt_elim),
+  ("re-diff-elim", .re_diff_elim),
+  ("re-plus-elim", .re_plus_elim),
+  ("re-repeat-elim", .re_repeat_elim),
+  ("re-concat-star-swap", .re_concat_star_swap),
+  ("re-concat-star-repeat", .re_concat_star_repeat),
+  ("re-concat-star-nullable1", .re_concat_star_nullable1),
+  ("re-concat-star-nullable2", .re_concat_star_nullable2),
+  ("re-concat-merge", .re_concat_merge),
+  ("re-union-all", .re_union_all),
+  ("re-union-const-elim", .re_union_const_elim),
+  ("re-inter-all", .re_inter_all),
+  ("re-star-none", .re_star_none),
+  ("re-star-emp", .re_star_emp),
+  ("re-star-star", .re_star_star),
+  ("re-range-refl", .re_range_refl),
+  ("re-range-emp", .re_range_emp),
+  ("re-range-non-singleton-1", .re_range_non_singleton_1),
+  ("re-range-non-singleton-2", .re_range_non_singleton_2),
+  ("re-star-union-char", .re_star_union_char),
+  ("re-star-union-drop-emp", .re_star_union_drop_emp),
+  ("re-loop-neg", .re_loop_neg),
+  ("re-loop-star", .re_loop_star),
+  ("re-inter-cstring", .re_inter_cstring),
+  ("re-inter-cstring-neg", .re_inter_cstring_neg),
+  ("str-substr-len-include", .str_substr_len_include),
+  ("str-substr-len-include-pre", .str_substr_len_include_pre),
+  ("str-substr-len-norm", .str_substr_len_norm),
+  ("seq-len-rev", .seq_len_rev),
+  ("seq-rev-rev", .seq_rev_rev),
+  ("seq-rev-concat", .seq_rev_concat),
+  ("str-eq-repl-self-emp", .str_eq_repl_self_emp),
+  ("str-eq-repl-no-change", .str_eq_repl_no_change),
+  ("str-eq-repl-tgt-eq-len", .str_eq_repl_tgt_eq_len),
+  ("str-eq-repl-len-one-emp-prefix", .str_eq_repl_len_one_emp_prefix),
+  ("str-eq-repl-emp-tgt-nemp", .str_eq_repl_emp_tgt_nemp),
+  ("str-eq-repl-nemp-src-emp", .str_eq_repl_nemp_src_emp),
+  ("str-eq-repl-self-src", .str_eq_repl_self_src),
+  ("seq-len-unit", .seq_len_unit),
+  ("seq-nth-unit", .seq_nth_unit),
+  ("seq-rev-unit", .seq_rev_unit),
+  ("re-in-empty", .re_in_empty),
+  ("re-in-sigma", .re_in_sigma),
+  ("re-in-sigma-star", .re_in_sigma_star),
+  ("re-in-cstring", .re_in_cstring),
+  ("re-in-comp", .re_in_comp),
+  ("str-in-re-union-elim", .str_in_re_union_elim),
+  ("str-in-re-inter-elim", .str_in_re_inter_elim),
+  ("str-in-re-range-elim", .str_in_re_range_elim),
+  ("str-in-re-contains", .str_in_re_contains),
+  ("str-in-re-from-int-nemp-dig-range", .str_in_re_from_int_nemp_dig_range),
+  ("str-in-re-from-int-dig-range", .str_in_re_from_int_dig_range),
+  ("eq-refl", .eq_refl),
+  ("eq-symm", .eq_symm),
+  ("eq-cond-deq", .eq_cond_deq),
+  ("eq-ite-lift", .eq_ite_lift),
+  ("distinct-binary-elim", .distinct_binary_elim),
+  ("uf-bv2nat-int2bv", .uf_bv2nat_int2bv),
+  ("uf-bv2nat-int2bv-extend", .uf_bv2nat_int2bv_extend),
+  ("uf-bv2nat-int2bv-extract", .uf_bv2nat_int2bv_extract),
+  ("uf-int2bv-bv2nat", .uf_int2bv_bv2nat),
+  ("uf-bv2nat-geq-elim", .uf_bv2nat_geq_elim),
+  ("uf-int2bv-bvult-equiv", .uf_int2bv_bvult_equiv),
+  ("uf-int2bv-bvule-equiv", .uf_int2bv_bvule_equiv),
+  ("uf-sbv-to-int-elim", .uf_sbv_to_int_elim),
+  ("evaluate", .evaluate),
+  ("distinct_values", .distinct_values),
+  ("aci_norm", .aci_norm),
+  ("absorb", .absorb),
+  ("distinct-card-conflict", .distinct_card_conflict)
+]
+
+private def parserRuleMap : Std.HashMap String CRule := .ofList parserRules
+
+private def parserRule (name : String) : Option CRule := parserRuleMap[name]?
+
+/-- The argument types of one datatype constructor. -/
+private def parserDatatypeCons (selectors : List (String × Term)) : DatatypeCons :=
+  selectors.foldr (fun (_, ty) rest => .cons ty rest) .unit
+
+/-- The constructors of one datatype, in declaration order. -/
+private def parserDatatype (ctors : List (Logos.Parser.ConsSpec Term)) : Datatype :=
+  ctors.foldr (fun c rest => .sum (parserDatatypeCons c.selectors) rest) .null
+
+/-- The datatypes of one `declare-datatypes` block, in declaration order. -/
+private def parserDatatypeDecl (dts : List (Logos.Parser.DatatypeSpec Term)) : DatatypeDecl :=
+  dts.foldr (fun d rest => .cons (native_string_lit d.name) (parserDatatype d.constructors) rest) .nil
+
+/--
+The sort, constructor and selector bindings introduced by a `declare-datatypes`
+block.  Constructors and selectors are identified by their position, so the
+order here must match `parserDatatypeDecl`.
+-/
+private def parserDatatypeBindings (dts : List (Logos.Parser.DatatypeSpec Term)) :
+    Option (List (String × Term)) :=
+  let decl := parserDatatypeDecl dts
+  some <| dts.flatMap fun d =>
+    let name := native_string_lit d.name
+    (d.name, Term.DatatypeType name decl) ::
+      d.constructors.zipIdx.flatMap fun (c, i) =>
+        (c.name, Term.DtCons name decl i) ::
+          c.selectors.zipIdx.map fun ((sel, _), j) => (sel, Term.DtSel name decl i j)
+
+def parserConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
+  ops := parserOps
+  parseLiteral := parserLiteral
+  isType := (· == .Type)
+  mkUSort := .USort
+  mkUConst := .UConst
+  apply := .Apply
+  parseRule := parserRule
+  mkAssumePush := .assume_push
+  mkStep := fun rule args premises =>
+    .step rule (args.foldr .cons .nil)
+      (premises.foldr (fun i rest => .cons (Int.ofNat i) rest) .nil)
+  mkStepPop := fun rule args premises =>
+    .step_pop rule (args.foldr .cons .nil)
+      (premises.foldr (fun i rest => .cons (Int.ofNat i) rest) .nil)
+  mkCmdList := (·.foldr .cons .nil)
+  datatypes := some
+    { mkRef := fun name => Term.DatatypeTypeRef (native_string_lit name)
+      mkDecls := parserDatatypeBindings }
+
+def parseProof (proof : String) : Except String (List Term × CCmdList) :=
+  Logos.Parser.parseProof parserConfig proof
+
+end Eo
