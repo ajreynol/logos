@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """Executive summary of lines of code and proof in Cpc/.
 
-Reports, by transitive Lean `import` closure (restricted to the `Cpc` library):
+Reports, by transitive Lean `import` closure (restricted to the `Cpc` and
+`Logos` libraries):
 
   (1) Lines to *define* eo_satisfiability: Spec.lean and its dependencies.
   (2) Lines for the proof *checker*: Logos.lean and its dependencies.
-  (3) Lines for the central proof of correctness of the checker, partitioned
+  (3) Lines for the proof *parser*: Cpc/Parser.lean and its dependencies, minus
+      the checker definitions of (2). This splits into the signature-independent
+      parser of the `Logos` library and the generated `Cpc` configuration.
+  (4) Lines for the central proof of correctness of the checker, partitioned
       into disjoint buckets (no file double-counted):
         (a) smt-model-eval type preservation
         (b) canonicity theorem
@@ -26,7 +30,7 @@ include the CheckerCore checker scaffolding they are stated against, and the
 top-level theorem (g) imports the rules, so (g) depends on (f) and nothing
 depends back on (g).
 
-Attribution for (3) is priority-based: the definitions from (1)+(2) are
+Attribution for (4) is priority-based: the definitions from (1)-(3) are
 excluded first, then each file is owned by the earliest bucket whose import
 closure reaches it. So the shared type-preservation foundation is counted once
 under (a), and the rest report only their *incremental* lines. The buckets are
@@ -84,11 +88,17 @@ CENTRAL_ROOTS = ["Cpc.Proofs.Checker"]
 SPEC_ROOTS = ["Cpc.Spec"]
 LOGOS_ROOTS = ["Cpc.Logos"]
 
+# The parser: the generated configuration plus the generic parser it plugs into.
+PARSER_ROOTS = ["Cpc.Parser"]
+
+# The libraries whose modules are counted.
+LIBRARIES = ["Cpc", "Logos"]
+
 
 # --- Import graph ---------------------------------------------------------
 # Lean's module system spells imports `public import M`, `import all M`, and
 # `public import all M` in addition to plain `import M`.
-IMPORT_RE = re.compile(r"^\s*(?:public\s+)?import\s+(?:all\s+)?(Cpc[\w.]+)")
+IMPORT_RE = re.compile(r"^\s*(?:public\s+)?import\s+(?:all\s+)?((?:Cpc|Logos)[\w.]*)")
 
 
 def module_to_path(module: str) -> str:
@@ -103,21 +113,21 @@ def path_to_module(path: str) -> str:
 def build_graph() -> tuple[dict[str, set[str]], set[str]]:
     imports: dict[str, set[str]] = {}
     modules: set[str] = set()
-    cpc_dir = os.path.join(REPO_ROOT, "Cpc")
-    for dirpath, _, files in os.walk(cpc_dir):
-        for name in files:
-            if not name.endswith(".lean"):
-                continue
-            path = os.path.join(dirpath, name)
-            module = path_to_module(path)
-            modules.add(module)
-            deps: set[str] = set()
-            with open(path, encoding="utf-8") as fh:
-                for line in fh:
-                    m = IMPORT_RE.match(line)
-                    if m:
-                        deps.add(m.group(1))
-            imports[module] = deps
+    for library in LIBRARIES:
+        for dirpath, _, files in os.walk(os.path.join(REPO_ROOT, library)):
+            for name in files:
+                if not name.endswith(".lean"):
+                    continue
+                path = os.path.join(dirpath, name)
+                module = path_to_module(path)
+                modules.add(module)
+                deps: set[str] = set()
+                with open(path, encoding="utf-8") as fh:
+                    for line in fh:
+                        m = IMPORT_RE.match(line)
+                        if m:
+                            deps.add(m.group(1))
+                imports[module] = deps
     return imports, modules
 
 
@@ -210,7 +220,7 @@ def print_dependencies(owner, imports, titles):
                 edges[src].add(dst)
 
     rank = {k: i for i, k in enumerate(["def"] + DISPLAY_ORDER)}
-    print("\n(4) Dependencies between proof pieces (X imports from Y)")
+    print("\n(5) Dependencies between proof pieces (X imports from Y)")
     for key in DISPLAY_ORDER:
         deps = sorted(edges[key], key=lambda d: rank.get(d, 99))
         shown = ", ".join("definitions" if d == "def" else f"({d})" for d in deps)
@@ -227,6 +237,7 @@ def main() -> int:
 
     spec_cl = closure(SPEC_ROOTS, imports, modules)
     logos_cl = closure(LOGOS_ROOTS, imports, modules)
+    parser_cl = closure(PARSER_ROOTS, imports, modules) - logos_cl
     central_cl = closure(CENTRAL_ROOTS, imports, modules)
 
     print("=" * 70)
@@ -243,14 +254,25 @@ def main() -> int:
     print(f"    files: {len(logos_cl):4d}    lines: {total_loc(logos_cl, cache):7d}")
     print_file_list(logos_cl, cache)
 
-    # (3) central proof of correctness, partitioned.
+    # (3) proof parser: the generic parser plus the generated configuration.
+    # The checker definitions of (2) are excluded, since the configuration
+    # imports them to build terms.
+    generic = {m for m in parser_cl if m.startswith("Logos")}
+    generated = parser_cl - generic
+    print("\n(3) Proof parser  [Cpc.Parser + dependencies, excluding (2)]")
+    print(f"    files: {len(parser_cl):4d}    lines: {total_loc(parser_cl, cache):7d}")
+    print(f"        signature-independent parser: {total_loc(generic, cache):7d}")
+    print(f"        generated configuration:      {total_loc(generated, cache):7d}")
+    print_file_list(parser_cl, cache)
+
+    # (4) central proof of correctness, partitioned.
     # The "proof universe" is everything reachable from the top-level theorem
     # PLUS the bucket roots. Non-vacuity (d) is a standalone meta-theorem that
     # nothing imports, so it is not in the central closure but is still part of
     # the correctness story the buckets account for.
-    excluded = spec_cl | logos_cl
-    print("\n(3) Central proof of correctness of the checker")
-    print("    (definitions from (1)+(2) excluded; buckets disjoint, priority-attributed)")
+    excluded = spec_cl | logos_cl | parser_cl
+    print("\n(4) Central proof of correctness of the checker")
+    print("    (definitions from (1)-(3) excluded; buckets disjoint, priority-attributed)")
 
     claimed = set(excluded)
     owner = {m: "def" for m in excluded}
