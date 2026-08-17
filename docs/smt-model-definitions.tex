@@ -765,8 +765,8 @@ deriving Repr, DecidableEq, Inhabited, Ord
 inductive SmtRegLan : Type where
   | empty : SmtRegLan
   | epsilon : SmtRegLan
-  | char : Char -> SmtRegLan
-  | range : Char -> Char -> SmtRegLan
+  | char : SmtValue -> SmtRegLan
+  | range : SmtValue -> SmtValue -> SmtRegLan
   | allchar : SmtRegLan
   | concat : SmtRegLan -> SmtRegLan -> SmtRegLan
   | union : SmtRegLan -> SmtRegLan -> SmtRegLan
@@ -882,20 +882,16 @@ specified by SMT-LIB (0 to 196607).
 
 Regular language values (\code{RegLan}) use an auxiliary datatype (\code{SmtRegLan})
 in their definition.
+Note that the base elements of regular languages (the arguments of
+\code{char} and \code{range}) are \smtvalue{}s rather than characters.
+This allows regular expression operations to be defined uniformly over the
+same unpacked sequence representation used by the sequence operations;
+well-formed regular languages carry only valid character values
+(\code{SmtValue.Char}) as base elements.
 This representation is not canonical: multiple distinct ASTs may denote the same regular language.
 Consequently, later we will see that
 equality on regular expression values will be defined extensionally, i.e.,
 two values are equal iff they accept the same set of strings.
-
-\noindent\emph{[Note on Figure~\ref{fig:smt-values} vs. the code:
-in the Lean sources, the base elements of \code{SmtRegLan} are
-\smtvalue{}s rather than characters, i.e.
-\code{char : SmtValue -> SmtRegLan} and
-\code{range : SmtValue -> SmtValue -> SmtRegLan}.
-This allows regular expression operations to be defined uniformly over the
-same unpacked sequence representation used by the sequence operations;
-well-formed regular languages carry only valid character values as base
-elements.]}
 
 The next two constructors (\code{DtCons} and \code{Apply}) are used to
 denote datatype values.
@@ -1012,7 +1008,7 @@ def smt_typeof_value : SmtValue -> SmtType
   | (SmtValue.Boolean b) => SmtType.Bool
   | (SmtValue.Binary w n) =>
       if 0 <= w ∧ n = n % (2 ^ w) then SmtType.BitVec (Int.toNat w) else SmtType.None
-  | (SmtValue.Char c) => c < 196608
+  | (SmtValue.Char c) => (if (c < 196608) then SmtType.Char else SmtType.None)
   | (SmtValue.Map m) => (smt_typeof_map_value m)
   | (SmtValue.Set m) => (smt_map_to_set_type (smt_typeof_map_value m))
   | (SmtValue.Seq ss) => (smt_typeof_seq_value ss)
@@ -1036,11 +1032,6 @@ and their value must be in the interval $[0, 2^w)$; otherwise they
 are ill-typed (i.e. have type \code{SmtType.None}).
 Similarly, characters are ill-typed if their value falls outside the
 legal range of characters as defined by SMT-LIB ($[0, 196608)$).
-
-\noindent\emph{[Note on Figure~\ref{fig:typeof-value} vs. the code:
-the \code{Char} case shown in the figure is abbreviated;
-in the code it reads
-\code{(if (c < 196608) then SmtType.Char else SmtType.None)}.]}
 
 Recall that maps and set values share a common payload (\code{SmtMap}).
 We define a method computing the type for this datatype (\code{smt_typeof_map_value}).
@@ -1339,8 +1330,8 @@ Maps and sets use a default (constant) map, where maps store the default
 value of the element type and sets store false.
 Sequence default value is the empty sequence.
 Function types have a default value which uses a reserved default identifier
-(\code{"@native_default_fun"} in the code, abbreviated \code{"@default"} in
-Figure~\ref{fig:default-value}), where note that "@" is used as a prefix to
+\code{"@default"} (named \code{"@native_default_fun"} in the code),
+where note that "@" is used as a prefix to
 avoid name clashes with user symbols.\footnote{
 SMT-LIB uses a convention that user symbols cannot be prefixed by "@".}
 Uninterpreted sort values use a default natural number identifier,
@@ -1532,7 +1523,7 @@ def smt_type_wf_component (T : SmtType) : Bool :=
 
 def smt_type_wf : SmtType -> Bool
   | SmtType.RegLan => true
-  | (SmtType.FunType T U) => (smt_type_wf_component T) && (smt_type_wf_component U)
+  | (SmtType.FunType T U) => (smt_type_wf_component T) && (smt_type_wf U)
   | T => (smt_type_wf_component T)
 \end{lstlisting}
 \caption{Type well-formedness.}
@@ -1566,19 +1557,16 @@ where regular languages return true.
 Function types are considered well-formed
 if their argument types are first-class and their return types
 are well-formed.
-Note that this excludes functions taking regular expressions
+In particular, note that the return type of a function type is checked
+recursively by \smttypewf itself rather than by
+\code{smt_type_wf_component};
+this is what permits curried multi-argument function types such as
+\code{(FunType Int (FunType Int Bool))}.
+This definition excludes functions taking regular expressions
 as arguments, as well as higher-order functions
 (functions taking functions as arguments),
-while (curried) multi-argument function types are permitted.
-
-\noindent\emph{[Note on Figure~\ref{fig:type-wf} vs. the code:
-in the code, the function type case of \code{smt_type_wf} is
-\code{(smt_type_wf_component T) && (smt_type_wf U)},
-i.e. the return type is checked recursively by \code{smt_type_wf} rather
-than by \code{smt_type_wf_component}.
-This is what permits curried multi-argument function types such as
-\code{(FunType Int (FunType Int Bool))}, which the figure's version
-would reject.]}
+since \code{smt_type_wf_component} returns false for both regular
+languages and function types.
 
 The main recursive method for computing well-formedness of types is
 \code{smt_type_wf_rec}.
@@ -1701,17 +1689,11 @@ Notice that for both clauses, we insist that the respective components of \code{
 \noindent\emph{[Note on Figure~\ref{fig:model-typed} vs. the code:
 the Lean definition is named \code{model_total_typed},
 and its first clause is split into two conjuncts (typing and canonicity).
-Moreover, the function clause is stated in terms of a wrapper
-\code{eval_fun_apply} (Lean name \code{native_eval_fun_apply})
-rather than \code{model_fun_lookup} directly:
-this wrapper behaves as \code{model_fun_lookup} except on the reserved
-default function identifier \code{"@native_default_fun"},
-for which it returns the default value of the range type
-regardless of the model.
-This guarantees the default function value from
-Figure~\ref{fig:default-value} is well-behaved in every model.
-Model evaluation of function applications (Figure~\ref{fig:model-eval})
-goes through the same wrapper.]}
+Moreover, the function clause is stated in terms of the wrapper
+\code{eval_fun_apply} (defined in Figure~\ref{fig:model-eval})
+rather than \code{model_fun_lookup} directly,
+which special-cases the reserved default function identifier
+\code{"@default"} to return the default value of the range type.]}
 
 \subsection{Terms}
 \label{sec:terms}
@@ -1729,13 +1711,14 @@ inductive SmtTerm : Type where
   | eq : SmtTerm -> SmtTerm -> SmtTerm
   | not : SmtTerm -> SmtTerm
   | and : SmtTerm -> SmtTerm -> SmtTerm
-  | select : SmtTerm -> SmtTerm
+  | select : SmtTerm -> SmtTerm -> SmtTerm
   | store : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   ...
   
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
   | DtCons : String -> SmtDatatypeDecl -> Nat -> SmtTerm
   | DtSel : String -> SmtDatatypeDecl -> Nat -> Nat -> SmtTerm
+  | DtTester : String -> SmtDatatypeDecl -> Nat -> SmtTerm
   | exists : String -> SmtType -> SmtTerm -> SmtTerm
   | forall : String -> SmtType -> SmtTerm -> SmtTerm
   | Var : String -> SmtType -> SmtTerm
@@ -1794,22 +1777,17 @@ For instance, the head and tail selectors from the example declaration
 \code{(DtSel "List" DD 0 0)} and \code{(DtSel "List" DD 0 1)}.
 Note that these indices may be out of bounds, in which case the term will be
 ill-typed.
-The embedding additionally contains a constructor
-\code{DtTester} (elided in Figure~\ref{fig:smt-terms}) with the same
+The next constructor \code{DtTester} has the same
 arguments as \code{DtCons},
 denoting the SMT-LIB discriminator (tester) for the constructor with the
 given index.
-
-\noindent\emph{[Note on Figure~\ref{fig:smt-terms} vs. the code:
-the \code{select} constructor takes two arguments in the code
-(\code{select : SmtTerm -> SmtTerm -> SmtTerm});
-the figure drops one.
-The code also contains further binder-like constructors elided here,
+Beyond the constructors shown in Figure~\ref{fig:smt-terms},
+the embedding contains further binder-like constructors,
 notably \code{choice} (Hilbert choice, discussed below) and
 \code{bind} (a let-style binder used only internally by the translation from
 Eunoia terms), as well as the internal operators
 \code{map_diff} and \code{seq_diff} used to witness disequalities
-of arrays, sets and sequences.]}
+of arrays, sets and sequences.
 
 The next two constructors (\code{forall} and \code{exists}) denote the SMT-LIB
 standard universal and existential binders.
@@ -1989,7 +1967,8 @@ def str_in_re : String -> SmtRegLan -> Bool
 
 open Classical in
 noncomputable def re_ext_eq (r1 r2 : SmtRegLan) : Bool :=
-  if ∀ s : String, (str_in_re s r1 = str_in_re s r2)
+  if (∀ s : String, string_valid s -> (str_in_re s r1 = str_in_re s r2))
+    then true else false
 
 def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (re_ext_eq r1 r2))
@@ -2003,11 +1982,14 @@ noncomputable def eval_texists (M : SmtModel) (s : String)
         smt_value_canonical v = true ∧
         smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true))
 
+def eval_fun_apply (M : SmtModel) (fid : String) (T U : SmtType) (i : SmtValue) : SmtValue :=
+  if (fid = "@default") then (smt_type_default U) else (model_fun_lookup M fid T U i)
+
 def smt_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | v, SmtValue.NotValue => SmtValue.NotValue
   | (SmtValue.DtCons s dd n), i => (SmtValue.Apply (SmtValue.DtCons s dd n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
-  | (SmtValue.Fun s T U), i => (model_fun_lookup M s T U i)
+  | (SmtValue.Fun s T U), i => (eval_fun_apply M s T U i)
   | v, i => SmtValue.NotValue
 
 noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
@@ -2021,7 +2003,7 @@ noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply f x1) =>
       (smt_model_eval_apply M (smt_model_eval M f) (smt_model_eval M x1))
   | (SmtTerm.Var s T) => (model_lookup M true s T)
-  | (SmtTerm.Const s T) => (model_lookup M false s T)
+  | (SmtTerm.UConst s T) => (model_lookup M false s T)
   | ... => ...
 \end{lstlisting}
 \caption{Core skeleton of SMT term evaluation in a model.}
@@ -2040,19 +2022,6 @@ It is also important to note that the model evaluation method \code{smt_model_ev
 is largely structurally recursive.
 For example, for a majority of operators, it builds values by first evaluating each
 direct subterm of the current one and then combining their results.
-
-\noindent\emph{[Note on Figure~\ref{fig:model-eval} vs. the code:
-the free constant constructor is \code{UConst} (not \code{Const}),
-and its case reads
-\code{(SmtTerm.UConst s T) => (model_lookup M false s T)}.
-The definition of \code{re_ext_eq} is abbreviated:
-in the code it is (a macro expanding to) a classical case split returning
-true iff membership agrees on all valid strings.
-Similarly, \code{eval_texists} is realized as a macro over a classical
-\code{if}-term in the code, with the meaning shown.
-The function-value case of \code{smt_model_eval_apply} calls the wrapper
-\code{eval_fun_apply} rather than \code{model_fun_lookup} directly,
-as discussed in the previous section.]}
 
 In the method \code{smt_model_eval},
 we present a sample of the cases.
@@ -2085,9 +2054,9 @@ membership is equivalent for all strings.
 This definition depends on a method \code{str_in_re} (not given)
 for deciding whether a concrete string is a member of a (ground) regular expression.
 This method internally is based on derivatives of strings.
-Note that in the code, the quantification in \code{re_ext_eq} is restricted
-to \emph{valid} strings, i.e. those whose characters are within the legal
-SMT-LIB character range.
+Note that the quantification in \code{re_ext_eq} is restricted
+to \emph{valid} strings (via \code{string_valid}), i.e. those whose
+characters are within the legal SMT-LIB character range.
 
 Note that function values are treated \emph{intensionally} in our definition of equality:
 the values \code{(Fun n U T)} and \code{(Fun m U T)},
@@ -2128,9 +2097,13 @@ The third case handles when the head itself was a partially applied constructor.
 It is the case by induction that the only \code{SmtValue.Apply} values
 returned by model evaluation necessarily have datatype constructors as their heads.
 In the fourth case, if the head was a function value,
-we look up its behavior in the model
-(via the wrapper \code{eval_fun_apply} discussed in the previous section)
-and apply it to the argument.
+we look up its behavior in the model and apply it to the argument,
+via the wrapper \code{eval_fun_apply} shown in the figure:
+this behaves as \code{model_fun_lookup} except on the reserved default
+identifier \code{"@default"},
+for which it returns the default value of the range type regardless of the
+model, guaranteeing that the default function value from
+Figure~\ref{fig:default-value} is well-behaved in every model.
 Otherwise, we fail to evaluate.
 
 Applications of datatype selectors and testers are given dedicated cases in
