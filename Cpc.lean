@@ -10,5 +10,13 @@ public import Cpc.SmtModel
 import all Cpc.SmtModel
 public import Cpc.Spec
 import all Cpc.Spec
+public import Cpc.Api
+import all Cpc.Api
+public import Cpc.ApiChecks
+import all Cpc.ApiChecks
+
+-- `Cpc.ApiCorrect` is deliberately not imported here: it depends on
+-- `Cpc.Proofs.Checker`, and so on the whole rule-correctness tree, which is too
+-- expensive to build as part of the default target.
 
 public section

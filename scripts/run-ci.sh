@@ -6,8 +6,23 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 cd "${repo_root}"
 
+# Examples that Logos accepts as CPC derivations but whose terms fall outside the
+# SMT-LIB fragment that Cpc/SmtModel.lean defines, so that the side conditions of
+# correct___eo_is_refutation cannot be discharged for them. The s-expression
+# executables report `unsupported` and exit 2 for these; see the Correctness
+# section of README.md.
+#
+#   examples/sexp/test-declare-sort.cpc  declares a sort of arity 1, and the
+#   specification has no counterpart for a sort constructor applied to a sort.
+unsupported_example() {
+  case "$1" in
+    examples/sexp/test-declare-sort.cpc) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # Run every example in a directory through a checker executable, requiring its
-# final nonempty output line to match the expected success marker.
+# final nonempty output line and its exit status to match what is expected.
 run_examples() {
   local exe="$1" dir="$2" pattern="$3" expected="$4"
 
@@ -20,19 +35,30 @@ run_examples() {
   fi
 
   echo "Running ${#examples[@]} examples from ${dir} through ${exe}..."
-  local example output result
+  local example output result status want want_status
   for example in "${examples[@]}"; do
     echo "::group::${example}"
-    if ! output="$(lake exe "${exe}" "${example}" 2>&1)"; then
-      printf '%s\n' "${output}"
-      echo "Regression run failed for ${example}" >&2
-      exit 1
+
+    want="${expected}"
+    want_status=0
+    if unsupported_example "${example}"; then
+      want="unsupported"
+      want_status=2
     fi
 
+    set +e
+    output="$(lake exe "${exe}" "${example}" 2>&1)"
+    status=$?
+    set -e
+
     printf '%s\n' "${output}"
+    if [ "${status}" -ne "${want_status}" ]; then
+      echo "Expected ${example} to exit with status ${want_status}, got ${status}" >&2
+      exit 1
+    fi
     result="$(printf '%s\n' "${output}" | awk 'NF { line = $0 } END { print line }')"
-    if [ "${result}" != "${expected}" ]; then
-      echo "Expected ${example} to report ${expected}, got: ${result}" >&2
+    if [ "${result}" != "${want}" ]; then
+      echo "Expected ${example} to report ${want}, got: ${result}" >&2
       exit 1
     fi
     echo "::endgroup::"
@@ -79,6 +105,7 @@ run_cpc_examples() {
 run_cpc_proofs() {
   local targets=(
     Cpc.Spec
+    Cpc.ApiChecks
     Cpc.Proofs.Rules.Refl
     Cpc.Proofs.Rules.Contra
     Cpc.Proofs.Rules.Trans
@@ -91,11 +118,13 @@ run_cpc_proofs() {
   # Expensive and not currently used in CI checks:
   # Cpc.Proofs.Rules.Chain_resolution
   # Cpc.Proofs.Checker
+  # Cpc.ApiCorrect  (the top-level theorem about Main.lean; imports Cpc.Proofs.Checker)
 }
 
 run_cpcmini() {
   local targets=(
     CpcMini.Proofs.Checker
+    CpcMini.ApiCorrect
     CpcMini.Proofs.TypePreservation.Nonvacuity
     CpcMini.Examples.TestSimpleCheckerAssumptions
   )
