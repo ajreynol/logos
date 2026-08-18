@@ -119,8 +119,8 @@ private theorem native_str_in_re_str_to_re_self
     (pat : native_String)
     (hValid : native_string_valid pat = true) :
     native_str_in_re pat (native_str_to_re pat) = true := by
-  simpa [native_str_in_re, hValid, native_str_to_re,
-    RuleProofs.nativeListInRe] using
+  rw [← RuleProofs.native_str_in_re_eq_model]
+  simpa [RuleProofs.native_str_in_re, hValid, native_str_to_re] using
     nativeListInRe_re_of_list_self pat hValid
 
 private theorem smtx_model_eval_re_in_cstring_eq
@@ -128,13 +128,18 @@ private theorem smtx_model_eval_re_in_cstring_eq
     (hStTy : __smtx_typeof_seq_value st = SmtType.Seq SmtType.Char)
     (hSsTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char) :
     __smtx_model_eval_str_in_re (SmtValue.Seq st)
-        (SmtValue.RegLan (native_str_to_re (native_unpack_string ss))) =
+        (SmtValue.RegLan (native_str_to_re (native_unpack_seq ss))) =
       __smtx_model_eval_eq (SmtValue.Seq st) (SmtValue.Seq ss) := by
+  have hStUnpack :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hStTy
+  have hSsUnpack :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSsTy
   change
     SmtValue.Boolean
-        (native_str_in_re (native_unpack_string st)
-          (native_str_to_re (native_unpack_string ss))) =
+        (Smtm.native_str_in_re (native_unpack_seq st)
+          (native_str_to_re (native_unpack_seq ss))) =
       SmtValue.Boolean (native_veq (SmtValue.Seq st) (SmtValue.Seq ss))
+  rw [hStUnpack, hSsUnpack]
   by_cases hEq : st = ss
   · subst st
     have hValid : native_string_valid (native_unpack_string ss) = true :=
@@ -155,10 +160,15 @@ private theorem smtx_model_eval_re_in_cstring_eq
           native_str_in_re (native_unpack_string st)
             (native_str_to_re (native_unpack_string ss))
       · rfl
-      · have hStrEq :
+      · have hMemStr :
+            RuleProofs.native_str_in_re (native_unpack_string st)
+                (native_str_to_re (native_unpack_string ss)) = true := by
+          rw [RuleProofs.native_str_in_re_eq_model]
+          exact hMem
+        have hStrEq :
             native_unpack_string st = native_unpack_string ss :=
           RuleProofs.native_str_in_re_str_to_re_eq
-            (native_unpack_string_valid_of_typeof_seq_char hStTy) hMem
+            (native_unpack_string_valid_of_typeof_seq_char hStTy) hMemStr
         have hPackSt :
             native_pack_string (native_unpack_string st) = st :=
           native_pack_string_unpack_string_of_typeof_seq_char st hStTy

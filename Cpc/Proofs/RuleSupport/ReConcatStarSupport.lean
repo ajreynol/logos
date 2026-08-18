@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.RegexSupport
 import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.RegexValueSupport
+import all Cpc.Proofs.RuleSupport.RegexValueSupport
 public import Cpc.Proofs.RuleSupport.ReLoopElimSupport
 import all Cpc.Proofs.RuleSupport.ReLoopElimSupport
 
@@ -337,21 +339,6 @@ theorem smt_value_rel_reglan_of_valid_eq {r s : SmtRegLan}
   change __smtx_model_eval_eq (SmtValue.RegLan r) (SmtValue.RegLan s) =
     SmtValue.Boolean true
   simpa [__smtx_model_eval_eq] using hModel
-
-/-- Read extensional membership equality off a `RegLan` semantic equality. -/
-theorem reglan_str_in_re_eq_of_smt_value_rel {r s : SmtRegLan}
-    (h : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s))
-    (str : native_String) (hValid : native_string_valid str = true) :
-    native_str_in_re str r = native_str_in_re str s := by
-  have hModel : ∀ str : native_String,
-      native_string_valid str = true ->
-        Smtm.native_str_in_re (native_string_to_values str) r =
-          Smtm.native_str_in_re (native_string_to_values str) s := by
-    change __smtx_model_eval_eq (SmtValue.RegLan r) (SmtValue.RegLan s) =
-      SmtValue.Boolean true at h
-    simpa [__smtx_model_eval_eq] using h
-  rw [native_str_in_re_eq_model str r, native_str_in_re_eq_model str s]
-  exact hModel str hValid
 
 /-- Final extensional equality of `re.loop n m (r*)` and `r*`, packaged for the rule. -/
 theorem re_loop_star_smt_value_rel

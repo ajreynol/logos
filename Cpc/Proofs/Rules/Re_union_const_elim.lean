@@ -191,8 +191,11 @@ private theorem str_in_re_true_of_prem
     (M : SmtModel) (s r : Term) (ss : SmtSeq) (rv : SmtRegLan)
     (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
     (hREval : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv)
+    (hSsTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char)
     (hPrem : eo_interprets M (prem s r) true) :
     native_str_in_re (native_unpack_string ss) rv = true := by
+  have hUnpack :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSsTy
   have hPremRel :=
     RuleProofs.eo_interprets_eq_rel M
       (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)
@@ -205,7 +208,8 @@ private theorem str_in_re_true_of_prem
     change __smtx_model_eval M
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)) =
       SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv)
-    simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval, hREval]
+    simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval, hREval,
+      hUnpack]
   have hTrueEval :
       __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) =
         SmtValue.Boolean true := by
@@ -223,7 +227,7 @@ private theorem str_in_re_true_of_prem
 private theorem smt_value_rel_union_const_elim
     (pat : native_String) (rv : SmtRegLan)
     (hPatValid : native_string_valid pat = true)
-    (hPatMem : native_str_in_re pat rv = true) :
+    (hPatMem : RuleProofs.native_str_in_re pat rv = true) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan
         (native_re_union (native_str_to_re pat)
@@ -238,13 +242,14 @@ private theorem smt_value_rel_union_const_elim
   congr
   simp
   intro str hValid
+  simp only [← RuleProofs.native_str_in_re_eq_model]
   rw [RuleProofs.native_str_in_re_re_union,
     RuleProofs.native_str_in_re_re_union,
     RuleProofs.native_str_in_re_re_none]
-  cases hRv : native_str_in_re str rv
+  cases hRv : RuleProofs.native_str_in_re str rv
   · have hSingletonFalse :
-        native_str_in_re str (native_str_to_re pat) = false := by
-      cases hSg : native_str_in_re str (native_str_to_re pat)
+        RuleProofs.native_str_in_re str (native_str_to_re pat) = false := by
+      cases hSg : RuleProofs.native_str_in_re str (native_str_to_re pat)
       · rfl
       · have hStrEq : str = pat :=
           RuleProofs.native_str_in_re_str_to_re_eq hValid hSg
@@ -283,8 +288,12 @@ private theorem facts
     simpa [hSEval, __smtx_typeof_value] using hSEvalTy
   have hPatValid : native_string_valid (native_unpack_string ss) = true :=
     native_unpack_string_valid_of_typeof_seq_char hSsTy
-  have hPatMem : native_str_in_re (native_unpack_string ss) rv = true :=
-    str_in_re_true_of_prem M s r ss rv hSEval hREval hPrem
+  have hPatMem :
+      RuleProofs.native_str_in_re (native_unpack_string ss) rv = true := by
+    rw [RuleProofs.native_str_in_re_eq_model]
+    exact str_in_re_true_of_prem M s r ss rv hSEval hREval hSsTy hPrem
+  have hSUnpack :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSsTy
   have hLhsEval :
       __smtx_model_eval M (__eo_to_smt (lhs r s)) =
         SmtValue.RegLan
@@ -297,7 +306,7 @@ private theorem facts
       SmtValue.RegLan
         (native_re_union (native_str_to_re (native_unpack_string ss))
           (native_re_union rv native_re_none))
-    simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
+    simp [hSUnpack, __smtx_model_eval, __smtx_model_eval_str_to_re,
       __smtx_model_eval_re_union, hSEval, hREval]
   exact RuleProofs.eo_interprets_eq_of_rel M (lhs r s) (rhs r) hBool <| by
     rw [hLhsEval, hREval]
