@@ -80,12 +80,10 @@ theorem nullable_of_premise (M : SmtModel) (r1 : Term) (r1v : SmtRegLan)
     (RuleProofs.smt_value_rel_iff_eq _ _ (by rintro ⟨a, b, hbad, _⟩; cases hbad)).1 hRel
   have hMem : native_str_in_re ([] : native_String) r1v = true := by
     simpa using hEq
-  have : native_re_nullable r1v = true := by
-    have : native_string_valid ([] : native_String) = true := by
-      simp [native_string_valid]
-    rw [RuleProofs.native_str_in_re_eq_nativeListInRe ([] : native_String) r1v this] at hMem
-    simpa [RuleProofs.nativeListInRe] using hMem
-  exact this
+  have hNull : native_re_nullable r1v = true := by
+    simpa [Smtm.native_str_in_re, native_re_str_valid, native_string_to_values]
+      using hMem
+  exact hNull
 
 end ReConcatStarNullable2Proof
 

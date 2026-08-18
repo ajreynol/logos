@@ -12,15 +12,27 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Derivatives of the empty language stay empty, so no value sequence matches it. -/
+private theorem foldl_deriv_re_empty :
+    ∀ xs : List SmtValue,
+      xs.foldl (fun acc c => native_re_deriv c acc) SmtRegLan.empty = SmtRegLan.empty
+  | [] => rfl
+  | c :: cs => by
+      simpa [native_re_deriv] using foldl_deriv_re_empty cs
+
+private theorem native_str_in_re_re_none_false (xs : List SmtValue) :
+    Smtm.native_str_in_re xs native_re_none = false := by
+  simp [Smtm.native_str_in_re, native_re_none, foldl_deriv_re_empty,
+    native_re_nullable]
+
 private theorem smtx_model_eval_re_in_empty (ss : SmtSeq)
     (hValid : native_string_valid (native_unpack_string ss) = true) :
     __smtx_model_eval_str_in_re (SmtValue.Seq ss) (SmtValue.RegLan native_re_none) =
       SmtValue.Boolean false := by
-  change SmtValue.Boolean (native_str_in_re (native_unpack_string ss) native_re_none) =
+  change SmtValue.Boolean
+      (Smtm.native_str_in_re (native_unpack_seq ss) native_re_none) =
     SmtValue.Boolean false
-  rw [show native_str_in_re (native_unpack_string ss) native_re_none = false by
-    simpa [native_str_in_re, hValid, native_re_none, RuleProofs.nativeListInRe]
-      using RuleProofs.nativeListInRe_empty (native_unpack_string ss)]
+  rw [native_str_in_re_re_none_false]
 
 private theorem smtx_typeof_re_none :
     __smtx_typeof SmtTerm.re_none = SmtType.RegLan := by

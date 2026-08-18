@@ -28,20 +28,12 @@ theorem smt_value_rel_re_concat_congr
       (SmtValue.RegLan (native_re_concat r' s')) := by
   have hrExt : ∀ xs : native_String,
       native_string_valid xs = true ->
-      native_str_in_re xs r = native_str_in_re xs r' := by
-    rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hr
-    change SmtValue.Boolean (native_re_ext_eq r r') =
-      SmtValue.Boolean true at hr
-    simp at hr
-    exact hr
+      native_str_in_re xs r = native_str_in_re xs r' := fun xs hxs =>
+    RuleProofs.reglan_str_in_re_eq_of_smt_value_rel hr xs hxs
   have hsExt : ∀ xs : native_String,
       native_string_valid xs = true ->
-      native_str_in_re xs s = native_str_in_re xs s' := by
-    rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hs
-    change SmtValue.Boolean (native_re_ext_eq s s') =
-      SmtValue.Boolean true at hs
-    simp at hs
-    exact hs
+      native_str_in_re xs s = native_str_in_re xs s' := fun xs hxs =>
+    RuleProofs.reglan_str_in_re_eq_of_smt_value_rel hs xs hxs
   apply RuleProofs.smt_value_rel_reglan_of_valid_eq
   intro xs hValid
   rw [RuleProofs.native_str_in_re_eq_nativeListInRe xs _ hValid,
@@ -151,7 +143,7 @@ theorem nativeListInRe_mk_star_once
       have hNil : xs = [] :=
         (RuleProofs.nativeListInRe_epsilon_iff xs).1 hMem
       subst xs
-      simp [native_re_mk_star, nativeListInRe, native_re_nullable]
+      simp [native_re_mk_star, native_re_mult, nativeListInRe, native_re_nullable]
   | star r =>
       simpa [native_re_mk_star] using hMem
   | char c =>
@@ -312,10 +304,10 @@ theorem nativeListInRe_mk_star_swap
       nativeListInRe xs
         (native_re_mk_concat r (native_re_mk_star r)) := by
   cases r with
-  | empty => simp [native_re_mk_star, native_re_mk_concat,
-      RuleProofs.nativeListInRe_empty]
-  | epsilon => simp [native_re_mk_star, native_re_mk_concat]
-  | star r => simp [native_re_mk_star]
+  | empty => simp [native_re_mk_star, native_re_mult, native_re_mk_concat,
+      native_re_concat, RuleProofs.nativeListInRe_empty]
+  | epsilon => simp [native_re_mk_star, native_re_mult, native_re_mk_concat]
+  | star r => simp [native_re_mk_star, native_re_mult]
   | char c => simpa [native_re_mk_star] using
       nativeListInRe_raw_star_swap xs (SmtRegLan.char c)
   | range lo hi => simpa [native_re_mk_star] using

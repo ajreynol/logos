@@ -101,11 +101,8 @@ theorem list_concat_rec_cons (f x y z : Term) (hz : z ≠ Term.Stuck) :
 theorem reglan_rel_valid_eq {r s : SmtRegLan} {str : native_String}
     (hRel : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s))
     (hValid : native_string_valid str = true) :
-    native_str_in_re str r = native_str_in_re str s := by
-  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
-  change SmtValue.Boolean (native_re_ext_eq r s) = SmtValue.Boolean true at hRel
-  simp at hRel
-  exact hRel str hValid
+    native_str_in_re str r = native_str_in_re str s :=
+  reglan_str_in_re_eq_of_smt_value_rel hRel str hValid
 
 /-! ## `re_concat` right-congruence (valid strings) -/
 
@@ -297,7 +294,7 @@ theorem eval_sigma_star (M : SmtModel) :
       SmtValue.RegLan native_re_all := by
   change __smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt (Term.UOp UserOp.re_allchar))) = _
   simp [__smtx_model_eval, __smtx_model_eval_re_mult, native_re_mult,
-    native_re_mk_star, native_re_all, native_re_allchar]
+    native_re_all, native_re_allchar]
 
 /-! ## Eval-level soundness of the two nullable conclusions -/
 
