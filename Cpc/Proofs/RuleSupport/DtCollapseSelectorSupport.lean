@@ -3386,7 +3386,7 @@ theorem tuple_prepend_zero_projection
       rw [hTailTy]
       dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
       simp [__eo_to_smt_tuple_prepend_of_type,
-        __smtx_tuple_datatype_decl, fullD, native_streq, native_and,
+        __smtx_tuple_datatype_decl, native_streq, native_and,
         native_ite, hWf]
     · rfl
   dsimp [fullD, __smtx_tuple_datatype_decl] at hFullWf
@@ -3459,7 +3459,7 @@ private theorem tuple_prepend_succ_projection_of_get
       rw [hTailTy]
       dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
       simp [__eo_to_smt_tuple_prepend_of_type,
-        __smtx_tuple_datatype_decl, fullD, native_streq, native_and,
+        __smtx_tuple_datatype_decl, native_streq, native_and,
         native_ite, hWf]
     · rfl
   dsimp [fullD, __smtx_tuple_datatype_decl] at hFullWf
@@ -3900,7 +3900,7 @@ private theorem tuple_prepend_datatype_eq_of_type
       rw [hTailTy]
       dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
       simp [__eo_to_smt_tuple_prepend_of_type,
-        __smtx_tuple_datatype_decl, fullD, native_streq, native_and,
+        __smtx_tuple_datatype_decl, native_streq, native_and,
         native_ite, hWf]
     · rfl
   dsimp [fullD, __smtx_tuple_datatype_decl] at hFullWf

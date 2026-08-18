@@ -107,8 +107,8 @@ private theorem real_of_geq_zero_bool (t : Term)
       simp_all [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
         native_ite, native_teq, native_not, SmtEval.native_not]
   | _ =>
-    simp_all [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-      native_ite, native_teq, native_not, SmtEval.native_not]
+    simp_all [__eo_typeof_lt, __eo_requires, __eo_eq,
+      native_ite, native_teq]
 
 /-- `__eo_typeof_ite` is non-stuck only when its first argument (condition type)
     is `Bool`. -/

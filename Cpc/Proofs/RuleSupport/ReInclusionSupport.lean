@@ -111,12 +111,12 @@ theorem native_includes_re_all (r : SmtRegLan) :
 private theorem native_re_concat_right_empty (r : SmtRegLan) :
     native_re_concat r (native_str_to_re []) = r := by
   cases r <;> simp [native_re_concat, native_str_to_re, native_re_of_list,
-    native_re_mk_concat]
+    ]
 
 private theorem native_re_concat_left_empty (r : SmtRegLan) :
     native_re_concat (native_str_to_re []) r = r := by
   cases r <;> simp [native_re_concat, native_str_to_re, native_re_of_list,
-    native_re_mk_concat]
+    ]
 
 theorem native_includes_concat
     {r1 r2 s1 s2 : SmtRegLan}
@@ -473,7 +473,7 @@ private theorem nativeListInRe_char_true_eq
             by_cases hc : native_char_valid c = true <;>
             by_cases hdc : d = c <;>
             simp [nativeListInRe, native_re_deriv, native_re_nullable,
-              hd, hc, hdc] at hMem
+              hdc] at hMem
           all_goals
             subst d
             rfl
@@ -481,7 +481,7 @@ private theorem nativeListInRe_char_true_eq
           by_cases hd : native_char_valid d = true <;>
             by_cases hc : native_char_valid c = true <;>
             by_cases hdc : d = c <;>
-            simp [nativeListInRe, native_re_deriv, hd, hc, hdc] at hMem
+            simp [nativeListInRe, native_re_deriv, hdc] at hMem
           all_goals
             rw [nativeListInRe_empty es] at hMem
             cases hMem
@@ -523,7 +523,7 @@ theorem native_str_in_re_str_to_re_eq
 private theorem nativeListInRe_char_self
     (c : native_Char) (hc : native_char_valid c = true) :
     nativeListInRe [c] (SmtRegLan.char c) = true := by
-  simp [nativeListInRe, native_re_deriv, native_re_nullable, hc]
+  simp [nativeListInRe, native_re_deriv, native_re_nullable]
 
 private theorem nativeListInRe_re_of_list_self :
     ∀ pat : native_String,
@@ -755,7 +755,7 @@ theorem smtx_model_eval_re_mult_allchar :
     __smtx_model_eval_re_mult (SmtValue.RegLan native_re_allchar) =
       SmtValue.RegLan native_re_all := by
   simp [__smtx_model_eval_re_mult, native_re_mult, native_re_allchar,
-    native_re_all, native_re_mk_star]
+    native_re_all]
 
 private theorem smtx_model_eval_sigma_star_concat_eps (M : SmtModel) :
     __smtx_model_eval M
@@ -773,9 +773,9 @@ private theorem smtx_model_eval_sigma_star_concat_eps (M : SmtModel) :
     SmtValue.RegLan native_re_all
   simp [__smtx_model_eval, __smtx_model_eval_re_mult,
     __smtx_model_eval_re_concat, __smtx_model_eval_str_to_re,
-    native_unpack_string_pack_string, native_re_mult, native_re_concat,
+    native_re_mult, native_re_concat,
     native_re_allchar, native_re_all, native_str_to_re, native_re_of_list,
-    native_re_mk_concat, native_re_mk_star]
+    ]
 
 private theorem smtx_model_eval_re_empty_string (M : SmtModel) :
     __smtx_model_eval M
@@ -786,7 +786,7 @@ private theorem smtx_model_eval_re_empty_string (M : SmtModel) :
       (SmtTerm.str_to_re (SmtTerm.String [])) =
     SmtValue.RegLan (native_str_to_re [])
   simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-    native_unpack_string_pack_string]
+    ]
 
 private theorem smtx_typeof_re_empty_string :
     __smtx_typeof
@@ -1228,13 +1228,13 @@ private theorem native_includes_range_of_side
       (SmtTerm.re_range (SmtTerm.String [loSup]) (SmtTerm.String [hiSup])) =
     SmtValue.RegLan rvSup at hSupEval
   simp [__smtx_model_eval, __smtx_model_eval_re_range,
-    native_unpack_string_pack_string] at hSupEval
+    ] at hSupEval
   cases hSupEval
   change __smtx_model_eval M
       (SmtTerm.re_range (SmtTerm.String [loSub]) (SmtTerm.String [hiSub])) =
     SmtValue.RegLan rvSub at hSubEval
   simp [__smtx_model_eval, __smtx_model_eval_re_range,
-    native_unpack_string_pack_string] at hSubEval
+    ] at hSubEval
   cases hSubEval
   exact native_includes_range_singleton hLoSupValid hHiSupValid hLoSubValid
     hHiSubValid hLo hHi
@@ -1865,7 +1865,7 @@ private theorem str_re_includes_sound_mutual
         (SmtTerm.str_to_re (SmtTerm.String pat)) =
       SmtValue.RegLan rvSub at hSubEval
     simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-      native_unpack_string_pack_string] at hSubEval
+      ] at hSubEval
     cases hSubEval
     exact native_includes_str_to_re_of_eval_side M hM r1 pat rvSup
       hSTy hSupTy hSupEval hEvalSide

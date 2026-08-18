@@ -120,18 +120,18 @@ private theorem str_mk_ext_deq_ne_stuck_imp_seq
   by_cases ha : a = Term.Stuck
   · subst a; simp [__str_mk_ext_deq] at h
   by_cases hb : b = Term.Stuck
-  · subst b; simp [__str_mk_ext_deq, ha] at h
+  · subst b; simp [__str_mk_ext_deq] at h
   by_cases hkS : k = Term.Stuck
-  · subst k; simp [__str_mk_ext_deq, ha, hb] at h
+  · subst k; simp [__str_mk_ext_deq] at h
   cases hT : T with
   | Apply fT TT =>
     cases fT with
     | UOp opT =>
       cases opT with
       | Seq => exact ⟨TT, rfl⟩
-      | _ => simp [__str_mk_ext_deq, ha, hb, hkS, hT] at h
-    | _ => simp [__str_mk_ext_deq, ha, hb, hkS, hT] at h
-  | _ => simp [__str_mk_ext_deq, ha, hb, hkS, hT] at h
+      | _ => simp [__str_mk_ext_deq, hT] at h
+    | _ => simp [__str_mk_ext_deq, hT] at h
+  | _ => simp [__str_mk_ext_deq, hT] at h
 
 /-- The deq subterm of the `string_ext` conclusion. -/
 private def stringExtDeq (a b A : Term) : Term :=
@@ -251,13 +251,13 @@ private theorem string_ext_result_imp_seq_types
       | _ =>
         exfalso; rw [hkc] at hResultTy
         simp [__eo_typeof_or, __eo_typeof_or, __eo_typeof_lt, __eo_typeof_str_len,
-          __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq,
-          SmtEval.native_not, native_not] at hResultTy
+          __eo_requires, __eo_eq, native_ite, native_teq,
+          ] at hResultTy
     | _ =>
       exfalso; rw [hkc] at hResultTy
       simp [__eo_typeof_or, __eo_typeof_or, __eo_typeof_lt, __eo_typeof_str_len,
-        __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq,
-        SmtEval.native_not, native_not] at hResultTy
+        __eo_requires, __eo_eq, native_ite, native_teq,
+        ] at hResultTy
   rcases string_ext_deq_diff_int_imp_seq a b hkInt with ⟨A', hA'a, hA'b⟩
   rw [hA] at hA'a
   have : A' = A := by
@@ -465,7 +465,7 @@ private theorem stringExtDeq_bool
   rw [stringExtDeq_eq a b A ha hb]
   by_cases hChar : A = Term.UOp UserOp.Char
   · subst hChar
-    simp only [if_pos rfl]
+    simp only
     apply RuleProofs.eo_has_bool_type_not_of_bool_arg
     apply RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     · rw [str_substr_smt_typeof a _ _ hSmtA hKInt,

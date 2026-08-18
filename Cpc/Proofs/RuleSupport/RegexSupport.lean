@@ -253,7 +253,7 @@ theorem nativeListInRe_deriv_mk_concat
                   (native_re_mk_concat (native_re_deriv c r) s)
                   (if native_re_nullable r then native_re_deriv c s
                     else SmtRegLan.empty)) = _
-          simp [native_re_deriv, nativeListInRe_mk_union]
+          simp [nativeListInRe_mk_union]
 
 def nativeListInReConcat :
     List native_Char -> SmtRegLan -> SmtRegLan -> native_Bool
@@ -409,7 +409,7 @@ theorem native_str_in_re_re_comp
   cases hValid : native_string_valid str with
   | false => simp [native_str_in_re, hValid]
   | true =>
-      simp only [native_str_in_re, native_re_str_valid_string, hValid, if_pos,
+      simp only [native_str_in_re, hValid,
         Bool.true_and]
       exact nativeListInRe_mk_comp str r
 
@@ -521,13 +521,13 @@ private theorem native_re_deriv_re_all
     (c : native_Char) (hValid : native_char_valid c = true) :
     native_re_deriv c native_re_all = native_re_all := by
   simp [native_re_all, native_re_deriv, native_re_elem_valid,
-    native_re_mk_concat, native_re_concat, hValid]
+    native_re_concat, hValid]
 
 private theorem native_re_deriv_re_all_invalid
     (c : native_Char) (hValid : native_char_valid c = false) :
     native_re_deriv c native_re_all = SmtRegLan.empty := by
   simp [native_re_all, native_re_deriv, native_re_elem_valid,
-    native_re_mk_concat, native_re_concat, hValid]
+    native_re_concat, hValid]
 
 theorem nativeListInRe_re_all_true_iff (xs : List native_Char) :
     nativeListInRe xs native_re_all = true ↔

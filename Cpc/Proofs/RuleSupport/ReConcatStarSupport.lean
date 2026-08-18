@@ -31,7 +31,7 @@ theorem native_str_in_re_eq_nativeListInRe
     (s : native_String) (r : SmtRegLan)
     (hValid : native_string_valid s = true) :
     native_str_in_re s r = nativeListInRe s r := by
-  simp [native_str_in_re, hValid, nativeListInRe]
+  simp [native_str_in_re, hValid]
 
 /-! ## Membership facts for epsilon and star -/
 

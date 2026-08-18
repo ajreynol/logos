@@ -15185,8 +15185,8 @@ private theorem reConcat_smt_value_rel_right_empty_eval
     SmtValue.Boolean true
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hIdEval]
   cases r <;>
-    simp [__smtx_model_eval_eq, native_re_concat, native_re_mk_concat,
-      native_str_to_re, native_re_of_list, native_string_lit_empty]
+    simp [__smtx_model_eval_eq, native_re_concat, native_str_to_re,
+      native_re_of_list, native_string_to_values, native_string_lit_empty]
 
 private theorem reConcat_smt_value_rel_left_empty_eval
     (M : SmtModel) (id x : Term) (r : SmtRegLan) :
@@ -15205,8 +15205,8 @@ private theorem reConcat_smt_value_rel_left_empty_eval
     SmtValue.Boolean true
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hIdEval, hxEval]
   cases r <;>
-    simp [__smtx_model_eval_eq, native_re_concat, native_re_mk_concat,
-      native_str_to_re, native_re_of_list, native_string_lit_empty]
+    simp [__smtx_model_eval_eq, native_re_concat, native_str_to_re,
+      native_re_of_list, native_string_to_values, native_string_lit_empty]
 
 private theorem reConcat_eval_reglan_of_reglan_args
     (M : SmtModel) (x y : Term) :
@@ -15443,7 +15443,7 @@ private theorem reConcat_nil_eval_empty_of_is_list_nil_true
               SmtValue.RegLan (native_str_to_re (native_string_lit ""))
             simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
               native_str_to_re, native_re_of_list, native_pack_string,
-              native_unpack_string, native_pack_seq, native_unpack_seq,
+              native_string_to_values, native_pack_seq, native_unpack_seq,
               native_string_lit_empty]
           · cases s with
             | nil =>
@@ -15791,7 +15791,7 @@ private theorem smt_value_rel_get_a_norm_re_concat
       SmtValue.RegLan (native_str_to_re (native_string_lit ""))
     simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
       native_str_to_re, native_re_of_list, native_pack_string,
-      native_unpack_string, native_pack_seq, native_unpack_seq,
+      native_string_to_values, native_pack_seq, native_unpack_seq,
       native_string_lit_empty]
   have hIdCan : ReConcatListCanonical M id := by
     rw [hIdEq]

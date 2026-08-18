@@ -1185,7 +1185,7 @@ private theorem qds_tuple_resolve_cons_noop
           subst s
           exact False.elim (hNoRef.1 hU)
       | _ =>
-          simp [hU, __smtx_dtc_resolve, hTail]
+          simp [__smtx_dtc_resolve, hTail]
 
 theorem qds_tuple_resolve_noop_of_eo_type
     (T : Term) (c : SmtDatatypeCons)
@@ -1365,7 +1365,7 @@ private theorem qds_tuple_selector_type
     rw [hTailTy]
     simp [R, tailDD, tailD, __smtx_typeof_apply,
       __smtx_typeof_guard, __smtx_typeof_guard_wf,
-      hRetWfR, hRNN, native_ite, native_Teq]
+      hRetWfR, native_ite, native_Teq]
   · exact hRetWf
 
 theorem qds_tuple_ret_type_wf_of_eo_type
@@ -1695,7 +1695,7 @@ private theorem qds_tuple_prepend_non_none
               SmtDatatypeDecl.nil)) = true := by
     simpa [__smtx_tuple_datatype_decl] using hFullWf
   simp [__eo_to_smt_tuple_prepend_of_type, __smtx_tuple_datatype_decl,
-    native_streq, native_and, hFullWf, native_ite]
+    native_streq, native_and, native_ite]
   rw [hFullWf']
   simp only [if_true]
   let tailD := SmtDatatype.sum c SmtDatatype.null

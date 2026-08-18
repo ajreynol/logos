@@ -784,7 +784,7 @@ private theorem native_str_in_re_char_length
           have hList := nativeListInRe_of_str_in_re_true h
           simp only [RuleProofs.nativeListInRe, native_re_deriv] at hList
           split at hList <;>
-            simp [RuleProofs.nativeListInRe, native_re_deriv,
+            simp [native_re_deriv,
               nativeListInRe_empty] at hList
 
 private theorem native_str_in_re_range_atom_length
@@ -802,7 +802,7 @@ private theorem native_str_in_re_range_atom_length
           have hList := nativeListInRe_of_str_in_re_true h
           simp only [RuleProofs.nativeListInRe, native_re_deriv] at hList
           split at hList <;>
-            simp [RuleProofs.nativeListInRe, native_re_deriv,
+            simp [native_re_deriv,
               nativeListInRe_empty] at hList
 
 private theorem native_str_in_re_allchar_length
@@ -822,7 +822,7 @@ private theorem native_str_in_re_allchar_length
           simp only [native_re_allchar, RuleProofs.nativeListInRe,
             native_re_deriv] at hList
           split at hList <;>
-            simp [RuleProofs.nativeListInRe, native_re_deriv,
+            simp [native_re_deriv,
               nativeListInRe_empty] at hList
 
 private theorem native_str_in_re_range_length
@@ -1133,11 +1133,11 @@ theorem str_fixed_len_re_sound (M : SmtModel) :
                   (SmtTerm.str_to_re (SmtTerm.String pat)) =
                 SmtValue.RegLan rr at hEval
             simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-              native_unpack_pack_string] at hEval
+              ] at hEval
             cases hEval
             have hLen := native_str_in_re_str_to_re_length hIn
             simp [native_str_len, hLen, native_pack_string,
-              native_string_to_values, Smtm.native_unpack_pack_seq]
+              Smtm.native_unpack_pack_seq]
           case Binary =>
             cases hFixed
             change
@@ -2272,7 +2272,7 @@ theorem string_eager_reduction_true
                 __smtx_model_eval_str_len, __smtx_model_eval_eq,
                 __smtx_model_eval_geq, __smtx_model_eval_leq,
                 __smtx_model_eval_or, __smtx_model_eval_and, native_seq_len,
-                native_veq, native_zleq, native_or, native_and, hIdxEq, hIdxLe]
+                native_veq, native_zleq, native_or, native_and, hIdxEq]
             · simp [tz, ty, tx, idx, idxVal, leftTerm, rightTerm, __smtx_model_eval,
                 hZEval, hYEval, hXEval, __smtx_model_eval_str_indexof,
                 __smtx_model_eval_str_len, __smtx_model_eval_eq,

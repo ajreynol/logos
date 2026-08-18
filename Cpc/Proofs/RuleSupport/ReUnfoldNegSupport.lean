@@ -255,7 +255,7 @@ theorem reConcat_nil_eval_empty_of_is_list_nil_true
                 SmtValue.RegLan (native_str_to_re ([] : native_String))
               simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
                 native_str_to_re, native_re_of_list, native_pack_string,
-                native_unpack_string, native_pack_seq, native_unpack_seq,
+                native_pack_seq, native_unpack_seq,
                 native_string_to_values]
           | cons _ _ =>
               simp only [__eo_is_list_nil] at hNil
@@ -278,7 +278,7 @@ private theorem reConcat_smt_value_rel_right_empty_eval
     SmtValue.Boolean true
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hIdEval]
   cases r <;>
-    simp [__smtx_model_eval_eq, native_re_concat, native_re_mk_concat,
+    simp [__smtx_model_eval_eq, native_re_concat,
       native_str_to_re, native_re_of_list, native_string_to_values]
 
 private theorem reConcat_is_list_nil_boolean_of_ne_stuck (t : Term) :
