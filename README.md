@@ -7,11 +7,15 @@ It is an executable checker whose soundness is proven in Lean against a correctn
 specification, which depends on a complete definition of SMT-LIB semantics in Lean.
 See [Correctness](#correctness) below for what that proof establishes and what it still assumes.
 
-The proof rules used by Logos are flexible.
-The proof rules currently used by Logos are automatically generated from the current definition of the Cooperating Proof Calculus (CPC)
+Logos has a fully functional CPC parser, meaning that it accepts the same syntax for proofs as Ethos.
+However, Logos does not support arbitrary Eunoia signatures.
+Instead,
+the proof rules currently used by Logos are automatically generated from the current definition of the Cooperating Proof Calculus (CPC)
 (https://github.com/cvc5/cvc5/blob/main/proofs/eo/cpc/Cpc.eo).
 This compilation depends on plugins of the proof checker Ethos (https://github.com/cvc5/ethos),
 available on a development branch.
+The definition of Logos is intended to evolve and remain in sync with the definition of Cpc
+as further reasoning capabilities are added to cvc5.
 
 ## Building the Logos checker
 
@@ -132,8 +136,8 @@ with the SMT-LIB `""` escape.
 ## Correctness
 
 Logos is verified: its soundness is stated and proven in Lean against a specification of
-SMT-LIB semantics, so a proof it accepts really does establish that the assumptions of that
-proof are unsatisfiable.
+SMT-LIB semantics, so a proof it accepts implies that the assumptions of that
+proof are indeed unsatisfiable.
 The specification is in two parts. First, the file `./Cpc/SmtModel.lean` formalizes a model semantics of SMT-LIB.
 Second, the file `./Cpc/Spec.lean` defines a correspondence between Eunoia terms and SMT-LIB terms
 and a definition of satisfiability for Eunoia terms.
@@ -146,6 +150,8 @@ This includes total versions of partial arithmetic operators.
 The correctness proof for the checker lives in `Cpc/Proofs/Checker.lean`,
 whose final theorem `correct___eo_is_refutation` states that
 a successfully checked proof in Logos implies that the input assumptions to that proof are indeed unsatisfiable.
+This theorem intentionally has two explicit assumptions that state that the given proof uses only terms that
+have a corresponding SMT-LIB semantics.
 That theorem is proven, as are the correctness proofs of the individual proof rules it relies on.
 There are no `sorry`s in the soundness proof or its dependencies.
 
