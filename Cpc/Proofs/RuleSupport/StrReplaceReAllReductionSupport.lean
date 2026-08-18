@@ -619,8 +619,7 @@ theorem replace_all_eq_of_find_nonempty_idx_aux
                 change c :: native_re_replace_all_nonempty_list r replacement cs = _
                 have hTake :
                     (c :: cs).take (1 + gap) = c :: cs.take gap := by
-                  simpa [Nat.add_comm] using
-                    (List.take_succ_cons (a := c) (as := cs) (i := gap))
+                  simp [Nat.add_comm]
                 have hDropIndex : 1 + gap + len = (gap + len) + 1 := by
                   omega
                 rw [hTake, hDropIndex, List.drop_succ_cons]
@@ -640,8 +639,7 @@ theorem replace_all_eq_of_find_nonempty_idx_aux
                     change c :: native_re_replace_all_nonempty_list r replacement cs = _
                     have hTake :
                         (c :: cs).take (1 + gap) = c :: cs.take gap := by
-                      simpa [Nat.add_comm] using
-                        (List.take_succ_cons (a := c) (as := cs) (i := gap))
+                      simp [Nat.add_comm]
                     have hDropIndex : 1 + gap + len = (gap + len) + 1 := by
                       omega
                     rw [hTake, hDropIndex, List.drop_succ_cons]
@@ -1147,7 +1145,7 @@ theorem indexof_nonemptyRe_at_reBound
       native_str_indexof_re s (nonemptyRe r)
           (Int.ofNat (reBound r s n)) = Int.ofNat found := by
     have hStartNonneg : ¬ Int.ofNat (reBound r s n) < 0 :=
-      Int.not_lt.mpr (Int.ofNat_zero_le _)
+      Int.not_lt.mpr (Int.natCast_nonneg _)
     have hFindFiltered :
         native_re_find_idx_from (nonemptyRe r) s (reBound r s n) =
           some (found, len) := by

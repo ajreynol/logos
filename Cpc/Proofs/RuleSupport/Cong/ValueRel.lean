@@ -543,7 +543,7 @@ private theorem native_re_replace_all_nonempty_list_aux_congr_valid :
                 native_re_positive_prefix_match_len? r' [] := by
             simpa [native_string_to_values] using
               native_re_positive_prefix_match_len_congr_valid r r' []
-                (by simpa [native_string_valid] using hValid) hExt
+                (by simp [native_string_valid]) hExt
           rw [native_re_replace_all_nonempty_list_aux.eq_2,
             native_re_replace_all_nonempty_list_aux.eq_2, hPref]
           cases native_re_positive_prefix_match_len? r' [] with

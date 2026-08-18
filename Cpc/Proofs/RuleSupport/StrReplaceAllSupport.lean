@@ -692,7 +692,7 @@ theorem prefix_eq_of_prefix_take (pat : List SmtValue) :
   | cons p ps ih =>
       intro ys t h
       cases ys with
-      | nil => simpa [native_seq_prefix_eq] using h
+      | nil => simp [native_seq_prefix_eq] at h
       | cons y ys' =>
           cases t with
           | zero => simp [native_seq_prefix_eq] at h

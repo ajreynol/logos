@@ -1511,7 +1511,7 @@ private theorem qds_tuple_seed_type
       (__smtx_typeof head) = Rest
   rw [hRootTy, hHeadTy]
   exact qds_smt_typeof_apply_of_head_cases
-    (Or.inr hStep) (by simpa [hR]) (by simpa [hR] using hANone)
+    (Or.inr hStep) (by simp [hR]) (by simpa [hR] using hANone)
 
 private theorem qds_tuple_prepend_rec_type
     (head tail : SmtTerm) (A : SmtType) (c : SmtDatatypeCons)
