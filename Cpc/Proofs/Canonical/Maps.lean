@@ -361,10 +361,7 @@ theorem map_update_aux_canonical_of_order_laws
         simpa [__smtx_msm_update_aux, native_ite, hEq, __smtx_msm_get_default] using
           map_update_aux_no_default_canonical hm hi he hOrdTailK
 
-/--
-Canonicality of the recursive map update, using the temporary `native_vcmp`
-order-law assumptions.
--/
+/-- Canonicality of the recursive map update under the `native_vcmp` order laws. -/
 theorem map_update_aux_canonical
     {m : SmtMap}
     {i e : SmtValue}
