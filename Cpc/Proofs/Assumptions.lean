@@ -154,7 +154,7 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
-/-- Inductive predicate for valid assumption lists whose entries all admit SMT translations. -/
+/-- Inductive predicate for valid assumption lists whose entries all have SMT translations. -/
 inductive TranslatableAssumptionList : Term -> Prop
   | base : TranslatableAssumptionList (Term.Boolean true)
   | step (A rest : Term) :

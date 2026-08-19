@@ -3271,7 +3271,7 @@ private theorem smtx_type_context_substitute_no_root_of_field_wf_apply
 
 -- TODO(typeWf-0701 aliasing refactor): same reflist-scoped gap as the chain-selector cluster
 -- above; signatures corrected to a full/unfold `SmtDatatypeCons`/`SmtDatatype` pair, bodies
--- `sorry`'d. Both `private`, no external callers.
+-- previously left unfinished. Both `private`, no external callers.
 private theorem smtx_dtc_context_substitute_no_root_of_wf_apply
     (sub : native_String) (base : SmtDatatype)
     (root : native_String) (oldRoot newRoot : SmtDatatype) :

@@ -779,7 +779,7 @@ theorem checkerTypeInvariant_stuck :
 by
   trivial
 
-/-- Translation invariant requiring every stored assumption and proven term to admit SMT translation. -/
+/-- Translation invariant requiring an SMT translation for every stored assumption and proven term. -/
 def checkerTranslationInvariant : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.assume A) s =>

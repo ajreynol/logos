@@ -39,6 +39,11 @@ run_examples() {
   done
 }
 
+run_proof_hygiene() {
+  echo "Checking Cpc and CpcMini for proof escape hatches..."
+  bash scripts/check-proof-hygiene.sh
+}
+
 run_regressions() {
   echo "Checking the generated parser tables against the signature..."
   python3 scripts/check-parser-tables.py
@@ -122,14 +127,18 @@ case "${group}" in
   cpcmini)
     run_cpcmini
     ;;
+  proof-hygiene)
+    run_proof_hygiene
+    ;;
   all)
+    run_proof_hygiene
     run_regressions
     run_cpc_examples
     run_cpc_proofs
     run_cpcmini
     ;;
   *)
-    echo "Usage: $0 [all|regressions|cpc-examples|cpc-proofs|cpcmini]" >&2
+    echo "Usage: $0 [all|regressions|cpc-examples|cpc-proofs|cpcmini|proof-hygiene]" >&2
     exit 2
     ;;
 esac

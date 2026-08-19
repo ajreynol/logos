@@ -12,6 +12,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  proof_hygiene:
+    name: proof-hygiene
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Reject proof escape hatches
+        run: bash scripts/run-ci.sh proof-hygiene
+
   checks:
     name: ${{ matrix.group }}
     runs-on: ubuntu-latest
@@ -53,15 +65,22 @@ jobs:
 
   verify:
     if: ${{ always() }}
-    needs: checks
+    needs:
+      - checks
+      - proof_hygiene
     runs-on: ubuntu-latest
     permissions: {}
     steps:
       - name: Require every CI group to pass
         env:
           CHECKS_RESULT: ${{ needs.checks.result }}
+          PROOF_HYGIENE_RESULT: ${{ needs.proof_hygiene.result }}
         run: |
           if [ "${CHECKS_RESULT}" != "success" ]; then
             echo "One or more CI groups did not pass: ${CHECKS_RESULT}" >&2
+            exit 1
+          fi
+          if [ "${PROOF_HYGIENE_RESULT}" != "success" ]; then
+            echo "Proof hygiene did not pass: ${PROOF_HYGIENE_RESULT}" >&2
             exit 1
           fi
