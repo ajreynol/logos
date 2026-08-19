@@ -89,6 +89,15 @@ private def arrow (dom cod : TestTerm) : TestTerm := .app (.app (.atom "->") dom
      (assume @p0 b)"
   == some [.uconst 2 (.app (.uconst 1 (arrow .type .type)) (.usort 1))]
 
+-- When no indexed declaration matches, `_` is a higher-order application
+-- marker: `(_ Box U)` and `(Box U)` denote the same type.
+#guard assumptions
+    "(declare-sort U 0)
+     (declare-sort Box 1)
+     (declare-const b (_ Box U))
+     (assume @p0 b)"
+  == some [.uconst 2 (.app (.uconst 1 (arrow .type .type)) (.usort 1))]
+
 -- `declare-type` is the Eunoia spelling of the same declaration.
 #guard assumptions
     "(declare-type U ())

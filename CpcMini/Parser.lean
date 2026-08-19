@@ -92,6 +92,24 @@ private def parserOps : List (Logos.Parser.OpDecl Term) := [
     build := fun
       | [] => some (Term.UOp UserOp.eq)
       | _ => none },
+  { name := "String"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+      | _ => none },
+]
+
+/--
+The macros introduced by a `define` with parameters in the Eunoia signature.
+Eunoia inlines a definition, so it has no counterpart in the calculus itself; a
+proof may nevertheless use it, which is why it is recorded here.  The body of
+each is an application of the operator of `parserOps` generated for that
+definition, indexed by the macro's parameters: indices are how an operator
+declaration builds a term out of given arguments.  A `define` without
+parameters needs no macro and is a nullary operator of `parserOps` instead.
+-/
+private def parserMacros : List (String × Logos.Parser.Macro) := [
 ]
 
 /-- The proof rules of the calculus, by their name in the Eunoia signature. -/
@@ -154,7 +172,16 @@ def parserConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
     { mkRef := fun name => Term.DatatypeTypeRef (native_string_lit name)
       mkDecls := parserDatatypeBindings }
 
-def parseProof (proof : String) : Except String (List Term × CCmdList) :=
-  Logos.Parser.parseProof parserConfig proof
+/--
+The initial state of the parser: the operators of the signature, together with
+the identifiers its definitions introduce.
+-/
+private def parserState : Logos.Parser.State Term :=
+  { Logos.Parser.State.ofOps parserOps with macros := .ofList parserMacros }
+
+def parseProof (proof : String) : Except String (List Term × CCmdList) := do
+  let ss ← Logos.Sexp.Parser.manySexps!.run proof
+  (Logos.Parser.parseCommands parserConfig (Logos.Parser.unwrapProof ss)).run'
+    parserState
 
 end Eo
