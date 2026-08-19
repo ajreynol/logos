@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.RegexValueSupport
+import all Cpc.Proofs.RuleSupport.RegexValueSupport
 
 open Eo
 open SmtEval
@@ -10,21 +12,21 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-private theorem native_re_nullable_fold_empty (xs : List native_Char) :
+private theorem native_re_nullable_fold_empty (xs : List SmtValue) :
     native_re_nullable (xs.foldl (fun acc c => native_re_deriv c acc) SmtRegLan.empty) = false := by
   induction xs with
   | nil => rfl
   | cons c xs ih => simpa [native_re_deriv] using ih
 
-private theorem native_str_in_re_allchar_list (xs : List native_Char)
-    (hValid : native_string_valid xs = true) :
+private theorem native_str_in_re_allchar_list (xs : List SmtValue)
+    (hValid : native_re_str_valid xs = true) :
     native_re_nullable (xs.foldl (fun acc c => native_re_deriv c acc) SmtRegLan.allchar) =
       decide ((xs.length : Int) = 1) := by
   cases xs with
   | nil => simp [native_re_nullable]
   | cons c xs =>
-      have hc : native_char_valid c = true := by
-        rw [native_string_valid, List.all_eq_true] at hValid
+      have hc : native_re_elem_valid c = true := by
+        rw [native_re_str_valid, List.all_eq_true] at hValid
         exact hValid c (by simp)
       cases xs with
       | nil => simp [native_re_deriv, native_re_nullable, hc]
@@ -33,21 +35,15 @@ private theorem native_str_in_re_allchar_list (xs : List native_Char)
           omega
 
 private theorem native_str_in_re_allchar_seq (ss : SmtSeq)
-    (hValid : native_string_valid (native_unpack_string ss) = true) :
-    native_str_in_re (native_unpack_string ss) native_re_allchar =
+    (hValid : native_re_str_valid (native_unpack_seq ss) = true) :
+    Smtm.native_str_in_re (native_unpack_seq ss) native_re_allchar =
       decide (native_seq_len (native_unpack_seq ss) = (1 : Int)) := by
-  have hValidList :
-      native_string_valid
-          (List.map native_ssm_char_of_value (native_unpack_seq ss)) = true := by
-    simpa [native_unpack_string] using hValid
   have hList :=
-    native_str_in_re_allchar_list
-      (List.map native_ssm_char_of_value (native_unpack_seq ss)) hValidList
-  simp [native_str_in_re, native_re_allchar, native_unpack_string,
-    native_seq_len, hValidList, hList]
+    native_str_in_re_allchar_list (native_unpack_seq ss) hValid
+  simp [Smtm.native_str_in_re, native_re_allchar, native_seq_len, hValid, hList]
 
 private theorem smtx_model_eval_re_in_sigma (ss : SmtSeq)
-    (hValid : native_string_valid (native_unpack_string ss) = true) :
+    (hValid : native_re_str_valid (native_unpack_seq ss) = true) :
     __smtx_model_eval_str_in_re (SmtValue.Seq ss) (SmtValue.RegLan native_re_allchar) =
       __smtx_model_eval_eq (__smtx_model_eval_str_len (SmtValue.Seq ss)) (SmtValue.Numeral 1) := by
   simp [__smtx_model_eval_str_in_re, __smtx_model_eval_str_len, __smtx_model_eval_eq,
@@ -165,8 +161,8 @@ private theorem facts___eo_prog_re_in_sigma_impl
         rw [hA1SmtTy]
         simp)
   rcases seq_value_canonical hA1EvalTy with ⟨ss, hss⟩
-  have hSSValid : native_string_valid (native_unpack_string ss) = true := by
-    apply native_unpack_string_valid_of_typeof_seq_char
+  have hSSValid : native_re_str_valid (native_unpack_seq ss) = true := by
+    apply RuleProofs.native_re_str_valid_unpack_seq_of_typeof_seq_char
     simpa [hss] using hA1EvalTy
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt lhs) =

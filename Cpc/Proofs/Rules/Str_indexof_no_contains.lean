@@ -221,7 +221,7 @@ private theorem native_seq_contains_of_decomp
     omega
   have hNe :
       native_seq_indexof (before ++ pat ++ after) pat 0 ≠ -1 := by
-    unfold native_seq_indexof
+    rw [native_seq_indexof_eq_rec]
     simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
     rw [dif_pos hLen]
     have hFuel :

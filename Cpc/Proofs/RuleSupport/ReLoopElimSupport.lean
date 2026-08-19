@@ -37,11 +37,11 @@ private theorem model_eval_re_exp_rec_reglan_eq :
 
 theorem native_re_concat_right_epsilon (r : SmtRegLan) :
     native_re_concat r SmtRegLan.epsilon = r := by
-  cases r <;> simp [native_re_concat, native_re_mk_concat]
+  cases r <;> simp [native_re_concat]
 
 theorem native_re_concat_left_epsilon (r : SmtRegLan) :
     native_re_concat SmtRegLan.epsilon r = r := by
-  cases r <;> simp [native_re_concat, native_re_mk_concat]
+  cases r <;> simp [native_re_concat]
 
 private def nativeListInRe (xs : List native_Char) (r : SmtRegLan) :
     native_Bool :=
@@ -116,7 +116,7 @@ private theorem nativeListInRe_mk_union :
             rw [native_re_mk_union_self]
             simp [nativeListInRe]
           · rw [native_re_mk_union_eq_union_of_ne r s hr hs hEq]
-            simp [nativeListInRe, native_re_deriv]
+            simp [nativeListInRe]
             exact nativeListInRe_mk_union cs
               (native_re_deriv c r) (native_re_deriv c s)
 
@@ -238,7 +238,7 @@ private theorem nativeListInRe_deriv_mk_concat
                   (native_re_mk_concat (native_re_deriv c r) s)
                   (if native_re_nullable r then native_re_deriv c s
                     else SmtRegLan.empty)) = _
-          simp [native_re_deriv, nativeListInRe_mk_union]
+          simp [nativeListInRe_mk_union]
 
 private def nativeListInReConcat :
     List native_Char -> SmtRegLan -> SmtRegLan -> native_Bool
@@ -1003,7 +1003,7 @@ private theorem re_list_repeat_rec_eval_eq_pow
           SmtValue.RegLan SmtRegLan.epsilon
         simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
           native_str_to_re, native_re_of_list, native_pack_string,
-          native_unpack_string, native_pack_seq, native_unpack_seq]
+          native_pack_seq, native_unpack_seq]
   | succ n ih =>
       have hTailNe := re_list_repeat_rec_ne_stuck a haTy n
       rw [re_list_repeat_rec_succ_eq a hANe n]
@@ -1044,7 +1044,7 @@ private theorem re_list_repeat_singleton_eval_eq_pow
           SmtValue.RegLan SmtRegLan.epsilon
         simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
           native_str_to_re, native_re_of_list, native_pack_string,
-          native_unpack_string, native_pack_seq, native_unpack_seq]
+          native_pack_seq, native_unpack_seq]
   | succ n =>
       cases n with
       | zero =>

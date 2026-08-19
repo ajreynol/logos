@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.RegexSupport
 import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.RegexValueSupport
+import all Cpc.Proofs.RuleSupport.RegexValueSupport
 public import Cpc.Proofs.RuleSupport.ReLoopElimSupport
 import all Cpc.Proofs.RuleSupport.ReLoopElimSupport
 
@@ -31,7 +33,7 @@ theorem native_str_in_re_eq_nativeListInRe
     (s : native_String) (r : SmtRegLan)
     (hValid : native_string_valid s = true) :
     native_str_in_re s r = nativeListInRe s r := by
-  simp [native_str_in_re, hValid, nativeListInRe]
+  simp [native_str_in_re, hValid]
 
 /-! ## Membership facts for epsilon and star -/
 

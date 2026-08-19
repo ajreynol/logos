@@ -35,9 +35,9 @@ private theorem smtx_model_eval_re_plus_elim
     cases r <;>
       simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
         __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re,
-        native_re_concat, native_re_mult, native_re_mk_concat,
-        native_re_mk_star, native_str_to_re, native_re_of_list, native_pack_string,
-        native_unpack_string, native_pack_seq, native_unpack_seq,
+        native_re_concat, native_re_mult,
+        native_str_to_re, native_re_of_list, native_pack_string,
+        native_pack_seq, native_unpack_seq,
         native_string_lit_empty]
   all_goals
     simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat]

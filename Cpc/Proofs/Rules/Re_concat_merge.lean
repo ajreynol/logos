@@ -99,11 +99,13 @@ private theorem smtx_typeof_re_concat_of_reglan (r q : Term)
 
 private theorem eval_str_re
     (M : SmtModel) (s : Term) (ss : SmtSeq)
-    (hs : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss) :
+    (hs : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
+    (hTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char) :
     __smtx_model_eval M (__eo_to_smt (strRe s)) =
       SmtValue.RegLan (native_str_to_re (native_unpack_string ss)) := by
   change __smtx_model_eval M (SmtTerm.str_to_re (__eo_to_smt s)) = _
-  simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hs]
+  simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hs,
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hTy]
 
 private theorem eval_merged_string
     (M : SmtModel) (s t : Term) (ss ts : SmtSeq)
@@ -240,8 +242,12 @@ private theorem type_and_facts
     simpa [hTEval, hTTy] using
       smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t)
         (by unfold term_has_non_none_type; rw [hTTy]; simp)
-  have hStrSEval := eval_str_re M s ss hSEval
-  have hStrTEval := eval_str_re M t ts hTEval
+  have hSSeqTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+    simpa [__smtx_typeof_value] using hSValTy
+  have hTSeqTy : __smtx_typeof_seq_value ts = SmtType.Seq SmtType.Char := by
+    simpa [__smtx_typeof_value] using hTValTy
+  have hStrSEval := eval_str_re M s ss hSEval hSSeqTy
+  have hStrTEval := eval_str_re M t ts hTEval hTSeqTy
   have hLeftInnerEval :
       __smtx_model_eval M (__eo_to_smt (leftInner t ys)) =
         SmtValue.RegLan
@@ -265,9 +271,17 @@ private theorem type_and_facts
       hStrSEval, hLeftInnerEval]
   have hMergedEval :=
     eval_merged_string M s t ss ts hSEval hTEval hSValTy hTValTy
+  have hMergedValid :
+      native_string_valid
+          (native_unpack_string ss ++ native_unpack_string ts) = true := by
+    have hSValid := native_unpack_string_valid_of_typeof_seq_char hSSeqTy
+    have hTValid := native_unpack_string_valid_of_typeof_seq_char hTSeqTy
+    simpa [native_string_valid, List.all_append, hSValid, hTValid] using
+      And.intro hSValid hTValid
   have hMergedReEval := eval_str_re M (mergedString s t)
     (native_pack_string
       (native_unpack_string ss ++ native_unpack_string ts)) hMergedEval
+    (typeof_pack_string _ hMergedValid)
   have hRightTailEval :
       __smtx_model_eval M (__eo_to_smt (rightTail s t ys)) =
         SmtValue.RegLan
@@ -278,7 +292,7 @@ private theorem type_and_facts
         (SmtTerm.re_concat
           (__eo_to_smt (strRe (mergedString s t))) (__eo_to_smt ys)) = _
     simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-      hMergedReEval, hYsEval,
+      hMergedReEval, hYsEval, native_string_to_values,
       RuleProofs.native_unpack_string_pack_string]
   rcases RuleProofs.reConcat_list_concat_eval_rel M xs (leftTail s t ys)
       rxs _ hXsList hLeftTailList hXsTy hLeftTailTy

@@ -763,16 +763,18 @@ private theorem native_str_in_re_mk_union
     (str : native_String) (r s : SmtRegLan) :
     native_str_in_re str (native_re_mk_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
+  simp only [← RuleProofs.native_str_in_re_eq_model]
   by_cases hValid : native_string_valid str = true
-  · simpa [native_str_in_re, hValid, RuleProofs.nativeListInRe] using
+  · simpa [RuleProofs.native_str_in_re, hValid, RuleProofs.nativeListInRe] using
       RuleProofs.nativeListInRe_mk_union str r s
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
-    simp [native_str_in_re, hInvalid]
+    simp [RuleProofs.native_str_in_re, hInvalid]
 
 private theorem native_str_in_re_all (str : native_String)
     (hValid : native_string_valid str = true) :
     native_str_in_re str native_re_all = true := by
+  simp only [← RuleProofs.native_str_in_re_eq_model]
   exact RuleProofs.native_str_in_re_re_all str hValid
 
 private theorem bitvec_toInt_emod_pow (w : Nat) (x : BitVec w) :
@@ -1007,7 +1009,7 @@ private theorem reUnion_smt_value_rel_left_all_eval
     SmtValue.Boolean true
   simp only [__smtx_model_eval, __smtx_model_eval_re_union, hxEval,
     hyEval]
-  simp [__smtx_model_eval_eq, native_re_union, native_str_in_re_mk_union]
+  simp [__smtx_model_eval_eq, native_str_in_re_mk_union]
   intro str hValid
   rw [hxExt str hValid, native_str_in_re_all str hValid]
   simp
@@ -1040,7 +1042,7 @@ private theorem reUnion_smt_value_rel_right_all_eval
     SmtValue.Boolean true
   simp only [__smtx_model_eval, __smtx_model_eval_re_union, hxEval,
     hyEval]
-  simp [__smtx_model_eval_eq, native_re_union, native_str_in_re_mk_union]
+  simp [__smtx_model_eval_eq, native_str_in_re_mk_union]
   intro str hValid
   rw [hyExt str hValid, native_str_in_re_all str hValid]
   simp

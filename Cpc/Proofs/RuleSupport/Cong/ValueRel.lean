@@ -214,10 +214,10 @@ private theorem native_list_in_re_mk_star_raw
   cases r <;> try rfl
   · cases xs <;> simp [native_re_mk_star, native_re_mult,
       native_list_in_re, RuleProofs.nativeListInRe, native_re_nullable,
-      native_re_deriv, native_re_mk_concat, native_re_concat]
+      native_re_deriv, native_re_concat]
   · cases xs <;> simp [native_re_mk_star, native_re_mult,
       native_list_in_re, RuleProofs.nativeListInRe, native_re_nullable,
-      native_re_deriv, native_re_mk_concat, native_re_concat]
+      native_re_deriv, native_re_concat]
   · exact (native_list_in_re_raw_star_star xs _).symm
 
 private theorem native_list_in_re_raw_star_congr_valid :
@@ -423,7 +423,7 @@ private theorem native_re_prefix_match_len_go_congr_valid :
         have hRpfalse : native_re_nullable r' = false := by
           simpa [← hNull] using hRfalse
         simp [native_string_to_values, native_re_prefix_match_len?.go,
-          hRfalse, hRpfalse, hc]
+          hRfalse, hRpfalse]
         exact ih (native_re_deriv c r) (native_re_deriv c r') (n + 1)
           hcs (native_list_in_re_deriv_congr_valid c r r' hc hExt)
 
@@ -543,7 +543,7 @@ private theorem native_re_replace_all_nonempty_list_aux_congr_valid :
                 native_re_positive_prefix_match_len? r' [] := by
             simpa [native_string_to_values] using
               native_re_positive_prefix_match_len_congr_valid r r' []
-                (by simpa [native_string_valid] using hValid) hExt
+                (by simp [native_string_valid]) hExt
           rw [native_re_replace_all_nonempty_list_aux.eq_2,
             native_re_replace_all_nonempty_list_aux.eq_2, hPref]
           cases native_re_positive_prefix_match_len? r' [] with
@@ -571,15 +571,14 @@ private theorem native_re_replace_all_nonempty_list_aux_congr_valid :
           cases native_re_positive_prefix_match_len? r'
               (SmtValue.Char c :: List.map SmtValue.Char cs) with
           | none =>
-              simp only [Option.getD_none, List.cons.injEq, true_and]
+              simp only [List.cons.injEq, true_and]
               have hIH := ih cs replacement r r' hcs hExt
               simpa [native_string_to_values] using
                 congrArg (fun tail => SmtValue.Char c :: tail) hIH
           | some n =>
               cases n with
               | zero =>
-                  simp only [Option.getD_some, Nat.zero_eq, ite_true,
-                    List.cons.injEq, true_and]
+                  simp only [List.cons.injEq, true_and]
                   have hIH := ih cs replacement r r' hcs hExt
                   simpa [native_string_to_values] using
                     congrArg (fun tail => SmtValue.Char c :: tail) hIH

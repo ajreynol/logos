@@ -459,7 +459,7 @@ private theorem find_at_start_of_nullable
 
 theorem search_eq_start_of_empty_match
     (s : native_String) (r : SmtRegLan) (start : Nat)
-    (hValid : native_string_valid s = true)
+    (_hValid : native_string_valid s = true)
     (hStart : start ≤ s.length)
     (hEmpty : native_str_in_re [] r = true) :
     native_str_indexof_re s r (Int.ofNat start) = Int.ofNat start := by

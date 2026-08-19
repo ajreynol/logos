@@ -159,7 +159,7 @@ private theorem native_re_prefix_match_len_go_isSome_eq_str_in_re_concat_all
         simpa using hIntro
       · have hNullFalse : native_re_nullable r = false := by
           cases h : native_re_nullable r <;> simp [h] at hNullTrue ⊢
-        simp [hNullFalse, hc]
+        simp [hNullFalse]
         have hRec :=
           native_re_prefix_match_len_go_isSome_eq_str_in_re_concat_all
             (native_re_deriv c r) cs (n + 1) hcs
@@ -217,8 +217,8 @@ private theorem str_indexof_re_eval_match_regex_model_eval
     SmtValue.RegLan (native_re_concat rv native_re_all)
   simp [__smtx_model_eval,
     __smtx_model_eval_re_concat, __smtx_model_eval_str_to_re, hREval,
-    native_unpack_string_pack_string, native_re_concat, native_str_to_re,
-    native_re_of_list, native_re_mk_concat]
+    native_re_concat, native_str_to_re,
+    native_re_of_list]
   change native_re_concat rv (native_re_concat native_re_all SmtRegLan.epsilon) =
     native_re_concat rv native_re_all
   rw [show native_re_concat native_re_all SmtRegLan.epsilon = native_re_all by rfl]
@@ -564,7 +564,7 @@ private theorem str_indexof_re_eval_first_match_rec_smallest_eq_go
                 RuleProofs.native_str_in_re_eq_model]
               exact smt_value_rel_reglan_valid_eq hDerRel hys)
         rw [Smtm.native_re_prefix_match_len?.go.eq_2]
-        simp [hNull, hc]
+        simp [hNull]
         rw [← hGoCong]
       · rw [hNull] at hNullEq
         rw [hNullEq]
@@ -1342,7 +1342,7 @@ private theorem str_indexof_re_eval_side_model_eval
               (SmtTerm.Numeral ni)) =
           SmtValue.Numeral (native_str_indexof_re str rv ni)
         simp [__smtx_model_eval, hREval, __smtx_model_eval_str_indexof_re,
-          native_unpack_string_pack_string]
+          ]
       rw [← hSideEq, hLhsEval]
       simpa [str_indexof_re_eval_side, str_indexof_re_eval_match_regex,
         side, lenTerm, tail, matchTerm, idxTerm] using hSideEval.symm

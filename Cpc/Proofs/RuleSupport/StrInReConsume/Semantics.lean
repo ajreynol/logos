@@ -110,7 +110,9 @@ theorem StrInReConsumeInternal.native_str_in_re_congr_of_reglan_rel_early_local
     (str : native_String) :
     native_str_in_re str r1 = native_str_in_re str r2 := by
   cases hV : native_string_valid str with
-  | true => exact smt_value_rel_reglan_valid_eq h hV
+  | true =>
+      simpa [native_str_in_re_eq_model] using
+        smt_value_rel_reglan_valid_eq h hV
   | false => simp [native_str_in_re, hV]
 
 theorem StrInReConsumeInternal.consume_elim_unflat_eps_of_eps_early_local :
@@ -2852,7 +2854,7 @@ theorem str_re_consume_rec_native_false_of_ih_false
   exact smt_value_rel_boolean_eq_consume_local hRel
 
 theorem str_re_consume_rec_native_eq_of_ih_residual
-    (M : SmtModel)
+    (M : SmtModel) (hM : model_total_typed M)
     (s r fuel s' r' : Term)
     (ih : StrInReConsumeInternal.str_re_consume_rec_model_rel_motive M s r fuel)
     (hResidual :
@@ -2875,6 +2877,29 @@ theorem str_re_consume_rec_native_eq_of_ih_residual
       native_str_in_re (native_unpack_string ss) rv =
         native_str_in_re (native_unpack_string ss') rv' := by
   intro ss rv ss' rv' hSEval hREval hSEval' hREval'
+  rcases str_re_consume_translation_facts s r
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s') r') hEqTrans with
+    ⟨_hStrInTrans, hResidualTrans, hSTy, _hRTy, _hEqBool⟩
+  rcases str_in_re_args_smt_types_of_has_translation s' r' hResidualTrans with
+    ⟨hS'Ty, _hR'Ty⟩
+  have hSsTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char := by
+    rw [← hSEval]
+    simpa [hSTy] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+        unfold term_has_non_none_type
+        rw [hSTy]
+        simp)
+  have hSs'Ty :
+      __smtx_typeof_value (SmtValue.Seq ss') =
+        SmtType.Seq SmtType.Char := by
+    rw [← hSEval']
+    simpa [hS'Ty] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s') (by
+        unfold term_has_non_none_type
+        rw [hS'Ty]
+        simp)
   have hRel :
       RuleProofs.smt_value_rel
         (__smtx_model_eval M
@@ -2891,6 +2916,8 @@ theorem str_re_consume_rec_native_eq_of_ih_residual
         (SmtTerm.str_in_re (__eo_to_smt s') (__eo_to_smt r'))) at hRel
   simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval, hREval,
     hSEval', hREval'] at hRel
+  rw [model_str_in_re_unpack_eq_string_of_value_type ss rv hSsTy,
+    model_str_in_re_unpack_eq_string_of_value_type ss' rv' hSs'Ty] at hRel
   exact smt_value_rel_boolean_eq_consume_local hRel
 
 theorem str_re_consume_tail_model_rel_from_ih

@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.RegexSupport
 import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.RegexValueSupport
+import all Cpc.Proofs.RuleSupport.RegexValueSupport
 
 open Eo
 open SmtEval
@@ -13,17 +15,16 @@ set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
 private theorem smtx_model_eval_re_in_sigma_star (ss : SmtSeq)
-    (hValid : native_string_valid (native_unpack_string ss) = true) :
+    (hValid : native_re_str_valid (native_unpack_seq ss) = true) :
     __smtx_model_eval_str_in_re (SmtValue.Seq ss) (SmtValue.RegLan native_re_all) =
       SmtValue.Boolean true := by
-  simp [__smtx_model_eval_str_in_re, RuleProofs.native_str_in_re_re_all
-    (native_unpack_string ss) hValid]
+  simp [__smtx_model_eval_str_in_re, RuleProofs.model_str_in_re_re_all
+    (native_unpack_seq ss) hValid]
 
 private theorem smtx_model_eval_re_mult_allchar :
     __smtx_model_eval_re_mult (SmtValue.RegLan native_re_allchar) =
       SmtValue.RegLan native_re_all := by
-  simp [__smtx_model_eval_re_mult, native_re_mult, native_re_allchar, native_re_all,
-    native_re_mk_star]
+  simp [__smtx_model_eval_re_mult, native_re_mult, native_re_allchar, native_re_all]
 
 private theorem smtx_typeof_re_allchar :
     __smtx_typeof SmtTerm.re_allchar = SmtType.RegLan := by
@@ -147,8 +148,8 @@ private theorem facts___eo_prog_re_in_sigma_star_impl
         rw [hA1SmtTy]
         simp)
   rcases seq_value_canonical hA1EvalTy with ⟨ss, hss⟩
-  have hSSValid : native_string_valid (native_unpack_string ss) = true := by
-    apply native_unpack_string_valid_of_typeof_seq_char
+  have hSSValid : native_re_str_valid (native_unpack_seq ss) = true := by
+    apply RuleProofs.native_re_str_valid_unpack_seq_of_typeof_seq_char
     simpa [hss, __smtx_typeof_value] using hA1EvalTy
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt lhs) =

@@ -1836,7 +1836,7 @@ theorem str_re_consume_model_rel
             (__str_membership_re first) :=
       str_membership_re_eq_rebuild first (__str_membership_re first) rfl
         (by simpa [first] using hMemReNe)
-    exact StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local M
+    exact StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local M hM
       sFlat rFlat sFlat first (hRecModelRel sFlat rFlat sFlat) rfl
       hFirstRebuild
       (by simpa [first] using hFirstNe)
@@ -2309,7 +2309,7 @@ theorem str_re_consume_model_rel
             SmtValue.RegLan reRv ->
             native_str_in_re (native_unpack_string nextSs) nextRv =
               native_str_in_re (native_unpack_string partsSs) reRv :=
-      StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local M nextS nextR
+      StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local M hM nextS nextR
         nextS second (hRecModelRel nextS nextR nextS) rfl
         hSecondRebuild (by simpa [second] using hSecondNe)
         (by simpa [sFlat, rFlat, first, eps, carry, nextS] using
@@ -2474,7 +2474,7 @@ theorem str_re_consume_model_rel
             (__str_membership_re second) := by
       simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second] using
         hNonMultFinalSecondRebuildProgress hSideNotFalse hNotMult
-    exact StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local M
+    exact StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local M hM
       nextS nextR nextS second (hRecModelRel nextS nextR nextS) rfl
       hSecondRebuild
       (by simpa [second] using hSecondNe)
@@ -3115,7 +3115,7 @@ theorem str_re_consume_model_rel
             (__str_membership_re first) :=
       str_membership_re_eq_rebuild first (__str_membership_re first) rfl
         (by simpa [first] using hMemReNe)
-    exact StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local M
+    exact StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local M hM
       sFlat rFlat sFlat first (hRecModelRel sFlat rFlat sFlat) rfl
       hFirstRebuild
       (by simpa [first] using hFirstNe)
@@ -3472,7 +3472,7 @@ theorem str_re_consume_model_rel
             (__str_membership_re second) := by
       simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second] using
         hMultFinalSecondRebuildProgress r0 rfl hSideNotFalse
-    exact StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local M
+    exact StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local M hM
       nextS nextR nextS second (hRecModelRel nextS nextR nextS) rfl
       hSecondRebuild
       (by simpa [second] using hSecondNe)
@@ -4785,6 +4785,17 @@ theorem str_re_consume_model_rel
       intro hSideNotFalse hNotMult
       simp only [nonMultInputNativeEq]
       intro ss1 rv1 nextSs nextRv hSEval1 hREval1 hNextSEval hNextREval
+      rcases hNonMultSecondInputTypeProgress hSideNotFalse hNotMult with
+        ⟨hNextSTy, _hNextRTy⟩
+      have hNextSsTy :
+          __smtx_typeof_value (SmtValue.Seq nextSs) =
+            SmtType.Seq SmtType.Char := by
+        rw [← hNextSEval]
+        exact
+          (smt_model_eval_preserves_type_of_non_none M hM _ (by
+            unfold term_has_non_none_type
+            rw [hNextSTy]
+            simp)).trans hNextSTy
       rcases hNonMultFinalNotFalseProgress hSideNotFalse hNotMult with
         ⟨hFirstNotFalse, _hSecondNotFalse, hFirstNe, _hSecondNe⟩
       rcases hNonMultSecondInputNeProgress hSideNotFalse hNotMult with
@@ -4800,6 +4811,15 @@ theorem str_re_consume_model_rel
       subst hSsEq
       injection hREval0.symm.trans hREval1 with hRvEq
       subst hRvEq
+      have hFlatSsTy :
+          __smtx_typeof_value (SmtValue.Seq flatSs) =
+            SmtType.Seq SmtType.Char := by
+        rw [← hFlatSrcEval]
+        exact
+          (smt_model_eval_preserves_type_of_non_none M hM _ (by
+            unfold term_has_non_none_type
+            rw [hFlatSrcTy]
+            simp)).trans hFlatSrcTy
       rw [hCarryFalse] at hNextSEval hNextREval
       simp only [eo_ite_false] at hNextSEval hNextREval
       have hRel :=
@@ -4839,9 +4859,11 @@ theorem str_re_consume_model_rel
               (__eo_to_smt
                 (__str_flatten (__eo_list_singleton_intro
                   (Term.UOp UserOp.str_concat) s)))
-              (__eo_to_smt (__re_flatten (Term.Boolean true) r))) = _
+                (__eo_to_smt (__re_flatten (Term.Boolean true) r))) = _
         simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
-          hFlatSrcEval, hFlatREval]
+          hFlatSrcEval, hFlatREval,
+          model_str_in_re_unpack_eq_string_of_value_type flatSs flatRv
+            hFlatSsTy]
       rw [hLhsEval] at hRel
       have hRhsBool := StrInReConsumeInternal.consume_smt_value_rel_boolean_inv_local hRel
       rcases StrInReConsumeInternal.consume_eval_unrev_pair_inv_local M _ _ _ hRhsBool with
@@ -4899,7 +4921,9 @@ theorem str_re_consume_model_rel
         change __smtx_model_eval M
             (SmtTerm.str_in_re _ _) = _
         simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
-          hNextSEval, hMEval]
+          hNextSEval, hMEval,
+          model_str_in_re_unpack_eq_string_of_value_type nextSs mRv
+            hNextSsTy]
       rw [hRhsEval] at hRel
       have hBoolEq :=
         smt_value_rel_boolean_eq_consume_local hRel
@@ -4913,6 +4937,18 @@ theorem str_re_consume_model_rel
       simp only [nonMultSecondFalseInputNativeEq]
       intro hFirstNotFalse hSecondFalse ss1 rv1 nextSs nextRv hSEval1
         hREval1 hNextSEval hNextREval
+      rcases hNonMultSecondInputTypeOfSecondFalseProgress hNotMult
+          hSecondFalse with
+        ⟨hNextSTy, _hNextRTy⟩
+      have hNextSsTy :
+          __smtx_typeof_value (SmtValue.Seq nextSs) =
+            SmtType.Seq SmtType.Char := by
+        rw [← hNextSEval]
+        exact
+          (smt_model_eval_preserves_type_of_non_none M hM _ (by
+            unfold term_has_non_none_type
+            rw [hNextSTy]
+            simp)).trans hNextSTy
       have hNextSNe :=
         StrInReConsumeInternal.str_re_consume_rec_false_left_ne_stuck_consume_local _ _ _
           hSecondFalse
@@ -4939,6 +4975,15 @@ theorem str_re_consume_model_rel
         subst hSsEq
         injection hREval0.symm.trans hREval1 with hRvEq
         subst hRvEq
+        have hFlatSsTy :
+            __smtx_typeof_value (SmtValue.Seq flatSs) =
+              SmtType.Seq SmtType.Char := by
+          rw [← hFlatSrcEval]
+          exact
+            (smt_model_eval_preserves_type_of_non_none M hM _ (by
+              unfold term_has_non_none_type
+              rw [hFlatSrcTy]
+              simp)).trans hFlatSrcTy
         rw [hCarryFalse] at hNextSEval hNextREval
         simp only [eo_ite_false] at hNextSEval hNextREval
         have hRel :=
@@ -4979,9 +5024,11 @@ theorem str_re_consume_model_rel
                 (__eo_to_smt
                   (__str_flatten (__eo_list_singleton_intro
                     (Term.UOp UserOp.str_concat) s)))
-                (__eo_to_smt (__re_flatten (Term.Boolean true) r))) = _
+                  (__eo_to_smt (__re_flatten (Term.Boolean true) r))) = _
           simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
-            hFlatSrcEval, hFlatREval]
+            hFlatSrcEval, hFlatREval,
+            model_str_in_re_unpack_eq_string_of_value_type flatSs flatRv
+              hFlatSsTy]
         rw [hLhsEval] at hRel
         have hRhsBool := StrInReConsumeInternal.consume_smt_value_rel_boolean_inv_local hRel
         rcases StrInReConsumeInternal.consume_eval_unrev_pair_inv_local M _ _ _ hRhsBool with
@@ -5040,7 +5087,9 @@ theorem str_re_consume_model_rel
           change __smtx_model_eval M
               (SmtTerm.str_in_re _ _) = _
           simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
-            hNextSEval, hMEval]
+            hNextSEval, hMEval,
+            model_str_in_re_unpack_eq_string_of_value_type nextSs mRv
+              hNextSsTy]
         rw [hRhsEval] at hRel
         have hBoolEq :=
           smt_value_rel_boolean_eq_consume_local hRel

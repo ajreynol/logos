@@ -1029,7 +1029,7 @@ theorem StrInReConsumeInternal.smt_typeof_re_split_str_to_re_of_seq_reglan_local
       simpa [__re_split_str_to_re] using hTailTy
 
 theorem StrInReConsumeInternal.re_split_str_to_re_eval_rel_consume_local
-    (M : SmtModel) :
+    (M : SmtModel) (hM : model_total_typed M) :
     ∀ parts tail partsSs tailRv,
       __eo_is_list (Term.UOp UserOp.str_concat) parts =
         Term.Boolean true ->
@@ -1073,6 +1073,19 @@ theorem StrInReConsumeInternal.re_split_str_to_re_eval_rel_consume_local
       rcases StrInReConsumeInternal.eval_str_concat_seq_cases_consume_local M c rest partsSs
           hPartsEval with
         ⟨cSs, restSs, hCEval, hRestEval, hPartsEq⟩
+      have hCSsTy :
+          __smtx_typeof_seq_value cSs =
+            SmtType.Seq SmtType.Char := by
+        have hCEvalTy :
+            __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt c)) =
+              SmtType.Seq SmtType.Char := by
+          simpa [hArgs.1] using
+            smt_model_eval_preserves_type_of_non_none M hM
+              (__eo_to_smt c) (by
+                unfold term_has_non_none_type
+                rw [hArgs.1]
+                simp)
+        simpa [hCEval] using hCEvalTy
       have hRestSplitNe :
           __re_split_str_to_re rest tail ≠ Term.Stuck := by
         intro hBad
@@ -1099,7 +1112,7 @@ theorem StrInReConsumeInternal.re_split_str_to_re_eval_rel_consume_local
           __smtx_model_eval M (__eo_to_smt headRe) =
             SmtValue.RegLan (native_str_to_re (native_unpack_string cSs)) := by
         simpa [headRe] using
-          eval_str_to_re_reglan_consume_local M c cSs hCEval
+          eval_str_to_re_reglan_consume_local M c cSs hCEval hCSsTy
       have hHeadTy :
           __smtx_typeof (__eo_to_smt headRe) = SmtType.RegLan :=
         smt_typeof_str_to_re_of_seq_consume_local c hArgs.1
@@ -1226,13 +1239,14 @@ theorem StrInReConsumeInternal.re_split_str_to_re_eval_rel_consume_local
                 (native_str_to_re (native_unpack_string partsSs))
                 tailRv)) := by
         rw [hPartsUnpack]
-        exact RuleProofs.smt_value_rel_refl
-          (SmtValue.RegLan
-            (native_re_concat
-              (native_str_to_re
-                (native_unpack_string cSs ++
-                  native_unpack_string restSs))
-              tailRv))
+        simpa [native_string_to_values, List.map_append] using
+          RuleProofs.smt_value_rel_refl
+            (SmtValue.RegLan
+              (native_re_concat
+                (native_str_to_re
+                  (native_unpack_string cSs ++
+                    native_unpack_string restSs))
+                tailRv))
       refine ⟨native_re_concat
           (native_str_to_re (native_unpack_string cSs)) restOutRv,
         ?_, ?_, ?_⟩
@@ -3259,7 +3273,7 @@ theorem StrInReConsumeInternal.re_flatten_true_str_to_re_eval_rel_consume_local
         SmtValue.RegLan (native_str_to_re [])
       simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
         native_unpack_string_pack_string]
-    rcases StrInReConsumeInternal.re_split_str_to_re_eval_rel_consume_local M parts eps
+    rcases StrInReConsumeInternal.re_split_str_to_re_eval_rel_consume_local M hM parts eps
         partsSs (native_str_to_re []) hPartsList hPartsTy
         (by simpa [parts] using hPartsEval)
         (by simpa [eps] using StrInReConsumeInternal.smt_typeof_re_empty_string_consume_local)
@@ -5532,7 +5546,7 @@ theorem StrInReConsumeInternal.str_re_consume_model_rel_of_final_second_native_e
     hUnflatElimNe hNativeEq
 
 theorem StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_local
-    (M : SmtModel)
+    (M : SmtModel) (hM : model_total_typed M)
     (nextS nextR fuel second : Term)
     (ih : StrInReConsumeInternal.str_re_consume_rec_model_rel_motive M nextS nextR fuel)
     (hSecond : second = __str_re_consume_rec nextS nextR fuel)
@@ -5590,7 +5604,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_native_eq_of_rebuilt_result_lo
     str_re_consume_eq_translation_of_types nextS nextR rebuilt
       hNextSTy hNextRTy hRebuiltTy
   simpa [rebuilt] using
-    str_re_consume_rec_native_eq_of_ih_residual M nextS nextR fuel
+    str_re_consume_rec_native_eq_of_ih_residual M hM nextS nextR fuel
       (__str_membership_str second) (__str_membership_re second) ih
       (by simpa [rebuilt] using hResidual)
       (by simpa [rebuilt] using hRebuiltNe)
@@ -6953,6 +6967,16 @@ theorem StrInReConsumeInternal.str_re_consume_mult_model_rel_of_final_candidate_
           (__eo_to_smt (__str_membership_str candidate))
           hCandidateStrTy with
         ⟨partsSs, hPartsEval⟩
+      have hPartsSsTy :
+          __smtx_typeof_value (SmtValue.Seq partsSs) =
+            SmtType.Seq SmtType.Char := by
+        rw [← hPartsEval]
+        simpa [hCandidateStrTy] using
+          smt_model_eval_preserves_type_of_non_none M hM
+            (__eo_to_smt (__str_membership_str candidate)) (by
+              unfold term_has_non_none_type
+              rw [hCandidateStrTy]
+              simp)
       have hNative :=
         hCandidateNativeEq ss rv partsSs hSEval hREval hPartsEval
       rw [hSideApply]
@@ -6962,7 +6986,8 @@ theorem StrInReConsumeInternal.str_re_consume_mult_model_rel_of_final_candidate_
             (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) r))) =
         SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv)
       simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hPartsEval,
-        hREval]
+        hREval,
+        model_str_in_re_unpack_eq_string_of_value_type partsSs rv hPartsSsTy]
       rw [← hNative])
 
 /- ====================================================================

@@ -425,7 +425,7 @@ private theorem tuple_selector_eval_eq_arg
         (__smtx_dt_num_sels tailD native_nat_zero) := by
   simp [__smtx_model_eval, __smtx_model_eval_dt_sel, hHead, native_veq,
     native_ite, __smtx_tuple_datatype_decl, __smtx_dd_lookup, native_streq,
-    SmtEval.native_streq, dt_num_sels_resolve]
+    SmtEval.native_streq]
 
 private theorem tuple_value_arg_not_notvalue
     {v : SmtValue} {tailD : SmtDatatype} {j : Nat}
@@ -645,7 +645,7 @@ theorem tuple_prepend_eval_eq_value_rec
       unfold __eo_to_smt_tuple_prepend
       rw [hTailTy]
       dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
-      simp [__eo_to_smt_tuple_prepend_of_type, fullD,
+      simp [__eo_to_smt_tuple_prepend_of_type,
         __smtx_tuple_datatype_decl, native_streq, native_and, native_ite, hWf]
     · rfl
   have hTerm :

@@ -72,10 +72,8 @@ private theorem eval_abs_int (M : SmtModel) (x : Term) (n : native_Int)
   rw [eval_abs, hx]
   unfold __smtx_model_eval_abs
   by_cases hneg : n < 0
-  · simp [__smtx_model_eval_lt, __smtx_model_eval_ite, __smtx_model_eval__,
-      native_zlt, native_zplus, native_zneg, native_zabs, hneg]
-  · simp [__smtx_model_eval_lt, __smtx_model_eval_ite, native_zlt,
-      native_zabs, hneg]
+  · simp [native_zabs, hneg]
+  · simp [native_zabs, hneg]
 
 /-- uneg eval on an integer value. -/
 private theorem eval_neg_int (M : SmtModel) (x : Term) (n : native_Int)
@@ -110,8 +108,8 @@ private theorem int_of_geq_zero_bool (t : Term)
       simp_all [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
         native_ite, native_teq, native_not, SmtEval.native_not]
   | _ =>
-    simp_all [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-      native_ite, native_teq, native_not, SmtEval.native_not]
+    simp_all [__eo_typeof_lt, __eo_requires, __eo_eq,
+      native_ite, native_teq]
 
 /-- `__eo_typeof_ite` is non-stuck only when its first argument (condition type)
     is `Bool`. -/

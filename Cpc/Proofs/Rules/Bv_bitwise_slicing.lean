@@ -914,7 +914,7 @@ private theorem concat_full_split_op (op : BvOpSpec)
     rw [show (0 : Int) = ((0 : Nat) : Int) by rfl,
       extract_valN W cn (W - 1) 0 hc0 (by omega)]
     have hWidth : W - 1 + 1 - 0 = W := by omega
-    simp only [Nat.sub_zero, Nat.pow_zero, Nat.div_one, hWidth]
+    simp only [Nat.pow_zero, Nat.div_one, hWidth]
     congr 2
     norm_cast
     have hcn : cn.toNat < 2^W := toNat_lt_pow_of_canonical hc0 hc1
@@ -926,7 +926,7 @@ private theorem concat_full_split_op (op : BvOpSpec)
     rw [show (0 : Int) = ((0 : Nat) : Int) by rfl,
       extract_valN W an (W - 1) 0 ha0 (by omega)]
     have hWidth : W - 1 + 1 - 0 = W := by omega
-    simp only [Nat.sub_zero, Nat.pow_zero, Nat.div_one, hWidth]
+    simp only [Nat.pow_zero, Nat.div_one, hWidth]
     congr 2
     norm_cast
     have han : an.toNat < 2^W := toNat_lt_pow_of_canonical ha0 ha1

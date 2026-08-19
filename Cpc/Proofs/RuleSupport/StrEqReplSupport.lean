@@ -169,7 +169,7 @@ theorem native_seq_indexof_rec_nil
       rw [Smtm.native_seq_indexof_rec.eq_def]
       simp [native_seq_prefix_eq]
 
-theorem native_seq_indexof_nil_zero (xs : List SmtValue) :
+@[simp] theorem native_seq_indexof_nil_zero (xs : List SmtValue) :
     native_seq_indexof xs [] 0 = 0 := by
   rw [native_seq_indexof_eq_rec]
   simp [native_seq_indexof_rec_nil]
@@ -220,6 +220,20 @@ theorem native_seq_replace_eq_indexof
       simp only [hFind]
       rw [if_neg hIdxNonneg, hLen]
       simp
+
+/-- Compatibility form for proofs that expose the regex-backed implementation
+of `native_seq_replace`. -/
+@[simp] theorem native_str_replace_re_to_re_eq_indexof
+    (xs pat repl : List SmtValue) :
+    native_str_replace_re xs (native_str_to_re pat) repl =
+      if native_seq_indexof xs pat 0 < 0 then
+        xs
+      else
+        xs.take (Int.toNat (native_seq_indexof xs pat 0)) ++ repl ++
+          xs.drop
+            (Int.toNat (native_seq_indexof xs pat 0) + pat.length) := by
+  simpa only [native_seq_replace] using
+    native_seq_replace_eq_indexof xs pat repl
 
 theorem native_seq_replace_empty_src (pat repl : List SmtValue) :
     native_seq_replace [] pat repl = if pat = [] then repl else [] := by

@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.RegexSupport
 import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.RegexValueSupport
+import all Cpc.Proofs.RuleSupport.RegexValueSupport
 
 open Eo
 open SmtEval
@@ -165,7 +167,8 @@ private theorem native_str_in_re_range_empty_of_hi_lt_lo
     native_str_in_re str (native_re_range [lo] [hi]) = false := by
   cases str with
   | nil =>
-      simp [native_re_range, native_str_in_re, hValid, native_re_nullable]
+      simp [native_re_range, native_str_in_re, native_string_to_values,
+            native_re_str_valid, native_re_elem_valid, native_re_elem_le, hValid, native_re_nullable]
   | cons c rest =>
       rcases native_string_valid_cons_parts hValid with ⟨hc, hRestValid⟩
       have hBounds : ¬ (lo ≤ c ∧ c ≤ hi) := by
@@ -174,13 +177,14 @@ private theorem native_str_in_re_range_empty_of_hi_lt_lo
         exact (Nat.not_lt_of_ge hLoLeHi) hHiLtLo
       cases rest with
       | nil =>
-          simp [native_re_range, native_str_in_re, hValid, native_re_deriv,
+          simp [native_re_range, native_str_in_re, native_string_to_values,
+            native_re_str_valid, native_re_elem_valid, native_re_elem_le, hValid, native_re_deriv,
             native_re_nullable, hLo, hHi, hc, hBounds]
       | cons d ds =>
-          have hTailEmpty := RuleProofs.nativeListInRe_empty ds
-          simpa [native_re_range, native_str_in_re, hValid, native_re_deriv,
+          simp [native_re_range, native_str_in_re, native_string_to_values,
+            native_re_str_valid, native_re_elem_valid, native_re_elem_le, hValid, native_re_deriv,
             native_re_nullable, hLo, hHi, hc, hBounds,
-            RuleProofs.nativeListInRe] using hTailEmpty
+            RuleProofs.native_re_nullable_foldl_empty]
 
 private theorem typed_concl
     (s t : Term)
@@ -305,12 +309,20 @@ private theorem facts
         simp)
   rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
   rcases seq_value_canonical hTEvalTy with ⟨tt, hTEval⟩
-  have hSSValid : native_string_valid (native_unpack_string ss) = true := by
-    apply native_unpack_string_valid_of_typeof_seq_char
+  have hSSTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
     simpa [hSEval] using hSEvalTy
-  have hTTValid : native_string_valid (native_unpack_string tt) = true := by
-    apply native_unpack_string_valid_of_typeof_seq_char
+  have hTTTy : __smtx_typeof_seq_value tt = SmtType.Seq SmtType.Char := by
     simpa [hTEval] using hTEvalTy
+  have hSSValid : native_string_valid (native_unpack_string ss) = true :=
+    native_unpack_string_valid_of_typeof_seq_char hSSTy
+  have hTTValid : native_string_valid (native_unpack_string tt) = true :=
+    native_unpack_string_valid_of_typeof_seq_char hTTTy
+  have hSUnpack :
+      native_unpack_seq ss = native_string_to_values (native_unpack_string ss) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSSTy
+  have hTUnpack :
+      native_unpack_seq tt = native_string_to_values (native_unpack_string tt) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hTTTy
   have hSLen : native_seq_len (native_unpack_seq ss) = 1 :=
     seq_len_one_of_prem M s ss hSEval hPremS
   have hTLen : native_seq_len (native_unpack_seq tt) = 1 :=
@@ -339,7 +351,8 @@ private theorem facts
     change __smtx_model_eval M (SmtTerm.re_range (__eo_to_smt s) (__eo_to_smt t)) =
       SmtValue.RegLan
         (native_re_range (native_unpack_string ss) (native_unpack_string tt))
-    simp [__smtx_model_eval, __smtx_model_eval_re_range, hSEval, hTEval]
+    simp [__smtx_model_eval, __smtx_model_eval_re_range, hSEval, hTEval,
+      hSUnpack, hTUnpack]
   have hRhsEval :
       __smtx_model_eval M (__eo_to_smt rhs) =
         SmtValue.RegLan native_re_none := by
@@ -357,8 +370,7 @@ private theorem facts
     rw [native_str_in_re_range_empty_of_hi_lt_lo lo hi hLoValid hHiValid
       hHiLtLo str hValid]
     symm
-    simpa [native_str_in_re, hValid, native_re_none, RuleProofs.nativeListInRe]
-      using RuleProofs.nativeListInRe_empty str
+    exact RuleProofs.model_str_in_re_re_none _
 
 end ReRangeEmpProof
 

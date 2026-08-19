@@ -216,7 +216,7 @@ private theorem prefix_none_spec (r : SmtRegLan) :
                 cases hTail : native_re_prefix_match_len?
                     (native_re_deriv (SmtValue.Char c) r)
                     (native_string_to_values cs) with
-                | none => simpa [native_string_to_values] using hTail
+                | none => simp [native_string_to_values]
                 | some n =>
                     simp only [native_string_to_values] at hTail
                     simp [hTail] at hFind

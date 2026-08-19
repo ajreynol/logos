@@ -2117,7 +2117,7 @@ theorem StrInReConsumeInternal.consume_eval_str_to_re_inv_local (M : SmtModel)
       SmtValue.RegLan v) :
     ∃ sv : SmtSeq,
       __smtx_model_eval M (__eo_to_smt A) = SmtValue.Seq sv ∧
-      v = native_str_to_re (native_unpack_string sv) := by
+      v = native_str_to_re (native_unpack_seq sv) := by
   change __smtx_model_eval M
       (SmtTerm.str_to_re (__eo_to_smt A)) = SmtValue.RegLan v at h
   have h' : __smtx_model_eval_str_to_re
@@ -2131,7 +2131,7 @@ theorem StrInReConsumeInternal.consume_eval_str_to_re_inv_local (M : SmtModel)
   | Seq sv =>
       rw [hA] at h'
       have h2 : SmtValue.RegLan
-          (native_str_to_re (native_unpack_string sv)) =
+          (native_str_to_re (native_unpack_seq sv)) =
         SmtValue.RegLan v := h'
       injection h2 with h3
       exact ⟨sv, rfl, h3.symm⟩
@@ -2162,7 +2162,7 @@ theorem StrInReConsumeInternal.consume_eval_str_to_re_seq_empty_local (M : SmtMo
       rw [hV, ← h3]
       first
         | rfl
-        | simp [native_unpack_string, native_unpack_seq]
+        | simp [native_unpack_seq]
   | _ =>
       rw [hT] at hSv
       simp only [__eo_to_smt_seq_empty] at hSv
@@ -2190,13 +2190,8 @@ theorem StrInReConsumeInternal.consume_smt_value_rel_re_union_congr_local
       (SmtValue.RegLan s')) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan (native_re_union r s))
-      (SmtValue.RegLan (native_re_union r' s')) := by
-  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
-  simp [__smtx_model_eval_eq]
-  intro str hValid
-  rw [native_str_in_re_re_union, native_str_in_re_re_union,
-    smt_value_rel_reglan_valid_eq hr hValid,
-    smt_value_rel_reglan_valid_eq hs hValid]
+      (SmtValue.RegLan (native_re_union r' s')) :=
+  smt_value_rel_re_union_consume_local hr hs
 
 theorem StrInReConsumeInternal.consume_smt_value_rel_re_inter_congr_local
     {r r' s s' : SmtRegLan}
@@ -2206,13 +2201,8 @@ theorem StrInReConsumeInternal.consume_smt_value_rel_re_inter_congr_local
       (SmtValue.RegLan s')) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan (native_re_inter r s))
-      (SmtValue.RegLan (native_re_inter r' s')) := by
-  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
-  simp [__smtx_model_eval_eq]
-  intro str hValid
-  rw [native_str_in_re_re_inter, native_str_in_re_re_inter,
-    smt_value_rel_reglan_valid_eq hr hValid,
-    smt_value_rel_reglan_valid_eq hs hValid]
+      (SmtValue.RegLan (native_re_inter r' s')) :=
+  smt_value_rel_re_inter_consume_local hr hs
 
 theorem StrInReConsumeInternal.consume_eval_det_local {M : SmtModel} {A : SmtTerm}
     {v1 v2 : SmtRegLan}
@@ -3457,7 +3447,7 @@ theorem StrInReConsumeInternal.consume_eval_unrev_pair_inv_local (M : SmtModel)
       __smtx_model_eval M
           (__eo_to_smt (StrInReConsumeInternal.consume_unrev_re_local B)) =
         SmtValue.RegLan rv ∧
-      b = native_str_in_re (native_unpack_string sv) rv := by
+      b = Smtm.native_str_in_re (native_unpack_seq sv) rv := by
   simp only [StrInReConsumeInternal.consume_unrev_pair_local] at h
   change __smtx_model_eval M
       (SmtTerm.str_in_re
@@ -3487,7 +3477,7 @@ theorem StrInReConsumeInternal.consume_eval_unrev_pair_inv_local (M : SmtModel)
       | RegLan rv =>
           rw [hA, hB] at h'
           have h2 : SmtValue.Boolean
-              (native_str_in_re (native_unpack_string sv) rv) =
+              (Smtm.native_str_in_re (native_unpack_seq sv) rv) =
             SmtValue.Boolean b := h'
           injection h2 with h3
           exact ⟨sv, rv, rfl, rfl, h3.symm⟩

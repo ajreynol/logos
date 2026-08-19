@@ -253,7 +253,7 @@ theorem nativeListInRe_deriv_mk_concat
                   (native_re_mk_concat (native_re_deriv c r) s)
                   (if native_re_nullable r then native_re_deriv c s
                     else SmtRegLan.empty)) = _
-          simp [native_re_deriv, nativeListInRe_mk_union]
+          simp [nativeListInRe_mk_union]
 
 def nativeListInReConcat :
     List native_Char -> SmtRegLan -> SmtRegLan -> native_Bool
@@ -409,7 +409,7 @@ theorem native_str_in_re_re_comp
   cases hValid : native_string_valid str with
   | false => simp [native_str_in_re, hValid]
   | true =>
-      simp only [native_str_in_re, native_re_str_valid_string, hValid, if_pos,
+      simp only [native_str_in_re, hValid,
         Bool.true_and]
       exact nativeListInRe_mk_comp str r
 
@@ -499,6 +499,92 @@ theorem nativeListInRe_mk_concat_assoc
     · exact (nativeListInRe_mk_concat_true_iff_exists_append (xr ++ xs') r s).2
         ⟨xr, xs', rfl, hr, hs⟩
 
+theorem nativeListInRe_char_true_length
+    (xs : List native_Char) (c : SmtValue)
+    (h : nativeListInRe xs (SmtRegLan.char c) = true) :
+    xs.length = 1 := by
+  cases xs with
+  | nil => simp [nativeListInRe, native_re_nullable] at h
+  | cons x xs =>
+      cases xs with
+      | nil => rfl
+      | cons y ys =>
+          have hFalse :
+              nativeListInRe (x :: y :: ys) (SmtRegLan.char c) = false := by
+            simp [nativeListInRe, native_re_deriv]
+            split <;> simp [native_re_deriv, nativeListInRe_empty]
+          rw [hFalse] at h
+          simp at h
+
+theorem nativeListInRe_range_true_length
+    (xs : List native_Char) (lo hi : SmtValue)
+    (h : nativeListInRe xs (SmtRegLan.range lo hi) = true) :
+    xs.length = 1 := by
+  cases xs with
+  | nil => simp [nativeListInRe, native_re_nullable] at h
+  | cons x xs =>
+      cases xs with
+      | nil => rfl
+      | cons y ys =>
+          have hFalse :
+              nativeListInRe (x :: y :: ys) (SmtRegLan.range lo hi) = false := by
+            simp [nativeListInRe, native_re_deriv]
+            split <;> simp [native_re_deriv, nativeListInRe_empty]
+          rw [hFalse] at h
+          simp at h
+
+theorem nativeListInRe_re_range_true_length
+    (xs : List native_Char) (lo hi : List SmtValue)
+    (h : nativeListInRe xs (native_re_range lo hi) = true) :
+    xs.length = 1 := by
+  cases lo with
+  | nil => simp [native_re_range, nativeListInRe_empty] at h
+  | cons lo loTail =>
+      cases loTail with
+      | nil =>
+          cases hi with
+          | nil => simp [native_re_range, nativeListInRe_empty] at h
+          | cons hi hiTail =>
+              cases hiTail with
+              | nil => exact nativeListInRe_range_true_length xs lo hi h
+              | cons _ _ => simp [native_re_range, nativeListInRe_empty] at h
+      | cons _ _ => simp [native_re_range, nativeListInRe_empty] at h
+
+theorem nativeListInRe_re_of_string_true_length :
+    (pat xs : List native_Char) ->
+      nativeListInRe xs (native_re_of_list (native_string_to_values pat)) = true ->
+      xs.length = pat.length
+  | [], xs, h => by
+      cases xs with
+      | nil => rfl
+      | cons c cs =>
+          have hFalse : nativeListInRe (c :: cs)
+              (native_re_of_list (native_string_to_values [])) = false := by
+            simpa [native_re_of_list, nativeListInRe, native_re_deriv] using
+              nativeListInRe_empty cs
+          rw [hFalse] at h
+          simp at h
+  | c :: pat, xs, h => by
+      rcases (nativeListInRe_mk_concat_true_iff_exists_append xs
+          (SmtRegLan.char (SmtValue.Char c))
+          (native_re_of_list (native_string_to_values pat))).1
+          (by simpa [native_re_of_list] using h) with
+        ⟨left, right, hAppend, hLeft, hRight⟩
+      have hLeftLen : left.length = 1 :=
+        nativeListInRe_char_true_length left (SmtValue.Char c) hLeft
+      have hRightLen : right.length = pat.length :=
+        nativeListInRe_re_of_string_true_length pat right hRight
+      rw [← hAppend]
+      simp [hLeftLen, hRightLen, Nat.add_comm]
+
+theorem nativeListInRe_str_to_re_string_true_length
+    (pat xs : List native_Char)
+    (h : nativeListInRe xs
+      (native_str_to_re (native_string_to_values pat)) = true) :
+    xs.length = pat.length := by
+  simpa [native_str_to_re] using
+    nativeListInRe_re_of_string_true_length pat xs h
+
 theorem nativeListInRe_allchar_true_iff (xs : List native_Char) :
     nativeListInRe xs native_re_allchar = true ↔
       xs.length = 1 ∧ xs.all native_char_valid = true := by
@@ -521,13 +607,13 @@ private theorem native_re_deriv_re_all
     (c : native_Char) (hValid : native_char_valid c = true) :
     native_re_deriv c native_re_all = native_re_all := by
   simp [native_re_all, native_re_deriv, native_re_elem_valid,
-    native_re_mk_concat, native_re_concat, hValid]
+    native_re_concat, hValid]
 
 private theorem native_re_deriv_re_all_invalid
     (c : native_Char) (hValid : native_char_valid c = false) :
     native_re_deriv c native_re_all = SmtRegLan.empty := by
   simp [native_re_all, native_re_deriv, native_re_elem_valid,
-    native_re_mk_concat, native_re_concat, hValid]
+    native_re_concat, hValid]
 
 theorem nativeListInRe_re_all_true_iff (xs : List native_Char) :
     nativeListInRe xs native_re_all = true ↔

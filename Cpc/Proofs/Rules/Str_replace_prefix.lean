@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrEqReplSupport
+import all Cpc.Proofs.RuleSupport.StrEqReplSupport
 
 open Eo
 open SmtEval
@@ -136,7 +138,7 @@ private theorem native_seq_replace_prefix
       simp [native_seq_replace]
   | cons p ps =>
       have hIdx := native_seq_indexof_prefix_zero (p :: ps) rest
-      unfold native_seq_replace
+      rw [StrEqReplSupport.native_seq_replace_eq_indexof]
       rw [hIdx]
       simp
 

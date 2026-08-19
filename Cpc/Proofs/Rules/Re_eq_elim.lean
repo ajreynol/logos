@@ -15,6 +15,31 @@ set_option linter.unusedVariables false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
+/-- `native_re_ext_eq`, elaborated outside `RuleProofs` so that
+`native_str_in_re` still denotes the model-level operator on value sequences
+rather than the string-view proxy `RuleProofs.native_str_in_re`. -/
+private noncomputable def nativeReExtEq (r1 r2 : SmtRegLan) : native_Bool :=
+  native_re_ext_eq r1 r2
+
+private theorem nativeReExtEq_eq_true_iff (r1 r2 : SmtRegLan) :
+    nativeReExtEq r1 r2 = true ↔
+      ∀ s : native_String, native_string_valid s = true ->
+        native_str_in_re (native_string_to_values s) r1 =
+          native_str_in_re (native_string_to_values s) r2 := by
+  classical
+  unfold nativeReExtEq
+  constructor
+  · intro h
+    by_cases hP :
+        ∀ s : native_String, native_string_valid s = true ->
+          native_str_in_re (native_string_to_values s) r1 =
+            native_str_in_re (native_string_to_values s) r2
+    · exact hP
+    · rw [dif_neg hP] at h
+      exact absurd h (by decide)
+  · intro hP
+    exact dif_pos hP
+
 namespace RuleProofs
 
 /-! ## Term-structure abbreviations for `re_eq_elim`
@@ -351,7 +376,7 @@ private theorem re_eq_elim_smt_value_rel
   -- LHS value
   have hLHS :
       __smtx_model_eval M (__eo_to_smt (mkEqT r1 r2)) =
-        SmtValue.Boolean (native_re_ext_eq R1 R2) := by
+        SmtValue.Boolean (nativeReExtEq R1 R2) := by
     have h1 : __eo_to_smt (mkEqT r1 r2) =
         SmtTerm.eq (__eo_to_smt r1) (__eo_to_smt r2) := rfl
     rw [h1]
@@ -397,6 +422,7 @@ private theorem re_eq_elim_smt_value_rel
     simp [native_model_var_lookup, native_model_push]
   -- the body evaluated at a `Seq` value
   have hBodyEval : ∀ ss : SmtSeq,
+      __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char ->
       __smtx_model_eval
         (native_model_push M reqName (__eo_to_smt_type seqCharTy)
           (SmtValue.Seq ss))
@@ -404,7 +430,7 @@ private theorem re_eq_elim_smt_value_rel
         SmtValue.Boolean
           (decide (native_str_in_re (native_unpack_string ss) R1 =
                    native_str_in_re (native_unpack_string ss) R2)) := by
-    intro ss
+    intro ss hssTy
     have h1 : __eo_to_smt (reEqBody r1 r2) =
         SmtTerm.eq
           (SmtTerm.str_in_re (__eo_to_smt reqVar) (__eo_to_smt r1))
@@ -415,23 +441,26 @@ private theorem re_eq_elim_smt_value_rel
     simp [__smtx_model_eval, native_model_var_lookup, native_model_push,
       __smtx_model_eval_str_in_re, __smtx_model_eval_eq, native_veq,
       SmtValue.Boolean.injEq]
+    rw [native_unpack_seq_eq_string_to_values_of_typeof_seq_char hssTy,
+      ← native_str_in_re_eq_model, ← native_str_in_re_eq_model]
   -- characterization of regex extensional equality
-  have hExtIff : native_re_ext_eq R1 R2 = true ↔
+  have hExtIff : nativeReExtEq R1 R2 = true ↔
       (∀ s : native_String, native_string_valid s = true →
         native_str_in_re s R1 = native_str_in_re s R2) := by
+    rw [nativeReExtEq_eq_true_iff]
     constructor
-    · intro h
-      by_cases hP : (∀ s : native_String, native_string_valid s = true →
-          native_str_in_re s R1 = native_str_in_re s R2)
-      · exact hP
-      · rw [dif_neg hP] at h; exact absurd h (by decide)
-    · intro hP; exact dif_pos hP
+    · intro h s hs
+      rw [native_str_in_re_eq_model, native_str_in_re_eq_model]
+      exact h s hs
+    · intro h s hs
+      rw [← native_str_in_re_eq_model, ← native_str_in_re_eq_model]
+      exact h s hs
   rw [hLHS]
   rw [smt_value_rel_iff_model_eval_eq_true]
   -- RHS value
   have hRHSeq :
       __smtx_model_eval M (__eo_to_smt (reEqForall r1 r2)) =
-        SmtValue.Boolean (native_re_ext_eq R1 R2) := by
+        SmtValue.Boolean (nativeReExtEq R1 R2) := by
     rw [re_eq_forall_smt]
     simp only [__smtx_model_eval]
     by_cases hEx :
@@ -453,12 +482,16 @@ private theorem re_eq_elim_smt_value_rel
           with ⟨ss, rfl⟩
         have hssTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
           have h := hvTy; rw [hT] at h; simpa [__smtx_typeof_value] using h
-        rw [hBodyEval ss] at hvEval
+        rw [hBodyEval ss hssTy] at hvEval
         simp [__smtx_model_eval_not, native_not] at hvEval
         intro hAll
         exact hvEval (hAll (native_unpack_string ss)
           (native_unpack_string_valid_of_typeof_seq_char hssTy))
-      rw [dif_neg hNotHp]
+      have hFalse : nativeReExtEq R1 R2 = false := by
+        cases hVal : nativeReExtEq R1 R2 with
+        | false => rfl
+        | true => exact absurd (hExtIff.1 hVal) hNotHp
+      rw [hFalse]
       rfl
     · -- no witness: the formula is true, and so is `native_re_ext_eq`
       rw [dif_neg hEx]
@@ -476,10 +509,10 @@ private theorem re_eq_elim_smt_value_rel
             exact typeof_pack_string s hs
           · show __smtx_seq_canonical (native_pack_string s) = true
             exact seq_canonical_pack_string s hs
-          · rw [hBodyEval (native_pack_string s),
+          · rw [hBodyEval (native_pack_string s) (typeof_pack_string s hs),
               native_unpack_string_pack_string s]
             simp [__smtx_model_eval_not, native_not, hne]
-      rw [dif_pos hHp]
+      rw [hExtIff.2 hHp]
       rfl
   rw [hRHSeq]
   simp [__smtx_model_eval_eq, native_veq]

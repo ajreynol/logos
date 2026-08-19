@@ -195,7 +195,7 @@ private theorem native_seq_indexof_nonneg_of_drop_contains
     rw [hDrop]
     exact native_seq_indexof_rec_append_ne_neg pat after before
       (Int.toNat i) (xs.length - (Int.toNat i + pat.length) + 1) hFuel
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   rw [if_neg (Int.not_lt_of_ge hINonneg)]
   rw [dif_pos hBounds]
   rcases native_seq_indexof_rec_eq_neg_one_or_ge

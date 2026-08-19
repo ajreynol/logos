@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.StrOverlapSupport
 import all Cpc.Proofs.RuleSupport.StrOverlapSupport
+public import Cpc.Proofs.RuleSupport.StrEqReplSupport
+import all Cpc.Proofs.RuleSupport.StrEqReplSupport
 public import Cpc.Proofs.RuleSupport.SetsEvalOpSupport
 import all Cpc.Proofs.RuleSupport.SetsEvalOpSupport
 
@@ -97,11 +99,11 @@ theorem valueCount_replace_le (v : SmtValue) (xs pat repl : List SmtValue) :
     valueCount v (native_seq_replace xs pat repl) <= valueCount v xs + valueCount v repl := by
   cases pat with
   | nil =>
-      unfold native_seq_replace
-      rw [valueCount_append]
+      simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+        StrEqReplSupport.native_seq_indexof_nil_zero, valueCount_append]
       omega
   | cons p ps =>
-      unfold native_seq_replace
+      rw [StrEqReplSupport.native_seq_replace_eq_indexof]
       by_cases hIdx : native_seq_indexof xs (p :: ps) 0 < 0
       · simp [hIdx]
       · simp [hIdx]
