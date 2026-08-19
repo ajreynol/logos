@@ -189,14 +189,14 @@ about it:
   theorem correct___logos_check_proof (input : String) (assums : List Term) (cmds : CCmdList)
       (hParse : parseProof input = Except.ok (assums, cmds))
       (hCorrect : logos_check_proof input = Except.ok Verdict.correct) :
-      ∀ M : SmtModel, model_total_typed M ->
-        ∃ A ∈ assums, __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false
+      eo_satisfiability (logos_assumption_term assums) false
   ```
 
   That is: if the parser reads the assumptions `assums` out of `input`, and
-  `logos` prints `correct` for `input`, then every model makes one of those
-  assumptions false — they have no common model. `Main.lean` only reads the
-  file, prints the verdict and picks an exit status.
+  `logos` prints `correct` for `input`, then their conjunction is unsatisfiable.
+  The corollary `correct___logos_check_proof_no_model` unfolds that over the
+  assumption list — every model makes one of the `assums` false. `Main.lean`
+  only reads the file, prints the verdict and picks an exit status.
 
 The side conditions are not re-implemented for the executable to run: they are
 the predicates of `Cpc/Proofs/Assumptions.lean`, and that file also derives the

@@ -13,15 +13,18 @@ Reading the file aside, all of the work is `Eo.logos_check_proof`
 theorem correct___logos_check_proof (input : String) (assums : List Term) (cmds : CCmdList)
     (hParse : parseProof input = Except.ok (assums, cmds))
     (hCorrect : logos_check_proof input = Except.ok Verdict.correct) :
-    ∀ M : SmtModel, model_total_typed M ->
-      ∃ A ∈ assums, __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false
+    eo_satisfiability (logos_assumption_term assums) false
 ```
 
-So `correct` on the terminal means: no model satisfies all of the formulas this
-file `assume`s, as the parser read them.  When Logos accepts the proof but a
-side condition fails, the run is reported as `unsupported` instead: the proof is
-a valid CPC derivation, but it mentions something the specification does not
-model, so the theorem says nothing about it.
+So `correct` on the terminal means: the conjunction of the formulas this file
+`assume`s, as the parser read them, is unsatisfiable.  The corollary
+`correct___logos_check_proof_no_model` says the same thing one level down --
+every model makes one of those assumptions false.
+
+When Logos accepts the proof but a side condition fails, the run is reported as
+`unsupported` instead: the proof is a valid CPC derivation, but it mentions
+something the specification does not model, so the theorem says nothing about
+it.
 
 The verdict is computed here in the two steps `Eo.logos_check_proof` is defined
 as -- parse, then `Eo.logos_verdict` -- so that the `unsupported` case can name

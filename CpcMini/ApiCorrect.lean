@@ -34,18 +34,27 @@ theorem correct___logos_verdict (assums : List Term) (cmds : CCmdList)
 /--
 Soundness of the `logos-mini` executable, stated about the proof file it reads:
 if the parser reads the assumptions `assums` out of `input` and the executable
-reports `correct`, then in every model at least one of those assumptions is
-false, i.e. they have no common model.
+reports `correct`, the conjunction of those assumptions is unsatisfiable.
 -/
 theorem correct___logos_check_proof (input : String) (assums : List Term) (cmds : CCmdList)
+    (hParse : parseProof input = Except.ok (assums, cmds))
+    (hCorrect : logos_check_proof input = Except.ok Verdict.correct) :
+    eo_satisfiability (logos_assumption_term assums) false := by
+  apply correct___logos_verdict assums cmds
+  rw [logos_check_proof_of_parse input assums cmds hParse] at hCorrect
+  exact Except.ok.inj hCorrect
+
+/--
+The same conclusion spelled out, in terms of the parser's assumption list rather
+than the `and`-chain built from it: every total typed SMT model makes at least
+one of the assumptions false.
+-/
+theorem correct___logos_check_proof_no_model (input : String) (assums : List Term)
+    (cmds : CCmdList)
     (hParse : parseProof input = Except.ok (assums, cmds))
     (hCorrect : logos_check_proof input = Except.ok Verdict.correct) :
     ∀ M : SmtModel, model_total_typed M ->
       ∃ A ∈ assums, __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false := by
   intro M hM
-  have hVerdict : logos_verdict assums cmds = Verdict.correct := by
-    rw [logos_check_proof_of_parse input assums cmds hParse] at hCorrect
-    exact Except.ok.inj hCorrect
-  have hUnsat := correct___logos_verdict assums cmds hVerdict
-  cases hUnsat with
+  cases correct___logos_check_proof input assums cmds hParse hCorrect with
   | intro_false hFalse => exact exists_false_assumption M assums (hFalse M hM)
