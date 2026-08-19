@@ -78,6 +78,10 @@ run_regressions() {
   lake build Logos.Parser
   lake env lean test/Parser.lean
 
+  echo "Checking checker diagnostics..."
+  lake build Cpc.Diagnostics
+  lake env lean test/CheckerDiagnostics.lean
+
   echo "Building the CPC executables..."
   lake build logos logos-native
 

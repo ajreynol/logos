@@ -1,4 +1,4 @@
-import Cpc.Api
+import Cpc.Diagnostics
 
 /-!
 The `logos` executable: read a CPC proof in s-expression syntax, and report
@@ -84,7 +84,7 @@ def checkProof (path : String) : IO UInt32 := do
   | .ok (assums, cmds) =>
     match Eo.logos_verdict assums cmds with
     | .correct => report .correct
-    | .incorrect => report .incorrect
+    | .incorrect => report .incorrect (Eo.logos_checker_failure_detail proof assums cmds)
     | .incomplete => report .incomplete (incompleteDetail assums cmds)
   | .error err =>
     IO.eprintln s!"Error parsing proof: {err}"
