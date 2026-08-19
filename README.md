@@ -132,6 +132,9 @@ s-expression and read again wherever the defined symbol is applied, with the par
 to the arguments given there.  Consequently a parameter's declared type is not used, an error
 in the body is reported at the use site, and a recursive `define` is rejected.  A `define`
 without parameters is read where it is given, as before.
+An expression headed by `_` uses indexed-operator syntax when a matching indexed declaration
+exists (for example, `(_ extract 1 0)`); otherwise `_` is a higher-order application marker,
+so `(_ BitVec 4)` is equivalent to `(BitVec 4)`.
 Datatypes may be mutually recursive; parametric datatypes (a non-zero arity, or a `par` body)
 are rejected, since Logos has no representation for them.
 The conclusion printed on a `step` is ignored, since Logos recomputes it from the rule.

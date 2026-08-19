@@ -391,12 +391,33 @@ partial def parseTermCore (cfg : Config T R C CL) : Sexp → ParserM T T
   | .expr [] => throw "Error: empty s-expression"
   | .expr (.atom "_" :: rest) => do
     let (name, idxs) ← splitIndexed rest
-    parseApp cfg name idxs []
+    parseUnderscoreApp cfg name idxs []
   | .expr (f :: args) => do
     let args ← args.mapM (parseTerm cfg)
-    match asOpHead f with
-    | some (name, idxs) => parseApp cfg name idxs args
-    | none => return args.foldl cfg.apply (← parseTerm cfg f)
+    match f with
+    | .expr (.atom "_" :: rest) => do
+      let (name, idxs) ← splitIndexed rest
+      parseUnderscoreApp cfg name idxs args
+    | _ =>
+      match asOpHead f with
+      | some (name, idxs) => parseApp cfg name idxs args
+      | none => return args.foldl cfg.apply (← parseTerm cfg f)
+
+/--
+Parse an expression headed by `_`.  If the name has an operator declaration
+with the given number of indices, this is SMT-style indexed syntax such as
+`(_ extract 1 0)`.  Otherwise `_` is Eunoia's higher-order application marker,
+so `(_ BitVec 4)` is parsed like `(BitVec 4)`.  Any outer arguments are then
+applied to the resulting term.
+-/
+partial def parseUnderscoreApp (cfg : Config T R C CL) (name : String)
+    (idxs : List Sexp) (args : List T) : ParserM T T := do
+  let decls := (← get).ops.getD name []
+  if decls.any (·.indexArity == idxs.length) then
+    parseApp cfg name idxs args
+  else
+    let head ← parseTerm cfg (.expr (.atom name :: idxs))
+    return args.foldl cfg.apply head
 
 /--
 Build the application of the operator (or declared symbol) `name`, indexed by
