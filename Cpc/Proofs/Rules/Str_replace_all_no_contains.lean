@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrReplaceAllSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceAllSupport
 
 open Eo
 open SmtEval
@@ -99,12 +101,8 @@ private theorem native_seq_replace_all_eq_self_of_indexof_neg
     (xs pat repl : List SmtValue)
     (hIdxNeg : native_seq_indexof xs pat 0 < 0) :
     native_seq_replace_all xs pat repl = xs := by
-  unfold native_seq_replace_all
-  cases pat with
-  | nil =>
-      simp [native_seq_replace_all_aux]
-  | cons p ps =>
-      simp [native_seq_replace_all_aux, hIdxNeg]
+  exact StrReplaceAllSupport.replace_all_eq_self_of_indexof_neg
+    pat repl xs hIdxNeg
 
 private theorem native_seq_replace_all_eq_self_of_contains_false
     (xs pat repl : List SmtValue)

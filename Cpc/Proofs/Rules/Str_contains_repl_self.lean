@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrEqReplSupport
+import all Cpc.Proofs.RuleSupport.StrEqReplSupport
 
 open Eo
 open SmtEval
@@ -165,7 +167,7 @@ private theorem native_seq_contains_of_decomp
     omega
   have hNe :
       native_seq_indexof (before ++ pat ++ after) pat 0 ≠ -1 := by
-    unfold native_seq_indexof
+    rw [native_seq_indexof_eq_rec]
     simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
     rw [dif_pos hLen]
     have hFuel :
@@ -274,7 +276,7 @@ private theorem native_seq_contains_replace_self
           exact of_decide_eq_true hContains
         have hNotNeg : ¬ native_seq_indexof xs (p :: ps) 0 < 0 :=
           Int.not_lt_of_ge hNonneg
-        unfold native_seq_replace
+        rw [StrEqReplSupport.native_seq_replace_eq_indexof]
         rw [if_neg hNotNeg]
         let n := Int.toNat (native_seq_indexof xs (p :: ps) 0)
         have hRight :

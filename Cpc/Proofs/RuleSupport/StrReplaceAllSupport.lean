@@ -578,6 +578,69 @@ theorem replace_all_step (pat repl xs : List SmtValue) (hPat : pat ≠ [])
             simpa [k, List.take_succ_cons] using
                 congrArg (List.cons x) hTailStep
 
+theorem replace_all_cons_of_not_prefix
+    (pat repl : List SmtValue) (x : SmtValue) (xs : List SmtValue)
+    (hPat : pat ≠ [])
+    (hPrefix : native_seq_prefix_eq pat (x :: xs) = false) :
+    native_seq_replace_all (x :: xs) pat repl =
+      x :: native_seq_replace_all xs pat repl := by
+  cases pat with
+  | nil => exact absurd rfl hPat
+  | cons p ps =>
+      unfold native_seq_replace_all native_str_replace_re_all
+        native_re_replace_all_nonempty_list
+      change native_re_replace_all_nonempty_list_aux
+          ((x :: xs).length + 1) (native_str_to_re (p :: ps)) repl
+            (x :: xs) = x :: native_seq_replace_all xs (p :: ps) repl
+      rw [native_re_replace_all_nonempty_list_aux.eq_3,
+        positive_prefix_str_to_re_cons, hPrefix]
+      rfl
+
+theorem replace_all_id (pat xs : List SmtValue) :
+    native_seq_replace_all xs pat pat = xs := by
+  cases pat with
+  | nil => exact replace_all_nil_pat [] xs
+  | cons p ps =>
+      suffices hGen : ∀ (len : Nat) (ys : List SmtValue), ys.length = len ->
+          native_seq_replace_all ys (p :: ps) (p :: ps) = ys by
+        exact hGen xs.length xs rfl
+      intro len
+      induction len using Nat.strongRecOn with
+      | ind len ih =>
+          intro ys hLen
+          by_cases hNeg : native_seq_indexof ys (p :: ps) 0 < 0
+          · exact replace_all_eq_self_of_indexof_neg (p :: ps) (p :: ps) ys hNeg
+          · have hNonneg : 0 ≤ native_seq_indexof ys (p :: ps) 0 :=
+              int_nonneg_of_not_neg hNeg
+            have hBounds :=
+              StrEqReplSupport.native_seq_indexof_zero_bounds_of_nonneg
+                ys (p :: ps) hNonneg
+            have hTailLt :
+                (ys.drop
+                    (Int.toNat (native_seq_indexof ys (p :: ps) 0) +
+                      (p :: ps).length)).length < len := by
+              rw [List.length_drop, ← hLen]
+              simp only [List.length_cons] at hBounds ⊢
+              omega
+            rw [replace_all_step (p :: ps) (p :: ps) ys (by simp) hNonneg,
+              ih _ hTailLt _ rfl]
+            exact StrEqReplSupport.native_seq_indexof_zero_decomp_take_drop
+              ys (p :: ps) hNonneg
+
+theorem replace_all_self_of_nonempty
+    (xs repl : List SmtValue) (hXs : xs ≠ []) :
+    native_seq_replace_all xs xs repl = repl := by
+  have hIdx : native_seq_indexof xs xs 0 = 0 :=
+    native_seq_indexof_self_zero xs
+  have hNonneg : 0 ≤ native_seq_indexof xs xs 0 := by simp [hIdx]
+  have hEmptyIdx : native_seq_indexof [] xs 0 = -1 := by
+    rw [native_seq_indexof_eq_rec]
+    simp [hXs]
+  have hEmpty : native_seq_replace_all [] xs repl = [] :=
+    replace_all_eq_self_of_indexof_neg xs repl [] (by rw [hEmptyIdx]; simp)
+  rw [replace_all_step xs repl xs hXs hNonneg, hIdx]
+  simp [hEmpty]
+
 /-! ## Element bounds and sortedness -/
 
 theorem occEnds_mem_bounds (pat : List SmtValue) (xs : List SmtValue)
@@ -1263,6 +1326,20 @@ theorem replace_all_length_int (pat repl xs : List SmtValue)
         simp
       rw [hExpand]
       omega
+
+theorem replace_all_length_eq_of_same_len
+    (pat repl xs : List SmtValue) (hLen : pat.length = repl.length) :
+    (native_seq_replace_all xs pat repl).length = xs.length := by
+  cases pat with
+  | nil =>
+      rw [replace_all_nil_pat]
+  | cons p ps =>
+      have hInt := replace_all_length_int (p :: ps) repl xs (by simp)
+      have hDelta : (repl.length : Int) - ((p :: ps).length : Int) = 0 := by
+        omega
+      rw [hDelta] at hInt
+      simp at hInt
+      exact_mod_cast hInt
 
 /-- The value of the `@strings_num_occur` skolem: the length difference of
 two `replace_all`s counts the scan occurrences. -/

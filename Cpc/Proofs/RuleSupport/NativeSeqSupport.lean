@@ -227,6 +227,20 @@ theorem native_seq_indexof_eq_rec
         omega
       rw [if_neg hStart, dif_neg hBounds]
 
+/-- Compatibility form for proofs that expose the regex-backed implementation
+of `native_seq_indexof`. -/
+@[simp] theorem native_str_indexof_re_to_re_eq_rec
+    (xs pat : List SmtValue) (i : native_Int) :
+    native_str_indexof_re xs (native_str_to_re pat) i =
+      if i < 0 then
+        -1
+      else if _h : Int.toNat i + pat.length ≤ xs.length then
+        native_seq_indexof_rec (xs.drop (Int.toNat i)) pat (Int.toNat i)
+          (xs.length - (Int.toNat i + pat.length) + 1)
+      else
+        -1 := by
+  simpa only [native_seq_indexof] using native_seq_indexof_eq_rec xs pat i
+
 theorem native_seq_indexof_rec_eq_neg_one_or_ge
     (xs pat : List SmtValue) :
     (i fuel : Nat) ->
@@ -563,7 +577,7 @@ theorem native_seq_prefix_eq_self
   | cons x xs ih =>
       simp [native_seq_prefix_eq, native_veq, ih]
 
-theorem native_seq_indexof_self_zero
+@[simp] theorem native_seq_indexof_self_zero
     (xs : List SmtValue) :
     native_seq_indexof xs xs 0 = 0 := by
   rw [native_seq_indexof_eq_rec]
