@@ -50,7 +50,9 @@ private abbrev TestCmd := String × List TestTerm × List Nat
 private def testConfig : Config TestTerm String TestCmd (List TestCmd) where
   ops := [
     { name := "Type", arity := .exact 0, build := fun | [] => some .type | _ => none },
-    { name := "->", arity := .rightAssoc, build := fun | [] => some (.atom "->") | _ => none }
+    { name := "->", arity := .rightAssoc, build := fun | [] => some (.atom "->") | _ => none },
+    { name := "indexed", indexArity := 1, arity := .exact 1,
+      build := fun | [i] => some (.app (.atom "indexed") i) | _ => none }
   ]
   parseLiteral := fun _ => none
   isType := (· == .type)
@@ -124,6 +126,20 @@ private def binary : String := "(declare-sort U 0) (declare-fun g (U U) U)
   (declare-const a U) (declare-const b U)"
 
 private def gTy : TestTerm := arrow (.usort 1) (arrow (.usort 1) (.usort 1))
+
+/-!
+### Indexed applications and binders
+-/
+
+-- Eunoia puts indices in the ordinary argument list, whereas SMT-LIB wraps
+-- them in `(_ ...)`; both spellings build the same operator application.
+#guard assumptions (binary ++ "(assume @p0 (indexed a b))") ==
+  assumptions (binary ++ "(assume @p0 ((_ indexed a) b))")
+
+-- `let` bindings are parallel, and their scope ends after the body.
+#guard assumptions (binary ++
+    "(assume @p0 (let ((a b) (b a)) (g a b))) (assume @p1 (g a b))") ==
+  assumptions (binary ++ "(assume @p0 (g b a)) (assume @p1 (g a b))")
 
 -- The body is read with the parameters bound to the arguments at the use site.
 #guard assumptions (binary ++ "(define swap ((x U) (y U)) (g y x)) (assume @p0 (swap a b))")
