@@ -8,16 +8,10 @@ import all CpcMini.Proofs.Checker
 public section
 
 /-!
-# Soundness of the executable, stated about what the executable computes
+# Soundness of the `logos-mini` executable
 
-The CpcMini counterpart of `Cpc/ApiCorrect.lean`: `correct___eo_is_refutation`
-restated with each of its hypotheses replaced by the runtime check that computes
-it, so that it applies directly to the expression `MainMini.lean` evaluates.
-
-The unverified remainder is the same as for CPC: the s-expression reader and
-parser, the fact that Logos does not compare a proof's assumptions against an
-original input problem, and the Lean-native front end, which still calls the
-generated, unguarded `Eo.logos_invoke_assume`.
+The CpcMini counterpart of `Cpc/ApiCorrect.lean`, stated about
+`Eo.logos_check_proof`, which is what `MainMini.lean` runs on a proof file.
 -/
 
 open Eo
@@ -25,17 +19,33 @@ open SmtEval
 open Smtm
 
 /--
-Soundness of the `logos-mini` executable's verdict: if all three checks return
-`true`, the conjunction of the proof's assumptions is unsatisfiable.
+Soundness of the verdict: `correct` on a parsed proof means the conjunction of
+its assumptions is unsatisfiable.
 -/
-theorem correct___logos_check_refutation (assums : List Term) (cmds : CCmdList) :
-  logos_check_translatableAssumptionList assums = true ->
-  logos_check_cmdListTranslationOk cmds = true ->
-  logos_check_refutation assums cmds = true ->
-  eo_satisfiability (logos_assumption_term assums) false :=
-by
-  intro hAssums hCmds hRefutation
+theorem correct___logos_verdict (assums : List Term) (cmds : CCmdList)
+    (h : logos_verdict assums cmds = Verdict.correct) :
+    eo_satisfiability (logos_assumption_term assums) false := by
+  obtain ⟨hRefutation, hAssums, hCmds⟩ := checks_of_verdict_correct assums cmds h
   exact correct___eo_is_refutation (logos_assumption_term assums) cmds
     (translatableAssumptionList_of_check assums hAssums)
     (cmdListTranslationOk_of_check cmds hCmds)
     (eo_is_refutation_of_check assums cmds hRefutation)
+
+/--
+Soundness of the `logos-mini` executable, stated about the proof file it reads:
+if the parser reads the assumptions `assums` out of `input` and the executable
+reports `correct`, then in every model at least one of those assumptions is
+false, i.e. they have no common model.
+-/
+theorem correct___logos_check_proof (input : String) (assums : List Term) (cmds : CCmdList)
+    (hParse : parseProof input = Except.ok (assums, cmds))
+    (hCorrect : logos_check_proof input = Except.ok Verdict.correct) :
+    ∀ M : SmtModel, model_total_typed M ->
+      ∃ A ∈ assums, __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false := by
+  intro M hM
+  have hVerdict : logos_verdict assums cmds = Verdict.correct := by
+    rw [logos_check_proof_of_parse input assums cmds hParse] at hCorrect
+    exact Except.ok.inj hCorrect
+  have hUnsat := correct___logos_verdict assums cmds hVerdict
+  cases hUnsat with
+  | intro_false hFalse => exact exists_false_assumption M assums (hFalse M hM)

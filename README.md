@@ -75,7 +75,7 @@ The executable accepts exactly one proof path and reports one of three outcomes:
 
 | output        | status | meaning                                                                     |
 | ------------- | ------ | --------------------------------------------------------------------------- |
-| `correct`     | 0      | the proof's assumptions are unsatisfiable, by `correct___logos_check_refutation` |
+| `correct`     | 0      | the proof's assumptions are unsatisfiable, by `correct___logos_check_proof` |
 | `incorrect`   | 1      | Logos does not accept the proof as a refutation                             |
 | `unsupported` | 2      | Logos accepts the proof, but it mentions something the specification of SMT-LIB semantics does not model, so the correctness theorem does not apply to it |
 
@@ -173,18 +173,38 @@ files connect that statement to what the executable actually runs, so that the
 `correct` it prints is the theorem's conclusion rather than an informal argument
 about it:
 
-- `Cpc/Api.lean` computes each of the theorem's four components from the
-  parser's output: the assumption term `F`, the refutation check, and the two
-  side conditions. It is the only place that decides what `correct` means.
-- `Cpc/ApiChecks.lean` proves that each computed check implies the component it
-  stands for. In particular it proves that folding the guarded assumption push
-  over the parser's list builds the same state as `__eo_invoke_assume_list` on
-  the corresponding `and`-chain, which is what lets the executable use a fold
+- `Cpc/Api.lean` is everything `logos` does with a proof file, as one function
+  `Eo.logos_check_proof : String -> Except String Verdict`: parse the text, then
+  run the three checks that compute the theorem's components — the assumption
+  term `F`, the refutation check, and the two side conditions.
+- `Cpc/ApiChecks.lean` proves that each check gives the component it stands for.
+  In particular it proves that folding the guarded assumption push over the
+  parser's list builds the same state as `__eo_invoke_assume_list` on the
+  corresponding `and`-chain, which is what lets the executable use a fold
   (constant stack) rather than a recursion over the chain.
-- `Cpc/ApiCorrect.lean` assembles those into `correct___logos_check_refutation`,
-  a theorem whose hypotheses are exactly the three `Bool`s `Main.lean` evaluates.
+- `Cpc/ApiCorrect.lean` assembles those into `correct___logos_check_proof`,
+  stated about the text of a proof file:
 
-Note that the two side conditions are *checked at run time*: computing them needs
+  ```lean
+  theorem correct___logos_check_proof (input : String) (assums : List Term) (cmds : CCmdList)
+      (hParse : parseProof input = Except.ok (assums, cmds))
+      (hCorrect : logos_check_proof input = Except.ok Verdict.correct) :
+      ∀ M : SmtModel, model_total_typed M ->
+        ∃ A ∈ assums, __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false
+  ```
+
+  That is: if the parser reads the assumptions `assums` out of `input`, and
+  `logos` prints `correct` for `input`, then every model makes one of those
+  assumptions false — they have no common model. `Main.lean` only reads the
+  file, prints the verdict and picks an exit status.
+
+The side conditions are not re-implemented for the executable to run: they are
+the predicates of `Cpc/Proofs/Assumptions.lean`, and that file also derives the
+`Decidable` instances that decide them, so the per-rule conditions the rule
+proofs assume and the ones the executable checks are one definition, written
+down once.
+
+Note that the side conditions are *checked at run time*: computing them needs
 the specification's `__eo_to_smt`, so the executable links the specification
 layer, even though the checker itself never consults it (the proof rules remain
 untyped syntactic manipulations, and the semantics is not used as an oracle).

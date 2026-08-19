@@ -4,30 +4,19 @@ public import CpcMini.Logos
 import all CpcMini.Logos
 public import CpcMini.Spec
 import all CpcMini.Spec
+public import CpcMini.Parser
+import all CpcMini.Parser
+public import CpcMini.Proofs.Assumptions
+import all CpcMini.Proofs.Assumptions
 
 @[expose] public section
 
 /-!
-# The entry point that the `logos-mini` executable runs
+# What the `logos-mini` executable computes
 
-This is the CpcMini counterpart of `Cpc/Api.lean`; see that file for the full
-account of the correspondence.  It computes everything the soundness theorem
-`correct___eo_is_refutation` of `CpcMini/Proofs/Checker.lean` needs:
-
-| hypothesis of the theorem       | computed by                                |
-| ------------------------------- | ------------------------------------------ |
-| the term `F`                    | `logos_assumption_term assums`             |
-| `eo_is_refutation F pf`         | `logos_check_refutation assums cmds`       |
-| `TranslatableAssumptionList F`  | `logos_check_translatableAssumptionList`   |
-| `CmdListTranslationOk pf`       | `logos_check_cmdListTranslationOk`         |
-
-`CpcMini/ApiChecks.lean` proves each check implies its hypothesis and
-`CpcMini/ApiCorrect.lean` assembles them into `correct___logos_check_refutation`,
-a theorem about the expression `MainMini.lean` evaluates.
-
-Unlike CPC, the CpcMini calculus gives no rule a per-argument translation mask,
-so `cmdTranslationOkB` below has one case per command shape and this module does
-not need `CpcMini/Proofs/Assumptions.lean`.
+The CpcMini counterpart of `Cpc/Api.lean`; see that file for the full account.
+`logos_check_proof` is the whole of what `MainMini.lean` does with a proof file,
+and `CpcMini/ApiCorrect.lean` is stated about it.
 -/
 
 open SmtEval
@@ -35,11 +24,15 @@ open Smtm
 
 namespace Eo
 
-/-! ## The refutation check -/
+/-! ## The assumptions the parser produced, as one formula -/
+
+/-- One link of the assumption chain: `A` conjoined onto the assumptions already read. -/
+def logos_assumption_chain_step (rest A : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest
 
 /--
-The assumption term `F` of `correct___eo_is_refutation`, built from the parser's
-assumptions in file order.
+The conjunction of the parser's assumptions, i.e. the term the correctness
+theorem is about.
 
 `__eo_invoke_assume_list` pushes the head of an `and`-chain last, and the parser
 numbers premises against a stack whose first assumption is at the bottom, so the
@@ -47,9 +40,7 @@ chain lists the assumptions in reverse file order.  See `Cpc/Api.lean` for the
 long version.
 -/
 def logos_assumption_term (assums : List Term) : Term :=
-  assums.foldl
-    (fun rest A => Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
-    (Term.Boolean true)
+  assums.foldl logos_assumption_chain_step (Term.Boolean true)
 
 /--
 Push one input assumption with the guard `__eo_invoke_assume_list` applies: the
@@ -60,48 +51,53 @@ guard; `checkerTypeInvariant` and `StableAssumptionList` both depend on it.
 def logos_invoke_input_assume (s : CState) (A : Term) : CState :=
   __eo_push_input_assume_check (__eo_and (__eo_is_bool_type A) (__eo_is_closed A)) A s
 
+/-! ## The three checks -/
+
 /--
-The refutation check the executable runs; equal to
-`__eo_checker_is_refutation (logos_assumption_term assums) cmds` by
-`logos_check_refutation_eq_checker` in `CpcMini/ApiChecks.lean`.
+Logos runs `cmds` from the parser's assumptions and ends in a closed state that
+has proven `false`; equal to `__eo_checker_is_refutation (logos_assumption_term
+assums) cmds` by `logos_check_refutation_eq_checker` in `CpcMini/ApiChecks.lean`.
 -/
-def logos_check_refutation (assums : List Term) (cmds : CCmdList) : native_Bool :=
+def logos_check_refutation (assums : List Term) (cmds : CCmdList) : Bool :=
   __eo_state_is_refutation
     (__eo_invoke_cmd_list (assums.foldl logos_invoke_input_assume logos_init_state) cmds)
 
-/-! ## The translation side conditions
-
-`Bool` mirrors of the predicates of `CpcMini/Proofs/Assumptions.lean`;
-`CpcMini/ApiChecks.lean` proves `mirror = true -> predicate`.
--/
-
-/-- Mirror of `eoHasSmtTranslation`. -/
-def eoHasSmtTranslationB (t : Term) : Bool :=
-  __smtx_typeof (__eo_to_smt t) != SmtType.None
-
-/-- Mirror of `cArgListTranslationOk`. -/
-def cArgListTranslationOkB : CArgList -> Bool
-  | CArgList.nil => true
-  | CArgList.cons a args => eoHasSmtTranslationB a && cArgListTranslationOkB args
-
-/-- Mirror of `cmdTranslationOk`, case for case. -/
-def cmdTranslationOkB : CCmd -> Bool
-  | CCmd.assume_push A => eoHasSmtTranslationB A
-  | CCmd.step _ args _ => cArgListTranslationOkB args
-  | _ => true
-
 /--
-Decides `TranslatableAssumptionList (logos_assumption_term assums)`, the first
-hypothesis of `correct___eo_is_refutation`.
+Every assumption has an SMT-LIB translation.  `translatableAssumptionList_of_check`
+(`CpcMini/ApiChecks.lean`) turns this into `TranslatableAssumptionList
+(logos_assumption_term assums)`.
 -/
-def logos_check_translatableAssumptionList : List Term -> Bool
-  | [] => true
-  | A :: assums => eoHasSmtTranslationB A && logos_check_translatableAssumptionList assums
+def logos_check_translatableAssumptionList (assums : List Term) : Bool :=
+  assums.all fun A => decide (eoHasSmtTranslation A)
 
-/-- Decides `CmdListTranslationOk cmds`, the second hypothesis of `correct___eo_is_refutation`. -/
-def logos_check_cmdListTranslationOk : CCmdList -> Bool
-  | CCmdList.nil => true
-  | CCmdList.cons c cmds => cmdTranslationOkB c && logos_check_cmdListTranslationOk cmds
+/-- `CmdListTranslationOk cmds`, decided by the instance in `CpcMini/Proofs/Assumptions.lean`. -/
+def logos_check_cmdListTranslationOk (cmds : CCmdList) : Bool :=
+  decide (CmdListTranslationOk cmds)
+
+/-! ## The verdict -/
+
+/-- What the executable reports about a proof file. -/
+inductive Verdict where
+  /-- The proof's assumptions are unsatisfiable, by `correct___logos_check_proof`. -/
+  | correct
+  /-- Logos does not accept the proof as a refutation. -/
+  | incorrect
+  /-- Logos accepts the proof, but a side condition of the theorem fails on it. -/
+  | unsupported
+deriving DecidableEq, Repr, Inhabited
+
+/-- The verdict for a parsed proof: `correct` exactly when all three checks pass. -/
+def logos_verdict (assums : List Term) (cmds : CCmdList) : Verdict :=
+  if !logos_check_refutation assums cmds then Verdict.incorrect
+  else if !logos_check_translatableAssumptionList assums then Verdict.unsupported
+  else if !logos_check_cmdListTranslationOk cmds then Verdict.unsupported
+  else Verdict.correct
+
+/-- Parse a proof file and report its verdict: everything `MainMini.lean` does. -/
+def logos_check_proof (input : String) : Except String Verdict :=
+  match parseProof input with
+  | Except.ok (assums, cmds) => Except.ok (logos_verdict assums cmds)
+  | Except.error e => Except.error e
 
 /-! ## Diagnostics
 
@@ -115,7 +111,7 @@ def logos_untranslatable_assumption (assums : List Term) : Option (Nat × Term) 
 where
   go : Nat -> List Term -> Option (Nat × Term)
     | _, [] => none
-    | i, A :: assums => if eoHasSmtTranslationB A then go (i + 1) assums else some (i, A)
+    | i, A :: assums => if eoHasSmtTranslation A then go (i + 1) assums else some (i, A)
 
 /--
 The first command whose arguments fail their translation side condition, with its
@@ -126,6 +122,6 @@ def logos_untranslatable_cmd (cmds : CCmdList) : Option (Nat × CCmd) :=
 where
   go : Nat -> CCmdList -> Option (Nat × CCmd)
     | _, CCmdList.nil => none
-    | i, CCmdList.cons c cmds => if cmdTranslationOkB c then go (i + 1) cmds else some (i, c)
+    | i, CCmdList.cons c cmds => if cmdTranslationOk c then go (i + 1) cmds else some (i, c)
 
 end Eo

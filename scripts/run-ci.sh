@@ -118,7 +118,7 @@ run_cpc_proofs() {
   # Expensive and not currently used in CI checks:
   # Cpc.Proofs.Rules.Chain_resolution
   # Cpc.Proofs.Checker
-  # Cpc.ApiCorrect  (the top-level theorem about Main.lean; imports Cpc.Proofs.Checker)
+  # Cpc.ApiCorrect  (correctness of the executable; imports Cpc.Proofs.Checker)
 }
 
 run_cpcmini() {

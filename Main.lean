@@ -1,43 +1,42 @@
-import Cpc.Parser
 import Cpc.Api
 
 /-!
 The `logos` executable: read a CPC proof in s-expression syntax, and report
 whether it is a refutation whose soundness `Cpc/ApiCorrect.lean` establishes.
 
-The three calls below are exactly the three hypotheses of
-`correct___logos_check_refutation` (`Cpc/ApiCorrect.lean`), which is
-`correct___eo_is_refutation` (`Cpc/Proofs/Checker.lean`) restated about them:
+Reading the file aside, all of the work is `Eo.logos_check_proof`
+(`Cpc/Api.lean`): it parses the text and runs the three checks that make up
+`correct___eo_is_refutation`.  `correct___logos_check_proof`
+(`Cpc/ApiCorrect.lean`) is stated about that function:
 
-* `Eo.logos_check_refutation assums cmds` -- Logos runs `cmds` from the
-  assumptions and ends in a closed state that has proven `false`;
-* `Eo.logos_check_translatableAssumptionList assums` and
-  `Eo.logos_check_cmdListTranslationOk cmds` -- every assumption, and every rule
-  argument the rule proofs interpret, has an SMT-LIB counterpart under
-  `Cpc/SmtModel.lean`.
+```
+theorem correct___logos_check_proof (input : String) (assums : List Term) (cmds : CCmdList)
+    (hParse : parseProof input = Except.ok (assums, cmds))
+    (hCorrect : logos_check_proof input = Except.ok Verdict.correct) :
+    ∀ M : SmtModel, model_total_typed M ->
+      ∃ A ∈ assums, __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false
+```
 
-So `correct` here means: the conjunction of this file's `assume`d formulas,
-namely `Eo.logos_assumption_term assums`, is unsatisfiable.  When Logos accepts
-the proof but a side condition fails, the run is reported as `unsupported`
-instead: the proof is a valid CPC derivation, but it mentions something the
-specification does not model, so the soundness theorem says nothing about it.
+So `correct` on the terminal means: no model satisfies all of the formulas this
+file `assume`s, as the parser read them.  When Logos accepts the proof but a
+side condition fails, the run is reported as `unsupported` instead: the proof is
+a valid CPC derivation, but it mentions something the specification does not
+model, so the theorem says nothing about it.
+
+The verdict is computed here in the two steps `Eo.logos_check_proof` is defined
+as -- parse, then `Eo.logos_verdict` -- so that the `unsupported` case can name
+the assumption or command at fault; `Eo.logos_check_proof_of_parse`
+(`Cpc/ApiChecks.lean`) is the identity of the two.
 -/
 
-/-- Verdicts, kept in one place so the exit status and the printed word cannot drift. -/
-inductive Verdict where
-  /-- Checked, and covered by `correct___logos_check_refutation`. -/
-  | correct
-  /-- Logos did not accept the proof. -/
-  | incorrect
-  /-- Logos accepted the proof, but it is outside the specification's fragment. -/
-  | unsupported
+open Eo
 
-def Verdict.word : Verdict -> String
+def Eo.Verdict.word : Verdict -> String
   | .correct => "correct"
   | .incorrect => "incorrect"
   | .unsupported => "unsupported"
 
-def Verdict.status : Verdict -> UInt32
+def Eo.Verdict.status : Verdict -> UInt32
   | .correct => 0
   | .incorrect => 1
   | .unsupported => 2
@@ -60,35 +59,32 @@ def report (verdict : Verdict) (detail : String := "") : IO UInt32 := do
 def abbreviate (s : String) : String :=
   if s.length ≤ 400 then s else String.ofList (s.toList.take 400) ++ " ..."
 
+/--
+Why a proof Logos accepted is nevertheless outside the fragment the correctness
+theorem covers: the first assumption or command that fails its side condition.
+-/
+def unsupportedDetail (assums : List Term) (cmds : CCmdList) : String :=
+  match Eo.logos_untranslatable_assumption assums with
+  | some (i, A) =>
+    s!"Error: assumption {i} has no SMT-LIB translation, so this proof is \
+       outside the fragment the correctness theorem covers:\n  \
+       {abbreviate (toString (repr A))}"
+  | none =>
+    match Eo.logos_untranslatable_cmd cmds with
+    | some (i, c) =>
+      s!"Error: the arguments of command {i} have no SMT-LIB translation, so this \
+         proof is outside the fragment the correctness theorem covers:\n  \
+         {abbreviate (toString (repr c))}"
+    | none => "Error: a translation side condition failed."
+
 def checkProof (path : String) : IO UInt32 := do
   let proof ← IO.FS.readFile path
   match Eo.parseProof proof with
   | .ok (assums, cmds) =>
-    if !Eo.logos_check_refutation assums cmds then
-      report .incorrect
-    else if !Eo.logos_check_translatableAssumptionList assums then
-      -- The refutation stands as a CPC derivation, but `TranslatableAssumptionList`
-      -- fails, so `correct___logos_check_refutation` does not apply to it.
-      let detail :=
-        match Eo.logos_untranslatable_assumption assums with
-        | some (i, A) =>
-          s!"Error: assumption {i} has no SMT-LIB translation, so this proof is \
-             outside the fragment the correctness theorem covers:\n  \
-             {abbreviate (toString (repr A))}"
-        | none => "Error: an assumption has no SMT-LIB translation."
-      report .unsupported detail
-    else if !Eo.logos_check_cmdListTranslationOk cmds then
-      -- Likewise for `CmdListTranslationOk`.
-      let detail :=
-        match Eo.logos_untranslatable_cmd cmds with
-        | some (i, c) =>
-          s!"Error: the arguments of command {i} have no SMT-LIB translation, so this \
-             proof is outside the fragment the correctness theorem covers:\n  \
-             {abbreviate (toString (repr c))}"
-        | none => "Error: a command argument has no SMT-LIB translation."
-      report .unsupported detail
-    else
-      report .correct
+    match Eo.logos_verdict assums cmds with
+    | .correct => report .correct
+    | .incorrect => report .incorrect
+    | .unsupported => report .unsupported (unsupportedDetail assums cmds)
   | .error err =>
     IO.eprintln s!"Error parsing proof: {err}"
     return 1
