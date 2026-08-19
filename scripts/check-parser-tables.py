@@ -6,8 +6,14 @@ Eunoia signature as `Cpc/Logos.lean` and `CpcMini/Logos.lean`.  This script
 re-derives from the signature the facts the generator has to get right, and
 fails if the parser table disagrees:
 
-  * every operator of the signature is declared exactly once;
+  * every operator of the signature is represented by at least one surface
+    declaration;
+  * a surface name does not represent the same operator more than once;
   * every proof rule of the calculus is named exactly once.
+
+An operator may occur under more than one surface name.  In particular, a
+signature `define` introduces an alias whose generated parser entry references
+the same internal operator as its original declaration.
 
 Surface arities such as Eunoia's `:arg-list` are explicit declaration metadata;
 they cannot be reconstructed from the generated term types and are exercised by
@@ -72,11 +78,19 @@ def check(calculus: str) -> list[str]:
     for op in declared:
         if referenced[op] == 0:
             errors.append(f"operator {op} is not declared in the parser table")
-        elif referenced[op] > 1:
-            errors.append(f"operator {op} is declared {referenced[op]} times")
     for op in referenced:
         if op not in declared:
             errors.append(f"parser table declares {op}, which the signature does not")
+
+    # Definitions legitimately give one internal operator several surface
+    # names.  Repeating the same surface-name/operator pair, however, is not an
+    # alias and indicates that the generator emitted the same entry twice.
+    surface_references = Counter(
+        (entry["name"], op) for entry in entries for op in entry["ops"]
+    )
+    for (name, op), count in surface_references.items():
+        if count > 1:
+            errors.append(f"surface operator {name} declares {op} {count} times")
 
     # 2. Rule coverage.
     rules = inductive_constructors(logos_src, "CRule")
