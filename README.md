@@ -135,6 +135,10 @@ without parameters is read where it is given, as before.
 An expression headed by `_` uses indexed-operator syntax when a matching indexed declaration
 exists (for example, `(_ extract 1 0)`); otherwise `_` is a higher-order application marker,
 so `(_ BitVec 4)` is equivalent to `(BitVec 4)`.
+Parameterized operators also accept Eunoia's flat application syntax, which is what cvc5 emits:
+for example, `(extract 1 0 x)` is equivalent to `((_ extract 1 0) x)`.  SMT-LIB type
+ascriptions such as `(as set.empty (Set Int))` supply the ascribed sort as the operator index.
+Term-level `let` uses parallel bindings whose names are scoped to its body.
 Datatypes may be mutually recursive; parametric datatypes (a non-zero arity, or a `par` body)
 are rejected, since Logos has no representation for them.
 The conclusion printed on a `step` is ignored, since Logos recomputes it from the rule.

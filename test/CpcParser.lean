@@ -30,4 +30,38 @@ private def assumptions (input : String) : Option (List Term) :=
 #guard assumptions "(assume @p0 (@var \"x\" Int))" ==
   some [.Var (.String (native_string_lit "x")) (.UOp UserOp.Int)]
 
+/-!
+## Syntax emitted by cvc5
+
+Parameterized constants in CPC use flat Eunoia applications, while SMT-LIB
+uses `(_ ...)`.  Numeric, symbolic, and internal-operator indices must all
+produce the same terms in the two spellings.
+-/
+
+#guard assumptions "(assume @p0 (extract 1 0 #b1010))" ==
+  assumptions "(assume @p0 ((_ extract 1 0) #b1010))"
+
+#guard assumptions "(assume @p0 (@bit 0 #b1))" ==
+  assumptions "(assume @p0 ((_ @bit 0) #b1))"
+
+private def datatypePrelude : String :=
+  "(declare-datatypes ((D 0)) (((a) (b)))) (declare-const d D)"
+
+#guard assumptions (datatypePrelude ++ "(assume @p0 (is a d))") ==
+  assumptions (datatypePrelude ++ "(assume @p0 ((_ is a) d))")
+
+-- SMT-LIB type ascription supplies the same sort index as Eunoia's `_` form.
+#guard assumptions "(assume @p0 (as set.empty (Set Int)))" ==
+  assumptions "(assume @p0 (_ set.empty (Set Int)))"
+
+-- Let-bound names are substituted only in the body.
+#guard assumptions
+    "(declare-const x Bool)
+     (assume @p0 (let ((_let_1 x)) _let_1))
+     (assume @p1 x)" ==
+  assumptions
+    "(declare-const x Bool)
+     (assume @p0 x)
+     (assume @p1 x)"
+
 end Cpc.Parser.Tests

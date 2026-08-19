@@ -361,6 +361,22 @@ def resolveOp (decls : List (OpDecl T)) (numIndices numArgs : Nat) : Option (OpD
   | some d => some d
   | none => decls.find? (·.arity.admits numArgs)
 
+/--
+Select an indexed operator written in Eunoia's flat form, `(f i₁ … iₖ a₁ … aₙ)`.
+The indices are part of the ordinary argument list in that syntax.  Prefer an
+exactly saturated overload, as `resolveOp` does for explicit indexed syntax.
+-/
+def resolveFlatOp (decls : List (OpDecl T)) (numArgs : Nat) : Option (OpDecl T) :=
+  let decls := decls.filter fun d =>
+    d.indexArity > 0 && d.indexArity ≤ numArgs &&
+      d.arity.admits (numArgs - d.indexArity)
+  let isExact (d : OpDecl T) : Bool := match d.arity with
+    | .exact n => n == numArgs - d.indexArity
+    | _ => false
+  match decls.find? isExact with
+  | some d => some d
+  | none => decls.head?
+
 mutual
 
 /-- Parse a term, reporting the failing subterm on error. -/
@@ -389,6 +405,12 @@ partial def parseTermCore (cfg : Config T R C CL) : Sexp → ParserM T T
       throw s!"Error: {a} takes {m.params.length} arguments and cannot be used unapplied"
     throw s!"Error: unknown identifier {a}"
   | .expr [] => throw "Error: empty s-expression"
+  | .expr [.atom "as", .atom name, ty] =>
+    -- CPC uses SMT-LIB's type-ascription syntax for indexed constants such as
+    -- `(as set.empty (Set Int))`; its sort is the operator's Eunoia index.
+    parseApp cfg name [ty] []
+  | .expr [.atom "let", .expr bindings, body] =>
+    parseLet cfg bindings body
   | .expr (.atom "_" :: rest) => do
     let (name, idxs) ← splitIndexed rest
     parseUnderscoreApp cfg name idxs []
@@ -436,16 +458,52 @@ partial def parseApp (cfg : Config T R C CL) (name : String) (idxs : List Sexp)
   let decls := (← get).ops.getD name []
   if !decls.isEmpty then
     let idxs ← idxs.mapM (parseTerm cfg)
-    let some d := resolveOp decls idxs.length args.length
-      | throw s!"Error: no declaration of {name} takes {idxs.length} indices and \
-                 {args.length} arguments"
-    let some head := d.build idxs | throw s!"Error: bad indices for operator {name}"
-    let some t := mkOpApp cfg.apply d.arity head args
-      | throw s!"Error: wrong number of arguments ({args.length}) for operator {name}"
-    return t
+    if let some d := resolveOp decls idxs.length args.length then
+      return ← buildOpApp cfg name d idxs args
+    -- `declare-parameterized-const` uses ordinary arguments for its indices,
+    -- and this is the flat form emitted by cvc5: `(extract 1 0 x)` rather than
+    -- `((_ extract 1 0) x)`.  Explicit indexed syntax above takes precedence.
+    if idxs.isEmpty then
+      if let some d := resolveFlatOp decls args.length then
+        let (flatIdxs, flatArgs) := args.splitAt d.indexArity
+        return ← buildOpApp cfg name d flatIdxs flatArgs
+    throw s!"Error: no declaration of {name} takes {idxs.length} indices and \
+              {args.length} arguments"
   if !idxs.isEmpty then
     throw s!"Error: unknown indexed operator {name}"
   return args.foldl cfg.apply (← parseTermCore cfg (.atom name))
+
+/-- Build an already-resolved operator application. -/
+partial def buildOpApp (cfg : Config T R C CL) (name : String) (d : OpDecl T)
+    (idxs args : List T) : ParserM T T := do
+  let some head := d.build idxs | throw s!"Error: bad indices for operator {name}"
+  let some t := mkOpApp cfg.apply d.arity head args
+    | throw s!"Error: wrong number of arguments ({args.length}) for operator {name}"
+  return t
+
+/--
+Parse an SMT-LIB `let`.  Binding values are read in the surrounding scope
+(parallel-binding semantics), then all names are in scope only for the body.
+-/
+partial def parseLet (cfg : Config T R C CL) (bindings : List Sexp)
+    (body : Sexp) : ParserM T T := do
+  let bindings : List (String × Sexp) ← bindings.mapM fun
+    | .expr [.atom name, value] => return (name, value)
+    | binding => throw s!"Error: expected a let binding, got {binding}"
+  let values ← bindings.mapM fun (name, value) => do
+    return (name, ← parseTerm cfg value)
+  let saved := (← get).terms
+  modify fun s =>
+    { s with terms := values.foldl (fun terms (name, value) =>
+        terms.insert name value) s.terms }
+  let restore : ParserM T Unit := modify fun s => { s with terms := saved }
+  try
+    let result ← parseTerm cfg body
+    restore
+    return result
+  catch e =>
+    restore
+    throw e
 
 /--
 Expand the macro `name` at a use site: read its body with the parameters bound to
