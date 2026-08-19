@@ -212,13 +212,14 @@ theorem native_string_valid_of_all_digits :
           exact hTailAll x hxTail
 
 theorem native_str_in_re_str_to_re_empty :
-    native_str_in_re ([] : native_String) (native_str_to_re []) = true := by
-  simp [native_str_in_re, native_string_valid, native_str_to_re,
-    native_re_of_list, native_re_nullable]
+    RuleProofs.native_str_in_re ([] : native_String) (native_str_to_re []) =
+      true := by
+  simp [RuleProofs.native_str_in_re, native_string_valid, native_str_to_re,
+    native_re_of_list, RuleProofs.nativeListInRe, native_re_nullable]
 
 theorem native_str_in_re_from_int_nonempty_digit_range_star
     (z : native_Int) (hz : 0 ≤ z) :
-    native_str_in_re (native_str_from_int z)
+    RuleProofs.native_str_in_re (native_str_from_int z)
       (native_re_concat digitRange
         (native_re_concat (native_re_mult digitRange) (native_str_to_re []))) =
       true := by
@@ -233,20 +234,20 @@ theorem native_str_in_re_from_int_nonempty_digit_range_star
         cs.all native_char_is_digit = true := by
     simpa [Bool.and_eq_true] using hDigitsAll
   have hC :
-      native_str_in_re [c] digitRange = true :=
+      RuleProofs.native_str_in_re [c] digitRange = true :=
     StrInReFromIntDigRangeProof.native_str_in_re_digit_range_singleton c
       hParts.1
   have hCsList :
-      _root_.nativeListInRe cs (native_re_mult digitRange) = true :=
+      RuleProofs.nativeListInRe cs (native_re_mult digitRange) = true :=
     StrInReFromIntDigRangeProof.nativeListInRe_digit_star_of_all_digits cs
       hParts.2
   have hCsValid : native_string_valid cs = true :=
     native_string_valid_of_all_digits cs hParts.2
   have hCs :
-      native_str_in_re cs (native_re_mult digitRange) = true := by
-    simpa [native_str_in_re, hCsValid, _root_.nativeListInRe] using hCsList
+      RuleProofs.native_str_in_re cs (native_re_mult digitRange) = true := by
+    simpa [RuleProofs.native_str_in_re, hCsValid] using hCsList
   have hTail :
-      native_str_in_re cs
+      RuleProofs.native_str_in_re cs
         (native_re_concat (native_re_mult digitRange) (native_str_to_re [])) =
         true := by
     simpa using
@@ -254,7 +255,7 @@ theorem native_str_in_re_from_int_nonempty_digit_range_star
         (native_re_mult digitRange) (native_str_to_re []) hCs
         native_str_in_re_str_to_re_empty)
   have hCons :
-      native_str_in_re (c :: cs)
+      RuleProofs.native_str_in_re (c :: cs)
         (native_re_concat digitRange
           (native_re_concat (native_re_mult digitRange) (native_str_to_re []))) =
         true := by
@@ -486,9 +487,11 @@ theorem facts
       SmtValue.Boolean true
     rw [StrInReFromIntDigRangeProof.smtx_eval_str_in_re_term_eq]
     rw [hFromEval, smtx_eval_concat_range]
-    simp [__smtx_model_eval_str_in_re,
-      RuleProofs.native_unpack_string_pack_string,
-      native_str_in_re_from_int_nonempty_digit_range_star z hz]
+    simp only [__smtx_model_eval_str_in_re,
+      RuleProofs.native_unpack_seq_pack_string]
+    rw [← RuleProofs.native_str_in_re_eq_model]
+    exact congrArg SmtValue.Boolean
+      (native_str_in_re_from_int_nonempty_digit_range_star z hz)
   exact RuleProofs.eo_interprets_eq_of_rel M (lhs n) (Term.Boolean true)
     hBool <| by
       have hTrueEval :

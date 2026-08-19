@@ -1054,9 +1054,9 @@ private theorem fixed_len_re_sound
                         cases hhi : __smtx_model_eval M (__eo_to_smt x) with
                         | Seq shi =>
                             simp [__smtx_model_eval_re_range, hlo, hhi] at hEval
-                          subst rv
-                          have hLen := nativeListInRe_re_range_true_length xs
-                            (native_unpack_seq slo) (native_unpack_seq shi) hIn
+                            subst rv
+                            have hLen := nativeListInRe_re_range_true_length xs
+                              (native_unpack_seq slo) (native_unpack_seq shi) hIn
                             rw [hLen]
                             rfl
                         | _ =>
@@ -1365,6 +1365,16 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                             native_unpack_string_valid_of_typeof_seq_char hS1EvalTy
                           have hS2Valid : native_string_valid (native_unpack_string ss2) = true :=
                             native_unpack_string_valid_of_typeof_seq_char hS2EvalTy
+                          have hS1Unpack :
+                              native_unpack_seq ss1 =
+                                native_string_to_values (native_unpack_string ss1) :=
+                            native_unpack_seq_eq_string_to_values_of_typeof_seq_char
+                              hS1EvalTy
+                          have hS2Unpack :
+                              native_unpack_seq ss2 =
+                                native_string_to_values (native_unpack_string ss2) :=
+                            native_unpack_seq_eq_string_to_values_of_typeof_seq_char
+                              hS2EvalTy
                           have hLeftEval :
                               __smtx_model_eval M (__eo_to_smt leftIn) =
                                 SmtValue.Boolean
@@ -1378,7 +1388,9 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                                   (native_re_mult rv))
                             rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_105,
                               hS1Eval, hREval]
-                            simp [__smtx_model_eval_str_in_re, __smtx_model_eval_re_mult]
+                            simp only [__smtx_model_eval_str_in_re,
+                              __smtx_model_eval_re_mult]
+                            rw [hS1Unpack, ← native_str_in_re_eq_model]
                           have hTailEq :
                               __smtx_model_eval M
                                   (__eo_to_smt
@@ -1402,7 +1414,9 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                                   (native_re_mult rv))
                             rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_105,
                               hS2Eval, hREval]
-                            simp [__smtx_model_eval_str_in_re, __smtx_model_eval_re_mult]
+                            simp only [__smtx_model_eval_str_in_re,
+                              __smtx_model_eval_re_mult]
+                            rw [hS2Unpack, ← native_str_in_re_eq_model]
                           have hSideEval :
                               __smtx_model_eval M
                                   (__eo_to_smt
@@ -1439,7 +1453,14 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                           rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_78,
                             __smtx_model_eval.eq_105, hS1Eval, hS2Eval, hREval]
                           simp [__smtx_model_eval_str_concat, __smtx_model_eval_str_in_re,
-                            __smtx_model_eval_re_mult, native_unpack_string_pack_concat]
+                            __smtx_model_eval_re_mult, native_unpack_seq_pack,
+                            hS1Unpack, hS2Unpack, native_string_to_values]
+                          rw [native_seq_concat, ← List.map_append]
+                          change Smtm.native_str_in_re
+                              (native_string_to_values
+                                (native_unpack_string ss1 ++ native_unpack_string ss2))
+                              (native_re_mult rv) = _
+                          rw [← native_str_in_re_eq_model]
                           exact native_str_in_re_re_mult_append rv hLen
                             (native_unpack_string ss1) (native_unpack_string ss2)
                             hS1Valid hS2Valid

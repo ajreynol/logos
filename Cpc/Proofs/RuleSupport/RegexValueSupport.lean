@@ -25,6 +25,34 @@ such a sequence is exactly the image of a valid native string; the lemmas here
 move between the two views along that observation.
 -/
 
+@[simp] theorem model_str_in_re_unpack_eq_string
+    (ss : SmtSeq) (r : SmtRegLan)
+    (hTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char) :
+    Smtm.native_str_in_re (native_unpack_seq ss) r =
+      RuleProofs.native_str_in_re (native_unpack_string ss) r := by
+  rw [native_unpack_seq_eq_string_to_values_of_typeof_seq_char hTy]
+  exact (native_str_in_re_eq_model (native_unpack_string ss) r).symm
+
+@[simp] theorem model_str_in_re_unpack_eq_string_of_value_type
+    (ss : SmtSeq) (r : SmtRegLan)
+    (hTy : __smtx_typeof_value (SmtValue.Seq ss) =
+      SmtType.Seq SmtType.Char) :
+    Smtm.native_str_in_re (native_unpack_seq ss) r =
+      RuleProofs.native_str_in_re (native_unpack_string ss) r := by
+  apply model_str_in_re_unpack_eq_string ss r
+  simpa using hTy
+
+theorem seq_value_canonical_with_char_type {v : SmtValue}
+    (hTy : __smtx_typeof_value v = SmtType.Seq SmtType.Char) :
+    ∃ ss : SmtSeq,
+      v = SmtValue.Seq ss ∧
+        __smtx_typeof_value (SmtValue.Seq ss) =
+          SmtType.Seq SmtType.Char := by
+  rcases seq_value_canonical hTy with ⟨ss, hEval⟩
+  refine ⟨ss, hEval, ?_⟩
+  rw [← hEval]
+  exact hTy
+
 theorem native_unpack_seq_pack_seq (T : SmtType) :
     ∀ xs : List SmtValue, native_unpack_seq (native_pack_seq T xs) = xs
   | [] => rfl

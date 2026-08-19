@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.RegexSupport
 import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.RegexValueSupport
+import all Cpc.Proofs.RuleSupport.RegexValueSupport
 
 open Eo
 open SmtEval
@@ -201,7 +203,7 @@ private theorem native_str_in_re_range_iff_code_bounds
     (hLo : native_char_valid lo = true)
     (hHi : native_char_valid hi = true)
     (hValid : native_string_valid str = true) :
-    native_str_in_re str (native_re_range [lo] [hi]) =
+    RuleProofs.native_str_in_re str (native_re_range [lo] [hi]) =
       native_and
         (native_zleq (native_str_to_code [lo]) (native_str_to_code str))
         (native_and
@@ -209,47 +211,30 @@ private theorem native_str_in_re_range_iff_code_bounds
           true) := by
   cases str with
   | nil =>
-      simp [native_re_range, native_str_in_re, hValid, native_re_nullable,
-        native_str_to_code, hLo, hHi, native_and, native_zleq,
-        SmtEval.native_zleq]
+      simp [native_re_range, RuleProofs.native_str_in_re, hValid,
+        RuleProofs.nativeListInRe, native_re_nullable, native_str_to_code,
+        hLo, hHi, native_and, native_zleq, SmtEval.native_zleq,
+        decide_natCast_le_neg_one_false lo]
       exact Int.lt_of_lt_of_le (by decide) (Int.natCast_nonneg lo)
   | cons c rest =>
       rcases native_string_valid_cons_parts hValid with ⟨hc, hRestValid⟩
       cases rest with
       | nil =>
-          by_cases hBounds : lo ≤ c ∧ c ≤ hi
-          · simp [native_re_range, native_str_in_re, hValid, native_re_deriv,
-              native_re_nullable, native_str_to_code, hLo, hHi, hc, hBounds,
-              native_and, native_zleq, SmtEval.native_zleq]
-          · simp [native_re_range, native_str_in_re, hValid, native_re_deriv,
-              native_re_nullable, native_str_to_code, hLo, hHi, hc, hBounds,
-              native_and, native_zleq, SmtEval.native_zleq]
-            intro hLoLe
-            have hNotUpper : ¬ c ≤ hi := by
-              intro hCHi
-              exact hBounds ⟨hLoLe, hCHi⟩
-            exact Nat.lt_of_not_ge hNotUpper
+          by_cases hLoC : lo ≤ c <;> by_cases hCHi : c ≤ hi <;>
+            simp [native_re_range, RuleProofs.native_str_in_re, hValid,
+              RuleProofs.nativeListInRe, native_re_deriv, native_re_nullable,
+              native_re_elem_valid, native_re_elem_le, native_str_to_code, hLo,
+              hHi, hc, hLoC, hCHi, native_and, native_zleq,
+              SmtEval.native_zleq]
       | cons d ds =>
-          have hTailEmpty :
-              native_re_nullable
-                  (List.foldl (fun acc c => native_re_deriv c acc)
-                    SmtRegLan.empty ds) = false := by
-            simpa [RuleProofs.nativeListInRe] using
-              RuleProofs.nativeListInRe_empty ds
-          have hLoNeg : native_zleq (Int.ofNat lo) (-1) = false :=
-            native_zleq_nat_neg_one_false lo
-          have hDecLoNeg : decide (Int.ofNat lo ≤ (-1 : Int)) = false :=
-            decide_natCast_le_neg_one_false lo
-          by_cases hBounds : lo ≤ c ∧ c ≤ hi
-          · simp [native_re_range, native_str_in_re, hValid, native_re_deriv,
-              native_re_nullable, native_str_to_code, hLo, hHi, hc, hBounds,
-              RuleProofs.nativeListInRe, hTailEmpty, native_and, hLoNeg,
-              hDecLoNeg, native_zleq, SmtEval.native_zleq]
-            exact Int.lt_of_lt_of_le (by decide) (Int.natCast_nonneg lo)
-          · simp [native_re_range, native_str_in_re, hValid, native_re_deriv,
-              native_re_nullable, native_str_to_code, hLo, hHi, hc, hBounds,
-              RuleProofs.nativeListInRe, hTailEmpty, native_and, hLoNeg,
-              hDecLoNeg, native_zleq, SmtEval.native_zleq]
+          by_cases hBounds : lo ≤ c ∧ c ≤ hi <;>
+            simp [native_re_range, RuleProofs.native_str_in_re, hValid,
+              RuleProofs.nativeListInRe, RuleProofs.nativeListInRe_empty,
+              native_re_deriv, native_re_nullable, native_re_elem_valid,
+              native_re_elem_le, native_str_to_code, hLo, hHi, hc, hBounds,
+              native_and, native_zleq_nat_neg_one_false lo,
+              decide_natCast_le_neg_one_false lo, SmtEval.native_zleq]
+          all_goals
             exact Int.lt_of_lt_of_le (by decide) (Int.natCast_nonneg lo)
 
 private theorem smtx_typeof_of_eo_seq_char
@@ -411,9 +396,12 @@ private theorem facts
         unfold term_has_non_none_type
         rw [hC2Ty]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
-  rcases seq_value_canonical hC1EvalTy with ⟨sc1, hC1Eval⟩
-  rcases seq_value_canonical hC2EvalTy with ⟨sc2, hC2Eval⟩
+  rcases RuleProofs.seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
+  rcases RuleProofs.seq_value_canonical_with_char_type hC1EvalTy with
+    ⟨sc1, hC1Eval, hSc1Ty⟩
+  rcases RuleProofs.seq_value_canonical_with_char_type hC2EvalTy with
+    ⟨sc2, hC2Eval, hSc2Ty⟩
   have hSValid : native_string_valid (native_unpack_string ss) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
     simpa [hSEval] using hSEvalTy
@@ -435,6 +423,16 @@ private theorem facts
     simpa [hC1String, native_string_valid] using hC1Valid
   have hHiValid : native_char_valid hi = true := by
     simpa [hC2String, native_string_valid] using hC2Valid
+  have hSc1Unpack :
+      native_unpack_seq sc1 =
+        native_string_to_values (native_unpack_string sc1) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char (by
+      simpa using hSc1Ty)
+  have hSc2Unpack :
+      native_unpack_seq sc2 =
+        native_string_to_values (native_unpack_string sc2) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char (by
+      simpa using hSc2Ty)
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt (lhs s c1 c2)) =
         __smtx_model_eval M (__eo_to_smt (rhs s c1 c2)) := by
@@ -453,7 +451,9 @@ private theorem facts
       __smtx_model_eval_re_range, __smtx_model_eval_str_to_code,
       __smtx_model_eval_leq, __smtx_model_eval_and,
       hSEval, hC1Eval, hC2Eval]
+    rw [hSc1Unpack, hSc2Unpack]
     rw [hC1String, hC2String]
+    rw [RuleProofs.model_str_in_re_unpack_eq_string_of_value_type ss _ hSsTy]
     exact native_str_in_re_range_iff_code_bounds
       (native_unpack_string ss) lo hi hLoValid hHiValid hSValid
   exact RuleProofs.eo_interprets_eq_of_rel M (lhs s c1 c2) (rhs s c1 c2) hBool <| by
