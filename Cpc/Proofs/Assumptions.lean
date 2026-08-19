@@ -7,7 +7,7 @@ import all Cpc.Logos
 public import Cpc.SmtModel
 import all Cpc.SmtModel
 
-public section
+@[expose] public section
 
 open Eo
 open SmtEval
@@ -169,3 +169,89 @@ inductive CmdListTranslationOk : CCmdList -> Prop
       cmdTranslationOk c ->
       CmdListTranslationOk cs ->
       CmdListTranslationOk (CCmdList.cons c cs)
+
+/-! ## Deciding the side conditions
+
+The executable has to decide the predicates above at run time: `Cpc/Api.lean`
+runs `decide (cmdTranslationOk c)` and `decide (eoHasSmtTranslation A)` on the
+parser's output, and `Cpc/ApiChecks.lean` turns those into the hypotheses of
+`correct___eo_is_refutation`.
+
+The instances are *derived from* the definitions above rather than restating
+them, so there is no second copy of the side conditions to keep in sync -- in
+particular no second copy of the per-rule masks of `cmdTranslationOk`.  A rule
+whose mask is added or changed here is checked that way by the executable as
+soon as it is written down.  Deriving them is why this section is `@[expose]`:
+a `Decidable` instance is data, and data may not depend on a definition whose
+body the module does not export.
+-/
+
+/-- Decides `eoHasSmtTranslation`. -/
+instance instDecidableEoHasSmtTranslation (t : Term) : Decidable (eoHasSmtTranslation t) := by
+  unfold eoHasSmtTranslation; infer_instance
+
+/--
+Decides `EoListAllHaveSmtTranslation`.
+
+`EoListAllHaveSmtTranslation` recurses through a `Term` rather than a `List`, and
+its last case is a catch-all, so the decision procedure is written out as a
+`Bool` function whose branches match it and is tied to the predicate by
+`eoListAllHaveSmtTranslationB_iff`, rather than derived branch by branch.
+-/
+def eoListAllHaveSmtTranslationB : Term -> Bool
+  | Term.__eo_List_nil => true
+  | Term.Apply (Term.Apply Term.__eo_List_cons t) ts =>
+      decide (eoHasSmtTranslation t) && eoListAllHaveSmtTranslationB ts
+  | _ => false
+
+theorem eoListAllHaveSmtTranslationB_iff :
+    ∀ t : Term, eoListAllHaveSmtTranslationB t = true ↔ EoListAllHaveSmtTranslation t := by
+  intro t
+  fun_induction eoListAllHaveSmtTranslationB t <;> simp_all [EoListAllHaveSmtTranslation]
+
+instance instDecidableEoListAllHaveSmtTranslation (t : Term) :
+    Decidable (EoListAllHaveSmtTranslation t) :=
+  decidable_of_iff _ (eoListAllHaveSmtTranslationB_iff t)
+
+/-- Decides `argTranslationOkMasked`, one case per kind. -/
+instance instDecidableArgTranslationOkMasked (k : ArgTranslationKind) (t : Term) :
+    Decidable (argTranslationOkMasked k t) := by
+  unfold argTranslationOkMasked; split <;> infer_instance
+
+/-- Decides `cArgListTranslationOk`. -/
+instance instDecidableCArgListTranslationOk :
+    (args : CArgList) -> Decidable (cArgListTranslationOk args)
+  | CArgList.nil => isTrue trivial
+  | CArgList.cons a args =>
+      have := instDecidableCArgListTranslationOk args
+      inferInstanceAs (Decidable (eoHasSmtTranslation a ∧ cArgListTranslationOk args))
+
+/-- Decides `cArgListTranslationOkMask`; a mask and an argument list of different lengths fail. -/
+instance instDecidableCArgListTranslationOkMask :
+    (mask : List ArgTranslationKind) -> (args : CArgList) ->
+      Decidable (cArgListTranslationOkMask mask args)
+  | [], CArgList.nil => isTrue trivial
+  | k :: mask, CArgList.cons a args =>
+      have := instDecidableCArgListTranslationOkMask mask args
+      inferInstanceAs
+        (Decidable (argTranslationOkMasked k a ∧ cArgListTranslationOkMask mask args))
+  | [], CArgList.cons _ _ => isFalse not_false
+  | _ :: _, CArgList.nil => isFalse not_false
+
+/--
+Decides `cmdTranslationOk`, one case per case of the definition -- including the
+per-rule masks, which are read off `cmdTranslationOk` itself.
+-/
+instance instDecidableCmdTranslationOk (c : CCmd) : Decidable (cmdTranslationOk c) := by
+  unfold cmdTranslationOk; split <;> infer_instance
+
+/-- Decides `CmdListTranslationOk`. -/
+instance instDecidableCmdListTranslationOk :
+    (cmds : CCmdList) -> Decidable (CmdListTranslationOk cmds)
+  | CCmdList.nil => isTrue CmdListTranslationOk.nil
+  | CCmdList.cons c cmds =>
+      if hc : cmdTranslationOk c then
+        match instDecidableCmdListTranslationOk cmds with
+        | isTrue hcs => isTrue (CmdListTranslationOk.cons c cmds hc hcs)
+        | isFalse hcs => isFalse fun h => hcs (by cases h; assumption)
+      else isFalse fun h => hc (by cases h; assumption)
