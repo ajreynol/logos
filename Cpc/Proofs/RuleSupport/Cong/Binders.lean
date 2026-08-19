@@ -315,7 +315,7 @@ private theorem premiseEvidence_lifts_congruence_over_binders
     eo_interprets M (mkEq (mkBinderApp op xs body)
       (mkBinderApp op xs body')) true := by
   intro hEvidence hBodyMem hBinderTypesWf hEqBool
-  -- The semantic work here is exactly the old binder-congruence axiom, but
+  -- The semantic work here is exactly the old binder-congruence shortcut, but
   -- the required checker-side fact is now explicit: the body equality premise
   -- is available in every variable-variant model via `true_in_var_model`.
   have hBodyAny :
