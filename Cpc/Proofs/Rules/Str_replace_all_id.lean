@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrReplaceAllSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceAllSupport
 
 open Eo
 open SmtEval
@@ -80,40 +82,12 @@ private theorem native_seq_indexof_zero_decomp_take_drop
 
 private theorem native_seq_replace_all_aux_id
     (fuel : Nat) (xs pat : List SmtValue) :
-    native_seq_replace_all_aux fuel pat pat xs = xs := by
-  induction fuel generalizing xs pat with
-  | zero =>
-      simp [native_seq_replace_all_aux]
-  | succ fuel ih =>
-      cases pat with
-      | nil =>
-          simp [native_seq_replace_all_aux]
-      | cons p ps =>
-          by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
-          · simp [native_seq_replace_all_aux, hNeg]
-          · have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
-              int_nonneg_of_not_neg hNeg
-            have hTail :
-                native_seq_replace_all_aux fuel (p :: ps) (p :: ps)
-                    (xs.drop
-                      (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                        (ps.length + 1))) =
-                  xs.drop
-                    (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                      (ps.length + 1)) := by
-              simpa using
-                (ih
-                  (xs.drop
-                    (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                      (p :: ps).length))
-                  (p :: ps))
-            simpa [native_seq_replace_all_aux, hNeg, hTail, List.append_assoc] using
-              native_seq_indexof_zero_decomp_take_drop xs (p :: ps) hNonneg
+    native_seq_replace_all xs pat pat = xs := by
+  exact StrReplaceAllSupport.replace_all_id pat xs
 
 private theorem native_seq_replace_all_id
     (xs pat : List SmtValue) :
     native_seq_replace_all xs pat pat = xs := by
-  unfold native_seq_replace_all
   exact native_seq_replace_all_aux_id (xs.length + 1) xs pat
 
 private theorem smtx_eval_str_replace_all_term_eq

@@ -3386,7 +3386,7 @@ theorem tuple_prepend_zero_projection
       rw [hTailTy]
       dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
       simp [__eo_to_smt_tuple_prepend_of_type,
-        __smtx_tuple_datatype_decl, fullD, native_streq, native_and,
+        __smtx_tuple_datatype_decl, native_streq, native_and,
         native_ite, hWf]
     · rfl
   dsimp [fullD, __smtx_tuple_datatype_decl] at hFullWf
@@ -3459,7 +3459,7 @@ private theorem tuple_prepend_succ_projection_of_get
       rw [hTailTy]
       dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
       simp [__eo_to_smt_tuple_prepend_of_type,
-        __smtx_tuple_datatype_decl, fullD, native_streq, native_and,
+        __smtx_tuple_datatype_decl, native_streq, native_and,
         native_ite, hWf]
     · rfl
   dsimp [fullD, __smtx_tuple_datatype_decl] at hFullWf
@@ -3531,7 +3531,7 @@ private theorem tuple_prepend_tail_type_of_non_none_local
                         by_cases hs2 : s2 = (native_string_lit "@Tuple")
                         · subst s2
                           exact ⟨c, by
-                            simpa [__smtx_tuple_datatype_decl] using hTail⟩
+                            simp [__smtx_tuple_datatype_decl]⟩
                         · exact False.elim (hNN (by
                             simp [hTail, __eo_to_smt_tuple_prepend_of_type,
                               hs2]))
@@ -3900,7 +3900,7 @@ private theorem tuple_prepend_datatype_eq_of_type
       rw [hTailTy]
       dsimp [fullD, __smtx_tuple_datatype_decl] at hWf
       simp [__eo_to_smt_tuple_prepend_of_type,
-        __smtx_tuple_datatype_decl, fullD, native_streq, native_and,
+        __smtx_tuple_datatype_decl, native_streq, native_and,
         native_ite, hWf]
     · rfl
   dsimp [fullD, __smtx_tuple_datatype_decl] at hFullWf
@@ -4731,7 +4731,7 @@ private theorem tuple_select_translation_of_non_none
                 __smtx_tuple_datatype_decl, hNonneg, native_streq,
                 native_and, native_ite]
             · refine ⟨body, n, ?_, rfl, hNonneg, ?_⟩
-              · simpa using hTy
+              · simp
               change
                 __eo_to_smt_tuple_select
                     (__smtx_typeof (__eo_to_smt t)) (__eo_to_smt idx)

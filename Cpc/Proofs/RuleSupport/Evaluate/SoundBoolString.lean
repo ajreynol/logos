@@ -2,6 +2,7 @@ module
 
 public import Cpc.Proofs.RuleSupport.Evaluate.Typeof
 import all Cpc.Proofs.RuleSupport.Evaluate.Typeof
+import Cpc.Proofs.RuleSupport.StrEqReplSupport
 
 open Eo
 open SmtEval
@@ -2087,6 +2088,10 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_indexof_core
                 (native_unpack_seq (native_pack_string str)).length < i := by
           simpa [native_pack_string, EvaluateProofInternal.native_unpack_pack_seq_local,
             native_str_len] using hGt
+        have hValuesLen :
+            Int.ofNat (native_string_to_values str).length < i := by
+          simpa [native_string_to_values, native_pack_string,
+            EvaluateProofInternal.native_unpack_pack_seq_local] using hSeqLen
         have hEvalRunIndex :
             __smtx_model_eval_str_indexof
                 (__smtx_model_eval M (__eo_to_smt runS))
@@ -2094,8 +2099,13 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_indexof_core
                 (__smtx_model_eval M (__eo_to_smt runN)) =
               SmtValue.Numeral (-1 : native_Int) := by
           rw [hRunSEval, hPatEval, hRunNEval]
-          simp [__smtx_model_eval_str_indexof,
-            EvaluateProofInternal.native_seq_indexof_gt_len_local _ _ hSeqLen]
+          simp only [__smtx_model_eval_str_indexof]
+          rw [show native_unpack_seq (native_pack_string str) =
+              native_string_to_values str by
+            simp [native_string_to_values, native_pack_string,
+              EvaluateProofInternal.native_unpack_pack_seq_local]]
+          rw [EvaluateProofInternal.native_seq_indexof_gt_len_local
+            _ _ hValuesLen]
         rw [show
             __smtx_model_eval M
                 (__eo_to_smt (Term.Numeral (-1 : native_Int))) =
@@ -3105,7 +3115,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_core
             rw [show native_unpack_seq (native_pack_string (p :: ps)) =
                 (p :: ps).map SmtValue.Char by
               simp [native_pack_string, EvaluateProofInternal.native_unpack_pack_seq_local]]
-            unfold native_seq_replace
+            rw [StrEqReplSupport.native_seq_replace_eq_indexof]
             rw [EvaluateProofInternal.native_seq_indexof_map_char_zero str (p :: ps)]
             simp [hIdxNeg, native_pack_string]
       have hEvalReplace :

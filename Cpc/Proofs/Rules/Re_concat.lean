@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.RegexSupport
 import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.RegexValueSupport
+import all Cpc.Proofs.RuleSupport.RegexValueSupport
 
 open Eo
 open SmtEval
@@ -164,8 +166,9 @@ private theorem facts_str_in_re_concat
                           simp [haccS, haccR, __smtx_model_eval_str_in_re] at hEvalAcc
                           simp [__smtx_model_eval_str_concat,
                             __smtx_model_eval_re_concat, __smtx_model_eval_str_in_re,
-                            native_unpack_string_pack_concat,
-                            RuleProofs.native_str_in_re_re_concat_intro _ _ _ _
+                            RuleProofs.native_unpack_seq_pack_seq,
+                            native_seq_concat,
+                            RuleProofs.model_str_in_re_re_concat_intro _ _ _ _
                               hEvalSR hEvalAcc]
                       | _ =>
                           simp [haccS, haccR, __smtx_model_eval_str_in_re] at hEvalAcc
@@ -197,9 +200,9 @@ private theorem empty_str_in_re_true (M : SmtModel) :
         (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))) =
     SmtValue.Boolean true
   simp [__smtx_model_eval, __smtx_model_eval_str_to_re, __smtx_model_eval_str_in_re,
-    native_str_to_re, native_str_in_re, native_re_of_list, native_pack_string,
-    native_unpack_string, native_pack_seq, native_unpack_seq,
-    native_re_nullable, native_string_valid, native_string_lit]
+    native_str_to_re, Smtm.native_str_in_re, native_re_of_list, native_pack_string,
+    native_pack_seq, native_unpack_seq,
+    native_re_nullable, native_re_str_valid, native_string_lit]
 
 private theorem mk_re_concat_cons_shape
     (p : Term) (ps : List Term) (accS accR : Term) :

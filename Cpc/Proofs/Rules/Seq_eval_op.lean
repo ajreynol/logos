@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.StrOverlapSupport
 import all Cpc.Proofs.RuleSupport.StrOverlapSupport
+public import Cpc.Proofs.RuleSupport.StrReplaceAllSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceAllSupport
 
 open Eo
 open SmtEval
@@ -2975,9 +2977,7 @@ private theorem native_seq_indexof_rec_empty_succ
 
 private theorem native_seq_indexof_empty_zero (xs : List SmtValue) :
     native_seq_indexof xs [] 0 = 0 := by
-  unfold native_seq_indexof
-  simp
-  exact native_seq_indexof_rec_empty_succ xs 0 xs.length
+  exact StrEqReplSupport.native_seq_indexof_nil_zero xs
 
 private theorem native_seq_replace_eq_extracts_of_indexof_nonneg
     (xs pat repl : List SmtValue)
@@ -3041,7 +3041,8 @@ private theorem native_seq_replace_eq_extracts_of_indexof_nonneg
     exact native_seq_extract_to_end_nat xs (j + pat.length) hStartLe
   cases pat with
   | nil =>
-      rw [native_seq_replace, native_seq_indexof_empty_zero xs]
+      rw [StrEqReplSupport.native_seq_replace_eq_indexof,
+        native_seq_indexof_empty_zero xs]
       have hZero : native_seq_extract xs 0 0 = [] := by
         simp [native_seq_extract]
       have hAll :
@@ -3051,7 +3052,7 @@ private theorem native_seq_replace_eq_extracts_of_indexof_nonneg
       exact hAll.symm
   | cons p ps =>
       have hIdxNotNeg : ¬ idx < 0 := Int.not_lt.mpr hIdxNonneg
-      rw [native_seq_replace]
+      rw [StrEqReplSupport.native_seq_replace_eq_indexof]
       have hNatNotNeg : ¬ (Int.ofNat j : Int) < 0 := by simp
       simp [hIdxEq]
       have hPre' :
@@ -3078,7 +3079,6 @@ private theorem native_seq_replace_eq_extracts_of_indexof_nonneg
       rw [if_neg hNatNotNeg]
       rw [← hPre']
       rw [← hSuf']
-      simp
 
 private theorem native_seq_replace_eq_self_of_indexof_neg
     (xs pat repl : List SmtValue)
@@ -3362,7 +3362,7 @@ private theorem native_seq_indexof_zero_eq_rec
         native_seq_indexof_rec xs pat 0 (xs.length - pat.length + 1)
       else
         -1 := by
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   simp
 
 private theorem native_seq_indexof_cons_not_prefix
@@ -3428,7 +3428,7 @@ private theorem native_seq_indexof_eq_neg_one_of_gt_len
     (xs pat : List SmtValue) (i : native_Int)
     (hGt : Int.ofNat xs.length < i) :
     native_seq_indexof xs pat i = (-1 : native_Int) := by
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   have hLenNonneg : 0 ≤ (Int.ofNat xs.length : Int) :=
     Int.natCast_nonneg xs.length
   have hiPos : 0 < i := Int.lt_of_le_of_lt hLenNonneg hGt
@@ -3452,7 +3452,7 @@ private theorem native_seq_indexof_zero_of_prefix
       ⟨rest, hxs⟩
     rw [hxs]
     simp
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add,
     List.drop_zero]
   rw [dif_pos (by simpa using hLen)]
@@ -3484,7 +3484,7 @@ private theorem native_seq_indexof_offset_drop_eq
       native_seq_indexof xs pat (Int.ofNat off) := by
   unfold native_seq_indexof_offset
   rw [native_seq_indexof_zero_eq_rec (xs.drop off) pat]
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   have hOffNotNeg : ¬ (Int.ofNat off : Int) < 0 :=
     Int.not_lt.mpr (Int.natCast_nonneg off)
   rw [if_neg hOffNotNeg]
@@ -3576,6 +3576,24 @@ private def native_seq_replace_all_chain (pat repl : List SmtValue) :
         x :: native_seq_replace_all_chain pat repl 0 xs
   | skip + 1, _ :: xs =>
       native_seq_replace_all_chain pat repl skip xs
+
+private def native_seq_replace_all_aux (fuel : Nat)
+    (pat repl : List SmtValue) : List SmtValue -> List SmtValue
+  | xs =>
+      match fuel with
+      | 0 => xs
+      | fuel + 1 =>
+          match pat with
+          | [] => xs
+          | _ =>
+              let idx := native_seq_indexof xs pat 0
+              if idx < 0 then
+                xs
+              else
+                let n := Int.toNat idx
+                xs.take n ++ repl ++
+                  native_seq_replace_all_aux fuel pat repl
+                    (xs.drop (n + pat.length))
 
 private theorem native_seq_replace_all_chain_skip_eq_drop
     (pat repl : List SmtValue) :
@@ -3840,15 +3858,56 @@ private theorem native_seq_replace_all_eq_chain_cons
     (xs repl : List SmtValue) (p : SmtValue) (ps : List SmtValue) :
     native_seq_replace_all xs (p :: ps) repl =
       native_seq_replace_all_chain (p :: ps) repl 0 xs := by
-  unfold native_seq_replace_all
-  exact native_seq_replace_all_aux_eq_chain_of_fuel (p :: ps) repl
-    (xs.length + 1) xs (by omega) (by simp)
+  suffices hGen : ∀ (len : Nat) (ys : List SmtValue), ys.length = len ->
+      native_seq_replace_all ys (p :: ps) repl =
+        native_seq_replace_all_chain (p :: ps) repl 0 ys by
+    exact hGen xs.length xs rfl
+  intro len
+  induction len using Nat.strongRecOn with
+  | ind len ih =>
+      intro ys hLen
+      cases ys with
+      | nil =>
+          have hIdx : native_seq_indexof [] (p :: ps) 0 < 0 := by
+            rw [native_seq_indexof_eq_rec]
+            simp
+          rw [StrReplaceAllSupport.replace_all_eq_self_of_indexof_neg
+            (p :: ps) repl [] hIdx]
+          rfl
+      | cons y ys =>
+          by_cases hPref :
+              native_seq_prefix_eq (p :: ps) (y :: ys) = true
+          · have hIdx : native_seq_indexof (y :: ys) (p :: ps) 0 = 0 :=
+              native_seq_indexof_zero_of_prefix (y :: ys) (p :: ps) hPref
+            have hNonneg : 0 ≤ native_seq_indexof (y :: ys) (p :: ps) 0 := by
+              simp [hIdx]
+            have hDropLt :
+                ((y :: ys).drop (p :: ps).length).length < len := by
+              rw [List.length_drop, ← hLen]
+              simp only [List.length_cons]
+              omega
+            rw [StrReplaceAllSupport.replace_all_step (p :: ps) repl
+              (y :: ys) (by simp) hNonneg, hIdx]
+            simp only [Int.toNat_zero, List.take_zero, List.nil_append,
+              Nat.zero_add]
+            rw [ih _ hDropLt _ rfl]
+            simp [native_seq_replace_all_chain, hPref,
+              native_seq_replace_all_chain_skip_eq_drop]
+          · have hPrefFalse :
+                native_seq_prefix_eq (p :: ps) (y :: ys) = false := by
+              cases hp : native_seq_prefix_eq (p :: ps) (y :: ys) <;>
+                simp_all
+            rw [StrReplaceAllSupport.replace_all_cons_of_not_prefix
+              (p :: ps) repl y ys (by simp) hPrefFalse,
+              ih ys.length (by
+                simp only [List.length_cons] at hLen
+                omega) ys rfl]
+            simp [native_seq_replace_all_chain, hPrefFalse]
 
 private theorem native_seq_replace_all_nil
     (xs repl : List SmtValue) :
     native_seq_replace_all xs [] repl = xs := by
-  unfold native_seq_replace_all
-  cases xs <;> simp [native_seq_replace_all_aux]
+  exact StrReplaceAllSupport.replace_all_nil_pat repl xs
 
 private theorem smtx_eval_str_replace_all_term_eq
     (M : SmtModel) (x y z : SmtTerm) :

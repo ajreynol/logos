@@ -234,45 +234,48 @@ private theorem facts
     simpa [hSingEval, hTailEval] using
       RuleProofs.reInter_singleton_elim_rel_eval M (tail r2 rs)
         hTailList ⟨rtail, hTailEval⟩
+  have hEvalTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char := by
+    rw [← hSEval]
+    simpa [hS] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+        unfold term_has_non_none_type
+        rw [hS]
+        simp)
   have hValid :
-      native_string_valid (native_unpack_string ss) = true := by
-    have hEvalTy :
-        __smtx_typeof_value (SmtValue.Seq ss) =
-          SmtType.Seq SmtType.Char := by
-      rw [← hSEval]
-      simpa [hS] using
-        smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
-          unfold term_has_non_none_type
-          rw [hS]
-          simp)
-    exact native_unpack_string_valid_of_typeof_seq_char hEvalTy
+      native_string_valid (native_unpack_string ss) = true :=
+    native_unpack_string_valid_of_typeof_seq_char hEvalTy
   have hMemEq :
-      native_str_in_re (native_unpack_string ss) rsing =
-        native_str_in_re (native_unpack_string ss) rtail := by
+      RuleProofs.native_str_in_re (native_unpack_string ss) rsing =
+        RuleProofs.native_str_in_re (native_unpack_string ss) rtail := by
     have hExt := hSingRel
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hExt
     change SmtValue.Boolean (native_re_ext_eq rsing rtail) =
       SmtValue.Boolean true at hExt
     simp at hExt
-    exact hExt (native_unpack_string ss) hValid
+    simpa only [RuleProofs.native_str_in_re_eq_model] using
+      hExt (native_unpack_string ss) hValid
   have hLhsEval :
       __smtx_model_eval M (__eo_to_smt (lhs s r1 r2 rs)) =
         SmtValue.Boolean
-          (native_str_in_re (native_unpack_string ss)
+          (RuleProofs.native_str_in_re (native_unpack_string ss)
             (native_re_inter rv1 rtail)) := by
     change __smtx_model_eval M
         (SmtTerm.str_in_re (__eo_to_smt s)
           (SmtTerm.re_inter (__eo_to_smt r1) (__eo_to_smt (tail r2 rs)))) =
       SmtValue.Boolean
-        (native_str_in_re (native_unpack_string ss)
+        (RuleProofs.native_str_in_re (native_unpack_string ss)
           (native_re_inter rv1 rtail))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
-      __smtx_model_eval_re_inter, hSEval, hR1Eval, hTailEval]
+      __smtx_model_eval_re_inter, hSEval, hR1Eval, hTailEval,
+      RuleProofs.model_str_in_re_unpack_eq_string_of_value_type ss
+        (native_re_inter rv1 rtail) hEvalTy]
   have hRhsEval :
       __smtx_model_eval M (__eo_to_smt (rhs s r1 r2 rs)) =
         SmtValue.Boolean
-          (native_str_in_re (native_unpack_string ss) rv1 &&
-            native_str_in_re (native_unpack_string ss) rsing) := by
+          (RuleProofs.native_str_in_re (native_unpack_string ss) rv1 &&
+            RuleProofs.native_str_in_re (native_unpack_string ss) rsing) := by
     change __smtx_model_eval M
         (SmtTerm.and
           (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r1))
@@ -281,17 +284,20 @@ private theorem facts
               (__eo_to_smt (singletonTail r2 rs)))
             (SmtTerm.Boolean true))) =
       SmtValue.Boolean
-        (native_str_in_re (native_unpack_string ss) rv1 &&
-          native_str_in_re (native_unpack_string ss) rsing)
+        (RuleProofs.native_str_in_re (native_unpack_string ss) rv1 &&
+          RuleProofs.native_str_in_re (native_unpack_string ss) rsing)
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
-      __smtx_model_eval_and, hSEval, hR1Eval, hSingEval, SmtEval.native_and]
+      __smtx_model_eval_and, hSEval, hR1Eval, hSingEval, SmtEval.native_and,
+      RuleProofs.model_str_in_re_unpack_eq_string_of_value_type ss rv1 hEvalTy,
+      RuleProofs.model_str_in_re_unpack_eq_string_of_value_type ss rsing hEvalTy]
   exact RuleProofs.eo_interprets_eq_of_rel M (lhs s r1 r2 rs)
     (rhs s r1 r2 rs) hBool <| by
     rw [hLhsEval, hRhsEval]
     have hPayloadEq :
-        native_str_in_re (native_unpack_string ss) (native_re_inter rv1 rtail) =
-          (native_str_in_re (native_unpack_string ss) rv1 &&
-            native_str_in_re (native_unpack_string ss) rsing) := by
+        RuleProofs.native_str_in_re (native_unpack_string ss)
+            (native_re_inter rv1 rtail) =
+          (RuleProofs.native_str_in_re (native_unpack_string ss) rv1 &&
+            RuleProofs.native_str_in_re (native_unpack_string ss) rsing) := by
       rw [RuleProofs.native_str_in_re_re_inter, hMemEq]
     rw [hPayloadEq]
     exact RuleProofs.smt_value_rel_refl _

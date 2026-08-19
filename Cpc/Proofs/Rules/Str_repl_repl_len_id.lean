@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrEqReplSupport
+import all Cpc.Proofs.RuleSupport.StrEqReplSupport
 
 open Eo
 open SmtEval
@@ -161,7 +163,7 @@ private theorem native_seq_replace_source_of_pat_len_ge
           have hDropBound : xs.length <= idx + (ps.length + 1) := by
             omega
           simpa using hDropBound
-        unfold native_seq_replace
+        rw [StrEqReplSupport.native_seq_replace_eq_indexof]
         rw [if_neg hNeg]
         change xs.take idx ++ xs ++ xs.drop (idx + (p :: ps).length) = xs
         rw [hTakeNil, hDropNil]

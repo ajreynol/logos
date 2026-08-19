@@ -148,6 +148,7 @@ private theorem smt_value_rel_union_all
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   simp [__smtx_model_eval_eq]
   intro str hValid
+  simp only [← RuleProofs.native_str_in_re_eq_model]
   rw [RuleProofs.native_str_in_re_re_union,
     RuleProofs.native_str_in_re_re_union,
     RuleProofs.native_str_in_re_re_all str hValid]

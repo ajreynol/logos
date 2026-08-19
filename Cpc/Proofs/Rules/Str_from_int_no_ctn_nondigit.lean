@@ -434,7 +434,9 @@ private theorem facts
       __smtx_model_eval M (SmtTerm.Boolean false)
     rw [smtx_eval_str_contains_term_eq, hFromEval, hSEval,
       smtx_eval_boolean_term_eq]
-    simp [__smtx_model_eval_str_contains, hNoContains]
+    rw [RuleProofs.native_unpack_seq_pack_string] at hNoContains
+    simpa [__smtx_model_eval_str_contains] using
+      congrArg SmtValue.Boolean hNoContains
   exact RuleProofs.eo_interprets_eq_of_rel M (lhs n s) (Term.Boolean false)
     hBool <| by
       rw [hEvalEq]

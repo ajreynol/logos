@@ -25,61 +25,6 @@ private theorem eo_typeof_re_concat_eq_reglan_of_ne_stuck (T U : Term)
   | _ =>
       cases U <;> simp [__eo_typeof_re_concat] at h
 
-private theorem nativeListInRe_mk_comp_local :
-    ∀ (xs : List native_Char) (r : SmtRegLan),
-      native_re_nullable
-          (xs.foldl (fun acc c => native_re_deriv c acc)
-            (native_re_mk_comp r)) =
-        Bool.not
-          (native_re_nullable
-            (xs.foldl (fun acc c => native_re_deriv c acc) r))
-  | [], r => by
-      cases r <;> simp [native_re_mk_comp, native_re_nullable]
-  | c :: cs, r => by
-      have h := nativeListInRe_mk_comp_local cs (native_re_deriv c r)
-      cases r <;> simp [native_re_mk_comp, native_re_deriv] at h ⊢
-      case comp r =>
-        have hComp := nativeListInRe_mk_comp_local cs (native_re_deriv c r)
-        have hComp' :
-            native_re_nullable
-                (List.foldl (fun acc c => native_re_deriv c acc)
-                  (match native_re_deriv c r with
-                  | SmtRegLan.comp r => r
-                  | r => SmtRegLan.comp r)
-                  cs) =
-              Bool.not
-                (native_re_nullable
-                    (List.foldl (fun acc c => native_re_deriv c acc)
-                      (native_re_deriv c r) cs)) := by
-          simpa [native_re_mk_comp] using hComp
-        cases hA :
-            native_re_nullable
-              (List.foldl (fun acc c => native_re_deriv c acc)
-                (native_re_deriv c r) cs) <;>
-          cases hB :
-            native_re_nullable
-              (List.foldl (fun acc c => native_re_deriv c acc)
-                (match native_re_deriv c r with
-                | SmtRegLan.comp r => r
-                | r => SmtRegLan.comp r)
-                cs) <;>
-          simp [hA, hB] at hComp' ⊢ <;> assumption
-      all_goals exact h
-
-private theorem native_str_in_re_re_comp_local
-    (str : native_String) (r : SmtRegLan) :
-    native_str_in_re str (native_re_comp r) =
-      (native_string_valid str && Bool.not (native_str_in_re str r)) := by
-  cases hValid : native_string_valid str <;>
-    simp [native_str_in_re, native_re_comp, hValid,
-      nativeListInRe_mk_comp_local]
-
-private theorem native_str_in_re_mk_comp_local
-    (str : native_String) (r : SmtRegLan) :
-    native_str_in_re str (native_re_mk_comp r) =
-      (native_string_valid str && Bool.not (native_str_in_re str r)) := by
-  simpa [native_re_comp] using native_str_in_re_re_comp_local str r
-
 private theorem smt_value_rel_re_diff_elim (r s : SmtRegLan) :
     RuleProofs.smt_value_rel
       (__smtx_model_eval_re_diff (SmtValue.RegLan r) (SmtValue.RegLan s))
@@ -95,18 +40,28 @@ private theorem smt_value_rel_re_diff_elim (r s : SmtRegLan) :
   have hExt :
       ∀ str : native_String,
         native_string_valid str = true ->
-          native_str_in_re str (native_re_diff r s) =
-            native_str_in_re str
+          RuleProofs.native_str_in_re str (native_re_diff r s) =
+            RuleProofs.native_str_in_re str
               (native_re_inter r (native_re_inter (native_re_comp s) native_re_all)) := by
     intro str hValid
     rw [native_re_diff, RuleProofs.native_str_in_re_mk_inter,
       RuleProofs.native_str_in_re_re_inter,
       RuleProofs.native_str_in_re_re_inter,
-      native_str_in_re_mk_comp_local,
-      native_str_in_re_re_comp_local,
+      RuleProofs.native_str_in_re_mk_comp,
       RuleProofs.native_str_in_re_re_all _ hValid]
     simp [hValid]
-  simpa [hExt]
+  have hExtModel :
+      ∀ str : native_String,
+        native_string_valid str = true ->
+          native_str_in_re str (native_re_diff r s) =
+            native_str_in_re str
+              (native_re_inter r (native_re_inter (native_re_comp s) native_re_all)) := by
+    intro str hValid
+    rw [← RuleProofs.native_str_in_re_eq_model str (native_re_diff r s),
+      ← RuleProofs.native_str_in_re_eq_model str
+        (native_re_inter r (native_re_inter (native_re_comp s) native_re_all))]
+    exact hExt str hValid
+  simpa [hExtModel]
 
 private theorem typed___eo_prog_re_diff_elim_impl
     (a1 a2 : Term)

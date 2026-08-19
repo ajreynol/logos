@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.RegexSupport
 import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.RegexValueSupport
+import all Cpc.Proofs.RuleSupport.RegexValueSupport
 
 open Eo
 open SmtEval
@@ -96,13 +98,6 @@ private theorem re_inter_result_has_bool_type_of_premises_bool
   simp [hArgsXR.1, hArgsXR.2, hArgsXT.2, __smtx_typeof.eq_103,
     native_ite, native_Teq]
 
-private theorem native_string_valid_of_str_in_re_true
-    {str : native_String} {r : SmtRegLan}
-    (h : native_str_in_re str r = true) :
-    native_string_valid str = true := by
-  cases hValid : native_string_valid str <;>
-    simp [native_str_in_re, hValid] at h ⊢
-
 private theorem facts_re_inter
     (M : SmtModel) (x r t : Term)
     (hXRBool : RuleProofs.eo_has_bool_type (mkStrInRe x r))
@@ -141,14 +136,16 @@ private theorem facts_re_inter
                   | RegLan rt =>
                       simp [hx, ht, __smtx_model_eval_str_in_re] at hEvalXT
                       have hSSValid :
-                          native_string_valid (native_unpack_string ss) = true :=
-                        native_string_valid_of_str_in_re_true hEvalXR
+                          native_re_str_valid (native_unpack_seq ss) = true :=
+                        RuleProofs.native_re_str_valid_of_model_str_in_re_true
+                          hEvalXR
                       have hAll :
-                          native_str_in_re (native_unpack_string ss) native_re_all = true :=
-                        RuleProofs.native_str_in_re_re_all _ hSSValid
+                          Smtm.native_str_in_re (native_unpack_seq ss)
+                              native_re_all = true :=
+                        RuleProofs.model_str_in_re_re_all _ hSSValid
                       simp [__smtx_model_eval_re_inter,
                         __smtx_model_eval_str_in_re,
-                        RuleProofs.native_str_in_re_re_inter,
+                        RuleProofs.model_str_in_re_re_inter,
                         hEvalXR, hEvalXT, hAll]
                   | _ =>
                       simp [hx, ht, __smtx_model_eval_str_in_re] at hEvalXT

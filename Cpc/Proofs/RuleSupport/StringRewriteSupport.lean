@@ -1436,7 +1436,7 @@ theorem native_seq_indexof_zero_le_of_prefix_at
   rcases native_seq_indexof_rec_le_of_prefix_at pat xs 0
       (xs.length - pat.length + 1) offset hOffsetFuel hPrefix with
     ⟨found, hFoundLe, hRec⟩
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
   simp only [List.drop_zero]
   rw [dif_pos hPatFit, hRec]

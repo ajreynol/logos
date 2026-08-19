@@ -108,11 +108,11 @@ by
                               simpa [cmdTranslationOk,
                                 cArgListTranslationOk] using hCmdTrans
                             have hP1Bool := hPremisesBool P1 (by
-                              simp [premiseTermList, P1, P2, P3])
+                              simp [premiseTermList, P1])
                             have hP2Bool := hPremisesBool P2 (by
-                              simp [premiseTermList, P1, P2, P3])
+                              simp [premiseTermList, P2])
                             have hP3Bool := hPremisesBool P3 (by
-                              simp [premiseTermList, P1, P2, P3])
+                              simp [premiseTermList, P3])
                             have hResultTyLocal : __eo_typeof
                                 (bvConcatPullup1Program .bxor xs ws y z ys
                                   nxm ny nym P1 P2 P3) = Term.Bool := by

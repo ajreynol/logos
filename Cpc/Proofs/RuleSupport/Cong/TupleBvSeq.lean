@@ -2295,7 +2295,7 @@ theorem congTrueSpine_str_in_re_eq_true
           SmtType.Seq SmtType.Char := by
       simpa [hArgs.1] using
         smt_model_eval_preserves_type_of_non_none M hM X₁
-          (by simpa [term_has_non_none_type, hArgs.1])
+          (by simp [term_has_non_none_type, hArgs.1])
     have hSxTy :
         __smtx_typeof_seq_value sx = SmtType.Seq SmtType.Char := by
       simpa [hX₁Eval, __smtx_typeof_value] using hX₁ValTy

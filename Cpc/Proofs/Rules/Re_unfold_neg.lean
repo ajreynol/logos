@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
 import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
 public import Cpc.Proofs.RuleSupport.RegexSupport
 import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.RegexValueSupport
+import all Cpc.Proofs.RuleSupport.RegexValueSupport
 
 open Eo
 open SmtEval
@@ -415,11 +417,6 @@ theorem re_unfold_neg_concat_formula_has_bool_type
   exact qforall_idx_has_bool_type (reUnfoldNegConcatBody t r1 tail)
     (re_unfold_neg_concat_body_has_bool_type t r1 tail ht hr1 hTail)
 
-private theorem native_unpack_seq_pack_seq (T : SmtType) :
-    ∀ xs : List SmtValue, native_unpack_seq (native_pack_seq T xs) = xs
-  | [] => rfl
-  | _ :: xs => by simp [native_pack_seq, native_unpack_seq, native_unpack_seq_pack_seq T xs]
-
 theorem native_unpack_string_substr_split
     (ss : SmtSeq) (i : native_Int)
     (hi0 : 0 <= i)
@@ -592,7 +589,7 @@ private theorem native_str_in_re_re_mult_append_intro
 private theorem native_str_in_re_re_mult_empty (r : SmtRegLan) :
     native_str_in_re [] (native_re_mult r) = true := by
   cases r <;> simp [native_str_in_re, native_string_valid, native_re_mult,
-    native_re_mk_star, native_re_nullable]
+    nativeListInRe, native_re_nullable]
 
 abbrev RegLanEval (M : SmtModel) (t : Term) : Prop :=
   ∃ r, __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r
@@ -612,10 +609,7 @@ theorem native_str_in_re_of_reglan_rel
   classical
   intro hRel hMem
   have hValid := native_string_valid_of_str_in_re_true hMem
-  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
-  change SmtValue.Boolean (native_re_ext_eq r s) = SmtValue.Boolean true at hRel
-  simp at hRel
-  simpa [← hRel str hValid] using hMem
+  simpa [← reglan_str_in_re_eq_of_smt_value_rel hRel str hValid] using hMem
 
 theorem reConcat_nil_eval_empty_of_is_list_nil_true
     (M : SmtModel) (nil : Term)
@@ -638,7 +632,7 @@ theorem reConcat_nil_eval_empty_of_is_list_nil_true
                 SmtValue.RegLan (native_str_to_re ([] : native_String))
               simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
                 native_str_to_re, native_re_of_list, native_pack_string,
-                native_unpack_string, native_pack_seq, native_unpack_seq]
+                native_string_to_values, native_pack_seq, native_unpack_seq]
           | cons c cs =>
               simp at hNil
 
@@ -660,7 +654,7 @@ private theorem reConcat_smt_value_rel_right_empty_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hIdEval]
   cases r <;>
     simp [__smtx_model_eval_eq, native_re_concat, native_re_mk_concat,
-      native_str_to_re, native_re_of_list]
+      native_str_to_re, native_re_of_list, native_string_to_values]
 
 private theorem reConcat_is_list_nil_boolean_of_ne_stuck (t : Term) :
     t ≠ Term.Stuck ->
@@ -926,11 +920,11 @@ theorem eval_str_in_re_of_seq_reglan (M : SmtModel)
     __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
     __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
     __smtx_model_eval M (__eo_to_smt (mkStrInRe s r)) =
-      SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv) := by
+      SmtValue.Boolean (Smtm.native_str_in_re (native_unpack_seq ss) rv) := by
   intro hs hr
   change __smtx_model_eval M
       (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)) =
-    SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv)
+    SmtValue.Boolean (Smtm.native_str_in_re (native_unpack_seq ss) rv)
   simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hs, hr]
 
 theorem negated_str_in_re_native_false
@@ -954,12 +948,23 @@ theorem negated_str_in_re_native_false
   | intro_false _hTy hEval =>
       have hNative :
           native_str_in_re (native_unpack_string ss) rv = false := by
+        have hValTy :=
+          smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+            unfold term_has_non_none_type
+            rw [hsTy]
+            simp)
+        have hSSTy :
+            __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+          simpa [hsEval, hsTy, __smtx_typeof_value] using hValTy
+        have hUnpack :=
+          native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSSTy
         change __smtx_model_eval M
             (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)) =
           SmtValue.Boolean false at hEval
         simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
           hsEval, hrEval] at hEval
-        exact hEval
+        rw [hUnpack] at hEval
+        simpa only [← RuleProofs.native_str_in_re_eq_model] using hEval
       exact ⟨ss, rv, hsEval, hrEval, hNative⟩
 
 theorem negated_str_in_re_re_mult_native_false
@@ -1164,12 +1169,32 @@ private theorem re_unfold_neg_star_body_eval_true
       eval_substr_of_seq_ints M t idxVar
         (mkNeg (mkStrLen t) idxVar) ss i (len - i)
         htEval hIdx hNegEval
+  have hSsValid : native_re_str_valid (native_unpack_seq ss) = true := by
+    apply native_re_str_valid_unpack_seq_of_typeof_seq_char
+    have hValTy :=
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t) (by
+        unfold term_has_non_none_type
+        rw [ht]
+        simp)
+    simpa [htEval, ht, __smtx_typeof_value] using hValTy
+  have hLeftUnpack :
+      native_unpack_seq leftSeq =
+        native_string_to_values (native_unpack_string leftSeq) := by
+    apply native_unpack_seq_eq_values_of_valid
+    simpa [leftSeq, native_unpack_seq_pack_seq] using
+      native_re_str_valid_extract hSsValid 0 i
+  have hRightUnpack :
+      native_unpack_seq rightSeq =
+        native_string_to_values (native_unpack_string rightSeq) := by
+    apply native_unpack_seq_eq_values_of_valid
+    simpa [rightSeq, native_unpack_seq_pack_seq] using
+      native_re_str_valid_extract hSsValid i (len - i)
   have hLeftInEval :
       __smtx_model_eval M
           (__eo_to_smt
             (mkStrInRe (mkSubstr t (Term.Numeral 0) idxVar) r1)) =
         SmtValue.Boolean (native_str_in_re leftStr rv) := by
-    simpa [leftStr] using
+    simpa [leftStr, hLeftUnpack, ← native_str_in_re_eq_model] using
       eval_str_in_re_of_seq_reglan M
         (mkSubstr t (Term.Numeral 0) idxVar) r1 leftSeq rv
         hLeftSubEval hrEval
@@ -1180,7 +1205,7 @@ private theorem re_unfold_neg_star_body_eval_true
               (mkSubstr t idxVar (mkNeg (mkStrLen t) idxVar))
               (mkReMult r1))) =
         SmtValue.Boolean (native_str_in_re rightStr (native_re_mult rv)) := by
-    simpa [rightStr] using
+    simpa [rightStr, hRightUnpack, ← native_str_in_re_eq_model] using
       eval_str_in_re_of_seq_reglan M
         (mkSubstr t idxVar (mkNeg (mkStrLen t) idxVar)) (mkReMult r1)
         rightSeq (native_re_mult rv) hRightSubEval
@@ -1430,12 +1455,32 @@ theorem re_unfold_neg_concat_body_eval_true
       eval_substr_of_seq_ints M t idxVar
         (mkNeg (mkStrLen t) idxVar) ss i (len - i)
         htEval hIdx hNegEval
+  have hSsValid : native_re_str_valid (native_unpack_seq ss) = true := by
+    apply native_re_str_valid_unpack_seq_of_typeof_seq_char
+    have hValTy :=
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t) (by
+        unfold term_has_non_none_type
+        rw [ht]
+        simp)
+    simpa [htEval, ht, __smtx_typeof_value] using hValTy
+  have hLeftUnpack :
+      native_unpack_seq leftSeq =
+        native_string_to_values (native_unpack_string leftSeq) := by
+    apply native_unpack_seq_eq_values_of_valid
+    simpa [leftSeq, native_unpack_seq_pack_seq] using
+      native_re_str_valid_extract hSsValid 0 i
+  have hRightUnpack :
+      native_unpack_seq rightSeq =
+        native_string_to_values (native_unpack_string rightSeq) := by
+    apply native_unpack_seq_eq_values_of_valid
+    simpa [rightSeq, native_unpack_seq_pack_seq] using
+      native_re_str_valid_extract hSsValid i (len - i)
   have hLeftInEval :
       __smtx_model_eval M
           (__eo_to_smt
             (mkStrInRe (mkSubstr t (Term.Numeral 0) idxVar) r1)) =
         SmtValue.Boolean (native_str_in_re leftStr rv1) := by
-    simpa [leftStr] using
+    simpa [leftStr, hLeftUnpack, ← native_str_in_re_eq_model] using
       eval_str_in_re_of_seq_reglan M
         (mkSubstr t (Term.Numeral 0) idxVar) r1 leftSeq rv1
         hLeftSubEval hr1Eval
@@ -1445,7 +1490,7 @@ theorem re_unfold_neg_concat_body_eval_true
             (mkStrInRe
               (mkSubstr t idxVar (mkNeg (mkStrLen t) idxVar)) tail)) =
         SmtValue.Boolean (native_str_in_re rightStr rvTail) := by
-    simpa [rightStr] using
+    simpa [rightStr, hRightUnpack, ← native_str_in_re_eq_model] using
       eval_str_in_re_of_seq_reglan M
         (mkSubstr t idxVar (mkNeg (mkStrLen t) idxVar)) tail
         rightSeq rvTail hRightSubEval hTailEval

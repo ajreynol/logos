@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrEqReplSupport
+import all Cpc.Proofs.RuleSupport.StrEqReplSupport
 
 open Eo
 open SmtEval
@@ -148,12 +150,7 @@ private theorem native_seq_indexof_empty_nonempty
 private theorem native_seq_replace_empty_src
     (pat repl : List SmtValue) :
     native_seq_replace [] pat repl = if pat = [] then repl else [] := by
-  cases pat with
-  | nil =>
-      simp [native_seq_replace]
-  | cons p ps =>
-      have hIdx := native_seq_indexof_empty_nonempty p ps
-      simp [native_seq_replace, hIdx]
+  exact StrEqReplSupport.native_seq_replace_empty_src pat repl
 
 private theorem native_seq_contains_replace_empty_src_eq_empty_eq
     (T : SmtType) (pat repl : List SmtValue) :
@@ -164,10 +161,10 @@ private theorem native_seq_contains_replace_empty_src_eq_empty_eq
   | nil =>
       cases repl with
       | nil =>
-          simp [native_seq_replace, native_seq_contains_nil, native_veq,
+          simp [native_seq_replace_empty_src, native_seq_contains_nil, native_veq,
             native_pack_seq]
       | cons r rs =>
-          simp [native_seq_replace, native_seq_contains, native_seq_indexof,
+          simp [native_seq_replace_empty_src, native_seq_contains, native_seq_indexof_eq_rec,
             native_veq, native_pack_seq]
   | cons p ps =>
       have hReplace : native_seq_replace [] (p :: ps) repl = [] := by

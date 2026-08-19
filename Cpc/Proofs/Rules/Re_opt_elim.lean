@@ -25,21 +25,25 @@ private theorem native_str_in_re_re_union_local
     (str : native_String) (r s : SmtRegLan) :
     native_str_in_re str (native_re_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
+  rw [← RuleProofs.native_str_in_re_eq_model str (native_re_union r s),
+    ← RuleProofs.native_str_in_re_eq_model str r,
+    ← RuleProofs.native_str_in_re_eq_model str s]
   by_cases hValid : native_string_valid str = true
-  · simpa [native_re_union, native_str_in_re, hValid, RuleProofs.nativeListInRe]
+  · simpa [native_re_union, RuleProofs.native_str_in_re, hValid]
       using RuleProofs.nativeListInRe_mk_union str r s
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
-    simp [native_str_in_re, hInvalid]
+    simp [RuleProofs.native_str_in_re, hInvalid]
 
 private theorem native_str_in_re_re_none_local (str : native_String) :
     native_str_in_re str native_re_none = false := by
+  rw [← RuleProofs.native_str_in_re_eq_model str native_re_none]
   by_cases hValid : native_string_valid str = true
-  · simpa [native_str_in_re, hValid, native_re_none, RuleProofs.nativeListInRe]
+  · simpa [RuleProofs.native_str_in_re, hValid, native_re_none]
       using RuleProofs.nativeListInRe_empty str
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
-    simp [native_str_in_re, hInvalid]
+    simp [RuleProofs.native_str_in_re, hInvalid]
 
 private theorem smt_value_rel_re_opt_elim (r : SmtRegLan) :
     RuleProofs.smt_value_rel

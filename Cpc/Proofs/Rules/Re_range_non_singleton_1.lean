@@ -108,11 +108,11 @@ private theorem typed_concl
 private theorem native_re_range_empty_of_first_len_ne_one
     (ss tt : SmtSeq)
     (hLenNe : native_seq_len (native_unpack_seq ss) ≠ 1) :
-    native_re_range (native_unpack_string ss) (native_unpack_string tt) =
+    native_re_range (native_unpack_seq ss) (native_unpack_seq tt) =
       native_re_none := by
   cases hUnpack : native_unpack_seq ss with
   | nil =>
-      simp [native_unpack_string, hUnpack, native_re_range, native_re_none]
+      simp [hUnpack, native_re_range, native_re_none]
   | cons v vs =>
       cases vs with
       | nil =>
@@ -120,7 +120,7 @@ private theorem native_re_range_empty_of_first_len_ne_one
             simp [native_seq_len, hUnpack]
           exact False.elim (hLenNe hLen)
       | cons w ws =>
-          simp [native_unpack_string, hUnpack, native_re_range, native_re_none]
+          simp [hUnpack, native_re_range, native_re_none]
 
 private theorem facts
     (M : SmtModel) (hM : model_total_typed M) (s t : Term)
@@ -198,16 +198,16 @@ private theorem facts
     rw [hLen] at hNativeEqFalse
     simp [native_veq] at hNativeEqFalse
   have hRangeNone :
-      native_re_range (native_unpack_string ss) (native_unpack_string tt) =
+      native_re_range (native_unpack_seq ss) (native_unpack_seq tt) =
         native_re_none :=
     native_re_range_empty_of_first_len_ne_one ss tt hLenNe
   have hLhsEval :
       __smtx_model_eval M (__eo_to_smt (lhs s t)) =
         SmtValue.RegLan
-          (native_re_range (native_unpack_string ss) (native_unpack_string tt)) := by
+          (native_re_range (native_unpack_seq ss) (native_unpack_seq tt)) := by
     change __smtx_model_eval M (SmtTerm.re_range (__eo_to_smt s) (__eo_to_smt t)) =
       SmtValue.RegLan
-        (native_re_range (native_unpack_string ss) (native_unpack_string tt))
+        (native_re_range (native_unpack_seq ss) (native_unpack_seq tt))
     simp [__smtx_model_eval, __smtx_model_eval_re_range, hSEval, hTEval]
   have hRhsEval :
       __smtx_model_eval M (__eo_to_smt rhs) =

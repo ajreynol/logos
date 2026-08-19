@@ -1175,7 +1175,7 @@ private theorem sr_str_to_int_neg_data (s : native_String)
   · by_cases hAll : s.all native_char_is_digit = true
     · have hEq := sr_native_str_to_int_of_ne_nil_all s hs hAll
       rw [hEq] at hNeg
-      exact False.elim (Int.not_lt_of_ge (Int.ofNat_nonneg _) hNeg)
+      exact False.elim (Int.not_lt_of_ge (Int.natCast_nonneg _) hNeg)
     · simp [native_str_to_int, hs, hAll]
 
 private theorem sr_str_to_code_at (s : native_String) (j : Nat)
@@ -1339,7 +1339,7 @@ private theorem sr_nondigit_find_aux :
         have htail : cs.all native_char_is_digit ≠ true := by
           intro ht
           apply h
-          simpa [hc, ht]
+          simp [hc, ht]
         rcases sr_nondigit_find_aux cs (idx + 1) hp.2 htail with
           ⟨j, d, pre, post, hcs, hlen, hd, hfind⟩
         refine ⟨j + 1, d, c :: pre, ?_⟩
@@ -5701,7 +5701,7 @@ private theorem string_reduction_pred_true
                           0 ≤ n + Int.ofNat
                             (native_seq_extract ts 0
                               (native_seq_indexof ts ys 0)).length :=
-                        Int.add_nonneg hnNonneg (Int.ofNat_zero_le _)
+                        Int.add_nonneg hnNonneg (Int.natCast_nonneg _)
                       have hResultNe :
                           n + Int.ofNat
                               (native_seq_extract ts 0
@@ -6237,7 +6237,7 @@ private theorem string_reduction_pred_true
                           zs.drop (j + chosen.length) := by
                       have hStartNonneg :
                           0 ≤ n + Int.ofNat chosen.length :=
-                        Int.add_nonneg hn0 (Int.ofNat_zero_le _)
+                        Int.add_nonneg hn0 (Int.natCast_nonneg _)
                       have hStartLe :
                           n + Int.ofNat chosen.length ≤
                             Int.ofNat zs.length := by

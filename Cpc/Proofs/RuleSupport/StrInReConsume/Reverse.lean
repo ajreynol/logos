@@ -1225,7 +1225,8 @@ theorem StrInReConsumeInternal.native_re_reverse_raw_mk_star_consume_local
     StrInReConsumeInternal.native_re_reverse_raw_consume_local (native_re_mk_star r) =
       native_re_mk_star (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) := by
   cases r <;>
-    simp [native_re_mk_star, StrInReConsumeInternal.native_re_reverse_raw_consume_local]
+    simp [native_re_mk_star, native_re_mult,
+      StrInReConsumeInternal.native_re_reverse_raw_consume_local]
 
 /--
 Right-decomposition of star membership: a nonempty member of
@@ -1481,8 +1482,37 @@ theorem StrInReConsumeInternal.eval_string_unpack_consume_local
   refine ⟨native_pack_string w, ?_, ?_⟩
   · change __smtx_model_eval M (SmtTerm.String w) = _
     simp only [__smtx_model_eval]
-  · simp [native_unpack_string, StrInReConsumeInternal.consume_unpack_pack_string_map,
+  · simp [native_unpack_string, native_string_to_values,
+      StrInReConsumeInternal.consume_unpack_pack_string_map,
       StrInReConsumeInternal.map_char_of_comp_char_consume_local]
+
+theorem StrInReConsumeInternal.typed_seq_unpack_values_of_eval_local
+    (M : SmtModel) (hM : model_total_typed M) (s : Term) (ss : SmtSeq)
+    (hTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
+    (hEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss) :
+    native_unpack_seq ss =
+      native_string_to_values (native_unpack_string ss) := by
+  apply native_unpack_seq_eq_string_to_values_of_typeof_seq_char
+  have h := smt_model_eval_preserves_type_of_non_none M hM
+    (__eo_to_smt s) (by
+      unfold term_has_non_none_type
+      rw [hTy]
+      simp)
+  rw [hEval, hTy] at h
+  simpa using h
+
+theorem StrInReConsumeInternal.typed_seq_value_of_eval_local
+    (M : SmtModel) (hM : model_total_typed M) (s : SmtTerm) (ss : SmtSeq)
+    (hTy : __smtx_typeof s = SmtType.Seq SmtType.Char)
+    (hEval : __smtx_model_eval M s = SmtValue.Seq ss) :
+    __smtx_typeof_value (SmtValue.Seq ss) =
+      SmtType.Seq SmtType.Char := by
+  rw [← hEval]
+  simpa [hTy] using
+    smt_model_eval_preserves_type_of_non_none M hM s (by
+      unfold term_has_non_none_type
+      rw [hTy]
+      simp)
 
 theorem StrInReConsumeInternal.list_append_ne_nil_right_consume_local {α : Type}
     (xs ys : List α) (h : ys ≠ []) : xs ++ ys ≠ [] := by
@@ -1499,13 +1529,15 @@ theorem StrInReConsumeInternal.native_str_in_re_congr_of_reglan_rel_consume_loca
     (str : native_String) :
     native_str_in_re str r1 = native_str_in_re str r2 := by
   cases hV : native_string_valid str with
-  | true => exact smt_value_rel_reglan_valid_eq h hV
+  | true =>
+      simpa [native_str_in_re_eq_model] using
+        smt_value_rel_reglan_valid_eq h hV
   | false => simp [native_str_in_re, hV]
 
 theorem StrInReConsumeInternal.native_str_in_re_nil_str_to_re_nil_consume_local :
     native_str_in_re [] (native_str_to_re []) = true := by
   simp [native_str_in_re, native_string_valid, native_str_to_re,
-    native_re_of_list, native_re_nullable]
+    native_re_of_list, nativeListInRe, native_re_nullable]
 
 theorem StrInReConsumeInternal.smt_value_rel_union_right_none_consume_local
     (r : SmtRegLan) :
@@ -4935,7 +4967,9 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local
           rw [hHeadCompEq]
           change __smtx_model_eval M
               (SmtTerm.str_to_re (__eo_to_smt s1)) = _
-          simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1V]
+          simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1V,
+            StrInReConsumeInternal.typed_seq_unpack_values_of_eval_local
+              M hM s1 s1V hS1Ty hS1V]
         rcases StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_local M _ r2 rvU _
             hCompEval hRvU with ⟨rvU2, hRvU2, hRvURel⟩
         rcases (ih.1 (Term.Boolean false) hS2Ty hR2Ty hIteFalse.symm
@@ -5052,7 +5086,9 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local
           rw [hHeadCompEq]
           change __smtx_model_eval M
               (SmtTerm.str_to_re (__eo_to_smt s1)) = _
-          simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1V]
+          simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1V,
+            StrInReConsumeInternal.typed_seq_unpack_values_of_eval_local
+              M hM s1 s1V hS1Ty hS1V]
         rcases StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_local M _ r2 rvU _
             hCompEval hRvU with ⟨rvU2, hRvU2, hRvURel⟩
         have hS1ValTy :
@@ -6660,7 +6696,9 @@ theorem StrInReConsumeInternal.consume_unrev_pair_eval_local
         SmtValue.Seq ssA)
     (hB :
       __smtx_model_eval M (__eo_to_smt (StrInReConsumeInternal.consume_unrev_re_local b)) =
-        SmtValue.RegLan rvB) :
+        SmtValue.RegLan rvB)
+    (hSsATy : __smtx_typeof_value (SmtValue.Seq ssA) =
+      SmtType.Seq SmtType.Char) :
     __smtx_model_eval M (__eo_to_smt (StrInReConsumeInternal.consume_unrev_pair_local a b)) =
       SmtValue.Boolean
         (native_str_in_re (native_unpack_string ssA) rvB) := by
@@ -6669,7 +6707,8 @@ theorem StrInReConsumeInternal.consume_unrev_pair_eval_local
       (SmtTerm.str_in_re
         (__eo_to_smt (StrInReConsumeInternal.consume_unrev_str_local a))
         (__eo_to_smt (StrInReConsumeInternal.consume_unrev_re_local b))) = _
-  simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hA, hB]
+  simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hA, hB,
+    model_str_in_re_unpack_eq_string_of_value_type ssA rvB hSsATy]
 
 theorem StrInReConsumeInternal.consume_unrev_str_eval_of_ne_stuck_local
     (M : SmtModel) (hM : model_total_typed M) (s : Term)
@@ -6677,7 +6716,9 @@ theorem StrInReConsumeInternal.consume_unrev_str_eval_of_ne_stuck_local
     (hNe : StrInReConsumeInternal.consume_unrev_str_local s ≠ Term.Stuck) :
     ∃ ss,
       __smtx_model_eval M (__eo_to_smt (StrInReConsumeInternal.consume_unrev_str_local s)) =
-        SmtValue.Seq ss := by
+        SmtValue.Seq ss ∧
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char := by
   have hNe' : __eo_list_rev (Term.UOp UserOp.str_concat) s ≠
       Term.Stuck := by
     simpa [StrInReConsumeInternal.consume_unrev_str_local] using hNe
@@ -6687,8 +6728,33 @@ theorem StrInReConsumeInternal.consume_unrev_str_eval_of_ne_stuck_local
     simp only [StrInReConsumeInternal.consume_unrev_str_local]
     exact smt_typeof_list_rev_str_concat_of_seq s SmtType.Char
       (eo_list_rev_is_list_true_of_ne_stuck _ _ hNe') hTy hNe'
-  exact smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM _
-    hUnrevTy
+  rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM _
+      hUnrevTy with ⟨ss, hEval⟩
+  refine ⟨ss, hEval, ?_⟩
+  exact StrInReConsumeInternal.typed_seq_value_of_eval_local M hM _ ss
+    hUnrevTy hEval
+
+theorem StrInReConsumeInternal.consume_unrev_str_value_type_of_eval_local
+    (M : SmtModel) (hM : model_total_typed M) (s : Term) (ss : SmtSeq)
+    (hTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
+    (hNe : StrInReConsumeInternal.consume_unrev_str_local s ≠ Term.Stuck)
+    (hEval : __smtx_model_eval M
+      (__eo_to_smt (StrInReConsumeInternal.consume_unrev_str_local s)) =
+        SmtValue.Seq ss) :
+    __smtx_typeof_value (SmtValue.Seq ss) =
+      SmtType.Seq SmtType.Char := by
+  have hNe' : __eo_list_rev (Term.UOp UserOp.str_concat) s ≠
+      Term.Stuck := by
+    simpa [StrInReConsumeInternal.consume_unrev_str_local] using hNe
+  have hUnrevTy :
+      __smtx_typeof
+          (__eo_to_smt (StrInReConsumeInternal.consume_unrev_str_local s)) =
+        SmtType.Seq SmtType.Char := by
+    simp only [StrInReConsumeInternal.consume_unrev_str_local]
+    exact smt_typeof_list_rev_str_concat_of_seq s SmtType.Char
+      (eo_list_rev_is_list_true_of_ne_stuck _ _ hNe') hTy hNe'
+  exact StrInReConsumeInternal.typed_seq_value_of_eval_local M hM _ ss
+    hUnrevTy hEval
 
 /--
 The `re_mult`-tail equality for the model relation's left-false branch:
@@ -6908,9 +6974,11 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
     rcases StrInReConsumeInternal.eval_unrev_re_concat_empty_left_bridge_local M r2 rvU
         hRvU with ⟨rvU2, hRvU2, hRel⟩
     rcases StrInReConsumeInternal.consume_unrev_str_eval_of_ne_stuck_local M hM _ hSTy
-        hUnrevNe with ⟨ssU, hSsU⟩
+        hUnrevNe with ⟨ssU, hSsU, hSsUTy⟩
     have hL := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ _ ssU rvU hSsU hRvU
+      hSsUTy
     have hR := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ _ ssU rvU2 hSsU hRvU2
+      hSsUTy
     have hStep :
         RuleProofs.smt_value_rel
           (__smtx_model_eval M
@@ -6958,7 +7026,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
       have hSide' : side = __str_re_consume_rec s2 r2 fuel := by
         rw [hSide, hEqT, eo_ite_true]
       rcases StrInReConsumeInternal.consume_unrev_str_eval_of_ne_stuck_local M hM _ hSTy
-          hUnrevNe with ⟨ssU, hSsU⟩
+        hUnrevNe with ⟨ssU, hSsU, hSsUTy⟩
       have hSsU' := hSsU
       simp only [StrInReConsumeInternal.consume_unrev_str_local] at hSsU'
       rcases StrInReConsumeInternal.eval_list_rev_snoc_view_consume_local M s1 s2 ssU
@@ -6975,7 +7043,9 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
             Term.Apply (Term.UOp UserOp.str_to_re) s1 from rfl]
         change __smtx_model_eval M
             (SmtTerm.str_to_re (__eo_to_smt s1)) = _
-        simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1V]
+        simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1V,
+          StrInReConsumeInternal.typed_seq_unpack_values_of_eval_local
+            M hM s1 s1V hS1Ty hS1V]
       rcases StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_local M _ r2 rvU _
           hCompEval hRvU with ⟨rvU2, hRvU2, hRvURel⟩
       have hS1ValTy :
@@ -6993,10 +7063,16 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
         native_unpack_string_valid_of_typeof_seq_char hS1ValTy
       have hUnrevNe2 := StrInReConsumeInternal.consume_unrev_str_tail_ne_stuck_local s1 s2
         hUnrevNe
+      have hSsU2Ty :=
+        StrInReConsumeInternal.consume_unrev_str_value_type_of_eval_local
+          M hM s2 ssU2 hS2Ty hUnrevNe2 (by
+            simp only [StrInReConsumeInternal.consume_unrev_str_local]
+            exact hSsU2)
       have hL := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ _ ssU rvU hSsU hRvU
+        hSsUTy
       have hR := StrInReConsumeInternal.consume_unrev_pair_eval_local M s2 r2 ssU2 rvU2 (by
         simp only [StrInReConsumeInternal.consume_unrev_str_local]
-        exact hSsU2) hRvU2
+        exact hSsU2) hRvU2 hSsU2Ty
       have hStep :
           RuleProofs.smt_value_rel
             (__smtx_model_eval M
@@ -7104,7 +7180,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
           str_re_consume_range_head_native_eq_of_match_local M hM
             c lo hi true hCValidString hRangeTy hMatchT
         rcases StrInReConsumeInternal.consume_unrev_str_eval_of_ne_stuck_local M hM _ hSTy
-            hUnrevNe with ⟨ssU, hSsU⟩
+            hUnrevNe with ⟨ssU, hSsU, hSsUTy⟩
         have hSsU' := hSsU
         simp only [StrInReConsumeInternal.consume_unrev_str_local] at hSsU'
         rcases StrInReConsumeInternal.eval_list_rev_snoc_view_consume_local M _ s2 ssU
@@ -7133,11 +7209,16 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
             hCompEval hRvU with ⟨rvU2, hRvU2, hRvURel⟩
         have hUnrevNe2 := StrInReConsumeInternal.consume_unrev_str_tail_ne_stuck_local _ s2
           hUnrevNe
+        have hSsU2Ty :=
+          StrInReConsumeInternal.consume_unrev_str_value_type_of_eval_local
+            M hM s2 ssU2 hS2Ty hUnrevNe2 (by
+              simp only [StrInReConsumeInternal.consume_unrev_str_local]
+              exact hSsU2)
         have hL := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ _ ssU rvU hSsU
-          hRvU
+          hRvU hSsUTy
         have hR := StrInReConsumeInternal.consume_unrev_pair_eval_local M s2 r2 ssU2 rvU2 (by
           simp only [StrInReConsumeInternal.consume_unrev_str_local]
-          exact hSsU2) hRvU2
+          exact hSsU2) hRvU2 hSsU2Ty
         have hStep :
             RuleProofs.smt_value_rel
               (__smtx_model_eval M
@@ -7212,7 +7293,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
         simpa [native_str_in_re, native_string_valid, hCValid,
           nativeListInRe] using hL
       rcases StrInReConsumeInternal.consume_unrev_str_eval_of_ne_stuck_local M hM _ hSTy
-          hUnrevNe with ⟨ssU, hSsU⟩
+        hUnrevNe with ⟨ssU, hSsU, hSsUTy⟩
       have hSsU' := hSsU
       simp only [StrInReConsumeInternal.consume_unrev_str_local] at hSsU'
       rcases StrInReConsumeInternal.eval_list_rev_snoc_view_consume_local M _ s2 ssU
@@ -7234,10 +7315,16 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
           hCompEval hRvU with ⟨rvU2, hRvU2, hRvURel⟩
       have hUnrevNe2 := StrInReConsumeInternal.consume_unrev_str_tail_ne_stuck_local _ s2
         hUnrevNe
+      have hSsU2Ty :=
+        StrInReConsumeInternal.consume_unrev_str_value_type_of_eval_local
+          M hM s2 ssU2 hS2Ty hUnrevNe2 (by
+            simp only [StrInReConsumeInternal.consume_unrev_str_local]
+            exact hSsU2)
       have hL := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ _ ssU rvU hSsU hRvU
+        hSsUTy
       have hR := StrInReConsumeInternal.consume_unrev_pair_eval_local M s2 r2 ssU2 rvU2 (by
         simp only [StrInReConsumeInternal.consume_unrev_str_local]
-        exact hSsU2) hRvU2
+        exact hSsU2) hRvU2 hSsU2Ty
       have hStep :
           RuleProofs.smt_value_rel
             (__smtx_model_eval M
@@ -7294,8 +7381,9 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
         hCompEval with ⟨v3B, hV3Eval, hHeadVEq⟩
     subst hHeadVEq
     rcases StrInReConsumeInternal.consume_unrev_str_eval_of_ne_stuck_local M hM _ hSTy
-        hUnrevNe with ⟨ssU, hSsU⟩
+        hUnrevNe with ⟨ssU, hSsU, hSsUTy⟩
     have hL := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ _ ssU rvU hSsU hRvU
+      hSsUTy
     rw [__str_re_consume_rec.eq_8 s1 s2 r3 r2 fc fr] at hSide
     rcases eo_ite_cases_of_ne_stuck _ _ _
         (by
@@ -7315,7 +7403,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
           (Term.Boolean false) hSTy hR3Ty hLeftF.symm rfl hWfR3 ssU
           hSsU).1 v3B hV3Eval with ⟨_hNeB, hSufB⟩
       have hR := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ r2 ssU rvU2 hSsU
-        hRvU2
+        hRvU2 hSsUTy
       have hStep :
           RuleProofs.smt_value_rel
             (__smtx_model_eval M
@@ -7403,6 +7491,9 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
             rcases
               smt_eval_seq_char_of_smt_type_seq_char_consume_local
                 M hM _ hMemTyL with ⟨ssR', hSsR'⟩
+            have hSsR'Ty :=
+              StrInReConsumeInternal.typed_seq_value_of_eval_local
+                M hM _ ssR' hMemTyL hSsR'
             rcases hRestL ssU ssR' hSsU hSsR' with ⟨hChainL, _⟩
             rcases hChainL v3B hV3Eval with
               ⟨⟨u, hUdec, hUmem⟩, hQ1⟩
@@ -7431,7 +7522,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
               rw [hUdec] at h
               exact h
             have hR := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ _ ssR' rvU
-              hSsR' hRvU
+              hSsR' hRvU hSsR'Ty
             have hStep :
                 RuleProofs.smt_value_rel
                   (__smtx_model_eval M
@@ -7519,8 +7610,9 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
     rcases StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_exists_local M hM r1 r2
         rvU hR1Ty hRvU with ⟨rvU2, headV, hCompEval, hRvU2, hRvURel⟩
     rcases StrInReConsumeInternal.consume_unrev_str_eval_of_ne_stuck_local M hM _ hSTy
-        hUnrevNe with ⟨ssU, hSsU⟩
+        hUnrevNe with ⟨ssU, hSsU, hSsUTy⟩
     have hL := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ _ ssU rvU hSsU hRvU
+      hSsUTy
     rw [__str_re_consume_rec.eq_10 fuel s1 s2 r1 r2 hR1Empty
       hR1StrToRe hR1Range hR1Allchar hR1Mult hFuel hFuelMult]
       at hSide
@@ -7567,11 +7659,14 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
           cases hMemTy
         rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local
             M hM _ hMemTy with ⟨ssR', hSsR'⟩
+        have hSsR'Ty :=
+          StrInReConsumeInternal.typed_seq_value_of_eval_local
+            M hM _ ssR' hMemTy hSsR'
         rcases hRestL ssU ssR' hSsU hSsR' with ⟨_hChainL, hCompVer⟩
         rcases hCompVer hR1NotConcat headV hCompEval with
           ⟨⟨u, hUdec, hUmem⟩, hQ⟩
         have hR := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ r2 ssR' rvU2
-          hSsR' hRvU2
+          hSsR' hRvU2 hSsR'Ty
         have hStep :
             RuleProofs.smt_value_rel
               (__smtx_model_eval M
@@ -7619,9 +7714,11 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
     rcases StrInReConsumeInternal.eval_unrev_re_concat_empty_left_bridge_local M r rvU
         hRvU with ⟨rvU2, hRvU2, hRel⟩
     rcases StrInReConsumeInternal.consume_unrev_str_eval_of_ne_stuck_local M hM _ hSTy
-        hUnrevNe with ⟨ssU, hSsU⟩
+        hUnrevNe with ⟨ssU, hSsU, hSsUTy⟩
     have hL := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ _ ssU rvU hSsU hRvU
+      hSsUTy
     have hR := StrInReConsumeInternal.consume_unrev_pair_eval_local M _ _ ssU rvU2 hSsU hRvU2
+      hSsUTy
     have hStep :
         RuleProofs.smt_value_rel
           (__smtx_model_eval M

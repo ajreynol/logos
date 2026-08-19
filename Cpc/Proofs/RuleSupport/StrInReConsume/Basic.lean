@@ -11,6 +11,12 @@ set_option linter.unusedVariables false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
+/-- Keep the model-level extensional equality macro out of `RuleProofs`, where
+`native_str_in_re` denotes the string-specialized proof view. -/
+private noncomputable def nativeReExtEqConsume
+    (r s : SmtRegLan) : native_Bool :=
+  native_re_ext_eq r s
+
 namespace RuleProofs
 
 theorem str_re_consume_translation_facts
@@ -337,13 +343,15 @@ theorem str_re_consume_input_eval
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
   refine ⟨ss, rv, hSEval, hREval, ?_⟩
   change __smtx_model_eval M
       (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)) =
     SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv)
-  simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval, hREval]
+  simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval, hREval,
+    model_str_in_re_unpack_eq_string_of_value_type ss rv hSsTy]
 
 theorem str_re_consume_str_flatten_eval_rel
     (M : SmtModel) (hM : model_total_typed M)
@@ -1730,8 +1738,10 @@ theorem smt_value_rel_of_native_includes_local
   apply Bool.eq_iff_iff.mpr
   constructor
   · intro hMem
+    rw [← native_str_in_re_eq_model] at hMem ⊢
     exact hsr str hValid hMem
   · intro hMem
+    rw [← native_str_in_re_eq_model] at hMem ⊢
     exact hrs str hValid hMem
 
 theorem smt_value_rel_re_concat_consume_local
@@ -1760,6 +1770,7 @@ theorem smt_value_rel_re_concat_assoc_consume_local
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   simp [__smtx_model_eval_eq]
   intro str hValid
+  rw [← native_str_in_re_eq_model str _, ← native_str_in_re_eq_model str _]
   simpa [native_str_in_re, hValid, native_re_concat, nativeListInRe] using
     nativeListInRe_mk_concat_assoc str r s t
 
@@ -1785,7 +1796,8 @@ theorem native_str_in_re_re_union_right_none_consume_local
     · intro xs _hValid hMem
       simpa [native_str_in_re_re_union, native_str_in_re_re_none] using hMem
   by_cases hValid : native_string_valid str = true
-  · exact smt_value_rel_reglan_valid_eq hUnionNoneRel hValid
+  · simpa only [native_str_in_re_eq_model] using
+      smt_value_rel_reglan_valid_eq hUnionNoneRel hValid
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
     simp [native_str_in_re, hInvalid]
@@ -1804,7 +1816,8 @@ theorem native_str_in_re_re_inter_right_all_consume_local
       simp [hMem, native_str_in_re_re_all xs hValid]
     · exact native_includes_inter_left r native_re_all
   by_cases hValid : native_string_valid str = true
-  · exact smt_value_rel_reglan_valid_eq hInterAllRel hValid
+  · simpa only [native_str_in_re_eq_model] using
+      smt_value_rel_reglan_valid_eq hInterAllRel hValid
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
     simp [native_str_in_re, hInvalid]
@@ -1830,7 +1843,8 @@ theorem native_str_in_re_re_concat_union_right_none_consume_local
     smt_value_rel_re_concat_consume_local hUnionNoneRel
       (RuleProofs.smt_value_rel_refl (SmtValue.RegLan q))
   by_cases hValid : native_string_valid str = true
-  · exact smt_value_rel_reglan_valid_eq hConcatRel hValid
+  · simpa only [native_str_in_re_eq_model] using
+      smt_value_rel_reglan_valid_eq hConcatRel hValid
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
     simp [native_str_in_re, hInvalid]
@@ -1857,7 +1871,8 @@ theorem native_str_in_re_re_concat_inter_right_all_consume_local
     smt_value_rel_re_concat_consume_local hInterAllRel
       (RuleProofs.smt_value_rel_refl (SmtValue.RegLan q))
   by_cases hValid : native_string_valid str = true
-  · exact smt_value_rel_reglan_valid_eq hConcatRel hValid
+  · simpa only [native_str_in_re_eq_model] using
+      smt_value_rel_reglan_valid_eq hConcatRel hValid
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
     simp [native_str_in_re, hInvalid]
@@ -1887,9 +1902,12 @@ theorem smt_value_rel_re_union_consume_local
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   simp [__smtx_model_eval_eq]
   intro str hValid
+  rw [← native_str_in_re_eq_model str _, ← native_str_in_re_eq_model str _]
   rw [native_str_in_re_re_union, native_str_in_re_re_union,
+    native_str_in_re_eq_model, native_str_in_re_eq_model,
     smt_value_rel_reglan_valid_eq hr hValid,
     smt_value_rel_reglan_valid_eq hs hValid]
+  rw [native_str_in_re_eq_model, native_str_in_re_eq_model]
 
 theorem smt_value_rel_re_inter_consume_local
     {r r' s s' : SmtRegLan}
@@ -1903,9 +1921,12 @@ theorem smt_value_rel_re_inter_consume_local
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   simp [__smtx_model_eval_eq]
   intro str hValid
+  rw [← native_str_in_re_eq_model str _, ← native_str_in_re_eq_model str _]
   rw [native_str_in_re_re_inter, native_str_in_re_re_inter,
+    native_str_in_re_eq_model, native_str_in_re_eq_model,
     smt_value_rel_reglan_valid_eq hr hValid,
     smt_value_rel_reglan_valid_eq hs hValid]
+  rw [native_str_in_re_eq_model, native_str_in_re_eq_model]
 
 theorem smt_value_rel_boolean_eq_consume_local
     {b c : native_Bool}
@@ -1949,9 +1970,9 @@ theorem smt_value_rel_reglan_right_consume_local
   case RegLan r' =>
     refine ⟨r', rfl, ?_⟩
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
-    change SmtValue.Boolean (native_re_ext_eq r' r) =
+    change SmtValue.Boolean (nativeReExtEqConsume r' r) =
       SmtValue.Boolean true
-    simpa using hRel
+    simpa [nativeReExtEqConsume] using hRel
 
 theorem reConcat_singleton_elim_eval_rel_consume_local
     (M : SmtModel) (c : Term) (rv : SmtRegLan)
@@ -1977,13 +1998,15 @@ theorem reConcat_singleton_elim_eval_rel_consume_local
 
 theorem eval_str_to_re_reglan_consume_local
     (M : SmtModel) (s : Term) (ss : SmtSeq)
-    (hEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss) :
+    (hEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
+    (hSsTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char) :
     __smtx_model_eval M
         (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_re) s)) =
       SmtValue.RegLan (native_str_to_re (native_unpack_string ss)) := by
   change __smtx_model_eval M (SmtTerm.str_to_re (__eo_to_smt s)) =
     SmtValue.RegLan (native_str_to_re (native_unpack_string ss))
-  simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hEval]
+  simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hEval,
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSsTy]
 
 theorem eval_re_concat_reglan_consume_local
     (M : SmtModel) (a b : Term) (ra rb : SmtRegLan)
@@ -2179,7 +2202,16 @@ theorem re_unflatten_str_finish_eval_rel_local
           (native_str_to_re (native_unpack_string collectedSs)) := by
     simpa [headRe, collectedString] using
       eval_str_to_re_reglan_consume_local M collectedString collectedSs
-        (by simpa [collectedString] using hCollectedEval)
+        (by simpa [collectedString] using hCollectedEval) (by
+          change __smtx_typeof_value (SmtValue.Seq collectedSs) =
+            SmtType.Seq SmtType.Char
+          rw [← hCollectedEval]
+          simpa [hCollectedTy] using
+            smt_model_eval_preserves_type_of_non_none M hM
+              (__eo_to_smt collectedString) (by
+                unfold term_has_non_none_type
+                rw [hCollectedTy]
+                simp))
   have hHeadTy :
       __smtx_typeof (__eo_to_smt headRe) = SmtType.RegLan := by
     simpa [headRe] using
@@ -2375,7 +2407,8 @@ theorem native_str_in_re_eq_of_seq_reglan_rel
   have hValid :
       native_string_valid (native_unpack_string ss) = true :=
     native_unpack_string_valid_of_typeof_seq_char hSeqTy
-  exact smt_value_rel_reglan_valid_eq hRegRel hValid
+  simpa only [native_str_in_re_eq_model] using
+    smt_value_rel_reglan_valid_eq hRegRel hValid
 
 theorem native_str_in_re_eq_of_seq_reglan_rel_symm
     {ss ss' : SmtSeq} {rv rv' : SmtRegLan}
@@ -2466,14 +2499,19 @@ theorem str_re_consume_model_rel_of_side_str_in_re_rel
       native_str_in_re (native_unpack_string ss') rv' =
         native_str_in_re (native_unpack_string ss) rv :=
     native_str_in_re_eq_of_seq_reglan_rel hSeqTy hSeqRel hRegRel
+  have hSeqEq : ss' = ss := by
+    have hSeq : RuleProofs.smt_seq_rel ss' ss := by
+      simpa [RuleProofs.smt_value_rel, RuleProofs.smt_seq_rel] using hSeqRel
+    exact (RuleProofs.smt_seq_rel_iff_eq ss' ss).1 hSeq
+  subst ss'
   subst side
   rw [hStrInEval]
   change RuleProofs.smt_value_rel
     (SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv))
     (__smtx_model_eval M
       (SmtTerm.str_in_re (__eo_to_smt s') (__eo_to_smt r')))
-  simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval',
-    hREval']
+  simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval', hREval',
+    model_str_in_re_unpack_eq_string_of_value_type ss rv' hSeqTy]
   simpa [hNativeEq] using
     RuleProofs.smt_value_rel_refl
       (SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv))
@@ -2583,7 +2621,7 @@ theorem str_re_consume_model_rel_of_re_all_result
     rfl
   simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
     __smtx_model_eval_str_to_re, native_unpack_string_pack_string,
-    native_str_in_re, native_str_to_re, native_re_of_list,
+    Smtm.native_str_in_re, native_re_str_valid, native_str_to_re, native_re_of_list,
     native_re_nullable, hEmptyValid]
 
 theorem str_re_consume_rec_re_none_eq
@@ -2709,49 +2747,7 @@ theorem smt_value_rel_str_to_re_append_consume_local
       (SmtValue.RegLan
         (native_re_concat (native_str_to_re xs) (native_str_to_re ys)))
       (SmtValue.RegLan (native_str_to_re (xs ++ ys))) := by
-  apply smt_value_rel_of_native_includes_local
-  · intro str hValid hMem
-    have hEq := native_str_in_re_str_to_re_eq hValid hMem
-    subst str
-    exact native_str_in_re_re_concat_intro xs ys
-      (native_str_to_re xs) (native_str_to_re ys)
-      (native_str_in_re_str_to_re_self_local xs
-        (native_string_valid_append_left xs ys hValid))
-      (native_str_in_re_str_to_re_self_local ys
-        (native_string_valid_append_right xs ys hValid))
-  · intro str hValid hMem
-    have hListMem :
-        nativeListInRe str
-            (native_re_mk_concat (native_str_to_re xs)
-              (native_str_to_re ys)) = true := by
-      simpa [native_str_in_re, hValid, native_re_concat, nativeListInRe]
-        using hMem
-    rcases
-        (nativeListInRe_mk_concat_true_iff_exists_append str
-          (native_str_to_re xs) (native_str_to_re ys)).1 hListMem with
-      ⟨left, right, hAppend, hLeft, hRight⟩
-    have hLeftValid : native_string_valid left = true :=
-      native_string_valid_append_left left right (by
-        simpa [hAppend] using hValid)
-    have hRightValid : native_string_valid right = true :=
-      native_string_valid_append_right left right (by
-        simpa [hAppend] using hValid)
-    have hLeftMem :
-        native_str_in_re left (native_str_to_re xs) = true := by
-      simpa [native_str_in_re, hLeftValid, nativeListInRe] using hLeft
-    have hRightMem :
-        native_str_in_re right (native_str_to_re ys) = true := by
-      simpa [native_str_in_re, hRightValid, nativeListInRe] using hRight
-    have hLeftEq : left = xs :=
-      native_str_in_re_str_to_re_eq hLeftValid hLeftMem
-    have hRightEq : right = ys :=
-      native_str_in_re_str_to_re_eq hRightValid hRightMem
-    subst left
-    subst right
-    have hAppendValid : native_string_valid (xs ++ ys) = true := by
-      simpa [hAppend] using hValid
-    simpa [hAppend] using
-      native_str_in_re_str_to_re_self_local (xs ++ ys) hAppendValid
+  exact smt_value_rel_str_to_re_append xs ys
 
 theorem native_str_in_re_str_to_re_concat_left_local
     (xs ys : native_String) (r : SmtRegLan)
@@ -3227,7 +3223,7 @@ theorem nativeListInRe_raw_star_cons_decomp_local
 
 theorem native_str_in_re_re_mult_empty_local (r : SmtRegLan) :
     native_str_in_re [] (native_re_mult r) = true := by
-  cases r <;> simp [native_str_in_re, native_string_valid,
+  cases r <;> simp [native_str_in_re, native_string_valid, nativeListInRe,
     native_re_mult, native_re_mk_star, native_re_nullable]
 
 theorem nativeListInRe_re_mult_nonempty_prefix_decomp_local
@@ -3416,56 +3412,19 @@ theorem StrInReConsumeInternal.nativeListInRe_raw_star_once_consume_local :
       simpa [nativeListInRe, native_re_deriv] using hConcat
 
 theorem StrInReConsumeInternal.nativeListInRe_char_length_one_consume_local
-    (xs : native_String) (c : native_Char)
+    (xs : native_String) (c : SmtValue)
     (hMem : nativeListInRe xs (SmtRegLan.char c) = true) :
     xs.length = 1 := by
-  cases xs with
-  | nil =>
-      simp [nativeListInRe, native_re_nullable] at hMem
-  | cons x xs =>
-      cases xs with
-      | nil =>
-          simp
-      | cons y ys =>
-          by_cases hCond :
-              (native_char_valid x = true ∧ native_char_valid c = true) ∧
-                x = c
-          · simp [nativeListInRe, native_re_deriv, hCond] at hMem
-            change nativeListInRe ys SmtRegLan.empty = true at hMem
-            rw [nativeListInRe_empty ys] at hMem
-            cases hMem
-          · simp [nativeListInRe, native_re_deriv, hCond] at hMem
-            change nativeListInRe ys SmtRegLan.empty = true at hMem
-            rw [nativeListInRe_empty ys] at hMem
-            cases hMem
+  exact nativeListInRe_char_true_length xs c hMem
 
 theorem StrInReConsumeInternal.nativeListInRe_range_length_one_consume_local
-    (xs : native_String) (lo hi : native_Char)
+    (xs : native_String) (lo hi : SmtValue)
     (hMem : nativeListInRe xs (SmtRegLan.range lo hi) = true) :
     xs.length = 1 := by
-  cases xs with
-  | nil =>
-      simp [nativeListInRe, native_re_nullable] at hMem
-  | cons x xs =>
-      cases xs with
-      | nil =>
-          simp
-      | cons y ys =>
-          by_cases hCond :
-              (((native_char_valid x = true ∧ native_char_valid lo = true) ∧
-                    native_char_valid hi = true) ∧ lo ≤ x) ∧
-                x ≤ hi
-          · simp [nativeListInRe, native_re_deriv, hCond] at hMem
-            change nativeListInRe ys SmtRegLan.empty = true at hMem
-            rw [nativeListInRe_empty ys] at hMem
-            cases hMem
-          · simp [nativeListInRe, native_re_deriv, hCond] at hMem
-            change nativeListInRe ys SmtRegLan.empty = true at hMem
-            rw [nativeListInRe_empty ys] at hMem
-            cases hMem
+  exact nativeListInRe_range_true_length xs lo hi hMem
 
 theorem StrInReConsumeInternal.nativeListInRe_reverse_char_consume_local
-    (xs : native_String) (c : native_Char) :
+    (xs : native_String) (c : SmtValue) :
     nativeListInRe xs.reverse (SmtRegLan.char c) =
       nativeListInRe xs (SmtRegLan.char c) := by
   cases xs with
@@ -3497,7 +3456,7 @@ theorem StrInReConsumeInternal.nativeListInRe_reverse_char_consume_local
           rw [hLeft, hRight]
 
 theorem StrInReConsumeInternal.nativeListInRe_reverse_range_consume_local
-    (xs : native_String) (lo hi : native_Char) :
+    (xs : native_String) (lo hi : SmtValue) :
     nativeListInRe xs.reverse (SmtRegLan.range lo hi) =
       nativeListInRe xs (SmtRegLan.range lo hi) := by
   cases xs with
@@ -3928,30 +3887,13 @@ theorem StrInReConsumeInternal.native_str_in_re_reverse_re_consume_local
   by_cases hValid : native_string_valid xs = true
   · have hRevValid : native_string_valid xs.reverse = true := by
       simpa [StrInReConsumeInternal.native_string_valid_reverse_consume_local xs] using hValid
-    change
-      (if native_string_valid xs.reverse = true then
-          nativeListInRe xs.reverse (StrInReConsumeInternal.native_re_reverse_raw_consume_local r)
-        else false) =
-        native_str_in_re xs r
-    rw [hRevValid]
-    change
-      nativeListInRe xs.reverse (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) =
-        (if native_string_valid xs = true then nativeListInRe xs r
-          else false)
-    rw [hValid]
-    exact StrInReConsumeInternal.nativeListInRe_reverse_re_consume_local r xs
+    simpa [native_str_in_re, hValid, hRevValid] using
+      StrInReConsumeInternal.nativeListInRe_reverse_re_consume_local r xs
   · have hInvalid : native_string_valid xs = false := by
       cases h : native_string_valid xs <;> simp [h] at hValid ⊢
     have hRevInvalid : native_string_valid xs.reverse = false := by
       simpa [StrInReConsumeInternal.native_string_valid_reverse_consume_local xs] using hInvalid
-    change
-      (if native_string_valid xs.reverse = true then
-          nativeListInRe xs.reverse (StrInReConsumeInternal.native_re_reverse_raw_consume_local r)
-        else false) =
-        (if native_string_valid xs = true then nativeListInRe xs r
-          else false)
-    rw [hRevInvalid, hInvalid]
-    simp
+    simp [native_str_in_re, hRevInvalid, hInvalid]
 
 theorem StrInReConsumeInternal.native_str_in_re_eq_reverse_re_consume_local
     (xs : native_String) (r : SmtRegLan) :
@@ -3981,8 +3923,10 @@ theorem StrInReConsumeInternal.smt_value_rel_native_re_reverse_raw_consume_local
         native_str_in_re str.reverse s := by
     have h := StrInReConsumeInternal.native_str_in_re_reverse_re_consume_local str.reverse s
     simpa using h
+  rw [← native_str_in_re_eq_model str _, ← native_str_in_re_eq_model str _]
   rw [hR, hS]
-  exact smt_value_rel_reglan_valid_eq hRel hRevValid
+  simpa only [native_str_in_re_eq_model] using
+    smt_value_rel_reglan_valid_eq hRel hRevValid
 
 theorem StrInReConsumeInternal.smt_value_rel_native_re_reverse_raw_str_to_re_consume_local
     (xs : native_String) :
@@ -4008,6 +3952,7 @@ theorem StrInReConsumeInternal.smt_value_rel_native_re_reverse_raw_str_to_re_con
     have h := StrInReConsumeInternal.native_str_in_re_reverse_str_to_re_consume_local
       str.reverse xs
     simpa using h
+  rw [← native_str_in_re_eq_model str _, ← native_str_in_re_eq_model str _]
   rw [hRaw, hStrToRe]
 
 theorem StrInReConsumeInternal.smt_value_rel_native_re_reverse_raw_reverse_raw_consume_local
@@ -4037,6 +3982,7 @@ theorem StrInReConsumeInternal.smt_value_rel_native_re_reverse_raw_reverse_raw_c
         native_str_in_re str r := by
     have h := StrInReConsumeInternal.native_str_in_re_reverse_re_consume_local str r
     simpa using h
+  rw [← native_str_in_re_eq_model str _, ← native_str_in_re_eq_model str _]
   rw [hFirst, hSecond]
 
 theorem StrInReConsumeInternal.native_str_in_re_false_of_reverse_re_false_consume_local
@@ -4086,7 +4032,9 @@ theorem StrInReConsumeInternal.native_str_in_re_eq_of_unpack_reverse_reglan_rel_
           (StrInReConsumeInternal.native_re_reverse_raw_consume_local rv) := by
       rw [hRevUnpack]
     _ = native_str_in_re (native_unpack_string revSs) revRv :=
-      (smt_value_rel_reglan_valid_eq hRegRel hRevValid).symm
+      (by
+        simpa only [native_str_in_re_eq_model] using
+          (smt_value_rel_reglan_valid_eq hRegRel hRevValid).symm)
 
 def StrInReConsumeInternal.consume_atom_chain_term (atoms : List Term) (e : Term) :
     Term :=
@@ -5090,9 +5038,9 @@ theorem native_str_in_re_str_to_re_concat_singleton_prefix_false_local
   intro pre suf hAppend
   cases pre with
   | nil =>
-      simp [native_str_in_re, native_re_concat, native_str_to_re,
-        native_re_of_list, native_re_nullable_mk_concat,
-        native_re_nullable]
+      cases r <;>
+        simp [native_str_in_re, nativeListInRe, native_re_concat,
+          native_str_to_re, native_re_of_list, native_re_nullable]
   | cons p ps =>
       have hp : p = c := by
         cases hAppend
@@ -5201,27 +5149,24 @@ theorem native_re_nullable_fold_empty_false_local
     native_re_nullable
         (xs.foldl (fun acc c => native_re_deriv c acc) SmtRegLan.empty) =
       false := by
-  simpa [nativeListInRe] using nativeListInRe_empty xs
+  induction xs with
+  | nil => rfl
+  | cons c cs ih =>
+      simpa [native_re_deriv] using ih
 
 theorem native_str_in_re_re_range_singleton_length_local
     {xs : native_String} {lo hi : native_Char}
     (hMem : native_str_in_re xs (native_re_range [lo] [hi]) = true) :
     xs.length = 1 := by
-  cases xs with
-  | nil =>
-      simp [native_str_in_re, native_re_range, native_re_nullable] at hMem
-  | cons c cs =>
-      cases cs with
-      | nil =>
-          rfl
-      | cons d ds =>
-          by_cases hMatch :
-              (((native_char_valid c = true ∧ native_char_valid lo = true) ∧
-                    native_char_valid hi = true) ∧ lo ≤ c) ∧ c ≤ hi
-          · simp [native_str_in_re, native_re_range, native_re_deriv,
-              native_re_nullable_fold_empty_false_local, hMatch] at hMem
-          · simp [native_str_in_re, native_re_range, native_re_deriv,
-              native_re_nullable_fold_empty_false_local, hMatch] at hMem
+  have hList :
+      nativeListInRe xs (native_re_range [lo] [hi]) = true :=
+    by
+      have h := (by simpa [native_str_in_re] using hMem :
+        native_string_valid xs = true ∧
+          nativeListInRe xs (native_re_range [lo] [hi]) = true)
+      exact h.2
+  exact nativeListInRe_re_range_true_length xs
+    (native_string_to_values [lo]) (native_string_to_values [hi]) hList
 
 theorem native_str_in_re_re_range_concat_singleton_left_true_local
     (c lo hi : native_Char) (ys : native_String) (r : SmtRegLan)
@@ -5380,8 +5325,9 @@ theorem native_str_in_re_re_range_concat_singleton_left_prefix_false_local
   intro pre suf hAppend
   cases pre with
   | nil =>
-      simp [native_str_in_re, native_re_concat, native_re_range,
-        native_re_nullable_mk_concat, native_re_nullable]
+      cases r <;>
+        simp [native_str_in_re, nativeListInRe, native_re_concat,
+          native_re_range, native_re_nullable]
   | cons p ps =>
       have hp : p = c := by
         cases hAppend
@@ -5462,7 +5408,8 @@ theorem str_re_consume_str_to_re_singleton_no_prefix_of_evals_local
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rvTail, hRTailEval⟩
   have hConcatEval :
       __smtx_model_eval M
@@ -5504,9 +5451,8 @@ theorem str_re_consume_str_to_re_singleton_no_prefix_of_evals_local
   cases hREval
   have hAppend' :
       pre ++ suf = [c] ++ native_unpack_string ss2 := by
-    simpa [native_unpack_string_pack_string] using
-      (by
-        simpa [native_unpack_string_pack_seq_concat_local] using hAppend)
+    rw [native_unpack_string_pack_seq_concat_local] at hAppend
+    simpa [native_unpack_string_pack_string] using hAppend
   exact native_str_in_re_str_to_re_concat_singleton_prefix_false_local c d
     (native_unpack_string ss2) rvTail hNe pre suf hAppend'
 
@@ -5563,9 +5509,16 @@ theorem str_re_consume_str_to_re_concat_no_prefix_of_tail_no_prefix_evals_local
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS1EvalTy with ⟨ss1, hS1Eval⟩
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS1EvalTy with
+    ⟨ss1, hS1Eval, hSs1Ty⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rvTail, hRTailEval⟩
+  have hSs1Unpack :
+      native_unpack_seq ss1 =
+        native_string_to_values (native_unpack_string ss1) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char (by
+      simpa using hSs1Ty)
   have hS1Valid : native_string_valid (native_unpack_string ss1) = true :=
     native_unpack_string_valid_of_typeof_seq_char (by
       simpa [hS1Eval] using hS1EvalTy)
@@ -5592,7 +5545,8 @@ theorem str_re_consume_str_to_re_concat_no_prefix_of_tail_no_prefix_evals_local
     change __smtx_model_eval M
         (SmtTerm.str_to_re (__eo_to_smt s1)) =
       SmtValue.RegLan (native_str_to_re (native_unpack_string ss1))
-    simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1Eval]
+    simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1Eval,
+      hSs1Unpack]
   have hRConcatEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -5610,7 +5564,7 @@ theorem str_re_consume_str_to_re_concat_no_prefix_of_tail_no_prefix_evals_local
         (native_re_concat (native_str_to_re (native_unpack_string ss1))
           rvTail)
     simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-      __smtx_model_eval_str_to_re, hS1Eval, hRTailEval]
+      __smtx_model_eval_str_to_re, hS1Eval, hRTailEval, hSs1Unpack]
   rw [hConcatEval] at hSEval
   rw [hRConcatEval] at hREval
   cases hSEval
@@ -5683,9 +5637,16 @@ theorem str_re_consume_str_to_re_concat_residual_of_tail_residual_evals_local
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS1EvalTy with ⟨ss1, hS1Eval⟩
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS1EvalTy with
+    ⟨ss1, hS1Eval, hSs1Ty⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rvTail, hRTailEval⟩
+  have hSs1Unpack :
+      native_unpack_seq ss1 =
+        native_string_to_values (native_unpack_string ss1) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char (by
+      simpa using hSs1Ty)
   have hS1Valid : native_string_valid (native_unpack_string ss1) = true :=
     native_unpack_string_valid_of_typeof_seq_char (by
       simpa [hS1Eval] using hS1EvalTy)
@@ -5712,7 +5673,8 @@ theorem str_re_consume_str_to_re_concat_residual_of_tail_residual_evals_local
     change __smtx_model_eval M
         (SmtTerm.str_to_re (__eo_to_smt s1)) =
       SmtValue.RegLan (native_str_to_re (native_unpack_string ss1))
-    simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1Eval]
+    simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1Eval,
+      hSs1Unpack]
   have hRConcatEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -5730,7 +5692,7 @@ theorem str_re_consume_str_to_re_concat_residual_of_tail_residual_evals_local
         (native_re_concat (native_str_to_re (native_unpack_string ss1))
           rvTail)
     simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-      __smtx_model_eval_str_to_re, hS1Eval, hRTailEval]
+      __smtx_model_eval_str_to_re, hS1Eval, hRTailEval, hSs1Unpack]
   rw [hConcatEval] at hSEval
   rw [hRConcatEval] at hREval
   cases hSEval
@@ -5786,7 +5748,8 @@ theorem str_re_consume_range_singleton_no_prefix_of_evals_local
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rvTail, hRTailEval⟩
   have hConcatEval :
       __smtx_model_eval M
@@ -5833,9 +5796,8 @@ theorem str_re_consume_range_singleton_no_prefix_of_evals_local
   cases hREval
   have hAppend' :
       pre ++ suf = [c] ++ native_unpack_string ss2 := by
-    simpa [native_unpack_string_pack_string] using
-      (by
-        simpa [native_unpack_string_pack_seq_concat_local] using hAppend)
+    rw [native_unpack_string_pack_seq_concat_local] at hAppend
+    simpa [native_unpack_string_pack_string] using hAppend
   exact native_str_in_re_re_range_concat_singleton_left_prefix_false_local c
     lo hi (native_unpack_string ss2) rvTail hHead pre suf hAppend'
 
@@ -6090,7 +6052,8 @@ theorem str_list_concat_singleton_intro_eval_rel_local
           unfold term_has_non_none_type
           rw [hConcatTy]
           simp)
-  rcases seq_value_canonical hConcatEvalTy with ⟨outSs, hOutEval⟩
+  rcases seq_value_canonical_with_char_type hConcatEvalTy with
+    ⟨outSs, hOutEval, hOutSsTy⟩
   have hListConcatRel :
       RuleProofs.smt_value_rel
         (__smtx_model_eval M
@@ -6205,7 +6168,8 @@ theorem str_list_concat_singleton_intro_str_to_re_rel_local
         (SmtValue.RegLan
           (native_str_to_re
             (native_unpack_string accSs ++ native_unpack_string ss))) := by
-    simpa [hPackedUnpack] using hOutStrRel
+    simpa [hPackedUnpack, native_string_to_values, List.map_append] using
+      hOutStrRel
   have hConcatAppendRel :
       RuleProofs.smt_value_rel
         (SmtValue.RegLan
@@ -6267,7 +6231,8 @@ theorem str_nary_intro_str_to_re_rel_local
           unfold term_has_non_none_type
           rw [hIntroTy]
           simp)
-  rcases seq_value_canonical hIntroEvalTy with ⟨introSs, hIntroEval⟩
+  rcases seq_value_canonical_with_char_type hIntroEvalTy with
+    ⟨introSs, hIntroEval, hIntroSsTy⟩
   have hIntroSeqRel :
       RuleProofs.smt_value_rel (SmtValue.Seq introSs)
         (SmtValue.Seq ss) := by
@@ -7672,6 +7637,15 @@ theorem str_in_re_re_concat_false_rel_of_no_split_consume_local
   rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
       (__eo_to_smt s) hSTy with
     ⟨ss, hSEval⟩
+  have hSsTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char := by
+    rw [← hSEval]
+    simpa [hSTy] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+        unfold term_has_non_none_type
+        rw [hSTy]
+        simp)
   rcases smt_eval_reglan_of_smt_type_reglan_consume_local M hM
       (__eo_to_smt rConcat) hConcatTy with
     ⟨rv, hRConcatEval⟩
@@ -7692,7 +7666,9 @@ theorem str_in_re_re_concat_false_rel_of_no_split_consume_local
       (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt rConcat)))
     (__smtx_model_eval M (SmtTerm.Boolean false))
   simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-    hRConcatEval, hNativeFalse]
+    hRConcatEval, hNativeFalse,
+    model_str_in_re_unpack_eq_string_of_value_type ss
+      (native_re_concat rv1 rv2) hSsTy]
   exact RuleProofs.smt_value_rel_refl _
 
 theorem str_in_re_re_mult_concat_rel_of_no_nonempty_prefix_consume_local
@@ -7739,6 +7715,15 @@ theorem str_in_re_re_mult_concat_rel_of_no_nonempty_prefix_consume_local
   rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
       (__eo_to_smt s) hSTy with
     ⟨ss, hSEval⟩
+  have hSsTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char := by
+    rw [← hSEval]
+    simpa [hSTy] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+        unfold term_has_non_none_type
+        rw [hSTy]
+        simp)
   rcases smt_eval_reglan_of_smt_type_reglan_consume_local M hM
       (__eo_to_smt rConcat) hConcatTy with
     ⟨rv, hRConcatEval⟩
@@ -7785,7 +7770,10 @@ theorem str_in_re_re_mult_concat_rel_of_no_nonempty_prefix_consume_local
       (__smtx_model_eval M
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r2)))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hRConcatEval, hR2Eval, hNativeEq]
+      hRConcatEval, hR2Eval, hNativeEq,
+      model_str_in_re_unpack_eq_string_of_value_type ss
+        (native_re_concat (native_re_mult rv3) rv2) hSsTy,
+      model_str_in_re_unpack_eq_string_of_value_type ss rv2 hSsTy]
     exact RuleProofs.smt_value_rel_refl _
   exact RuleProofs.smt_value_rel_trans _ _ _ hOrigRightRel hRightRel
 
@@ -7826,12 +7814,30 @@ theorem str_in_re_residual_rel_of_native_eq_consume_local
   rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
       (__eo_to_smt s) hSTy with
     ⟨ss, hSEval⟩
+  have hSsTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char := by
+    rw [← hSEval]
+    simpa [hSTy] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+        unfold term_has_non_none_type
+        rw [hSTy]
+        simp)
   rcases smt_eval_reglan_of_smt_type_reglan_consume_local M hM
       (__eo_to_smt r) hRTy with
     ⟨rv, hREval⟩
   rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
       (__eo_to_smt s') hS'Ty with
     ⟨ss', hS'Eval⟩
+  have hSs'Ty :
+      __smtx_typeof_value (SmtValue.Seq ss') =
+        SmtType.Seq SmtType.Char := by
+    rw [← hS'Eval]
+    simpa [hS'Ty] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s') (by
+        unfold term_has_non_none_type
+        rw [hS'Ty]
+        simp)
   rcases smt_eval_reglan_of_smt_type_reglan_consume_local M hM
       (__eo_to_smt r') hR'Ty with
     ⟨rv', hR'Eval⟩
@@ -7854,7 +7860,9 @@ theorem str_in_re_residual_rel_of_native_eq_consume_local
       (__smtx_model_eval M
         (SmtTerm.str_in_re (__eo_to_smt s') (__eo_to_smt r')))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hREval, hS'Eval, hR'Eval, hNative]
+      hREval, hS'Eval, hR'Eval, hNative,
+      model_str_in_re_unpack_eq_string_of_value_type ss rv hSsTy,
+      model_str_in_re_unpack_eq_string_of_value_type ss' rv' hSs'Ty]
     exact RuleProofs.smt_value_rel_refl _
   exact RuleProofs.smt_value_rel_trans _ _ _ hOrigResidualTermRel
     hResidualRel
@@ -8578,11 +8586,23 @@ theorem StrInReConsumeInternal.re_unflatten_re_concat_rels_local
       rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
           (__eo_to_smt s) hSTy with
         ⟨ss, hSEval⟩
+      have hSsTy :
+          __smtx_typeof_value (SmtValue.Seq ss) =
+            SmtType.Seq SmtType.Char := by
+        rw [← hSEval]
+        simpa [hSTy] using
+          smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+            unfold term_has_non_none_type
+            rw [hSTy]
+            simp)
+      have hSsSeqTy :
+          __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+        simpa using hSsTy
       have hHeadEval :
           __smtx_model_eval M
               (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_re) s)) =
             SmtValue.RegLan (native_str_to_re (native_unpack_string ss)) :=
-        eval_str_to_re_reglan_consume_local M s ss hSEval
+        eval_str_to_re_reglan_consume_local M s ss hSEval hSsSeqTy
       have hParentEvalNative :
           SmtValue.RegLan
               (native_re_concat
@@ -8593,7 +8613,9 @@ theorem StrInReConsumeInternal.re_unflatten_re_concat_rels_local
               (SmtTerm.str_to_re (__eo_to_smt s)) (__eo_to_smt b)) =
           SmtValue.RegLan rv at hREval
         simpa [__smtx_model_eval, __smtx_model_eval_re_concat,
-          __smtx_model_eval_str_to_re, hSEval, hBEval] using hREval
+          __smtx_model_eval_str_to_re, hSEval, hBEval,
+          native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSsSeqTy]
+          using hREval
       cases hParentEvalNative
       have hIntroNe : __str_nary_intro s ≠ Term.Stuck :=
         str_nary_intro_ne_stuck_of_seq_type_local s SmtType.Char hSTy
@@ -8675,11 +8697,23 @@ theorem StrInReConsumeInternal.re_unflatten_re_concat_rels_local
       rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
           (__eo_to_smt s) hSTy with
         ⟨ss, hSEval⟩
+      have hSsTy :
+          __smtx_typeof_value (SmtValue.Seq ss) =
+            SmtType.Seq SmtType.Char := by
+        rw [← hSEval]
+        simpa [hSTy] using
+          smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+            unfold term_has_non_none_type
+            rw [hSTy]
+            simp)
+      have hSsSeqTy :
+          __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+        simpa using hSsTy
       have hHeadEval :
           __smtx_model_eval M
               (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_re) s)) =
             SmtValue.RegLan (native_str_to_re (native_unpack_string ss)) :=
-        eval_str_to_re_reglan_consume_local M s ss hSEval
+        eval_str_to_re_reglan_consume_local M s ss hSEval hSsSeqTy
       have hParentEvalNative :
           SmtValue.RegLan
               (native_re_concat
@@ -8690,7 +8724,9 @@ theorem StrInReConsumeInternal.re_unflatten_re_concat_rels_local
               (SmtTerm.str_to_re (__eo_to_smt s)) (__eo_to_smt b)) =
           SmtValue.RegLan rv at hREval
         simpa [__smtx_model_eval, __smtx_model_eval_re_concat,
-          __smtx_model_eval_str_to_re, hSEval, hBEval] using hREval
+          __smtx_model_eval_str_to_re, hSEval, hBEval,
+          native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSsSeqTy]
+          using hREval
       cases hParentEvalNative
       have hAccNe : acc ≠ Term.Stuck :=
         RuleProofs.term_ne_stuck_of_has_smt_translation acc (by
@@ -9261,6 +9297,16 @@ theorem StrInReConsumeInternal.str_re_consume_model_rel_of_final_parts_native_eq
               unfold term_has_non_none_type
               rw [hPartsTy]
               simp)
+      have hOutSeqTy :
+          __smtx_typeof_value (SmtValue.Seq outSs) =
+            SmtType.Seq SmtType.Char := by
+        have hSeq : RuleProofs.smt_seq_rel outSs partsSs := by
+          simpa [RuleProofs.smt_value_rel, RuleProofs.smt_seq_rel] using
+            hOutRelParts
+        have hEq : outSs = partsSs :=
+          (RuleProofs.smt_seq_rel_iff_eq outSs partsSs).1 hSeq
+        rw [hEq]
+        exact hPartsSeqTy
       have hOutNative :
           native_str_in_re (native_unpack_string outSs) outRv =
             native_str_in_re (native_unpack_string partsSs) reRv :=
@@ -9276,7 +9322,8 @@ theorem StrInReConsumeInternal.str_re_consume_model_rel_of_final_parts_native_eq
           (SmtTerm.str_in_re (__eo_to_smt s') (__eo_to_smt r')) =
         SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv)
       simp [s', r', __smtx_model_eval, __smtx_model_eval_str_in_re,
-        hOutEval, hOutReEval]
+        hOutEval, hOutReEval,
+        model_str_in_re_unpack_eq_string_of_value_type outSs outRv hOutSeqTy]
       rw [hOutNative, ← hOrigNative])
 
 theorem str_re_consume_model_rel_of_re_concat_empty_left
@@ -9339,7 +9386,8 @@ theorem str_re_consume_model_rel_of_re_concat_empty_left
         unfold term_has_non_none_type
         rw [hConcatArgs.2]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
   have hEpsEval :
       __smtx_model_eval M (__eo_to_smt eps) =
@@ -9434,7 +9482,8 @@ theorem str_re_consume_model_rel_of_re_concat_empty_right
         unfold term_has_non_none_type
         rw [hConcatArgs.1]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
   have hEpsEval :
       __smtx_model_eval M (__eo_to_smt eps) =
@@ -10187,7 +10236,8 @@ theorem str_re_consume_allchar_concat_no_prefix_of_tail_no_prefix_evals_local
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rvTail, hRTailEval⟩
   have hConcatEval :
       __smtx_model_eval M
@@ -10223,8 +10273,8 @@ theorem str_re_consume_allchar_concat_no_prefix_of_tail_no_prefix_evals_local
   cases hREval
   have hAppend' :
       pre ++ suf = c :: native_unpack_string ss2 := by
-    simpa [native_unpack_string_pack_seq_concat_local,
-      native_unpack_string_pack_string] using hAppend
+    rw [native_unpack_string_pack_seq_concat_local] at hAppend
+    simpa [native_unpack_string_pack_string] using hAppend
   exact
     native_str_in_re_re_allchar_concat_singleton_prefix_false_of_tail_no_prefix_local
       c (native_unpack_string ss2) rvTail
@@ -10295,7 +10345,8 @@ theorem str_re_consume_allchar_concat_residual_of_tail_residual_evals_local
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rvTail, hRTailEval⟩
   have hConcatEval :
       __smtx_model_eval M
@@ -10406,9 +10457,11 @@ theorem str_re_consume_range_head_native_eq_of_match_local
   have hEvalEq :
       __str_eval_str_in_re_rec (substrWord [c] 0 1) range =
         Term.Boolean (native_str_in_re [c] (native_re_range [lo] [hi])) :=
-    str_eval_str_in_re_rec_substrWord_eq M hM [c] range
-      (native_re_range [lo] [hi]) hValid (by
-        simpa [range] using hRangeTy) hRangeEval hEvalNeSub
+    by
+      simpa [native_str_in_re_eq_model] using
+        str_eval_str_in_re_rec_substrWord_eq M hM [c] range
+          (native_re_range [lo] [hi]) hValid (by
+            simpa [range] using hRangeTy) hRangeEval hEvalNeSub
   have hEvalHeadEqSub :
       __str_eval_str_in_re_rec (substrWord [c] 0 1) range =
         Term.Boolean b := by
@@ -10511,7 +10564,8 @@ theorem str_re_consume_range_concat_no_prefix_of_tail_no_prefix_evals_local
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rvTail, hRTailEval⟩
   have hConcatEval :
       __smtx_model_eval M
@@ -10556,8 +10610,8 @@ theorem str_re_consume_range_concat_no_prefix_of_tail_no_prefix_evals_local
   cases hREval
   have hAppend' :
       pre ++ suf = c :: native_unpack_string ss2 := by
-    simpa [native_unpack_string_pack_seq_concat_local,
-      native_unpack_string_pack_string] using hAppend
+    rw [native_unpack_string_pack_seq_concat_local] at hAppend
+    simpa [native_unpack_string_pack_string] using hAppend
   exact
     native_str_in_re_re_range_concat_singleton_prefix_false_of_tail_no_prefix_local
       c lo hi (native_unpack_string ss2) rvTail
@@ -10664,7 +10718,8 @@ theorem str_re_consume_range_concat_residual_of_tail_residual_evals_local
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rvTail, hRTailEval⟩
   have hConcatEval :
       __smtx_model_eval M
@@ -10794,9 +10849,25 @@ theorem str_re_consume_model_rel_of_str_concat_str_to_re_prefix
         unfold term_has_non_none_type
         rw [hRConcatArgs.2]
         simp)
-  rcases seq_value_canonical hS1EvalTy with ⟨ss1, hS1Eval⟩
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS1EvalTy with
+    ⟨ss1, hS1Eval, hSs1Ty⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
+  have hSs1SeqTy :
+      __smtx_typeof_seq_value ss1 = SmtType.Seq SmtType.Char := by
+    simpa using hSs1Ty
+  have hSs2SeqTy :
+      __smtx_typeof_seq_value ss2 = SmtType.Seq SmtType.Char := by
+    simpa using hSs2Ty
+  have hSs1Unpack :
+      native_unpack_seq ss1 =
+        native_string_to_values (native_unpack_string ss1) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSs1SeqTy
+  have hSs2Unpack :
+      native_unpack_seq ss2 =
+        native_string_to_values (native_unpack_string ss2) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSs2SeqTy
   have hS1Valid : native_string_valid (native_unpack_string ss1) = true :=
     native_unpack_string_valid_of_typeof_seq_char (by
       simpa [hS1Eval] using hS1EvalTy)
@@ -10819,7 +10890,8 @@ theorem str_re_consume_model_rel_of_str_concat_str_to_re_prefix
         SmtValue.RegLan (native_str_to_re (native_unpack_string ss1)) := by
     change __smtx_model_eval M (SmtTerm.str_to_re (__eo_to_smt s1)) =
       SmtValue.RegLan (native_str_to_re (native_unpack_string ss1))
-    simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1Eval]
+    simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hS1Eval,
+      hSs1Unpack]
   have hRConcatEval :
       __smtx_model_eval M (__eo_to_smt rConcat) =
         SmtValue.RegLan
@@ -10841,6 +10913,33 @@ theorem str_re_consume_model_rel_of_str_concat_str_to_re_prefix
     rw [native_unpack_string_pack_seq_concat_local]
     exact native_str_in_re_str_to_re_concat_left_local
       (native_unpack_string ss1) (native_unpack_string ss2) rv hS1Valid
+  have hModelNativeEq :
+      Smtm.native_str_in_re
+          (native_unpack_seq
+            (native_pack_seq (__smtx_elem_typeof_seq_value ss1)
+              (native_seq_concat (native_unpack_seq ss1)
+                (native_unpack_seq ss2))))
+          (native_re_concat (native_str_to_re
+            (native_unpack_string ss1)) rv) =
+        Smtm.native_str_in_re (native_unpack_seq ss2) rv := by
+    calc
+      _ = Smtm.native_str_in_re
+          (native_string_to_values
+            (native_unpack_string ss1 ++ native_unpack_string ss2))
+          (native_re_concat (native_str_to_re
+            (native_unpack_string ss1)) rv) := by
+          simp [native_unpack_seq_pack_seq, hSs1Unpack, hSs2Unpack,
+            native_seq_concat, native_string_to_values, List.map_append]
+      _ = native_str_in_re
+          (native_unpack_string ss1 ++ native_unpack_string ss2)
+          (native_re_concat (native_str_to_re
+            (native_unpack_string ss1)) rv) :=
+        (native_str_in_re_eq_model _ _).symm
+      _ = native_str_in_re (native_unpack_string ss2) rv := by
+        simpa [native_unpack_string_pack_seq_concat_local] using hNativeEq
+      _ = Smtm.native_str_in_re (native_unpack_seq ss2) rv := by
+        rw [hSs2Unpack]
+        exact native_str_in_re_eq_model _ _
   have hOrigReduced :
       RuleProofs.smt_value_rel
         (__smtx_model_eval M
@@ -10856,7 +10955,7 @@ theorem str_re_consume_model_rel_of_str_concat_str_to_re_prefix
       (__smtx_model_eval M
         (SmtTerm.str_in_re (__eo_to_smt s2) (__eo_to_smt r)))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hConcatEval,
-      hRConcatEval, hS2Eval, hREval, hNativeEq]
+      hRConcatEval, hS2Eval, hREval, hModelNativeEq]
     exact RuleProofs.smt_value_rel_refl _
   exact RuleProofs.smt_value_rel_trans _ _ _ hOrigReduced hReducedRel
 
@@ -10946,8 +11045,16 @@ theorem str_re_consume_model_rel_of_str_concat_re_allchar_prefix
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
+  have hSs2SeqTy :
+      __smtx_typeof_seq_value ss2 = SmtType.Seq SmtType.Char := by
+    simpa using hSs2Ty
+  have hSs2Unpack :
+      native_unpack_seq ss2 =
+        native_string_to_values (native_unpack_string ss2) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSs2SeqTy
   have hConcatEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -10996,6 +11103,31 @@ theorem str_re_consume_model_rel_of_str_concat_re_allchar_prefix
     simp [native_unpack_string_pack_string]
     exact native_str_in_re_re_allchar_concat_singleton_left_local c
       (native_unpack_string ss2) rv hCValid
+  have hModelNativeEq :
+      Smtm.native_str_in_re
+          (native_unpack_seq
+            (native_pack_seq
+              (__smtx_elem_typeof_seq_value (native_pack_string [c]))
+              (native_seq_concat
+                [SmtValue.Char c]
+                (native_unpack_seq ss2))))
+          (native_re_concat native_re_allchar rv) =
+        Smtm.native_str_in_re (native_unpack_seq ss2) rv := by
+    calc
+      _ = Smtm.native_str_in_re
+          (native_string_to_values ([c] ++ native_unpack_string ss2))
+          (native_re_concat native_re_allchar rv) := by
+          simp [native_unpack_seq_pack_seq, hSs2Unpack,
+            native_seq_concat, native_string_to_values, List.map_append]
+      _ = native_str_in_re ([c] ++ native_unpack_string ss2)
+          (native_re_concat native_re_allchar rv) :=
+        (native_str_in_re_eq_model _ _).symm
+      _ = native_str_in_re (native_unpack_string ss2) rv := by
+        exact native_str_in_re_re_allchar_concat_singleton_left_local c
+          (native_unpack_string ss2) rv hCValid
+      _ = Smtm.native_str_in_re (native_unpack_seq ss2) rv := by
+        rw [hSs2Unpack]
+        exact native_str_in_re_eq_model _ _
   have hOrigReduced :
       RuleProofs.smt_value_rel
         (__smtx_model_eval M
@@ -11021,7 +11153,7 @@ theorem str_re_consume_model_rel_of_str_concat_re_allchar_prefix
         (SmtTerm.str_in_re (__eo_to_smt s2) (__eo_to_smt r)))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
       __smtx_model_eval_str_concat, __smtx_model_eval_re_concat, hS2Eval,
-      hREval, hNativeEq]
+      hREval, hModelNativeEq]
     exact RuleProofs.smt_value_rel_refl _
   exact RuleProofs.smt_value_rel_trans _ _ _ hOrigReduced hReducedRel
 
@@ -11160,8 +11292,16 @@ theorem str_re_consume_model_rel_of_str_concat_re_range_prefix
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
+  have hSs2SeqTy :
+      __smtx_typeof_seq_value ss2 = SmtType.Seq SmtType.Char := by
+    simpa using hSs2Ty
+  have hSs2Unpack :
+      native_unpack_seq ss2 =
+        native_string_to_values (native_unpack_string ss2) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSs2SeqTy
   have hConcatEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -11222,6 +11362,31 @@ theorem str_re_consume_model_rel_of_str_concat_re_range_prefix
     simp [native_unpack_string_pack_string]
     exact native_str_in_re_re_range_concat_singleton_left_true_local c lo
       hi (native_unpack_string ss2) rv hHeadTrue
+  have hModelNativeEq :
+      Smtm.native_str_in_re
+          (native_unpack_seq
+            (native_pack_seq
+              (__smtx_elem_typeof_seq_value (native_pack_string [c]))
+              (native_seq_concat
+                [SmtValue.Char c]
+                (native_unpack_seq ss2))))
+          (native_re_concat (native_re_range [lo] [hi]) rv) =
+        Smtm.native_str_in_re (native_unpack_seq ss2) rv := by
+    calc
+      _ = Smtm.native_str_in_re
+          (native_string_to_values ([c] ++ native_unpack_string ss2))
+          (native_re_concat (native_re_range [lo] [hi]) rv) := by
+          simp [native_unpack_seq_pack_seq, hSs2Unpack,
+            native_seq_concat, native_string_to_values, List.map_append]
+      _ = native_str_in_re ([c] ++ native_unpack_string ss2)
+          (native_re_concat (native_re_range [lo] [hi]) rv) :=
+        (native_str_in_re_eq_model _ _).symm
+      _ = native_str_in_re (native_unpack_string ss2) rv := by
+        exact native_str_in_re_re_range_concat_singleton_left_true_local c lo
+          hi (native_unpack_string ss2) rv hHeadTrue
+      _ = Smtm.native_str_in_re (native_unpack_seq ss2) rv := by
+        rw [hSs2Unpack]
+        exact native_str_in_re_eq_model _ _
   have hOrigReduced :
       RuleProofs.smt_value_rel
         (__smtx_model_eval M
@@ -11253,7 +11418,7 @@ theorem str_re_consume_model_rel_of_str_concat_re_range_prefix
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
       __smtx_model_eval_str_concat, __smtx_model_eval_re_concat,
       __smtx_model_eval_re_range, hS2Eval, hREval, hNativeEq,
-      native_unpack_string_pack_string]
+      hModelNativeEq, native_unpack_string_pack_string]
     exact RuleProofs.smt_value_rel_refl _
   exact RuleProofs.smt_value_rel_trans _ _ _ hOrigReduced hReducedRel
 
@@ -12315,7 +12480,8 @@ theorem str_re_consume_rec_str_concat_re_range_mismatch_model_rel
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rvTail, hRTailEval⟩
   have hConcatEval :
       __smtx_model_eval M
@@ -12484,7 +12650,8 @@ theorem str_re_consume_rec_str_concat_str_to_re_len_mismatch_model_rel
         unfold term_has_non_none_type
         rw [hRTy]
         simp)
-  rcases seq_value_canonical hS2EvalTy with ⟨ss2, hS2Eval⟩
+  rcases seq_value_canonical_with_char_type hS2EvalTy with
+    ⟨ss2, hS2Eval, hSs2Ty⟩
   rcases reglan_value_canonical hREvalTy with ⟨rvTail, hRTailEval⟩
   have hConcatEval :
       __smtx_model_eval M
@@ -12595,7 +12762,8 @@ theorem str_re_consume_model_rel_of_re_inter_all_right
         unfold term_has_non_none_type
         rw [hInterArgs.1]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
   have hAllEval :
       __smtx_model_eval M (__eo_to_smt all) =
@@ -12636,7 +12804,11 @@ theorem str_re_consume_model_rel_of_re_inter_all_right
       (__smtx_model_eval M
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hInterEval, hREval, hNativeEq]
+      hInterEval, hREval,
+      model_str_in_re_unpack_eq_string_of_value_type ss
+        (native_re_inter rv native_re_all) hSsTy,
+      model_str_in_re_unpack_eq_string_of_value_type ss rv hSsTy,
+      hNativeEq]
     exact RuleProofs.smt_value_rel_refl _
   exact RuleProofs.smt_value_rel_trans _ _ _ hOrigReduced hReducedRel
 
@@ -12700,7 +12872,8 @@ theorem str_re_consume_model_rel_of_re_inter_all_left
         unfold term_has_non_none_type
         rw [hInterArgs.2]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
   have hAllEval :
       __smtx_model_eval M (__eo_to_smt all) =
@@ -12741,7 +12914,11 @@ theorem str_re_consume_model_rel_of_re_inter_all_left
       (__smtx_model_eval M
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hInterEval, hREval, hNativeEq]
+      hInterEval, hREval,
+      model_str_in_re_unpack_eq_string_of_value_type ss
+        (native_re_inter native_re_all rv) hSsTy,
+      model_str_in_re_unpack_eq_string_of_value_type ss rv hSsTy,
+      hNativeEq]
     exact RuleProofs.smt_value_rel_refl _
   exact RuleProofs.smt_value_rel_trans _ _ _ hOrigReduced hReducedRel
 
@@ -12803,7 +12980,8 @@ theorem str_re_consume_model_rel_of_re_union_none_right
         unfold term_has_non_none_type
         rw [hUnionArgs.1]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
   have hNoneEval :
       __smtx_model_eval M (__eo_to_smt none) =
@@ -12840,7 +13018,11 @@ theorem str_re_consume_model_rel_of_re_union_none_right
       (__smtx_model_eval M
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hUnionEval, hREval, hNativeEq]
+      hUnionEval, hREval,
+      model_str_in_re_unpack_eq_string_of_value_type ss
+        (native_re_union rv native_re_none) hSsTy,
+      model_str_in_re_unpack_eq_string_of_value_type ss rv hSsTy,
+      hNativeEq]
     exact RuleProofs.smt_value_rel_refl _
   exact RuleProofs.smt_value_rel_trans _ _ _ hOrigReduced hReducedRel
 
@@ -12904,7 +13086,8 @@ theorem str_re_consume_model_rel_of_re_union_none_left
         unfold term_has_non_none_type
         rw [hUnionArgs.2]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
   have hNoneEval :
       __smtx_model_eval M (__eo_to_smt none) =
@@ -12941,7 +13124,11 @@ theorem str_re_consume_model_rel_of_re_union_none_left
       (__smtx_model_eval M
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hUnionEval, hREval, hNativeEq]
+      hUnionEval, hREval,
+      model_str_in_re_unpack_eq_string_of_value_type ss
+        (native_re_union native_re_none rv) hSsTy,
+      model_str_in_re_unpack_eq_string_of_value_type ss rv hSsTy,
+      hNativeEq]
     exact RuleProofs.smt_value_rel_refl _
   exact RuleProofs.smt_value_rel_trans _ _ _ hOrigReduced hReducedRel
 
@@ -13016,7 +13203,8 @@ theorem str_re_consume_model_rel_of_re_union_left_false
         unfold term_has_non_none_type
         rw [hUnionArgs.2]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hC1EvalTy with ⟨rv1, hC1Eval⟩
   rcases reglan_value_canonical hC2EvalTy with ⟨rv2, hC2Eval⟩
   have hC1StrEval :
@@ -13028,7 +13216,7 @@ theorem str_re_consume_model_rel_of_re_union_left_false
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt c1)) =
       SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv1)
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hC1Eval]
+      hC1Eval, hSsTy]
   have hC2StrEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -13038,7 +13226,7 @@ theorem str_re_consume_model_rel_of_re_union_left_false
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt c2)) =
       SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv2)
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hC2Eval]
+      hC2Eval, hSsTy]
   have hLeftNativeFalse :
       native_str_in_re (native_unpack_string ss) rv1 = false :=
     smt_value_rel_boolean_eq_consume_local (by
@@ -13065,7 +13253,7 @@ theorem str_re_consume_model_rel_of_re_union_left_false
         (native_str_in_re (native_unpack_string ss)
           (native_re_union rv1 rv2))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hUnionEval]
+      hUnionEval, hSsTy]
   have hNativeEq :
       native_str_in_re (native_unpack_string ss)
           (native_re_union rv1 rv2) =
@@ -13146,7 +13334,8 @@ theorem str_re_consume_model_rel_of_re_union_right_false
         unfold term_has_non_none_type
         rw [hUnionArgs.2]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hC1EvalTy with ⟨rv1, hC1Eval⟩
   rcases reglan_value_canonical hC2EvalTy with ⟨rv2, hC2Eval⟩
   have hC1StrEval :
@@ -13158,7 +13347,7 @@ theorem str_re_consume_model_rel_of_re_union_right_false
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt c1)) =
       SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv1)
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hC1Eval]
+      hC1Eval, hSsTy]
   have hC2StrEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -13168,7 +13357,7 @@ theorem str_re_consume_model_rel_of_re_union_right_false
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt c2)) =
       SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv2)
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hC2Eval]
+      hC2Eval, hSsTy]
   have hRightNativeFalse :
       native_str_in_re (native_unpack_string ss) rv2 = false :=
     smt_value_rel_boolean_eq_consume_local (by
@@ -13195,7 +13384,7 @@ theorem str_re_consume_model_rel_of_re_union_right_false
         (native_str_in_re (native_unpack_string ss)
           (native_re_union rv1 rv2))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hUnionEval]
+      hUnionEval, hSsTy]
   have hNativeEq :
       native_str_in_re (native_unpack_string ss)
           (native_re_union rv1 rv2) =
@@ -13276,7 +13465,8 @@ theorem str_re_consume_model_rel_of_re_union_same_branches
         unfold term_has_non_none_type
         rw [hUnionArgs.2]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hC1EvalTy with ⟨rv1, hC1Eval⟩
   rcases reglan_value_canonical hC2EvalTy with ⟨rv2, hC2Eval⟩
   let b1 := native_str_in_re (native_unpack_string ss) rv1
@@ -13290,7 +13480,7 @@ theorem str_re_consume_model_rel_of_re_union_same_branches
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt c1)) =
       SmtValue.Boolean b1
     simp [b1, __smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hC1Eval]
+      hC1Eval, hSsTy]
   have hC2StrEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -13300,7 +13490,7 @@ theorem str_re_consume_model_rel_of_re_union_same_branches
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt c2)) =
       SmtValue.Boolean b2
     simp [b2, __smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hC2Eval]
+      hC2Eval, hSsTy]
   have hBranchesSameBool : b1 = b2 := by
     apply smt_value_rel_boolean_eq_consume_local
     have hLeftRel' :
@@ -13336,7 +13526,7 @@ theorem str_re_consume_model_rel_of_re_union_same_branches
         (native_str_in_re (native_unpack_string ss)
           (native_re_union rv1 rv2))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hUnionEval]
+      hUnionEval, hSsTy]
   have hNativeEq :
       native_str_in_re (native_unpack_string ss)
           (native_re_union rv1 rv2) = b1 := by
@@ -13414,7 +13604,8 @@ theorem str_re_consume_model_rel_of_re_inter_left_false
         unfold term_has_non_none_type
         rw [hInterArgs.2]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hC1EvalTy with ⟨rv1, hC1Eval⟩
   rcases reglan_value_canonical hC2EvalTy with ⟨rv2, hC2Eval⟩
   have hC1StrEval :
@@ -13426,7 +13617,7 @@ theorem str_re_consume_model_rel_of_re_inter_left_false
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt c1)) =
       SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv1)
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hC1Eval]
+      hC1Eval, hSsTy]
   have hLeftNativeFalse :
       native_str_in_re (native_unpack_string ss) rv1 = false :=
     smt_value_rel_boolean_eq_consume_local (by
@@ -13453,7 +13644,7 @@ theorem str_re_consume_model_rel_of_re_inter_left_false
         (native_str_in_re (native_unpack_string ss)
           (native_re_inter rv1 rv2))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hInterEval]
+      hInterEval, hSsTy]
   have hNativeFalse :
       native_str_in_re (native_unpack_string ss)
           (native_re_inter rv1 rv2) = false := by
@@ -13531,7 +13722,8 @@ theorem str_re_consume_model_rel_of_re_inter_right_false
         unfold term_has_non_none_type
         rw [hInterArgs.2]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hC1EvalTy with ⟨rv1, hC1Eval⟩
   rcases reglan_value_canonical hC2EvalTy with ⟨rv2, hC2Eval⟩
   have hC2StrEval :
@@ -13543,7 +13735,7 @@ theorem str_re_consume_model_rel_of_re_inter_right_false
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt c2)) =
       SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv2)
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hC2Eval]
+      hC2Eval, hSsTy]
   have hRightNativeFalse :
       native_str_in_re (native_unpack_string ss) rv2 = false :=
     smt_value_rel_boolean_eq_consume_local (by
@@ -13570,7 +13762,7 @@ theorem str_re_consume_model_rel_of_re_inter_right_false
         (native_str_in_re (native_unpack_string ss)
           (native_re_inter rv1 rv2))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hInterEval]
+      hInterEval, hSsTy]
   have hNativeFalse :
       native_str_in_re (native_unpack_string ss)
           (native_re_inter rv1 rv2) = false := by
@@ -13653,7 +13845,8 @@ theorem str_re_consume_model_rel_of_re_inter_same_branches
         unfold term_has_non_none_type
         rw [hInterArgs.2]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hC1EvalTy with ⟨rv1, hC1Eval⟩
   rcases reglan_value_canonical hC2EvalTy with ⟨rv2, hC2Eval⟩
   let b1 := native_str_in_re (native_unpack_string ss) rv1
@@ -13667,7 +13860,7 @@ theorem str_re_consume_model_rel_of_re_inter_same_branches
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt c1)) =
       SmtValue.Boolean b1
     simp [b1, __smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hC1Eval]
+      hC1Eval, hSsTy]
   have hC2StrEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -13677,7 +13870,7 @@ theorem str_re_consume_model_rel_of_re_inter_same_branches
         (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt c2)) =
       SmtValue.Boolean b2
     simp [b2, __smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hC2Eval]
+      hC2Eval, hSsTy]
   have hBranchesSameBool : b1 = b2 := by
     apply smt_value_rel_boolean_eq_consume_local
     have hLeftRel' :
@@ -13713,7 +13906,7 @@ theorem str_re_consume_model_rel_of_re_inter_same_branches
         (native_str_in_re (native_unpack_string ss)
           (native_re_inter rv1 rv2))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
-      hInterEval]
+      hInterEval, hSsTy]
   have hNativeEq :
       native_str_in_re (native_unpack_string ss)
           (native_re_inter rv1 rv2) = b1 := by

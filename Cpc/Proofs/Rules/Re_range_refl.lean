@@ -137,7 +137,8 @@ private theorem native_str_in_re_range_refl_eq_str_to_re
   cases str with
   | nil =>
       simp [native_re_range, native_str_to_re, native_re_of_list,
-        native_re_mk_concat, native_str_in_re, hValid, native_re_nullable]
+        native_re_mk_concat, native_re_concat, native_str_in_re, native_string_to_values,
+              native_re_str_valid, native_re_elem_valid, native_re_elem_le, hValid, native_re_nullable]
   | cons d rest =>
       rcases native_string_valid_cons_parts hValid with ⟨hd, hRestValid⟩
       cases rest with
@@ -145,13 +146,15 @@ private theorem native_str_in_re_range_refl_eq_str_to_re
           by_cases hdc : d = c
           · subst d
             simp [native_re_range, native_str_to_re, native_re_of_list,
-              native_re_mk_concat, native_str_in_re, hValid, native_re_deriv,
+              native_re_mk_concat, native_re_concat, native_str_in_re, native_string_to_values,
+              native_re_str_valid, native_re_elem_valid, native_re_elem_le, hValid, native_re_deriv,
               native_re_nullable, hc]
           · have hBounds : ¬ (c ≤ d ∧ d ≤ c) := by
               intro h
               exact hdc (Nat.le_antisymm h.2 h.1)
             simp [native_re_range, native_str_to_re, native_re_of_list,
-              native_re_mk_concat, native_str_in_re, hValid, native_re_deriv,
+              native_re_mk_concat, native_re_concat, native_str_in_re, native_string_to_values,
+              native_re_str_valid, native_re_elem_valid, native_re_elem_le, hValid, native_re_deriv,
               native_re_nullable, hc, hd, hdc, hBounds]
       | cons e es =>
           have hTailEmpty := RuleProofs.nativeListInRe_empty es
@@ -159,14 +162,16 @@ private theorem native_str_in_re_range_refl_eq_str_to_re
           · have hdc : d = c := Nat.le_antisymm hBounds.2 hBounds.1
             subst d
             simp [native_re_range, native_str_to_re, native_re_of_list,
-              native_re_mk_concat, native_str_in_re, hValid, native_re_deriv,
+              native_re_mk_concat, native_re_concat, native_str_in_re, native_string_to_values,
+              native_re_str_valid, native_re_elem_valid, native_re_elem_le, hValid, native_re_deriv,
               native_re_nullable, hc, RuleProofs.nativeListInRe, hTailEmpty]
           · have hdc : d ≠ c := by
               intro hdc
               subst d
               exact hBounds ⟨Nat.le_refl c, Nat.le_refl c⟩
             simp [native_re_range, native_str_to_re, native_re_of_list,
-              native_re_mk_concat, native_str_in_re, hValid, native_re_deriv,
+              native_re_mk_concat, native_re_concat, native_str_in_re, native_string_to_values,
+              native_re_str_valid, native_re_elem_valid, native_re_elem_le, hValid, native_re_deriv,
               native_re_nullable, hc, hd, hdc, hBounds, RuleProofs.nativeListInRe,
               hTailEmpty]
 
@@ -205,9 +210,13 @@ private theorem facts
         rw [hSTy]
         simp)
   rcases seq_value_canonical hEvalTy with ⟨ss, hSEval⟩
-  have hSSValid : native_string_valid (native_unpack_string ss) = true := by
-    apply native_unpack_string_valid_of_typeof_seq_char
+  have hSSTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
     simpa [hSEval] using hEvalTy
+  have hSSValid : native_string_valid (native_unpack_string ss) = true :=
+    native_unpack_string_valid_of_typeof_seq_char hSSTy
+  have hUnpack :
+      native_unpack_seq ss = native_string_to_values (native_unpack_string ss) :=
+    native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSSTy
   have hPremRel :=
     RuleProofs.eo_interprets_eq_rel M
       (Term.Apply (Term.UOp UserOp.str_len) s) (Term.Numeral 1) hPrem
@@ -242,13 +251,13 @@ private theorem facts
     change __smtx_model_eval M (SmtTerm.re_range (__eo_to_smt s) (__eo_to_smt s)) =
       SmtValue.RegLan
         (native_re_range (native_unpack_string ss) (native_unpack_string ss))
-    simp [__smtx_model_eval, __smtx_model_eval_re_range, hSEval]
+    simp [__smtx_model_eval, __smtx_model_eval_re_range, hSEval, hUnpack]
   have hRhsEval :
       __smtx_model_eval M (__eo_to_smt (rhs s)) =
         SmtValue.RegLan (native_str_to_re (native_unpack_string ss)) := by
     change __smtx_model_eval M (SmtTerm.str_to_re (__eo_to_smt s)) =
       SmtValue.RegLan (native_str_to_re (native_unpack_string ss))
-    simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hSEval]
+    simp [__smtx_model_eval, __smtx_model_eval_str_to_re, hSEval, hUnpack]
   exact RuleProofs.eo_interprets_eq_of_rel M (lhs s) (rhs s) hBool <| by
     rw [hLhsEval, hRhsEval, hString]
     change SmtValue.Boolean

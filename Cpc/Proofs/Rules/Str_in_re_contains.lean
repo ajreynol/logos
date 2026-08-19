@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.ReInclusionSupport
 import all Cpc.Proofs.RuleSupport.ReInclusionSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
+import all Cpc.Proofs.RuleSupport.StrContainsReplCharSupport
 
 open Eo
 open SmtEval
@@ -214,8 +216,8 @@ private theorem nativeListInRe_re_of_list_self :
 private theorem native_str_in_re_str_to_re_self
     (pat : native_String)
     (hValid : native_string_valid pat = true) :
-    native_str_in_re pat (native_str_to_re pat) = true := by
-  simpa [native_str_in_re, hValid, native_str_to_re,
+    RuleProofs.native_str_in_re pat (native_str_to_re pat) = true := by
+  simpa [RuleProofs.native_str_in_re, hValid, native_str_to_re,
     RuleProofs.nativeListInRe] using
     nativeListInRe_re_of_list_self pat hValid
 
@@ -266,30 +268,8 @@ private theorem native_seq_indexof_rec_append_ne_neg_local
 private theorem native_seq_contains_of_decomp_local
     (before pat after : List SmtValue) :
     native_seq_contains (before ++ pat ++ after) pat = true := by
-  have hLen : pat.length ≤ (before ++ pat ++ after).length := by
-    simp [List.length_append]
-    omega
-  have hNe :
-      native_seq_indexof (before ++ pat ++ after) pat 0 ≠ -1 := by
-    unfold native_seq_indexof
-    simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
-    rw [dif_pos hLen]
-    have hFuel :
-        before.length <
-          (before ++ pat ++ after).length - pat.length + 1 := by
-      simp [List.length_append]
-      omega
-    simpa using
-      native_seq_indexof_rec_append_ne_neg_local pat after before 0
-        ((before ++ pat ++ after).length - pat.length + 1) hFuel
-  have hGe :
-      0 ≤ native_seq_indexof (before ++ pat ++ after) pat 0 := by
-    rcases native_seq_indexof_eq_neg_one_or_ge
-        (before ++ pat ++ after) pat 0 with h | h
-    · exact absurd h hNe
-    · exact h
-  unfold native_seq_contains
-  exact decide_eq_true hGe
+  exact StrContainsReplCharSupport.native_seq_contains_of_decomp
+    before pat after
 
 private theorem native_seq_contains_decomp_exists_local
     (xs pat : List SmtValue)
@@ -302,10 +282,7 @@ private theorem native_seq_contains_decomp_exists_local
 
 private theorem native_seq_contains_iff_decomp_local (xs pat : List SmtValue) :
     native_seq_contains xs pat = true ↔ ∃ before after, xs = before ++ pat ++ after := by
-  constructor
-  · exact native_seq_contains_decomp_exists_local xs pat
-  · rintro ⟨before, after, rfl⟩
-    exact native_seq_contains_of_decomp_local before pat after
+  exact StrContainsReplCharSupport.native_seq_contains_iff_decomp xs pat
 
 private theorem native_seq_contains_map_char_iff
     (xs pat : native_String) :
@@ -331,7 +308,7 @@ private theorem native_str_in_re_contains_regex_eq
     (xs pat : native_String)
     (hXsValid : native_string_valid xs = true)
     (hPatValid : native_string_valid pat = true) :
-    native_str_in_re xs
+    RuleProofs.native_str_in_re xs
         (native_re_concat native_re_all
           (native_re_concat (native_str_to_re pat)
             (native_re_concat native_re_all (native_str_to_re [])))) =
@@ -344,7 +321,7 @@ private theorem native_str_in_re_contains_regex_eq
             (native_re_concat native_re_all
               (native_re_concat (native_str_to_re pat)
                 (native_re_concat native_re_all (native_str_to_re [])))) = true := by
-      simpa [native_str_in_re, hXsValid, RuleProofs.nativeListInRe] using hMem
+      simpa [RuleProofs.native_str_in_re, hXsValid] using hMem
     have hOuter :
         RuleProofs.nativeListInRe xs
             (native_re_mk_concat native_re_all
@@ -376,9 +353,10 @@ private theorem native_str_in_re_contains_regex_eq
       RuleProofs.native_string_valid_append_left mid tail hRestSplitValid
     have hTailValid : native_string_valid tail = true :=
       RuleProofs.native_string_valid_append_right mid tail hRestSplitValid
-    have hMidStrMem : native_str_in_re mid (native_str_to_re pat) = true := by
-      simpa [native_str_in_re, hMidValid, native_str_to_re,
-        RuleProofs.nativeListInRe] using hMidMem
+    have hMidStrMem :
+        RuleProofs.native_str_in_re mid (native_str_to_re pat) = true := by
+      simpa [RuleProofs.native_str_in_re, hMidValid, native_str_to_re] using
+        hMidMem
     have hMidEq : mid = pat :=
       RuleProofs.native_str_in_re_str_to_re_eq hMidValid hMidStrMem
     have hTailConcat :
@@ -392,9 +370,10 @@ private theorem native_str_in_re_contains_regex_eq
       simpa [hTail] using hTailValid
     have hEpsValid : native_string_valid eps = true :=
       RuleProofs.native_string_valid_append_right post eps hTailSplitValid
-    have hEpsStrMem : native_str_in_re eps (native_str_to_re []) = true := by
-      simpa [native_str_in_re, hEpsValid, native_str_to_re,
-        RuleProofs.nativeListInRe] using hEpsMem
+    have hEpsStrMem :
+        RuleProofs.native_str_in_re eps (native_str_to_re []) = true := by
+      simpa [RuleProofs.native_str_in_re, hEpsValid, native_str_to_re] using
+        hEpsMem
     have hEpsEq : eps = [] :=
       RuleProofs.native_str_in_re_str_to_re_eq hEpsValid hEpsStrMem
     rw [native_seq_contains_map_char_iff]
@@ -414,21 +393,24 @@ private theorem native_str_in_re_contains_regex_eq
         simpa [List.append_assoc] using hAllValid)
     have hPostValid : native_string_valid post = true :=
       RuleProofs.native_string_valid_append_right pat post hPatPostValid
-    have hPreMem : native_str_in_re pre native_re_all = true :=
+    have hPreMem : RuleProofs.native_str_in_re pre native_re_all = true :=
       RuleProofs.native_str_in_re_re_all pre hPreValid
-    have hPatMem : native_str_in_re pat (native_str_to_re pat) = true :=
+    have hPatMem :
+        RuleProofs.native_str_in_re pat (native_str_to_re pat) = true :=
       native_str_in_re_str_to_re_self pat hPatValid
-    have hPostMem : native_str_in_re post native_re_all = true :=
+    have hPostMem : RuleProofs.native_str_in_re post native_re_all = true :=
       RuleProofs.native_str_in_re_re_all post hPostValid
-    have hEmptyMem : native_str_in_re ([] : native_String) (native_str_to_re []) = true :=
+    have hEmptyMem :
+        RuleProofs.native_str_in_re ([] : native_String) (native_str_to_re []) =
+          true :=
       native_str_in_re_str_to_re_self [] (by simp [native_string_valid])
     have hPostEpsMem :
-        native_str_in_re (post ++ ([] : native_String))
+        RuleProofs.native_str_in_re (post ++ ([] : native_String))
           (native_re_concat native_re_all (native_str_to_re [])) = true :=
       RuleProofs.native_str_in_re_re_concat_intro post []
         native_re_all (native_str_to_re []) hPostMem hEmptyMem
     have hPatTailMem :
-        native_str_in_re (pat ++ (post ++ ([] : native_String)))
+        RuleProofs.native_str_in_re (pat ++ (post ++ ([] : native_String)))
           (native_re_concat (native_str_to_re pat)
             (native_re_concat native_re_all (native_str_to_re []))) = true :=
       RuleProofs.native_str_in_re_re_concat_intro pat (post ++ [])
@@ -436,7 +418,8 @@ private theorem native_str_in_re_contains_regex_eq
         (native_re_concat native_re_all (native_str_to_re []))
         hPatMem hPostEpsMem
     have hFull :
-        native_str_in_re (pre ++ (pat ++ (post ++ ([] : native_String))))
+        RuleProofs.native_str_in_re
+          (pre ++ (pat ++ (post ++ ([] : native_String))))
           (native_re_concat native_re_all
             (native_re_concat (native_str_to_re pat)
               (native_re_concat native_re_all (native_str_to_re [])))) = true :=
@@ -498,7 +481,8 @@ private theorem typed___eo_prog_str_in_re_contains_impl
 
 private theorem smtx_model_eval_contains_regex
     (M : SmtModel) (s : Term) (ss : SmtSeq)
-    (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss) :
+    (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
+    (hSsTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char) :
     __smtx_model_eval M (__eo_to_smt (containsRegex s)) =
       SmtValue.RegLan
         (native_re_concat native_re_all
@@ -517,6 +501,8 @@ private theorem smtx_model_eval_contains_regex
     __smtx_model_eval_re_concat, __smtx_model_eval_str_to_re,
     native_re_mult, native_re_allchar, native_re_all, native_re_mk_star,
     native_pack_string, native_pack_seq, native_unpack_string, native_unpack_seq]
+  rw [native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSsTy]
+  simp [native_string_to_values, native_ssm_char_of_value, Function.comp_def]
 
 private theorem facts___eo_prog_str_in_re_contains_impl
     (M : SmtModel) (hM : model_total_typed M) (t s : Term)
@@ -561,7 +547,7 @@ private theorem facts___eo_prog_str_in_re_contains_impl
       native_unpack_seq ss =
         (native_unpack_string ss).map SmtValue.Char :=
     unpack_seq_eq_map_unpack_string_of_typeof_seq_char ss hSsTy
-  have hRegexEval := smtx_model_eval_contains_regex M s ss hSEval
+  have hRegexEval := smtx_model_eval_contains_regex M s ss hSEval hSsTy
   have hBoolEq :
       RuleProofs.eo_has_bool_type
         (Term.Apply (Term.Apply Term.eq (lhs t s)) (rhs t s)) := by
@@ -604,12 +590,13 @@ private theorem facts___eo_prog_str_in_re_contains_impl
     rw [hTEval, hSEval, hRegexEval]
     change
       SmtValue.Boolean
-          (native_str_in_re (native_unpack_string st)
+          (Smtm.native_str_in_re (native_unpack_seq st)
             (native_re_concat native_re_all
               (native_re_concat (native_str_to_re (native_unpack_string ss))
                 (native_re_concat native_re_all (native_str_to_re []))))) =
         SmtValue.Boolean
           (native_seq_contains (native_unpack_seq st) (native_unpack_seq ss))
+    rw [RuleProofs.model_str_in_re_unpack_eq_string st _ hStTy]
     rw [hStUnpack, hSsUnpack]
     rw [native_str_in_re_contains_regex_eq
       (native_unpack_string st) (native_unpack_string ss) hStValid hSsValid]

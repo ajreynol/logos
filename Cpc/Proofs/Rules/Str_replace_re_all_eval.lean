@@ -155,14 +155,14 @@ private theorem replace_re_all_nonempty_re_eval
       SmtValue.RegLan (filteredRe rv)
     simp [filteredRe, __smtx_model_eval, __smtx_model_eval_re_inter,
       __smtx_model_eval_re_comp, __smtx_model_eval_str_to_re, hREval,
-      RuleProofs.native_unpack_string_pack_string]
+      ]
 
 private theorem filteredRe_nullable_false (rv : SmtRegLan) :
     native_re_nullable (filteredRe rv) = false := by
   unfold filteredRe
   rw [RuleProofs.native_re_nullable_mk_inter]
   rw [RuleProofs.native_re_nullable_mk_inter]
-  simp [native_re_comp, native_re_mk_comp, native_str_to_re,
+  simp [native_re_comp, native_str_to_re,
     native_re_of_list, native_re_all, native_re_nullable]
 
 private theorem native_str_in_re_deriv_eq_cons
@@ -199,7 +199,7 @@ private theorem native_re_prefix_match_len_go_shift :
       rw [hShiftN, hShiftOne]
       cases hPref : native_re_prefix_match_len? (native_re_deriv c r) cs <;>
         simp [native_string_to_values] at hPref <;>
-        simp [hPref, Function.comp_def, Nat.add_assoc, Nat.add_comm,
+        simp [hPref, Nat.add_comm,
           Nat.add_left_comm]
 
 private theorem native_re_prefix_match_len_eq_positive_of_not_nullable
@@ -703,7 +703,7 @@ private theorem str_eval_replace_re_all_rec_properties
               | some len =>
                   cases len with
                   | zero =>
-                      simp [native_re_positive_prefix_match_len?, hc] at hPref
+                      simp [native_re_positive_prefix_match_len?] at hPref
                       cases hDerPref :
                           native_re_prefix_match_len? (native_re_deriv c rv) cs <;>
                         simp [hDerPref] at hPref

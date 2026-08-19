@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.RuleSupport.RegexSupport
 import all Cpc.Proofs.RuleSupport.RegexSupport
+public import Cpc.Proofs.RuleSupport.RegexValueSupport
+import all Cpc.Proofs.RuleSupport.RegexValueSupport
 public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 
@@ -35,7 +37,9 @@ private theorem nativeSigmaPrefix_succ_ne_epsilon (n : Nat) :
 private theorem native_re_mk_concat_allchar_sigmaPrefix_succ (n : Nat) :
     native_re_mk_concat native_re_allchar (nativeSigmaPrefix (n + 1)) =
       SmtRegLan.concat native_re_allchar (nativeSigmaPrefix (n + 1)) := by
-  cases n <;> simp [native_re_mk_concat, nativeSigmaPrefix, native_re_allchar]
+  cases n <;>
+    simp [native_re_mk_concat, native_re_concat, nativeSigmaPrefix,
+      native_re_allchar]
 
 private theorem nativeListInRe_sigmaPrefix_true_iff :
     (n : Nat) -> (xs : List native_Char) ->
@@ -408,6 +412,8 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
     (M : SmtModel) (s : Term) (ss : SmtSeq)
     (hSNe : s ≠ Term.Stuck)
     (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
+    (hSsTy : __smtx_typeof_value (SmtValue.Seq ss) =
+      SmtType.Seq SmtType.Char)
     (hSSValid : native_string_valid (native_unpack_string ss) = true)
     (r : Term) (rv : SmtRegLan) (n : Nat) :
       __str_mk_str_in_re_sigma_star_rec s r
@@ -505,7 +511,7 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
                                 rw [<- str_in_re_sigma_star_rec_allchar_eq s x n hSNe]
                                 exact hSide
                               rcases smtx_model_eval_str_in_re_sigma_star_rec
-                                  M s ss hSNe hSEval hSSValid x rvTail (n + 1)
+                                  M s ss hSNe hSEval hSsTy hSSValid x rvTail (n + 1)
                                   hSideTail hTailEval with
                                 ⟨m, hTailRv, hTotalNe, hEval⟩
                               refine ⟨m + 1, ?_, ?_, ?_⟩
@@ -640,6 +646,8 @@ private theorem smtx_model_eval_str_in_re_eq_sigma_star_side
     (M : SmtModel) (s r side : Term) (ss : SmtSeq) (rv : SmtRegLan)
     (hSNe : s ≠ Term.Stuck)
     (hSEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
+    (hSsTy : __smtx_typeof_value (SmtValue.Seq ss) =
+      SmtType.Seq SmtType.Char)
     (hSSValid : native_string_valid (native_unpack_string ss) = true)
     (hREval : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv)
     (hSide :
@@ -651,8 +659,8 @@ private theorem smtx_model_eval_str_in_re_eq_sigma_star_side
             (Term.Apply (Term.UOp UserOp.re_mult) r))) =
       __smtx_model_eval M (__eo_to_smt side) := by
   subst side
-  rcases smtx_model_eval_str_in_re_sigma_star_rec M s ss hSNe hSEval hSSValid r rv 0
-      hSideNe hREval with
+  rcases smtx_model_eval_str_in_re_sigma_star_rec M s ss hSNe hSEval hSsTy
+      hSSValid r rv 0 hSideNe hREval with
     ⟨m, hRv, hMNe, hSideEval⟩
   have hSideEval' :
       __smtx_model_eval M
@@ -674,6 +682,8 @@ private theorem smtx_model_eval_str_in_re_eq_sigma_star_side
   have hm : m ≠ 0 := by
     simpa using hMNe
   simp only [__smtx_model_eval_re_mult, __smtx_model_eval_str_in_re]
+  rw [model_str_in_re_unpack_eq_string_of_value_type ss
+    (native_re_mult (nativeSigmaPrefix m)) hSsTy]
   simp [native_str_in_re, hSSValid]
   simpa [nativeListInRe] using
     nativeListInRe_sigmaPrefixStar_eq_int_mod m hm (native_unpack_string ss)
@@ -767,7 +777,8 @@ private theorem str_in_re_sigma_star_valid_properties
         unfold term_has_non_none_type
         rw [hSTy]
         simp)
-  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases seq_value_canonical_with_char_type hSEvalTy with
+    ⟨ss, hSEval, hSsTy⟩
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
   have hSSValid : native_string_valid (native_unpack_string ss) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
@@ -781,7 +792,7 @@ private theorem str_in_re_sigma_star_valid_properties
       __smtx_model_eval M (__eo_to_smt strIn) =
         __smtx_model_eval M (__eo_to_smt side) := by
     exact smtx_model_eval_str_in_re_eq_sigma_star_side M s r side ss rv hSNe hSEval
-      hSSValid hREval rfl hSideNe
+      hSsTy hSSValid hREval rfl hSideNe
   refine ⟨?_, RuleProofs.eo_has_smt_translation_of_has_bool_type _
     (by simpa [strIn, side] using hEqBool)⟩
   intro _hPremises

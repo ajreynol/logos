@@ -2,6 +2,7 @@ module
 
 public import Cpc.Proofs.RuleSupport.ArithPolyNormSupport
 import all Cpc.Proofs.RuleSupport.ArithPolyNormSupport
+import Cpc.Proofs.RuleSupport.StrEqReplSupport
 import all Init.Data.Repr
 
 public section
@@ -498,7 +499,7 @@ private theorem native_seq_indexof_rec_ge_neg_one
 private theorem native_seq_indexof_ge_neg_one
     (xs pat : List SmtValue) (i : native_Int) :
     (-1 : Int) ≤ native_seq_indexof xs pat i := by
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   split
   · simp
   · dsimp
@@ -550,62 +551,12 @@ private theorem int_le_of_simple_geq_true
   simpa [__smtx_model_eval_geq, __smtx_model_eval_leq, native_zleq,
     SmtEval.native_zleq] using hEval
 
-private theorem native_seq_indexof_rec_bound
-    (xs pat : List SmtValue) :
-    (i fuel : Nat) ->
-    native_seq_indexof_rec xs pat i fuel = -1 ∨
-      ∃ j : Nat, native_seq_indexof_rec xs pat i fuel = Int.ofNat (i + j) ∧
-        j < fuel
-  | i, 0 => by
-      simp [native_seq_indexof_rec]
-  | i, fuel + 1 => by
-      unfold native_seq_indexof_rec
-      split
-      · right
-        exact ⟨0, by simp, by omega⟩
-      · cases xs with
-        | nil =>
-            simp
-        | cons _ xs =>
-            cases native_seq_indexof_rec_bound xs pat (i + 1) fuel with
-            | inl h =>
-                left
-                exact h
-            | inr h =>
-                rcases h with ⟨j, hj, hjlt⟩
-                right
-                refine ⟨j + 1, ?_, by omega⟩
-                simp [hj,Nat.add_comm, Nat.add_left_comm]
-
-private theorem native_seq_indexof_le_len
-    (xs pat : List SmtValue) (i : native_Int) :
-    native_seq_indexof xs pat i ≤ Int.ofNat xs.length := by
-  unfold native_seq_indexof
-  split
-  · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
-  · dsimp
-    split
-    · rename_i hStart h
-      cases native_seq_indexof_rec_bound (xs.drop (Int.toNat i)) pat (Int.toNat i)
-          (xs.length - (Int.toNat i + pat.length) + 1) with
-      | inl hRec =>
-          rw [hRec]
-          exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
-      | inr hRec =>
-          rcases hRec with ⟨j, hRec, hjlt⟩
-          rw [hRec]
-          apply Int.ofNat_le.mpr
-          have hjle : j ≤ xs.length - (Int.toNat i + pat.length) := by
-            omega
-          omega
-    · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
-
 private theorem native_seq_indexof_le_len_sub_pat_of_pat_le_len
     (xs pat : List SmtValue) (i : native_Int) :
     pat.length ≤ xs.length ->
     native_seq_indexof xs pat i ≤ Int.ofNat xs.length - Int.ofNat pat.length := by
   intro hPatLe
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   split
   · have hNonneg :
         (0 : Int) ≤ Int.ofNat xs.length - Int.ofNat pat.length := by
@@ -1263,7 +1214,7 @@ private theorem int_eval_nonneg_of_eo_is_neg_false
     rw [__smtx_typeof.eq_3] at hNInt
     cases hNInt
 
-private theorem eo_ite_true
+private theorem arith_string_eo_ite_true
     {c t e : Term} :
     __eo_ite c t e = Term.Boolean true ->
     (c = Term.Boolean true ∧ t = Term.Boolean true) ∨
@@ -1272,6 +1223,8 @@ private theorem eo_ite_true
   cases c <;> simp [__eo_ite, native_teq, native_ite] at h ⊢
   case Boolean b =>
     cases b <;> simp at h ⊢ <;> exact h
+
+local notation "eo_ite_true" => arith_string_eo_ite_true
 
 private theorem eo_and_true
     {x y : Term} :
@@ -1856,7 +1809,7 @@ private theorem native_seq_indexof_zero_nonneg_pat_le_len
     0 <= native_seq_indexof xs pat 0 ->
     pat.length <= xs.length := by
   intro hIdx
-  unfold native_seq_indexof at hIdx
+  rw [native_seq_indexof_eq_rec] at hIdx
   simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add] at hIdx
   split at hIdx
   · assumption
@@ -1887,10 +1840,11 @@ private theorem native_seq_replace_len_le_len_add_repl
       Int.ofNat xs.length + Int.ofNat repl.length := by
   cases pat with
   | nil =>
-      simp [native_seq_replace, List.length_append]
+      simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+        StrEqReplSupport.native_seq_indexof_nil_zero, List.length_append]
       omega
   | cons p ps =>
-      unfold native_seq_replace
+      rw [StrEqReplSupport.native_seq_replace_eq_indexof]
       let idx := native_seq_indexof xs (p :: ps) 0
       by_cases hIdxNeg : idx < 0
       · simp [idx, hIdxNeg]
@@ -1919,10 +1873,11 @@ private theorem native_seq_replace_len_ge_len_sub_pat
       Int.ofNat (native_seq_replace xs pat repl).length := by
   cases pat with
   | nil =>
-      simp [native_seq_replace, List.length_append]
+      simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+        StrEqReplSupport.native_seq_indexof_nil_zero, List.length_append]
       omega
   | cons p ps =>
-      unfold native_seq_replace
+      rw [StrEqReplSupport.native_seq_replace_eq_indexof]
       let idx := native_seq_indexof xs (p :: ps) 0
       by_cases hIdxNeg : idx < 0
       · simp [idx, hIdxNeg]
@@ -1953,9 +1908,10 @@ private theorem native_seq_replace_len_le_len_of_repl_le_pat
   cases pat with
   | nil =>
       have hReplZero : repl.length = 0 := Nat.eq_zero_of_le_zero hReplLe
-      simp [native_seq_replace, List.length_append, hReplZero]
+      simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+        StrEqReplSupport.native_seq_indexof_nil_zero, List.length_append, hReplZero]
   | cons p ps =>
-      unfold native_seq_replace
+      rw [StrEqReplSupport.native_seq_replace_eq_indexof]
       let idx := native_seq_indexof xs (p :: ps) 0
       by_cases hIdxNeg : idx < 0
       · simp [idx, hIdxNeg]
@@ -2001,10 +1957,11 @@ private theorem native_seq_replace_len_ge_len_of_pat_le_repl_or_len_le_repl
   intro hLe
   cases pat with
   | nil =>
-      simp [native_seq_replace, List.length_append]
+      simp [StrEqReplSupport.native_seq_replace_eq_indexof,
+        StrEqReplSupport.native_seq_indexof_nil_zero, List.length_append]
       omega
   | cons p ps =>
-      unfold native_seq_replace
+      rw [StrEqReplSupport.native_seq_replace_eq_indexof]
       let idx := native_seq_indexof xs (p :: ps) 0
       by_cases hIdxNeg : idx < 0
       · simp [idx, hIdxNeg]

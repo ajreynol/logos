@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrReplaceAllSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceAllSupport
 
 open Eo
 open SmtEval
@@ -83,32 +85,16 @@ private theorem smtx_eval_boolean_term_eq (M : SmtModel) (b : native_Bool) :
 
 private theorem native_seq_replace_all_aux_nil_cons
     (fuel : Nat) (p : SmtValue) (ps repl : List SmtValue) :
-    native_seq_replace_all_aux fuel (p :: ps) repl [] = [] := by
-  cases fuel with
-  | zero =>
-      simp [native_seq_replace_all_aux]
-  | succ fuel =>
-      have hIdx : native_seq_indexof [] (p :: ps) 0 < 0 := by
-        unfold native_seq_indexof
-        simp
-      simp [native_seq_replace_all_aux, hIdx]
+    native_seq_replace_all [] (p :: ps) repl = [] := by
+  apply StrReplaceAllSupport.replace_all_eq_self_of_indexof_neg
+  rw [native_seq_indexof_eq_rec]
+  simp
 
 private theorem native_seq_replace_all_self_of_nonempty
     (xs repl : List SmtValue)
     (hNonempty : xs ≠ []) :
     native_seq_replace_all xs xs repl = repl := by
-  cases xs with
-  | nil =>
-      exact False.elim (hNonempty rfl)
-  | cons x xs =>
-      unfold native_seq_replace_all
-      have hIdx : native_seq_indexof (x :: xs) (x :: xs) 0 = 0 :=
-        native_seq_indexof_self_zero (x :: xs)
-      have hNotNeg : ¬ native_seq_indexof (x :: xs) (x :: xs) 0 < 0 := by
-        rw [hIdx]
-        decide
-      simp [native_seq_replace_all_aux, hIdx, hNotNeg,
-        native_seq_replace_all_aux_nil_cons]
+  exact StrReplaceAllSupport.replace_all_self_of_nonempty xs repl hNonempty
 
 private theorem prog_str_replace_all_self_info
     (t s P : Term)

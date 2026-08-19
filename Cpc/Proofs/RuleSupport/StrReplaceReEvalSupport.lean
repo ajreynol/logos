@@ -116,7 +116,7 @@ private theorem native_re_prefix_match_go_isSome_iff_exists
       simp only [native_string_to_values, List.map]
       rw [Smtm.native_re_prefix_match_len?.go.eq_2]
       cases hNull : native_re_nullable r
-      · simp [hc]
+      · simp
         constructor
         · intro h
           rcases (ih (native_re_deriv c r) (n + 1) hcs).1 h with
@@ -203,7 +203,7 @@ private theorem native_str_in_re_concat_all_eq_prefix_isSome
   have hNative :
       native_str_in_re xs (native_re_concat r native_re_all) =
         RuleProofs.nativeListInRe xs (native_re_concat r native_re_all) := by
-    simp [native_str_in_re, hValid, RuleProofs.nativeListInRe]
+    simp [native_str_in_re, hValid]
   rw [hNative]
   cases hPref : (native_re_prefix_match_len? r xs).isSome <;>
     cases hIn : RuleProofs.nativeListInRe xs (native_re_concat r native_re_all) <;>
@@ -236,8 +236,8 @@ theorem replace_re_search_re_eval
       SmtValue.RegLan (native_re_concat rv native_re_all)
     simp [__smtx_model_eval, __smtx_model_eval_re_concat,
       __smtx_model_eval_str_to_re, hREval,
-      RuleProofs.native_unpack_string_pack_string, native_re_concat,
-      native_re_all, native_re_mk_concat]
+      native_re_concat,
+      native_re_all]
     cases rv <;> simp [native_str_to_re,
       native_re_of_list]
 
@@ -410,7 +410,7 @@ theorem str_first_match_rec_smallest_eq_go
                 RuleProofs.native_str_in_re_eq_model]
               exact smt_value_rel_reglan_valid_eq hDerRel hys)
         rw [Smtm.native_re_prefix_match_len?.go.eq_2]
-        simp [hNull, hc]
+        simp [hNull]
         rw [← hGoCong]
       · rw [hNull] at hNullEq
         rw [hNullEq]
@@ -1045,8 +1045,7 @@ private theorem str_eval_replace_re_eval_eq
         hTEval hReplTy hRNe hTNe]
       simp only [native_str_replace_re, native_re_find_idx_from, List.drop_zero]
       rw [hFind]
-      simp [
-        native_pack_string, native_string_to_values,
+      simp [native_pack_string, native_string_to_values,
         native_unpack_seq_eq_string_to_values_of_typeof_seq_char hReplTy,
         List.map_append, List.append_assoc]
 

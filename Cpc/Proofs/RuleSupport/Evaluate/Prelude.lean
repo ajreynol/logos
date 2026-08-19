@@ -6,6 +6,8 @@ public import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
 import all Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+import Cpc.Proofs.RuleSupport.StrEqReplSupport
+import Cpc.Proofs.RuleSupport.StrReplaceAllSupport
 public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
 import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
 import all Init.Data.Repr
@@ -9607,7 +9609,7 @@ theorem EvaluateProofInternal.native_seq_indexof_le_len_sub_pat_of_pat_le_len_lo
       native_seq_indexof xs pat i ≤
         Int.ofNat xs.length - Int.ofNat pat.length := by
   intro hPatLe
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   split
   · have hNonneg :
         (0 : native_Int) ≤ Int.ofNat xs.length - Int.ofNat pat.length := by
@@ -9647,7 +9649,7 @@ theorem EvaluateProofInternal.native_seq_indexof_zero_nonneg_pat_le_len_local
     (xs pat : List SmtValue)
     (hIdx : 0 ≤ native_seq_indexof xs pat 0) :
     pat.length ≤ xs.length := by
-  unfold native_seq_indexof at hIdx
+  rw [native_seq_indexof_eq_rec] at hIdx
   simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add] at hIdx
   split at hIdx
   · assumption
@@ -9674,7 +9676,8 @@ theorem EvaluateProofInternal.native_seq_indexof_map_char_zero
     (s t : native_String) :
     native_seq_indexof (s.map SmtValue.Char) (t.map SmtValue.Char) 0 =
       native_str_indexof s t 0 := by
-  unfold native_seq_indexof native_str_indexof
+  rw [native_seq_indexof_eq_rec]
+  unfold native_str_indexof
   simp [native_str_len]
   by_cases hBound : t.length ≤ s.length
   · simp [hBound]
@@ -9715,7 +9718,8 @@ theorem EvaluateProofInternal.native_seq_indexof_map_char
     (s t : native_String) (i : native_Int) :
     native_seq_indexof (s.map SmtValue.Char) (t.map SmtValue.Char) i =
       native_str_indexof s t i := by
-  unfold native_seq_indexof native_str_indexof
+  rw [native_seq_indexof_eq_rec]
+  unfold native_str_indexof
   by_cases hi : i < 0
   · simp [hi]
   · simp [hi, List.length_map]
@@ -9764,7 +9768,8 @@ theorem EvaluateProofInternal.native_seq_indexof_pack_string
   rw [show native_unpack_seq (native_pack_string t) =
       t.map SmtValue.Char by
     simp [native_pack_string, EvaluateProofInternal.native_unpack_pack_seq_local]]
-  exact EvaluateProofInternal.native_seq_indexof_map_char s t i
+  simpa [native_string_to_values] using
+    EvaluateProofInternal.native_seq_indexof_map_char s t i
 
 theorem EvaluateProofInternal.smtx_model_eval_str_indexof_pack_string
     (s t : native_String) (i : native_Int) :
@@ -9773,7 +9778,8 @@ theorem EvaluateProofInternal.smtx_model_eval_str_indexof_pack_string
         (SmtValue.Seq (native_pack_string t))
         (SmtValue.Numeral i) =
       SmtValue.Numeral (native_str_indexof s t i) := by
-  simp [__smtx_model_eval_str_indexof, EvaluateProofInternal.native_seq_indexof_pack_string]
+  simp only [__smtx_model_eval_str_indexof]
+  rw [EvaluateProofInternal.native_seq_indexof_pack_string]
 
 theorem EvaluateProofInternal.native_str_indexof_neg
     (s t : native_String) {i : native_Int}
@@ -9810,13 +9816,13 @@ theorem EvaluateProofInternal.native_seq_indexof_neg_local
     (xs pat : List SmtValue) {i : native_Int}
     (hi : i < 0) :
     native_seq_indexof xs pat i = -1 := by
-  simp [native_seq_indexof, hi]
+  simp [native_seq_indexof_eq_rec, hi]
 
 theorem EvaluateProofInternal.native_seq_indexof_gt_len_local
     (xs pat : List SmtValue) {i : native_Int}
     (hi : Int.ofNat xs.length < i) :
     native_seq_indexof xs pat i = -1 := by
-  unfold native_seq_indexof
+  rw [native_seq_indexof_eq_rec]
   have hLenNonneg : 0 ≤ (Int.ofNat xs.length : native_Int) := by
     exact Int.natCast_nonneg xs.length
   have hiNonneg : 0 ≤ i := Int.le_trans hLenNonneg (Int.le_of_lt hi)
@@ -10164,30 +10170,13 @@ theorem EvaluateProofInternal.native_seq_replace_pack_string
   rw [show native_unpack_seq (native_pack_string repl) =
       repl.map SmtValue.Char by
     simp [native_pack_string, EvaluateProofInternal.native_unpack_pack_seq_local]]
-  cases pat with
-  | nil =>
-      simp [native_seq_replace, EvaluateProofInternal.native_str_replace_eval_result,
-        native_str_indexof, native_str_indexof_rec, native_string_prefix_eq,
-        native_str_len, native_pack_string, List.map_append]
-  | cons p ps =>
-      have hIdx :
-          native_seq_indexof (s.map SmtValue.Char)
-              ((p :: ps).map SmtValue.Char) 0 =
-            native_str_indexof s (p :: ps) 0 :=
-        EvaluateProofInternal.native_seq_indexof_map_char_zero s (p :: ps)
-      have hIdx' :
-          native_seq_indexof (s.map SmtValue.Char)
-              (SmtValue.Char p :: ps.map SmtValue.Char) 0 =
-            native_str_indexof s (p :: ps) 0 := by
-        simpa using hIdx
-      by_cases hNeg : native_str_indexof s (p :: ps) 0 < 0
-      · simp only [native_seq_replace, List.map_cons]
-        rw [hIdx']
-        simp [EvaluateProofInternal.native_str_replace_eval_result, hNeg, native_pack_string]
-      · simp only [native_seq_replace, List.map_cons]
-        rw [hIdx']
-        simp [EvaluateProofInternal.native_str_replace_eval_result, hNeg, native_pack_string,
-          List.map_append, List.map_take, List.map_drop]
+  rw [StrEqReplSupport.native_seq_replace_eq_indexof]
+  rw [EvaluateProofInternal.native_seq_indexof_map_char_zero]
+  by_cases hNeg : native_str_indexof s pat 0 < 0
+  · simp [EvaluateProofInternal.native_str_replace_eval_result, hNeg,
+      native_pack_string]
+  · simp [EvaluateProofInternal.native_str_replace_eval_result, hNeg,
+      native_pack_string, List.map_append, List.map_take, List.map_drop]
 
 theorem EvaluateProofInternal.str_replace_result_strings
     (s pat repl : native_String) :
@@ -10535,54 +10524,70 @@ theorem EvaluateProofInternal.native_str_replace_all_eval_result_cons_eq_chain
   exact EvaluateProofInternal.native_str_replace_all_eval_aux_eq_chain_of_fuel (p :: ps) repl
     (s.length + 1) s (by omega) (by simp)
 
-theorem EvaluateProofInternal.native_seq_replace_all_aux_map_char
-    (fuel : Nat) (s pat repl : native_String) :
-    native_seq_replace_all_aux fuel (pat.map SmtValue.Char)
-        (repl.map SmtValue.Char) (s.map SmtValue.Char) =
-      (EvaluateProofInternal.native_str_replace_all_eval_aux fuel pat repl s).map SmtValue.Char := by
-  induction fuel generalizing s with
+theorem EvaluateProofInternal.native_re_replace_all_nonempty_list_aux_map_char
+    (p : native_Char) (ps repl : native_String) :
+    ∀ (fuel : Nat) (s : native_String),
+      s.length < fuel →
+      native_re_replace_all_nonempty_list_aux fuel
+          (native_str_to_re ((p :: ps).map SmtValue.Char))
+          (repl.map SmtValue.Char) (s.map SmtValue.Char) =
+        (EvaluateProofInternal.native_str_replace_all_chain
+          (p :: ps) repl 0 s).map SmtValue.Char := by
+  intro fuel
+  induction fuel with
   | zero =>
-      simp [native_seq_replace_all_aux, EvaluateProofInternal.native_str_replace_all_eval_aux]
+      intro s hFuel
+      omega
   | succ fuel ih =>
-      cases pat with
+      intro s hFuel
+      cases s with
       | nil =>
-          simp [native_seq_replace_all_aux, EvaluateProofInternal.native_str_replace_all_eval_aux]
-      | cons p ps =>
-          have hIdx :
-              native_seq_indexof (s.map SmtValue.Char)
-                  ((p :: ps).map SmtValue.Char) 0 =
-                native_str_indexof s (p :: ps) 0 :=
-            EvaluateProofInternal.native_seq_indexof_map_char_zero s (p :: ps)
-          have hIdx' :
-              native_seq_indexof (s.map SmtValue.Char)
-                  (SmtValue.Char p :: ps.map SmtValue.Char) 0 =
-                native_str_indexof s (p :: ps) 0 := by
-            simpa using hIdx
-          simp only [native_seq_replace_all_aux,
-            EvaluateProofInternal.native_str_replace_all_eval_aux, List.map_cons, List.length_cons]
-          rw [hIdx']
-          by_cases hNeg : native_str_indexof s (p :: ps) 0 < 0
-          · simp [hNeg]
-          · let k :=
-              Int.toNat (native_str_indexof s (p :: ps) 0) +
-                (ps.length + 1)
-            have hDrop :
-                List.drop k (s.map SmtValue.Char) =
-                  (s.drop k).map SmtValue.Char := by
-              simp [List.map_drop]
-            simp [hNeg, List.map_append, List.map_take]
+          simp [native_re_replace_all_nonempty_list_aux,
+            native_re_positive_prefix_match_len?,
+            EvaluateProofInternal.native_str_replace_all_chain]
+      | cons c cs =>
+          simp only [List.map_cons]
+          rw [native_re_replace_all_nonempty_list_aux.eq_3]
+          rw [StrReplaceAllSupport.positive_prefix_str_to_re_cons]
+          rw [show
+              native_seq_prefix_eq
+                  (SmtValue.Char p :: ps.map SmtValue.Char)
+                  (SmtValue.Char c :: cs.map SmtValue.Char) =
+                native_string_prefix_eq (p :: ps) (c :: cs) by
+            simpa only [List.map_cons] using
+              EvaluateProofInternal.native_seq_prefix_eq_map_char
+                (p :: ps) (c :: cs)]
+          by_cases hPrefix :
+              native_string_prefix_eq (p :: ps) (c :: cs) = true
+          · rw [if_pos hPrefix]
+            simp only [List.length_cons, List.length_map]
+            have hPatLe : (p :: ps).length ≤ (c :: cs).length :=
+              EvaluateProofInternal.native_string_prefix_eq_length_le
+                (p :: ps) (c :: cs) hPrefix
+            have hDropFuel :
+                ((c :: cs).drop (ps.length + 1)).length < fuel := by
+              rw [List.length_drop]
+              simp only [List.length_cons] at hFuel hPatLe ⊢
+              omega
             rw [show
-                List.drop
-                    (Int.toNat (native_str_indexof s (p :: ps) 0) +
-                      (ps.length + 1)) (s.map SmtValue.Char) =
-                  (s.drop
-                    (Int.toNat (native_str_indexof s (p :: ps) 0) +
-                      (ps.length + 1))).map SmtValue.Char by
-              simpa [k] using hDrop]
-            simpa using ih
-              (s.drop
-                (Int.toNat (native_str_indexof s (p :: ps) 0) +
-                  (ps.length + 1)))
+                (SmtValue.Char c :: cs.map SmtValue.Char).drop (ps.length + 1) =
+                  ((c :: cs).drop (ps.length + 1)).map SmtValue.Char by
+              simp [List.map_drop]]
+            have hRec := ih ((c :: cs).drop (ps.length + 1)) hDropFuel
+            simp only [List.map_cons] at hRec
+            rw [hRec]
+            simp [EvaluateProofInternal.native_str_replace_all_chain, hPrefix,
+              EvaluateProofInternal.native_str_replace_all_chain_skip_eq_drop,
+              List.map_append]
+          · rw [if_neg hPrefix]
+            simp only [List.length_cons, List.length_map]
+            have hCsFuel : cs.length < fuel := by
+              simp only [List.length_cons] at hFuel
+              omega
+            have hRec := ih cs hCsFuel
+            simp only [List.map_cons] at hRec
+            rw [hRec]
+            simp [EvaluateProofInternal.native_str_replace_all_chain, hPrefix]
 
 theorem EvaluateProofInternal.native_seq_replace_all_pack_string
     (s pat repl : native_String) :
@@ -10602,11 +10607,25 @@ theorem EvaluateProofInternal.native_seq_replace_all_pack_string
   rw [show native_unpack_seq (native_pack_string repl) =
       repl.map SmtValue.Char by
     simp [native_pack_string, EvaluateProofInternal.native_unpack_pack_seq_local]]
-  unfold native_seq_replace_all EvaluateProofInternal.native_str_replace_all_eval_result
-  rw [show (s.map SmtValue.Char).length + 1 = s.length + 1 by
-    simp]
-  rw [EvaluateProofInternal.native_seq_replace_all_aux_map_char]
-  simp [native_pack_string]
+  cases pat with
+  | nil =>
+      simp only [List.map_nil]
+      rw [StrReplaceAllSupport.replace_all_nil_pat]
+      rw [EvaluateProofInternal.native_str_replace_all_eval_result_nil]
+      simp [Smtm.native_pack_string]
+  | cons p ps =>
+      unfold native_seq_replace_all native_str_replace_re_all
+        native_re_replace_all_nonempty_list
+      change native_pack_seq SmtType.Char
+          (native_re_replace_all_nonempty_list_aux
+            ((s.map SmtValue.Char).length + 1)
+            (native_str_to_re ((p :: ps).map SmtValue.Char))
+            (repl.map SmtValue.Char) (s.map SmtValue.Char)) = _
+      rw [show (s.map SmtValue.Char).length + 1 = s.length + 1 by simp]
+      rw [EvaluateProofInternal.native_re_replace_all_nonempty_list_aux_map_char
+        p ps repl (s.length + 1) s (by omega)]
+      rw [EvaluateProofInternal.native_str_replace_all_eval_result_cons_eq_chain]
+      simp [Smtm.native_pack_string]
 
 theorem EvaluateProofInternal.smtx_model_eval_str_replace_all_pack_string
     (s pat repl : native_String) :
@@ -13669,4 +13688,3 @@ theorem EvaluateProofInternal.eo_str_leq_body_typeof_bool_of_seq_char_args_and_n
     | contradiction
     | cases hX
     | cases hY
-

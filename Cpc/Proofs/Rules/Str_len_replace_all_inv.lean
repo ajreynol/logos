@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrReplaceAllSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceAllSupport
 
 open Eo
 open SmtEval
@@ -128,56 +130,14 @@ private theorem native_seq_indexof_zero_decomp_take_drop
 private theorem native_seq_replace_all_aux_length_eq_of_same_len
     (fuel : Nat) (xs pat repl : List SmtValue)
     (hLen : pat.length = repl.length) :
-    (native_seq_replace_all_aux fuel pat repl xs).length = xs.length := by
-  induction fuel generalizing xs pat repl with
-  | zero =>
-      simp [native_seq_replace_all_aux]
-  | succ fuel ih =>
-      cases pat with
-      | nil =>
-          simp [native_seq_replace_all_aux]
-      | cons p ps =>
-          by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
-          · simp [native_seq_replace_all_aux, hNeg]
-          · have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
-              int_nonneg_of_not_neg hNeg
-            have hTail :
-                (native_seq_replace_all_aux fuel (p :: ps) repl
-                    (xs.drop
-                      (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                        (p :: ps).length))).length =
-                  (xs.drop
-                    (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                      (p :: ps).length)).length := by
-              exact ih
-                (xs.drop
-                  (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                    (p :: ps).length))
-                (p :: ps) repl hLen
-            have hTail' :
-                (native_seq_replace_all_aux fuel (p :: ps) repl
-                    (xs.drop
-                      (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                        (ps.length + 1)))).length =
-                  (xs.drop
-                    (Int.toNat (native_seq_indexof xs (p :: ps) 0) +
-                      (ps.length + 1))).length := by
-              simpa using hTail
-            have hReplLen : repl.length = ps.length + 1 := by
-              simpa using hLen.symm
-            have hDecomp :=
-              native_seq_indexof_zero_decomp_take_drop xs (p :: ps) hNonneg
-            have hLenDecomp := congrArg List.length hDecomp
-            simp [List.length_append] at hLenDecomp
-            simp [native_seq_replace_all_aux, hNeg, List.length_append,
-              hTail', hReplLen]
-            omega
+    (native_seq_replace_all xs pat repl).length = xs.length := by
+  exact StrReplaceAllSupport.replace_all_length_eq_of_same_len
+    pat repl xs hLen
 
 private theorem native_seq_replace_all_length_eq_of_same_len
     (xs pat repl : List SmtValue)
     (hLen : pat.length = repl.length) :
     (native_seq_replace_all xs pat repl).length = xs.length := by
-  unfold native_seq_replace_all
   exact native_seq_replace_all_aux_length_eq_of_same_len
     (xs.length + 1) xs pat repl hLen
 

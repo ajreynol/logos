@@ -1717,6 +1717,7 @@ private theorem rel_re_loop_congr {v1 v2 b d : SmtValue}
     | _ => exact RuleProofs.smt_value_rel_refl _
 
 private theorem rel_strings_occur_index_re_congr {a b b' c : SmtValue}
+    (hATy : __smtx_typeof_value a = SmtType.Seq SmtType.Char)
     (h : RuleProofs.smt_value_rel b b') :
     RuleProofs.smt_value_rel
       (__smtx_model_eval__at_strings_occur_index_re a b c)
@@ -1725,9 +1726,27 @@ private theorem rel_strings_occur_index_re_congr {a b b' c : SmtValue}
   · exact RuleProofs.smt_value_rel_refl _
   · apply rel_of_eq
     have hExt := CongSupport.reglan_valid_ext_of_rel h
-    cases a <;> cases c <;>
-      simp [__smtx_model_eval__at_strings_occur_index_re,
-        CongSupport.native_str_occur_index_re_congr _ r r' _ hExt]
+    cases a with
+    | Seq s =>
+        have hSTy :
+            __smtx_typeof_seq_value s = SmtType.Seq SmtType.Char := by
+          simpa [__smtx_typeof_value] using hATy
+        have hUnpack :=
+          native_unpack_seq_eq_string_to_values_of_typeof_seq_char hSTy
+        have hValid :=
+          native_unpack_string_valid_of_typeof_seq_char hSTy
+        cases c with
+        | Numeral i =>
+            change
+              SmtValue.Numeral
+                  (native_str_occur_index_re (native_unpack_seq s) r i) =
+                SmtValue.Numeral
+                  (native_str_occur_index_re (native_unpack_seq s) r' i)
+            rw [hUnpack]
+            rw [CongSupport.native_str_occur_index_re_congr
+              (native_unpack_string s) r r' i hValid hExt]
+        | _ => rfl
+    | _ => rfl
 
 /-! ### The `Apply` case -/
 
@@ -2594,13 +2613,21 @@ theorem smt_model_eval_rel_of_var_rel_lt
           (ih x3 (by simp; omega) (tnn_of_typeof_eq hA.2.2 (by simp)))
       case _at_strings_occur_index_re x1 x2 x3 =>
         have hA := guard3_args hTy
+        have hX1Tnn : term_has_non_none_type x1 :=
+          tnn_of_typeof_eq hA.1 (by simp)
         have e1 := ihEq x1 (by simp; omega)
-          (tnn_of_typeof_eq hA.1 (by simp)) (by rw [hA.1]; simp)
+          hX1Tnn (by rw [hA.1]; simp)
         have e3 := ihEq x3 (by simp; omega)
           (tnn_of_typeof_eq hA.2.2 (by simp)) (by rw [hA.2.2]; simp)
+        have hX1ValTy :
+            __smtx_typeof_value (__smtx_model_eval N x1) =
+              SmtType.Seq SmtType.Char := by
+          rw [smt_model_eval_preserves_type_of_non_none N hN x1 hX1Tnn,
+            hA.1]
         simp only [__smtx_model_eval]
         rw [e1, e3]
         exact rel_strings_occur_index_re_congr
+          hX1ValTy
           (ih x2 (by simp; omega) (tnn_of_typeof_eq hA.2.1 (by simp)))
       case str_indexof_re_split x1 x2 x3 =>
         have hA := guard3_args hTy

@@ -4,6 +4,8 @@ public import Cpc.Proofs.RuleSupport.CoreSupport
 import all Cpc.Proofs.RuleSupport.CoreSupport
 public import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrReplaceAllSupport
+import all Cpc.Proofs.RuleSupport.StrReplaceAllSupport
 
 open Eo
 open SmtEval
@@ -87,8 +89,7 @@ private theorem smtx_eval_str_replace_all_term_eq
 private theorem native_seq_replace_all_nil
     (xs repl : List SmtValue) :
     native_seq_replace_all xs [] repl = xs := by
-  unfold native_seq_replace_all
-  cases xs <;> simp [native_seq_replace_all_aux]
+  exact StrReplaceAllSupport.replace_all_nil_pat repl xs
 
 private theorem list_eq_nil_of_native_seq_len_zero (xs : List SmtValue)
     (h : native_seq_len xs = 0) :
