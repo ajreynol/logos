@@ -194,9 +194,7 @@ about it:
 
   That is: if the parser reads the assumptions `assums` out of `input`, and
   `logos` prints `correct` for `input`, then their conjunction is unsatisfiable.
-  The corollary `correct___logos_check_proof_no_model` unfolds that over the
-  assumption list — every model makes one of the `assums` false. `Main.lean`
-  only reads the file, prints the verdict and picks an exit status.
+  `Main.lean` only reads the file, prints the verdict and picks an exit status.
 
 The side conditions are not re-implemented for the executable to run: they are
 the predicates of `Cpc/Proofs/Assumptions.lean`, and that file also derives the

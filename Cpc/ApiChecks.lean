@@ -23,10 +23,6 @@ proof actually uses.
 throughout with `F = logos_assumption_term assums`.  `Cpc/ApiCorrect.lean` feeds
 these into `correct___eo_is_refutation`.
 
-The last section goes the other way, and reads the conclusion of that theorem
-back as a statement about the parser's assumption list rather than about the
-`and`-chain built from it.
-
 Only the direction soundness needs is proved -- a check that returned `true` too
 rarely would only reject proofs the theorem would not have covered anyway.
 
@@ -144,56 +140,5 @@ theorem logos_check_proof_of_parse (input : String) (assums : List Term) (cmds :
     (h : parseProof input = Except.ok (assums, cmds)) :
     logos_check_proof input = Except.ok (logos_verdict assums cmds) := by
   simp [logos_check_proof, h]
-
-/-! ## Reading the conclusion back as a statement about the assumption list
-
-`correct___eo_is_refutation` concludes `eo_satisfiability F false` for the
-`and`-chain `F`.  Unfolded, that says every total typed model evaluates the chain
-to `false`; the lemmas here turn it into the statement that every such model
-makes one of the parser's assumptions false, which is what
-`Cpc/ApiCorrect.lean` states.
--/
-
-/-- `__smtx_model_eval_and` is `false` only if one of its arguments is. -/
-private theorem eval_and_eq_false (x y : SmtValue)
-    (h : __smtx_model_eval_and x y = SmtValue.Boolean false) :
-    x = SmtValue.Boolean false ∨ y = SmtValue.Boolean false := by
-  fun_cases __smtx_model_eval_and x y <;> simp_all [__smtx_model_eval_and, native_and]
-  rename_i x1 _
-  cases x1 <;> simp_all
-
-/-- Generalized over the accumulator, so the induction goes through. -/
-private theorem exists_false_assumption_foldl (M : SmtModel) (assums : List Term) :
-    ∀ rest : Term,
-      __smtx_model_eval M (__eo_to_smt (assums.foldl logos_assumption_chain_step rest))
-          = SmtValue.Boolean false ->
-      (∃ A ∈ assums, __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false)
-        ∨ __smtx_model_eval M (__eo_to_smt rest) = SmtValue.Boolean false := by
-  induction assums with
-  | nil => intro rest h; exact Or.inr h
-  | cons A assums ih =>
-    intro rest h
-    rw [List.foldl_cons] at h
-    rcases ih (logos_assumption_chain_step rest A) h with hA | hStep
-    · rcases hA with ⟨B, hB, hBval⟩
-      exact Or.inl ⟨B, List.mem_cons_of_mem A hB, hBval⟩
-    · have hAnd : __smtx_model_eval_and (__smtx_model_eval M (__eo_to_smt A))
-          (__smtx_model_eval M (__eo_to_smt rest)) = SmtValue.Boolean false := by
-        simpa [logos_assumption_chain_step, __eo_to_smt, __smtx_model_eval] using hStep
-      rcases eval_and_eq_false _ _ hAnd with hA | hRest
-      · exact Or.inl ⟨A, List.mem_cons_self, hA⟩
-      · exact Or.inr hRest
-
-/--
-If the conjunction of the assumptions is false in a model, then one of the
-assumptions is false in it.
--/
-theorem exists_false_assumption (M : SmtModel) (assums : List Term)
-    (h : __smtx_model_eval M (__eo_to_smt (logos_assumption_term assums))
-      = SmtValue.Boolean false) :
-    ∃ A ∈ assums, __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false := by
-  rcases exists_false_assumption_foldl M assums (Term.Boolean true) h with hA | hTrue
-  · exact hA
-  · simp [__eo_to_smt, __smtx_model_eval] at hTrue
 
 end Eo

@@ -17,9 +17,7 @@ theorem correct___logos_check_proof (input : String) (assums : List Term) (cmds 
 ```
 
 So `correct` on the terminal means: the conjunction of the formulas this file
-`assume`s, as the parser read them, is unsatisfiable.  The corollary
-`correct___logos_check_proof_no_model` says the same thing one level down --
-every model makes one of those assumptions false.
+`assume`s, as the parser read them, is unsatisfiable.
 
 When Logos accepts the proof but a side condition fails, the run is reported as
 `unsupported` instead: the proof is a valid CPC derivation, but it mentions

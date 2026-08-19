@@ -43,18 +43,3 @@ theorem correct___logos_check_proof (input : String) (assums : List Term) (cmds 
   apply correct___logos_verdict assums cmds
   rw [logos_check_proof_of_parse input assums cmds hParse] at hCorrect
   exact Except.ok.inj hCorrect
-
-/--
-The same conclusion spelled out, in terms of the parser's assumption list rather
-than the `and`-chain built from it: every total typed SMT model makes at least
-one of the assumptions false.
--/
-theorem correct___logos_check_proof_no_model (input : String) (assums : List Term)
-    (cmds : CCmdList)
-    (hParse : parseProof input = Except.ok (assums, cmds))
-    (hCorrect : logos_check_proof input = Except.ok Verdict.correct) :
-    ∀ M : SmtModel, model_total_typed M ->
-      ∃ A ∈ assums, __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false := by
-  intro M hM
-  cases correct___logos_check_proof input assums cmds hParse hCorrect with
-  | intro_false hFalse => exact exists_false_assumption M assums (hFalse M hM)
