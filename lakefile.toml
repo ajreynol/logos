@@ -7,10 +7,11 @@ name = "Logos"
 
 [[lean_lib]]
 name = "Cpc"
-moreLeanArgs = ["-DmaxHeartbeats=10000000"]
+moreLeanArgs = ["-DmaxHeartbeats=10000000", "-DwarningAsError=true"]
 
 [[lean_lib]]
 name = "CpcMini"
+moreLeanArgs = ["-DwarningAsError=true"]
 
 [[lean_exe]]
 name = "logos"
