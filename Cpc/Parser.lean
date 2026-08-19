@@ -1172,6 +1172,216 @@ private def parserOps : List (Logos.Parser.OpDecl Term) := [
     build := fun
       | [x1, x2] => some (Term.UOp2 UserOp2._at_const x1 x2)
       | _ => none },
+  { name := "@Pair"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_Pair)
+      | _ => none },
+  { name := "@pair"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_pair)
+      | _ => none },
+  { name := "@List"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some Term.__eo_List
+      | _ => none },
+  { name := "@list.nil"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some Term.__eo_List_nil
+      | _ => none },
+  { name := "@TList"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_TypedList)
+      | _ => none },
+  { name := "@tlist.nil"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_TypedList_nil)
+      | _ => none },
+  { name := "@tlist"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp._at__at_TypedList_cons))
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_TypedList_cons)
+      | _ => none },
+  { name := "@bv_empty"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.Binary 0 0)
+      | _ => none },
+  { name := "String"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+      | _ => none },
+  { name := "@re.empty"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
+      | _ => none },
+  { name := "seq.len"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_len)
+      | _ => none },
+  { name := "seq.++"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp.str_concat))
+    build := fun
+      | [] => some (Term.UOp UserOp.str_concat)
+      | _ => none },
+  { name := "seq.extract"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_substr)
+      | _ => none },
+  { name := "seq.contains"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_contains)
+      | _ => none },
+  { name := "seq.replace"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_replace)
+      | _ => none },
+  { name := "seq.replace_all"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_replace_all)
+      | _ => none },
+  { name := "seq.indexof"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_indexof)
+      | _ => none },
+  { name := "seq.prefixof"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_prefixof)
+      | _ => none },
+  { name := "seq.suffixof"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_suffixof)
+      | _ => none },
+  { name := "seq.rev"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.str_rev)
+      | _ => none },
+  { name := "seq.update"
+    indexArity := 0
+    arity := .exact 3
+    build := fun
+      | [] => some (Term.UOp UserOp.str_update)
+      | _ => none },
+  { name := "seq.at"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp.str_at)
+      | _ => none },
+  { name := "@Monomial"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_Monomial)
+      | _ => none },
+  { name := "@mon"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_mon)
+      | _ => none },
+  { name := "@Polynomial"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_Polynomial)
+      | _ => none },
+  { name := "@poly.zero"
+    indexArity := 0
+    arity := .exact 0
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_Polynomial)
+      | _ => none },
+  { name := "@poly"
+    indexArity := 0
+    arity := .rightAssocNil (parserNil (Term.UOp UserOp._at__at_poly))
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_poly)
+      | _ => none },
+  { name := "int2bv"
+    indexArity := 1
+    arity := .exact 1
+    build := fun
+      | [x1] => some (Term.UOp1 UserOp1.int_to_bv x1)
+      | _ => none },
+  { name := "bv2nat"
+    indexArity := 0
+    arity := .exact 1
+    build := fun
+      | [] => some (Term.UOp UserOp.ubv_to_int)
+      | _ => none },
+  { name := "$parse_@bv"
+    indexArity := 2
+    arity := .exact 0
+    build := fun
+      | [value, w] => some (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) value)
+      | _ => none },
+  { name := "@aci.sorted"
+    indexArity := 0
+    arity := .exact 2
+    build := fun
+      | [] => some (Term.UOp UserOp._at__at_aci_sorted)
+      | _ => none },
+  { name := "$parse_@var"
+    indexArity := 2
+    arity := .exact 0
+    build := fun
+      | [s, T] => some (Term.Var s T)
+      | _ => none },
+]
+
+/--
+The macros introduced by a `define` with parameters in the Eunoia signature.
+Eunoia inlines a definition, so it has no counterpart in the calculus itself; a
+proof may nevertheless use it, which is why it is recorded here.  The body of
+each is an application of the operator of `parserOps` generated for that
+definition, indexed by the macro's parameters: indices are how an operator
+declaration builds a term out of given arguments.  A `define` without
+parameters needs no macro and is a nullary operator of `parserOps` instead.
+-/
+private def parserMacros : List (String × Logos.Parser.Macro) := [
+  ("@bv",
+    { params := ["$parse_arg1", "$parse_arg2"]
+      body := .expr [.atom "_", .atom "$parse_@bv", .atom "$parse_arg1", .atom "$parse_arg2"] }),
+  ("@var",
+    { params := ["$parse_arg1", "$parse_arg2"]
+      body := .expr [.atom "_", .atom "$parse_@var", .atom "$parse_arg1", .atom "$parse_arg2"] }),
 ]
 
 /-- The proof rules of the calculus, by their name in the Eunoia signature. -/
@@ -1820,7 +2030,16 @@ def parserConfig : Logos.Parser.Config Term CRule CCmd CCmdList where
     { mkRef := fun name => Term.DatatypeTypeRef (native_string_lit name)
       mkDecls := parserDatatypeBindings }
 
-def parseProof (proof : String) : Except String (List Term × CCmdList) :=
-  Logos.Parser.parseProof parserConfig proof
+/--
+The initial state of the parser: the operators of the signature, together with
+the identifiers its definitions introduce.
+-/
+private def parserState : Logos.Parser.State Term :=
+  { Logos.Parser.State.ofOps parserOps with macros := .ofList parserMacros }
+
+def parseProof (proof : String) : Except String (List Term × CCmdList) := do
+  let ss ← Logos.Sexp.Parser.manySexps!.run proof
+  (Logos.Parser.parseCommands parserConfig (Logos.Parser.unwrapProof ss)).run'
+    parserState
 
 end Eo
