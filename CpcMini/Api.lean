@@ -83,14 +83,14 @@ inductive Verdict where
   /-- Logos does not accept the proof as a refutation. -/
   | incorrect
   /-- Logos accepts the proof, but a side condition of the theorem fails on it. -/
-  | unsupported
+  | incomplete
 deriving DecidableEq, Repr, Inhabited
 
 /-- The verdict for a parsed proof: `correct` exactly when all three checks pass. -/
 def logos_verdict (assums : List Term) (cmds : CCmdList) : Verdict :=
   if !logos_check_refutation assums cmds then Verdict.incorrect
-  else if !logos_check_translatableAssumptionList assums then Verdict.unsupported
-  else if !logos_check_cmdListTranslationOk cmds then Verdict.unsupported
+  else if !logos_check_translatableAssumptionList assums then Verdict.incomplete
+  else if !logos_check_cmdListTranslationOk cmds then Verdict.incomplete
   else Verdict.correct
 
 /-- Parse a proof file and report its verdict: everything `MainMini.lean` does. -/

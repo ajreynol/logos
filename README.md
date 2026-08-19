@@ -77,9 +77,9 @@ The executable accepts exactly one proof path and reports one of three outcomes:
 | ------------- | ------ | --------------------------------------------------------------------------- |
 | `correct`     | 0      | the proof's assumptions are unsatisfiable, by `correct___logos_check_proof` |
 | `incorrect`   | 1      | Logos does not accept the proof as a refutation                             |
-| `unsupported` | 2      | Logos accepts the proof, but it mentions something the specification of SMT-LIB semantics does not model, so the correctness theorem does not apply to it |
+| `incomplete`  | 2      | Logos accepts the proof, but it mentions something the specification of SMT-LIB semantics does not model, so the correctness theorem does not apply to it |
 
-Parse and usage errors also exit with status 1. An `unsupported` run explains on
+Parse and usage errors also exit with status 1. An `incomplete` run explains on
 stderr which assumption or command took the proof outside the specified
 fragment; see [Correctness](#correctness).
 
@@ -207,7 +207,7 @@ the specification's `__eo_to_smt`, so the executable links the specification
 layer, even though the checker itself never consults it (the proof rules remain
 untyped syntactic manipulations, and the semantics is not used as an oracle).
 A proof that Logos accepts but whose side conditions fail is reported as
-`unsupported` rather than `correct` — `examples/sexp/test-declare-sort.cpc` is
+`incomplete` rather than `correct` — `examples/sexp/test-declare-sort.cpc` is
 one, since it declares a sort of arity 1 and the specification has no
 counterpart for a sort constructor applied to a sort.
 

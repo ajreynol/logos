@@ -20,12 +20,12 @@ So `correct` on the terminal means: the conjunction of the formulas this file
 `assume`s, as the parser read them, is unsatisfiable.
 
 When Logos accepts the proof but a side condition fails, the run is reported as
-`unsupported` instead: the proof is a valid CPC derivation, but it mentions
+`incomplete` instead: the proof is a valid CPC derivation, but it mentions
 something the specification does not model, so the theorem says nothing about
 it.
 
 The verdict is computed here in the two steps `Eo.logos_check_proof` is defined
-as -- parse, then `Eo.logos_verdict` -- so that the `unsupported` case can name
+as -- parse, then `Eo.logos_verdict` -- so that the `incomplete` case can name
 the assumption or command at fault; `Eo.logos_check_proof_of_parse`
 (`Cpc/ApiChecks.lean`) is the identity of the two.
 -/
@@ -35,12 +35,12 @@ open Eo
 def Eo.Verdict.word : Verdict -> String
   | .correct => "correct"
   | .incorrect => "incorrect"
-  | .unsupported => "unsupported"
+  | .incomplete => "incomplete"
 
 def Eo.Verdict.status : Verdict -> UInt32
   | .correct => 0
   | .incorrect => 1
-  | .unsupported => 2
+  | .incomplete => 2
 
 /--
 Report a verdict: the detail goes to stderr first and is flushed, so that a
@@ -64,7 +64,7 @@ def abbreviate (s : String) : String :=
 Why a proof Logos accepted is nevertheless outside the fragment the correctness
 theorem covers: the first assumption or command that fails its side condition.
 -/
-def unsupportedDetail (assums : List Term) (cmds : CCmdList) : String :=
+def incompleteDetail (assums : List Term) (cmds : CCmdList) : String :=
   match Eo.logos_untranslatable_assumption assums with
   | some (i, A) =>
     s!"Error: assumption {i} has no SMT-LIB translation, so this proof is \
@@ -85,7 +85,7 @@ def checkProof (path : String) : IO UInt32 := do
     match Eo.logos_verdict assums cmds with
     | .correct => report .correct
     | .incorrect => report .incorrect
-    | .unsupported => report .unsupported (unsupportedDetail assums cmds)
+    | .incomplete => report .incomplete (incompleteDetail assums cmds)
   | .error err =>
     IO.eprintln s!"Error parsing proof: {err}"
     return 1

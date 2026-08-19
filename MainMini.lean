@@ -9,7 +9,7 @@ Reading the file aside, all of the work is `Eo.logos_check_proof`
 (`CpcMini/ApiCorrect.lean`) is stated about that function: if it returns
 `correct` for the contents of a file, then in every model one of the assumptions
 the parser read out of that file is false.  The verdict is computed here in the
-two steps `Eo.logos_check_proof` is defined as, so that the `unsupported` case
+two steps `Eo.logos_check_proof` is defined as, so that the `incomplete` case
 can say which assumption or command was at fault.
 -/
 
@@ -18,12 +18,12 @@ open Eo
 def Eo.Verdict.word : Verdict -> String
   | .correct => "correct"
   | .incorrect => "incorrect"
-  | .unsupported => "unsupported"
+  | .incomplete => "incomplete"
 
 def Eo.Verdict.status : Verdict -> UInt32
   | .correct => 0
   | .incorrect => 1
-  | .unsupported => 2
+  | .incomplete => 2
 
 /--
 Report a verdict: the detail goes to stderr first and is flushed, so that a
@@ -47,7 +47,7 @@ def abbreviate (s : String) : String :=
 Why a proof Logos accepted is nevertheless outside the fragment the correctness
 theorem covers: the first assumption or command that fails its side condition.
 -/
-def unsupportedDetail (assums : List Term) (cmds : CCmdList) : String :=
+def incompleteDetail (assums : List Term) (cmds : CCmdList) : String :=
   match Eo.logos_untranslatable_assumption assums with
   | some (i, A) =>
     s!"Error: assumption {i} has no SMT-LIB translation, so this proof is \
@@ -70,7 +70,7 @@ def checkProof (path : String) : IO UInt32 := do
     match Eo.logos_verdict assums cmds with
     | .correct => report .correct
     | .incorrect => report .incorrect
-    | .unsupported => report .unsupported (unsupportedDetail assums cmds)
+    | .incomplete => report .incomplete (incompleteDetail assums cmds)
   | .error err =>
     IO.eprintln s!"Error parsing proof: {err}"
     return 1

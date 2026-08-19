@@ -9,12 +9,12 @@ cd "${repo_root}"
 # Examples that Logos accepts as CPC derivations but whose terms fall outside the
 # SMT-LIB fragment that Cpc/SmtModel.lean defines, so that the side conditions of
 # correct___eo_is_refutation cannot be discharged for them. The s-expression
-# executables report `unsupported` and exit 2 for these; see the Correctness
+# executables report `incomplete` and exit 2 for these; see the Correctness
 # section of README.md.
 #
 #   examples/sexp/test-declare-sort.cpc  declares a sort of arity 1, and the
 #   specification has no counterpart for a sort constructor applied to a sort.
-unsupported_example() {
+incomplete_example() {
   case "$1" in
     examples/sexp/test-declare-sort.cpc) return 0 ;;
     *) return 1 ;;
@@ -41,8 +41,8 @@ run_examples() {
 
     want="${expected}"
     want_status=0
-    if unsupported_example "${example}"; then
-      want="unsupported"
+    if incomplete_example "${example}"; then
+      want="incomplete"
       want_status=2
     fi
 

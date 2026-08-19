@@ -134,7 +134,7 @@ theorem checks_of_verdict_correct (assums : List Term) (cmds : CCmdList)
 /--
 What the executable computes on a file it could parse: the verdict of the
 parser's output.  This is the step `Main.lean` performs by hand, so that it can
-report *why* an accepted proof is `unsupported`.
+report *why* an accepted proof is `incomplete`.
 -/
 theorem logos_check_proof_of_parse (input : String) (assums : List Term) (cmds : CCmdList)
     (h : parseProof input = Except.ok (assums, cmds)) :

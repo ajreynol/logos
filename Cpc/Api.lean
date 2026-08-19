@@ -171,14 +171,14 @@ inductive Verdict where
   specification of SMT-LIB semantics does not model, so the theorem says nothing
   about it.
   -/
-  | unsupported
+  | incomplete
 deriving DecidableEq, Repr, Inhabited
 
 /-- The verdict for a parsed proof: `correct` exactly when all three checks pass. -/
 def logos_verdict (assums : List Term) (cmds : CCmdList) : Verdict :=
   if !logos_check_refutation assums cmds then Verdict.incorrect
-  else if !logos_check_translatableAssumptionList assums then Verdict.unsupported
-  else if !logos_check_cmdListTranslationOk cmds then Verdict.unsupported
+  else if !logos_check_translatableAssumptionList assums then Verdict.incomplete
+  else if !logos_check_cmdListTranslationOk cmds then Verdict.incomplete
   else Verdict.correct
 
 /-- Parse a proof file and report its verdict: everything `Main.lean` does. -/
@@ -190,7 +190,7 @@ def logos_check_proof (input : String) : Except String Verdict :=
 /-! ## Diagnostics
 
 Used only to report *why* a proof fell outside the fragment the specification
-covers, once `logos_verdict` has already returned `unsupported`.  They have no
+covers, once `logos_verdict` has already returned `incomplete`.  They have no
 role in the correctness statement.
 -/
 
