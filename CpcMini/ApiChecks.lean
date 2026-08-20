@@ -34,7 +34,7 @@ private theorem invoke_assume_list_foldl (assums : List Term) :
     congr 1
 
 /--
-Folding the guarded push over the parser's assumptions builds exactly the state
+Folding the guarded push over a proof's assumptions builds exactly the state
 `__eo_invoke_assume_list` builds from the corresponding `and`-chain.
 -/
 theorem invoke_assume_list_eq_fold (assums : List Term) :
@@ -43,7 +43,7 @@ theorem invoke_assume_list_eq_fold (assums : List Term) :
   simpa [logos_assumption_term, logos_init_state, __eo_invoke_assume_list]
     using invoke_assume_list_foldl assums (Term.Boolean true) CState.nil
 
-/-- The executable's refutation check is the generated `__eo_checker_is_refutation`. -/
+/-- The refutation check is the generated `__eo_checker_is_refutation`. -/
 theorem logos_check_refutation_eq_checker (assums : List Term) (cmds : CCmdList) :
     logos_check_refutation assums cmds
       = __eo_checker_is_refutation (logos_assumption_term assums) cmds := by
@@ -74,7 +74,7 @@ private theorem translatableAssumptionList_foldl (assums : List Term) :
 
 /--
 `logos_check_translatableAssumptionList` gives the first hypothesis of
-`correct___eo_is_refutation` for the term the executable uses as `F`.
+`correct___eo_is_refutation` for the term `logos_verdict` uses as `F`.
 -/
 theorem translatableAssumptionList_of_check (assums : List Term)
     (h : logos_check_translatableAssumptionList assums = true) :
@@ -102,11 +102,5 @@ theorem checks_of_verdict_correct (assums : List Term) (cmds : CCmdList)
     cases hAssums : logos_check_translatableAssumptionList assums <;>
       cases hCmds : logos_check_cmdListTranslationOk cmds <;>
         simp_all
-
-/-- What the executable computes on a file it could parse. -/
-theorem logos_check_proof_of_parse (input : String) (assums : List Term) (cmds : CCmdList)
-    (h : parseProof input = Except.ok (assums, cmds)) :
-    logos_check_proof input = Except.ok (logos_verdict assums cmds) := by
-  simp [logos_check_proof, h]
 
 end Eo

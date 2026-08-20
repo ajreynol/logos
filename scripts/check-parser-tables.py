@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Check a generated parser configuration against the generated signature.
 
-`Cpc/Parser.lean` and `CpcMini/Parser.lean` are auto-generated from the same
-Eunoia signature as `Cpc/Logos.lean` and `CpcMini/Logos.lean`.  This script
-re-derives from the signature the facts the generator has to get right, and
-fails if the parser table disagrees:
+`Cpc/Parser.lean` is auto-generated from the same Eunoia signature as
+`Cpc/Logos.lean`.  This script re-derives from the signature the facts the
+generator has to get right, and fails if the parser table disagrees:
 
   * every operator of the signature is represented by at least one surface
     declaration;
@@ -110,7 +109,7 @@ def check(calculus: str) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
-    calculi = argv[1:] or ["Cpc", "CpcMini"]
+    calculi = argv[1:] or ["Cpc"]
     status = 0
     for calculus in calculi:
         errors = check(calculus)

@@ -6,9 +6,9 @@ syntax produced by `cvc5 --dump-proofs --proof-format=cpc`.
 
 The parser itself is independent of any particular signature: everything that is
 specific to a calculus (its operators, its literals and its proof rules) is
-supplied by a `Logos.Parser.Config`.  The configurations for the calculi in this
-repository (`Cpc.Parser`, `CpcMini.Parser`) are generated from the corresponding
-Eunoia signature, so this module is the only hand-written part of the pipeline.
+supplied by a `Logos.Parser.Config`.  The configuration for the calculus in this
+repository (`Cpc.Parser`) is generated from the corresponding Eunoia signature,
+so this module is the only hand-written part of the pipeline.
 -/
 
 public import Std.Data.HashMap

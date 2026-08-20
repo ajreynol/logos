@@ -23,14 +23,15 @@ as further reasoning capabilities are added to cvc5.
 lake build logos
 ```
 
-The four checker executables follow one naming convention:
+There are two checker executables:
 
 - `logos` checks CPC proofs in s-expression syntax.
 - `logos-native` checks CPC proofs expressed as Lean evaluation scripts.
-- `logos-mini` checks CpcMini proofs in s-expression syntax.
-- `logos-mini-native` checks CpcMini proofs expressed as Lean evaluation scripts.
 
 The first build of a CPC executable takes roughly 3.5 minutes currently.
+
+`CpcMini` is a cut-down calculus used to develop and test the proofs; it has no
+parser and no executable of its own.
 
 To run the same checks as CI locally, use:
 
@@ -94,13 +95,10 @@ For example, a CPC proof may contain:
 (step @p3 :rule contra :premises (@p0 @p2))
 ```
 
-The corresponding CpcMini executable is `logos-mini`; it reads the examples in
-`examples/sexp-mini/` and uses the same output and exit-code convention.
-
 ### Checking Lean-native proofs
 
-The `-native` executables check proofs written directly as Lean evaluation scripts, as emitted by
-`cvc5 --dump-proofs --proof-format=cpc-logos`.  That format is described in
+The `logos-native` executable checks proofs written directly as Lean evaluation scripts, as
+emitted by `cvc5 --dump-proofs --proof-format=cpc-logos`.  That format is described in
 [docs/lean-native-proofs.md](docs/lean-native-proofs.md).
 
 Note that Logos has not (yet) been optimized for performance, so it is significantly slower
@@ -109,15 +107,15 @@ that performant proof checkers for SMT.
 This parser is split into two parts.
 `Logos/Parser.lean` is signature-independent: it reads the command and term grammar and
 resolves premise references, but knows nothing about any particular operator or proof rule.
-Everything signature-specific is a `Logos.Parser.Config`, and those are auto-generated from
+Everything signature-specific is a `Logos.Parser.Config`, and that is auto-generated from
 the calculus alongside `Cpc/Logos.lean` — `Cpc/Parser.lean` lists the 196 operator
-declarations and 591 proof rules of CPC, and `CpcMini/Parser.lean` the corresponding subset.
+declarations and 591 proof rules of CPC.
 
-Because the configurations are generated, an operator's surface syntax comes from its Eunoia
+Because the configuration is generated, an operator's surface syntax comes from its Eunoia
 declaration metadata.  The generic `.argList` arity implements Eunoia's `:arg-list` attribute:
 the surface arguments are gathered with the declared n-ary helper and passed as the annotated
-operator's single argument.  `scripts/check-parser-tables.py` checks that the generated tables
-cover every operator and proof rule.  Generic arity behavior is tested separately; it is not
+operator's single argument.  `scripts/check-parser-tables.py` checks that the generated table
+covers every operator and proof rule.  Generic arity behavior is tested separately; it is not
 inferred from calculus-specific term types.  Both checks run in the `regressions` CI group.
 
 The parser supports the commands `declare-const`, `declare-fun`, `declare-sort`,
