@@ -45,17 +45,17 @@ inductive CmdListTranslationOk : CCmdList -> Prop
 
 /-! ## Deciding the side conditions
 
-The executable has to decide the predicates above at run time: `CpcMini/Api.lean`
-runs `decide (cmdTranslationOk c)` and `decide (eoHasSmtTranslation A)` on the
-parser's output, and `CpcMini/ApiChecks.lean` turns those into the hypotheses of
-`correct___eo_is_refutation`.
+These mirror `Cpc/Proofs/Assumptions.lean`, where `Cpc/Api.lean` needs them to
+decide the side conditions at run time with `decide (cmdTranslationOk c)` and
+`decide (eoHasSmtTranslation A)`.  CpcMini has no executable, so nothing here
+consumes them yet; they are kept so a proof written against the small calculus
+can be transplanted to CPC unchanged.
 
 The instances are *derived from* the definitions above rather than restating
 them, so there is no second copy of the side conditions to keep in sync: a case
-added to `cmdTranslationOk` is part of what the executable checks as soon as it
-is written here.  Deriving them is why this section is `@[expose]`: a `Decidable`
-instance is data, and data may not depend on a definition whose body the module
-does not export.
+added to `cmdTranslationOk` is covered as soon as it is written here.  Deriving
+them is why this section is `@[expose]`: a `Decidable` instance is data, and
+data may not depend on a definition whose body the module does not export.
 -/
 
 /-- Decides `eoHasSmtTranslation`. -/

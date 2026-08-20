@@ -134,12 +134,11 @@ run_cpc_proofs() {
 run_cpcmini() {
   local targets=(
     CpcMini.Proofs.Checker
-    CpcMini.ApiCorrect
     CpcMini.Proofs.TypePreservation.Nonvacuity
     CpcMini.Examples.TestSimpleCheckerAssumptions
   )
 
-  echo "Compiling CpcMini proof and example targets..."
+  echo "Compiling the CpcMini proofs..."
   lake build "${targets[@]}"
 }
 

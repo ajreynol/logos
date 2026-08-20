@@ -10,12 +10,8 @@ public import CpcMini.SmtModel
 import all CpcMini.SmtModel
 public import CpcMini.Spec
 import all CpcMini.Spec
-public import CpcMini.Api
-import all CpcMini.Api
-public import CpcMini.ApiChecks
-import all CpcMini.ApiChecks
 
--- `CpcMini.ApiCorrect` is built by the `cpcmini` CI group, together with
--- `CpcMini.Proofs.Checker` that it depends on.
+-- The proofs under `CpcMini/Proofs/` are deliberately not imported here: the
+-- `cpcmini` CI group builds them directly.
 
 public section
