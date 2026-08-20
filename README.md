@@ -139,6 +139,12 @@ Parameterized operators also accept Eunoia's flat application syntax, which is w
 for example, `(extract 1 0 x)` is equivalent to `((_ extract 1 0) x)`.  SMT-LIB type
 ascriptions such as `(as set.empty (Set Int))` supply the ascribed sort as the operator index.
 Term-level `let` uses parallel bindings whose names are scoped to its body.
+A name may be declared more than once, as SMT-LIB allows, and a proof's own symbol may
+carry the name of one of the signature's operators; every declaration of a name is kept,
+and a use of it means the reading the calculus gives a type to (`Config.wellTyped`, which
+`Cpc.Parser` decides with `__eo_typeof`).  A name with only one reading is never rejected
+this way, so a partially applied operator, which has no type, still parses.  A `let`
+binding and a macro parameter shadow instead of overloading.
 Datatypes may be mutually recursive; parametric datatypes (a non-zero arity, or a `par` body)
 are rejected, since Logos has no representation for them.
 The conclusion printed on a `step` is ignored, since Logos recomputes it from the rule.
@@ -146,7 +152,11 @@ The conclusion printed on a `step` is ignored, since Logos recomputes it from th
 Literals are lexed by `Logos.Parser.Literal.ofString`, which a configuration only has to map
 into its own term language: integers (`12`, `-12`), rationals in both fractional and decimal
 form (`1/2`, `-1.25`), bit-vectors in binary and hexadecimal (`#b0110`, `#x1f`) and strings
-with the SMT-LIB `""` escape.
+with the SMT-LIB `""` escape.  A string literal's `\u{d…}` and `\ud₃d₂d₁d₀` escapes are
+decoded as well, since they belong to the SMT-LIB theory of strings rather than to its
+syntax: `"\u{a}"` is one character, not six.  A malformed escape stands for its own
+characters, as in Ethos; a well-formed one naming a surrogate is rejected, since Lean has
+no `Char` for it.
 
 ## Correctness
 

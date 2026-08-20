@@ -39,6 +39,35 @@ example : (Arity.argList gather).admits 3 = true := by
   rfl
 
 /-!
+## Literals
+
+The `\u` escapes of a string literal belong to the SMT-LIB theory of strings, so
+they are decoded here rather than left as the characters they are written with.
+The behaviour on a malformed escape follows Ethos: it is not an escape, and
+stands for its own characters.
+-/
+
+#guard Literal.ofString "\"a\"" == some (.string "a")
+#guard Literal.ofString "\"\\u{a}\"" == some (.string "\n")
+#guard Literal.ofString "\"\\u0041\"" == some (.string "A")
+#guard Literal.ofString "\"ab\\u{63}de\"" == some (.string "abcde")
+
+-- `""` is the one escape of the syntax, and is undone before `\u` is read.
+#guard Literal.ofString "\"a\"\"b\"" == some (.string "a\"b")
+
+-- Not escapes: no digits, an unterminated brace, more than five digits, fewer
+-- than four digits without a brace, and a code point above the largest one.
+#guard Literal.ofString "\"\\u{}\"" == some (.string "\\u{}")
+#guard Literal.ofString "\"\\u{61\"" == some (.string "\\u{61")
+#guard Literal.ofString "\"\\u{000061}\"" == some (.string "\\u{000061}")
+#guard Literal.ofString "\"\\u004\"" == some (.string "\\u004")
+#guard Literal.ofString "\"\\u{30000}\"" == some (.string "\\u{30000}")
+
+-- The largest code point there is, and a surrogate, which has no `Char`.
+#guard Literal.ofString "\"\\u{2ffff}\"" == some (.string (String.singleton (Char.ofNat 0x2ffff)))
+#guard Literal.ofString "\"\\uD800\"" == none
+
+/-!
 ## Commands
 
 A minimal signature, with just enough operators to write the types of declared
@@ -70,6 +99,26 @@ private def assumptions (input : String) : Option (List TestTerm) :=
   match parseProof testConfig input with
   | .ok (assums, _) => some assums
   | .error _ => none
+
+/-!
+### Choosing between the readings of a name
+
+`resolve` is how the several declarations of one name are told apart.  A
+calculus that cannot tell them apart -- the default `wellTyped` -- leaves the
+first, which is the most recently declared.
+-/
+
+private def typedConfig : Config TestTerm String TestCmd (List TestCmd) :=
+  { testConfig with wellTyped := (· == a) }
+
+#guard resolve typedConfig ([] : List TestTerm) == none
+-- A name with one reading is never rejected, well typed or not.
+#guard resolve typedConfig [b] == some b
+#guard resolve typedConfig [b, a] == some a
+-- With no well-typed reading to be had, the first stands, and so does the error
+-- it leads to.
+#guard resolve typedConfig [b, f] == some b
+#guard resolve testConfig [b, a] == some b
 
 private def arrow (dom cod : TestTerm) : TestTerm := .app (.app (.atom "->") dom) cod
 
@@ -174,5 +223,14 @@ private def gTy : TestTerm := arrow (.usort 1) (arrow (.usort 1) (.usort 1))
 -- A `define` without parameters is still read where it is given.
 #guard assumptions (binary ++ "(define ga () (g a a)) (assume @p0 ga)")
   == some [.app (.app (.uconst 1 gTy) (.uconst 2 (.usort 1))) (.uconst 2 (.usort 1))]
+
+-- A name declared twice keeps both declarations; with no way to tell them
+-- apart, the more recent one is what a use of the name means.
+#guard assumptions
+    "(declare-sort U 0)
+     (declare-const x U)
+     (declare-const x U)
+     (assume @p0 x)"
+  == some [.uconst 2 (.usort 1)]
 
 end Logos.Parser.Tests

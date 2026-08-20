@@ -64,4 +64,37 @@ private def datatypePrelude : String :=
      (assume @p0 x)
      (assume @p1 x)"
 
+/-!
+## Overloaded names
+
+SMT-LIB lets a symbol be declared more than once at different types, and lets a
+proof's own symbol carry the name of one of the signature's operators.  A name
+is then ambiguous, and the reading that has a type is the one meant.
+-/
+
+private def overloadPrelude : String :=
+  "(declare-sort A 0) (declare-sort B 0)
+   (declare-const f (-> A Bool)) (declare-const f (-> B Bool))
+   (declare-const a A) (declare-const b B)"
+
+-- Each use of `f` resolves to the declaration its argument fits, in either
+-- order, even though the second declaration is the more recent one.
+#guard assumptions (overloadPrelude ++ "(assume @p0 (f a))") ==
+  some [.Apply (.UConst 1 (.Apply (.Apply .FunType (.USort 1)) .Bool)) (.UConst 3 (.USort 1))]
+
+#guard assumptions (overloadPrelude ++ "(assume @p0 (f b))") ==
+  some [.Apply (.UConst 2 (.Apply (.Apply .FunType (.USort 2)) .Bool)) (.UConst 4 (.USort 2))]
+
+-- A symbol named after a builtin operator: `is` is also the datatype tester,
+-- which does not fit an uninterpreted sort, so the declared symbol is meant.
+#guard assumptions
+    "(declare-sort F 0) (declare-const is (-> F Bool)) (declare-const c F)
+     (assume @p0 (is c))" ==
+  some [.Apply (.UConst 1 (.Apply (.Apply .FunType (.USort 1)) .Bool)) (.UConst 2 (.USort 1))]
+
+-- The builtin still wins where it is the reading that fits.
+#guard assumptions (datatypePrelude ++ "(declare-const is (-> D Bool))
+     (assume @p0 (is a d))") ==
+  assumptions (datatypePrelude ++ "(assume @p0 (is a d))")
+
 end Cpc.Parser.Tests

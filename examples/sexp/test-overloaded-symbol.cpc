@@ -1,0 +1,17 @@
+; Exercises overloaded names.  SMT-LIB lets a symbol be declared more than once
+; at different types, and lets a proof's own symbol carry the name of one of the
+; signature's operators; each use of such a name means the reading that has a
+; type.  Here f is declared at two types, and is names a constant as well as the
+; datatype tester the signature declares.
+(declare-sort A 0)
+(declare-sort B 0)
+(declare-const f (-> A Bool))
+(declare-const f (-> B Bool))
+(declare-const a A)
+(declare-const b B)
+(declare-datatypes ((D 0)) (((c))))
+(declare-const d D)
+(declare-const is (-> B Bool))
+(assume @p0 (and (f a) (f b) (is b) (is c d)))
+(assume @p1 (not (and (f a) (f b) (is b) (is c d))))
+(step @p2 false :rule contra :premises (@p0 @p1))

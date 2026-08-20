@@ -1,0 +1,7 @@
+; Exercises the \u escapes of a string literal, which belong to the SMT-LIB
+; theory of strings rather than to its syntax: "\u{a}" is the one character
+; whose code point is 0xa, and "\u{6f}rd" is the three characters of "ord".
+(assume @p0 (not (= (str.len (str.++ "\u{a}" "\u{6f}rd")) 4)))
+(step @p1 (= (str.len (str.++ "\u{a}" "\u{6f}rd")) 4)
+  :rule evaluate :args ((str.len (str.++ "\u{a}" "\u{6f}rd"))))
+(step @p2 false :rule contra :premises (@p1 @p0))
