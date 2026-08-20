@@ -21,12 +21,3 @@ root = "Main"
 name = "logos-native"
 root = "MainNative"
 supportInterpreter = true
-
-[[lean_exe]]
-name = "logos-mini"
-root = "MainMini"
-
-[[lean_exe]]
-name = "logos-mini-native"
-root = "MainMiniNative"
-supportInterpreter = true

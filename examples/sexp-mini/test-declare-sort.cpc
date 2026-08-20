@@ -1,9 +1,0 @@
-; Exercises ignored include commands, declare-sort and declare-fun in the
-; CpcMini calculus.
-(include "../theories/Builtin.eo")
-(declare-sort U 0)
-(declare-fun f (U) U)
-(declare-const x U)
-(assume @p0 (not (= (f x) (f x))))
-(step @p1 :rule refl :args ((f x)))
-(step @p2 :rule contra :premises (@p1 @p0))

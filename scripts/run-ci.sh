@@ -8,8 +8,8 @@ cd "${repo_root}"
 
 # Examples that Logos accepts as CPC derivations but whose terms fall outside the
 # SMT-LIB fragment that Cpc/SmtModel.lean defines, so that the side conditions of
-# correct___eo_is_refutation cannot be discharged for them. The s-expression
-# executables report `incomplete` and exit 2 for these; see the Correctness
+# correct___eo_is_refutation cannot be discharged for them. The `logos`
+# executable reports `incomplete` and exits 2 for these; see the Correctness
 # section of README.md.
 #
 #   examples/sexp/test-declare-sort.cpc  declares a sort of arity 1, and the
@@ -75,10 +75,9 @@ run_regressions() {
   python3 scripts/check-parser-tables.py
 
   echo "Checking parser tests..."
-  lake build Logos.Parser Cpc.Parser CpcMini.Parser
+  lake build Logos.Parser Cpc.Parser
   lake env lean test/Parser.lean
   lake env lean test/CpcParser.lean
-  lake env lean test/CpcMiniParser.lean
 
   echo "Checking checker diagnostics..."
   lake build Cpc.Diagnostics
@@ -135,17 +134,12 @@ run_cpc_proofs() {
 run_cpcmini() {
   local targets=(
     CpcMini.Proofs.Checker
-    CpcMini.ApiCorrect
     CpcMini.Proofs.TypePreservation.Nonvacuity
     CpcMini.Examples.TestSimpleCheckerAssumptions
   )
 
-  echo "Compiling CpcMini proof and example targets..."
+  echo "Compiling the CpcMini proofs..."
   lake build "${targets[@]}"
-
-  echo "Building the CpcMini executables..."
-  lake build logos-mini logos-mini-native
-  run_examples logos-mini examples/sexp-mini '*.cpc' correct
 }
 
 group="${1:-all}"

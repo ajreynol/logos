@@ -1,7 +1,0 @@
-; The s-expression form of CpcMini/Examples/TestSimpleCheckerAssumptions.lean.
-(declare-const x Int)
-(declare-const y Int)
-(assume @p0 (= y x))
-(assume @p1 (not (= x y)))
-(step @p2 :rule symm :premises (@p1))
-(step @p3 :rule contra :premises (@p0 @p2))

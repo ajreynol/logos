@@ -1,6 +1,0 @@
-; Exercises declare-datatypes in the CpcMini calculus.
-(declare-datatypes ((List 0)) (((cons (head Int) (tail List)) (nil))))
-(declare-const x List)
-(assume @p0 (not (= x x)))
-(step @p1 :rule refl :args (x))
-(step @p2 :rule contra :premises (@p1 @p0))
