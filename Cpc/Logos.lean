@@ -7603,6 +7603,11 @@ def __eo_prog_re_in_comp : Term -> Term -> Term
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply _v0 (Term.Apply (Term.UOp UserOp.re_comp) r1))) (Term.Apply (Term.UOp UserOp.not) (Term.Apply _v0 r1)))
 
 
+def __eo_prog_str_in_re_emp_star : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | r1 => (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) (Term.String [])) (Term.Apply (Term.UOp UserOp.re_mult) r1))) (Term.Boolean true))
+
+
 def __eo_prog_str_in_re_union_elim : Term -> Term -> Term -> Term -> Term
   | Term.Stuck , _ , _ , _  => Term.Stuck
   | _ , Term.Stuck , _ , _  => Term.Stuck
@@ -9745,6 +9750,7 @@ inductive CRule : Type where
   | re_in_sigma_star : CRule
   | re_in_cstring : CRule
   | re_in_comp : CRule
+  | str_in_re_emp_star : CRule
   | str_in_re_union_elim : CRule
   | str_in_re_inter_elim : CRule
   | str_in_re_range_elim : CRule
@@ -10406,6 +10412,7 @@ def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
   | CRule.re_in_sigma_star, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_re_in_sigma_star a1)
   | CRule.re_in_cstring, (CArgList.cons a1 (CArgList.cons a2 CArgList.nil)), CIndexList.nil => (__eo_prog_re_in_cstring a1 a2)
   | CRule.re_in_comp, (CArgList.cons a1 (CArgList.cons a2 CArgList.nil)), CIndexList.nil => (__eo_prog_re_in_comp a1 a2)
+  | CRule.str_in_re_emp_star, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_str_in_re_emp_star a1)
   | CRule.str_in_re_union_elim, (CArgList.cons a1 (CArgList.cons a2 (CArgList.cons a3 (CArgList.cons a4 CArgList.nil)))), CIndexList.nil => (__eo_prog_str_in_re_union_elim a1 a2 a3 a4)
   | CRule.str_in_re_inter_elim, (CArgList.cons a1 (CArgList.cons a2 (CArgList.cons a3 (CArgList.cons a4 CArgList.nil)))), CIndexList.nil => (__eo_prog_str_in_re_inter_elim a1 a2 a3 a4)
   | CRule.str_in_re_range_elim, (CArgList.cons a1 (CArgList.cons a2 (CArgList.cons a3 CArgList.nil))), (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) => (__eo_prog_str_in_re_range_elim a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)))

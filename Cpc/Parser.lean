@@ -1953,6 +1953,7 @@ private def parserRules : List (String × CRule) := [
   ("re-in-sigma-star", .re_in_sigma_star),
   ("re-in-cstring", .re_in_cstring),
   ("re-in-comp", .re_in_comp),
+  ("str-in-re-emp-star", .str_in_re_emp_star),
   ("str-in-re-union-elim", .str_in_re_union_elim),
   ("str-in-re-inter-elim", .str_in_re_inter_elim),
   ("str-in-re-range-elim", .str_in_re_range_elim),

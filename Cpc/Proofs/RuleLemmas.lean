@@ -570,6 +570,7 @@ import Cpc.Proofs.Rules.Re_in_sigma
 import Cpc.Proofs.Rules.Re_in_sigma_star
 import Cpc.Proofs.Rules.Re_in_cstring
 import Cpc.Proofs.Rules.Re_in_comp
+import Cpc.Proofs.Rules.Str_in_re_emp_star
 import Cpc.Proofs.Rules.Str_in_re_union_elim
 import Cpc.Proofs.Rules.Str_in_re_inter_elim
 import Cpc.Proofs.Rules.Str_in_re_range_elim
@@ -3458,6 +3459,11 @@ by
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
         intro N hN _hAgree
         exact cmd_step_re_in_comp_properties N hN s args premises
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
+  | str_in_re_emp_star =>
+      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+        intro N hN _hAgree
+        exact cmd_step_str_in_re_emp_star_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_union_elim =>
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
