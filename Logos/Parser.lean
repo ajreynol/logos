@@ -144,7 +144,10 @@ inductive Literal where
   | numeral (n : Int)
   /-- A rational literal, e.g. `1/2` or `0.5`.  The denominator is positive. -/
   | rational (num den : Int)
-  /-- A string literal; the enclosing quotes are removed and `""` unescaped to `"`. -/
+  /--
+  A string literal; the enclosing quotes are removed, `""` unescaped to `"`, and
+  the `\u` escapes of the SMT-LIB theory of strings decoded (`decodeEscapes`).
+  -/
   | string (s : String)
   /-- A bit-vector literal, e.g. `#b0110` or `#x1f`, of the given width and value. -/
   | binary (width : Nat) (value : Nat)
@@ -175,6 +178,71 @@ private def unescape : List Char → List Char
   | c :: cs => c :: unescape cs
   | [] => []
 
+/--
+The number of code points a string literal ranges over: `0` to `0x2FFFF`, as in
+Ethos and cvc5.  A `\u` escape naming anything at or above this is not an escape.
+-/
+private def numCodePoints : Nat := 196608
+
+/--
+Read the digits of a braced `\u{d…}` escape, from the characters after the `{`:
+one to five hex digits followed by `}`.  Returns the code point and how many
+characters were read, including the closing brace.
+-/
+private def readBraced (acc digits : Nat) : List Char → Option (Nat × Nat)
+  | '}' :: _ => if digits == 0 then none else some (acc, 1)
+  | c :: cs => do
+    let d ← hexDigit c
+    if digits ≥ 5 then none
+    else
+      let (v, used) ← readBraced (16 * acc + d) (digits + 1) cs
+      some (v, used + 1)
+  | [] => none
+
+/--
+Read a `\u` escape, from the characters following the `u`: either `{d…}` with one
+to five hex digits, or exactly four hex digits with no braces.  Returns the code
+point and how many characters it is written with.
+-/
+private def readEscape : List Char → Option (Nat × Nat)
+  | '{' :: cs => (readBraced 0 0 cs).map fun (v, used) => (v, used + 1)
+  | d₃ :: d₂ :: d₁ :: d₀ :: _ => do
+    let v₃ ← hexDigit d₃; let v₂ ← hexDigit d₂
+    let v₁ ← hexDigit d₁; let v₀ ← hexDigit d₀
+    some (((v₃ * 16 + v₂) * 16 + v₁) * 16 + v₀, 4)
+  | _ => none
+
+/--
+Decode the `\u` escapes of a string literal.  These belong to the SMT-LIB
+*theory* of strings rather than to its syntax: `"\u{a}"` denotes the
+one-character string whose code point is `0xa`, not the six characters it is
+written with.  cvc5 prints every non-printable character of a string this way,
+so a literal read without decoding them denotes a different string than the one
+the proof is about.
+
+A sequence that is not a well-formed escape, or that names a code point at or
+above `numCodePoints`, is not an escape and stands for the characters it is
+written with, as in Ethos.  A well-formed escape naming a code point Lean cannot
+represent as a `Char` -- a surrogate, `0xd800` to `0xdfff` -- gives `none`, since
+reading the literal at all would mean reading it as a string it does not denote.
+-/
+private def decodeEscapes : List Char → Option (List Char)
+  | [] => some []
+  | '\\' :: 'u' :: cs =>
+    let literal := (fun ds => '\\' :: 'u' :: ds) <$> decodeEscapes cs
+    match readEscape cs with
+    | none => literal
+    | some (v, used) =>
+      if v ≥ numCodePoints then literal
+      else
+        let c := Char.ofNat v
+        if c.toNat == v then (c :: ·) <$> decodeEscapes (cs.drop used) else none
+  | c :: cs => (c :: ·) <$> decodeEscapes cs
+termination_by cs => cs.length
+decreasing_by
+  all_goals (try simp +arith [List.length_drop])
+  all_goals omega
+
 /-- Normalize a fraction so that its denominator is positive; fails on `0`. -/
 private def mkRational (num den : Int) : Option Literal :=
   if den == 0 then none
@@ -195,7 +263,8 @@ private def ofDecimal (s : String) : Option Literal := do
 /-- Lex an atom as a literal, if it is one. -/
 def ofString (value : String) : Option Literal :=
   if value.startsWith "\"" && value.endsWith "\"" && value.length ≥ 2 then
-    some (.string (String.ofList (unescape (value.drop 1).toString.toList.dropLast)))
+    (decodeEscapes (unescape (value.drop 1).toString.toList.dropLast)).map
+      fun cs => .string (String.ofList cs)
   else if value.startsWith "#b" then
     let digits := (value.drop 2).toString.toList
     (digitsToNat 2 binDigit digits).map (.binary digits.length)
@@ -256,6 +325,16 @@ structure Config (T R C CL : Type) where
   parseLiteral : Literal → Option T
   /-- Whether a term is the sort of sorts, i.e. whether `declare-const` declares a sort. -/
   isType : T → Bool
+  /--
+  Whether the calculus can make sense of a term -- for a typed calculus, whether
+  it has a type.  This is only used to choose between the several things a name
+  may denote: SMT-LIB lets a symbol be declared more than once at different
+  types, and lets a user symbol carry the name of one of the signature's own
+  operators, so a name can be ambiguous and only its use decides.  The default
+  tells the candidates apart not at all, which leaves the most recent
+  declaration winning, as it did when a name denoted only one thing.
+  -/
+  wellTyped : T → Bool := fun _ => true
   /-- The `n`-th uninterpreted sort. -/
   mkUSort : Nat → T
   /-- The `n`-th uninterpreted constant, of the given type. -/
@@ -297,8 +376,13 @@ structure State (T : Type) where
   pushHeights : List Nat := []
   /-- Position in the proof stack of each proof step, by name. -/
   idToPos : Std.HashMap String Nat := {}
-  /-- Terms bound by `declare-const`/`define`, by name. -/
-  terms : Std.HashMap String T := {}
+  /--
+  Terms bound by `declare-const`/`define`, by name, most recently bound first.
+  A name may be bound more than once: SMT-LIB allows a symbol to be declared at
+  several types, and `resolve` picks between them.  A `let` binding or a macro
+  parameter instead *shadows*, so it is bound as the only term of its name.
+  -/
+  terms : Std.HashMap String (List T) := {}
   /-- Macros introduced by a `define` with parameters, by name. -/
   macros : Std.HashMap String Macro := {}
   /-- The macros currently being expanded, used to reject recursive `define`s. -/
@@ -377,6 +461,18 @@ def resolveFlatOp (decls : List (OpDecl T)) (numArgs : Nat) : Option (OpDecl T) 
   | some d => some d
   | none => decls.head?
 
+/--
+Choose between the terms a name may denote, given in order of preference: the
+first the calculus finds well typed, or the first outright when none is or when
+there is nothing to choose.  A name that denotes just one term is returned
+untouched, so a partial application -- which a calculus need not give a type --
+is only ever rejected here when there was an alternative to it.
+-/
+def resolve (cfg : Config T R C CL) : List T → Option T
+  | [] => none
+  | [t] => some t
+  | ts => ts.find? cfg.wellTyped <|> ts.head?
+
 mutual
 
 /-- Parse a term, reporting the failing subterm on error. -/
@@ -388,21 +484,27 @@ partial def parseTerm (cfg : Config T R C CL) (s : Sexp) : ParserM T T := do
 
 partial def parseTermCore (cfg : Config T R C CL) : Sexp → ParserM T T
   | .atom a => do
-    if let some decls := (← get).ops[a]? then
-      -- A bare operator name denotes the (possibly partially applied) head term.
-      let decls := decls.filter (·.indexArity == 0)
-      let isNullary (d : OpDecl T) : Bool := match d.arity with
-        | .exact 0 => true
-        | _ => false
-      if let some d := decls.find? isNullary <|> decls.head? then
-        let some t := d.build [] | throw s!"Error: could not build operator {a}"
-        return t
-    if let some t := (← get).terms[a]? then
+    -- A bare operator name denotes the (possibly partially applied) head term.
+    let decls := ((← get).ops.getD a []).filter (·.indexArity == 0)
+    let isNullary (d : OpDecl T) : Bool := match d.arity with
+      | .exact 0 => true
+      | _ => false
+    let opCand : Option T := do
+      let d ← decls.find? isNullary <|> decls.head?
+      d.build []
+    if opCand.isNone && !decls.isEmpty then
+      throw s!"Error: could not build operator {a}"
+    if let some t := resolve cfg (opCand.toList ++ (← get).terms.getD a []) then
       return t
     if let some t := (Literal.ofString a).bind cfg.parseLiteral then
       return t
     if let some m := (← get).macros[a]? then
       throw s!"Error: {a} takes {m.params.length} arguments and cannot be used unapplied"
+    if a.startsWith "\"" && a.endsWith "\"" && a.length ≥ 2 then
+      -- The only string literal `Literal.ofString` refuses is one whose `\u`
+      -- escape names a code point Lean has no `Char` for; see `decodeEscapes`.
+      throw s!"Error: the string literal {a} names a code point that is not a \
+                character, which Logos cannot represent"
     throw s!"Error: unknown identifier {a}"
   | .expr [] => throw "Error: empty s-expression"
   | .expr [.atom "as", .atom name, ty] =>
@@ -456,17 +558,25 @@ partial def parseApp (cfg : Config T R C CL) (name : String) (idxs : List Sexp)
     let (args, extra) := args.splitAt m.params.length
     return extra.foldl cfg.apply (← expandMacro cfg name m args)
   let decls := (← get).ops.getD name []
-  if !decls.isEmpty then
-    let idxs ← idxs.mapM (parseTerm cfg)
-    if let some d := resolveOp decls idxs.length args.length then
-      return ← buildOpApp cfg name d idxs args
-    -- `declare-parameterized-const` uses ordinary arguments for its indices,
-    -- and this is the flat form emitted by cvc5: `(extract 1 0 x)` rather than
-    -- `((_ extract 1 0) x)`.  Explicit indexed syntax above takes precedence.
-    if idxs.isEmpty then
-      if let some d := resolveFlatOp decls args.length then
+  let bound := (← get).terms.getD name []
+  -- A symbol a proof declares takes no indices, so indexed syntax is an
+  -- operator and nothing else.
+  let boundCands := if idxs.isEmpty then bound.map (fun t => args.foldl cfg.apply t) else []
+  let opCand : Option T ←
+    if decls.isEmpty then pure none else do
+      let idxTerms ← idxs.mapM (parseTerm cfg)
+      if let some d := resolveOp decls idxTerms.length args.length then
+        pure (some (← buildOpApp cfg name d idxTerms args))
+      -- `declare-parameterized-const` uses ordinary arguments for its indices,
+      -- and this is the flat form emitted by cvc5: `(extract 1 0 x)` rather than
+      -- `((_ extract 1 0) x)`.  Explicit indexed syntax above takes precedence.
+      else if let some d := if idxs.isEmpty then resolveFlatOp decls args.length else none then
         let (flatIdxs, flatArgs) := args.splitAt d.indexArity
-        return ← buildOpApp cfg name d flatIdxs flatArgs
+        pure (some (← buildOpApp cfg name d flatIdxs flatArgs))
+      else pure none
+  if let some t := resolve cfg (opCand.toList ++ boundCands) then
+    return t
+  if !decls.isEmpty then
     throw s!"Error: no declaration of {name} takes {idxs.length} indices and \
               {args.length} arguments"
   if !idxs.isEmpty then
@@ -495,7 +605,7 @@ partial def parseLet (cfg : Config T R C CL) (bindings : List Sexp)
   let saved := (← get).terms
   modify fun s =>
     { s with terms := values.foldl (fun terms (name, value) =>
-        terms.insert name value) s.terms }
+        terms.insert name [value]) s.terms }
   let restore : ParserM T Unit := modify fun s => { s with terms := saved }
   try
     let result ← parseTerm cfg body
@@ -517,7 +627,7 @@ partial def expandMacro (cfg : Config T R C CL) (name : String) (m : Macro)
   let saved := (← get).terms
   modify fun s =>
     { s with
-      terms := (m.params.zip args).foldl (fun ts (p, t) => ts.insert p t) s.terms,
+      terms := (m.params.zip args).foldl (fun ts (p, t) => ts.insert p [t]) s.terms,
       expanding := name :: s.expanding }
   let restore : ParserM T Unit :=
     modify fun s => { s with terms := saved, expanding := s.expanding.tail }
@@ -569,7 +679,7 @@ def parseDatatypes (cfg : Config T R C CL) (sorts bodies : List Sexp) : ParserM 
   -- constructors' argument types are parsed as references.
   let saved := (← get).terms
   modify fun s =>
-    { s with terms := names.foldl (fun m n => m.insert n (dtOps.mkRef n)) s.terms }
+    { s with terms := names.foldl (fun m n => m.insert n [dtOps.mkRef n]) s.terms }
   let specs ← (names.zip bodies).mapM fun (name, body) => do
     let .expr ctors := body | throw s!"Error: expected a list of constructors, got {body}"
     if let .atom "par" :: _ := ctors then
@@ -580,7 +690,7 @@ def parseDatatypes (cfg : Config T R C CL) (sorts bodies : List Sexp) : ParserM 
   let some bindings := dtOps.mkDecls specs
     | throw s!"Error: could not build the declaration of {String.intercalate ", " names}"
   modify fun s =>
-    { s with terms := bindings.foldl (fun m (n, t) => m.insert n t) s.terms }
+    { s with terms := bindings.foldl (fun m (n, t) => m.insert n (t :: m.getD n [])) s.terms }
 
 /-!
 ## Declarations
@@ -592,12 +702,14 @@ def declareSymbol (cfg : Config T R C CL) (name : String) (ty : T) : ParserM T U
     modify fun s =>
       { s with
         usCount := s.usCount + 1,
-        terms := s.terms.insert name (cfg.mkUSort (s.usCount + 1)) }
+        terms := s.terms.insert name
+          (cfg.mkUSort (s.usCount + 1) :: s.terms.getD name []) }
   else
     modify fun s =>
       { s with
         ufCount := s.ufCount + 1,
-        terms := s.terms.insert name (cfg.mkUConst (s.ufCount + 1) ty) }
+        terms := s.terms.insert name
+          (cfg.mkUConst (s.ufCount + 1) ty :: s.terms.getD name []) }
 
 /--
 The type `(-> t₁ … tₙ res)` of a symbol declared by `declare-fun`, `declare-sort`
@@ -713,7 +825,7 @@ where
       -- A definition without parameters is read once, where it is given.
       let name ← parseName name
       let body ← parseTerm cfg body
-      modify fun s => { s with terms := s.terms.insert name body }
+      modify fun s => { s with terms := s.terms.insert name (body :: s.terms.getD name []) }
       return .decl
     | .expr [.atom "define", name, .expr params, body] => do
       let name ← parseName name
