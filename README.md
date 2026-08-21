@@ -20,8 +20,33 @@ as further reasoning capabilities are added to cvc5.
 ## Building the Logos checker
 
 ```bash
+scripts/build.sh logos
+```
+
+The build script uses the Lean version pinned in `lean-toolchain`. On older
+Linux systems, it also detects when the Clang/LLVM binaries bundled with Lean
+cannot run against the host's glibc and automatically uses the host C compiler
+and archiver instead while retaining Lean's bundled link libraries. A direct
+Lake build is equivalent on supported hosts:
+
+```bash
 lake build logos
 ```
+
+If a direct build fails with errors such as `GLIBC_2.27 not found` or
+`GLIBC_2.29 not found` from the toolchain's `bin/clang`, use the build script.
+It performs the equivalent of selecting the host tools with `LEAN_CC` and
+`LEAN_AR`, and also preserves the link-library paths from the Lean toolchain:
+
+```bash
+scripts/build.sh logos
+```
+
+This requires a working host C toolchain (GCC or Clang plus `ar`). Do not replace
+the system `libm.so.6` or glibc in place; use a newer container or build the
+pinned Lean toolchain locally if the host compiler fallback is unavailable.
+Official x86-64 Lean binaries require glibc 2.26 or newer; check the host with
+`getconf GNU_LIBC_VERSION`.
 
 There are two checker executables:
 

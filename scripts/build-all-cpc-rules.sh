@@ -100,6 +100,12 @@ if [ "${build}" != true ]; then
   exit 0
 fi
 
+if [ "${dry_run}" != true ]; then
+  # shellcheck source=lean-toolchain-env.sh
+  source "${script_dir}/lean-toolchain-env.sh"
+  logos_configure_lean_toolchain
+fi
+
 # Collect every rule module from its source file.
 modules=()
 while IFS= read -r file; do
