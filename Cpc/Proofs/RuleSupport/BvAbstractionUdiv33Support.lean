@@ -1,4 +1,12 @@
-import Cpc.Proofs.RuleSupport.BvAbstractionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvAbstractionSupport
+import all Cpc.Proofs.RuleSupport.BvAbstractionSupport
+
+public section
+
+set_option linter.unusedSimpArgs false
+set_option linter.unnecessarySimpa false
 
 namespace BvAbstraction
 namespace Udiv33Case

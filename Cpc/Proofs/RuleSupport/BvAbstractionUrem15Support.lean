@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvAbstractionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvAbstractionSupport
+import all Cpc.Proofs.RuleSupport.BvAbstractionSupport
+
+public section
 
 namespace BvAbstraction
 namespace Urem15Case
@@ -167,4 +172,3 @@ theorem urem15 {w : Nat} (x s : BitVec w) :
 
 end Urem15Case
 end BvAbstraction
-

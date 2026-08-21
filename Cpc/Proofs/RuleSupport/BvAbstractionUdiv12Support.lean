@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvAbstractionUrem13Support
+module
+
+public import Cpc.Proofs.RuleSupport.BvAbstractionUrem13Support
+import all Cpc.Proofs.RuleSupport.BvAbstractionUrem13Support
+
+public section
 
 set_option maxHeartbeats 10000000
 set_option maxRecDepth 4000

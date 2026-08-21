@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvAbstractionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvAbstractionSupport
+import all Cpc.Proofs.RuleSupport.BvAbstractionSupport
+
+public section
 
 namespace BvAbstraction
 namespace Udiv32Case
