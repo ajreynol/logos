@@ -119,6 +119,10 @@ echo
 
 cd "${repo_root}"
 
+# shellcheck source=lean-toolchain-env.sh
+source "${script_dir}/lean-toolchain-env.sh"
+logos_configure_lean_toolchain
+
 lake --verbose --no-ansi build "${module}" 2>&1 | awk '
   {
     line = $0
