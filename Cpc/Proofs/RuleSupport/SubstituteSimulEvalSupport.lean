@@ -2748,6 +2748,19 @@ theorem quant_skolemize_apply_generic_eval
       (eo_to_smt_quant_skolemize_top_ne_dt_tester_closed q idx _ _ _
         hHead).elim
 
+theorem at_const_apply_generic_eval
+    (i j x : Term) :
+    generic_apply_eval (__eo_to_smt (Term.UOp2 UserOp2._at_const i j))
+      (__eo_to_smt x) := by
+  unfold generic_apply_eval
+  intro M
+  cases hHead : __eo_to_smt (Term.UOp2 UserOp2._at_const i j)
+  <;> simp [__smtx_model_eval]
+  · exact
+      (TranslationProofs.eo_to_smt_at_const_ne_dt_sel i j _ _ _ _ hHead).elim
+  · exact
+      (TranslationProofs.eo_to_smt_at_const_ne_dt_tester i j _ _ _ hHead).elim
+
 theorem witness_string_length_apply_generic_eval
     (T len id x : Term) :
     generic_apply_eval
@@ -8132,7 +8145,25 @@ theorem substFalse_eval_unary_uop2_any
             (__substitute_simul_rec (Term.Boolean isRename) a xs ss bvs))
       hFTrans hSubstTrans hGlobals hRecHead hRecArg
   case _at_const =>
-    exact false_of_apply_uop2_translate_apply_none hFTrans rfl
+    exact substFalse_eval_generic_apply
+      (Term.UOp2 UserOp2._at_const i j) a xs ss bvs
+      hisr hxs hss hbvs
+      (by intro q v vs hEq; cases hEq)
+      (by rfl)
+      (by
+        rw [hHeadSub]
+        rfl)
+      (at_const_apply_generic_type i j a)
+      (by
+        simpa [hHeadSub] using
+          at_const_apply_generic_type i j
+            (__substitute_simul_rec (Term.Boolean isRename) a xs ss bvs))
+      (at_const_apply_generic_eval i j a)
+      (by
+        simpa [hHeadSub] using
+          at_const_apply_generic_eval i j
+            (__substitute_simul_rec (Term.Boolean isRename) a xs ss bvs))
+      hFTrans hSubstTrans hGlobals hRecHead hRecArg
 
 theorem substFalse_eval_unary_uop3_any
     (op : UserOp3) (i j k a xs ss bvs : Term) {M N : SmtModel}

@@ -3271,7 +3271,23 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                         Term.DtcAppType a b
                     exact hTy)
               case _at_const =>
-                exact false_of_typeof_apply_none_non_none_full (__eo_to_smt x) hNonNone
+                exact eo_type_valid_of_generic_apply_eq_dtcapp_full
+                  (f := Term.UOp2 UserOp2._at_const y z)
+                  (x := x) (A := a) (B := b)
+                  (go (Term.UOp2 UserOp2._at_const y z))
+                  (by
+                    intro s d i j h
+                    exact eo_to_smt_at_const_ne_dt_sel y z s d i j h)
+                  (by
+                    intro s d i h
+                    exact eo_to_smt_at_const_ne_dt_tester y z s d i h)
+                  rfl rfl hTermNN (by
+                    change
+                      __eo_typeof_apply
+                          (__eo_typeof (Term.UOp2 UserOp2._at_const y z))
+                          (__eo_typeof x) =
+                        Term.DtcAppType a b
+                    exact hTy)
               all_goals first
                 | exact eo_type_valid_of_generic_apply_eq_dtcapp_full
                     (f := Term.UOp2 op y z) (x := x) (A := a) (B := b)
@@ -4838,7 +4854,24 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
         rw [hTypeEq]
         exact hTValid
     | Term.UOp2 UserOp2._at_const v T, hNonNone => by
-        exact false_of_smtx_typeof_none_non_none_full hNonNone
+        cases hValid : __eo_to_smt_nat_is_valid v
+        case false =>
+          exact False.elim (hNonNone (by
+            rw [eo_to_smt_at_const_of_invalid hValid]
+            exact smtx_typeof_none))
+        case true =>
+          rw [eo_to_smt_at_const_of_valid hValid] at hNonNone ⊢
+          have hTWF : __smtx_type_wf (__eo_to_smt_type T) = true :=
+            Smtm.smtx_typeof_guard_wf_wf_of_non_none
+              (__eo_to_smt_type T) (__eo_to_smt_type T) (by
+                simpa [__smtx_typeof] using hNonNone)
+          have hTType : __eo_typeof T = Term.Type :=
+            eo_typeof_type_of_smt_type_wf T hTWF
+          have hTypeEq : __eo_typeof (Term.UOp2 UserOp2._at_const v T) = T :=
+            eo_typeof_at_const hValid hTType
+          rw [hTypeEq]
+          exact ⟨smtx_typeof_uconst_of_non_none _ (__eo_to_smt_type T) hNonNone,
+            eo_type_valid_of_smt_wf T hTWF⟩
   exact go t
 
 /-- Direct form of the translation typing theorem. -/

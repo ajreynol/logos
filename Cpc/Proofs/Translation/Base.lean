@@ -65,6 +65,85 @@ abbrev __eo_reserved_datatype_name : native_String -> native_Bool :=
 @[simp] theorem eo_to_smt_uconst (i : native_Nat) (T : Term) :
     __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T) := rfl
 
+/-- Simplifies EO-to-SMT translation for `@const`. -/
+theorem eo_to_smt_at_const (i T : Term) :
+    __eo_to_smt (Term.UOp2 UserOp2._at_const i T) =
+      native_ite (__eo_to_smt_nat_is_valid i)
+        (SmtTerm.UConst (native_const_id (__eo_to_smt_nat i)) (__eo_to_smt_type T))
+        SmtTerm.None := rfl
+
+/-- Only EO numerals are valid indices for the EO-to-SMT numeral translation. -/
+theorem eo_to_smt_nat_is_valid_eq_numeral {i : Term}
+    (h : __eo_to_smt_nat_is_valid i = true) :
+    ∃ n : native_Int, i = Term.Numeral n := by
+  cases i <;> simp [__eo_to_smt_nat_is_valid] at h ⊢
+
+/-- Simplifies EO-to-SMT translation for `@const` at a valid index. -/
+theorem eo_to_smt_at_const_of_valid {i T : Term}
+    (h : __eo_to_smt_nat_is_valid i = true) :
+    __eo_to_smt (Term.UOp2 UserOp2._at_const i T) =
+      SmtTerm.UConst (native_const_id (__eo_to_smt_nat i)) (__eo_to_smt_type T) := by
+  rw [eo_to_smt_at_const, h]
+  simp [native_ite]
+
+/-- Simplifies EO-to-SMT translation for `@const` at an invalid index. -/
+theorem eo_to_smt_at_const_of_invalid {i T : Term}
+    (h : __eo_to_smt_nat_is_valid i = false) :
+    __eo_to_smt (Term.UOp2 UserOp2._at_const i T) = SmtTerm.None := by
+  rw [eo_to_smt_at_const, h]
+  simp [native_ite]
+
+/-- `@const` never translates to a datatype constructor. -/
+theorem eo_to_smt_at_const_ne_dt_cons (i T : Term) (s : native_String)
+    (d : SmtDatatypeDecl) (k : native_Nat) :
+    __eo_to_smt (Term.UOp2 UserOp2._at_const i T) ≠ SmtTerm.DtCons s d k := by
+  cases hv : __eo_to_smt_nat_is_valid i
+  · rw [eo_to_smt_at_const_of_invalid hv]
+    intro h
+    cases h
+  · rw [eo_to_smt_at_const_of_valid hv]
+    intro h
+    cases h
+
+/-- `@const` never translates to a datatype selector. -/
+theorem eo_to_smt_at_const_ne_dt_sel (i T : Term) (s : native_String)
+    (d : SmtDatatypeDecl) (k l : native_Nat) :
+    __eo_to_smt (Term.UOp2 UserOp2._at_const i T) ≠ SmtTerm.DtSel s d k l := by
+  cases hv : __eo_to_smt_nat_is_valid i
+  · rw [eo_to_smt_at_const_of_invalid hv]
+    intro h
+    cases h
+  · rw [eo_to_smt_at_const_of_valid hv]
+    intro h
+    cases h
+
+/-- `@const` never translates to a datatype tester. -/
+theorem eo_to_smt_at_const_ne_dt_tester (i T : Term) (s : native_String)
+    (d : SmtDatatypeDecl) (k : native_Nat) :
+    __eo_to_smt (Term.UOp2 UserOp2._at_const i T) ≠ SmtTerm.DtTester s d k := by
+  cases hv : __eo_to_smt_nat_is_valid i
+  · rw [eo_to_smt_at_const_of_invalid hv]
+    intro h
+    cases h
+  · rw [eo_to_smt_at_const_of_valid hv]
+    intro h
+    cases h
+
+/-- Computes `__eo_typeof` for a `@const` with a valid index and a type argument. -/
+theorem eo_typeof_at_const {i T : Term}
+    (hi : __eo_to_smt_nat_is_valid i = true)
+    (hT : __eo_typeof T = Term.Type) :
+    __eo_typeof (Term.UOp2 UserOp2._at_const i T) = T := by
+  obtain ⟨n, rfl⟩ := eo_to_smt_nat_is_valid_eq_numeral hi
+  have hTns : T ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hT
+    cases hT
+  change __eo_typeof__at_const (__eo_typeof (Term.Numeral n)) (__eo_typeof T) T = T
+  have hn : __eo_typeof (Term.Numeral n) = Term.UOp UserOp.Int := rfl
+  rw [hn, hT]
+  cases T <;> first | rfl | exact absurd rfl hTns
+
 /-- Simplifies EO-to-SMT translation for `set_empty`. -/
 @[simp] theorem eo_to_smt_set_empty (T : Term) :
     __eo_to_smt (Term.set_empty T) = __eo_to_smt_set_empty (__eo_to_smt_type T) := rfl

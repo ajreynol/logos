@@ -5761,6 +5761,26 @@ by
       (eo_to_smt_quant_skolemize_top_ne_dt_tester_closed q idx _ _ _
         hHead).elim
 
+theorem at_const_apply_generic_type
+    (i j x : Term) :
+    __smtx_typeof
+        (SmtTerm.Apply (__eo_to_smt (Term.UOp2 UserOp2._at_const i j))
+          (__eo_to_smt x)) =
+      __smtx_typeof_apply
+        (__smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_const i j)))
+        (__smtx_typeof (__eo_to_smt x)) :=
+by
+  change
+    generic_apply_type (__eo_to_smt (Term.UOp2 UserOp2._at_const i j))
+      (__eo_to_smt x)
+  unfold generic_apply_type
+  cases hHead : __eo_to_smt (Term.UOp2 UserOp2._at_const i j)
+  <;> simp [__smtx_typeof]
+  · exact
+      (TranslationProofs.eo_to_smt_at_const_ne_dt_sel i j _ _ _ _ hHead).elim
+  · exact
+      (TranslationProofs.eo_to_smt_at_const_ne_dt_tester i j _ _ _ hHead).elim
+
 theorem false_of_apply_uop2_translate_apply_none {P : Prop}
     {op : UserOp2} {i j x : Term}
     (hTrans : eoHasSmtTranslation (Term.Apply (Term.UOp2 op i j) x))
@@ -5803,7 +5823,17 @@ by
       is_closed_rec_apply_re_loop_eq_and_bool_of_has_smt_translation
         hEnv hTrans (fun hx => ih hXLt hEnv hx)
   case _at_const =>
-    exact false_of_apply_uop2_translate_apply_none hTrans rfl
+    exact
+      is_closed_rec_apply_generic_eq_and_bool_of_has_smt_translation
+        hEnv
+        (by intro q v vs hEq; cases hEq)
+        (by intro vs hEq; cases hEq)
+        (by intro vs hEq; cases hEq)
+        (by rfl)
+        (at_const_apply_generic_type i j x)
+        hTrans
+        (fun hHeadTrans => ih hHeadLt hEnv hHeadTrans)
+        (fun hXTrans => ih hXLt hEnv hXTrans)
   case _at_quantifiers_skolemize =>
     exact
       is_closed_rec_apply_generic_eq_and_bool_of_has_smt_translation
@@ -5957,7 +5987,31 @@ by
   case re_loop =>
     exact (re_loop_indices_nat_valid_and_arg_has_smt_translation hTrans).2.2
   case _at_const =>
-    exact false_of_apply_uop2_translate_apply_none hTrans rfl
+    have hTranslate :
+        __eo_to_smt (Term.Apply (Term.UOp2 UserOp2._at_const i j) x) =
+          SmtTerm.Apply
+            (__eo_to_smt (Term.UOp2 UserOp2._at_const i j))
+            (__eo_to_smt x) := by
+      rfl
+    have hTy :
+        __smtx_typeof
+            (SmtTerm.Apply
+              (__eo_to_smt (Term.UOp2 UserOp2._at_const i j))
+              (__eo_to_smt x)) =
+          __smtx_typeof_apply
+            (__smtx_typeof
+              (__eo_to_smt (Term.UOp2 UserOp2._at_const i j)))
+            (__smtx_typeof (__eo_to_smt x)) :=
+      at_const_apply_generic_type i j x
+    have hNN :
+        term_has_non_none_type
+          (SmtTerm.Apply
+            (__eo_to_smt (Term.UOp2 UserOp2._at_const i j))
+            (__eo_to_smt x)) := by
+      unfold term_has_non_none_type
+      rw [← hTranslate]
+      exact hTrans
+    exact (apply_args_have_smt_translation_of_non_none hTy hNN).2
   case _at_quantifiers_skolemize =>
     have hTranslate :
         __eo_to_smt
