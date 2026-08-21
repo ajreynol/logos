@@ -80,6 +80,9 @@ theorem type_result_seq_components_wf_typeof_eq
   cases T <;> cases U <;>
     simp [__smtx_typeof_eq, __smtx_typeof_guard,
       type_result_seq_components_wf, native_ite, native_Teq]
+  all_goals
+    repeat (first | split)
+    all_goals simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_arith_overload_op_1
     (T : SmtType) :
@@ -118,6 +121,9 @@ theorem type_result_seq_components_wf_bv_op_2
     type_result_seq_components_wf (__smtx_typeof_bv_op_2 T U) := by
   cases T <;> cases U <;>
     simp [__smtx_typeof_bv_op_2, type_result_seq_components_wf]
+  all_goals
+    apply type_result_seq_components_wf_native_ite <;>
+      simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_bv_op_2_ret
     (T U R : SmtType)
@@ -125,6 +131,9 @@ theorem type_result_seq_components_wf_bv_op_2_ret
     type_result_seq_components_wf (__smtx_typeof_bv_op_2_ret T U R) := by
   cases T <;> cases U <;> simp [__smtx_typeof_bv_op_2_ret,
     type_result_seq_components_wf, hR]
+  all_goals
+    apply type_result_seq_components_wf_native_ite <;>
+      simp [type_result_seq_components_wf, hR]
 
 theorem type_result_seq_components_wf_seq_op_1_ret
     (T R : SmtType)
@@ -139,18 +148,27 @@ theorem type_result_seq_components_wf_seq_op_2_ret
     type_result_seq_components_wf (__smtx_typeof_seq_op_2_ret T U R) := by
   cases T <;> cases U <;> simp [__smtx_typeof_seq_op_2_ret,
     type_result_seq_components_wf, hR, native_ite, native_Teq]
+  all_goals
+    apply type_result_seq_components_wf_if <;>
+      simp [type_result_seq_components_wf, hR]
 
 theorem type_result_seq_components_wf_seq_diff
     (T U : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_seq_diff T U) := by
   cases T <;> cases U <;> simp [__smtx_typeof_seq_diff,
     type_result_seq_components_wf, native_ite, native_Teq]
+  all_goals
+    apply type_result_seq_components_wf_if <;>
+      simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_str_indexof
     (T U V : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_str_indexof T U V) := by
   cases T <;> cases U <;> cases V <;> simp [__smtx_typeof_str_indexof,
     type_result_seq_components_wf, native_ite, native_Teq]
+  all_goals
+    apply type_result_seq_components_wf_if <;>
+      simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_str_indexof_re
     (T U V : SmtType) :
@@ -183,7 +201,8 @@ theorem type_result_seq_components_wf_re_exp
     type_result_seq_components_wf (__smtx_typeof_re_exp n T) := by
   cases n <;> try simp [__smtx_typeof_re_exp, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf] <;>
+      exact type_result_seq_components_wf_native_ite _ (by trivial) (by trivial)
 
 theorem type_result_seq_components_wf_re_loop
     (m n : SmtTerm) (T : SmtType) :
@@ -192,13 +211,18 @@ theorem type_result_seq_components_wf_re_loop
   case Numeral i =>
     cases n <;> try simp [type_result_seq_components_wf]
     case Numeral j =>
-      cases T <;> simp [type_result_seq_components_wf]
+      cases T <;> simp [type_result_seq_components_wf] <;>
+        exact type_result_seq_components_wf_native_ite _
+          (type_result_seq_components_wf_native_ite _ (by trivial) (by trivial))
+          (by trivial)
 
 theorem type_result_seq_components_wf_set_member
     (T U : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_set_member T U) := by
   cases T <;> cases U <;> simp [__smtx_typeof_set_member,
     type_result_seq_components_wf, native_ite, native_Teq]
+  all_goals
+    apply type_result_seq_components_wf_if <;> trivial
 
 theorem type_result_seq_components_wf_sets_op_2_ret
     (T U R : SmtType)
@@ -206,13 +230,18 @@ theorem type_result_seq_components_wf_sets_op_2_ret
     type_result_seq_components_wf (__smtx_typeof_sets_op_2_ret T U R) := by
   cases T <;> cases U <;> simp [__smtx_typeof_sets_op_2_ret,
     type_result_seq_components_wf, hR, native_ite, native_Teq]
+  all_goals
+    apply type_result_seq_components_wf_if
+    · exact hR
+    · trivial
 
 theorem type_result_seq_components_wf_int_to_bv
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_int_to_bv n T) := by
   cases n <;> try simp [__smtx_typeof_int_to_bv, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf] <;>
+      exact type_result_seq_components_wf_native_ite _ (by trivial) (by trivial)
 
 theorem type_result_seq_components_wf_concat
     (T U : SmtType) :
@@ -230,43 +259,50 @@ theorem type_result_seq_components_wf_extract
       cases T <;> try simp [type_result_seq_components_wf]
       case BitVec w =>
         cases h0 : native_zleq 0 lo <;>
-          simp [type_result_seq_components_wf,
-            native_ite]
+          simp [type_result_seq_components_wf, native_ite] <;>
+          apply type_result_seq_components_wf_if
+        · apply type_result_seq_components_wf_if <;> trivial
+        · trivial
 
 theorem type_result_seq_components_wf_repeat
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_repeat n T) := by
   cases n <;> try simp [__smtx_typeof_repeat, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf] <;>
+      exact type_result_seq_components_wf_native_ite _ (by trivial) (by trivial)
 
 theorem type_result_seq_components_wf_zero_extend
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_zero_extend n T) := by
   cases n <;> try simp [__smtx_typeof_zero_extend, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf] <;>
+      exact type_result_seq_components_wf_native_ite _ (by trivial) (by trivial)
 
 theorem type_result_seq_components_wf_sign_extend
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_sign_extend n T) := by
   cases n <;> try simp [__smtx_typeof_sign_extend, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf] <;>
+      exact type_result_seq_components_wf_native_ite _ (by trivial) (by trivial)
 
 theorem type_result_seq_components_wf_rotate_left
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_rotate_left n T) := by
   cases n <;> try simp [__smtx_typeof_rotate_left, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf] <;>
+      exact type_result_seq_components_wf_native_ite _ (by trivial) (by trivial)
 
 theorem type_result_seq_components_wf_rotate_right
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_rotate_right n T) := by
   cases n <;> try simp [__smtx_typeof_rotate_right, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf] <;>
+      exact type_result_seq_components_wf_native_ite _ (by trivial) (by trivial)
 
 theorem type_result_seq_components_wf_of_type_wf
     {T : SmtType} (h : __smtx_type_wf T = true) :
@@ -492,13 +528,13 @@ theorem smt_term_result_seq_components_wf_of_non_none
         seq_char_arg_of_non_none (op := SmtTerm.str_to_lower)
           (typeof_str_to_lower_eq t) hxNN
       rw [typeof_str_to_lower_eq, ht]
-      simpa [type_result_seq_components_wf] using seq_char_wf
+      simpa [type_result_seq_components_wf, native_ite] using seq_char_wf
     case str_to_upper t =>
       have ht : __smtx_typeof t = SmtType.Seq SmtType.Char :=
         seq_char_arg_of_non_none (op := SmtTerm.str_to_upper)
           (typeof_str_to_upper_eq t) hxNN
       rw [typeof_str_to_upper_eq, ht]
-      simpa [type_result_seq_components_wf] using seq_char_wf
+      simpa [type_result_seq_components_wf, native_ite] using seq_char_wf
     case str_from_code t =>
       rw [typeof_str_from_code_eq]
       cases h : __smtx_typeof t <;>
@@ -513,12 +549,12 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rw [typeof_str_replace_re_eq x y z]
       rcases str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re)
           (typeof_str_replace_re_eq x y z) hxNN with ⟨hx, hy, hz⟩
-      simpa [hx, hy, hz, type_result_seq_components_wf] using seq_char_wf
+      simpa [hx, hy, hz, type_result_seq_components_wf, native_ite] using seq_char_wf
     case str_replace_re_all x y z =>
       rw [typeof_str_replace_re_all_eq x y z]
       rcases str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re_all)
           (typeof_str_replace_re_all_eq x y z) hxNN with ⟨hx, hy, hz⟩
-      simpa [hx, hy, hz, type_result_seq_components_wf] using seq_char_wf
+      simpa [hx, hy, hz, type_result_seq_components_wf, native_ite] using seq_char_wf
     case seq_nth x y =>
       rcases seq_nth_args_of_non_none hxNN with ⟨T, hxT, hy⟩
       have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
@@ -710,13 +746,8 @@ theorem smt_term_result_seq_components_wf_of_non_none
         native_Teq, type_result_seq_components_wf_typeof_eq,
         type_result_seq_components_wf_arith_overload_op_1,
         type_result_seq_components_wf_arith_overload_op_2,
-        type_result_seq_components_wf_arith_overload_op_2_ret,
         type_result_seq_components_wf_bv_op_1,
-        type_result_seq_components_wf_bv_op_1_ret,
         type_result_seq_components_wf_bv_op_2,
-        type_result_seq_components_wf_bv_op_2_ret,
-        type_result_seq_components_wf_seq_op_1_ret,
-        type_result_seq_components_wf_seq_op_2_ret,
         type_result_seq_components_wf_seq_diff,
         type_result_seq_components_wf_str_indexof,
         type_result_seq_components_wf_str_indexof_re,
@@ -724,7 +755,6 @@ theorem smt_term_result_seq_components_wf_of_non_none
         type_result_seq_components_wf_re_exp,
         type_result_seq_components_wf_re_loop,
         type_result_seq_components_wf_set_member,
-        type_result_seq_components_wf_sets_op_2_ret,
         type_result_seq_components_wf_int_to_bv,
         type_result_seq_components_wf_concat,
         type_result_seq_components_wf_extract,
@@ -733,6 +763,18 @@ theorem smt_term_result_seq_components_wf_of_non_none
         type_result_seq_components_wf_sign_extend,
         type_result_seq_components_wf_rotate_left,
         type_result_seq_components_wf_rotate_right]
+      all_goals first
+        | exact type_result_seq_components_wf_arith_overload_op_2_ret _ _ _
+            (by trivial)
+        | exact type_result_seq_components_wf_bv_op_1_ret _ _ (by trivial)
+        | exact type_result_seq_components_wf_bv_op_2_ret _ _ _ (by trivial)
+        | exact type_result_seq_components_wf_seq_op_1_ret _ _ (by trivial)
+        | exact type_result_seq_components_wf_seq_op_2_ret _ _ _ (by trivial)
+        | exact type_result_seq_components_wf_sets_op_2_ret _ _ _ (by trivial)
+        | (repeat (first
+              | apply type_result_seq_components_wf_if
+              | apply type_result_seq_components_wf_native_ite)
+           all_goals trivial)
   exact go x hxNN
 
 theorem smt_seq_component_wf_of_non_none_type
@@ -947,7 +989,9 @@ theorem seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
   have hSeqWF : __smtx_type_wf (SmtType.Seq T) = true := by
     have hGood :=
       smt_term_result_seq_components_wf_of_non_none (__eo_to_smt x) hTrans
-    simpa [hxTy] using hGood
+    rw [hxTy] at hGood
+    change __smtx_type_wf (SmtType.Seq T) = true at hGood
+    exact hGood
   by_cases hSpecial :
       __eo_typeof x =
         Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
@@ -1072,7 +1116,11 @@ theorem str_concat_args_of_non_none (x y : Term) :
   intro h
   have h' :
       term_has_non_none_type (SmtTerm.str_concat (__eo_to_smt x) (__eo_to_smt y)) := by
-    simpa [term_has_non_none_type, mkConcat] using h
+    unfold term_has_non_none_type
+    change
+      __smtx_typeof (SmtTerm.str_concat (__eo_to_smt x) (__eo_to_smt y)) ≠
+        SmtType.None at h
+    exact h
   exact seq_binop_args_of_non_none (op := SmtTerm.str_concat)
     (typeof_str_concat_eq (__eo_to_smt x) (__eo_to_smt y)) h'
 
@@ -2034,7 +2082,9 @@ theorem eo_get_nil_rec_list_rev_rec_eq
             Term.Boolean true :=
         eo_is_list_cons_self_true_of_tail_list
           (Term.UOp UserOp.str_concat) x acc (by decide) hAccList
-      simpa [__eo_list_rev_rec] using ih hTailTailList hConsAccList
+      simpa [__eo_list_rev_rec, __eo_get_nil_rec, __eo_requires,
+        native_ite, native_teq, native_not] using
+        ih hTailTailList hConsAccList
   | case4 nil acc hNil hAcc hNot =>
       simp [__eo_list_rev_rec]
 
@@ -6670,7 +6720,8 @@ theorem str_strip_prefix_result_types_of_seq
       rw [hCond, eo_ite_true]
       exact str_strip_prefix_result_types_of_seq t2 s2 T ht2Ty hs2Ty hTailNonStuck
     · rw [hCond, eo_ite_false]
-      simpa [mkPair, pair_first_pair, pair_second_pair] using And.intro hxTy hyTy
+      simpa [__eo_l_1___str_strip_prefix, mkPair, pair_first_pair,
+        pair_second_pair] using And.intro hxTy hyTy
   · simpa [__eo_l_1___str_strip_prefix, mkPair, pair_first_pair, pair_second_pair]
       using And.intro hxTy hyTy
 termination_by sizeOf x + sizeOf y

@@ -8584,8 +8584,13 @@ private theorem bvAnd_nil_eq_allOnes_of_type
             (native_binary_not (native_nat_to_int w) 0)
             (native_int_pow2 (native_nat_to_int w)) =
           native_int_pow2 (native_nat_to_int w) - 1 := by
-      simpa [native_binary_not, native_zplus, native_zneg] using
-        native_pow2_minus_one_mod_self_nat w
+      have hNot :
+          native_binary_not (native_nat_to_int w) 0 =
+            native_int_pow2 (native_nat_to_int w) - 1 := by
+        simp [native_binary_not, native_zplus, native_zneg,
+          Int.sub_eq_add_neg]
+      rw [hNot]
+      exact native_pow2_minus_one_mod_self_nat w
     have hBoundProp : native_nat_to_int w <= 4294967296 := by
       simpa [native_zleq] using hBound
     have hWidthNonneg : 0 <= native_nat_to_int w := by
@@ -15244,6 +15249,7 @@ private theorem reConcat_smt_value_rel_assoc_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hyEval,
     hzEval]
   simp [__smtx_model_eval_eq, native_re_concat]
+  apply if_pos
   intro str hValid
   exact native_str_in_re_mk_concat_assoc str rx ry rz
 
@@ -15287,6 +15293,7 @@ private theorem reConcat_smt_value_rel_congr_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hyEval,
     hxEval', hyEval']
   simp [__smtx_model_eval_eq, native_re_concat]
+  apply if_pos
   intro str hValid
   exact native_str_in_re_mk_concat_congr str rx rx' ry ry' hxExt hyExt
 
