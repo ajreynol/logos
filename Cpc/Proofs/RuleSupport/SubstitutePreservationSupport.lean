@@ -7771,12 +7771,32 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                     hTy
                                                                                                               case pos._at_const =>
                                                                                                                 exact
-                                                                                                                  False.elim
-                                                                                                                    (false_of_apply_uop2_at_const_has_smt_translation
-                                                                                                                      x
-                                                                                                                      y
-                                                                                                                      a
-                                                                                                                      hFTrans)
+                                                                                                                  substitute_simul_apply_at_const_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                    x
+                                                                                                                    y
+                                                                                                                    a
+                                                                                                                    xs
+                                                                                                                    ts
+                                                                                                                    bvs
+                                                                                                                    hXsEnv
+                                                                                                                    hBvsEnv
+                                                                                                                    hTs
+                                                                                                                    hEntryTypes
+                                                                                                                    hFTrans
+                                                                                                                    (fun hATrans hATy =>
+                                                                                                                      hRec
+                                                                                                                        (G := a)
+                                                                                                                        (bvs' := bvs)
+                                                                                                                        (by
+                                                                                                                          simp
+                                                                                                                          omega)
+                                                                                                                        hXsEnv
+                                                                                                                        hBvsEnv
+                                                                                                                        hATrans
+                                                                                                                        hTs
+                                                                                                                        hActuals
+                                                                                                                        hATy)
+                                                                                                                    hTy
                                                                                                             · by_cases hHeadUOp3 :
                                                                                                                 ∃ op x y z,
                                                                                                                   f =

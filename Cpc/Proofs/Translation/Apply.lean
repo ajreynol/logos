@@ -6765,6 +6765,8 @@ theorem eo_to_smt_eq_dt_cons_cases
     cases op <;> try (exfalso; cases hy)
     case _at_quantifiers_skolemize =>
       exact (eo_to_smt_quant_skolemize_top_ne_dt_cons q idx s d i hy).elim
+    case _at_const =>
+      exact (eo_to_smt_at_const_ne_dt_cons q idx s d i hy).elim
   case UOp3 op t r idx =>
     cases op
     case _at_re_unfold_pos_component =>
@@ -7730,6 +7732,8 @@ theorem eo_to_smt_eq_dt_sel_cases
     cases op <;> try (exfalso; cases hy)
     case _at_quantifiers_skolemize =>
       exact (eo_to_smt_quant_skolemize_top_ne_dt_sel q idx s d i j hy).elim
+    case _at_const =>
+      exact (eo_to_smt_at_const_ne_dt_sel q idx s d i j hy).elim
   case UOp3 op t r idx =>
     cases op
     case _at_re_unfold_pos_component =>
@@ -7794,6 +7798,8 @@ theorem eo_to_smt_ne_dt_tester
     cases op <;> try (exfalso; cases hy)
     case _at_quantifiers_skolemize =>
       exact (eo_to_smt_quant_skolemize_top_ne_dt_tester q idx s d i hy).elim
+    case _at_const =>
+      exact (eo_to_smt_at_const_ne_dt_tester q idx s d i hy).elim
   case UOp3 op t r idx =>
     cases op
     case _at_re_unfold_pos_component =>
@@ -15476,10 +15482,132 @@ theorem eo_to_smt_typeof_matches_translation_apply
     case re_loop =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_re_loop x z y ihX hNonNone
     case _at_const =>
-      exfalso
-      apply hNonNone
-      change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) = SmtType.None
-      exact typeof_apply_none_eq (__eo_to_smt x)
+      cases hValid : __eo_to_smt_nat_is_valid y
+      case false =>
+        exfalso
+        apply hNonNone
+        have hNone : __eo_to_smt (Term.UOp2 UserOp2._at_const y z) = SmtTerm.None :=
+          eo_to_smt_at_const_of_invalid hValid
+        change
+          __smtx_typeof
+              (SmtTerm.Apply (__eo_to_smt (Term.UOp2 UserOp2._at_const y z))
+                (__eo_to_smt x)) =
+            SmtType.None
+        rw [hNone]
+        exact typeof_apply_none_eq (__eo_to_smt x)
+      case true =>
+        have hHeadTrans :
+            __eo_to_smt (Term.UOp2 UserOp2._at_const y z) =
+              SmtTerm.UConst (native_const_id (__eo_to_smt_nat y)) (__eo_to_smt_type z) :=
+          eo_to_smt_at_const_of_valid hValid
+        have hTranslate :
+            __eo_to_smt (Term.Apply (Term.UOp2 UserOp2._at_const y z) x) =
+              SmtTerm.Apply
+                (SmtTerm.UConst (native_const_id (__eo_to_smt_nat y)) (__eo_to_smt_type z))
+                (__eo_to_smt x) := by
+          have hGeneric :
+              __eo_to_smt (Term.Apply (Term.UOp2 UserOp2._at_const y z) x) =
+                SmtTerm.Apply (__eo_to_smt (Term.UOp2 UserOp2._at_const y z))
+                  (__eo_to_smt x) := by
+            rfl
+          rw [hHeadTrans] at hGeneric
+          exact hGeneric
+        have hApplyNN :
+            __smtx_typeof_apply
+                (__smtx_typeof
+                  (SmtTerm.UConst (native_const_id (__eo_to_smt_nat y))
+                    (__eo_to_smt_type z)))
+                (__smtx_typeof (__eo_to_smt x)) ≠
+              SmtType.None := by
+          have hGenericApply :
+              generic_apply_type
+                (SmtTerm.UConst (native_const_id (__eo_to_smt_nat y))
+                  (__eo_to_smt_type z))
+                (__eo_to_smt x) := by
+            exact generic_apply_type_of_non_special_head _ _
+              (by intro s' d i' j h; cases h)
+              (by intro s' d i' h; cases h)
+          have hApplyNN' :
+              __smtx_typeof
+                  (SmtTerm.Apply
+                    (SmtTerm.UConst (native_const_id (__eo_to_smt_nat y))
+                      (__eo_to_smt_type z))
+                    (__eo_to_smt x)) ≠
+                SmtType.None := by
+            simpa [hTranslate] using hNonNone
+          rw [hGenericApply] at hApplyNN'
+          exact hApplyNN'
+        rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
+        have hUConstNN :
+            __smtx_typeof
+                (SmtTerm.UConst (native_const_id (__eo_to_smt_nat y))
+                  (__eo_to_smt_type z)) ≠
+              SmtType.None := by
+          intro hUConstNone
+          apply hApplyNN
+          simp [__smtx_typeof_apply, hUConstNone]
+        have hHeadTy :
+            __smtx_typeof
+                (SmtTerm.UConst (native_const_id (__eo_to_smt_nat y))
+                  (__eo_to_smt_type z)) =
+              __eo_to_smt_type z := by
+          simpa using
+            smtx_typeof_uconst_of_non_none (native_const_id (__eo_to_smt_nat y))
+              (__eo_to_smt_type z) hUConstNN
+        have hT :
+            __eo_to_smt_type z = SmtType.FunType A B ∨
+              __eo_to_smt_type z = SmtType.DtcAppType A B := by
+          rw [← hHeadTy]
+          exact hHead
+        have hSmt :
+            __smtx_typeof
+                (__eo_to_smt (Term.Apply (Term.UOp2 UserOp2._at_const y z) x)) = B := by
+          have hGenericApply :
+              generic_apply_type
+                (SmtTerm.UConst (native_const_id (__eo_to_smt_nat y))
+                  (__eo_to_smt_type z))
+                (__eo_to_smt x) := by
+            exact generic_apply_type_of_non_special_head _ _
+              (by intro s' d i' j h; cases h)
+              (by intro s' d i' h; cases h)
+          rw [hTranslate, hGenericApply]
+          exact smtx_typeof_apply_of_head_cases hHead hX hA
+        have hTWF : __smtx_type_wf (__eo_to_smt_type z) = true :=
+          Smtm.smtx_typeof_guard_wf_wf_of_non_none
+            (__eo_to_smt_type z) (__eo_to_smt_type z) (by
+              simpa [__smtx_typeof] using hUConstNN)
+        have hzType : __eo_typeof z = Term.Type :=
+          eo_typeof_type_of_smt_type_wf z hTWF
+        have hTypeofHead : __eo_typeof (Term.UOp2 UserOp2._at_const y z) = z :=
+          eo_typeof_at_const hValid hzType
+        rcases hT with hTFun | hTDtc
+        · rcases eo_to_smt_type_eq_fun hTFun with ⟨U, V, hTEq, hU, hV⟩
+          have hArgTypeRec : __smtx_type_wf_rec A = true := by
+            have h := hTWF
+            rw [hTFun] at h
+            exact (fun_type_wf_rec_components_of_wf h).1
+          have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
+            eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hX hA
+          have hxEo : __eo_typeof x = U :=
+            eo_to_smt_type_injective_of_type_wf_rec hXTrans hU hArgTypeRec
+          have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
+            rw [hU]
+            exact hA
+          have hEo :
+              __eo_to_smt_type
+                  (__eo_typeof (Term.Apply (Term.UOp2 UserOp2._at_const y z) x)) = B := by
+            refine Eq.trans ?_ hV
+            apply eo_to_smt_type_typeof_apply_of_fun_like
+              (f := Term.UOp2 UserOp2._at_const y z) (T := U) (U := V)
+            · rfl
+            · rw [hTypeofHead]
+              exact Or.inl hTEq
+            · exact hxEo
+            · exact hUNonNone
+          exact hSmt.trans hEo.symm
+        · have hBad := hTWF
+          rw [hTDtc] at hBad
+          simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hBad
     case _at_quantifiers_skolemize =>
       have hTranslate :
           __eo_to_smt (Term.Apply (Term._at_quantifiers_skolemize y z) x) =

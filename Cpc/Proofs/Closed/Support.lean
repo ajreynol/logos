@@ -5001,6 +5001,12 @@ theorem smtTermClosedIn_eo_to_smt_uop2_any_of_closed_rec_using
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp2 op x y)) :=
 by
   cases op <;> try trivial
+  case _at_const =>
+    cases hValid : __eo_to_smt_nat_is_valid x
+    · rw [TranslationProofs.eo_to_smt_at_const_of_invalid hValid]
+      trivial
+    · rw [TranslationProofs.eo_to_smt_at_const_of_valid hValid]
+      trivial
   case _at_quantifiers_skolemize =>
     cases x <;> try trivial
     case Apply f body =>
@@ -6289,6 +6295,12 @@ by
     simp
     omega
   cases op <;> try trivial
+  case _at_const =>
+    cases hValid : __eo_to_smt_nat_is_valid x
+    · rw [TranslationProofs.eo_to_smt_at_const_of_invalid hValid]
+      trivial
+    · rw [TranslationProofs.eo_to_smt_at_const_of_valid hValid]
+      trivial
   case _at_quantifiers_skolemize =>
     cases x <;> try trivial
     case Apply f body =>

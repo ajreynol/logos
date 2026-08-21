@@ -80,18 +80,52 @@ theorem false_of_apply_uop1_tuple_update_has_smt_translation
       using hTrans
   exact false_of_apply_uop1_translate_apply_none hTransEo rfl
 
-theorem false_of_apply_uop2_at_const_has_smt_translation
-    (i j a : Term)
+theorem substitute_simul_apply_at_const_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
+    (i j a xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hEntryTypes : SubstituteSupport.SubstEntryPreservesTypes xs ts)
     (hTrans :
       RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.UOp2 UserOp2._at_const i j) a)) :
-    False := by
-  have hTransEo :
-      eoHasSmtTranslation
-        (Term.Apply (Term.UOp2 UserOp2._at_const i j) a) := by
-    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
-      using hTrans
-  exact false_of_apply_uop2_translate_apply_none hTransEo rfl
+        (Term.Apply (Term.UOp2 UserOp2._at_const i j) a))
+    (hARec :
+      RuleProofs.eo_has_smt_translation a ->
+      __eo_typeof (__substitute_simul_rec (Term.Boolean isRename) a xs ts bvs) ≠
+        Term.Stuck ->
+      __eo_typeof (__substitute_simul_rec (Term.Boolean isRename) a xs ts bvs) =
+        __eo_typeof a ∧
+        RuleProofs.eo_has_smt_translation
+          (__substitute_simul_rec (Term.Boolean isRename) a xs ts bvs))
+    (hTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean isRename)
+            (Term.Apply (Term.UOp2 UserOp2._at_const i j) a)
+            xs ts bvs) ≠
+        Term.Stuck) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply (Term.UOp2 UserOp2._at_const i j) a)
+          xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.UOp2 UserOp2._at_const i j) a) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean isRename)
+          (Term.Apply (Term.UOp2 UserOp2._at_const i j) a)
+          xs ts bvs) := by
+  exact
+    substitute_simul_apply_atom_generic_preserves_type_and_translation_of_typeof_ne_stuck
+      (Term.UOp2 UserOp2._at_const i j)
+      a xs ts bvs hXsEnv hBvsEnv hTs hEntryTypes
+      (by intro f x h; cases h)
+      (by intro name U h; cases h)
+      (by intro h; cases h)
+      (by intro q v vs h; cases h)
+      (by rfl)
+      (TranslationProofs.eo_to_smt_at_const_ne_dt_sel i j)
+      (TranslationProofs.eo_to_smt_at_const_ne_dt_tester i j)
+      hTrans hARec hTy
 
 private theorem eo_to_smt_quant_skolemize_ne_dt_sel
     (vs : Term) (G : SmtTerm) (n : native_Nat) :
