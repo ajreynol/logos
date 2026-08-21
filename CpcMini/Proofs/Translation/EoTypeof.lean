@@ -1126,7 +1126,7 @@ theorem eo_type_valid_rec_non_none :
       simp [eo_to_smt_type_fun, hT1NN, hT2NN, __smtx_typeof_guard, native_ite, native_Teq]
   | refs, Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), h => by
       have hz : native_zleq 0 n = true := by
-        simpa [native_zleq] using h
+        simpa [eo_type_valid_rec, native_zleq] using h
       simp [__eo_to_smt_type, native_ite, hz]
   | refs, Term.Apply (Term.UOp UserOp.Seq) x, h => by
       have hxNN : __eo_to_smt_type x ≠ SmtType.None := eo_type_valid_rec_non_none h
@@ -1230,7 +1230,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
       simp [eo_type_valid_rec] at hValid
   | Term.USort i, U, _, hEq => by
       have hU : __eo_to_smt_type U = SmtType.USort i := by
-        simpa using hEq.symm
+        simpa [__eo_to_smt_type] using hEq.symm
       exact (eo_to_smt_type_eq_usort hU).symm
   | Term.FunType, U, hValid, hEq => by
       simp [eo_type_valid_rec] at hValid
@@ -1256,7 +1256,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
       exact (eo_to_smt_type_eq_typeref_iff.mp hU).1.symm
   | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), U, hValid, hEq => by
       have hz : native_zleq 0 n = true := by
-        simpa [native_zleq] using hValid
+        simpa [eo_type_valid_rec, native_zleq] using hValid
       have hU : __eo_to_smt_type U = SmtType.BitVec (native_int_to_nat n) := by
         simpa [__eo_to_smt_type, native_ite, hz] using hEq.symm
       rcases eo_to_smt_type_eq_bitvec_iff.mp hU with ⟨m, hU', hm, hmn⟩

@@ -707,7 +707,7 @@ theorem EoSmtVarEnv.concat :
         have hVsList := hVs.is_list
         have hEnvList := hEnv.is_list
         simpa [__eo_list_concat, __eo_requires, hVsList, hEnvList,
-          native_ite, native_teq]
+          native_ite, native_teq, native_not]
           using EoSmtVarEnv.concat_rec hVs hEnv
 
 theorem EoSmtVarEnv.mem_of_closed_var :
@@ -5805,12 +5805,14 @@ theorem smtTermClosedIn_eo_to_smt_forall_term_of_rev_env :
   | _, _, _, _, EoSmtVarEnv.nil, hBody =>
       by
         trivial
-  | _, _, _, _, EoSmtVarEnv.cons (s := s) (T := T) hTail, hBody =>
+  | _, _, _, body, EoSmtVarEnv.cons (s := s) (T := T) hTail, hBody =>
       by
         exact smtTermClosedIn_eo_to_smt_forall_cons_term
           (s := s) (T := T)
-          (smtTermClosedIn_eo_to_smt_exists_of_rev_env hTail (by
-            simpa [List.reverse_cons, List.append_assoc] using hBody))
+          (smtTermClosedIn_eo_to_smt_exists_of_rev_env
+            (F := SmtTerm.not (__eo_to_smt body)) hTail (by
+              change SmtTermClosedIn _ (__eo_to_smt body)
+              simpa [List.reverse_cons, List.append_assoc] using hBody))
 
 theorem smtTermClosedIn_eo_to_smt_forall_term_of_env_or_none
     {vs body : Term} {vars : List SmtVarKey}
@@ -5829,6 +5831,7 @@ by
         (vars := vars) (F := SmtTerm.not (__eo_to_smt body))
         (by
           intro binderVars hVs
+          change SmtTermClosedIn (binderVars.reverse ++ vars) (__eo_to_smt body)
           exact hBody hVs)
     | trivial
 

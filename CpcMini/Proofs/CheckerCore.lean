@@ -612,6 +612,15 @@ by
 def assumptionCheckGuard (A : Term) : Term :=
   __eo_and (__eo_is_bool_type A) (__eo_is_closed A)
 
+@[simp] private theorem stateObjProven_assume (A : Term) :
+    __eo_StateObj_proven (CStateObj.assume A) = A := rfl
+
+@[simp] private theorem stateObjProven_assume_push (A : Term) :
+    __eo_StateObj_proven (CStateObj.assume_push A) = A := rfl
+
+@[simp] private theorem stateObjProven_proven (P : Term) :
+    __eo_StateObj_proven (CStateObj.proven P) = P := rfl
+
 /-- Splits a successful assumption guard. -/
 theorem assumptionCheckGuard_eq_true_cases (A : Term) :
   assumptionCheckGuard A = Term.Boolean true ->
@@ -1486,7 +1495,7 @@ by
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
-        simpa [__eo_invoke_assume_list] using hOk
+        simpa [__eo_invoke_assume_list, assumptionCheckGuard] using hOk
       have hTy : __eo_typeof A = Term.Bool :=
         push_input_assume_typeof_bool_of_stateOk A
           (__eo_invoke_assume_list CState.nil rest) hPushOk
@@ -1542,8 +1551,8 @@ theorem push_assume_preserves_localTruthInvariant
 by
   intro hs
   by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
-  · simpa [push_assume_eq_cons_of_guard_true, hGuard,
-      checkerLocalTruthInvariant] using hs
+  · rw [push_assume_eq_cons_of_guard_true A s hGuard]
+    simpa [checkerLocalTruthInvariant] using hs
   · simpa [push_assume_eq_stuck_of_guard_ne_true, hGuard] using
       checkerLocalTruthInvariant_stuck M
 
@@ -1574,8 +1583,8 @@ theorem push_assume_preserves_translationInvariant
 by
   intro hs hA
   by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
-  · simpa [push_assume_eq_cons_of_guard_true, hGuard,
-      checkerTranslationInvariant] using
+  · rw [push_assume_eq_cons_of_guard_true A s hGuard]
+    simpa [checkerTranslationInvariant] using
       (show RuleProofs.eo_has_smt_translation A ∧ checkerTranslationInvariant s from ⟨hA, hs⟩)
   · simpa [push_assume_eq_stuck_of_guard_ne_true, hGuard] using
       checkerTranslationInvariant_stuck
@@ -1844,7 +1853,7 @@ by
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
-        simpa [__eo_invoke_assume_list] using hOk
+        simpa [__eo_invoke_assume_list, assumptionCheckGuard] using hOk
       have hRestOk :
           stateOk (__eo_invoke_assume_list CState.nil rest) :=
         push_input_assume_reflects_stateOk A
@@ -1882,7 +1891,7 @@ by
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
-        simpa [__eo_invoke_assume_list] using hOk
+        simpa [__eo_invoke_assume_list, assumptionCheckGuard] using hOk
       have hRestOk :
           stateOk (__eo_invoke_assume_list CState.nil rest) :=
         push_input_assume_reflects_stateOk A
@@ -1911,7 +1920,7 @@ by
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
-        simpa [__eo_invoke_assume_list] using hOk
+        simpa [__eo_invoke_assume_list, assumptionCheckGuard] using hOk
       have hRestOk :
           stateOk (__eo_invoke_assume_list CState.nil rest) :=
         push_input_assume_reflects_stateOk A
@@ -1940,7 +1949,7 @@ by
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
-        simpa [__eo_invoke_assume_list] using hOk
+        simpa [__eo_invoke_assume_list, assumptionCheckGuard] using hOk
       have hRestOk :
           stateOk (__eo_invoke_assume_list CState.nil rest) :=
         push_input_assume_reflects_stateOk A
@@ -2069,7 +2078,7 @@ by
                   have hPushOk :
                       stateOk (__eo_push_input_assume_check (assumptionCheckGuard lhs) lhs
                         (__eo_invoke_assume_list CState.nil a)) := by
-                    simpa [__eo_invoke_assume_list] using hOk
+                    simpa [__eo_invoke_assume_list, assumptionCheckGuard] using hOk
                   have hRestOk :
                       stateOk (__eo_invoke_assume_list CState.nil a) :=
                     push_input_assume_reflects_stateOk lhs
@@ -2240,7 +2249,7 @@ by
       | assume_push A =>
           intro hOk
           exact push_assume_reflects_stateOk A (CState.cons so s) (by
-            simpa [__eo_invoke_cmd] using hOk)
+            simpa [__eo_invoke_cmd, assumptionCheckGuard] using hOk)
       | check_proven proven =>
           cases so with
           | assume A =>
@@ -2286,7 +2295,7 @@ by
       cases s with
       | nil =>
           have hPushOk : stateOk (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil) := by
-            simpa [__eo_invoke_cmd] using hOk
+            simpa [__eo_invoke_cmd, assumptionCheckGuard] using hOk
           have hPushEq := push_assume_eq_cons_of_stateOk A CState.nil hPushOk
           change stateAssumptionSuffix
             (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
@@ -2294,7 +2303,7 @@ by
           simp [stateAssumptionSuffix]
       | cons so s =>
           have hPushOk : stateOk (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s)) := by
-            simpa [__eo_invoke_cmd] using hOk
+            simpa [__eo_invoke_cmd, assumptionCheckGuard] using hOk
           have hPushEq := push_assume_eq_cons_of_stateOk A (CState.cons so s) hPushOk
           change stateAssumptionSuffix
             (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
@@ -2327,7 +2336,7 @@ by
                     have hTailSuffix : stateAssumptionSuffix s := by
                       simpa [stateAssumptionSuffix] using hSuffix
                     simpa [__eo_invoke_cmd, __eo_push_proven_check,
-                      hEq] using hTailSuffix
+                      stateAssumptionSuffix, hEq] using hTailSuffix
   | step r args premises =>
       intro hSuffix hOk
       cases s with
@@ -2375,7 +2384,7 @@ by
       cases s with
       | nil =>
           have hPushOk : stateOk (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil) := by
-            simpa [__eo_invoke_cmd] using hOk
+            simpa [__eo_invoke_cmd, assumptionCheckGuard] using hOk
           have hPushEq := push_assume_eq_cons_of_stateOk A CState.nil hPushOk
           change stateAssumes
               (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil) =
@@ -2384,7 +2393,7 @@ by
           simp [stateAssumes]
       | cons so s =>
           have hPushOk : stateOk (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s)) := by
-            simpa [__eo_invoke_cmd] using hOk
+            simpa [__eo_invoke_cmd, assumptionCheckGuard] using hOk
           have hPushEq := push_assume_eq_cons_of_stateOk A (CState.cons so s) hPushOk
           change stateAssumes
               (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s)) =
@@ -2531,7 +2540,8 @@ by
   have hCheckedOk : stateOk (__eo_invoke_cmd_check_proven S1 (Term.Boolean false)) :=
     stateOk_of_state_closed_true hClosed
   have hCheckedOk' : stateOk (__eo_invoke_cmd S1 (CCmd.check_proven (Term.Boolean false))) := by
-    cases hS1 : S1 <;> simpa [__eo_invoke_cmd, hS1] using hCheckedOk
+    cases hS1 : S1 <;>
+      simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, hS1] using hCheckedOk
   have hFinalOk : stateOk S1 :=
     invoke_cmd_reflects_stateOk S1 (CCmd.check_proven (Term.Boolean false))
       hCheckedOk'
@@ -2551,7 +2561,8 @@ by
   have hCheckedOk : stateOk (__eo_invoke_cmd_check_proven S1 (Term.Boolean false)) :=
     stateOk_of_state_closed_true hClosed
   have hCheckedOk' : stateOk (__eo_invoke_cmd S1 (CCmd.check_proven (Term.Boolean false))) := by
-    cases hS1 : S1 <;> simpa [__eo_invoke_cmd, hS1] using hCheckedOk
+    cases hS1 : S1 <;>
+      simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, hS1] using hCheckedOk
   simpa using invoke_cmd_reflects_stateOk S1 (CCmd.check_proven (Term.Boolean false)) hCheckedOk'
 
 /-- Shows that `eo_eq_false_true` implies `eq_false`. -/

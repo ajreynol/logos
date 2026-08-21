@@ -4,6 +4,7 @@ public import Cpc.Proofs.TypePreservation.Base
 import all Cpc.SmtModel
 import all Cpc.Proofs.TypePreservation.Common
 import all Init.Data.Repr
+import all Init.Data.Int.Repr
 
 public section
 
@@ -1463,7 +1464,7 @@ theorem native_unpack_seq_eq_string_to_values_of_typeof_seq_char
         rcases char_value_canonical hv with ⟨c, rfl, _hc⟩
         simpa [native_ssm_char_of_value] using ih hvs
   unfold native_unpack_string native_string_to_values
-  simpa only [List.map_map, Function.comp_apply] using (hMap hTyped).symm
+  simpa only [List.map_map, Function.comp_def] using (hMap hTyped).symm
 
 /-- Appending valid native strings preserves validity. -/
 theorem native_string_valid_append
@@ -1689,8 +1690,8 @@ theorem native_str_from_int_valid
       have hNot : ¬ ((Int.ofNat n) < 0) := by
         exact Int.not_lt_of_ge (Int.natCast_nonneg n)
       rw [if_neg hNot]
-      change native_string_valid (native_string_lit (toString n)) = true
-      exact native_string_valid_nat_toString n
+      simpa [Int.toString_eq_repr, Int.repr, Nat.toString_eq_repr] using
+        native_string_valid_nat_toString n
   | negSucc n =>
       unfold native_str_from_int
       have hNeg : (Int.negSucc n) < 0 := by

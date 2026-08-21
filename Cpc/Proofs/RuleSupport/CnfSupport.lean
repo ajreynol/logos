@@ -151,7 +151,10 @@ theorem imp_args_have_bool_type_of_translation (A B : Term) :
   rw [RuleProofs.eo_has_smt_translation] at hTrans
   have hNN : term_has_non_none_type (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
-    simpa using hTrans
+    change
+      __smtx_typeof (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) ≠
+        SmtType.None at hTrans
+    exact hTrans
   rcases bool_binop_args_bool_of_non_none
       (op := SmtTerm.imp) (t1 := __eo_to_smt A) (t2 := __eo_to_smt B)
       (typeof_imp_eq (__eo_to_smt A) (__eo_to_smt B)) hNN with ⟨hA, hB⟩
@@ -167,7 +170,10 @@ theorem xor_args_have_bool_type_of_translation (A B : Term) :
   rw [RuleProofs.eo_has_smt_translation] at hTrans
   have hNN : term_has_non_none_type (SmtTerm.xor (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
-    simpa using hTrans
+    change
+      __smtx_typeof (SmtTerm.xor (__eo_to_smt A) (__eo_to_smt B)) ≠
+        SmtType.None at hTrans
+    exact hTrans
   rcases bool_binop_args_bool_of_non_none
       (op := SmtTerm.xor) (t1 := __eo_to_smt A) (t2 := __eo_to_smt B)
       (typeof_xor_eq (__eo_to_smt A) (__eo_to_smt B)) hNN with ⟨hA, hB⟩
