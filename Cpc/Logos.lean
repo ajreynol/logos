@@ -2868,19 +2868,14 @@ def __bv_abstraction_lemma_urem : Term -> Term -> Term -> Term -> Term
   | __eo_dv_1, __eo_dv_2, __eo_dv_3, __eo_dv_4 => (__eo_l_1___bv_abstraction_lemma_urem __eo_dv_1 __eo_dv_2 __eo_dv_3 __eo_dv_4)
 
 
--- Bitwuzla generates these schemas only for abstraction widths of at least 3.
-def __bv_abstraction_width_ok (x : Term) : Term :=
-  __eo_gt (__bv_bitwidth (__eo_typeof x)) (Term.Numeral 2)
-
-
 def __bv_abstraction_lemma : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) x) (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) s) ns))) t)) l) => (__eo_and (__bv_abstraction_width_ok x) (__eo_and (__eo_eq ns (__eo_to_bin (__bv_bitwidth (__eo_typeof ns)) (Term.Numeral 1))) (__bv_abstraction_lemma_mul x s t l)))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) x) (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) s) ns)))) l) => (__eo_and (__bv_abstraction_width_ok x) (__eo_and (__eo_eq ns (__eo_to_bin (__bv_bitwidth (__eo_typeof ns)) (Term.Numeral 1))) (__bv_abstraction_lemma_mul x s t l)))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) x) s)) t)) l) => (__eo_and (__bv_abstraction_width_ok x) (__bv_abstraction_lemma_udiv x s t l))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) (Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) x) s))) l) => (__eo_and (__bv_abstraction_width_ok x) (__bv_abstraction_lemma_udiv x s t l))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) x) s)) t)) l) => (__eo_and (__bv_abstraction_width_ok x) (__bv_abstraction_lemma_urem x s t l))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) x) s))) l) => (__eo_and (__bv_abstraction_width_ok x) (__bv_abstraction_lemma_urem x s t l))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) x) (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) s) ns))) t)) l) => (__eo_and (__eo_gt (__bv_bitwidth (__eo_typeof x)) (Term.Numeral 2)) (__eo_and (__eo_eq ns (__eo_to_bin (__bv_bitwidth (__eo_typeof ns)) (Term.Numeral 1))) (__bv_abstraction_lemma_mul x s t l)))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) x) (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) s) ns)))) l) => (__eo_and (__eo_gt (__bv_bitwidth (__eo_typeof x)) (Term.Numeral 2)) (__eo_and (__eo_eq ns (__eo_to_bin (__bv_bitwidth (__eo_typeof ns)) (Term.Numeral 1))) (__bv_abstraction_lemma_mul x s t l)))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) x) s)) t)) l) => (__eo_and (__eo_gt (__bv_bitwidth (__eo_typeof x)) (Term.Numeral 2)) (__bv_abstraction_lemma_udiv x s t l))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) (Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) x) s))) l) => (__eo_and (__eo_gt (__bv_bitwidth (__eo_typeof x)) (Term.Numeral 2)) (__bv_abstraction_lemma_udiv x s t l))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) x) s)) t)) l) => (__eo_and (__eo_gt (__bv_bitwidth (__eo_typeof x)) (Term.Numeral 2)) (__bv_abstraction_lemma_urem x s t l))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) x) s))) l) => (__eo_and (__eo_gt (__bv_bitwidth (__eo_typeof x)) (Term.Numeral 2)) (__bv_abstraction_lemma_urem x s t l))
   | l => (Term.Boolean false)
 
 
