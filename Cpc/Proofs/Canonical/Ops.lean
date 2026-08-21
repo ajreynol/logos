@@ -1063,34 +1063,34 @@ private theorem native_re_mult_canonical_of_canonical
     {r : SmtRegLan}
     (hr : native_re_canonical r = true) :
     native_re_canonical (native_re_mult r) = true := by
-  simpa [native_re_mult] using native_re_mk_star_canonical hr
+  exact native_re_mk_star_canonical hr
 
 private theorem native_re_comp_canonical_of_canonical
     {r : SmtRegLan}
     (hr : native_re_canonical r = true) :
     native_re_canonical (native_re_comp r) = true := by
-  simpa [native_re_comp] using native_re_mk_comp_canonical hr
+  exact native_re_mk_comp_canonical hr
 
 private theorem native_re_concat_canonical_of_canonical
     {r1 r2 : SmtRegLan}
     (hr1 : native_re_canonical r1 = true)
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_concat r1 r2) = true := by
-  simpa [native_re_concat] using native_re_mk_concat_canonical hr1 hr2
+  exact native_re_mk_concat_canonical hr1 hr2
 
 private theorem native_re_inter_canonical_of_canonical
     {r1 r2 : SmtRegLan}
     (hr1 : native_re_canonical r1 = true)
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_inter r1 r2) = true := by
-  simpa [native_re_inter] using native_re_mk_inter_canonical hr1 hr2
+  exact native_re_mk_inter_canonical hr1 hr2
 
 private theorem native_re_union_canonical_of_canonical
     {r1 r2 : SmtRegLan}
     (hr1 : native_re_canonical r1 = true)
     (hr2 : native_re_canonical r2 = true) :
     native_re_canonical (native_re_union r1 r2) = true := by
-  simpa [native_re_union] using native_re_mk_union_canonical hr1 hr2
+  exact native_re_mk_union_canonical hr1 hr2
 
 private theorem native_re_diff_canonical_of_canonical
     {r1 r2 : SmtRegLan}
@@ -1447,14 +1447,14 @@ theorem mss_op_internal_canonical
         value_canonical_boolean true
       cases hCond :
           native_iff (native_veq (__smtx_msm_lookup m2 e) (SmtValue.Boolean true)) isInter
-      · simpa [__smtx_mss_op_internal, hCond] using
+      · simpa [__smtx_mss_op_internal, native_ite, hCond] using
           mss_op_internal_canonical isInter hmTail hacc
       · have hacc' :
             __smtx_map_canonical
               (__smtx_msm_update_aux (__smtx_msm_get_default acc) acc e
                 (SmtValue.Boolean true)) = true :=
           map_update_aux_canonical hacc he htrue
-        simpa [__smtx_mss_op_internal, hCond] using
+        simpa [__smtx_mss_op_internal, native_ite, hCond] using
           mss_op_internal_canonical isInter hmTail hacc'
 
 theorem mss_op_internal_get_default
@@ -1467,9 +1467,9 @@ theorem mss_op_internal_get_default
   | SmtMap.cons e _ m1, m2, acc => by
       cases hCond :
           native_iff (native_veq (__smtx_msm_lookup m2 e) (SmtValue.Boolean true)) isInter
-      · simpa [__smtx_mss_op_internal, hCond] using
+      · simpa [__smtx_mss_op_internal, native_ite, hCond] using
           mss_op_internal_get_default isInter (m1 := m1) (m2 := m2) (acc := acc)
-      · simpa [__smtx_mss_op_internal, hCond,
+      · simpa [__smtx_mss_op_internal, native_ite, hCond,
           map_update_aux_get_default (__smtx_msm_get_default acc) acc e
             (SmtValue.Boolean true)] using
           mss_op_internal_get_default isInter (m1 := m1) (m2 := m2)
@@ -1658,9 +1658,9 @@ theorem vsm_apply_arg_nth_canonical :
               SmtEval.native_and] at hParts
             exact hParts.2
           cases hEq : native_nateq n npos
-          · simpa [__vsm_apply_arg_nth, hEq] using
+          · simpa [__vsm_apply_arg_nth, native_ite, hEq] using
               vsm_apply_arg_nth_canonical hf
-          · simpa [__vsm_apply_arg_nth, hEq] using ha
+          · simpa [__vsm_apply_arg_nth, native_ite, hEq] using ha
   | SmtValue.NotValue, n, npos, hv => by
       simpa [__vsm_apply_arg_nth] using value_canonical_notValue
   | SmtValue.Boolean b, n, npos, hv => by
