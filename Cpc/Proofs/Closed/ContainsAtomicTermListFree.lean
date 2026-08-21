@@ -5508,7 +5508,28 @@ by
           intro hXTrans hBound' hXNoFree M' N' hAgree'
           exact ih hXLt hExcept hBound' hXTrans hXNoFree hAgree')
   case _at_const =>
-    exact false_of_apply_uop2_translate_apply_none hTrans rfl
+    have hXNoFree :
+        __contains_atomic_term_list_free_rec x except bound =
+          Term.Boolean false :=
+      contains_atomic_term_list_free_rec_apply_uop2_false_arg
+        hExcept hBound hNoFree
+    exact
+      smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        hExcept hBound
+        (by intro q v vs hEq; cases hEq)
+        (by rfl)
+        (at_const_apply_generic_type i j x)
+        hTrans hNoFree hAgree
+        (by
+          intro hHeadTrans hBound' hHeadNoFree M' N' hAgree'
+          exact
+            smt_model_eval_eq_of_contains_atomic_term_list_free_rec_non_apply_false_mapped
+              hExcept hBound' hHeadTrans
+              (by intro f a h; cases h)
+              hHeadNoFree hAgree')
+        (by
+          intro hXTrans hBound' hXNoFree M' N' hAgree'
+          exact ih hXLt hExcept hBound' hXTrans hXNoFree hAgree')
 
 theorem smt_model_eval_apply_uop3_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
     (root : Term)

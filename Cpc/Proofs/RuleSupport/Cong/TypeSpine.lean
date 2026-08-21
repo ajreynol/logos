@@ -1711,10 +1711,20 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                       (f := Term.UOp1 UserOp1.tuple_update i) (x := x)
                       (by rfl) hTrans)
               | Term.UOp2 UserOp2._at_const i j =>
-                  exact False.elim
-                    (no_translation_of_eo_apply_none_head
-                      (f := Term.UOp2 UserOp2._at_const i j) (x := x)
-                      (by rfl) hTrans)
+                  cases hFn with
+                  | refl _ =>
+                      exact
+                        congTypeSpine_same_generic_head_apply_eq_has_bool_type
+                          (Term.UOp2 UserOp2._at_const i j)
+                          x y
+                          (by intro a; rfl)
+                          (generic_apply_type_of_non_datatype_head
+                            (TranslationProofs.eo_to_smt_at_const_ne_dt_sel i j)
+                            (TranslationProofs.eo_to_smt_at_const_ne_dt_tester i j))
+                          (generic_apply_type_of_non_datatype_head
+                            (TranslationProofs.eo_to_smt_at_const_ne_dt_sel i j)
+                            (TranslationProofs.eo_to_smt_at_const_ne_dt_tester i j))
+                          hTrans hArg
               | Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n =>
                   cases hFn with
                   | refl _ =>

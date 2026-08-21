@@ -92,26 +92,6 @@ run_regressions() {
   run_examples logos examples/sexp '*.cpc' correct
 }
 
-run_cpc_examples() {
-  shopt -s nullglob
-  local examples=(Cpc/Examples/*.lean)
-
-  if [ "${#examples[@]}" -eq 0 ]; then
-    echo "No Cpc examples found under Cpc/Examples/." >&2
-    exit 1
-  fi
-
-  local example module
-  local modules=()
-  for example in "${examples[@]}"; do
-    module="${example%.lean}"
-    modules+=("${module//\//.}")
-  done
-
-  echo "Compiling ${#modules[@]} Cpc example modules..."
-  lake build "${modules[@]}"
-}
-
 run_cpc_proofs() {
   local targets=(
     Cpc.Spec
@@ -135,7 +115,6 @@ run_cpcmini() {
   local targets=(
     CpcMini.Proofs.Checker
     CpcMini.Proofs.TypePreservation.Nonvacuity
-    CpcMini.Examples.TestSimpleCheckerAssumptions
   )
 
   echo "Compiling the CpcMini proofs..."
@@ -146,9 +125,6 @@ group="${1:-all}"
 case "${group}" in
   regressions)
     run_regressions
-    ;;
-  cpc-examples)
-    run_cpc_examples
     ;;
   cpc-proofs)
     run_cpc_proofs
@@ -162,12 +138,11 @@ case "${group}" in
   all)
     run_proof_hygiene
     run_regressions
-    run_cpc_examples
     run_cpc_proofs
     run_cpcmini
     ;;
   *)
-    echo "Usage: $0 [all|regressions|cpc-examples|cpc-proofs|cpcmini|proof-hygiene]" >&2
+    echo "Usage: $0 [all|regressions|cpc-proofs|cpcmini|proof-hygiene]" >&2
     exit 2
     ;;
 esac

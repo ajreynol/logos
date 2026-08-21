@@ -3046,6 +3046,14 @@ theorem eo_to_smt_eq_numeral
       cases op <;> try cases h
       case _at_quantifiers_skolemize =>
         exact False.elim (eo_to_smt_quantifier_term_ne_numeral x y n h)
+      case _at_const =>
+        change native_ite (__eo_to_smt_nat_is_valid x)
+            (SmtTerm.UConst (native_const_id (__eo_to_smt_nat x))
+              (__eo_to_smt_type y))
+            SmtTerm.None =
+          SmtTerm.Numeral n at h
+        cases hx : __eo_to_smt_nat_is_valid x <;>
+          simp [native_ite, hx] at h
   | Var name T => cases name <;> cases h
   | DtCons s d i =>
       change native_ite (native_reserved_datatype_name s) SmtTerm.None

@@ -442,6 +442,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.UOp1 UserOp1.int_to_bv x1) x2) => (SmtTerm.int_to_bv (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.UOp UserOp.ubv_to_int) x1) => (SmtTerm.ubv_to_int (__eo_to_smt x1))
   | (Term.Apply (Term.UOp UserOp.sbv_to_int) x1) => (SmtTerm.sbv_to_int (__eo_to_smt x1))
+  | (Term.UOp2 UserOp2._at_const x1 x2) => (native_ite (__eo_to_smt_nat_is_valid x1) (SmtTerm.UConst (native_const_id (__eo_to_smt_nat x1)) (__eo_to_smt_type x2)) SmtTerm.None)
   | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
   | y => SmtTerm.None
 
