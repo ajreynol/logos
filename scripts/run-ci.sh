@@ -6,9 +6,11 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 cd "${repo_root}"
 
-# shellcheck source=lean-toolchain-env.sh
-source "${script_dir}/lean-toolchain-env.sh"
-logos_configure_lean_toolchain
+configure_lean_toolchain() {
+  # shellcheck source=lean-toolchain-env.sh
+  source "${script_dir}/lean-toolchain-env.sh"
+  logos_configure_lean_toolchain
+}
 
 # Examples that Logos accepts as CPC derivations but whose terms fall outside the
 # SMT-LIB fragment that Cpc/SmtModel.lean defines, so that the side conditions of
@@ -128,12 +130,15 @@ run_cpcmini() {
 group="${1:-all}"
 case "${group}" in
   regressions)
+    configure_lean_toolchain
     run_regressions
     ;;
   cpc-proofs)
+    configure_lean_toolchain
     run_cpc_proofs
     ;;
   cpcmini)
+    configure_lean_toolchain
     run_cpcmini
     ;;
   proof-hygiene)
@@ -141,6 +146,7 @@ case "${group}" in
     ;;
   all)
     run_proof_hygiene
+    configure_lean_toolchain
     run_regressions
     run_cpc_proofs
     run_cpcmini
