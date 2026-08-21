@@ -327,7 +327,7 @@ theorem congTypeSpine_of_congTrueSpine
 
 theorem congTrueSpine_of_congEvidenceSpine
     (M : SmtModel) (premises : List Term)
-    (hEvidence : RulePremiseEvidence M premises) :
+    (hEvidence : StableRulePremiseEvidence M premises) :
     ∀ {t rhs : Term},
       CongEvidenceSpine M premises t rhs ->
       CongTrueSpine M t rhs := by

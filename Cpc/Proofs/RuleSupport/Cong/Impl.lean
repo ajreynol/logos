@@ -234,7 +234,7 @@ private theorem mk_nary_cong_rhs_congTypeSpine_of_list :
 private theorem mk_nary_cong_rhs_congStableSpine_of_list
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ (ps : List Term) (t : Term),
-      RulePremiseEvidence M ps ->
+      StableRulePremiseEvidence M ps ->
       RuleProofs.eo_has_smt_translation t ->
       __mk_nary_cong_rhs t (premiseAndFormulaList ps) ≠ Term.Stuck ->
       CongStableSpine M t (__mk_nary_cong_rhs t (premiseAndFormulaList ps)) := by
@@ -266,8 +266,8 @@ private theorem mk_nary_cong_rhs_congStableSpine_of_list
                               exact hEvidence.true_in_var_model N hN hAgree
                                 (mkEq lhs tail) (by simp [mkEq])
                             have hRestEvidence :
-                                RulePremiseEvidence M ps := by
-                              refine ⟨?_, ?_⟩
+                                StableRulePremiseEvidence M ps := by
+                              refine ⟨⟨?_⟩, ?_⟩
                               · intro q hq
                                 exact hEvidence q (by simp [hq])
                               · intro N hN hAgree q hq
@@ -1251,7 +1251,7 @@ theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
 private theorem congEvidenceSpine_eq_true
     (M : SmtModel) (hM : model_total_typed M)
     (premises : List Term) (t rhs : Term) :
-  RulePremiseEvidence M premises ->
+  StableRulePremiseEvidence M premises ->
     RuleProofs.eo_has_bool_type (mkEq t rhs) ->
     CongEvidenceSpine M premises t rhs ->
     eo_interprets M (mkEq t rhs) true := by
@@ -1300,7 +1300,7 @@ theorem facts___eo_prog_cong_impl
     (M : SmtModel) (hM : model_total_typed M) (t : Term)
     (premises : List Term) :
   RuleProofs.eo_has_smt_translation t ->
-  RulePremiseEvidence M premises ->
+  StableRulePremiseEvidence M premises ->
   RuleProofs.eo_has_bool_type
     (__eo_prog_cong t (Proof.pf (premiseAndFormulaList premises))) ->
   __eo_prog_cong t (Proof.pf (premiseAndFormulaList premises)) ≠ Term.Stuck ->
@@ -1325,8 +1325,8 @@ theorem facts___eo_prog_cong_impl
     eo_mk_apply_right_ne_stuck_of_ne_stuck
       (Term.Apply (Term.UOp UserOp.eq) t) rhs hProgNN
   have hEvidenceRev :
-      RulePremiseEvidence M premises.reverse := by
-    refine ⟨?_, ?_⟩
+      StableRulePremiseEvidence M premises.reverse := by
+    refine ⟨⟨?_⟩, ?_⟩
     · exact all_interpreted_true_reverse M premises hEvidence.true_here
     · intro N hN hAgree q hq
       exact hEvidence.true_in_var_model N hN hAgree
@@ -1405,7 +1405,7 @@ theorem facts___eo_prog_nary_cong_impl
     (M : SmtModel) (hM : model_total_typed M) (t : Term)
     (premises : List Term) :
   RuleProofs.eo_has_smt_translation t ->
-  RulePremiseEvidence M premises ->
+  StableRulePremiseEvidence M premises ->
   RuleProofs.eo_has_bool_type
     (__eo_prog_nary_cong t (Proof.pf (premiseAndFormulaList premises))) ->
   __eo_prog_nary_cong t (Proof.pf (premiseAndFormulaList premises)) ≠
@@ -1720,7 +1720,7 @@ theorem facts___eo_prog_pairwise_cong_apply_impl
     (f xs : Term) (premises : List Term) :
   RuleProofs.eo_has_smt_translation (Term.Apply f xs) ->
   RuleProofs.eo_has_smt_translation xs ->
-  RulePremiseEvidence M premises ->
+  StableRulePremiseEvidence M premises ->
   RuleProofs.eo_has_bool_type
     (__eo_prog_pairwise_cong (Term.Apply f xs)
       (Proof.pf (premiseAndFormulaList premises))) ->

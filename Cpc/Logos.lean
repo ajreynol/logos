@@ -9808,6 +9808,23 @@ def __eo_state_is_closed : CState -> native_Bool
   | s => false
 
 
+/--
+Checks that every currently active local assumption is closed.
+
+Open local assumptions are sound for ordinary, pointwise proof steps.  Rules
+that reason below binders need the stronger fact that the active context is
+stable when variable assignments change; until the checker tracks precise
+free-variable dependencies, closedness is the conservative executable witness
+for that fact.
+-/
+def __eo_state_push_assumptions_are_closed : CState -> Term
+  | (CState.cons (CStateObj.assume_push F) s) =>
+      (__eo_and (__eo_is_closed F) (__eo_state_push_assumptions_are_closed s))
+  | (CState.cons so s) => (__eo_state_push_assumptions_are_closed s)
+  | CState.nil => (Term.Boolean true)
+  | CState.Stuck => Term.Stuck
+
+
 def __eo_push_assume_check : Term -> Term -> CState -> CState
   | (Term.Boolean true), F, s => (CState.cons (CStateObj.assume_push F) s)
   | b, F, s => CState.Stuck
@@ -10444,11 +10461,34 @@ def __eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CInde
   | s2, r, args, premises => CState.Stuck
 
 
+/--
+Rules whose soundness proof moves to models with different variable
+assignments while retaining premise truth.
+
+This is intentionally conservative: all congruence variants are guarded even
+when a particular invocation does not cross a binder.  A later free-variable
+analysis can weaken this to the exact eigenvariable condition.
+-/
+def __eo_step_context_guard (S : CState) : CRule -> Term
+  | CRule.cong => (__eo_state_push_assumptions_are_closed S)
+  | CRule.nary_cong => (__eo_state_push_assumptions_are_closed S)
+  | CRule.pairwise_cong => (__eo_state_push_assumptions_are_closed S)
+  | CRule.ho_cong => (__eo_state_push_assumptions_are_closed S)
+  | CRule.re_unfold_neg => (__eo_state_push_assumptions_are_closed S)
+  | _ => (Term.Boolean true)
+
+
+/-- Turns a failed context side condition into the ordinary checker error. -/
+def __eo_guard_proven : Term -> Term -> Term
+  | (Term.Boolean true), proven => proven
+  | _, _ => Term.Stuck
+
+
 def __eo_invoke_cmd : CState -> CCmd -> CState
   | CState.Stuck, c => CState.Stuck
-  | S, (CCmd.assume_push proven) => (__eo_push_assume_check (__eo_and (__eo_is_bool_type proven) (__eo_is_closed proven)) proven S)
+  | S, (CCmd.assume_push proven) => (__eo_push_assume_check (__eo_is_bool_type proven) proven S)
   | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
-  | S, (CCmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
+  | S, (CCmd.step r args premises) => (__eo_push_proven (__eo_guard_proven (__eo_step_context_guard S r) (__eo_cmd_step_proven S r args premises)) S)
   | S, (CCmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
 
 

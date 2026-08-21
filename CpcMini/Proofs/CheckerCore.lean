@@ -40,10 +40,9 @@ inductive StableAssumptionList (M : SmtModel) : Term -> Prop
       StableAssumptionList M rest ->
       StableAssumptionList M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
-/-- The model-dependent stability side condition for commands that introduce assumptions. -/
-def cmdAssumptionStabilityOk (_M : SmtModel) : CCmd -> Prop
-  | CCmd.assume_push A => StableWhenTrueInAnyVarModel A
-  | _ => True
+/-- Local pushed assumptions are contextual, so commands add no global stability obligation. -/
+def cmdAssumptionStabilityOk (_M : SmtModel) (_c : CCmd) : Prop :=
+  True
 
 /-- Every command in a checker command list satisfies `cmdAssumptionStabilityOk`. -/
 inductive CmdListAssumptionStabilityOk (M : SmtModel) : CCmdList -> Prop
@@ -608,9 +607,16 @@ by
   intro hTy
   exact (eo_is_bool_type_eq_true_iff t).2 hTy
 
-/-- The combined guard used for assumptions and pushed assumptions. -/
-def assumptionCheckGuard (A : Term) : Term :=
+/-- The guard for local pushed assumptions: open Boolean formulas are allowed. -/
+def pushedAssumptionCheckGuard (A : Term) : Term :=
+  __eo_is_bool_type A
+
+/-- The guard for input assumptions, which remain closed. -/
+def inputAssumptionCheckGuard (A : Term) : Term :=
   __eo_and (__eo_is_bool_type A) (__eo_is_closed A)
+
+/-- Compatibility name for the historical, closed input-assumption guard. -/
+abbrev assumptionCheckGuard := inputAssumptionCheckGuard
 
 /-- Splits a successful assumption guard. -/
 theorem assumptionCheckGuard_eq_true_cases (A : Term) :
@@ -618,7 +624,7 @@ theorem assumptionCheckGuard_eq_true_cases (A : Term) :
   __eo_is_bool_type A = Term.Boolean true ∧ __eo_is_closed A = Term.Boolean true :=
 by
   intro h
-  unfold assumptionCheckGuard at h
+  unfold assumptionCheckGuard inputAssumptionCheckGuard at h
   cases hb : __eo_is_bool_type A <;> cases hc : __eo_is_closed A <;>
     simp [__eo_and, hb, hc, native_and, __eo_requires, native_ite, native_teq] at h
   case Binary.Binary =>
@@ -987,15 +993,26 @@ theorem checkerLocalTruthInvariant_stuck (M : SmtModel) :
 by
   trivial
 
-/-- Assumptions and pushed assumptions satisfy the mini stability side condition. -/
+/-- Input assumptions satisfy the mini stability side condition. -/
 def checkerAssumptionStabilityInvariant (M : SmtModel) : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.assume A) s =>
       StableWhenTrueInAnyVarModel A ∧ checkerAssumptionStabilityInvariant M s
-  | CState.cons (CStateObj.assume_push A) s =>
-      StableWhenTrueInAnyVarModel A ∧ checkerAssumptionStabilityInvariant M s
+  | CState.cons (CStateObj.assume_push _) s =>
+      checkerAssumptionStabilityInvariant M s
   | CState.cons (CStateObj.proven _) s =>
       checkerAssumptionStabilityInvariant M s
+  | CState.Stuck => True
+
+/-- Optional stability capability for local assumptions, parallel to full CPC. -/
+def checkerPushAssumptionStabilityInvariant (M : SmtModel) : CState -> Prop
+  | CState.nil => True
+  | CState.cons (CStateObj.assume _) s =>
+      checkerPushAssumptionStabilityInvariant M s
+  | CState.cons (CStateObj.assume_push A) s =>
+      StableWhenTrueInAnyVarModel A ∧ checkerPushAssumptionStabilityInvariant M s
+  | CState.cons (CStateObj.proven _) s =>
+      checkerPushAssumptionStabilityInvariant M s
   | CState.Stuck => True
 
 /-- Describes `checkerAssumptionStabilityInvariant` on the stuck state. -/

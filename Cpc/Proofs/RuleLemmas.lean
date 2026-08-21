@@ -616,6 +616,7 @@ theorem cmd_step_proven_facts_of_invariants
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
   checkerAssumptionStabilityInvariant M s ->
+  checkerStepContextInvariant M s r ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   cmdTranslationOk (CCmd.step r args premises) ->
@@ -623,7 +624,7 @@ theorem cmd_step_proven_facts_of_invariants
   CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
 :=
 by
-  intro hs hsStable hsTy hsTrans hCmdTrans hResultTy
+  intro hs hsStable hStepContext hsTy hsTrans hCmdTrans hResultTy
   have hProg : __eo_cmd_step_proven s r args premises ≠ Term.Stuck :=
     term_ne_stuck_of_typeof_bool hResultTy
   have hPremisesBool : AllHaveBoolType (premiseTermList s premises) :=
@@ -925,17 +926,17 @@ by
         exact cmd_step_trans_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cong =>
-      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+      exact cmd_step_facts_of_stable_rule_properties M hM s premises hs hStepContext <| by
         intro N hN _hAgree
         exact cmd_step_cong_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | nary_cong =>
-      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+      exact cmd_step_facts_of_stable_rule_properties M hM s premises hs hStepContext <| by
         intro N hN _hAgree
         exact cmd_step_nary_cong_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | pairwise_cong =>
-      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+      exact cmd_step_facts_of_stable_rule_properties M hM s premises hs hStepContext <| by
         intro N hN _hAgree
         exact cmd_step_pairwise_cong_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
@@ -960,7 +961,7 @@ by
         exact cmd_step_false_elim_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ho_cong =>
-      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+      exact cmd_step_facts_of_stable_rule_properties M hM s premises hs hStepContext <| by
         intro N hN _hAgree
         exact cmd_step_ho_cong_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
@@ -1155,7 +1156,7 @@ by
         exact cmd_step_re_unfold_neg_concat_fixed_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_unfold_neg =>
-      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+      exact cmd_step_facts_of_stable_rule_properties M hM s premises hs hStepContext <| by
         intro N hN _hAgree
         exact cmd_step_re_unfold_neg_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy

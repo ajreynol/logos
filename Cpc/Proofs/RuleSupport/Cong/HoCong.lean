@@ -713,7 +713,7 @@ private theorem mk_ho_cong_true_spine_of_list
 theorem facts___eo_prog_ho_cong_impl
     (M : SmtModel) (hM : model_total_typed M)
     (premises : List Term) :
-  RulePremiseEvidence M premises ->
+  StableRulePremiseEvidence M premises ->
   RuleProofs.eo_has_bool_type
     (__eo_prog_ho_cong (Proof.pf (premiseAndFormulaList premises))) ->
   __eo_prog_ho_cong (Proof.pf (premiseAndFormulaList premises)) ≠

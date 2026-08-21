@@ -16,7 +16,7 @@ public theorem cmd_step_cong_properties
   cmdTranslationOk (CCmd.step CRule.cong args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   __eo_typeof (__eo_cmd_step_proven s CRule.cong args premises) = Term.Bool ->
-  StepRuleProperties M (premiseTermList s premises)
+  StableStepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.cong args premises) :=
 by
   intro hCmdTrans hPremisesBool hResultTy

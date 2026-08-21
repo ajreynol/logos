@@ -918,14 +918,26 @@ structure ContextualTruth
 /--
 The premise evidence supplied to a rule.
 
-Most rules only use `true_here`. Binder-sensitive congruence uses
-`true_in_var_model`: the checker constructs that field only when the ambient
-assumptions and pushes are known to remain true across variable-model changes.
+This is deliberately only the pointwise fact required by ordinary rules.
+Keeping variable-model stability out of the base interface allows ordinary
+reasoning below an open `assume-push`.
 -/
 structure RulePremiseEvidence
     (M : SmtModel) (premises : List Term) : Prop where
   true_here :
     AllInterpretedTrue M premises
+
+/--
+The stronger premise capability required by rules that reason below binders.
+
+The checker may construct this only after its executable context guard has
+established that every active pushed assumption is stable.  Initially that
+guard uses closedness; a future free-variable analysis can instead establish
+the exact eigenvariable condition.
+-/
+structure StableRulePremiseEvidence
+    (M : SmtModel) (premises : List Term) : Prop extends
+      RulePremiseEvidence M premises where
   true_in_var_model :
     ∀ N, model_total_typed N ->
       model_agrees_on_globals M N ->
@@ -933,7 +945,13 @@ structure RulePremiseEvidence
 
 instance RulePremiseEvidence.instCoeFun
     {M : SmtModel} {premises : List Term} :
-    CoeFun (RulePremiseEvidence M premises)
+  CoeFun (RulePremiseEvidence M premises)
+      (fun _ => ∀ t, t ∈ premises -> eo_interprets M t true) where
+  coe h := h.true_here
+
+instance StableRulePremiseEvidence.instCoeFun
+    {M : SmtModel} {premises : List Term} :
+    CoeFun (StableRulePremiseEvidence M premises)
       (fun _ => ∀ t, t ∈ premises -> eo_interprets M t true) where
   coe h := h.true_here
 
@@ -1053,14 +1071,23 @@ by
 /--
 Standard correctness and translation template for rules that add a proven fact.
 
-Most rules only use `RulePremiseEvidence.true_here`. Binder-sensitive rules use
-`RulePremiseEvidence.true_in_var_model` to reason under the fresh variable
-models introduced by quantified binders.
+This pointwise template covers ordinary rules. Binder-sensitive rules use
+`StableStepRuleProperties` below so their premise evidence remains valid in
+the fresh variable models introduced by quantified binders.
 -/
 structure StepRuleProperties
     (M : SmtModel) (premises : List Term) (P : Term) : Prop where
   facts_of_true :
     RulePremiseEvidence M premises ->
+    eo_interprets M P true
+  has_smt_translation :
+    RuleProofs.eo_has_smt_translation P
+
+/-- Correctness template for the small set of rules guarded by stable context. -/
+structure StableStepRuleProperties
+    (M : SmtModel) (premises : List Term) (P : Term) : Prop where
+  facts_of_true :
+    StableRulePremiseEvidence M premises ->
     eo_interprets M P true
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P

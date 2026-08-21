@@ -87,9 +87,24 @@ structure RulePremiseEvidence
   true_here :
     AllInterpretedTrue M premises
 
+/-- The stronger premise capability reserved for binder-sensitive rules. -/
+structure StableRulePremiseEvidence
+    (M : SmtModel) (premises : List Term) : Prop extends
+      RulePremiseEvidence M premises where
+  true_in_var_model :
+    ∀ N, model_total_typed N ->
+      model_agrees_on_globals M N ->
+      AllInterpretedTrue N premises
+
 instance RulePremiseEvidence.instCoeFun
     {M : SmtModel} {premises : List Term} :
-    CoeFun (RulePremiseEvidence M premises)
+  CoeFun (RulePremiseEvidence M premises)
+      (fun _ => ∀ t, t ∈ premises -> eo_interprets M t true) where
+  coe h := h.true_here
+
+instance StableRulePremiseEvidence.instCoeFun
+    {M : SmtModel} {premises : List Term} :
+    CoeFun (StableRulePremiseEvidence M premises)
       (fun _ => ∀ t, t ∈ premises -> eo_interprets M t true) where
   coe h := h.true_here
 

@@ -1940,7 +1940,7 @@ public theorem cmd_step_re_unfold_neg_properties
   cmdTranslationOk (CCmd.step CRule.re_unfold_neg args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   __eo_typeof (__eo_cmd_step_proven s CRule.re_unfold_neg args premises) = Term.Bool ->
-  StepRuleProperties M (premiseTermList s premises)
+  StableStepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.re_unfold_neg args premises) :=
 by
   intro _hCmdTrans hPremisesBool hResultTy
@@ -1958,7 +1958,7 @@ by
           cases premises with
           | nil =>
               let p := __eo_state_proven_nth s n
-              change StepRuleProperties M [p]
+              change StableStepRuleProperties M [p]
                 (__eo_prog_re_unfold_neg (Proof.pf p))
               have hProgLocal :
                   __eo_prog_re_unfold_neg (Proof.pf p) ≠ Term.Stuck := by

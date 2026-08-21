@@ -307,7 +307,7 @@ private theorem premiseEvidence_lifts_congruence_over_binders
     (premises : List Term)
     (op : UserOp) (xs body body' : Term)
     (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
-    RulePremiseEvidence M premises ->
+    StableRulePremiseEvidence M premises ->
     mkEq body body' ∈ premises ->
     QuantifierBinderTypesWf xs ->
     RuleProofs.eo_has_bool_type (mkEq (mkBinderApp op xs body)
@@ -442,8 +442,8 @@ private theorem stable_lifts_congruence_over_binders
       (mkBinderApp op xs body')) true := by
   intro hBodyStable hBinderTypesWf hEqBool
   have hEvidence :
-      RulePremiseEvidence M [mkEq body body'] := by
-    refine ⟨?_, ?_⟩
+      StableRulePremiseEvidence M [mkEq body body'] := by
+    refine ⟨⟨?_⟩, ?_⟩
     · intro q hq
       simp only [List.mem_singleton] at hq
       subst q
@@ -461,7 +461,7 @@ theorem congEvidenceSpine_quantifier_eq_true
     (premises : List Term)
     (op : UserOp) (xs body rhs : Term)
     (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
-    RulePremiseEvidence M premises ->
+    StableRulePremiseEvidence M premises ->
     QuantifierBinderTypesWf xs ->
     RuleProofs.eo_has_bool_type
       (mkEq (Term.Apply (Term.Apply (Term.UOp op) xs) body) rhs) ->
