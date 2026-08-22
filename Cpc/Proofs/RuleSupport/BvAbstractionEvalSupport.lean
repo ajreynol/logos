@@ -161,6 +161,133 @@ theorem eval_bvurem_bvValue {w : Nat} (hw : 0 < w) (x y : BitVec w) :
     rw [Int.emod_eq_of_lt (Int.natCast_nonneg _) (by exact_mod_cast hrlt),
       Int.max_eq_left (Int.natCast_nonneg _)]
 
+theorem eval_bvshl_bvValue {w : Nat} (x y : BitVec w) :
+    __smtx_model_eval_bvshl (bvValue x) (bvValue y) =
+      bvValue (x <<< y.toNat) := by
+  simp only [bvValue, __smtx_model_eval_bvshl]
+  congr 1
+  rw [native_mod_pow2_eq_toNat_ofInt]
+  norm_cast
+  apply congrArg BitVec.toNat
+  apply BitVec.eq_of_toNat_eq
+  rw [BitVec.toNat_ofInt]
+  rw [show (↑y.toNat : Int) = native_nat_to_int y.toNat by rfl]
+  rw [native_int_pow2_nat]
+  simp only [native_zmult]
+  let z : Int := (↑x.toNat * (2 : Int) ^ y.toNat) % ↑(2 ^ w)
+  change z.toNat = (x <<< y.toNat).toNat
+  have hp : (↑(2 ^ w) : Int) ≠ 0 := by
+    exact_mod_cast Nat.ne_of_gt (Nat.two_pow_pos w)
+  have hmod0 : 0 ≤ z := by
+    exact Int.emod_nonneg _ hp
+  apply Int.ofNat_inj.mp
+  rw [Int.toNat_of_nonneg hmod0]
+  dsimp [z]
+  norm_cast
+  simp [BitVec.toNat_ofInt, native_zmult, native_int_pow2_nat,
+    BitVec.toNat_shiftLeft, Nat.shiftLeft_eq]
+
+theorem eval_bvlshr_bvValue {w : Nat} (x y : BitVec w) :
+    __smtx_model_eval_bvlshr (bvValue x) (bvValue y) =
+      bvValue (x >>> y.toNat) := by
+  simp only [bvValue, __smtx_model_eval_bvlshr]
+  congr 1
+  rw [native_mod_pow2_eq_toNat_ofInt]
+  norm_cast
+  apply congrArg BitVec.toNat
+  apply BitVec.eq_of_toNat_eq
+  rw [BitVec.toNat_ofInt]
+  rw [show (↑y.toNat : Int) = native_nat_to_int y.toNat by rfl]
+  rw [native_int_pow2_nat]
+  simp only [native_div_total]
+  let z : Int := (↑x.toNat / (2 : Int) ^ y.toNat) % ↑(2 ^ w)
+  change z.toNat = (x >>> y.toNat).toNat
+  have hp : (↑(2 ^ w) : Int) ≠ 0 := by
+    exact_mod_cast Nat.ne_of_gt (Nat.two_pow_pos w)
+  have hmod0 : 0 ≤ z := by
+    exact Int.emod_nonneg _ hp
+  apply Int.ofNat_inj.mp
+  rw [Int.toNat_of_nonneg hmod0]
+  dsimp [z]
+  norm_cast
+  simp [BitVec.toNat_ofInt, native_div_total, native_int_pow2_nat,
+    BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow]
+  rw [Nat.mod_eq_of_lt (Nat.lt_of_le_of_lt (Nat.div_le_self _ _) x.isLt)]
+
+theorem eval_bvsub_bvValue {w : Nat} (x y : BitVec w) :
+    __smtx_model_eval_bvsub (bvValue x) (bvValue y) = bvValue (x - y) := by
+  rw [__smtx_model_eval_bvsub, eval_bvneg_bvValue, eval_bvadd_bvValue]
+  simp [BitVec.sub_eq_add_neg]
+
+theorem eval_bvult_bvValue {w : Nat} (x y : BitVec w) :
+    __smtx_model_eval_bvult (bvValue x) (bvValue y) =
+      SmtValue.Boolean (decide (x < y)) := by
+  simp [__smtx_model_eval_bvult, __smtx_model_eval_bvugt, bvValue,
+    native_zlt, BitVec.lt_def]
+
+theorem eval_bvule_bvValue {w : Nat} (x y : BitVec w) :
+    __smtx_model_eval_bvule (bvValue x) (bvValue y) =
+      SmtValue.Boolean (decide (x ≤ y)) := by
+  simp [__smtx_model_eval_bvule, __smtx_model_eval_bvuge,
+    __smtx_model_eval_bvugt, __smtx_model_eval_or, __smtx_model_eval_eq,
+    bvValue, native_zlt, native_veq, native_or, BitVec.le_def]
+  apply Bool.eq_iff_iff.mpr
+  simp only [Bool.or_eq_true, decide_eq_true_eq]
+  norm_cast
+  constructor <;> omega
+
+theorem eval_bvuge_bvValue {w : Nat} (x y : BitVec w) :
+    __smtx_model_eval_bvuge (bvValue x) (bvValue y) =
+      SmtValue.Boolean (decide (y ≤ x)) := by
+  simp [__smtx_model_eval_bvuge, __smtx_model_eval_bvugt,
+    __smtx_model_eval_or, __smtx_model_eval_eq, bvValue, native_zlt,
+    native_veq, native_or, BitVec.le_def]
+  apply Bool.eq_iff_iff.mpr
+  simp only [Bool.or_eq_true, decide_eq_true_eq]
+  norm_cast
+  constructor <;> omega
+
+theorem eval_eq_bvValue {w : Nat} (x y : BitVec w) :
+    __smtx_model_eval_eq (bvValue x) (bvValue y) =
+      SmtValue.Boolean (decide (x = y)) := by
+  simp [__smtx_model_eval_eq, bvValue, native_veq]
+  constructor
+  · intro h
+    apply BitVec.eq_of_toNat_eq
+    exact_mod_cast h
+  · intro h
+    subst y
+    rfl
+
+theorem eval_zero_concat_extract_zero {w i p : Nat}
+    (x : BitVec w) (hi : i < w) (hwidth : p + (i + 1) = w) :
+    __smtx_model_eval_concat
+        (bvValue (0 : BitVec p))
+        (__smtx_model_eval_concat
+          (__smtx_model_eval_extract (SmtValue.Numeral i)
+            (SmtValue.Numeral 0) (bvValue x))
+          (SmtValue.Binary 0 0)) =
+      bvValue (BitVec.ofNat w (x.toNat % 2 ^ (i + 1))) := by
+  subst w
+  simp only [bvValue, __smtx_model_eval_extract, __smtx_model_eval_concat,
+    native_zplus, native_zneg, native_mod_total, native_binary_extract,
+    native_div_total, native_binary_concat, native_zmult]
+  simp only [SmtEval.native_nat_to_int]
+  simp only [Int.ofNat_eq_natCast]
+  have hpow (n : Nat) : native_int_pow2 (n : Int) = (2 ^ n : Int) := by
+    simpa [SmtEval.native_nat_to_int] using native_int_pow2_nat n
+  have hExtractWidth : ((i : Int) + 1 + -0) = (i + 1 : Nat) := by omega
+  rw [hExtractWidth, hpow]
+  norm_cast
+  simp only [Nat.add_zero]
+  rw [hpow]
+  norm_cast
+  simp only [Int.mul_one, Int.add_zero]
+  rw [hpow]
+  norm_cast
+  simp [hpow, BitVec.toNat_ofNat, native_int_pow2,
+    native_zexp_total]
+
 theorem eval_as_bvValue (M : SmtModel) (hM : model_total_typed M)
     (a : Term) (w : Nat)
     (hty : __smtx_typeof (__eo_to_smt a) = SmtType.BitVec w) :

@@ -1,6 +1,7 @@
 module
 
 public import Cpc.Proofs.RuleSupport.BvAbstractionEvalSupport
+public import Cpc.Proofs.RuleSupport.BvAbstractionDslSupport
 public import Cpc.Proofs.RuleSupport.BvAbstractionUdiv12Support
 public import Cpc.Proofs.RuleSupport.BvAbstractionUdiv20Support
 public import Cpc.Proofs.RuleSupport.BvAbstractionUdiv21Support
