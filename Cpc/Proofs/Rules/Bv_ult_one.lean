@@ -581,8 +581,8 @@ by
                         StepRuleProperties M [P1]
                           (__eo_prog_bv_ult_one a1 a2 (Proof.pf P1))
                       have hProgLocal :
-                          __eo_prog_bv_ult_one a1 a2 (Proof.pf P1) ≠ Term.Stuck := by
-                        simpa [P1, __eo_cmd_step_proven] using hProg
+                          __eo_prog_bv_ult_one a1 a2 (Proof.pf P1) ≠ Term.Stuck :=
+                        hProg
                       rcases bv_ult_one_shape_of_ne_stuck a1 a2 P1 hProgLocal with
                         ⟨hA1Ne, hA2Ne, px, hP1⟩
                       have hReqNe : __eo_requires (__eo_eq a1 px) (Term.Boolean true)

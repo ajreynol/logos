@@ -158,11 +158,11 @@ private theorem typed___eo_prog_distinct_binary_elim_impl
       __smtx_typeof
           (SmtTerm.not (SmtTerm.eq (__eo_to_smt t1) (__eo_to_smt s1))) =
         SmtType.Bool := by
-    simpa [RuleProofs.eo_has_bool_type, notEq, eqTerm] using hNotEqBool
+    simpa [RuleProofs.eo_has_bool_type, notEq, eqTerm, __eo_to_smt, __smtx_typeof] using hNotEqBool
   have hEqSmtTy :
       __smtx_typeof (SmtTerm.eq (__eo_to_smt t1) (__eo_to_smt s1)) =
         SmtType.Bool := by
-    simpa [RuleProofs.eo_has_bool_type, eqTerm] using hEqBool
+    simpa [RuleProofs.eo_has_bool_type, eqTerm, __eo_to_smt, __smtx_typeof] using hEqBool
   have hEqSmtTy' :
       __smtx_typeof_eq (__smtx_typeof (__eo_to_smt t1))
           (__smtx_typeof (__eo_to_smt s1)) = SmtType.Bool := by

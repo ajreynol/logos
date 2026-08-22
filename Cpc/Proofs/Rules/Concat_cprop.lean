@@ -132,7 +132,7 @@ private theorem len_nonzero_seq_type_of_bool (u : Term)
     ⟨_hSame, hLeftNN⟩
   have hLenTerm : term_has_non_none_type (SmtTerm.str_len (__eo_to_smt u)) := by
     unfold term_has_non_none_type
-    simpa [mkStrLen] using hLeftNN
+    exact hLeftNN
   exact seq_arg_of_non_none_ret (op := SmtTerm.str_len)
     (typeof_str_len_eq (__eo_to_smt u)) hLenTerm
 
@@ -3610,9 +3610,7 @@ private theorem str_is_compatible_full_word_flatten_intro_ne_false_of_append_eva
       Term.Boolean false := by
   cases word with
   | nil =>
-      simpa using
-        str_is_compatible_empty_left_ne_false
-          (__str_flatten (__str_nary_intro x))
+      exact str_is_compatible_empty_left_ne_false (__str_flatten (__str_nary_intro x))
   | cons wc wcs =>
       cases x with
       | String str =>
@@ -3626,9 +3624,7 @@ private theorem str_is_compatible_full_word_flatten_intro_ne_false_of_append_eva
           cases str with
           | nil =>
               rw [RuleProofs.str_flatten_nary_intro_empty]
-              simpa using
-                substrWord_compatible_ne_false_of_append_eq (wc :: wcs) []
-                  xTail suffixTail hAlign'
+              exact substrWord_compatible_ne_false_of_append_eq (wc :: wcs) [] xTail suffixTail hAlign'
           | cons c cs =>
               rw [RuleProofs.str_flatten_nary_intro_cons c cs]
               simpa using
@@ -3801,10 +3797,7 @@ private theorem str_is_compatible_rev_word_flatten_intro_ne_false_of_append_eval
   cases word with
   | nil =>
       rw [eo_list_rev_substrWord_local []]
-      simpa using
-        str_is_compatible_empty_left_ne_false
-          (__eo_list_rev (Term.UOp UserOp.str_concat)
-            (__str_flatten (__str_nary_intro x)))
+      exact str_is_compatible_empty_left_ne_false (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten (__str_nary_intro x)))
   | cons wc wcs =>
       cases x with
       | String str =>

@@ -214,7 +214,7 @@ private theorem geq_left_int_type_of_has_bool_type
   have hTy' :
       __smtx_typeof (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt (Term.Numeral 0))) =
         SmtType.Bool := by
-    simpa [RuleProofs.eo_has_bool_type] using hTy
+    exact hTy
   have hNN : term_has_non_none_type
       (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt (Term.Numeral 0))) := by
     unfold term_has_non_none_type
@@ -287,7 +287,7 @@ private theorem geq_eval_true_of_diff_denote_nonneg
   have hGeqTy :
       __smtx_typeof (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) =
         SmtType.Bool := by
-    simpa [RuleProofs.eo_has_bool_type] using hGeqBool
+    exact hGeqBool
   have hGeqNN : term_has_non_none_type
       (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) := by
     unfold term_has_non_none_type
@@ -390,7 +390,7 @@ theorem arith_string_pred_simple_geq_true
   have hGeqTy :
       __smtx_typeof (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) =
         SmtType.Bool := by
-    simpa [RuleProofs.eo_has_bool_type] using hGeqBool
+    exact hGeqBool
   have hGeqNN : term_has_non_none_type
       (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) := by
     unfold term_has_non_none_type
@@ -448,7 +448,7 @@ private theorem geq_has_bool_type_of_non_none (n m : Term) :
   change __smtx_typeof (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) = SmtType.Bool
   have hTerm : term_has_non_none_type (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) := by
     unfold term_has_non_none_type
-    simpa using hNN
+    exact hNN
   rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.geq)
       (typeof_geq_eq (__eo_to_smt n) (__eo_to_smt m)) hTerm with
     hInt | hReal
@@ -613,7 +613,7 @@ private theorem plus_int_args_of_int_type (n m : Term) :
   have hTy' :
       __smtx_typeof (SmtTerm.plus (__eo_to_smt n) (__eo_to_smt m)) =
         SmtType.Int := by
-    simpa using hTy
+    exact hTy
   have hNN :
       term_has_non_none_type (SmtTerm.plus (__eo_to_smt n) (__eo_to_smt m)) := by
     unfold term_has_non_none_type
@@ -644,7 +644,7 @@ private theorem mult_int_args_of_int_type (n m : Term) :
   have hTy' :
       __smtx_typeof (SmtTerm.mult (__eo_to_smt n) (__eo_to_smt m)) =
         SmtType.Int := by
-    simpa using hTy
+    exact hTy
   have hNN :
       term_has_non_none_type (SmtTerm.mult (__eo_to_smt n) (__eo_to_smt m)) := by
     unfold term_has_non_none_type
@@ -743,7 +743,7 @@ private theorem str_len_eval_decomp
   intro hTy hEval
   have hTy' :
       __smtx_typeof (SmtTerm.str_len (__eo_to_smt s)) = SmtType.Int := by
-    simpa using hTy
+    exact hTy
   have hNN : term_has_non_none_type (SmtTerm.str_len (__eo_to_smt s)) := by
     unfold term_has_non_none_type
     rw [hTy']
@@ -775,7 +775,7 @@ private theorem str_to_int_eval_decomp
   intro hTy hEval
   have hTy' :
       __smtx_typeof (SmtTerm.str_to_int (__eo_to_smt s)) = SmtType.Int := by
-    simpa using hTy
+    exact hTy
   have hNN : term_has_non_none_type (SmtTerm.str_to_int (__eo_to_smt s)) := by
     unfold term_has_non_none_type
     rw [hTy']
@@ -814,7 +814,7 @@ private theorem str_indexof_eval_decomp
       __smtx_typeof
           (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt t) (__eo_to_smt n)) =
         SmtType.Int := by
-    simpa using hTy
+    exact hTy
   have hNN :
       term_has_non_none_type
           (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt t) (__eo_to_smt n)) := by
@@ -863,7 +863,7 @@ private theorem str_substr_len_eval_decomp
       __smtx_typeof
           (SmtTerm.str_substr (__eo_to_smt s) (__eo_to_smt n1) (__eo_to_smt n2)) =
         SmtType.Seq T := by
-    simpa [sub] using hSubTy
+    exact hSubTy
   have hSubNN :
       term_has_non_none_type
           (SmtTerm.str_substr (__eo_to_smt s) (__eo_to_smt n1) (__eo_to_smt n2)) := by
@@ -923,7 +923,7 @@ private theorem str_replace_len_eval_decomp
       __smtx_typeof
           (SmtTerm.str_replace (__eo_to_smt s) (__eo_to_smt t) (__eo_to_smt r)) =
         SmtType.Seq T := by
-    simpa [rep] using hRepTy
+    exact hRepTy
   have hRepNN :
       term_has_non_none_type
           (SmtTerm.str_replace (__eo_to_smt s) (__eo_to_smt t) (__eo_to_smt r)) := by
@@ -978,7 +978,7 @@ private theorem str_from_int_len_eval_decomp
       (by simpa [fromInt] using hEval) with ⟨T, seq, hFromTy, hFromEval, hzLen⟩
   have hFromTy' :
       __smtx_typeof (SmtTerm.str_from_int (__eo_to_smt n)) = SmtType.Seq T := by
-    simpa [fromInt] using hFromTy
+    exact hFromTy
   have hFromNN : term_has_non_none_type (SmtTerm.str_from_int (__eo_to_smt n)) := by
     unfold term_has_non_none_type
     rw [hFromTy']
@@ -2099,8 +2099,7 @@ private theorem native_str_from_int_len_pos_of_nonneg
       have hlt : ¬ ((Int.ofNat n : Int) < 0) :=
         Int.not_lt.mpr (Int.natCast_nonneg n)
       rw [native_str_from_int, if_neg hlt]
-      simpa [native_string_lit] using
-        Int.ofNat_lt.mpr (nat_toString_len_pos n)
+      exact Int.ofNat_lt.mpr (nat_toString_len_pos n)
   | negSucc n =>
       have hFalse : False := (Int.negSucc_not_nonneg n).mp hz
       exact False.elim hFalse
@@ -2115,8 +2114,7 @@ private theorem native_str_from_int_len_le_succ
       have hlt : ¬ ((Int.ofNat n : Int) < 0) :=
         Int.not_lt.mpr (Int.natCast_nonneg n)
       rw [native_str_from_int, if_neg hlt]
-      simpa [native_string_lit] using
-        Int.ofNat_le.mpr (nat_toString_len_le_succ n)
+      exact Int.ofNat_le.mpr (nat_toString_len_le_succ n)
   | negSucc n =>
       have hFalse : False := (Int.negSucc_not_nonneg n).mp hz
       exact False.elim hFalse
@@ -2133,8 +2131,7 @@ private theorem native_str_from_int_len_le_self_of_pos
       have hlt : ¬ ((Int.ofNat n : Int) < 0) :=
         Int.not_lt.mpr (Int.natCast_nonneg n)
       rw [native_str_from_int, if_neg hlt]
-      simpa [native_string_lit] using
-        Int.ofNat_le.mpr (nat_toString_len_le_self_of_pos n hn)
+      exact Int.ofNat_le.mpr (nat_toString_len_le_self_of_pos n hn)
     | negSucc n =>
         have hFalse : False := by
           have hneg : Int.negSucc n < 0 := Int.negSucc_lt_zero n
@@ -2877,8 +2874,7 @@ private theorem str_len_l1_true_order
             exact str_from_int_len_l1_true_order M hM x m zn zm
               hNInt hNEval hMEval
               (by
-                simpa [__eo_l_1___str_arith_entail_is_approx,
-                  __str_arith_entail_is_approx_len] using hL1Branch)
+                exact hL1Branch)
       | Apply g y =>
           cases g with
           | UOp op =>
@@ -2896,14 +2892,12 @@ private theorem str_len_l1_true_order
                     exact str_substr_len_l1_true_order M hM z y x m zn zm
                       hNInt hNEval hMEval
                       (by
-                        simpa [__eo_l_1___str_arith_entail_is_approx,
-                          __str_arith_entail_is_approx_len] using hL1Branch)
+                        exact hL1Branch)
                   case str_replace =>
                     exact str_replace_len_l1_true_order M hM z y x m zn zm
                       hNInt hNEval hMEval
                       (by
-                        simpa [__eo_l_1___str_arith_entail_is_approx,
-                          __str_arith_entail_is_approx_len] using hL1Branch)
+                        exact hL1Branch)
               | _ =>
                   simp [__eo_l_1___str_arith_entail_is_approx,
                     __str_arith_entail_is_approx_len] at hL1Branch
@@ -2950,8 +2944,7 @@ private theorem str_len_l1_false_order
             exact str_from_int_len_l1_false_order M hM x m zn zm
               hNInt hNEval hMEval
               (by
-                simpa [__eo_l_1___str_arith_entail_is_approx,
-                  __str_arith_entail_is_approx_len] using hL1Branch)
+                exact hL1Branch)
       | Apply g y =>
           cases g with
           | UOp op =>
@@ -2968,14 +2961,12 @@ private theorem str_len_l1_false_order
                     exact str_substr_len_l1_false_order M hM z y x m zn zm
                       hNInt hNEval hMEval
                       (by
-                        simpa [__eo_l_1___str_arith_entail_is_approx,
-                          __str_arith_entail_is_approx_len] using hL1Branch)
+                        exact hL1Branch)
                   case str_replace =>
                     exact str_replace_len_l1_false_order M hM z y x m zn zm
                       hNInt hNEval hMEval
                       (by
-                        simpa [__eo_l_1___str_arith_entail_is_approx,
-                          __str_arith_entail_is_approx_len] using hL1Branch)
+                        exact hL1Branch)
               | _ =>
                   simp [__eo_l_1___str_arith_entail_is_approx,
                     __str_arith_entail_is_approx_len] at hL1Branch
@@ -3770,8 +3761,7 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                     exact str_from_int_len_l1_true_order M hM x m zn zm
                       hNInt hNEval hMEval
                       (by
-                        simpa [__eo_l_1___str_arith_entail_is_approx,
-                          __str_arith_entail_is_approx_len] using hL1Branch)
+                        exact hL1Branch)
               | Apply g y =>
                   cases g with
                   | UOp op =>
@@ -3788,14 +3778,12 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                             exact str_substr_len_l1_true_order M hM z y x m zn zm
                               hNInt hNEval hMEval
                               (by
-                                simpa [__eo_l_1___str_arith_entail_is_approx,
-                                  __str_arith_entail_is_approx_len] using hL1Branch)
+                                exact hL1Branch)
                           case str_replace =>
                             exact str_replace_len_l1_true_order M hM z y x m zn zm
                               hNInt hNEval hMEval
                               (by
-                                simpa [__eo_l_1___str_arith_entail_is_approx,
-                                  __str_arith_entail_is_approx_len] using hL1Branch)
+                                exact hL1Branch)
                       | _ =>
                           simp [__eo_l_1___str_arith_entail_is_approx,
                             __str_arith_entail_is_approx_len] at hL1Branch
@@ -3827,8 +3815,7 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                     exact str_from_int_len_l1_false_order M hM x m zn zm
                       hNInt hNEval hMEval
                       (by
-                        simpa [__eo_l_1___str_arith_entail_is_approx,
-                          __str_arith_entail_is_approx_len] using hL1Branch)
+                        exact hL1Branch)
               | Apply g y =>
                   cases g with
                   | UOp op =>
@@ -3845,14 +3832,12 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                             exact str_substr_len_l1_false_order M hM z y x m zn zm
                               hNInt hNEval hMEval
                               (by
-                                simpa [__eo_l_1___str_arith_entail_is_approx,
-                                  __str_arith_entail_is_approx_len] using hL1Branch)
+                                exact hL1Branch)
                           case str_replace =>
                             exact str_replace_len_l1_false_order M hM z y x m zn zm
                               hNInt hNEval hMEval
                               (by
-                                simpa [__eo_l_1___str_arith_entail_is_approx,
-                                  __str_arith_entail_is_approx_len] using hL1Branch)
+                                exact hL1Branch)
                       | _ =>
                           simp [__eo_l_1___str_arith_entail_is_approx,
                             __str_arith_entail_is_approx_len] at hL1Branch
@@ -3886,8 +3871,7 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                     exact str_len_l1_true_order M hM x m zn zm
                       hNInt hMInt hNEval hMEval
                       (by
-                        simpa [__eo_l_1___str_arith_entail_is_approx,
-                          __str_arith_entail_is_approx_len] using hL1Branch)
+                        exact hL1Branch)
                   case str_to_int =>
                     exact str_to_int_l1_true_order M hM x m zn zm
                       hNInt hNEval hMEval

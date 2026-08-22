@@ -862,8 +862,7 @@ private theorem eval_bv_extract_concat_low
     simp [d, SmtEval.native_zplus, SmtEval.native_zneg,
       Int.add_assoc]
   have hTailBoundInt : h < (↑wt : Int) := by
-    simpa [SmtEval.native_zlt, native_nat_to_int,
-      SmtEval.native_nat_to_int] using hHTail
+    exact hHTail
   have hFitInt : (↑L : Int) + (↑D : Int) ≤ (↑wt : Int) := by
     rw [hLRound, hDRound]
     calc
@@ -956,16 +955,14 @@ private theorem native_zlt_nat_add_right_local
     native_zlt h (native_nat_to_int (extra + w)) = true := by
   intro hlt
   have hltInt : h < (↑w : Int) := by
-    simpa [SmtEval.native_zlt, native_nat_to_int,
-      SmtEval.native_nat_to_int] using hlt
+    exact hlt
   have hleNat : w ≤ extra + w := by
     omega
   have hleInt : (↑w : Int) ≤ ↑(extra + w) := by
     exact_mod_cast hleNat
   have hltAdd : h < (↑(extra + w) : Int) :=
     Int.lt_of_lt_of_le hltInt hleInt
-  simpa [SmtEval.native_zlt, native_nat_to_int,
-    SmtEval.native_nat_to_int] using hltAdd
+  exact hltAdd
 
 private theorem eval_bv_extract_list_concat_rec_low
     (M : SmtModel) (hM : model_total_typed M)
@@ -1291,7 +1288,7 @@ private theorem bvExtractConcat4Prem_smt_context
           simpa [bvExtractConcat4Prem, bvExtractConcat4PremRaw, cond]
             using hPremBool) with
       ⟨hEqTy, _hNN⟩
-    simpa [RuleProofs.eo_has_bool_type] using hEqTy
+    exact hEqTy
   change __smtx_typeof
       (SmtTerm.lt (__eo_to_smt j)
         (SmtTerm.neg
@@ -1392,7 +1389,7 @@ private theorem bvExtractConcat1Prem_smt_context
           simpa [bvExtractConcat1Prem, bvExtractConcat1PremRaw, cond]
             using hPremBool) with
       ⟨hEqTy, _hNN⟩
-    simpa [RuleProofs.eo_has_bool_type] using hEqTy
+    exact hEqTy
   change __smtx_typeof
       (SmtTerm.leq (__eo_to_smt j)
         (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))) =
@@ -1905,10 +1902,10 @@ private theorem bvExtractConcat1_body_smt_context
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat1Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat1Rhs x i j))
-      (by simpa [bvExtractConcat1Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, _hRhsNe⟩
   rcases eo_typeof_extract_arg_bitvec_of_ne_stuck
-      (by simpa [bvExtractConcat1Lhs, bvExtractTerm] using hLhsNe) with
+      (by exact hLhsNe) with
     ⟨wWhole, hWholeEoTy⟩
   have hXsList :=
     bvExtractConcat1Xs_list_of_body_bool x xs y i j hBodyTy
@@ -1927,7 +1924,7 @@ private theorem bvExtractConcat1_body_smt_context
         change __eo_typeof_concat (__eo_typeof y)
             (__eo_typeof (bvConcatTerm x (Term.Binary 0 0))) ≠
           Term.Stuck
-        simpa [bvExtractConcat1Seed, bvConcatTerm] using hSeedNe) with
+        exact hSeedNe) with
     ⟨wYTerm, _wInnerTerm, hYEoTy, _hInnerEoTy⟩
   rcases smt_bitvec_type_of_eo_bitvec_type_with_width
       y wYTerm hYTrans hYEoTy with
@@ -1977,7 +1974,7 @@ theorem typed_bv_extract_concat1_program_body
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat1Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat1Rhs x i j))
-      (by simpa [bvExtractConcat1Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, hRhsNe⟩
   rcases bv_extract_context_of_non_stuck
       x j i hXTrans (by
@@ -2078,7 +2075,7 @@ theorem typed_bv_extract_concat4_program_body
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat4Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat4Rhs y xs i j))
-      (by simpa [bvExtractConcat4Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, hRhsNe⟩
   rcases bv_extract_context_of_non_stuck
       (bvConcatTerm x tail) j i hConcatTrans (by
@@ -2506,7 +2503,7 @@ theorem facts_bv_extract_concat1_program_body
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat1Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat1Rhs x i j))
-      (by simpa [bvExtractConcat1Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, hRhsNe⟩
   rcases bv_extract_context_of_non_stuck
       x j i hXTrans (by
@@ -2594,7 +2591,7 @@ theorem facts_bv_extract_concat4_program_body
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat4Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat4Rhs y xs i j))
-      (by simpa [bvExtractConcat4Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, _hRhsNe⟩
   rcases bv_extract_context_of_non_stuck
       (bvConcatTerm x tail) j i hConcatTrans (by
@@ -3058,7 +3055,7 @@ private theorem bvExtractConcat2PremI_smt_context
         cond (Term.Boolean true) (by
           simpa [bvExtractConcat2PremI, cond] using hPremBool) with
       ⟨hEqTy, _hNN⟩
-    simpa [RuleProofs.eo_has_bool_type] using hEqTy
+    exact hEqTy
   change __smtx_typeof
       (SmtTerm.lt (__eo_to_smt i)
         (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))) =
@@ -3103,10 +3100,10 @@ private theorem bvExtractConcat2_body_smt_context
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat2Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat2Rhs x y xs i u1 u2))
-      (by simpa [bvExtractConcat2Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, _hRhsNe⟩
   rcases eo_typeof_extract_arg_bitvec_of_ne_stuck
-      (by simpa [bvExtractConcat2Lhs, bvExtractTerm] using hLhsNe) with
+      (by exact hLhsNe) with
     ⟨wWhole, hWholeEoTy⟩
   have hXsList :=
     bvExtractConcat2Xs_list_of_body_bool x xs y i j u1 u2 hBodyTy
@@ -3122,7 +3119,7 @@ private theorem bvExtractConcat2_body_smt_context
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local (by
       change __eo_typeof_concat (__eo_typeof y)
           (__eo_typeof (bvConcatTerm x (Term.Binary 0 0))) ≠ Term.Stuck
-      simpa [bvExtractConcat1Seed, bvConcatTerm] using hSeedNe) with
+      exact hSeedNe) with
     ⟨wYTerm, _wInnerTerm, hYEoTy, _hInnerEoTy⟩
   rcases smt_bitvec_type_of_eo_bitvec_type_with_width
       y wYTerm hYTrans hYEoTy with
@@ -3189,7 +3186,7 @@ theorem typed_bv_extract_concat2_program_body
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat2Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat2Rhs x y xs i u1 u2))
-      (by simpa [bvExtractConcat2Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, hRhsNe⟩
   rcases bv_extract_context_of_non_stuck
       (bvExtractConcat1Whole x y xs) j i hWholeTrans
@@ -3204,7 +3201,7 @@ theorem typed_bv_extract_concat2_program_body
   have hRhsConcatNe :
       __eo_typeof_concat (__eo_typeof high) (__eo_typeof inner) ≠
         Term.Stuck := by
-    simpa [bvExtractConcat2Rhs, bvConcatTerm, high, low, inner] using hRhsNe
+    exact hRhsNe
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hRhsConcatNe with
     ⟨wHighEo, wInnerEo, hHighEoTy, hInnerEoTy⟩
   have hHighNe : __eo_typeof high ≠ Term.Stuck := by
@@ -3226,7 +3223,7 @@ theorem typed_bv_extract_concat2_program_body
   have hInnerConcatNe :
       __eo_typeof_concat (__eo_typeof low)
           (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
-    simpa [inner, bvConcatTerm] using hInnerNe
+    exact hInnerNe
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hInnerConcatNe with
     ⟨wLowEo, wEmptyEo, hLowEoTy, _hEmptyEoTy⟩
   have hLowNe : __eo_typeof low ≠ Term.Stuck := by
@@ -3298,7 +3295,7 @@ theorem typed_bv_extract_concat2_program_body
     cases h
   have hEOTypeEq : __eo_typeof lhs = __eo_typeof rhs := by
     apply RuleProofs.eo_typeof_eq_bool_operands_eq
-    simpa [bvExtractConcat2Term, lhs, rhs] using hTermTy
+    exact hTermTy
   have hLhsBridge :=
     RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
       lhs (__eo_typeof lhs) (__eo_to_smt lhs) rfl hLhsTrans rfl
@@ -3401,7 +3398,7 @@ private theorem bvExtractConcat3PremI_smt_context
         cond (Term.Boolean true) (by
           simpa [bvExtractConcat3PremI, cond] using hPremBool) with
       ⟨hEqTy, _hNN⟩
-    simpa [RuleProofs.eo_has_bool_type] using hEqTy
+    exact hEqTy
   change __smtx_typeof
       (SmtTerm.geq (__eo_to_smt i)
         (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))) =
@@ -3446,10 +3443,10 @@ private theorem bvExtractConcat3_body_smt_context
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat3Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat3Rhs y xs u l))
-      (by simpa [bvExtractConcat3Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, _hRhsNe⟩
   rcases eo_typeof_extract_arg_bitvec_of_ne_stuck
-      (by simpa [bvExtractConcat3Lhs, bvExtractTerm] using hLhsNe) with
+      (by exact hLhsNe) with
     ⟨wWhole, hWholeEoTy⟩
   have hXsList :=
     bvExtractConcat3Xs_list_of_body_bool x y xs i j u l hBodyTy
@@ -3465,7 +3462,7 @@ private theorem bvExtractConcat3_body_smt_context
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local (by
       change __eo_typeof_concat (__eo_typeof y)
           (__eo_typeof (bvConcatTerm x (Term.Binary 0 0))) ≠ Term.Stuck
-      simpa [bvExtractConcat1Seed, bvConcatTerm] using hSeedNe) with
+      exact hSeedNe) with
     ⟨wYTerm, _wInnerTerm, hYEoTy, _hInnerEoTy⟩
   rcases smt_bitvec_type_of_eo_bitvec_type_with_width
       y wYTerm hYTrans hYEoTy with
@@ -3527,7 +3524,7 @@ theorem typed_bv_extract_concat3_program_body
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat3Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat3Rhs y xs u l))
-      (by simpa [bvExtractConcat3Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, hRhsNe⟩
   rcases bv_extract_context_of_non_stuck
       (bvExtractConcat1Whole x y xs) j i hWholeTrans
@@ -3570,7 +3567,7 @@ theorem typed_bv_extract_concat3_program_body
     cases h
   have hEOTypeEq : __eo_typeof lhs = __eo_typeof rhs := by
     apply RuleProofs.eo_typeof_eq_bool_operands_eq
-    simpa [bvExtractConcat3Term, lhs, rhs] using hTermTy
+    exact hTermTy
   have hLhsBridge :=
     RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
       lhs (__eo_typeof lhs) (__eo_to_smt lhs) rfl hLhsTrans rfl
@@ -4321,7 +4318,7 @@ theorem facts_bv_extract_concat2_program_body
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat2Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat2Rhs x y xs i u1 u2))
-      (by simpa [bvExtractConcat2Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, hRhsNe⟩
   rcases bv_extract_context_of_non_stuck
       (bvExtractConcat1Whole x y xs) j i hWholeTrans
@@ -4336,7 +4333,7 @@ theorem facts_bv_extract_concat2_program_body
   have hRhsConcatNe :
       __eo_typeof_concat (__eo_typeof high) (__eo_typeof inner) ≠
         Term.Stuck := by
-    simpa [bvExtractConcat2Rhs, bvConcatTerm, high, low, inner] using hRhsNe
+    exact hRhsNe
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hRhsConcatNe with
     ⟨wHighEo, wInnerEo, hHighEoTy, hInnerEoTy⟩
   have hHighNe : __eo_typeof high ≠ Term.Stuck := by
@@ -4358,7 +4355,7 @@ theorem facts_bv_extract_concat2_program_body
   have hInnerConcatNe :
       __eo_typeof_concat (__eo_typeof low)
           (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
-    simpa [inner, bvConcatTerm] using hInnerNe
+    exact hInnerNe
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hInnerConcatNe with
     ⟨wLowEo, wEmptyEo, hLowEoTy, _hEmptyEoTy⟩
   have hLowNe : __eo_typeof low ≠ Term.Stuck := by
@@ -4387,11 +4384,9 @@ theorem facts_bv_extract_concat2_program_body
     simpa [DH, native_nat_to_int, SmtEval.native_nat_to_int] using
       native_int_to_nat_roundtrip dHigh hdHighNonneg
   have hiWxInt : iv < (↑wx : Int) := by
-    simpa [SmtEval.native_zlt, native_nat_to_int,
-      SmtEval.native_nat_to_int] using hiWx
+    exact hiWx
   have hWxJInt : (↑wx : Int) ≤ jv := by
-    simpa [SmtEval.native_zleq, native_nat_to_int,
-      SmtEval.native_nat_to_int] using hWxJ
+    exact hWxJ
   have hu1Int : u1v = jv - (↑wx : Int) := by
     simpa [SmtEval.native_zplus, SmtEval.native_zneg,
       native_nat_to_int, SmtEval.native_nat_to_int,
@@ -4447,8 +4442,7 @@ theorem facts_bv_extract_concat2_program_body
       wx hXTy with ⟨px, hXEval, hXCan⟩
   have hWt0 : native_zleq 0 (native_nat_to_int (wxs + wy)) = true := by
     have hNonneg : (0 : Int) ≤ ↑(wxs + wy) := Int.natCast_nonneg _
-    simpa [SmtEval.native_zleq, native_nat_to_int,
-      SmtEval.native_nat_to_int] using hNonneg
+    exact hNonneg
   have hWx0 : native_zleq 0 (native_nat_to_int wx) = true := by
     simp [SmtEval.native_zleq, native_nat_to_int,
       SmtEval.native_nat_to_int]
@@ -4456,8 +4450,7 @@ theorem facts_bv_extract_concat2_program_body
   have hXRange := bitvec_payload_range_of_canonical hWx0 hXCan
   have hpt0 : 0 ≤ pt := hTRange.1
   have hpt1 : pt < (2 : Int) ^ (wxs + wy) := by
-    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using
-      hTRange.2
+    exact hTRange.2
   have hpx0 : 0 ≤ px := hXRange.1
   have hpx1 : px < (2 : Int) ^ wx := by
     simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using
@@ -4674,7 +4667,7 @@ theorem facts_bv_extract_concat3_program_body
   rcases RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvExtractConcat3Lhs x y xs i j))
       (__eo_typeof (bvExtractConcat3Rhs y xs u l))
-      (by simpa [bvExtractConcat3Term] using hTermTy) with
+      (by exact hTermTy) with
     ⟨hLhsNe, hRhsNe⟩
   rcases bv_extract_context_of_non_stuck
       (bvExtractConcat1Whole x y xs) j i hWholeTrans
@@ -4764,8 +4757,7 @@ theorem facts_bv_extract_concat3_program_body
       wx hXTy with ⟨px, hXEval, hXCan⟩
   have hWt0 : native_zleq 0 (native_nat_to_int (wxs + wy)) = true := by
     have hNonneg : (0 : Int) ≤ ↑(wxs + wy) := Int.natCast_nonneg _
-    simpa [SmtEval.native_zleq, native_nat_to_int,
-      SmtEval.native_nat_to_int] using hNonneg
+    exact hNonneg
   have hWx0 : native_zleq 0 (native_nat_to_int wx) = true := by
     simp [SmtEval.native_zleq, native_nat_to_int,
       SmtEval.native_nat_to_int]
@@ -4773,8 +4765,7 @@ theorem facts_bv_extract_concat3_program_body
   have hXRange := bitvec_payload_range_of_canonical hWx0 hXCan
   have hpt0 : 0 ≤ pt := hTRange.1
   have hpt1 : pt < (2 : Int) ^ (wxs + wy) := by
-    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using
-      hTRange.2
+    exact hTRange.2
   have hpx0 : 0 ≤ px := hXRange.1
   have hpx1 : px < (2 : Int) ^ wx := by
     simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] using

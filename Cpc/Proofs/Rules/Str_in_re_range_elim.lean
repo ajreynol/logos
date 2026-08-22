@@ -246,8 +246,8 @@ private theorem smtx_typeof_of_eo_seq_char
       __smtx_typeof (__eo_to_smt a) = __eo_to_smt_type (__eo_typeof a) :=
     TranslationProofs.eo_to_smt_typeof_matches_translation a hTrans
   rw [hTy] at hTyRaw
-  simpa [TranslationProofs.eo_to_smt_type_seq,
-    TranslationProofs.eo_to_smt_type_char] using hTyRaw
+  simp only [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hTyRaw
+  exact hTyRaw
 
 private theorem typed_concl
     (s c1 c2 : Term)
@@ -404,13 +404,16 @@ private theorem facts
     ⟨sc2, hC2Eval, hSc2Ty⟩
   have hSValid : native_string_valid (native_unpack_string ss) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
-    simpa [hSEval] using hSEvalTy
+    simp only [hSEval] at hSEvalTy
+    exact hSEvalTy
   have hC1Valid : native_string_valid (native_unpack_string sc1) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
-    simpa [hC1Eval] using hC1EvalTy
+    simp only [hC1Eval] at hC1EvalTy
+    exact hC1EvalTy
   have hC2Valid : native_string_valid (native_unpack_string sc2) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
-    simpa [hC2Eval] using hC2EvalTy
+    simp only [hC2Eval] at hC2EvalTy
+    exact hC2EvalTy
   have hC1Len : native_seq_len (native_unpack_seq sc1) = 1 :=
     seq_len_one_of_prem M c1 sc1 hC1Eval hPremC1
   have hC2Len : native_seq_len (native_unpack_seq sc2) = 1 :=

@@ -1534,8 +1534,8 @@ private theorem dt_inst_tuple_unit_interprets
           vsm_num_apply_args_eq_dt_num_sels_of_datatype
             (v := __smtx_model_eval M X) hHead hEvalTy
         simpa [D, __smtx_tuple_datatype_decl, __smtx_dd_lookup,
-          __smtx_dt_resolve, __smtx_dt_num_sels, __smtx_dtc_num_sels,
-          native_streq, native_ite] using hCountSub
+          __smtx_dt_resolve, __smtx_dtc_resolve, __smtx_dt_num_sels,
+          __smtx_dtc_num_sels, native_streq, native_ite] using hCountSub
       have hVal :
           __smtx_model_eval M X =
             SmtValue.DtCons (native_string_lit "@Tuple") D native_nat_zero := by

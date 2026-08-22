@@ -71,7 +71,10 @@ theorem umulo_indices_eq
         intZeroList (w - 1)
     have hNegFalse :
         native_zlt (native_nat_to_int (w - 1)) (0 : native_Int) = false := by
-      simp [native_zlt, native_nat_to_int]
+      simp only [native_zlt, native_nat_to_int]
+      refine decide_eq_false ?_
+      show ¬ (((w - 1 : Nat) : Int) < 0)
+      omega
     have hToNat :
         native_int_to_nat (native_nat_to_int (w - 1)) = w - 1 := by
       simp [native_int_to_nat, native_nat_to_int]
@@ -1080,7 +1083,8 @@ by
               change __eo_typeof (__eo_prog_bv_umulo_elim A) = Term.Bool
                 at hResultTy
               have hProgNe' : __eo_prog_bv_umulo_elim A ≠ Term.Stuck := by
-                simpa using hProgNe
+                change __eo_prog_bv_umulo_elim A ≠ Term.Stuck at hProgNe
+                exact hProgNe
               rcases bv_umulo_elim_shape_of_ne_stuck A hProgNe' with
                 ⟨a, b, rhs, hShape⟩
               subst A
@@ -1120,7 +1124,7 @@ by
                   term_has_non_none_type
                     (SmtTerm.bvumulo (__eo_to_smt a) (__eo_to_smt b)) := by
                 unfold term_has_non_none_type
-                simpa [lhs] using hLhsNN
+                exact hLhsNN
               rcases bvumulo_typeof_args_of_non_none hBvumuloNN with
                 ⟨w, haSmtTy, hbSmtTy⟩
               have haEoTy := eo_bitvec_type_of_smt_type a w haSmtTy

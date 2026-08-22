@@ -61,7 +61,7 @@ private theorem str_in_re_eval_valid_properties
   have hEqTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply (Term.UOp UserOp.eq) strIn) side) := by
-    simpa [strIn, side, body] using hArgTrans
+    exact hArgTrans
   have hEqBool :
       RuleProofs.eo_has_bool_type
         (Term.Apply (Term.Apply (Term.UOp UserOp.eq) strIn) side) := by
@@ -99,7 +99,7 @@ private theorem str_in_re_eval_valid_properties
     exact smtx_model_eval_str_in_re_eval_side M hM str r side rv hSTy hRTy
       hREval rfl hSideNe
   refine ⟨?_, RuleProofs.eo_has_smt_translation_of_has_bool_type _
-    (by simpa [strIn, side] using hEqBool)⟩
+    (by exact hEqBool)⟩
   intro _hPremises
   exact RuleProofs.eo_interprets_eq_of_rel M strIn side hEqBool <| by
     rw [hLeftEval, hSideEval]

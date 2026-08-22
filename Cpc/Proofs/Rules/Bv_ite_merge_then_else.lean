@@ -286,13 +286,13 @@ private theorem eval_bv1_of_smt_type_bitvec_one
   have hPayloadCanon :
       native_zeq payload (native_mod_total payload (native_int_pow2 1)) =
         true := by
-    exact bitvec_payload_canonical (by simpa [hEvalT] using hEvalTy)
+    exact bitvec_payload_canonical (by simpa [hEvalT, native_nat_to_int, native_int_to_nat] using hEvalTy)
   have hWidth : native_zleq 0 1 = true := by
     native_decide
   have hRange := bitvec_payload_range_of_canonical hWidth hPayloadCanon
   have hPayloadCases : payload = 0 ∨ payload = 1 := by
     have hLtTwo : payload < 2 := by
-      simpa [native_int_pow2] using hRange.2
+      simpa [native_int_pow2, native_zexp_total] using hRange.2
     have hLeOne : payload ≤ 1 := Int.le_of_lt_add_one hLtTwo
     rcases Int.lt_or_eq_of_le hRange.1 with hPos | hZero
     · have hGeOne : 1 ≤ payload := (Int.add_one_le_iff).mpr hPos
@@ -301,10 +301,10 @@ private theorem eval_bv1_of_smt_type_bitvec_one
   rcases hPayloadCases with hPayload | hPayload
   · refine ⟨false, ?_⟩
     subst payload
-    simpa [bv1] using hEvalT
+    simpa [bv1, native_nat_to_int] using hEvalT
   · refine ⟨true, ?_⟩
     subst payload
-    simpa [bv1] using hEvalT
+    simpa [bv1, native_nat_to_int] using hEvalT
 
 private theorem eval_merge_then_else_cond
     (M : SmtModel) (c1 c2 : Term) (b1 b2 : Bool) :
@@ -339,7 +339,7 @@ private theorem eval_eq_bv1_one
         (SmtTerm.eq (__eo_to_smt x) (SmtTerm.Binary 1 1)) =
       SmtValue.Boolean b := by
   intro hx
-  simpa using eval_eq_bv1_one_term M x b hx
+  exact eval_eq_bv1_one_term M x b hx
 
 private theorem eval_bvite_merge_then_else
     (M : SmtModel) (hM : model_total_typed M) (c1 c2 t1 e1 : Term) :
