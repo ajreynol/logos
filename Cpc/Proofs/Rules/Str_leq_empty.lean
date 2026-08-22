@@ -188,7 +188,7 @@ private theorem facts___eo_prog_str_leq_empty_impl
         simp)
   rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
   have hSeqTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
-    simpa [hSEval] using hSEvalTy
+    simpa [hSEval, __smtx_typeof_seq_value, __smtx_typeof_value] using hSEvalTy
   have hPack : native_pack_string (native_unpack_string ss) = ss :=
     native_pack_string_unpack_string_of_typeof_seq_char ss hSeqTy
   rw [hProgEq]
