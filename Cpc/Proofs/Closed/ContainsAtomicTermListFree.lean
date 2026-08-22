@@ -442,7 +442,7 @@ by
     ⟨setVars,
       by
         simpa [__eo_list_setof, __eo_requires, hList, native_ite,
-          native_teq] using hSet⟩
+          native_teq, native_not] using hSet⟩
 
 theorem setof_mem_of_mem
     {env : Term} {vars : List EoVarKey}
@@ -460,7 +460,7 @@ by
     ⟨setVars,
       by
         simpa [__eo_list_setof, __eo_requires, hList, native_ite,
-          native_teq] using hSet,
+          native_teq, native_not] using hSet,
       hSetMem⟩
 
 theorem diff_rec :
@@ -560,7 +560,7 @@ by
     ⟨diffVars,
       by
         simpa [__eo_list_diff, __eo_requires, hAList, hBList,
-          native_ite, native_teq] using hDiff⟩
+          native_ite, native_teq, native_not] using hDiff⟩
 
 theorem concat_rec :
     ∀ {vs env : Term} {binderVars vars : List EoVarKey},
@@ -605,7 +605,7 @@ theorem concat :
         have hVsList := hVs.is_list
         have hEnvList := hEnv.is_list
         simpa [__eo_list_concat, __eo_requires, hVsList, hEnvList,
-          native_ite, native_teq]
+          native_ite, native_teq, native_not]
           using concat_rec hVs hEnv
 
 theorem find_rec_neg_false_of_mem
@@ -720,7 +720,8 @@ theorem find_neg_false_of_mem
     Term.Boolean false :=
 by
   have hList := hEnv.is_list
-  simpa [__eo_list_find, __eo_requires, hList, native_ite, native_teq]
+  simpa [__eo_list_find, __eo_requires, hList, native_ite, native_teq,
+    native_not]
     using
       hEnv.find_rec_neg_false_of_mem hMem
         (show (0 : native_Int) ≤ (0 : native_Int) by
@@ -737,7 +738,8 @@ theorem find_neg_true_of_not_mem
     Term.Boolean true :=
 by
   have hList := hEnv.is_list
-  simpa [__eo_list_find, __eo_requires, hList, native_ite, native_teq]
+  simpa [__eo_list_find, __eo_requires, hList, native_ite, native_teq,
+    native_not]
     using
       hEnv.find_rec_neg_true_of_not_mem hNotMem
         (show (0 : native_Int) ≤ (0 : native_Int) by
@@ -874,7 +876,7 @@ by
           all_goals
             exact hValid
       | _ =>
-          simpa [TranslationProofs.eo_type_valid] using hValid
+          exact hValid
     have hT : T = T' :=
       TranslationProofs.eo_to_smt_type_eq_of_valid
         (T := T) (U := T') hValidRec hType.symm
@@ -1729,6 +1731,19 @@ by
   all_goals
     simp [__eo_to_smt_updater, __smtx_model_eval]
 
+/-- Outside the tuple-shaped case `__eo_to_smt_tuple_update` is `SmtTerm.None`,
+which any two models evaluate the same way.  Discharging the fall-through cases
+through this lemma keeps `__smtx_model_eval` from being unfolded once per
+`SmtType`/`SmtTerm` constructor pair. -/
+theorem smtx_model_eval_eo_to_smt_tuple_update_none_eq
+    {M N : SmtModel} {T : SmtType} {idx t u : SmtTerm}
+    (h : __eo_to_smt_tuple_update T idx t u = SmtTerm.None) :
+  __smtx_model_eval M (__eo_to_smt_tuple_update T idx t u) =
+    __smtx_model_eval N (__eo_to_smt_tuple_update T idx t u) :=
+by
+  rw [h]
+  simp [__smtx_model_eval]
+
 theorem smtx_model_eval_eo_to_smt_tuple_update_eq_of_eval_eq
     {M N : SmtModel} (hGlobals : model_agrees_on_globals M N)
     (T : SmtType) (idx t u : SmtTerm)
@@ -1741,16 +1756,18 @@ theorem smtx_model_eval_eo_to_smt_tuple_update_eq_of_eval_eq
   __smtx_model_eval M (__eo_to_smt_tuple_update T idx t u) =
     __smtx_model_eval N (__eo_to_smt_tuple_update T idx t u) :=
 by
-  cases T <;> cases idx
-  case Datatype.Numeral s dd n =>
-    cases dd with
-    | nil =>
-        simp [__eo_to_smt_tuple_update, __smtx_model_eval]
-    | cons s2 d rest =>
-        cases rest with
-        | cons s3 d3 rest3 =>
-            simp [__eo_to_smt_tuple_update, __smtx_model_eval]
-        | nil =>
+  -- Split only as far as `__eo_to_smt_tuple_update` actually looks: the index
+  -- is examined solely for a one-constructor `@Tuple` datatype body.
+  cases T
+  case Datatype s dd =>
+    cases dd
+    case cons s2 d rest =>
+      cases rest
+      case cons s3 d3 rest3 =>
+          exact smtx_model_eval_eo_to_smt_tuple_update_none_eq rfl
+      case nil =>
+          cases idx
+          case Numeral n =>
             cases hGuard :
                 native_and
                   (native_and
@@ -1777,8 +1794,12 @@ by
                     (__smtx_tuple_datatype_decl d) native_nat_zero
                     (native_int_to_nat n))
                   t u ht hu
+          all_goals
+            exact smtx_model_eval_eo_to_smt_tuple_update_none_eq rfl
+    case nil =>
+      exact smtx_model_eval_eo_to_smt_tuple_update_none_eq rfl
   all_goals
-    simp [__eo_to_smt_tuple_update, __smtx_model_eval]
+    exact smtx_model_eval_eo_to_smt_tuple_update_none_eq rfl
 
 theorem contains_atomic_term_list_free_rec_apply_uop_false_arg
     {op : UserOp} {x except bound : Term}

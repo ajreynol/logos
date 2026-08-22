@@ -89,7 +89,9 @@ theorem eq_of_requires_eq_true_not_stuck (x y B : Term) :
     y = x := by
   intro hProg
   have hProg' := hProg
-  simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
+  -- Leaving `__eo_eq` folded keeps the `Decidable` instance in the `native_teq`
+  -- application in sync with the proposition `simp` rewrites underneath it.
+  simp [__eo_requires, native_ite, native_teq, native_not,
     SmtEval.native_not] at hProg'
   exact eq_of_eo_eq_true x y hProg'.1
 
