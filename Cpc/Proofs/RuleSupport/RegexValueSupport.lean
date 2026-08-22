@@ -40,7 +40,7 @@ move between the two views along that observation.
     Smtm.native_str_in_re (native_unpack_seq ss) r =
       RuleProofs.native_str_in_re (native_unpack_string ss) r := by
   apply model_str_in_re_unpack_eq_string ss r
-  simpa using hTy
+  exact hTy
 
 theorem seq_value_canonical_with_char_type {v : SmtValue}
     (hTy : __smtx_typeof_value v = SmtType.Seq SmtType.Char) :

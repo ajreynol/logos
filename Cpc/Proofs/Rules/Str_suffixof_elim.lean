@@ -112,7 +112,7 @@ private theorem typed___eo_prog_str_suffixof_elim_impl
         __smtx_typeof
           (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt t))
             (SmtTerm.str_len (__eo_to_smt s))) = SmtType.Int := by
-      simpa [start, lenS, lenT] using hStartTy
+      simpa [start, lenS, lenT, __eo_to_smt, __smtx_typeof] using hStartTy
     change __smtx_typeof
       (SmtTerm.str_substr (__eo_to_smt t)
         (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt t))

@@ -450,7 +450,7 @@ by
                           (__eo_prog_bv_extract_whole a1 a2 (Proof.pf P1))
                       have hProgLocal :
                           __eo_prog_bv_extract_whole a1 a2 (Proof.pf P1) ≠ Term.Stuck := by
-                        simpa [P1] using hProg
+                        exact hProg
                       rcases bv_extract_whole_shape_of_ne_stuck a1 a2 P1 hProgLocal with
                         ⟨hA1Ne, hA2Ne, px, pn, hP1⟩
                       have hReqNe :

@@ -206,8 +206,7 @@ private theorem leftStep_eq_rotateLeft_one
                   (SmtValue.Numeral 0) (SmtValue.Binary (↑(W + 2)) p) =
                 SmtValue.Binary (↑(W + 1))
                   (↑((p.toNat % 2 ^ (W + 1)) : Nat) : Int) := by
-            simpa only [Nat.pow_zero, Nat.div_one] using
-              extract_valN (W + 2) p W 0 hp0 (by omega)
+            exact extract_valN (W + 2) p W 0 hp0 (by omega)
           rw [hLowEval]
           rw [extract_valN (W + 2) p (W + 1) (W + 1) hp0 (by omega)]
           have hOne : W + 1 + 1 - (W + 1) = 1 := by omega
@@ -240,7 +239,7 @@ private theorem leftStep_eq_rotateLeft_one
               ((x.extractLsb' 0 (W + 1)) ++ (x.extractLsb' (W + 1) 1)).toNat =
                 (x.rotateLeft 1).toNat := by
             simpa [x] using congrArg BitVec.toNat hRotate
-          simpa [joined, low, high] using hAppend
+          exact hAppend
 
 private def rightStep (w p : Int) : SmtValue :=
   __smtx_model_eval_concat
@@ -278,9 +277,7 @@ private theorem rightStep_eq_rotateRight_one
               __smtx_model_eval_extract (SmtValue.Numeral 0)
                   (SmtValue.Numeral 0) (SmtValue.Binary (↑(W + 2)) p) =
                 SmtValue.Binary 1 (↑((p.toNat % 2) : Nat) : Int) := by
-            simpa only [Nat.pow_zero, Nat.div_one, Nat.zero_add, Nat.add_zero,
-              Nat.sub_zero, Nat.pow_one] using
-              extract_valN (W + 2) p 0 0 hp0 (by omega)
+            exact extract_valN (W + 2) p 0 0 hp0 (by omega)
           rw [hBitEval]
           have hRestWidth : W + 1 + 1 - 1 = W + 1 := by omega
           have hRestEval :
@@ -288,8 +285,7 @@ private theorem rightStep_eq_rotateRight_one
                   (SmtValue.Numeral 1) (SmtValue.Binary (↑(W + 2)) p) =
                 SmtValue.Binary (↑(W + 1))
                   (↑((p.toNat / 2 % 2 ^ (W + 1)) : Nat) : Int) := by
-            simpa only [hRestWidth, Nat.pow_one] using
-              extract_valN (W + 2) p (W + 1) 1 hp0 (by omega)
+            exact extract_valN (W + 2) p (W + 1) 1 hp0 (by omega)
           rw [hRestEval]
           have hConcatEval :
               __smtx_model_eval_concat
@@ -299,9 +295,7 @@ private theorem rightStep_eq_rotateRight_one
                 SmtValue.Binary (↑(W + 2))
                   (↑(((p.toNat % 2) * 2 ^ (W + 1) +
                     p.toNat / 2 % 2 ^ (W + 1)) % 2 ^ (W + 2) : Nat) : Int) := by
-            simpa only [Nat.one_add, Nat.add_comm] using
-              concat_valN 1 (p.toNat % 2) (W + 1)
-                (p.toNat / 2 % 2 ^ (W + 1))
+            exact concat_valN 1 (p.toNat % 2) (W + 1) (p.toNat / 2 % 2 ^ (W + 1))
           rw [hConcatEval]
           congr 2
           let x := BitVec.ofInt (W + 2) p
@@ -329,7 +323,7 @@ private theorem rightStep_eq_rotateRight_one
               ((x.extractLsb' 0 1) ++ (x.extractLsb' 1 (W + 1))).toNat =
                 (x.rotateRight 1).toNat := by
             simpa [x] using congrArg BitVec.toNat hRotate
-          simpa [joined, low, rest] using hAppend
+          exact hAppend
 
 private theorem ofInt_natCast_toNat (x : BitVec w) :
     BitVec.ofInt w (Int.ofNat x.toNat) = x := by
@@ -537,8 +531,8 @@ theorem bv_rotate_elim_args_type_of_bool
         Term.Stuck := by
     have hOperands := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvRotateElimLhs k x amount)) (__eo_typeof x)
-      (by cases k <;> simpa [bvRotateElimTerm, bvRotateElimLhs] using hTy)
-    cases k <;> simpa [bvRotateElimLhs] using hOperands.1
+      (by cases k <;> exact hTy)
+    cases k <;> exact hOperands.1
   rcases eo_typeof_rotate_arg_bitvec_of_ne_stuck hRotNe with ⟨w, hXTy⟩
   have hReq :
       __eo_requires (__eo_gt amount (Term.Numeral (-1 : native_Int)))

@@ -800,7 +800,7 @@ private theorem fixed_len_re_sound
           | nil => rfl
           | cons c cs ih =>
               simp [Function.comp, native_ssm_char_of_value, ih]
-        simpa [hMap] using hIn
+        exact hIn
       have hLen := nativeListInRe_str_to_re_true_length pat xs hIn'
       simpa [native_str_len] using congrArg Int.ofNat hLen
   | Term.Apply (Term.Apply (Term.UOp UserOp.re_range) lo) hi, rv, n, hFixed, hEval, xs, hIn => by
@@ -841,7 +841,7 @@ private theorem fixed_len_re_sound
               simp [__smtx_model_eval_re_concat, hEval₁, hEval₂] at hEval
               subst rv
               rcases (nativeListInRe_mk_concat_true_iff_exists_append xs rv₁ rv₂).1
-                  (by simpa [native_re_concat] using hIn) with
+                  (by exact hIn) with
                 ⟨left, right, hAppend, hLeft, hRight⟩
               have hLeftLen :=
                 fixed_len_re_sound M r₁ rv₁ n₁ hFixed₁ hEval₁ left hLeft
@@ -1029,7 +1029,7 @@ private theorem fixed_len_re_sound
                       | nil => rfl
                       | cons c cs ih =>
                           simp [Function.comp, native_ssm_char_of_value, ih]
-                    simpa [hMap] using hIn
+                    exact hIn
                   have hLen := nativeListInRe_str_to_re_true_length pat xs hIn'
                   simpa [native_str_len] using congrArg Int.ofNat hLen
                 case Binary w bits =>
@@ -1081,7 +1081,7 @@ private theorem fixed_len_re_sound
                             simp [__smtx_model_eval_re_concat, hEval₁, hEval₂] at hEval
                             subst rv
                             rcases (nativeListInRe_mk_concat_true_iff_exists_append xs rv₁ rv₂).1
-                                (by simpa [native_re_concat] using hIn) with
+                                (by exact hIn) with
                               ⟨left, right, hAppend, hLeft, hRight⟩
                             have hLeftLen :=
                               fixed_len_re_sound M y rv₁ n₁ hFixed₁ hEval₁ left hLeft

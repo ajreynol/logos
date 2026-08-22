@@ -447,7 +447,7 @@ by
               change __eo_typeof (__eo_prog_bv_repeat_elim A) = Term.Bool
                 at hResultTy
               have hProgNe' : __eo_prog_bv_repeat_elim A ≠ Term.Stuck := by
-                simpa using hProgNe
+                exact hProgNe
               rcases bv_repeat_elim_shape_of_ne_stuck A hProgNe' with
                 ⟨n, a, rhs, hShape⟩
               subst A
@@ -491,7 +491,7 @@ by
                   term_has_non_none_type
                     (SmtTerm.repeat (__eo_to_smt n) (__eo_to_smt a)) := by
                 unfold term_has_non_none_type
-                simpa [rep] using hRepNN
+                exact hRepNN
               rcases repeat_args_of_non_none hRepeatNN with
                 ⟨i, w, hn, haTy, hi⟩
               have hRelExpanded :

@@ -46,8 +46,7 @@ private theorem eq_of_requires_eq_true_not_stuck (x y B : Term) :
     y = x := by
   intro hProg
   have hProg' := hProg
-  simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
-    SmtEval.native_not] at hProg'
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hProg'
   have hEq : __eo_eq x y = Term.Boolean true := hProg'.1
   by_cases hx : x = Term.Stuck
   · subst x
@@ -489,7 +488,7 @@ by
                       (__eo_prog_bv_not_neq a1 (Proof.pf P1))
                   have hProgLocal :
                       __eo_prog_bv_not_neq a1 (Proof.pf P1) ≠ Term.Stuck := by
-                    simpa [P1] using hProg
+                    exact hProg
                   rcases bv_not_neq_shape_of_ne_stuck a1 P1 hProgLocal with
                     ⟨hA1Ne, px, hP1⟩
                   have hReqNe : __eo_requires (__eo_eq a1 px) (Term.Boolean true)

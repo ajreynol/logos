@@ -135,7 +135,8 @@ private theorem smt_typeof_seq_empty_typeof_of_smt_type_seq
   have hSeqWF : __smtx_type_wf (SmtType.Seq T) = true := by
     have hGood :=
       smt_term_result_seq_components_wf_of_non_none (__eo_to_smt x) hTrans
-    simpa [hxTy] using hGood
+    simp only [hxTy] at hGood
+    exact hGood
   by_cases hSpecial :
       __eo_typeof x =
         Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)

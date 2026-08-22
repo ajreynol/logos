@@ -462,7 +462,7 @@ theorem arith_rel_op_has_bool_type_of_translation
           SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b) by rfl]
       have hNN : term_has_non_none_type (SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b)) := by
         unfold term_has_non_none_type
-        simpa [relTerm] using hTrans
+        simpa [relTerm, __eo_to_smt, __smtx_typeof] using hTrans
       rcases arith_binop_ret_bool_args_of_non_none
           (op := SmtTerm.lt) (typeof_lt_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
           with hArgs | hArgs
@@ -476,7 +476,7 @@ theorem arith_rel_op_has_bool_type_of_translation
           SmtTerm.leq (__eo_to_smt a) (__eo_to_smt b) by rfl]
       have hNN : term_has_non_none_type (SmtTerm.leq (__eo_to_smt a) (__eo_to_smt b)) := by
         unfold term_has_non_none_type
-        simpa [relTerm] using hTrans
+        simpa [relTerm, __eo_to_smt, __smtx_typeof] using hTrans
       rcases arith_binop_ret_bool_args_of_non_none
           (op := SmtTerm.leq) (typeof_leq_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
           with hArgs | hArgs
@@ -490,7 +490,7 @@ theorem arith_rel_op_has_bool_type_of_translation
           SmtTerm.gt (__eo_to_smt a) (__eo_to_smt b) by rfl]
       have hNN : term_has_non_none_type (SmtTerm.gt (__eo_to_smt a) (__eo_to_smt b)) := by
         unfold term_has_non_none_type
-        simpa [relTerm] using hTrans
+        simpa [relTerm, __eo_to_smt, __smtx_typeof] using hTrans
       rcases arith_binop_ret_bool_args_of_non_none
           (op := SmtTerm.gt) (typeof_gt_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
           with hArgs | hArgs
@@ -504,7 +504,7 @@ theorem arith_rel_op_has_bool_type_of_translation
           SmtTerm.geq (__eo_to_smt a) (__eo_to_smt b) by rfl]
       have hNN : term_has_non_none_type (SmtTerm.geq (__eo_to_smt a) (__eo_to_smt b)) := by
         unfold term_has_non_none_type
-        simpa [relTerm] using hTrans
+        simpa [relTerm, __eo_to_smt, __smtx_typeof] using hTrans
       rcases arith_binop_ret_bool_args_of_non_none
           (op := SmtTerm.geq) (typeof_geq_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
           with hArgs | hArgs
@@ -3058,17 +3058,17 @@ private theorem eo_abs_rel_args_of_typeof_bool (r a b : Term)
       (__eo_typeof a = Term.Real ∧ __eo_typeof b = Term.Real) := by
   rcases hr with rfl | rfl
   · exact eo_typeof_lt_bool_abs_args (__eo_typeof a) (__eo_typeof b)
-      (by simpa [relTerm, absTerm] using hTy)
+      (by simpa [relTerm, absTerm, __eo_typeof, __eo_typeof_abs, __eo_typeof_lt] using hTy)
   · have hEq : __eo_typeof_abs (__eo_typeof a) =
         __eo_typeof_abs (__eo_typeof b) :=
       RuleProofs.eo_typeof_eq_bool_operands_eq _ _
-        (by simpa [relTerm, absTerm] using hTy)
+        (by simpa [relTerm, absTerm, __eo_typeof, __eo_typeof_abs, __eo_typeof_eq] using hTy)
     have hANe : __eo_typeof_abs (__eo_typeof a) ≠ Term.Stuck :=
       (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-        (by simpa [relTerm, absTerm] using hTy)).1
+        (by simpa [relTerm, absTerm, __eo_typeof, __eo_typeof_abs, __eo_typeof_eq] using hTy)).1
     have hBNe : __eo_typeof_abs (__eo_typeof b) ≠ Term.Stuck :=
       (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-        (by simpa [relTerm, absTerm] using hTy)).2
+        (by simpa [relTerm, absTerm, __eo_typeof, __eo_typeof_abs, __eo_typeof_eq] using hTy)).2
     rcases eo_typeof_abs_nonstuck_arg_arith (__eo_typeof a) hANe with ha | ha <;>
       rcases eo_typeof_abs_nonstuck_arg_arith (__eo_typeof b) hBNe with hb | hb
     · exact Or.inl ⟨ha, hb⟩

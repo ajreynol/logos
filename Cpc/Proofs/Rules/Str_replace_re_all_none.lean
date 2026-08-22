@@ -48,8 +48,7 @@ private theorem smtx_typeof_of_eo_seq_char
       __smtx_typeof (__eo_to_smt a) = __eo_to_smt_type (__eo_typeof a) :=
     TranslationProofs.eo_to_smt_typeof_matches_translation a hTrans
   rw [hTy] at hTyRaw
-  simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char]
-    using hTyRaw
+  exact hTyRaw
 
 private theorem native_re_prefix_match_len_go_none :
     ∀ (xs : List SmtValue) (n : Nat),

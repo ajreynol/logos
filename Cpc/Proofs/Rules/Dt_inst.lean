@@ -887,8 +887,7 @@ private theorem vsm_apply_ext_aux :
                   (vsm_num_apply_args (SmtValue.Apply g b)) :=
             hArgs (vsm_num_apply_args f) (by simp [vsm_num_apply_args])
           have hab : a = b := by
-            simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hCountFG,
-              SmtEval.native_nateq] using hLast
+            simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hCountFG, SmtEval.native_nateq, native_ite] using hLast
           have hfg : f = g := by
             apply ih f g hv
             · simpa [__vsm_apply_head] using hHead

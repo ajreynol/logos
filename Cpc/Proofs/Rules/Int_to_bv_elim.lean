@@ -685,7 +685,7 @@ by
               change __eo_typeof (__eo_prog_int_to_bv_elim A) = Term.Bool
                 at hResultTy
               have hProgNe' : __eo_prog_int_to_bv_elim A ≠ Term.Stuck := by
-                simpa using hProgNe
+                exact hProgNe
               rcases intToBvElim_shape_of_ne_stuck A hProgNe' with
                 ⟨w, n, rhs, hShape⟩
               subst A
@@ -734,7 +734,7 @@ by
                   term_has_non_none_type
                     (SmtTerm.int_to_bv (__eo_to_smt w) (__eo_to_smt n)) := by
                 unfold term_has_non_none_type
-                simpa [intToBv] using hIntToBvNN
+                exact hIntToBvNN
               rcases int_to_bv_args_of_non_none hIntToBvTermNN with
                 ⟨i, hw, hnTy, hi0⟩
               have hRelExpanded :

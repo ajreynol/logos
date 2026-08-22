@@ -278,8 +278,9 @@ private theorem nativeListInReConcat_true_iff_exists_append :
       constructor
       · intro h
         simp [nativeListInReConcat, Bool.and_eq_true] at h
-        exact ⟨[], [], by rfl, by simpa [nativeListInRe] using h.1,
-          by simpa [nativeListInRe] using h.2⟩
+        exact ⟨[], [], by rfl,
+          by simpa [nativeListInRe, native_string_to_values] using h.1,
+          by exact h.2⟩
       · intro h
         rcases h with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
         cases xs₁ with
@@ -299,13 +300,13 @@ private theorem nativeListInReConcat_true_iff_exists_append :
         simp [nativeListInReConcat, Bool.or_eq_true, Bool.and_eq_true] at h
         rcases h with hHead | hTail
         · exact ⟨[], c :: cs, by rfl,
-            by simpa [nativeListInRe] using hHead.1, hHead.2⟩
+            by exact hHead.1, hHead.2⟩
         · have hTailExists :=
             (nativeListInReConcat_true_iff_exists_append cs
               (native_re_deriv c r) s).1 hTail
           rcases hTailExists with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
           exact ⟨c :: xs₁, xs₂, by simp [hAppend],
-            by simpa [nativeListInRe] using hLeft, hRight⟩
+            by exact hLeft, hRight⟩
       · intro h
         rcases h with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
         cases xs₁ with
@@ -316,14 +317,14 @@ private theorem nativeListInReConcat_true_iff_exists_append :
             | cons _ _ =>
                 cases hAppend
                 have hNullable : native_re_nullable r = true := by
-                  simpa [nativeListInRe] using hLeft
+                  exact hLeft
                 simp [nativeListInReConcat,
                   hNullable, hRight]
         | cons _ ds =>
             cases hAppend
             have hLeftDeriv :
                 nativeListInRe ds (native_re_deriv c r) = true := by
-              simpa [nativeListInRe] using hLeft
+              exact hLeft
             have hTail :
                 nativeListInReConcat (ds ++ xs₂) (native_re_deriv c r) s =
                   true :=
@@ -483,7 +484,7 @@ private theorem native_str_in_re_re_concat_congr_valid
         native_str_in_re str s = native_str_in_re str s') :
     native_str_in_re str (native_re_concat r s) =
       native_str_in_re str (native_re_concat r' s') := by
-  simpa [native_re_concat] using
+  simpa [native_re_concat, native_re_mk_concat] using
     native_str_in_re_mk_concat_congr_valid str r r' s s' hValid hr hs
 
 private theorem native_str_in_re_mk_concat_assoc
@@ -511,7 +512,7 @@ private theorem native_str_in_re_re_concat_assoc
     (str : native_String) (r s t : SmtRegLan) :
     native_str_in_re str (native_re_concat (native_re_concat r s) t) =
       native_str_in_re str (native_re_concat r (native_re_concat s t)) := by
-  simpa [native_re_concat] using native_str_in_re_mk_concat_assoc str r s t
+  exact native_str_in_re_mk_concat_assoc str r s t
 
 private theorem native_str_in_re_re_concat_right_epsilon
     (str : native_String) (r : SmtRegLan) :

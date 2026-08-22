@@ -193,7 +193,7 @@ private theorem typed___eo_prog_str_len_concat_rec_impl
     have hRawLenElimTy :
         __smtx_typeof (SmtTerm.str_len (__eo_to_smt (__str_nary_elim tail))) =
           SmtType.Int := by
-      simpa using hLenElimTy
+      exact hLenElimTy
     change __smtx_typeof
         (SmtTerm.plus (SmtTerm.str_len (__eo_to_smt (__str_nary_elim tail)))
           (SmtTerm.Numeral 0)) = SmtType.Int
@@ -202,7 +202,7 @@ private theorem typed___eo_prog_str_len_concat_rec_impl
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.Int := by
     have hRawLenS1Ty :
         __smtx_typeof (SmtTerm.str_len (__eo_to_smt s1)) = SmtType.Int := by
-      simpa using hLenS1Ty
+      exact hLenS1Ty
     have hRawRhsTailTy :
         __smtx_typeof (__eo_to_smt rhsTail) = SmtType.Int := hRhsTailTy
     change __smtx_typeof
