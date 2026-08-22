@@ -112,7 +112,8 @@ private theorem smtx_typeof_of_eo_seq_char
       __smtx_typeof (__eo_to_smt a) = __eo_to_smt_type (__eo_typeof a) :=
     TranslationProofs.eo_to_smt_typeof_matches_translation a hTrans
   rw [hTy] at hTyRaw
-  simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char, __smtx_typeof_guard]
+  simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char,
+    __smtx_typeof_guard, native_ite, native_Teq]
     using hTyRaw
 
 private theorem smtx_typeof_of_eo_reglan

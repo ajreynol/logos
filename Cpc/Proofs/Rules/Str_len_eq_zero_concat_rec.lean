@@ -349,7 +349,7 @@ private theorem typed___eo_prog_str_len_eq_zero_concat_rec_impl
     have hRawConcatTy :
         __smtx_typeof (SmtTerm.str_concat (__eo_to_smt s1) (__eo_to_smt tail)) =
           SmtType.Seq (__eo_to_smt_type T) := by
-      simpa using hConcatTy
+      simpa [tail, lenZeroConcatTail] using hConcatTy
     change __smtx_typeof
         (SmtTerm.str_len (SmtTerm.str_concat (__eo_to_smt s1) (__eo_to_smt tail))) =
       SmtType.Int

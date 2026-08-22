@@ -260,8 +260,11 @@ theorem mss_op_lookup_acc
           intro h
           exact hCond (by simpa [native_veq] using h)
         cases hei : native_veq e i
-        · simpa [__smtx_mss_op_internal, hCond, hCondDec, __smtx_msm_lookup,
-            native_ite, native_iff, hei] using hRec
+        · -- the two sides differ only in a stale `Decidable` instance, which
+          -- `simpa`'s closing step no longer accepts but `exact` still does.
+          simp only [__smtx_mss_op_internal, hCond, __smtx_msm_lookup,
+            native_ite, native_iff, hei] at hRec ⊢
+          exact hRec
         · have heiEq : e = i := eq_of_native_veq_true hei
           subst i
           have hTailLookup :
@@ -518,7 +521,6 @@ theorem set_subset_inter_eq_union_veq
           __smtx_msm_lookup my i = SmtValue.Boolean true := by
         intro i hMxi
         have hLook := congrArg (fun m => __smtx_msm_lookup m i) hIM
-        simp only at hLook
         rw [hInterLookup i] at hLook
         rw [hMxi] at hLook
         -- hLook : ite (and true (my[i]=true)) true false = true
@@ -543,7 +545,6 @@ theorem set_subset_inter_eq_union_veq
           __smtx_msm_lookup my i = SmtValue.Boolean true := by
         intro i hMxi
         have hLook := congrArg (fun m => __smtx_msm_lookup m i) hUM
-        simp only at hLook
         rw [hUnionLookup i (hMyLookupTy i)] at hLook
         rw [hMxi] at hLook
         -- hLook : ite (veq true true) true my[i] = my[i], i.e. true = my[i]

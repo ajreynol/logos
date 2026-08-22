@@ -615,7 +615,9 @@ by
                                             extract a2
                                             (by rw [hExtractSmtTy, hA2SmtTy])
                                             (by rw [hExtractSmtTy]; simp)
-                                        simpa [lhs, substrEqEmptyLhs, __eo_to_smt, __smtx_typeof, substrEqEmptyExtract] using hEqBool
+                                        simpa [lhs, substrEqEmptyLhs, __eo_to_smt, __smtx_typeof, extract,
+                                          substrEqEmptyExtract,
+                                          RuleProofs.eo_has_bool_type] using hEqBool
                                       have hRhsSmtTy :
                                           __smtx_typeof (__eo_to_smt rhs) =
                                             SmtType.Bool := by
@@ -626,7 +628,8 @@ by
                                             a1 a2
                                             (by rw [hA1SmtTy, hA2SmtTy])
                                             (by rw [hA1SmtTy]; simp)
-                                        simpa [rhs, substrEqEmptyRhs, __eo_to_smt, __smtx_typeof] using hEqBool
+                                        simpa [rhs, substrEqEmptyRhs, __eo_to_smt, __smtx_typeof,
+                                          RuleProofs.eo_has_bool_type] using hEqBool
                                       have hBoolEq :
                                           RuleProofs.eo_has_bool_type
                                             (substrEqEmptyConclusion a1 a2 a3 a4) := by

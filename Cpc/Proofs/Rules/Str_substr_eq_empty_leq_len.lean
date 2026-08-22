@@ -624,7 +624,9 @@ by
                                             extract a2
                                             (by rw [hExtractSmtTy, hA2SmtTy])
                                             (by rw [hExtractSmtTy]; simp)
-                                        simpa [lhs, substrEmptyLeqLhs, __eo_to_smt, __smtx_typeof, substrEmptyLeqExtract] using hEqBool
+                                        simpa [lhs, substrEmptyLeqLhs, __eo_to_smt, __smtx_typeof, extract,
+                                          substrEmptyLeqExtract,
+                                          RuleProofs.eo_has_bool_type] using hEqBool
                                       have hRhsSmtTy :
                                           __smtx_typeof (__eo_to_smt rhs) =
                                             SmtType.Bool := by

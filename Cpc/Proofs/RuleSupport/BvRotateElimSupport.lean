@@ -206,7 +206,7 @@ private theorem leftStep_eq_rotateLeft_one
                   (SmtValue.Numeral 0) (SmtValue.Binary (↑(W + 2)) p) =
                 SmtValue.Binary (↑(W + 1))
                   (↑((p.toNat % 2 ^ (W + 1)) : Nat) : Int) := by
-            exact extract_valN (W + 2) p W 0 hp0 (by omega)
+            simpa using extract_valN (W + 2) p W 0 hp0 (by omega)
           rw [hLowEval]
           rw [extract_valN (W + 2) p (W + 1) (W + 1) hp0 (by omega)]
           have hOne : W + 1 + 1 - (W + 1) = 1 := by omega
@@ -277,7 +277,7 @@ private theorem rightStep_eq_rotateRight_one
               __smtx_model_eval_extract (SmtValue.Numeral 0)
                   (SmtValue.Numeral 0) (SmtValue.Binary (↑(W + 2)) p) =
                 SmtValue.Binary 1 (↑((p.toNat % 2) : Nat) : Int) := by
-            exact extract_valN (W + 2) p 0 0 hp0 (by omega)
+            simpa using extract_valN (W + 2) p 0 0 hp0 (by omega)
           rw [hBitEval]
           have hRestWidth : W + 1 + 1 - 1 = W + 1 := by omega
           have hRestEval :
@@ -295,7 +295,11 @@ private theorem rightStep_eq_rotateRight_one
                 SmtValue.Binary (↑(W + 2))
                   (↑(((p.toNat % 2) * 2 ^ (W + 1) +
                     p.toNat / 2 % 2 ^ (W + 1)) % 2 ^ (W + 2) : Nat) : Int) := by
-            exact concat_valN 1 (p.toNat % 2) (W + 1) (p.toNat / 2 % 2 ^ (W + 1))
+            -- v4.33 no longer normalises `1 + (W + 1)` to `W + 2` on its own.
+            have hWn : 1 + (W + 1) = W + 2 := by omega
+            have hWi : (1 : Int) + ((W : Int) + 1) = (W : Int) + 2 := by omega
+            simpa [hWn, hWi, Nat.add_comm] using
+              concat_valN 1 (p.toNat % 2) (W + 1) (p.toNat / 2 % 2 ^ (W + 1))
           rw [hConcatEval]
           congr 2
           let x := BitVec.ofInt (W + 2) p

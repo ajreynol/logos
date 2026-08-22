@@ -1326,7 +1326,8 @@ private theorem eval_smodElimRhs_num
     __eo_typeof_eq, __eo_typeof_int_to_bv, __eo_typeof_bvnot,
     __smtx_model_eval_bvsmod, native_ite, native_zplus, native_zneg]
   simp [__eo_mk_apply, hMax, hNonneg, native_ite]
-  rw [eo_to_smt_ite_term]
+  -- the standalone `rw` is redundant now: `eo_to_smt_ite_term` is in the
+  -- `simp only` set below, and the outermost head is no longer the `ite`.
   simp only [eo_to_smt_eq_term, eo_to_smt_and_term, eo_to_smt_ite_term,
     eo_to_smt_extract_term, eo_to_smt_bvurem_term, eo_to_smt_bvadd_term,
     eo_to_smt_bvneg_term, eo_to_smt_numeral, eo_to_smt_boolean,

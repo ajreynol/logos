@@ -174,6 +174,9 @@ private theorem nilval_bvor (M : SmtModel) (y : Term) (W : Nat) (vy : Int)
   have hz : __eo_to_z y = Term.Numeral 0 := by
     cases y <;> simp_all [__eo_is_list_nil, __eo_is_list_nil_bvor, __eo_is_eq, __eo_to_z,
       native_and, native_not, native_teq, reduceCtorEq]
+    -- v4.33 leaves the `String` case as a `decide`-wrapped equality whose
+    -- `Decidable` instance no longer matches; decode it directly.
+    exact (of_decide_eq_true hnil.2).symm
   exact to_z_numeral_eval M y W vy 0 hz hev
 
 private theorem nilval_bvxor (M : SmtModel) (y : Term) (W : Nat) (vy : Int)
@@ -182,6 +185,9 @@ private theorem nilval_bvxor (M : SmtModel) (y : Term) (W : Nat) (vy : Int)
   have hz : __eo_to_z y = Term.Numeral 0 := by
     cases y <;> simp_all [__eo_is_list_nil, __eo_is_list_nil_bvxor, __eo_is_eq, __eo_to_z,
       native_and, native_not, native_teq, reduceCtorEq]
+    -- v4.33 leaves the `String` case as a `decide`-wrapped equality whose
+    -- `Decidable` instance no longer matches; decode it directly.
+    exact (of_decide_eq_true hnil.2).symm
   exact to_z_numeral_eval M y W vy 0 hz hev
 
 

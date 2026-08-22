@@ -88,16 +88,16 @@ private theorem native_int_pow2_nat_pos (k : native_Nat) :
   exact_mod_cast (Nat.pow_pos (a := 2) (n := k) (by decide : 0 < 2))
 
 private theorem native_int_pow2_nat_succ (k : native_Nat) :
-    native_int_pow2 (native_nat_to_int (Nat.succ k)) =
+    native_int_pow2 (native_nat_to_int (k + 1)) =
       2 * native_int_pow2 (native_nat_to_int k) := by
   rw [native_int_pow2_nat, native_int_pow2_nat]
-  change ((2 ^ Nat.succ k : Nat) : Int) =
+  change ((2 ^ (k + 1) : Nat) : Int) =
     (2 : Int) * ((2 ^ k : Nat) : Int)
   rw [Nat.pow_succ, Int.natCast_mul, Int.mul_comm]
   simp
 
 private theorem native_int_pow2_nat_succ_div_two (k : native_Nat) :
-    native_div_total (native_int_pow2 (native_nat_to_int (Nat.succ k))) 2 =
+    native_div_total (native_int_pow2 (native_nat_to_int (k + 1))) 2 =
       native_int_pow2 (native_nat_to_int k) := by
   rw [native_int_pow2_nat_succ]
   exact Int.mul_ediv_cancel_left (native_int_pow2 (native_nat_to_int k))
@@ -111,17 +111,17 @@ private theorem int_mod_pow2_succ_decomp
             (native_zleq
               (native_int_pow2 (native_nat_to_int k))
               (native_mod_total z
-                (native_int_pow2 (native_nat_to_int (Nat.succ k)))))
+                (native_int_pow2 (native_nat_to_int (k + 1)))))
             1 0)
           (native_int_pow2 (native_nat_to_int k)))
         (native_mod_total z (native_int_pow2 (native_nat_to_int k))) =
       native_mod_total z
-        (native_int_pow2 (native_nat_to_int (Nat.succ k))) := by
+        (native_int_pow2 (native_nat_to_int (k + 1))) := by
   let half : Int := native_int_pow2 (native_nat_to_int k)
   have hHalfPos : 0 < half := by
     simpa [half] using native_int_pow2_nat_pos k
   have hFull :
-      native_int_pow2 (native_nat_to_int (Nat.succ k)) = 2 * half := by
+      native_int_pow2 (native_nat_to_int (k + 1)) = 2 * half := by
     simpa [half] using native_int_pow2_nat_succ k
   let r : Int := z % (2 * half)
   have hFullPos : 0 < 2 * half := by omega
@@ -230,7 +230,7 @@ private theorem intToBvZeroList_ne_stuck :
       cases h
 
 private theorem intToBvZeroList_succ_eq (k : native_Nat) :
-    intToBvZeroList (Nat.succ k) =
+    intToBvZeroList (k + 1) =
       Term.Apply
         (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons)
           (Term.Numeral 0))
@@ -259,7 +259,7 @@ private theorem intToBvZeroList_repeat_rec_eq :
               (Term.Numeral 0))
             (__eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons)
               (Term.Numeral 0) k) =
-          intToBvZeroList (Nat.succ k)
+          intToBvZeroList (k + 1)
       rw [ih]
       rw [eo_mk_apply_of_ne_stuck typedConsZeroHead_ne_stuck
         (intToBvZeroList_ne_stuck k)]
@@ -282,7 +282,7 @@ private theorem intToBvAbconv_ne_stuck
   | succ k ih =>
       have hBit :
           intToBvBit n
-              (native_int_pow2 (native_nat_to_int (Nat.succ k)))
+              (native_int_pow2 (native_nat_to_int (k + 1)))
               (native_int_pow2 (native_nat_to_int k)) ≠ Term.Stuck :=
         intToBvBit_ne_stuck n _ _ hn
       simp [intToBvAbconv, intToBvZeroList_succ_eq,
@@ -296,17 +296,17 @@ private theorem intToBvAbconv_ne_stuck
 
 private theorem intToBvAbconv_succ_eq
     (n : Term) (hn : n ≠ Term.Stuck) (k : native_Nat) :
-    intToBvAbconv n (Nat.succ k) =
+    intToBvAbconv n (k + 1) =
       Term.Apply
         (Term.Apply (Term.UOp UserOp.concat)
           (intToBvBit n
-            (native_int_pow2 (native_nat_to_int (Nat.succ k)))
+            (native_int_pow2 (native_nat_to_int (k + 1)))
             (native_int_pow2 (native_nat_to_int k))))
         (intToBvAbconv n k) := by
   have hTail := intToBvAbconv_ne_stuck n hn k
   have hBit :
       intToBvBit n
-          (native_int_pow2 (native_nat_to_int (Nat.succ k)))
+          (native_int_pow2 (native_nat_to_int (k + 1)))
           (native_int_pow2 (native_nat_to_int k)) ≠ Term.Stuck :=
     intToBvBit_ne_stuck n _ _ hn
   simp [intToBvAbconv, intToBvZeroList_succ_eq,
@@ -362,23 +362,23 @@ private theorem intToBvAbconv_eval
           (Term.Apply
             (Term.Apply (Term.UOp UserOp.concat)
               (intToBvBit n
-                (native_int_pow2 (native_nat_to_int (Nat.succ k)))
+                (native_int_pow2 (native_nat_to_int (k + 1)))
                 (native_int_pow2 (native_nat_to_int k))))
             (intToBvAbconv n k)) =
           SmtTerm.concat
             (__eo_to_smt
               (intToBvBit n
-                (native_int_pow2 (native_nat_to_int (Nat.succ k)))
+                (native_int_pow2 (native_nat_to_int (k + 1)))
                 (native_int_pow2 (native_nat_to_int k))))
             (__eo_to_smt (intToBvAbconv n k)) by rfl]
       rw [__smtx_model_eval.eq_33]
       rw [intToBvBit_eval M n z
-        (native_int_pow2 (native_nat_to_int (Nat.succ k)))
+        (native_int_pow2 (native_nat_to_int (k + 1)))
         (native_int_pow2 (native_nat_to_int k)) hnEval, ih]
       simp [__smtx_model_eval_concat, native_binary_concat]
       have hWidth :
           native_zplus 1 (native_nat_to_int k) =
-            native_nat_to_int (Nat.succ k) := by
+            native_nat_to_int (k + 1) := by
         simp [native_zplus, native_nat_to_int, Int.add_comm]
       rw [hWidth]
       have hPayload := int_mod_pow2_succ_decomp z k
@@ -422,7 +422,7 @@ private theorem intToBvAbconv_is_concat_list
 private theorem intToBvAbconv_succ_is_not_concat_nil
     (n : Term) (hn : n ≠ Term.Stuck) (k : native_Nat) :
     __eo_is_list_nil (Term.UOp UserOp.concat)
-        (intToBvAbconv n (Nat.succ k)) =
+        (intToBvAbconv n (k + 1)) =
       Term.Boolean false := by
   rw [intToBvAbconv_succ_eq n hn k]
   simp [__eo_is_list_nil]
@@ -459,7 +459,7 @@ private theorem intToBvExpanded_eval
                 (Term.Apply
                   (Term.Apply (Term.UOp UserOp.concat)
                     (intToBvBit n
-                      (native_int_pow2 (native_nat_to_int (Nat.succ 0)))
+                      (native_int_pow2 (native_nat_to_int 1))
                       (native_int_pow2 (native_nat_to_int 0))))
                   (intToBvAbconv n 0)) =
                 Term.Boolean true := by
@@ -471,66 +471,60 @@ private theorem intToBvExpanded_eval
                 Term.Boolean true := by
             rw [intToBvAbconv_zero_eq n hn]
             simp [__eo_is_list_nil]
+          -- `intToBvBit` is an `abbrev`, so v4.33's `simp` unfolds it in the
+          -- goal; normalise the eval lemma the same way before rewriting.
+          have hBit := intToBvBit_eval M n z
+            (native_int_pow2 (native_nat_to_int 1))
+            (native_int_pow2 (native_nat_to_int 0)) hnEval
           simp [__eo_list_singleton_elim, hList, __eo_requires,
             __eo_list_singleton_elim_2, hTailNil, __eo_ite, native_ite,
-            native_teq, native_not, SmtEval.native_not]
-          rw [intToBvBit_eval M n z
-            (native_int_pow2 (native_nat_to_int (Nat.succ 0)))
-            (native_int_pow2 (native_nat_to_int 0)) hnEval]
+            native_teq, native_not, SmtEval.native_not] at hBit ⊢
+          rw [hBit]
           have hPayload := int_mod_pow2_succ_decomp z 0
           simp [native_nat_to_int, native_int_pow2, native_zexp_total,
             native_mod_total, native_zplus, native_zmult] at hPayload ⊢
           exact hPayload
       | succ k =>
-          rw [intToBvAbconv_succ_eq n hn (Nat.succ k)]
+          rw [intToBvAbconv_succ_eq n hn (k + 1)]
           have hList :
               __eo_is_list (Term.UOp UserOp.concat)
                 (Term.Apply
                   (Term.Apply (Term.UOp UserOp.concat)
                     (intToBvBit n
                       (native_int_pow2
-                        (native_nat_to_int (Nat.succ (Nat.succ k))))
-                      (native_int_pow2 (native_nat_to_int (Nat.succ k)))))
-                  (intToBvAbconv n (Nat.succ k))) =
+                        (native_nat_to_int (k + 1 + 1)))
+                      (native_int_pow2 (native_nat_to_int (k + 1)))))
+                  (intToBvAbconv n (k + 1))) =
                 Term.Boolean true := by
-            simpa [intToBvAbconv_succ_eq n hn (Nat.succ k)] using
-              intToBvAbconv_is_concat_list n hn (Nat.succ (Nat.succ k))
+            simpa [intToBvAbconv_succ_eq n hn (k + 1)] using
+              intToBvAbconv_is_concat_list n hn (k + 1 + 1)
           have hTailNotNil :
               __eo_is_list_nil (Term.UOp UserOp.concat)
-                  (intToBvAbconv n (Nat.succ k)) =
+                  (intToBvAbconv n (k + 1)) =
                 Term.Boolean false :=
             intToBvAbconv_succ_is_not_concat_nil n hn k
+          -- v4.33 `simp` unfolds the `intToBvBit` abbrev and distributes
+          -- `__eo_to_smt` over the concat, so normalise the eval lemma the same
+          -- way and drop the (now redundant) explicit translation rewrite.
+          have hBit := intToBvBit_eval M n z
+            (native_int_pow2 (native_nat_to_int (k + 1 + 1)))
+            (native_int_pow2 (native_nat_to_int (k + 1))) hnEval
           simp [__eo_list_singleton_elim, hList, __eo_requires,
             __eo_list_singleton_elim_2, hTailNotNil, __eo_ite, native_ite,
-            native_teq, native_not, SmtEval.native_not]
-          rw [show
-            __eo_to_smt
-              (Term.Apply
-                (Term.Apply (Term.UOp UserOp.concat)
-                  (intToBvBit n
-                    (native_int_pow2
-                      (native_nat_to_int (Nat.succ (Nat.succ k))))
-                    (native_int_pow2 (native_nat_to_int (Nat.succ k)))))
-                (intToBvAbconv n (Nat.succ k))) =
-              SmtTerm.concat
-                (__eo_to_smt
-                  (intToBvBit n
-                    (native_int_pow2
-                      (native_nat_to_int (Nat.succ (Nat.succ k))))
-                    (native_int_pow2 (native_nat_to_int (Nat.succ k)))))
-                (__eo_to_smt (intToBvAbconv n (Nat.succ k))) by rfl]
+            native_teq, native_not, SmtEval.native_not] at hBit ⊢
           rw [__smtx_model_eval.eq_33]
-          rw [intToBvBit_eval M n z
-            (native_int_pow2 (native_nat_to_int (Nat.succ (Nat.succ k))))
-            (native_int_pow2 (native_nat_to_int (Nat.succ k))) hnEval,
-            intToBvAbconv_eval M n z hn hnEval (Nat.succ k)]
+          rw [hBit, intToBvAbconv_eval M n z hn hnEval (k + 1)]
           simp [__smtx_model_eval_concat, native_binary_concat]
           have hWidth :
-              native_zplus 1 (native_nat_to_int (Nat.succ k)) =
-                native_nat_to_int (Nat.succ (Nat.succ k)) := by
+              native_zplus 1 (native_nat_to_int (k + 1)) =
+                native_nat_to_int (k + 1 + 1) := by
             simp [native_zplus, native_nat_to_int, Int.add_comm]
           rw [hWidth]
-          have hPayload := int_mod_pow2_succ_decomp z (Nat.succ k)
+          have hPayload := int_mod_pow2_succ_decomp z (k + 1)
+          simp only [native_ite] at hPayload
+          -- v4.33 `simp` splits the `SmtValue.Binary` equation into a
+          -- conjunction; the width component is now closed by `rfl`.
+          refine ⟨rfl, ?_⟩
           rw [hPayload]
           simp [native_mod_total]
 

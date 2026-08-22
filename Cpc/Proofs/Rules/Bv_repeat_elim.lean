@@ -317,16 +317,9 @@ private theorem bv_list_repeat_singleton_eval_eq_repeat_rec
           rw [eo_mk_apply_of_ne_stuck (concat_apply_head_ne_stuck a) hTailNe]
           simp [__eo_list_singleton_elim_2, hTailNotNil, __eo_ite,
             native_ite, native_teq]
-          rw [show
-            __eo_to_smt
-              (Term.Apply
-                (Term.Apply (Term.UOp UserOp.concat) a)
-                (__eo_list_repeat_rec (Term.UOp UserOp.concat) a
-                  (Nat.succ n))) =
-              SmtTerm.concat (__eo_to_smt a)
-                (__eo_to_smt
-                  (__eo_list_repeat_rec (Term.UOp UserOp.concat) a
-                    (Nat.succ n))) by rfl]
+          -- v4.33 `simp` already leaves the concat translated, so the explicit
+          -- `rw` is redundant; only the `succ`/`+ 1` spelling has to be aligned.
+          simp only [Nat.succ_eq_add_one] at hTailEval
           rw [__smtx_model_eval.eq_33, __smtx_model_eval_repeat_rec]
           rw [hTailEval]
 

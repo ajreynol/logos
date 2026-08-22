@@ -48,9 +48,13 @@ private theorem eq_of_requires_eq_true_not_stuck (x y B : Term) :
     __eo_requires (__eo_eq x y) (Term.Boolean true) B ≠ Term.Stuck ->
     y = x := by
   intro hProg
-  have hProg' := hProg
-  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hProg'
-  have hEq : __eo_eq x y = Term.Boolean true := hProg'.1
+  -- v4.33 `simp` unfolds `__eo_eq` under `decide` and desyncs the
+  -- `Decidable` instance, so derive the guard by contradiction instead.
+  have hEq : __eo_eq x y = Term.Boolean true := by
+    apply Classical.byContradiction
+    intro hne
+    apply hProg
+    simp [__eo_requires, native_ite, native_teq, hne]
   by_cases hx : x = Term.Stuck
   · subst x
     simp [__eo_eq] at hEq
@@ -578,7 +582,7 @@ by
                           (__eo_prog_bv_ult_one a1 a2 (Proof.pf P1))
                       have hProgLocal :
                           __eo_prog_bv_ult_one a1 a2 (Proof.pf P1) ≠ Term.Stuck := by
-                        simpa [P1] using hProg
+                        simpa [P1, __eo_cmd_step_proven] using hProg
                       rcases bv_ult_one_shape_of_ne_stuck a1 a2 P1 hProgLocal with
                         ⟨hA1Ne, hA2Ne, px, hP1⟩
                       have hReqNe : __eo_requires (__eo_eq a1 px) (Term.Boolean true)

@@ -241,7 +241,8 @@ private theorem native_zlt_add_of_zlt_of_zle {a b c d : native_Int} :
     simpa [native_zleq, SmtEval.native_zleq] using hle
   have hres : native_zplus a c < native_zplus b d :=
     Int.add_lt_add_of_lt_of_le hltp hlep
-  simpa [native_zlt, SmtEval.native_zlt, native_zplus, SmtEval.native_zplus] using hres
+  simp only [native_zlt, SmtEval.native_zlt, native_zplus, SmtEval.native_zplus]
+  exact decide_eq_true hres
 
 private theorem native_zlt_add_of_zle_of_zlt {a b c d : native_Int} :
     native_zleq a b = true ->
@@ -254,7 +255,8 @@ private theorem native_zlt_add_of_zle_of_zlt {a b c d : native_Int} :
     simpa [native_zlt, SmtEval.native_zlt] using hlt
   have hres : native_zplus a c < native_zplus b d :=
     Int.add_lt_add_of_le_of_lt hlep hltp
-  simpa [native_zlt, SmtEval.native_zlt, native_zplus, SmtEval.native_zplus] using hres
+  simp only [native_zlt, SmtEval.native_zlt, native_zplus, SmtEval.native_zplus]
+  exact decide_eq_true hres
 
 private theorem native_zleq_add_of_zle_of_zle {a b c d : native_Int} :
     native_zleq a b = true ->
@@ -267,7 +269,8 @@ private theorem native_zleq_add_of_zle_of_zle {a b c d : native_Int} :
     simpa [native_zleq, SmtEval.native_zleq] using hle2
   have hres : native_zplus a c <= native_zplus b d :=
     Int.add_le_add hle1p hle2p
-  simpa [native_zleq, SmtEval.native_zleq, native_zplus, SmtEval.native_zplus] using hres
+  simp only [native_zleq, SmtEval.native_zleq, native_zplus, SmtEval.native_zplus]
+  exact decide_eq_true hres
 
 private theorem native_qlt_add_of_qlt_of_qle {a b c d : native_Rat} :
     native_qlt a b = true ->
@@ -280,7 +283,8 @@ private theorem native_qlt_add_of_qlt_of_qle {a b c d : native_Rat} :
     simpa [native_qleq, SmtEval.native_qleq] using hle
   have hres : a + c < b + d := by
     grind
-  simpa [native_qlt, SmtEval.native_qlt, native_qplus, SmtEval.native_qplus] using hres
+  simp only [native_qlt, SmtEval.native_qlt, native_qplus, SmtEval.native_qplus]
+  exact decide_eq_true hres
 
 private theorem native_qlt_add_of_qle_of_qlt {a b c d : native_Rat} :
     native_qleq a b = true ->
@@ -293,7 +297,8 @@ private theorem native_qlt_add_of_qle_of_qlt {a b c d : native_Rat} :
     simpa [native_qlt, SmtEval.native_qlt] using hlt
   have hres : a + c < b + d := by
     grind
-  simpa [native_qlt, SmtEval.native_qlt, native_qplus, SmtEval.native_qplus] using hres
+  simp only [native_qlt, SmtEval.native_qlt, native_qplus, SmtEval.native_qplus]
+  exact decide_eq_true hres
 
 private theorem native_qleq_add_of_qle_of_qle {a b c d : native_Rat} :
     native_qleq a b = true ->
@@ -306,7 +311,8 @@ private theorem native_qleq_add_of_qle_of_qle {a b c d : native_Rat} :
     simpa [native_qleq, SmtEval.native_qleq] using hle2
   have hres : a + c <= b + d := by
     grind
-  simpa [native_qleq, SmtEval.native_qleq, native_qplus, SmtEval.native_qplus] using hres
+  simp only [native_qleq, SmtEval.native_qleq, native_qplus, SmtEval.native_qplus]
+  exact decide_eq_true hres
 
 private theorem smt_eval_int_of_type
     (M : SmtModel) (hM : model_total_typed M) (t : Term)
@@ -981,7 +987,8 @@ private theorem eo_list_rev_and_premiseAndFormulaList :
   simp [__eo_requires, premiseAndFormulaList_is_and_list,
     eo_get_nil_rec_and_premiseAndFormulaList, native_ite, native_teq,
     native_not, SmtEval.native_not]
-  simpa using eo_list_rev_rec_and_premiseAndFormulaList ps []
+  simpa [premiseAndFormulaList] using
+    eo_list_rev_rec_and_premiseAndFormulaList ps []
 
 private theorem mk_arith_sum_ub_eq_fold_right
     (r a b : Term) (ps : List Term) :

@@ -903,7 +903,7 @@ private theorem vsm_apply_ext_aux :
                 apply hNeF
                 rw [hCountFG, hEq]
               simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hCountFG,
-                SmtEval.native_nateq, hNeF, hNeG] using hArg
+                SmtEval.native_nateq, native_ite, hNeF, hNeG] using hArg
           subst hfg
           subst hab
           rfl

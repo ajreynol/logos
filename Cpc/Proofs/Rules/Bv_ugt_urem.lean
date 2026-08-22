@@ -557,8 +557,8 @@ private theorem eval_ugt_urem_sides_eq
   have hPyRange := bitvec_payload_range_of_canonical hNonneg hPyCanon
   have hPxRange := bitvec_payload_range_of_canonical hNonneg hPxCanon
   have hPyMod : py % native_int_pow2 n = py := by
-    have h : py = py % native_int_pow2 n := by
-      exact hPyCanon
+    have h : py = py % native_int_pow2 n :=
+      of_decide_eq_true hPyCanon
     exact h.symm
   have hZeroEval := eval_bv_const M 0 n hNonneg
   have hZeroPayload : native_mod_total 0 (native_int_pow2 n) = 0 := by

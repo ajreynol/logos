@@ -121,7 +121,8 @@ private theorem smt_typeof_seq_empty_typeof_of_smt_type_seq
   have hSeqWF : __smtx_type_wf (SmtType.Seq T) = true := by
     have hGood :=
       smt_term_result_seq_components_wf_of_non_none (__eo_to_smt x) hTrans
-    exact hGood
+    rw [hxTy] at hGood
+    simpa [type_result_seq_components_wf] using hGood
   by_cases hSpecial :
       __eo_typeof x =
         Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
@@ -1990,7 +1991,8 @@ theorem string_eager_reduction_true
             Smtm.smt_model_eval_preserves_type_of_non_none M hM ty
               (by simp [term_has_non_none_type, hyTy])
           have hSyTy : __smtx_typeof_seq_value sy = SmtType.Seq U := by
-            exact hYEvalTy
+            rw [hYEval] at hYEvalTy
+            simpa [__smtx_typeof_value, hyTy] using hYEvalTy
           have hElemY : __smtx_elem_typeof_seq_value sy = U :=
             elem_typeof_seq_value_of_typeof_seq_value hSyTy
           have hPreTy :
@@ -2109,7 +2111,8 @@ theorem string_eager_reduction_true
           let formula := SmtTerm.imp lhs rhs
           have hFormulaTy : __smtx_typeof formula = SmtType.Bool := by
             unfold RuleProofs.eo_has_bool_type at hGenBool
-            exact hGenBool
+            simpa [gen, rhsEo, fixed, formula, lhs, rhs, ty, tx, hFixed,
+              __eo_mk_apply, __eo_to_smt] using hGenBool
           have hFormulaNN : term_has_non_none_type formula := by
             unfold term_has_non_none_type
             rw [hFormulaTy]

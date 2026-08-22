@@ -33,24 +33,24 @@ private theorem eo_requires_result_eq_of_ne_stuck (x y z : Term) :
     __eo_requires x y z = z := by
   intro h
   have h' := h
-  simp [__eo_requires, native_ite, native_teq] at h'
+  simp [__eo_requires, native_ite, native_teq, native_not] at h'
   rcases h' with ⟨hxy, hxOk, _hz⟩
   subst y
-  simp [__eo_requires, native_ite, native_teq, hxOk]
+  simp [__eo_requires, native_ite, native_teq, native_not, hxOk]
 
 private theorem eo_requires_left_ne_stuck_of_ne_stuck (x y z : Term) :
     __eo_requires x y z ≠ Term.Stuck ->
     x ≠ Term.Stuck := by
   intro h
   have h' := h
-  simp [__eo_requires, native_ite, native_teq] at h'
+  simp [__eo_requires, native_ite, native_teq, native_not] at h'
   rcases h' with ⟨_hxy, hxOk, _hz⟩
   intro hx
   subst x
   have hxNe : y ≠ Term.Stuck := by
     intro hy
     subst y
-    simp [native_not] at hxOk
+    simp at hxOk
   exact hxNe hx
 
 private theorem eo_requires_result_ne_stuck_of_ne_stuck (x y z : Term) :
@@ -558,7 +558,7 @@ private theorem nativeListInRe_re_mult_empty :
     (xs : List native_Char) ->
       nativeListInRe xs (native_re_mult SmtRegLan.empty) = decide (xs = [])
   | [] => by
-      simp [native_re_mult, native_re_mk_star, native_re_mult, nativeListInRe, native_re_nullable]
+      simp [native_re_mult, nativeListInRe, native_re_nullable]
   | c :: cs => by
       simpa [native_re_mult, native_re_mk_star, native_re_mult, nativeListInRe, native_re_deriv,
         nativeListInRe_empty] using nativeListInRe_empty cs
@@ -789,7 +789,7 @@ private theorem fixed_len_re_sound
       change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String pat)) =
         SmtValue.RegLan rv at hEval
       rw [__smtx_model_eval.eq_104, __smtx_model_eval.eq_4] at hEval
-      simp [__smtx_model_eval_str_to_re, native_pack_string, native_unpack_string,
+      simp [__smtx_model_eval_str_to_re, native_pack_string,
         native_unpack_seq_pack] at hEval
       subst rv
       have hIn' : nativeListInRe xs (native_str_to_re pat) = true := by
@@ -1019,7 +1019,7 @@ private theorem fixed_len_re_sound
                     SmtValue.RegLan rv at hEval
                   rw [__smtx_model_eval.eq_104, __smtx_model_eval.eq_4] at hEval
                   simp [__smtx_model_eval_str_to_re, native_pack_string,
-                    native_unpack_string, native_unpack_seq_pack] at hEval
+                    native_unpack_seq_pack] at hEval
                   subst rv
                   have hIn' : nativeListInRe xs (native_str_to_re pat) = true := by
                     have hMap :
@@ -1283,10 +1283,10 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
             __smtx_model_eval.eq_105, __smtx_model_eval.eq_1, hREval]
           simp [__smtx_model_eval_str_in_re, __smtx_model_eval_re_mult,
             Smtm.native_str_in_re, Smtm.native_re_str_valid,
-            native_pack_string, native_unpack_string,
-            native_pack_seq, native_unpack_seq, native_string_valid
+            native_pack_string,
+            native_pack_seq, native_unpack_seq
             ]
-          cases rv <;> simp [native_re_mult, native_re_mk_star, native_re_mult, native_re_nullable]
+          cases rv <;> simp [native_re_mult, native_re_nullable]
       | cons _ _ =>
           subst side
           simp [__str_mk_str_in_re_concat_star_char] at hSideNe

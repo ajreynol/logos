@@ -2514,7 +2514,9 @@ private theorem reConcat_list_concat_rec_rel_eval
           have hTailRel :
               RuleProofs.smt_value_rel (SmtValue.RegLan rtail)
                 (SmtValue.RegLan (native_re_concat ry rz)) := by
-            exact hIH.2.2
+            have h := hIH.2.2
+            rw [hTailEval, hYZEval] at h
+            exact h
           have hLeftEval :
               __smtx_model_eval M
                   (__eo_to_smt
@@ -2557,14 +2559,18 @@ private theorem reConcat_list_concat_rec_rel_eval
                   (__eo_to_smt (mkReConcat x (__eo_list_concat_rec y z))))
                 (__smtx_model_eval M
                   (__eo_to_smt (mkReConcat x (mkReConcat y z)))) := by
-            exact smt_value_rel_re_concat (RuleProofs.smt_value_rel_refl (SmtValue.RegLan rx)) hTailRel
+            rw [hLeftEval, hRightEval]
+            exact smt_value_rel_re_concat
+              (RuleProofs.smt_value_rel_refl (SmtValue.RegLan rx)) hTailRel
           have hAssoc :
               RuleProofs.smt_value_rel
                 (__smtx_model_eval M
                   (__eo_to_smt (mkReConcat x (mkReConcat y z))))
                 (__smtx_model_eval M
                   (__eo_to_smt (mkReConcat (mkReConcat x y) z))) := by
-            exact RuleProofs.smt_value_rel_symm _ _ (smt_value_rel_re_concat_assoc rx ry rz)
+            rw [hRightEval, hAssocRightEval]
+            exact RuleProofs.smt_value_rel_symm _ _
+              (smt_value_rel_re_concat_assoc rx ry rz)
           exact ⟨
             eo_is_list_cons_self_true_of_tail_list
               (Term.UOp UserOp.re_concat) x (__eo_list_concat_rec y z)
@@ -2618,6 +2624,7 @@ private theorem reConcat_list_concat_rec_rel_eval
               RuleProofs.smt_value_rel
                 (__smtx_model_eval M (__eo_to_smt (mkReConcat nil z)))
                 (__smtx_model_eval M (__eo_to_smt z)) := by
+            rw [hConcatEval, hNative, hzEval]
             exact RuleProofs.smt_value_rel_refl (SmtValue.RegLan rz)
           exact ⟨hZList, hZWF,
             RuleProofs.smt_value_rel_symm _ _ hLeftRel⟩
@@ -2658,7 +2665,9 @@ theorem reConcat_list_concat_rec_eval_rel
   have hRel :
       RuleProofs.smt_value_rel (SmtValue.RegLan r)
         (SmtValue.RegLan (native_re_concat ra rb)) := by
-    exact hConcat.2.2
+    have h := hConcat.2.2
+    rw [hRecEval, hMkEval] at h
+    exact h
   exact ⟨r, hRecEval, reConcatListWF_type hConcat.2.1, hRel⟩
 
 theorem reConcat_list_concat_eval_rel
@@ -2704,7 +2713,9 @@ theorem reConcat_list_concat_eval_rel
   have hRel :
       RuleProofs.smt_value_rel (SmtValue.RegLan r)
         (SmtValue.RegLan (native_re_concat ra rb)) := by
-    exact hConcat.2.2
+    have h := hConcat.2.2
+    rw [hRecEval, hMkEval] at h
+    exact h
   refine ⟨r, ?_, ?_, hRel⟩
   · rw [hConcatEq]
     exact hRecEval
@@ -2871,7 +2882,8 @@ private theorem native_str_in_re_re_union_eval_support
     native_str_in_re str (native_re_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
   by_cases hValid : native_string_valid str = true
-  · exact nativeListInRe_mk_union str r s
+  · simpa [native_str_in_re, hValid, nativeListInRe, native_re_union,
+      native_re_mk_union] using nativeListInRe_mk_union str r s
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
     simp [native_str_in_re, hInvalid]
@@ -6727,6 +6739,12 @@ private theorem native_str_in_re_deriv_mult_raw
       native_str_in_re str (native_re_deriv c (native_re_mult r)) := by
   cases r with
   | star r =>
+      -- bridge to `nativeListInRe` explicitly: v4.33's `simp` drives the goal
+      -- all the way to the fold form, which no longer matches the lemma.
+      have hBridge : ∀ R, native_str_in_re str R = nativeListInRe str R := by
+        intro R
+        simp [native_str_in_re, hValid, nativeListInRe]
+      rw [hBridge, hBridge]
       exact nativeListInRe_concat_star_absorb str (native_re_deriv c r) r
   | empty =>
       simp [native_str_in_re, hValid, native_re_concat, native_re_mult,
@@ -6810,6 +6828,11 @@ private theorem smt_value_rel_deriv_concat_not_nullable
                   (native_re_deriv c (native_re_mk_concat ry rx)) := by
             simpa [hNull, hUnionEmpty] using
               (nativeListInRe_deriv_mk_concat str c ry rx).symm
+          have hBridge : ∀ R, native_str_in_re str R = nativeListInRe str R := by
+            intro R
+            simp [native_str_in_re, native_re_str_valid_string, hValid,
+              nativeListInRe]
+          simp only [hBridge]
           exact hDeriv
 
 private theorem smt_value_rel_deriv_concat_nullable
@@ -6869,6 +6892,11 @@ private theorem smt_value_rel_deriv_concat_nullable
               (native_re_mk_concat (native_re_deriv c ry) rx)
               (native_re_deriv c rx)
           rw [hUnion] at hDeriv
+          have hBridge : ∀ R, native_str_in_re str R = nativeListInRe str R := by
+            intro R
+            simp [native_str_in_re, native_re_str_valid_string, hValid,
+              nativeListInRe]
+          simp only [hBridge]
           exact hDeriv
 
 private theorem native_re_deriv_all_valid
