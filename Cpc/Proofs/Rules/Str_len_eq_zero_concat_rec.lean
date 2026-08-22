@@ -349,7 +349,7 @@ private theorem typed___eo_prog_str_len_eq_zero_concat_rec_impl
     have hRawConcatTy :
         __smtx_typeof (SmtTerm.str_concat (__eo_to_smt s1) (__eo_to_smt tail)) =
           SmtType.Seq (__eo_to_smt_type T) := by
-      simpa using hConcatTy
+      simpa [tail, lenZeroConcatTail] using hConcatTy
     change __smtx_typeof
         (SmtTerm.str_len (SmtTerm.str_concat (__eo_to_smt s1) (__eo_to_smt tail))) =
       SmtType.Int
@@ -488,7 +488,7 @@ private theorem facts___eo_prog_str_len_eq_zero_concat_rec_impl
   rcases seq_value_canonical hS3EvalTy with ⟨ss3, hS3Eval⟩
   have hS1SeqTy :
       __smtx_typeof_seq_value ss1 = SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [hS1Eval] using hS1EvalTy
+    simpa [hS1Eval, __smtx_typeof_seq_value, __smtx_typeof_value] using hS1EvalTy
   let tailSeq := native_pack_seq (__smtx_elem_typeof_seq_value ss2)
     (native_unpack_seq ss2 ++ native_unpack_seq ss3)
   have hTailEval :
@@ -700,13 +700,13 @@ by
                       cases premises with
                       | nil =>
                           have hA1Trans : RuleProofs.eo_has_smt_translation a1 := by
-                            simpa [cmdTranslationOk, cArgListTranslationOk] using
+                            simpa [cmdTranslationOk, cArgListTranslationOk, argTranslationOkMasked] using
                               hCmdTrans.1
                           have hA2Trans : RuleProofs.eo_has_smt_translation a2 := by
-                            simpa [cmdTranslationOk, cArgListTranslationOk] using
+                            simpa [cmdTranslationOk, cArgListTranslationOk, argTranslationOkMasked] using
                               hCmdTrans.2.1
                           have hA3Trans : RuleProofs.eo_has_smt_translation a3 := by
-                            simpa [cmdTranslationOk, cArgListTranslationOk] using
+                            simpa [cmdTranslationOk, cArgListTranslationOk, argTranslationOkMasked] using
                               hCmdTrans.2.2.1
                           have hA1NotStuck : a1 ≠ Term.Stuck :=
                             RuleProofs.term_ne_stuck_of_has_smt_translation a1

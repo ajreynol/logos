@@ -297,6 +297,9 @@ private theorem eval_bvurem_one_eq_zero
     rw [hPayloadZero]
     simp [__smtx_model_eval_bvurem, SmtEval.native_mod_total,
       SmtEval.native_zeq, native_ite]
+    -- both branches are `0` and the width is closed, but the stale `Decidable`
+    -- instance blocks `simp`/`split`/`ite_self`; decide the closed goal instead.
+    decide
   · have hnPos : 0 < n := by
       have hnNonneg : 0 <= n := by
         simpa [SmtEval.native_zleq] using hNonneg

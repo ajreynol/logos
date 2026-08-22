@@ -431,7 +431,7 @@ by
                       have hProgLocal :
                           __eo_prog_bv_redor_eliminate a1 a2 (Proof.pf P1) ≠
                             Term.Stuck := by
-                        simpa [P1] using hProg
+                        exact hProg
                       rcases bv_redor_eliminate_shape_of_ne_stuck a1 a2 P1 hProgLocal with
                         ⟨ha1, ha2, pw, px, hP1⟩
                       subst P1

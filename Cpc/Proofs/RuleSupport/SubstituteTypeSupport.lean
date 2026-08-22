@@ -59,7 +59,8 @@ theorem eo_typeof_eq_of_smt_type_eq
         TranslationProofs.eo_type_valid_rec [] T := by
       have hTop : TranslationProofs.eo_type_valid T :=
         TranslationProofs.eo_type_valid_of_smt_wf T hWf
-      cases T <;> simpa [TranslationProofs.eo_type_valid] using hTop
+      cases T <;> simpa [TranslationProofs.eo_type_valid,
+        TranslationProofs.eo_type_valid_rec] using hTop
     exact (TranslationProofs.eo_to_smt_type_eq_of_valid hValid hEq).symm
 
 /-- A term whose SMT image has type `None` cannot satisfy the SMT-translation predicate. -/

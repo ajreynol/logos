@@ -79,13 +79,13 @@ theorem bv_bitwise_elim_args_type_of_bool
         (__eo_typeof (bvBitwiseElimRhs k x y))
         (by
           cases k <;>
-            simpa [bvBitwiseElimTerm, bvBitwiseElimLhs, bvBitwiseElimRhs]
+            simpa [bvBitwiseElimTerm, bvBitwiseElimLhs, bvBitwiseElimRhs, __eo_nil, __eo_typeof, __eo_typeof_eq]
               using hTy)
     exact hOperands.1
   have hBvAndNN :
       __eo_typeof_bvand (__eo_typeof x) (__eo_typeof y) ≠ Term.Stuck := by
     cases k <;>
-      simpa [bvBitwiseElimLhs] using hLeftNN
+      exact hLeftNN
   rcases eo_typeof_bvand_arg_types_of_ne_stuck_local hBvAndNN with
     ⟨w, hXTy, hYTy⟩
   refine ⟨w, hXTy, hYTy, ?_⟩
@@ -107,7 +107,7 @@ theorem bv_bitwise_elim_nil_ne
         (__eo_typeof (bvBitwiseElimRhs k x y))
         (by
           cases k <;>
-            simpa [bvBitwiseElimTerm, bvBitwiseElimLhs, bvBitwiseElimRhs]
+            simpa [bvBitwiseElimTerm, bvBitwiseElimLhs, bvBitwiseElimRhs, __eo_nil, __eo_typeof, __eo_typeof_eq]
               using hTy)
     exact hOperands.2
   intro hNil
@@ -335,7 +335,7 @@ private theorem bvAnd_nil_eq_allOnes_of_type
             (native_binary_not (native_nat_to_int w) 0)
             (native_int_pow2 (native_nat_to_int w)) =
           native_int_pow2 (native_nat_to_int w) - 1 := by
-      simpa [native_binary_not, native_zplus, native_zneg] using
+      simpa [native_binary_not, native_zplus, native_zneg, native_int_pow2, native_mod_total, native_nat_to_int, native_pow2_minus_one_mod_self_nat] using
         native_pow2_minus_one_mod_self_nat w
     have hBoundProp : native_nat_to_int w <= 4294967296 := by
       simpa [native_zleq] using hBound

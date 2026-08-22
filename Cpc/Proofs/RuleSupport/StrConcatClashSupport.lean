@@ -253,7 +253,7 @@ theorem concat_clash_eo_and_true_split (a b : Term)
   cases a <;> cases b <;>
     simp_all [__eo_and, native_and, SmtEval.native_and]
   all_goals
-    simp only [__eo_requires, native_ite, native_teq] at h
+    simp [__eo_requires, native_ite, native_teq, native_not] at h
   all_goals
     split at h <;> exact Term.noConfusion h
 
@@ -757,7 +757,7 @@ theorem concat_clash_rev_tail_smt_types
   have hConcatEoTy :
       __eo_typeof_str_concat (__eo_typeof head) (__eo_typeof nil) ≠
         Term.Stuck := by
-    simpa [hZEQ] using hZEoTy
+    simpa [hZEQ, __eo_typeof, __eo_typeof_str_concat, mkConcat] using hZEoTy
   rcases eo_typeof_str_concat_args_of_ne_stuck _ _ hConcatEoTy with
     ⟨U, hHeadEoTy, hNilEoTy⟩
   have hNilTrans : RuleProofs.eo_has_smt_translation nil := by

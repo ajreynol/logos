@@ -1115,11 +1115,11 @@ private theorem dt_arg_list_of_appHead_dtcons
           | Stuck =>
               simp [appHead] at hHead
           | _ =>
-              simpa [__dt_arg_list] using hGet
+              simpa [__dt_arg_list, eoTermList] using hGet
       | Stuck =>
           simp [appHead] at hHead
       | _ =>
-          simpa [__dt_arg_list] using hGet
+          simpa [__dt_arg_list, eoTermList] using hGet
   | Term.DtCons s' d' i', hHead => by
       simp [appHead] at hHead
       rcases hHead with ⟨rfl, rfl, rfl⟩

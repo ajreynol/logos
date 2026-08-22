@@ -172,8 +172,8 @@ private theorem neg_topDiff_eq (W P : Nat) (hP : P ≤ 2 ^ (W + 1)) :
       simp [hP0, R]
     rw [hIf]
     have hPow : 2 ^ (W + 2) = 2 ^ (W + 1) + 2 ^ (W + 1) := by
-      have h : 2 ^ (W + 2) = 2 ^ (W + 1) * 2 := by
-        simpa using (pow_two_mul (W + 1) 1)
+      have h : 2 ^ (W + 2) = 2 ^ (W + 1) * 2 :=
+        (pow_two_mul (W + 1) 1).symm
       rw [h]
       omega
     have hR_eq : R = 2 ^ (W + 1) + low := by
@@ -363,9 +363,7 @@ private theorem nil_bvxor_bitvec_succ_of_ne_stuck
     rfl
   · simp [native_ite, hBound]
     have hNonneg : native_zleq 0 (native_nat_to_int (w + 1)) = true := by
-      have h : (0 : Int) ≤ ((w + 1 : Nat) : Int) :=
-        Int.natCast_nonneg (w + 1)
-      simpa [native_zleq, native_nat_to_int] using h
+      exact decide_eq_true (Int.natCast_nonneg (w + 1))
     simp [__eo_mk_binary, native_ite, hNonneg]
     unfold native_mod_total
     rw [native_int_pow2_nat (w + 1)]
@@ -813,8 +811,8 @@ private theorem signedMag_bound {W A : Nat}
   by_cases hs : A.testBit W = true
   · have hge : 2 ^ W ≤ A := Nat.ge_two_pow_of_testBit hs
     have hPowSplit : 2 ^ (W + 1) = 2 ^ W + 2 ^ W := by
-      have h : 2 ^ (W + 1) = 2 ^ W * 2 := by
-        simpa using (pow_two_mul W 1)
+      have h : 2 ^ (W + 1) = 2 ^ W * 2 :=
+        (pow_two_mul W 1).symm
       rw [h]
       omega
     dsimp [signedMag]
@@ -1089,8 +1087,8 @@ private theorem native_binary_uts_signedMag
   · have hge : 2 ^ W ≤ A := Nat.ge_two_pow_of_testBit hs
     let low := A - 2 ^ W
     have hPowSplit : 2 ^ (W + 1) = 2 ^ W + 2 ^ W := by
-      have h : 2 ^ (W + 1) = 2 ^ W * 2 := by
-        simpa using (pow_two_mul W 1)
+      have h : 2 ^ (W + 1) = 2 ^ W * 2 :=
+        (pow_two_mul W 1).symm
       rw [h]
       omega
     have hlowLt : low < 2 ^ W := by
@@ -1957,8 +1955,8 @@ private theorem signedExtProduct_topDiff_eq_of_bound
     have hY1M : Y + 1 ≤ M := Nat.le_trans hY1 hPowWLeM
     have hPowDouble :
         2 ^ W + 2 ^ W = 2 ^ (W + 1) := by
-      have h : 2 ^ (W + 1) = 2 ^ W * 2 := by
-        simpa using (pow_two_mul W 1)
+      have h : 2 ^ (W + 1) = 2 ^ W * 2 :=
+        (pow_two_mul W 1).symm
       rw [h]
       omega
     have hSumLeM : (X + 1) + (Y + 1) ≤ M := by
@@ -2830,7 +2828,10 @@ private theorem smulo_indices_eq
         intZeroList (W - 2)
     have hNegFalse :
         native_zlt (native_nat_to_int (W - 2)) (0 : native_Int) = false := by
-      simp [native_zlt, native_nat_to_int]
+      simp only [native_zlt, native_nat_to_int]
+      refine decide_eq_false ?_
+      show ¬ (((W - 2 : Nat) : Int) < 0)
+      omega
     have hToNat :
         native_int_to_nat (native_nat_to_int (W - 2)) = W - 2 := by
       simp [native_int_to_nat, native_nat_to_int]
@@ -2923,9 +2924,7 @@ private theorem eval_smuloScanTerm
       (term_uop2_ne_stuck UserOp2.extract xbIdx xbIdx) hxbNe
   have hXbBit1Eval :
       __smtx_model_eval M (__eo_to_smt xbBit1) = bv1 (Y.testBit 1) := by
-    simpa [xbBit1, xbIdx] using
-      eval_extract_bit_term M xb (native_nat_to_int (W + 1)) (Y : Int)
-        1 hxbEval (Int.natCast_nonneg Y)
+    exact eval_extract_bit_term M xb (native_nat_to_int (W + 1)) (Y : Int) 1 hxbEval (Int.natCast_nonneg Y)
   have hXbBit1Ty :
       __eo_typeof xbBit1 =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1) := by
@@ -3841,7 +3840,7 @@ by
               change __eo_typeof (__eo_prog_bv_smulo_elim A) = Term.Bool
                 at hResultTy
               have hProgNe' : __eo_prog_bv_smulo_elim A ≠ Term.Stuck := by
-                simpa using hProgNe
+                exact hProgNe
               rcases bv_smulo_elim_shape_of_ne_stuck A hProgNe' with
                 ⟨a, b, rhs, hShape⟩
               subst A
@@ -3880,7 +3879,7 @@ by
                   term_has_non_none_type
                     (SmtTerm.bvsmulo (__eo_to_smt a) (__eo_to_smt b)) := by
                 unfold term_has_non_none_type
-                simpa [lhs] using hLhsNN
+                exact hLhsNN
               have hExpandedEval :
                   __smtx_model_eval M (__eo_to_smt expanded) =
                     __smtx_model_eval M (__eo_to_smt lhs) := by

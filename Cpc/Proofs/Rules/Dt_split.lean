@@ -716,7 +716,7 @@ private theorem facts___eo_prog_dt_split_impl
         have hxTy :
             __smtx_typeof (__eo_to_smt x) =
               SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype := by
-          simpa [hT, __eo_to_smt_type, smtUnitTupleDatatype] using hxMatch
+          simpa [hT, __eo_to_smt_type, smtUnitTupleDatatype, __smtx_tuple_datatype_decl, hxMatch] using hxMatch
         have hEvalTy :
             __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt x)) =
               SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype := by

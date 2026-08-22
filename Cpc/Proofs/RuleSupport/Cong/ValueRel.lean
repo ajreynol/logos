@@ -35,7 +35,7 @@ private theorem native_list_in_re_raw_star_congr :
             native_list_in_re cs
                 (native_re_mk_concat (native_re_deriv c r)
                   (SmtRegLan.star r)) = true := by
-          simpa [native_list_in_re, native_re_deriv] using h
+          exact h
         rcases
             (native_list_in_re_mk_concat_true_iff_exists_append cs
               (native_re_deriv c r) (SmtRegLan.star r)).1 hConcat with
@@ -45,7 +45,7 @@ private theorem native_list_in_re_raw_star_congr :
           have hDeriv :
               native_list_in_re xs₁ (native_re_deriv c r) =
                 native_list_in_re xs₁ (native_re_deriv c r') := by
-            simpa [native_list_in_re] using hExt (c :: xs₁)
+            exact hExt (c :: xs₁)
           rw [← hDeriv]
           exact hLeft
         have hLen : xs₂.length < (c :: cs).length := by
@@ -65,13 +65,13 @@ private theorem native_list_in_re_raw_star_congr :
           (native_list_in_re_mk_concat_true_iff_exists_append cs
             (native_re_deriv c r') (SmtRegLan.star r')).2
             ⟨xs₁, xs₂, hAppend, hLeft', hRight'⟩
-        simpa [native_list_in_re, native_re_deriv] using hConcat'
+        exact hConcat'
       · intro h
         have hConcat :
             native_list_in_re cs
                 (native_re_mk_concat (native_re_deriv c r')
                   (SmtRegLan.star r')) = true := by
-          simpa [native_list_in_re, native_re_deriv] using h
+          exact h
         rcases
             (native_list_in_re_mk_concat_true_iff_exists_append cs
               (native_re_deriv c r') (SmtRegLan.star r')).1 hConcat with
@@ -81,7 +81,7 @@ private theorem native_list_in_re_raw_star_congr :
           have hDeriv :
               native_list_in_re xs₁ (native_re_deriv c r) =
                 native_list_in_re xs₁ (native_re_deriv c r') := by
-            simpa [native_list_in_re] using hExt (c :: xs₁)
+            exact hExt (c :: xs₁)
           rw [hDeriv]
           exact hLeft
         have hLen : xs₂.length < (c :: cs).length := by
@@ -101,7 +101,7 @@ private theorem native_list_in_re_raw_star_congr :
           (native_list_in_re_mk_concat_true_iff_exists_append cs
             (native_re_deriv c r) (SmtRegLan.star r)).2
             ⟨xs₁, xs₂, hAppend, hLeft', hRight'⟩
-        simpa [native_list_in_re, native_re_deriv] using hConcat'
+        exact hConcat'
 termination_by xs _ _ _ => xs.length
 decreasing_by
   all_goals
@@ -119,7 +119,7 @@ private theorem native_list_in_re_raw_star_append :
           native_list_in_re cs
               (native_re_mk_concat (native_re_deriv c r)
                 (SmtRegLan.star r)) = true := by
-        simpa [native_list_in_re, native_re_deriv] using hLeft
+        exact hLeft
       rcases
           (native_list_in_re_mk_concat_true_iff_exists_append cs
             (native_re_deriv c r) (SmtRegLan.star r)).1 hConcat with
@@ -140,7 +140,7 @@ private theorem native_list_in_re_raw_star_append :
         (native_list_in_re_mk_concat_true_iff_exists_append (cs ++ ys)
           (native_re_deriv c r) (SmtRegLan.star r)).2
           ⟨xs₁, xs₂ ++ ys, hAppend', hChunk, hTailAppend⟩
-      simpa [native_list_in_re, native_re_deriv] using hConcat'
+      exact hConcat'
 termination_by xs _ _ _ _ => xs.length
 decreasing_by
   all_goals
@@ -161,7 +161,7 @@ private theorem native_list_in_re_raw_star_star :
                 (native_re_mk_concat
                   (native_re_deriv c (SmtRegLan.star r))
                   (SmtRegLan.star (SmtRegLan.star r))) = true := by
-          simpa [native_list_in_re, native_re_deriv] using h
+          exact h
         rcases
             (native_list_in_re_mk_concat_true_iff_exists_append cs
               (native_re_deriv c (SmtRegLan.star r))
@@ -169,7 +169,7 @@ private theorem native_list_in_re_raw_star_star :
           ⟨xs₁, xs₂, hAppend, hChunk, hTail⟩
         have hChunkStar :
             native_list_in_re (c :: xs₁) (SmtRegLan.star r) = true := by
-          simpa [native_list_in_re] using hChunk
+          exact hChunk
         have hTailStar :
             native_list_in_re xs₂ (SmtRegLan.star r) = true := by
           have hTailEq := native_list_in_re_raw_star_star xs₂ r
@@ -185,7 +185,7 @@ private theorem native_list_in_re_raw_star_star :
         have hDeriv :
             native_list_in_re cs
                 (native_re_deriv c (SmtRegLan.star r)) = true := by
-          simpa [native_list_in_re] using h
+          exact h
         have hNil :
             native_list_in_re [] (SmtRegLan.star (SmtRegLan.star r)) =
               true := by
@@ -199,7 +199,7 @@ private theorem native_list_in_re_raw_star_star :
             (native_re_deriv c (SmtRegLan.star r))
             (SmtRegLan.star (SmtRegLan.star r))).2
             ⟨cs, [], by simp, hDeriv, hNil⟩
-        simpa [native_list_in_re, native_re_deriv] using hConcat
+        exact hConcat
 termination_by xs _ => xs.length
 decreasing_by
   all_goals
@@ -242,7 +242,7 @@ private theorem native_list_in_re_raw_star_congr_valid :
             native_list_in_re cs
                 (native_re_mk_concat (native_re_deriv c r)
                   (SmtRegLan.star r)) = true := by
-          simpa [native_list_in_re, native_re_deriv] using h
+          exact h
         rcases
             (native_list_in_re_mk_concat_true_iff_exists_append cs
               (native_re_deriv c r) (SmtRegLan.star r)).1 hConcat with
@@ -257,8 +257,7 @@ private theorem native_list_in_re_raw_star_congr_valid :
           have hDeriv :
               native_list_in_re xs₁ (native_re_deriv c r) =
                 native_list_in_re xs₁ (native_re_deriv c r') := by
-            simpa [native_list_in_re] using
-              hExt (c :: xs₁) (native_string_valid_cons hc hValid₁)
+            exact hExt (c :: xs₁) (native_string_valid_cons hc hValid₁)
           rw [← hDeriv]
           exact hLeft
         have hRight' :
@@ -274,13 +273,13 @@ private theorem native_list_in_re_raw_star_congr_valid :
           (native_list_in_re_mk_concat_true_iff_exists_append cs
             (native_re_deriv c r') (SmtRegLan.star r')).2
             ⟨xs₁, xs₂, hAppend, hLeft', hRight'⟩
-        simpa [native_list_in_re, native_re_deriv] using hConcat'
+        exact hConcat'
       · intro h
         have hConcat :
             native_list_in_re cs
                 (native_re_mk_concat (native_re_deriv c r')
                   (SmtRegLan.star r')) = true := by
-          simpa [native_list_in_re, native_re_deriv] using h
+          exact h
         rcases
             (native_list_in_re_mk_concat_true_iff_exists_append cs
               (native_re_deriv c r') (SmtRegLan.star r')).1 hConcat with
@@ -295,8 +294,7 @@ private theorem native_list_in_re_raw_star_congr_valid :
           have hDeriv :
               native_list_in_re xs₁ (native_re_deriv c r) =
                 native_list_in_re xs₁ (native_re_deriv c r') := by
-            simpa [native_list_in_re] using
-              hExt (c :: xs₁) (native_string_valid_cons hc hValid₁)
+            exact hExt (c :: xs₁) (native_string_valid_cons hc hValid₁)
           rw [hDeriv]
           exact hLeft
         have hRight' :
@@ -312,7 +310,7 @@ private theorem native_list_in_re_raw_star_congr_valid :
           (native_list_in_re_mk_concat_true_iff_exists_append cs
             (native_re_deriv c r) (SmtRegLan.star r)).2
             ⟨xs₁, xs₂, hAppend, hLeft', hRight'⟩
-        simpa [native_list_in_re, native_re_deriv] using hConcat'
+        exact hConcat'
 termination_by xs _ _ _ _ => xs.length
 decreasing_by
   all_goals
@@ -349,7 +347,7 @@ theorem native_str_in_re_re_mult_congr
       intro ys hys
       simpa [native_str_in_re, native_list_in_re, hys] using
         hExt ys hys
-    simpa [native_str_in_re, native_list_in_re, native_re_mult, hValid] using
+    simpa [native_str_in_re, hValid, native_re_mult, native_re_mk_star] using
       native_list_in_re_mk_star_congr_valid str r r' hValid hList
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
@@ -370,9 +368,7 @@ theorem native_str_in_re_re_plus_congr
           native_str_in_re s (native_re_mult r') := by
     intro s _hs
     exact native_str_in_re_re_mult_congr s r r' hExt
-  simpa [native_re_plus, native_re_mult, native_re_concat] using
-    native_str_in_re_re_concat_congr str r r'
-      (native_re_mk_star r) (native_re_mk_star r') hExt hStar
+  exact native_str_in_re_re_concat_congr str r r' (native_re_mk_star r) (native_re_mk_star r') hExt hStar
 
 private theorem native_list_in_re_deriv_congr_valid
     (c : native_Char) (r r' : SmtRegLan)
@@ -386,8 +382,7 @@ private theorem native_list_in_re_deriv_congr_valid
         native_list_in_re ys (native_re_deriv c r) =
           native_list_in_re ys (native_re_deriv c r') := by
   intro ys hys
-  simpa [native_list_in_re] using
-    hExt (c :: ys) (native_string_valid_cons hc hys)
+  exact hExt (c :: ys) (native_string_valid_cons hc hys)
 
 private theorem native_re_prefix_match_len_go_congr_valid :
     ∀ (xs : List native_Char) (r r' : SmtRegLan) (n : Nat),
@@ -402,7 +397,7 @@ private theorem native_re_prefix_match_len_go_congr_valid :
   | nil =>
       intro r r' n _hValid hExt
       have hNull : native_re_nullable r = native_re_nullable r' := by
-        simpa [native_list_in_re] using hExt [] (by simp [native_string_valid])
+        exact hExt [] (by simp [native_string_valid])
       simp [native_string_to_values, native_re_prefix_match_len?.go, hNull]
   | cons c cs ih =>
       intro r r' n hValid hExt
@@ -411,7 +406,7 @@ private theorem native_re_prefix_match_len_go_congr_valid :
       have hcs : native_string_valid cs = true :=
         (native_string_valid_cons_parts hValid).2
       have hNull : native_re_nullable r = native_re_nullable r' := by
-        simpa [native_list_in_re] using hExt [] (by simp [native_string_valid])
+        exact hExt [] (by simp [native_string_valid])
       by_cases hR : native_re_nullable r = true
       · have hRp : native_re_nullable r' = true := by
           simpa [← hNull] using hR

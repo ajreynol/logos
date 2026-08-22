@@ -1190,7 +1190,7 @@ private theorem quant_merge_eval
     have hConcatNil :
         __eo_list_concat Term.__eo_List_cons Term.__eo_List_nil x = x := by
       rw [hxEq]
-      simpa using eo_list_concat_eoListOfTerms [] xs
+      exact eo_list_concat_eoListOfTerms [] xs
     have hMkStart :
         __mk_quant_merge_prenex (Term.UOp UserOp.forall) (qforall x F)
             Term.__eo_List_nil =
@@ -1239,7 +1239,7 @@ private theorem quant_merge_eval
     have hConcatNil :
         __eo_list_concat Term.__eo_List_cons Term.__eo_List_nil x = x := by
       rw [hxEq]
-      simpa using eo_list_concat_eoListOfTerms [] xs
+      exact eo_list_concat_eoListOfTerms [] xs
     have hMkStart :
         __mk_quant_merge_prenex (Term.UOp UserOp.exists) (qexists x F)
             Term.__eo_List_nil =

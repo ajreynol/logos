@@ -310,9 +310,11 @@ private theorem facts
   rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
   rcases seq_value_canonical hTEvalTy with ⟨tt, hTEval⟩
   have hSSTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
-    simpa [hSEval] using hSEvalTy
+    simp only [hSEval] at hSEvalTy
+    exact hSEvalTy
   have hTTTy : __smtx_typeof_seq_value tt = SmtType.Seq SmtType.Char := by
-    simpa [hTEval] using hTEvalTy
+    simp only [hTEval] at hTEvalTy
+    exact hTEvalTy
   have hSSValid : native_string_valid (native_unpack_string ss) = true :=
     native_unpack_string_valid_of_typeof_seq_char hSSTy
   have hTTValid : native_string_valid (native_unpack_string tt) = true :=
@@ -502,8 +504,8 @@ by
                                   TranslationProofs.eo_to_smt_typeof_matches_translation
                                     a1 hA1Trans
                                 rw [hArgTypes.1] at hTyRaw
-                                simpa [TranslationProofs.eo_to_smt_type_seq,
-                                  TranslationProofs.eo_to_smt_type_char] using hTyRaw
+                                simp only [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hTyRaw
+                                exact hTyRaw
                               have hA2SmtTy :
                                   __smtx_typeof (__eo_to_smt a2) =
                                     SmtType.Seq SmtType.Char := by
@@ -513,8 +515,8 @@ by
                                   TranslationProofs.eo_to_smt_typeof_matches_translation
                                     a2 hA2Trans
                                 rw [hArgTypes.2] at hTyRaw
-                                simpa [TranslationProofs.eo_to_smt_type_seq,
-                                  TranslationProofs.eo_to_smt_type_char] using hTyRaw
+                                simp only [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hTyRaw
+                                exact hTyRaw
                               have hBool :=
                                 ReRangeEmpProof.typed_concl a1 a2 hA1SmtTy hA2SmtTy
                               rw [hProgEq]

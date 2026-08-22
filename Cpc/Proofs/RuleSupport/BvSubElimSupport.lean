@@ -62,11 +62,11 @@ theorem bv_sub_elim_args_type_of_bool (x y : Term) :
       RuleProofs.eo_typeof_eq_bool_operands_not_stuck
         (__eo_typeof (bvSubElimLhs x y))
         (__eo_typeof (bvSubElimRhs x y))
-        (by simpa [bvSubElimTerm, bvSubElimLhs, bvSubElimRhs] using hTy)
+        (by exact hTy)
     exact hOperands.1
   have hBvSubNN :
       __eo_typeof_bvand (__eo_typeof x) (__eo_typeof y) ≠ Term.Stuck := by
-    simpa [bvSubElimLhs] using hLeftNN
+    exact hLeftNN
   rcases eo_typeof_bvand_arg_types_of_ne_stuck_local hBvSubNN with
     ⟨w, hXTy, hYTy⟩
   refine ⟨w, hXTy, hYTy, ?_⟩
@@ -85,7 +85,7 @@ theorem bv_sub_elim_nil_ne (x y : Term) :
       RuleProofs.eo_typeof_eq_bool_operands_not_stuck
         (__eo_typeof (bvSubElimLhs x y))
         (__eo_typeof (bvSubElimRhs x y))
-        (by simpa [bvSubElimTerm, bvSubElimLhs, bvSubElimRhs] using hTy)
+        (by exact hTy)
     exact hOperands.2
   intro hNil
   apply hRightNN
@@ -553,8 +553,7 @@ theorem bv_commutative_add_args_type_of_bool (x y : Term) :
         (__eo_typeof (bvCommutativeAddLhs x y))
         (__eo_typeof (bvCommutativeAddRhs x y))
         (by
-          simpa [bvCommutativeAddTerm, bvCommutativeAddLhs,
-            bvCommutativeAddRhs] using hTy)
+          exact hTy)
     exact hOperands.1
   have hOuterNN :
       __eo_typeof_bvand (__eo_typeof x)
@@ -562,14 +561,14 @@ theorem bv_commutative_add_args_type_of_bool (x y : Term) :
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) y)
               (__eo_nil (Term.UOp UserOp.bvadd) (__eo_typeof x)))) ≠
         Term.Stuck := by
-    simpa [bvCommutativeAddLhs] using hLeftNN
+    exact hLeftNN
   rcases eo_typeof_bvand_arg_types_of_ne_stuck_local hOuterNN with
     ⟨w, hXTy, hInnerTy⟩
   have hInnerEq :
       __eo_typeof_bvand (__eo_typeof y)
           (__eo_typeof (__eo_nil (Term.UOp UserOp.bvadd) (__eo_typeof x))) =
         Term.Apply (Term.UOp UserOp.BitVec) w := by
-    simpa [bvCommutativeAddLhs] using hInnerTy
+    exact hInnerTy
   have hInnerNe : __eo_typeof_bvand (__eo_typeof y)
         (__eo_typeof (__eo_nil (Term.UOp UserOp.bvadd) (__eo_typeof x))) ≠
       Term.Stuck := by
@@ -610,8 +609,7 @@ theorem bv_commutative_add_nil_x_ne (x y : Term) :
         (__eo_typeof (bvCommutativeAddLhs x y))
         (__eo_typeof (bvCommutativeAddRhs x y))
         (by
-          simpa [bvCommutativeAddTerm, bvCommutativeAddLhs,
-            bvCommutativeAddRhs] using hTy)
+          exact hTy)
     exact hOperands.1
   apply hLeftNN
   change __eo_typeof
@@ -636,8 +634,7 @@ theorem bv_commutative_add_nil_y_ne (x y : Term) :
         (__eo_typeof (bvCommutativeAddLhs x y))
         (__eo_typeof (bvCommutativeAddRhs x y))
         (by
-          simpa [bvCommutativeAddTerm, bvCommutativeAddLhs,
-            bvCommutativeAddRhs] using hTy)
+          exact hTy)
     exact hOperands.2
   apply hRightNN
   change __eo_typeof

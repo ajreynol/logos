@@ -146,7 +146,7 @@ private theorem len_gt_seq_types_of_bool (x y : Term)
         (SmtTerm.gt (SmtTerm.str_len (__eo_to_smt x))
           (SmtTerm.str_len (__eo_to_smt y))) := by
     apply _root_.term_has_non_none_of_type_eq
-    · simpa [RuleProofs.eo_has_bool_type, mkGt, mkStrLen] using hLenGtBool
+    · simpa [RuleProofs.eo_has_bool_type, mkGt, mkStrLen, __eo_to_smt, __smtx_typeof] using hLenGtBool
     · decide
   have hArgs :=
     arith_binop_ret_bool_args_of_non_none (op := SmtTerm.gt)
@@ -326,10 +326,10 @@ private theorem concat_lprop_len_ne_bool_of_seq_types
       (mkNot (mkEq (mkStrLen tc) (mkStrLen sc))) := by
   have hLenTc :
       __smtx_typeof (__eo_to_smt (mkStrLen tc)) = SmtType.Int := by
-    simpa [mkStrLen] using smtx_typeof_str_len_seq (__eo_to_smt tc) T htcTy
+    simpa [mkStrLen, __eo_to_smt, __smtx_typeof, htcTy] using smtx_typeof_str_len_seq (__eo_to_smt tc) T htcTy
   have hLenSc :
       __smtx_typeof (__eo_to_smt (mkStrLen sc)) = SmtType.Int := by
-    simpa [mkStrLen] using smtx_typeof_str_len_seq (__eo_to_smt sc) T hscTy
+    simpa [mkStrLen, __eo_to_smt, __smtx_typeof, hscTy] using smtx_typeof_str_len_seq (__eo_to_smt sc) T hscTy
   have hEqBool :
       RuleProofs.eo_has_bool_type (mkEq (mkStrLen tc) (mkStrLen sc)) := by
     apply RuleProofs.eo_has_bool_type_eq_of_same_smt_type

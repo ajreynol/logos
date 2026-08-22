@@ -277,7 +277,8 @@ private theorem eoVarKey_eq_of_toSmt_eq_of_type_wf
           cases op
           case RegLan => exact False.elim (hReg rfl)
           all_goals exact hValid
-      | _ => simpa [TranslationProofs.eo_type_valid] using hValid
+      | _ => simpa [TranslationProofs.eo_type_valid,
+            TranslationProofs.eo_type_valid_rec] using hValid
     have hTT' : T = T' :=
       TranslationProofs.eo_to_smt_type_eq_of_valid
         (T := T) (U := T') hValidRec hType

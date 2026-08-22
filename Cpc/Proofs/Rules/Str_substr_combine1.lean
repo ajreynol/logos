@@ -368,14 +368,14 @@ private theorem facts___eo_prog_str_substr_combine1_impl
             __smtx_model_eval_leq, __smtx_model_eval_eq, native_veq]
             using hEval
         have hLeAdd : 0 ≤ m2i + (-(m1i + (-n2i))) := by
-          simpa [SmtEval.native_zleq, native_zplus, SmtEval.native_zplus,
-            native_zneg] using hLeBool
+          simp only [SmtEval.native_zleq, native_zplus, SmtEval.native_zplus, native_zneg] at hLeBool
+          exact of_decide_eq_true hLeBool
         have hLe : 0 ≤ m2i - (m1i - n2i) := by
           simpa [Int.sub_eq_add_neg] using hLeAdd
         exact Int.sub_nonneg.mp hLe
   have hSeqTy : __smtx_typeof_seq_value ss =
       SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [hSEval] using hSEvalTy
+    simpa [hSEval, __smtx_typeof_seq_value, __smtx_typeof_value] using hSEvalTy
   have hElem : __smtx_elem_typeof_seq_value ss = __eo_to_smt_type T :=
     elem_typeof_seq_value_of_typeof_seq_value hSeqTy
   have hEvalEq : __smtx_model_eval M (__eo_to_smt lhs) =

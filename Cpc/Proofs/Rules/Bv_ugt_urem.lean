@@ -557,8 +557,8 @@ private theorem eval_ugt_urem_sides_eq
   have hPyRange := bitvec_payload_range_of_canonical hNonneg hPyCanon
   have hPxRange := bitvec_payload_range_of_canonical hNonneg hPxCanon
   have hPyMod : py % native_int_pow2 n = py := by
-    have h : py = py % native_int_pow2 n := by
-      simpa [SmtEval.native_zeq, SmtEval.native_mod_total] using hPyCanon
+    have h : py = py % native_int_pow2 n :=
+      of_decide_eq_true hPyCanon
     exact h.symm
   have hZeroEval := eval_bv_const M 0 n hNonneg
   have hZeroPayload : native_mod_total 0 (native_int_pow2 n) = 0 := by
@@ -796,7 +796,7 @@ by
                           have hProgLocal :
                               __eo_prog_bv_ugt_urem a1 a2 a3 (Proof.pf P1) ≠
                                 Term.Stuck := by
-                            simpa [P1] using hProg
+                            exact hProg
                           rcases bv_ugt_urem_shape_of_ne_stuck a1 a2 a3 P1
                               hProgLocal with
                             ⟨ha1, ha2, ha3, pw, px, hP1⟩

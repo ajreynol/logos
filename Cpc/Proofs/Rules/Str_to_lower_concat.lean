@@ -537,7 +537,12 @@ private theorem facts___eo_prog_str_to_lower_concat_impl
     have hC23ValTy :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt (mkConcat s2 s3))) =
           SmtType.Seq SmtType.Char := by
-      simpa [hConcat23Ty] using
+      -- v4.33 `simp` unfolds the `mkConcat` abbrev in the term's type, so the
+      -- rewrite has to be available in that (reduced) shape too.
+      have hConcat23Ty' :
+          __smtx_typeof (SmtTerm.str_concat (__eo_to_smt s2) (__eo_to_smt s3)) =
+            SmtType.Seq SmtType.Char := hConcat23Ty
+      simpa [hConcat23Ty'] using
         smt_model_eval_preserves_type_of_non_none M hM
           (__eo_to_smt (mkConcat s2 s3)) (by
             unfold term_has_non_none_type; rw [hConcat23Ty]; simp)
@@ -548,7 +553,8 @@ private theorem facts___eo_prog_str_to_lower_concat_impl
         simpa [hV1Eval, __smtx_typeof_value] using hS1ValTy)
     have hV23Elem : __smtx_elem_typeof_seq_value v23 = SmtType.Char :=
       elem_typeof_seq_value_of_typeof_seq_value (by
-        simpa [hV23Eval, __smtx_typeof_value] using hC23ValTy)
+        rw [hV23Eval] at hC23ValTy
+        simpa [__smtx_typeof_value] using hC23ValTy)
     -- LHS: str_to_lower s1 ++ str_to_lower (s2++s3)
     have hLhs :
         __smtx_model_eval M

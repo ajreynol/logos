@@ -887,8 +887,7 @@ private theorem vsm_apply_ext_aux :
                   (vsm_num_apply_args (SmtValue.Apply g b)) :=
             hArgs (vsm_num_apply_args f) (by simp [vsm_num_apply_args])
           have hab : a = b := by
-            simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hCountFG,
-              SmtEval.native_nateq] using hLast
+            simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hCountFG, SmtEval.native_nateq, native_ite] using hLast
           have hfg : f = g := by
             apply ih f g hv
             · simpa [__vsm_apply_head] using hHead
@@ -904,7 +903,7 @@ private theorem vsm_apply_ext_aux :
                 apply hNeF
                 rw [hCountFG, hEq]
               simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hCountFG,
-                SmtEval.native_nateq, hNeF, hNeG] using hArg
+                SmtEval.native_nateq, native_ite, hNeF, hNeG] using hArg
           subst hfg
           subst hab
           rfl
@@ -1535,8 +1534,8 @@ private theorem dt_inst_tuple_unit_interprets
           vsm_num_apply_args_eq_dt_num_sels_of_datatype
             (v := __smtx_model_eval M X) hHead hEvalTy
         simpa [D, __smtx_tuple_datatype_decl, __smtx_dd_lookup,
-          __smtx_dt_resolve, __smtx_dt_num_sels, __smtx_dtc_num_sels,
-          native_streq, native_ite] using hCountSub
+          __smtx_dt_resolve, __smtx_dtc_resolve, __smtx_dt_num_sels,
+          __smtx_dtc_num_sels, native_streq, native_ite] using hCountSub
       have hVal :
           __smtx_model_eval M X =
             SmtValue.DtCons (native_string_lit "@Tuple") D native_nat_zero := by

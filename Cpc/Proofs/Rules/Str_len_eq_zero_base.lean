@@ -210,7 +210,7 @@ private theorem facts___eo_prog_str_len_eq_zero_base_impl
   rcases seq_value_canonical hXEvalTy with ⟨sx, hXEval⟩
   have hSeqTy :
       __smtx_typeof_seq_value sx = SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [hXEval] using hXEvalTy
+    simpa [hXEval, __smtx_typeof_seq_value, __smtx_typeof_value] using hXEvalTy
   have hEmptyEval :
       __smtx_model_eval M (__eo_to_smt (__seq_empty A)) =
         SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type T)) := by
@@ -262,7 +262,7 @@ by
                   change __eo_prog_str_len_eq_zero_base a1 a2 ≠
                     Term.Stuck at hProg
                   have hA1Trans : RuleProofs.eo_has_smt_translation a1 := by
-                    simpa [cmdTranslationOk, cArgListTranslationOk] using
+                    simpa [cmdTranslationOk, cArgListTranslationOk, argTranslationOkMasked] using
                       hCmdTrans.1
                   have hA1NotStuck : a1 ≠ Term.Stuck := by
                     exact RuleProofs.term_ne_stuck_of_has_smt_translation

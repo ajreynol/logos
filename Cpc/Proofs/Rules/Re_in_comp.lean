@@ -77,8 +77,7 @@ private theorem typed___eo_prog_re_in_comp_impl
         __smtx_typeof (__eo_to_smt a1) = __eo_to_smt_type (__eo_typeof a1) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation a1 hA1Trans
     rw [hA1Ty] at hTyRaw
-    simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char]
-      using hTyRaw
+    exact hTyRaw
   have hA2SmtTy : __smtx_typeof (__eo_to_smt a2) = SmtType.RegLan := by
     have hTyRaw :
         __smtx_typeof (__eo_to_smt a2) = __eo_to_smt_type (__eo_typeof a2) :=
@@ -184,8 +183,7 @@ private theorem facts___eo_prog_re_in_comp_impl
         __smtx_typeof (__eo_to_smt a1) = __eo_to_smt_type (__eo_typeof a1) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation a1 hA1Trans
     rw [hA1Ty] at hTyRaw
-    simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char]
-      using hTyRaw
+    exact hTyRaw
   have hA2SmtTy : __smtx_typeof (__eo_to_smt a2) = SmtType.RegLan := by
     have hTyRaw :
         __smtx_typeof (__eo_to_smt a2) = __eo_to_smt_type (__eo_typeof a2) :=

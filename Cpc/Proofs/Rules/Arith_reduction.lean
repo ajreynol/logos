@@ -320,7 +320,11 @@ private theorem native_int_pow2_log2_le
   have hNat := Nat.log2_self_le hnNatNe
   have hCast : ((2 ^ Nat.log2 n.toNat : Nat) : Int) ≤ (n.toNat : Int) := by
     exact_mod_cast hNat
-  simpa [Int.toNat_of_nonneg (Int.le_of_lt hPos)] using hCast
+  -- v4.33 `simp` no longer discharges the `native_zexp_total` sign guard.
+  rw [if_neg (by omega : ¬ ((Nat.log2 n.toNat : Int) < 0))]
+  have hn : ((n.toNat : Nat) : Int) = n := Int.toNat_of_nonneg (Int.le_of_lt hPos)
+  rw [hn] at hCast
+  exact_mod_cast hCast
 
 private theorem native_int_lt_next_pow2_log2
     (n : native_Int) (hPos : 0 < n) :
@@ -337,8 +341,10 @@ private theorem native_int_lt_next_pow2_log2
       ((n.toNat : Nat) : Int) <
         ((2 ^ (Nat.log2 n.toNat + 1) : Nat) : Int) := by
     exact_mod_cast hNat
-  simpa [Int.toNat_of_nonneg (Int.le_of_lt hPos), Nat.add_comm,
-    Nat.add_left_comm, Nat.add_assoc] using hCast
+  rw [if_neg (by omega : ¬ (((Nat.log2 n.toNat : Int) + 1) < 0))]
+  have hn : ((n.toNat : Nat) : Int) = n := Int.toNat_of_nonneg (Int.le_of_lt hPos)
+  rw [hn] at hCast
+  exact_mod_cast hCast
 
 private theorem native_int_log2_of_not_pos
     (n : native_Int) (hNotPos : ¬ 0 < n) :
@@ -704,7 +710,7 @@ private theorem typed_arith_reduction_is_int
       term_has_non_none_type (SmtTerm.is_int (__eo_to_smt u)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Real :=
     real_arg_of_non_none (op := SmtTerm.is_int) (Tout := SmtType.Bool)
       (typeof_is_int_eq (__eo_to_smt u)) hIsIntNN
@@ -754,7 +760,7 @@ private theorem typed_arith_reduction_to_int
       term_has_non_none_type (SmtTerm.to_int (__eo_to_smt u)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Real :=
     real_arg_of_non_none (op := SmtTerm.to_int) (Tout := SmtType.Int)
       (typeof_to_int_eq (__eo_to_smt u)) hToIntNN
@@ -802,7 +808,7 @@ private theorem typed_arith_reduction_qdiv
       term_has_non_none_type (SmtTerm.qdiv (__eo_to_smt u) (__eo_to_smt v)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv)
       (R := SmtType.Real)
       (typeof_qdiv_eq (__eo_to_smt u) (__eo_to_smt v)) hQdivNN with
@@ -882,7 +888,7 @@ private theorem typed_arith_reduction_qdiv_total
         (SmtTerm.qdiv_total (__eo_to_smt u) (__eo_to_smt v)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv_total)
       (R := SmtType.Real)
       (typeof_qdiv_total_eq (__eo_to_smt u) (__eo_to_smt v)) hQdivNN with
@@ -1198,7 +1204,7 @@ private theorem typed_arith_reduction_div_total
         (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hArgs :
       __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
         __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
@@ -1441,7 +1447,7 @@ private theorem typed_arith_reduction_mod_total
         (SmtTerm.mod_total (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hArgs :
       __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
         __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
@@ -1476,7 +1482,7 @@ private theorem typed_arith_reduction_div
       term_has_non_none_type (SmtTerm.div (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hArgs :
       __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
         __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
@@ -1517,7 +1523,7 @@ private theorem typed_arith_reduction_mod
       term_has_non_none_type (SmtTerm.mod (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hArgs :
       __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
         __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
@@ -1560,7 +1566,7 @@ private theorem typed_arith_reduction_abs
       term_has_non_none_type (SmtTerm.abs (__eo_to_smt u)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   rcases arith_reduction_abs_arg_cases u hAbsNN with hInt | hReal
   ·
       rcases hInt with ⟨hUSmtTy, _hUEoTy, hZero⟩
@@ -1612,7 +1618,7 @@ private theorem typed_arith_reduction_int_log2
       term_has_non_none_type (SmtTerm.int_log2 (__eo_to_smt u)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Int :=
     int_ret_arg_of_non_none (op := SmtTerm.int_log2)
       (typeof_int_log2_eq (__eo_to_smt u)) hLogNN
@@ -1680,7 +1686,7 @@ private theorem typed_arith_reduction_abs_of_trans
       term_has_non_none_type (SmtTerm.abs (__eo_to_smt u)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   rcases arith_reduction_abs_arg_cases u hAbsNN with hInt | hReal
   ·
       rcases hInt with ⟨hUSmtTy, hUEoTy, _hZero⟩
@@ -1805,7 +1811,7 @@ private theorem facts_arith_reduction_is_int
       term_has_non_none_type (SmtTerm.is_int (__eo_to_smt u)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Real :=
     real_arg_of_non_none (op := SmtTerm.is_int) (Tout := SmtType.Bool)
       (typeof_is_int_eq (__eo_to_smt u)) hIsIntNN
@@ -1866,7 +1872,7 @@ private theorem facts_arith_reduction_to_int
       term_has_non_none_type (SmtTerm.to_int (__eo_to_smt u)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Real :=
     real_arg_of_non_none (op := SmtTerm.to_int) (Tout := SmtType.Int)
       (typeof_to_int_eq (__eo_to_smt u)) hToIntNN
@@ -1926,7 +1932,7 @@ private theorem facts_arith_reduction_qdiv
       term_has_non_none_type (SmtTerm.qdiv (__eo_to_smt u) (__eo_to_smt v)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv)
       (R := SmtType.Real)
       (typeof_qdiv_eq (__eo_to_smt u) (__eo_to_smt v)) hQdivNN with
@@ -2068,7 +2074,7 @@ private theorem facts_arith_reduction_qdiv_total
         (SmtTerm.qdiv_total (__eo_to_smt u) (__eo_to_smt v)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv_total)
       (R := SmtType.Real)
       (typeof_qdiv_total_eq (__eo_to_smt u) (__eo_to_smt v)) hQdivNN with
@@ -2402,7 +2408,7 @@ private theorem facts_arith_reduction_abs
     have hAbsNN :
         term_has_non_none_type (SmtTerm.abs (__eo_to_smt u)) := by
       unfold term_has_non_none_type
-      simpa using hAbsNonNone
+      exact hAbsNonNone
     rcases arith_reduction_abs_arg_cases u hAbsNN with hInt | hReal
     ·
         rcases hInt with ⟨hUSmtTy, _hUEoTy, hZero⟩
@@ -2437,7 +2443,7 @@ private theorem facts_arith_reduction_abs_from_trans
       term_has_non_none_type (SmtTerm.abs (__eo_to_smt u)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   rcases arith_reduction_abs_arg_cases u hAbsNN with hInt | hReal
   ·
       rcases hInt with ⟨hUSmtTy, hUEoTy, _hZero⟩
@@ -2505,7 +2511,7 @@ private theorem facts_arith_reduction_int_log2
       term_has_non_none_type (SmtTerm.int_log2 (__eo_to_smt u)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Int :=
     int_ret_arg_of_non_none (op := SmtTerm.int_log2)
       (typeof_int_log2_eq (__eo_to_smt u)) hLogNN
@@ -2623,7 +2629,7 @@ private theorem facts_arith_reduction_div_total
         (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hArgs :
       __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
         __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
@@ -2765,7 +2771,7 @@ private theorem facts_arith_reduction_mod_total
         (SmtTerm.mod_total (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold RuleProofs.eo_has_smt_translation at hTrans
     unfold term_has_non_none_type
-    simpa using hTrans
+    exact hTrans
   have hArgs :
       __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
         __smtx_typeof (__eo_to_smt b) = SmtType.Int :=

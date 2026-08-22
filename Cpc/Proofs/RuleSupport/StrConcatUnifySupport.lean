@@ -112,13 +112,13 @@ theorem str_concat_unify_smt_types_of_eo_type
     change __eo_typeof_eq (__eo_typeof leftFull) (__eo_typeof rightFull) =
       Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck
-    simpa [leftEq] using hOuterNe.1
+    exact hOuterNe.1
   have hRightEqTy : __eo_typeof rightEq = Term.Bool := by
     change __eo_typeof_eq
         (__eo_typeof (__str_nary_elim sTail))
         (__eo_typeof (__str_nary_elim tTail)) = Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck
-    simpa [rightEq] using hOuterNe.2
+    exact hOuterNe.2
   change __eo_typeof_eq (__eo_typeof leftFull) (__eo_typeof rightFull) =
     Term.Bool at hLeftEqTy
   have hFullSame :=
@@ -400,8 +400,7 @@ theorem smt_typeof_seq_empty_of_eo_type_wf
           (__eo_to_smt_type (Term.Apply Term.Seq A))) = SmtType.Seq T
     rw [hA]
     change __smtx_typeof (SmtTerm.seq_empty T) = SmtType.Seq T
-    simpa [__smtx_typeof, __smtx_typeof_guard_wf, __smtx_type_wf,
-      native_ite] using hSeqWF
+    simp [__smtx_typeof, __smtx_typeof_guard_wf, native_ite, hSeqWF]
 
 theorem str_concat_unify_base_smt_types_of_eo_type
     (x t1 t2 A : Term)
@@ -429,12 +428,12 @@ theorem str_concat_unify_base_smt_types_of_eo_type
     change __eo_typeof_eq (__eo_typeof x)
         (__eo_typeof (mkConcat x tail)) = Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck
-    simpa [leftEq, strConcatUnifyBaseLeftEq] using hOuterNe.1
+    exact hOuterNe.1
   have hRightEqTy : __eo_typeof rightEq = Term.Bool := by
     change __eo_typeof_eq (__eo_typeof empty)
         (__eo_typeof (__str_nary_elim tail)) = Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck
-    simpa [rightEq, strConcatUnifyBaseRightEq] using hOuterNe.2
+    exact hOuterNe.2
   change __eo_typeof_eq (__eo_typeof x)
       (__eo_typeof (mkConcat x tail)) = Term.Bool at hLeftEqTy
   have hLeftSame :=
@@ -755,13 +754,12 @@ theorem str_concat_unify_base_rev_smt_types_of_eo_type
     change __eo_typeof_eq (__eo_typeof suffix) (__eo_typeof appended) =
       Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck
-    simpa [leftEq, strConcatUnifyBaseRevLeftEq, appended] using hOuterNe.1
+    exact hOuterNe.1
   have hRightEqTy : __eo_typeof rightEq = Term.Bool := by
     change __eo_typeof_eq (__eo_typeof empty) (__eo_typeof elim) =
       Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck
-    simpa [rightEq, strConcatUnifyBaseRightEq, empty, elim] using
-      hOuterNe.2
+    exact hOuterNe.2
   change __eo_typeof_eq (__eo_typeof suffix) (__eo_typeof appended) =
     Term.Bool at hLeftEqTy
   have hLeftSame :=
@@ -771,8 +769,7 @@ theorem str_concat_unify_base_rev_smt_types_of_eo_type
   have hAppendConcatNe :
       __eo_typeof_str_concat (__eo_typeof head) (__eo_typeof lc) ≠
         Term.Stuck := by
-    simpa [appended, strConcatUnifyRevAppend, lc, z, nil,
-      strConcatUnifyRevSingleton, strConcatUnifyRevNil] using hLeftNe.2
+    exact hLeftNe.2
   rcases eo_typeof_str_concat_args_of_ne_stuck _ _ hAppendConcatNe with
     ⟨U, hHeadEoTy, hLcEoTy⟩
   have hUNe : U ≠ Term.Stuck := by
@@ -1234,14 +1231,12 @@ theorem str_concat_unify_rev_smt_types_of_eo_type
     change __eo_typeof_eq (__eo_typeof sAppend) (__eo_typeof tAppend) =
       Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck
-    simpa [leftEq, strConcatUnifyRevLeftEq, sAppend, tAppend] using
-      hOuterNe.1
+    exact hOuterNe.1
   have hRightEqTy : __eo_typeof rightEq = Term.Bool := by
     change __eo_typeof_eq (__eo_typeof sNorm) (__eo_typeof tNorm) =
       Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck
-    simpa [rightEq, strConcatUnifyRevRightEq, sNorm, tNorm] using
-      hOuterNe.2
+    exact hOuterNe.2
   change __eo_typeof_eq (__eo_typeof sAppend) (__eo_typeof tAppend) =
     Term.Bool at hLeftEqTy
   have hAppendSame :=
@@ -1253,8 +1248,7 @@ theorem str_concat_unify_rev_smt_types_of_eo_type
   have hSAppendConcatNe :
       __eo_typeof_str_concat (__eo_typeof sHead) (__eo_typeof sLc) ≠
         Term.Stuck := by
-    simpa [sAppend, strConcatUnifyRevAppend, sLc,
-      strConcatUnifyRevSingleton, strConcatUnifyRevNil] using hAppendNe.1
+    exact hAppendNe.1
   rcases eo_typeof_str_concat_args_of_ne_stuck _ _ hSAppendConcatNe with
     ⟨U, hSHeadEoTy, hSLcEoTy⟩
   have hUNe : U ≠ Term.Stuck := by

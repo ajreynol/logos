@@ -45,7 +45,7 @@ private theorem setsMinusMember_eo_arg_types
   let innerTy := __eo_typeof_or notMxzTy Term.Bool
   let rhsTy := __eo_typeof_or mxyTy innerTy
   have hEqTy : __eo_typeof_eq lhsTy rhsTy = Term.Bool := by
-    simpa [setsMinusMemberFormula, lhsTy, mxyTy, mxzTy, notMxzTy, innerTy, rhsTy] using hTy
+    simpa [setsMinusMemberFormula, lhsTy, mxyTy, mxzTy, notMxzTy, innerTy, rhsTy, __eo_typeof, __eo_typeof_eq, __eo_typeof_not, __eo_typeof_or, __eo_typeof_set_member, __eo_typeof_set_union] using hTy
   rcases eo_typeof_eq_eq_bool_info hEqTy with ⟨hSame, hLhsNS⟩
   have hRhsNS : rhsTy ≠ Term.Stuck := by
     rw [← hSame]

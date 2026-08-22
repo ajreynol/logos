@@ -29,7 +29,7 @@ private theorem native_str_in_re_re_union_local
     ← RuleProofs.native_str_in_re_eq_model str r,
     ← RuleProofs.native_str_in_re_eq_model str s]
   by_cases hValid : native_string_valid str = true
-  · simpa [native_re_union, RuleProofs.native_str_in_re, hValid]
+  · simpa [native_re_union, RuleProofs.native_str_in_re, hValid, native_re_mk_union]
       using RuleProofs.nativeListInRe_mk_union str r s
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢

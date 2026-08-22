@@ -583,7 +583,8 @@ private theorem str_in_re_sigma_valid_properties
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
   have hSSValid : native_string_valid (native_unpack_string ss) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
-    simpa [hSEval] using hSEvalTy
+    simp only [hSEval] at hSEvalTy
+    exact hSEvalTy
   have hSNe : s ≠ Term.Stuck := by
     intro hs
     apply hSideNe

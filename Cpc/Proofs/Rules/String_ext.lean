@@ -621,7 +621,7 @@ private theorem seq_diff_pick (s1 s2 : SmtSeq)
   | zero => cases s <;> rfl
   | succ n ih => cases s with
     | empty T => rfl
-    | cons v vs => simpa using ih vs
+    | cons v vs => exact ih vs
 
 /-- `seq.nth` on a value reduces to list `getD` at the (nonneg) index. -/
 private theorem ssm_seq_nth_ofNat (d : SmtValue) :
