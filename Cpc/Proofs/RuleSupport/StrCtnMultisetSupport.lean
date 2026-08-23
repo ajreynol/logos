@@ -1952,7 +1952,7 @@ theorem scratch_concat_singleton_head_guard
           (__eo_typeof (Term.String [])) ≠ Term.Stuck at hWholeTyNe
       rw [hHeadType] at hWholeTyNe
       have hsimpa := hWholeTyNe
-      try simp [__eo_lit_type_String] at hsimpa ⊢
+      try simp at hsimpa ⊢
       exact hsimpa
     have hAChar :
         A = Term.UOp UserOp.Char :=

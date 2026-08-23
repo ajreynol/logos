@@ -1299,7 +1299,7 @@ theorem str_collect_eval_rel_local
                 · rw [__str_collect, hLen, eo_ite_true]
                   simpa [collectedTail, hCollectedTail] using hMergeTy
                 · simpa using hCollectList
-                · have hsimpa := hAllRel; (try simp [hOutEval] at hsimpa ⊢); exact hsimpa
+                · rw [hOutEval, hEval] at hAllRel; exact hAllRel
             | _ =>
                 cases head <;>
                   simp [collectedTail, hCollectedTail, __str_collect_merge]
@@ -1386,7 +1386,7 @@ theorem str_collect_eval_rel_local
                 · rw [__str_collect, hLen, eo_ite_true]
                   simpa [collectedTail, hCollectedTail] using hMergeTy
                 · simpa using hCollectList
-                · have hsimpa := hAllRel; (try simp [hOutEval] at hsimpa ⊢); exact hsimpa
+                · rw [hOutEval, hEval] at hAllRel; exact hAllRel
             | cons c cs =>
                 simp [collectedTail, hCollectedTail, __eo_is_list,
                   __eo_get_nil_rec, __eo_is_list_nil,
@@ -1452,7 +1452,7 @@ theorem str_collect_eval_rel_local
                 unfold term_has_non_none_type
                 rw [hOutTy]
                 simp)
-          try simp [hOutTy] at hsimpa ⊢
+          rw [hOutTy] at hsimpa
           exact hsimpa
         rcases seq_value_canonical hOutEvalTy with ⟨outSs, hOutEval⟩
         refine ⟨outSs, ?_, ?_, ?_, ?_⟩
@@ -1461,7 +1461,7 @@ theorem str_collect_eval_rel_local
         · rw [__str_collect, hLen, eo_ite_false, hElseEq]
           exact hOutTy
         · simpa using hCollectList
-        · have hsimpa := hRightRel; (try simp [hEval] at hsimpa ⊢); exact hsimpa
+        · rw [hOutEval, hEval] at hRightRel; exact hRightRel
   | case3 t _hStuck _hNotConcat =>
       intro ss T hList hTy hEval hCollect
       have hReq :
@@ -6179,9 +6179,8 @@ theorem str_list_concat_singleton_intro_str_to_re_rel_local
   have hSeqRel :
       RuleProofs.smt_value_rel (SmtValue.Seq outSs)
         (SmtValue.Seq packed) := by
-    have hsimpa := hOutRel
-    try simp [hConcatEval] at hsimpa ⊢
-    exact hsimpa
+    rw [hConcatEval] at hOutRel
+    exact hOutRel
   have hOutStrRel :
       RuleProofs.smt_value_rel
         (SmtValue.RegLan

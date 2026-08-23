@@ -267,6 +267,7 @@ private theorem bv_merge_sign_extend_1_index_eq_of_premise
     simp [__smtx_model_eval, __smtx_model_eval_plus,
       __smtx_model_eval_eq, native_veq, SmtEval.native_zplus,
       SmtEval.native_zeq]
+    rfl
   have hEq := bool_of_true_eval hPrem hEval
   simpa [SmtEval.native_zeq] using hEq
 

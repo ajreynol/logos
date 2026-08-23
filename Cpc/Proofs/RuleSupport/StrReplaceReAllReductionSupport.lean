@@ -1348,7 +1348,9 @@ theorem full_substr_eq_drop
     rw [if_neg]
     · rw [hMin, Int.toNat_natCast]
       exact List.take_of_length_le (by simp)
-    · exact fun h => h.elim (fun h => h.elim hStartNonneg hLengthPos) hStartLt
+    · exact fun h =>
+        h.elim (fun h => h.elim hStartNonneg hLengthPos)
+          (fun h => hStartLt (of_decide_eq_true h))
 
 /-- Native value of the generated replacement-result skolem at any
 in-range scan boundary. -/
