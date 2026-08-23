@@ -1308,9 +1308,10 @@ private theorem eo_list_concat_str_concat_unpack_of_seq_evals
         (SmtValue.Seq
           (native_pack_seq (__smtx_elem_typeof_seq_value sa)
             (native_unpack_seq sa ++ native_unpack_seq sz))) := by
-    have hsimpa := hRel
-    try simp [hConcatEvalRec] at hsimpa ⊢
-    exact hsimpa
+    -- rewrite with the concat evaluation before `simp` unfolds
+    -- `__eo_to_smt (mkConcat ..)` past its left-hand side
+    rw [hConcatEvalRec, hMkEval] at hRel
+    exact hRel
   have hUnpack := smt_value_rel_seq_unpack_eq hSeqRel
   simpa [Smtm.native_unpack_pack_seq] using hUnpack
 

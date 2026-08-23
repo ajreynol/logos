@@ -764,7 +764,8 @@ private theorem quant_var_elim_eq_diseq_interprets
               (__eo_to_smt (qnot (qeq (Term.Var (Term.String s) T) t))))) =
         SmtValue.Boolean true := by
     simp [__smtx_model_eval]
-    exact hSat
+    -- the `dite` no longer reduces under `simp`; pick the branch explicitly
+    exact dif_pos hSat
   have hXsNonNil :
       qsingle (Term.Var (Term.String s) T) ≠ Term.__eo_List_nil := by
     simp [qsingle, qcons]
@@ -1050,7 +1051,9 @@ private theorem quant_var_elim_eq_or_interprets
                   (qor (qnot (qeq (Term.Var (Term.String s) T) t)) tail)))) =
           SmtValue.Boolean false := by
       simp [__smtx_model_eval]
-      exact hNoSat
+      exact dif_neg (fun h => by
+        rcases h with ⟨v, hvTy, hvCanon, hvEval⟩
+        exact hNoSat v hvTy hvCanon hvEval)
     rw [smtx_eval_not_term, hExistsFalse]
     simp [__smtx_model_eval_not, SmtEval.native_not]
   -- Both sides evaluate to the same Boolean.

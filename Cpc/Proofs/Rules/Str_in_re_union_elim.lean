@@ -235,7 +235,9 @@ private theorem facts
     have hsimpa :=
       RuleProofs.reUnion_singleton_elim_rel_eval M (tail r2 rs)
         hTailList ⟨rtail, hTailEval⟩
-    try simp [hSingEval] at hsimpa ⊢
+    -- rewrite before `simp` unfolds `__eo_to_smt (tail ..)` past the
+    -- left-hand sides of these evaluation equations
+    rw [hSingEval, hTailEval] at hsimpa
     exact hsimpa
   have hEvalTy :
       __smtx_typeof_value (SmtValue.Seq ss) =
@@ -270,8 +272,9 @@ private theorem facts
       SmtValue.Boolean
         (RuleProofs.native_str_in_re (native_unpack_string ss)
           (native_re_union rv1 rtail))
-    simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
-      __smtx_model_eval_re_union, hSEval, hR1Eval,
+    simp only [__smtx_model_eval]
+    rw [hSEval, hR1Eval, hTailEval]
+    simp [__smtx_model_eval_str_in_re, __smtx_model_eval_re_union,
       RuleProofs.model_str_in_re_unpack_eq_string_of_value_type ss
         (native_re_union rv1 rtail) hEvalTy]
   have hRhsEval :

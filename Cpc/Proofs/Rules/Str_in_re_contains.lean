@@ -133,8 +133,10 @@ private theorem smtx_typeof_contains_regex
         (SmtTerm.re_concat (__eo_to_smt sigmaStar)
           (__eo_to_smt (Term.Apply Term.str_to_re (Term.String [])))) =
       SmtType.RegLan
-    rw [typeof_re_concat_eq]
-    simp [hStarTy, hEpsTy, native_ite, native_Teq]
+    -- rewrite the component types before `simp` normalises
+    -- `__eo_to_smt (Apply ..)` past their left-hand sides
+    rw [typeof_re_concat_eq, hStarTy, hEpsTy]
+    simp [native_ite, native_Teq]
   have hRestTy :
       __smtx_typeof
           (__eo_to_smt
@@ -149,8 +151,8 @@ private theorem smtx_typeof_contains_regex
             (Term.Apply (Term.Apply Term.re_concat sigmaStar)
               (Term.Apply Term.str_to_re (Term.String []))))) =
       SmtType.RegLan
-    rw [typeof_re_concat_eq]
-    simp [hPatTy, hTailTy, native_ite, native_Teq]
+    rw [typeof_re_concat_eq, hPatTy, hTailTy]
+    simp [native_ite, native_Teq]
   change __smtx_typeof
       (SmtTerm.re_concat (__eo_to_smt sigmaStar)
         (__eo_to_smt
@@ -159,8 +161,8 @@ private theorem smtx_typeof_contains_regex
             (Term.Apply (Term.Apply Term.re_concat sigmaStar)
               (Term.Apply Term.str_to_re (Term.String [])))))) =
     SmtType.RegLan
-  rw [typeof_re_concat_eq]
-  simp [hStarTy, hRestTy, native_ite, native_Teq]
+  rw [typeof_re_concat_eq, hStarTy, hRestTy]
+  simp [native_ite, native_Teq]
 
 private theorem list_typed_char_pack_unpack :
     ∀ {xs : List SmtValue},
@@ -451,8 +453,8 @@ private theorem typed___eo_prog_str_in_re_contains_impl
     change __smtx_typeof
         (SmtTerm.str_in_re (__eo_to_smt t) (__eo_to_smt (containsRegex s))) =
       SmtType.Bool
-    rw [typeof_str_in_re_eq]
-    simp [hTSmtTy, hRegexTy, native_ite, native_Teq]
+    rw [typeof_str_in_re_eq, hTSmtTy, hRegexTy]
+    simp [native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt (rhs t s)) = SmtType.Bool := by
     change __smtx_typeof
         (SmtTerm.str_contains (__eo_to_smt t) (__eo_to_smt s)) =

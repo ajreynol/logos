@@ -328,8 +328,10 @@ private theorem typed_concl
               (Term.Apply (Term.UOp UserOp.and)
                 (Term.Apply (Term.Apply (Term.UOp UserOp.leq) codeS) codeC2))
               (Term.Boolean true)))) = SmtType.Bool
-    rw [typeof_and_eq]
-    simp [hLe1Ty, hInnerTy, native_ite, native_Teq]
+    -- rewrite the component types before `simp` normalises
+    -- `__eo_to_smt (Apply ..)` past their left-hand sides
+    rw [typeof_and_eq, hLe1Ty, hInnerTy]
+    simp [native_ite, native_Teq]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type (lhs s c1 c2) (rhs s c1 c2)
     (by rw [hLhsTy, hRhsTy]) (by rw [hLhsTy]; decide)
 

@@ -2696,8 +2696,11 @@ theorem re_unfold_pos_star_interprets_true_and_bool
               (SmtTerm.eq (__eo_to_smt t)
                 (__eo_to_smt (reUnfoldPosStarFirst t r))) =
             SmtValue.Boolean true
-          simp [__smtx_model_eval, __smtx_model_eval_eq, htEval,
-            native_veq]
+          -- rewrite the component evaluations before `simp` expands
+          -- `reUnfoldPosStarFirst` into its concat spine
+          simp only [__smtx_model_eval, __smtx_model_eval_eq]
+          rw [htEval, hFirstEval]
+          simp [native_veq]
         have hEqFirstInterp :
             eo_interprets M (mkEq t (reUnfoldPosStarFirst t r)) true :=
           RuleProofs.eo_interprets_of_bool_eval M _ true
