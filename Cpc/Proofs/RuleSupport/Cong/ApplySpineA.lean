@@ -1680,7 +1680,7 @@ theorem congTrueSpine_var_apply_eq_true
         __smtx_typeof
           (SmtTerm.Apply (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt x)) ≠
             SmtType.None := by
-      simpa using hTypes.2
+      exact hTypes.2
     have hAppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)))
@@ -1729,7 +1729,7 @@ theorem congTrueSpine_uconst_apply_eq_true
           (SmtTerm.Apply
             (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
             (__eo_to_smt x)) ≠ SmtType.None := by
-      simpa using hTypes.2
+      exact hTypes.2
     have hAppNN :
         __smtx_typeof_apply
             (__smtx_typeof
@@ -1792,7 +1792,7 @@ theorem congTrueSpine_var_apply_apply_eq_true
     have hOuterLeftNN :
         __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂) ≠
           SmtType.None := by
-      simpa [F, X₁, X₂] using hTypes.2
+      exact hTypes.2
     have hOuterAppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Apply F X₁)) (__smtx_typeof X₂) ≠
@@ -1867,7 +1867,7 @@ theorem congTrueSpine_uconst_apply_apply_eq_true
     have hOuterLeftNN :
         __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂) ≠
           SmtType.None := by
-      simpa [F, X₁, X₂] using hTypes.2
+      exact hTypes.2
     have hOuterAppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Apply F X₁)) (__smtx_typeof X₂) ≠
@@ -1958,7 +1958,7 @@ theorem congTrueSpine_var_apply_apply_apply_eq_true
         __smtx_typeof
             (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂) X₃) ≠
           SmtType.None := by
-      simpa [F, X₁, X₂, X₃] using hTypes.2
+      exact hTypes.2
     have hOuterAppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂))
@@ -2076,7 +2076,7 @@ theorem congTrueSpine_uconst_apply_apply_apply_eq_true
         __smtx_typeof
             (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂) X₃) ≠
           SmtType.None := by
-      simpa [F, X₁, X₂, X₃] using hTypes.2
+      exact hTypes.2
     have hOuterAppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂))
@@ -2207,7 +2207,7 @@ theorem congTrueSpine_var_apply_apply_apply_apply_eq_true
             (SmtTerm.Apply
               (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂) X₃)
               X₄) ≠ SmtType.None := by
-      simpa [F, X₁, X₂, X₃, X₄] using hTypes.2
+      exact hTypes.2
     have hOuterAppNN :
         __smtx_typeof_apply
             (__smtx_typeof
@@ -2374,7 +2374,7 @@ theorem congTrueSpine_uconst_apply_apply_apply_apply_eq_true
             (SmtTerm.Apply
               (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂) X₃)
               X₄) ≠ SmtType.None := by
-      simpa [F, X₁, X₂, X₃, X₄] using hTypes.2
+      exact hTypes.2
     have hOuterAppNN :
         __smtx_typeof_apply
             (__smtx_typeof
@@ -2550,7 +2550,7 @@ theorem congTrueSpine_var_apply_apply_apply_apply_apply_eq_true
     have hLeftNN :
         __smtx_typeof
           (mkSmtAppSpineRev F [X₅, X₄, X₃, X₂, X₁]) ≠ SmtType.None := by
-      simpa [F, X₁, X₂, X₃, X₄, X₅, mkSmtAppSpineRev] using hTypes.2
+      exact hTypes.2
     change
       RuleProofs.smt_value_rel
         (__smtx_model_eval M (mkSmtAppSpineRev F [X₅, X₄, X₃, X₂, X₁]))
@@ -2621,7 +2621,7 @@ theorem congTrueSpine_uconst_apply_apply_apply_apply_apply_eq_true
     have hLeftNN :
         __smtx_typeof
           (mkSmtAppSpineRev F [X₅, X₄, X₃, X₂, X₁]) ≠ SmtType.None := by
-      simpa [F, X₁, X₂, X₃, X₄, X₅, mkSmtAppSpineRev] using hTypes.2
+      exact hTypes.2
     change
       RuleProofs.smt_value_rel
         (__smtx_model_eval M (mkSmtAppSpineRev F [X₅, X₄, X₃, X₂, X₁]))
