@@ -120,8 +120,10 @@ by
                                                         (BvMultPow2NarySupport.posProgram
                                                           xs ys z size n exponent u
                                                           P1 P2 P3) = Term.Bool := by
-                                                    simpa [P1, P2, P3] using
+                                                    have hsimpa :=
                                                       hResultTy
+                                                    try simp [P1, P2, P3] at hsimpa ⊢
+                                                    exact hsimpa
                                                   refine ⟨?_, ?_⟩
                                                   · intro hPremisesTrue
                                                     have hP1True :

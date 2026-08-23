@@ -697,8 +697,7 @@ theorem native_str_in_re_re_union
     native_str_in_re str (native_re_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
   by_cases hValid : native_string_valid str = true
-  · simpa [native_str_in_re, hValid, native_re_union, nativeListInRe] using
-      nativeListInRe_mk_union str r s
+  · have hsimpa := nativeListInRe_mk_union str r s; (try simp [native_str_in_re, hValid, native_re_union] at hsimpa ⊢); exact hsimpa
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
     simp [native_str_in_re, hInvalid]
@@ -2842,7 +2841,7 @@ private theorem str_flatten_list_eval_rel
               unfold term_has_non_none_type
               rw [hArgs.1]
               simp)
-        try simp [hArgs.1] at hsimpa ⊢
+        rw [hArgs.1] at hsimpa
         exact hsimpa
       have hTailEvalTy :
           __smtx_typeof_value
@@ -2908,9 +2907,8 @@ private theorem str_flatten_list_eval_rel
             (__smtx_model_eval M
               (__eo_to_smt (__str_flatten (mkConcat a a2))))
             (__smtx_model_eval M (__eo_to_smt (mkConcat a a2))) := by
-        have hsimpa := hFARel
-        try simp [hFAEval] at hsimpa ⊢
-        exact hsimpa
+        rw [hFAEval, hHeadEval]
+        exact hFARel
       have hRelTail :
           RuleProofs.smt_value_rel
             (__smtx_model_eval M (__eo_to_smt (__str_flatten b)))
@@ -2928,7 +2926,7 @@ private theorem str_flatten_list_eval_rel
       have hsimpa :=
         RuleProofs.smt_value_rel_trans _ _ _
           (RuleProofs.smt_value_rel_trans _ _ _ hRel0 hRelL) hRelR
-      try simp [hFlatEval] at hsimpa ⊢
+      rw [hFlatEval, hPartsEvalCalc] at hsimpa
       exact hsimpa
   | case3 head tail hNC ih =>
       intro ss T hList hTy hEval hFlatNe
@@ -3090,10 +3088,7 @@ private theorem str_flatten_list_eval_rel
         · simpa [hFlatEq, flatTerm] using hFlatEval
         · simpa [hFlatEq, flatTerm] using hFlatTy
         · simpa [hFlatEq, flatTerm] using hFlatList
-        · simpa [hFlatEval, hPartsEvalCalc] using
-            RuleProofs.smt_value_rel_trans _ _ _
-              hListConcatRel
-              (RuleProofs.smt_value_rel_trans _ _ _ hLeftRel hRightRel)
+        · have hsimpa := RuleProofs.smt_value_rel_trans _ _ _ hListConcatRel (RuleProofs.smt_value_rel_trans _ _ _ hLeftRel hRightRel); rw [hFlatEval, hPartsEvalCalc] at hsimpa; exact hsimpa
       · have hStrFalse :
             __eo_is_str head = Term.Boolean false :=
           eo_is_str_false_of_not_string head hHeadNe hString
@@ -3125,7 +3120,7 @@ private theorem str_flatten_list_eval_rel
                 unfold term_has_non_none_type
                 rw [hFlatTy]
                 simp)
-          try simp [hFlatTy] at hsimpa ⊢
+          rw [hFlatTy] at hsimpa
           exact hsimpa
         rcases seq_value_canonical hFlatEvalTy with
           ⟨flatSs, hFlatEval⟩
@@ -3141,7 +3136,7 @@ private theorem str_flatten_list_eval_rel
         · simpa [hFlatEq] using hFlatEval
         · simpa [hFlatEq] using hFlatTy
         · simpa [hFlatEq] using hFlatList
-        · have hsimpa := hRel; (try simp [hPartsEvalCalc] at hsimpa ⊢); exact hsimpa
+        · have hsimpa := hRel; rw [hFlatEval, hPartsEvalCalc] at hsimpa; exact hsimpa
   | case4 x hStuck _hNSplice hNotConcat =>
       intro ss T hList hTy hEval hFlatNe
       have hNot : ¬ ∃ head tail : Term, x = mkConcat head tail := by
@@ -4100,10 +4095,8 @@ theorem re_flatten_false_eval_rel
             (SmtValue.RegLan rv) :=
         smt_value_rel_reglan_of_eq (native_re_concat_right_empty rv)
       refine ⟨native_re_concat flatRv (native_str_to_re []), ?_, ?_, ?_⟩
-      · simpa [__re_flatten, flatC, eps, hOutEq, hInnerEq] using
-          hFullEval
-      · simpa [__re_flatten, flatC, eps, hOutEq, hInnerEq] using
-          hFullTy
+      · have hsimpa := hFullEval; (try simp [__re_flatten, flatC, eps, hInnerEq] at hsimpa ⊢); exact hsimpa
+      · have hsimpa := hFullTy; (try simp [__re_flatten, flatC, eps, hInnerEq] at hsimpa ⊢); exact hsimpa
       · exact RuleProofs.smt_value_rel_trans _ _ _
           hConcatRel hRightEmpty
   | case8 =>

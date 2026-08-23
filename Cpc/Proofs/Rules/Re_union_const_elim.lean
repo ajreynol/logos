@@ -158,7 +158,9 @@ private theorem typed_concl
     smtx_typeof_str_to_re_of_seq_char s hSTy
   have hStrToReSmtTy :
       __smtx_typeof (SmtTerm.str_to_re (__eo_to_smt s)) = SmtType.RegLan := by
-    simpa using hStrToReTy
+    have hsimpa := hStrToReTy
+    try simp at hsimpa ⊢
+    exact hsimpa
   have hNoneTy : __smtx_typeof SmtTerm.re_none = SmtType.RegLan := by
     rw [__smtx_typeof.eq_def] <;> simp only
   have hInnerTy :
@@ -467,8 +469,9 @@ by
                           TranslationProofs.eo_to_smt_typeof_matches_translation
                             a2 hA2Trans
                         rw [hA2Ty] at hTyRaw
-                        simpa [TranslationProofs.eo_to_smt_type_seq,
-                          TranslationProofs.eo_to_smt_type_char] using hTyRaw
+                        have hsimpa := hTyRaw
+                        try simp [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hsimpa ⊢
+                        exact hsimpa
                       have hProgBool :
                           RuleProofs.eo_has_bool_type
                             (__eo_prog_re_union_const_elim a1 a2

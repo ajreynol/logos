@@ -107,8 +107,9 @@ private theorem smtx_typeof_of_eo_seq_char
       __smtx_typeof (__eo_to_smt a) = __eo_to_smt_type (__eo_typeof a) :=
     TranslationProofs.eo_to_smt_typeof_matches_translation a hTrans
   rw [hTy] at hTyRaw
-  simpa [TranslationProofs.eo_to_smt_type_seq,
-    TranslationProofs.eo_to_smt_type_char] using hTyRaw
+  have hsimpa := hTyRaw
+  try simp [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hsimpa ⊢
+  exact hsimpa
 
 private theorem smtx_typeof_of_eo_reglan
     (a : Term)
@@ -231,9 +232,11 @@ private theorem facts
     ⟨rsing, hSingEval⟩
   have hSingRel :
       RuleProofs.smt_value_rel (SmtValue.RegLan rsing) (SmtValue.RegLan rtail) := by
-    simpa [hSingEval, hTailEval] using
+    have hsimpa :=
       RuleProofs.reInter_singleton_elim_rel_eval M (tail r2 rs)
         hTailList ⟨rtail, hTailEval⟩
+    try simp [hSingEval] at hsimpa ⊢
+    exact hsimpa
   have hEvalTy :
       __smtx_typeof_value (SmtValue.Seq ss) =
         SmtType.Seq SmtType.Char := by
@@ -268,7 +271,7 @@ private theorem facts
         (RuleProofs.native_str_in_re (native_unpack_string ss)
           (native_re_inter rv1 rtail))
     simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
-      __smtx_model_eval_re_inter, hSEval, hR1Eval, hTailEval,
+      __smtx_model_eval_re_inter, hSEval, hR1Eval,
       RuleProofs.model_str_in_re_unpack_eq_string_of_value_type ss
         (native_re_inter rv1 rtail) hEvalTy]
   have hRhsEval :

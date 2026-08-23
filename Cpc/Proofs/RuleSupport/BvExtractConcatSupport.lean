@@ -323,10 +323,18 @@ private theorem bv_concat_nil_width_zero
       __eo_requires, __eo_is_ok, native_ite, native_teq, native_not,
       SmtEval.native_not] at hList hTy ⊢
   case Binary bw bn =>
-    split at hList <;> simp_all
-    rw [smt_typeof_concat_empty] at hTy
-    injection hTy with hW
-    exact hW.symm
+    -- `split` cannot generalise `Term.Binary bw bn` (it also occurs in `hTy`),
+    -- so decide the two literals by hand; only `Binary 0 0` matches the
+    -- `concat` nil pattern.
+    by_cases hbw : bw = 0
+    · subst hbw
+      by_cases hbn : bn = 0
+      · subst hbn
+        rw [smt_typeof_concat_empty] at hTy
+        injection hTy with hW
+        exact hW.symm
+      · exact absurd hList (by simp [__eo_is_list_nil, hbn])
+    · exact absurd hList (by simp [__eo_is_list_nil, hbw])
 
 private theorem bv_concat_nil_width_zero_of_nil_true
     (nil : Term) (w : Nat) :
@@ -862,7 +870,7 @@ private theorem eval_bv_extract_concat_low
     simp [d, SmtEval.native_zplus, SmtEval.native_zneg,
       Int.add_assoc]
   have hTailBoundInt : h < (↑wt : Int) := by
-    exact hHTail
+    exact of_decide_eq_true hHTail
   have hFitInt : (↑L : Int) + (↑D : Int) ≤ (↑wt : Int) := by
     rw [hLRound, hDRound]
     calc
@@ -955,14 +963,14 @@ private theorem native_zlt_nat_add_right_local
     native_zlt h (native_nat_to_int (extra + w)) = true := by
   intro hlt
   have hltInt : h < (↑w : Int) := by
-    exact hlt
+    exact of_decide_eq_true hlt
   have hleNat : w ≤ extra + w := by
     omega
   have hleInt : (↑w : Int) ≤ ↑(extra + w) := by
     exact_mod_cast hleNat
   have hltAdd : h < (↑(extra + w) : Int) :=
     Int.lt_of_lt_of_le hltInt hleInt
-  exact hltAdd
+  exact decide_eq_true hltAdd
 
 private theorem eval_bv_extract_list_concat_rec_low
     (M : SmtModel) (hM : model_total_typed M)
@@ -4384,9 +4392,9 @@ theorem facts_bv_extract_concat2_program_body
     simpa [DH, native_nat_to_int, SmtEval.native_nat_to_int] using
       native_int_to_nat_roundtrip dHigh hdHighNonneg
   have hiWxInt : iv < (↑wx : Int) := by
-    exact hiWx
+    exact of_decide_eq_true hiWx
   have hWxJInt : (↑wx : Int) ≤ jv := by
-    exact hWxJ
+    exact of_decide_eq_true hWxJ
   have hu1Int : u1v = jv - (↑wx : Int) := by
     simpa [SmtEval.native_zplus, SmtEval.native_zneg,
       native_nat_to_int, SmtEval.native_nat_to_int,
@@ -4442,7 +4450,7 @@ theorem facts_bv_extract_concat2_program_body
       wx hXTy with ⟨px, hXEval, hXCan⟩
   have hWt0 : native_zleq 0 (native_nat_to_int (wxs + wy)) = true := by
     have hNonneg : (0 : Int) ≤ ↑(wxs + wy) := Int.natCast_nonneg _
-    exact hNonneg
+    exact decide_eq_true hNonneg
   have hWx0 : native_zleq 0 (native_nat_to_int wx) = true := by
     simp [SmtEval.native_zleq, native_nat_to_int,
       SmtEval.native_nat_to_int]
@@ -4757,7 +4765,7 @@ theorem facts_bv_extract_concat3_program_body
       wx hXTy with ⟨px, hXEval, hXCan⟩
   have hWt0 : native_zleq 0 (native_nat_to_int (wxs + wy)) = true := by
     have hNonneg : (0 : Int) ≤ ↑(wxs + wy) := Int.natCast_nonneg _
-    exact hNonneg
+    exact decide_eq_true hNonneg
   have hWx0 : native_zleq 0 (native_nat_to_int wx) = true := by
     simp [SmtEval.native_zleq, native_nat_to_int,
       SmtEval.native_nat_to_int]

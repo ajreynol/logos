@@ -3430,8 +3430,7 @@ private theorem eval_bv_sign_extend_eq_const_1_lhs_eq_rhs
     (by
       have hnn : (0 : Int) ≤ (↑(WN + AN) : Int) :=
         Int.natCast_nonneg _
-      simpa [SmtEval.native_zleq, SmtEval.native_nat_to_int,
-        native_nat_to_int] using hnn) hConstCan
+      have hsimpa := hnn; (try simp [SmtEval.native_zleq, SmtEval.native_nat_to_int, native_nat_to_int] at hsimpa ⊢); exact decide_eq_true hsimpa) hConstCan
   have hPc0 : (0 : Int) ≤ pc := hConstRange.1
   have hPc1 : pc < (2 : Int) ^ (WN + AN) := by
     have hsimpa := hConstRange.2
@@ -3769,8 +3768,7 @@ private theorem eval_bv_sign_extend_eq_const_2_lhs_eq_1_lhs
     (by
       have hnn : (0 : Int) ≤ (↑(WN + AN) : Int) :=
         Int.natCast_nonneg _
-      simpa [SmtEval.native_zleq, SmtEval.native_nat_to_int,
-        native_nat_to_int] using hnn) hConstCan
+      have hsimpa := hnn; (try simp [SmtEval.native_zleq, SmtEval.native_nat_to_int, native_nat_to_int] at hsimpa ⊢); exact decide_eq_true hsimpa) hConstCan
   have hPc0 : (0 : Int) ≤ pc := hConstRange.1
   have hPc1 : pc < (2 : Int) ^ (WN + AN) := by
     have hsimpa := hConstRange.2
@@ -5011,8 +5009,7 @@ private theorem sign_extend_ult_const_2_eval_eq
     (by
       have hnn : (0 : Int) ≤ (Int.ofNat (WN + AN) : Int) :=
         Int.natCast_nonneg _
-      simpa [SmtEval.native_zleq, SmtEval.native_nat_to_int,
-        native_nat_to_int] using hnn) hConstCan
+      have hsimpa := hnn; (try simp [SmtEval.native_zleq, SmtEval.native_nat_to_int, native_nat_to_int] at hsimpa ⊢); exact decide_eq_true hsimpa) hConstCan
   have hPc0 : (0 : Int) ≤ pc := hConstRange.1
   have hPc1 : pc < (2 : Int) ^ (WN + AN) := by
     have hsimpa :=
@@ -6049,8 +6046,7 @@ private theorem sign_extend_ult_const_4_eval_eq
     (by
       have hnn : (0 : Int) ≤ (Int.ofNat (WN + AN) : Int) :=
         Int.natCast_nonneg _
-      simpa [SmtEval.native_zleq, SmtEval.native_nat_to_int,
-        native_nat_to_int] using hnn) hConstCan
+      have hsimpa := hnn; (try simp [SmtEval.native_zleq, SmtEval.native_nat_to_int, native_nat_to_int] at hsimpa ⊢); exact decide_eq_true hsimpa) hConstCan
   have hPc0 : (0 : Int) ≤ pc := hConstRange.1
   have hPc1 : pc < (2 : Int) ^ (WN + AN) := by
     have hsimpa :=
@@ -7162,8 +7158,7 @@ private theorem sign_extend_ult_const_outside_values
     (by
       have hnn : (0 : Int) ≤ (Int.ofNat (WN + AN) : Int) :=
         Int.natCast_nonneg _
-      simpa [SmtEval.native_zleq, SmtEval.native_nat_to_int,
-        native_nat_to_int] using hnn) hConstCan
+      have hsimpa := hnn; (try simp [SmtEval.native_zleq, SmtEval.native_nat_to_int, native_nat_to_int] at hsimpa ⊢); exact decide_eq_true hsimpa) hConstCan
   have hPc0 : (0 : Int) ≤ pc := hConstRange.1
   have hPc1 : pc < (2 : Int) ^ (WN + AN) := by
     have hsimpa :=

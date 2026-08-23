@@ -769,7 +769,11 @@ theorem eq_of_eo_eq (x y : Term) (h : __eo_eq x y = Term.Boolean true) : y = x :
 theorem eo_and_true_split (a b : Term) (h : __eo_and a b = Term.Boolean true) :
     a = Term.Boolean true ∧ b = Term.Boolean true := by
   cases a <;> cases b <;> simp_all [__eo_and, native_and, SmtEval.native_and]
-  all_goals (simp only [__eo_requires, native_ite, native_teq] at h)
+  -- every branch of the guard yields a non-`Boolean` constructor, so a full
+  -- `simp at h` derives `False` directly; `split` no longer fires on the
+  -- `decide _ = true` conditions these guards now carry.
+  all_goals (simp [__eo_requires, native_ite, native_teq, native_not,
+    SmtEval.native_not] at h)
   all_goals (split at h <;> exact Term.noConfusion h)
 
 /-- An empty word evaluates to a sequence with empty underlying element list. -/
@@ -4603,42 +4607,42 @@ theorem overlap_endpoints_replace_eval (M : SmtModel)
       (native_unpack_seq Sd2 ++ native_unpack_seq Se)
   have hsD2E :
       __smtx_model_eval M (__eo_to_smt d2emp) = SmtValue.Seq sD2E := by
-    dsimp [d2emp, sD2E]
+    dsimp only [d2emp, sD2E]
     rw [strConcat_eval_eq M d2 emp Sd2 Se hd2 hemp]
   let sTD2E :=
     native_pack_seq (__smtx_elem_typeof_seq_value St)
       (native_unpack_seq St ++ native_unpack_seq sD2E)
   have hsTD2E :
       __smtx_model_eval M (__eo_to_smt td2emp) = SmtValue.Seq sTD2E := by
-    dsimp [td2emp, sTD2E]
+    dsimp only [td2emp, sTD2E]
     rw [strConcat_eval_eq M t d2emp St sD2E ht hsD2E]
   let sNeedle :=
     native_pack_seq (__smtx_elem_typeof_seq_value Sd1)
       (native_unpack_seq Sd1 ++ native_unpack_seq sTD2E)
   have hsNeedle :
       __smtx_model_eval M (__eo_to_smt needle) = SmtValue.Seq sNeedle := by
-    dsimp [needle, sNeedle]
+    dsimp only [needle, sNeedle]
     rw [strConcat_eval_eq M d1 td2emp Sd1 sTD2E hd1 hsTD2E]
   let sC2E :=
     native_pack_seq (__smtx_elem_typeof_seq_value Sc2)
       (native_unpack_seq Sc2 ++ native_unpack_seq Se)
   have hsC2E :
       __smtx_model_eval M (__eo_to_smt c2emp) = SmtValue.Seq sC2E := by
-    dsimp [c2emp, sC2E]
+    dsimp only [c2emp, sC2E]
     rw [strConcat_eval_eq M c2 emp Sc2 Se hc2 hemp]
   let sSWC2E :=
     native_pack_seq (__smtx_elem_typeof_seq_value Ss)
       (native_unpack_seq Ss ++ native_unpack_seq sC2E)
   have hsSWC2E :
       __smtx_model_eval M (__eo_to_smt swc2emp) = SmtValue.Seq sSWC2E := by
-    dsimp [swc2emp, sSWC2E]
+    dsimp only [swc2emp, sSWC2E]
     rw [strConcat_eval_eq M sw c2emp Ss sC2E hsw hsC2E]
   let sHay :=
     native_pack_seq (__smtx_elem_typeof_seq_value Sc1)
       (native_unpack_seq Sc1 ++ native_unpack_seq sSWC2E)
   have hsHay :
       __smtx_model_eval M (__eo_to_smt hay) = SmtValue.Seq sHay := by
-    dsimp [hay, sHay]
+    dsimp only [hay, sHay]
     rw [strConcat_eval_eq M c1 swc2emp Sc1 sSWC2E hc1 hsSWC2E]
   let sRepl :=
     native_pack_seq (__smtx_elem_typeof_seq_value Ss)
@@ -4653,7 +4657,7 @@ theorem overlap_endpoints_replace_eval (M : SmtModel)
       (native_unpack_seq sRepl ++ native_unpack_seq sC2E)
   have hsRhsTail :
       __smtx_model_eval M (__eo_to_smt rhsTail) = SmtValue.Seq sRhsTail := by
-    dsimp [rhsTail, sRhsTail]
+    dsimp only [rhsTail, sRhsTail]
     rw [strConcat_eval_eq M replSw c2emp sRepl sC2E hsRepl hsC2E]
   let sRhs :=
     native_pack_seq (__smtx_elem_typeof_seq_value Sc1)
@@ -4663,7 +4667,7 @@ theorem overlap_endpoints_replace_eval (M : SmtModel)
           (__eo_to_smt
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c1)
               rhsTail)) = SmtValue.Seq sRhs := by
-    dsimp [rhsTail, sRhs]
+    dsimp only [rhsTail, sRhs]
     rw [strConcat_eval_eq M c1 rhsTail Sc1 sRhsTail hc1 hsRhsTail]
   have hList :=
     native_seq_replace_endpoints_of_no_overlap

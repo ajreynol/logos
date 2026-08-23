@@ -82,8 +82,9 @@ private theorem smtx_typeof_of_eo_seq_char
       __smtx_typeof (__eo_to_smt a) = __eo_to_smt_type (__eo_typeof a) :=
     TranslationProofs.eo_to_smt_typeof_matches_translation a hTrans
   rw [hTy] at hTyRaw
-  simpa [TranslationProofs.eo_to_smt_type_seq,
-    TranslationProofs.eo_to_smt_type_char] using hTyRaw
+  have hsimpa := hTyRaw
+  try simp [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hsimpa ⊢
+  exact hsimpa
 
 private theorem smtx_typeof_re_allchar :
     __smtx_typeof SmtTerm.re_allchar = SmtType.RegLan := by
@@ -327,7 +328,9 @@ private theorem native_str_in_re_contains_regex_eq
             (native_re_mk_concat native_re_all
               (native_re_concat (native_str_to_re pat)
                 (native_re_concat native_re_all (native_str_to_re [])))) = true := by
-      simpa [native_re_concat] using hList
+      have hsimpa := hList
+      try simp [native_re_concat] at hsimpa ⊢
+      exact hsimpa
     rcases (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append xs
         native_re_all
         (native_re_concat (native_str_to_re pat)
@@ -341,7 +344,9 @@ private theorem native_str_in_re_contains_regex_eq
         RuleProofs.nativeListInRe rest
             (native_re_mk_concat (native_str_to_re pat)
               (native_re_concat native_re_all (native_str_to_re []))) = true := by
-      simpa [native_re_concat] using hRestMem
+      have hsimpa := hRestMem
+      try simp [native_re_concat] at hsimpa ⊢
+      exact hsimpa
     rcases (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append rest
         (native_str_to_re pat)
         (native_re_concat native_re_all (native_str_to_re []))).1
@@ -362,7 +367,9 @@ private theorem native_str_in_re_contains_regex_eq
     have hTailConcat :
         RuleProofs.nativeListInRe tail
             (native_re_mk_concat native_re_all (native_str_to_re [])) = true := by
-      simpa [native_re_concat] using hTailMem
+      have hsimpa := hTailMem
+      try simp [native_re_concat] at hsimpa ⊢
+      exact hsimpa
     rcases (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append tail
         native_re_all (native_str_to_re [])).1 hTailConcat with
       ⟨post, eps, hTail, _hPostMem, hEpsMem⟩

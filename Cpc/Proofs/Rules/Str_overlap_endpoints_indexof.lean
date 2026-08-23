@@ -91,7 +91,7 @@ by
                 obtain ⟨hLHStrans, _hRHStrans⟩ :=
                   RuleProofs.eq_operands_have_smt_translation_of_eq_has_smt_translation _ _ hc.1
                 obtain ⟨T, hHayTy, hNeedleTy, _hZeroTy⟩ :=
-                  str_indexof_args_of_non_none (by simpa [lhs, hay, needle] using hLHStrans)
+                  str_indexof_args_of_non_none (by have hsimpa := hLHStrans; (try simp [lhs, hay, needle] at hsimpa ⊢); exact hsimpa)
                 obtain ⟨hswty, hCEty⟩ := strConcat_args_of_seq_type sw
                   (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c) emp) T hHayTy
                 obtain ⟨hcty, _hempty⟩ := strConcat_args_of_seq_type c emp T hCEty

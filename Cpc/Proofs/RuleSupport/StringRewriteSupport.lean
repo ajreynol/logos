@@ -310,7 +310,9 @@ theorem list_concat_eval
   have hSeq : RuleProofs.smt_seq_rel actual
       (native_pack_seq (__smtx_elem_typeof_seq_value sa)
         (native_unpack_seq sa ++ native_unpack_seq sz)) := by
-    simpa [hEval, RuleProofs.smt_value_rel] using hRel
+    have hsimpa := hRel
+    try simp [hEval, RuleProofs.smt_value_rel] at hsimpa ⊢
+    exact hsimpa
   have hEq := (RuleProofs.smt_seq_rel_iff_eq _ _).1 hSeq
   exact hEval.trans (congrArg SmtValue.Seq hEq)
 
@@ -393,7 +395,9 @@ theorem list_eval_prefix
         have hRel := smt_value_rel_str_concat_nil_empty M a T hNil haTy
         rw [haEval] at hRel
         have hSeq : RuleProofs.smt_seq_rel sa (SmtSeq.empty T) := by
-          simpa [RuleProofs.smt_value_rel] using hRel
+          have hsimpa := hRel
+          try simp [RuleProofs.smt_value_rel] at hsimpa ⊢
+          exact hsimpa
         have hEq := (RuleProofs.smt_seq_rel_iff_eq _ _).1 hSeq
         refine ⟨sa, haEval, ?_⟩
         rw [hEq, listEvalPrefix_eq_nil_of_not_cons M a hCons]
@@ -756,7 +760,9 @@ theorem singleton_elim_eval
           simp)
   rcases seq_value_canonical hValTy with ⟨actual, hEval⟩
   have hSeq : RuleProofs.smt_seq_rel actual sc := by
-    simpa [hEval, RuleProofs.smt_value_rel] using hRel
+    have hsimpa := hRel
+    try simp [hEval, RuleProofs.smt_value_rel] at hsimpa ⊢
+    exact hsimpa
   exact hEval.trans
     (congrArg SmtValue.Seq ((RuleProofs.smt_seq_rel_iff_eq _ _).1 hSeq))
 

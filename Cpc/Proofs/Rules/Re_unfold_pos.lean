@@ -384,13 +384,11 @@ private theorem native_str_in_re_re_mult_middle_factor
     cases r with
     | empty =>
         have hs : s = [] := native_str_in_re_str_to_re_true_eq (by
-          simpa [native_re_mult, native_re_mk_star, native_str_to_re,
-            native_re_of_list] using hStar)
+          have hsimpa := hStar; (try simp [native_re_mult, native_str_to_re] at hsimpa ⊢); exact hsimpa)
         exact False.elim (hNe hs)
     | epsilon =>
         have hs : s = [] := native_str_in_re_str_to_re_true_eq (by
-          simpa [native_re_mult, native_re_mk_star, native_str_to_re,
-            native_re_of_list] using hStar)
+          have hsimpa := hStar; (try simp [native_re_mult, native_str_to_re] at hsimpa ⊢); exact hsimpa)
         exact False.elim (hNe hs)
     | star r0 =>
         exact False.elim (hNotBase (by
@@ -437,13 +435,11 @@ private theorem native_str_in_re_re_mult_middle_factor
       cases r with
       | empty =>
           have hs : s = [] := native_str_in_re_str_to_re_true_eq (by
-            simpa [native_re_mult, native_re_mk_star, native_str_to_re,
-              native_re_of_list] using hStar)
+            have hsimpa := hStar; (try simp [native_re_mult, native_str_to_re] at hsimpa ⊢); exact hsimpa)
           exact False.elim (hNe hs)
       | epsilon =>
           have hs : s = [] := native_str_in_re_str_to_re_true_eq (by
-            simpa [native_re_mult, native_re_mk_star, native_str_to_re,
-              native_re_of_list] using hStar)
+            have hsimpa := hStar; (try simp [native_re_mult, native_str_to_re] at hsimpa ⊢); exact hsimpa)
           exact False.elim (hNe hs)
       | star r0 =>
           exact False.elim (hNotBase (by
@@ -1701,8 +1697,7 @@ private theorem re_unfold_pos_concat_rec_eval_true
                         __eo_mk_apply, mkStrToRe]
                       constructor
                       · have hsimpa := hConcatAppEq; (try simp [comp, mkAtReUnfoldPosComponent] at hsimpa ⊢); exact hsimpa
-                      · simpa [comp, mkAtReUnfoldPosComponent, mkStrInRe] using
-                          hGuardAppEq
+                      · have hsimpa := hGuardAppEq; (try simp [comp, mkAtReUnfoldPosComponent, mkStrInRe] at hsimpa ⊢); exact hsimpa
                     · have hConcatEvalFirst :=
                         eval_str_concat_of_seq M comp tailFirst leftSeq rightSeq
                           hCompEval hTailFirstEval
@@ -2129,8 +2124,7 @@ private theorem re_unfold_pos_concat_rec_types
                         __eo_mk_apply, mkStrToRe]
                       constructor
                       · have hsimpa := hConcatAppEq; (try simp [comp, mkAtReUnfoldPosComponent] at hsimpa ⊢); exact hsimpa
-                      · simpa [comp, mkAtReUnfoldPosComponent, mkStrInRe] using
-                          hGuardAppEq
+                      · have hsimpa := hGuardAppEq; (try simp [comp, mkAtReUnfoldPosComponent, mkStrInRe] at hsimpa ⊢); exact hsimpa
               | _ =>
                   exact False.elim (by
                     unfold __re_unfold_pos_concat_rec at hRecNe

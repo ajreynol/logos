@@ -335,7 +335,7 @@ private theorem bv_concat_extract_merge_body_context
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvConcatExtractMergeLhs xs s ys i j1 j2 k))
       (__eo_typeof (bvConcatExtractMergeRhs xs s ys i k))
-      (by simpa [bvConcatExtractMergeTerm] using hTermTy)).1
+      (by have hsimpa := hTermTy; (try simp [bvConcatExtractMergeTerm] at hsimpa ⊢); exact hsimpa)).1
   have hLhsTermNe :=
     (bv_concat_extract_merge_body_args_ne_stuck
       xs s ys i j1 j2 k hBodyTy).1
@@ -350,12 +350,12 @@ private theorem bv_concat_extract_merge_body_context
     eo_is_list_tail_true_of_cons_self
       (Term.UOp UserOp.concat) (bvConcatExtractMergeHigh s k j2)
       (bvConcatTerm (bvConcatExtractMergeLow s j1 i) ys)
-      (by simpa [bvConcatExtractMergeLeftSeed] using hLeftSeedList)
+      (by have hsimpa := hLeftSeedList; (try simp [bvConcatExtractMergeLeftSeed] at hsimpa ⊢); exact hsimpa)
   have hYsList :
       __eo_is_list (Term.UOp UserOp.concat) ys = Term.Boolean true :=
     eo_is_list_tail_true_of_cons_self
       (Term.UOp UserOp.concat) (bvConcatExtractMergeLow s j1 i) ys
-      (by simpa using hInnerList)
+      (by have hsimpa := hInnerList; (try simp at hsimpa ⊢); exact hsimpa)
   have hLeftSeedTyNe :
       __eo_typeof (bvConcatExtractMergeLeftSeed s i j1 j2 k ys) ≠
         Term.Stuck :=
@@ -490,7 +490,7 @@ private theorem bv_concat_extract_merge_body_context
       __eo_typeof (bvConcatExtractMergeLhs xs s ys i j1 j2 k) =
         __eo_typeof (bvConcatExtractMergeRhs xs s ys i k) :=
     RuleProofs.eo_typeof_eq_bool_operands_eq _ _
-      (by simpa [bvConcatExtractMergeTerm] using hTermTy)
+      (by have hsimpa := hTermTy; (try simp [bvConcatExtractMergeTerm] at hsimpa ⊢); exact hsimpa)
   have hRhsEoTy :
       __eo_typeof
           (bvConcatExtractMergeRhs xs s ys (Term.Numeral iv)
@@ -746,11 +746,13 @@ private theorem eval_bv_concat_extract_merge_core
   have hKwInt : kv < w := by
     simpa [SmtEval.native_zlt] using hkw
   have hDHighInt : 0 < kv + 1 + -j2v := by
-    simpa [SmtEval.native_zlt, SmtEval.native_zplus,
-      SmtEval.native_zneg] using hDHigh0
+    have hsimpa := hDHigh0
+    try simp [SmtEval.native_zlt, SmtEval.native_zplus, SmtEval.native_zneg] at hsimpa ⊢
+    exact of_decide_eq_true hsimpa
   have hDLowInt : 0 < j1v + 1 + -iv := by
-    simpa [SmtEval.native_zlt, SmtEval.native_zplus,
-      SmtEval.native_zneg] using hDLow0
+    have hsimpa := hDLow0
+    try simp [SmtEval.native_zlt, SmtEval.native_zplus, SmtEval.native_zneg] at hsimpa ⊢
+    exact of_decide_eq_true hsimpa
   have hJ2LtK1 : j2v < kv + 1 := by
     have hSub : 0 < (kv + 1 - j2v) := by
       rw [Int.sub_eq_add_neg]
@@ -1012,7 +1014,7 @@ theorem typed_bv_concat_extract_merge_program
     (__eo_typeof
       (bvConcatExtractMergeRhs xs s ys (Term.Numeral iv)
         (Term.Numeral kv)))
-    (by simpa [bvConcatExtractMergeTerm] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatExtractMergeTerm] at hsimpa ⊢); exact hsimpa)
   have hLhsTrans : RuleProofs.eo_has_smt_translation
       (bvConcatExtractMergeLhs xs s ys (Term.Numeral iv)
         (Term.Numeral j1v) (Term.Numeral j2v) (Term.Numeral kv)) := by

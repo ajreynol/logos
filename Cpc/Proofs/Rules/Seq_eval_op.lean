@@ -1308,7 +1308,9 @@ private theorem eo_list_concat_str_concat_unpack_of_seq_evals
         (SmtValue.Seq
           (native_pack_seq (__smtx_elem_typeof_seq_value sa)
             (native_unpack_seq sa ++ native_unpack_seq sz))) := by
-    simpa [hConcatEvalRec, hMkEval] using hRel
+    have hsimpa := hRel
+    try simp [hConcatEvalRec] at hsimpa ⊢
+    exact hsimpa
   have hUnpack := smt_value_rel_seq_unpack_eq hSeqRel
   simpa [Smtm.native_unpack_pack_seq] using hUnpack
 
@@ -2629,7 +2631,7 @@ private theorem seq_unit_concat_unpack_cons
     have hArgTy :
         __smtx_typeof (__eo_to_smt e) = T :=
       (seq_unit_type_eq_arg_of_eq (t := __eo_to_smt e)
-        (A := T) (by simpa [head] using hHeadTy)).1
+        (A := T) (by have hsimpa := hHeadTy; (try simp [head] at hsimpa ⊢); exact hsimpa)).1
     have hPres := Smtm.smt_model_eval_preserves_type_of_non_none M hM
       (__eo_to_smt e)
       (by
@@ -5997,7 +5999,9 @@ private theorem seq_eval_smt_type_and_value_rel
           term_has_non_none_type
             (SmtTerm.seq_nth (__eo_to_smt t) (__eo_to_smt n)) := by
         unfold term_has_non_none_type
-        simpa using hNN
+        have hsimpa := hNN
+        try simp at hsimpa ⊢
+        exact hsimpa
       rcases seq_nth_args_of_non_none hSeqNthNN with
         ⟨T, htTy, hnTy⟩
       have hList :
@@ -6239,7 +6243,9 @@ private theorem seq_eval_smt_type_and_value_rel
       have hLenTermNN :
           term_has_non_none_type (SmtTerm.str_len (__eo_to_smt t)) := by
         unfold term_has_non_none_type
-        simpa using hNN
+        have hsimpa := hNN
+        try simp at hsimpa ⊢
+        exact hsimpa
       rcases seq_arg_of_non_none_ret (op := SmtTerm.str_len)
           (typeof_str_len_eq (__eo_to_smt t)) hLenTermNN with
         ⟨T, htTy⟩
@@ -6499,7 +6505,9 @@ private theorem seq_eval_smt_type_and_value_rel
               (SmtTerm.str_substr (__eo_to_smt t) (__eo_to_smt n)
                 (__eo_to_smt m)) := by
           unfold term_has_non_none_type
-          simpa using hNN
+          have hsimpa := hNN
+          try simp at hsimpa ⊢
+          exact hsimpa
         rcases str_substr_args_of_non_none hSubstrNN with
           ⟨T, htTy, hnTy, hmTy⟩
         have hIntroNe : a ≠ Term.Stuck := by
@@ -6598,8 +6606,10 @@ private theorem seq_eval_smt_type_and_value_rel
                   native_zlt (native_zplus i j) 0 = true := by
                 simpa [u, hUEq, __eo_is_neg] using hCond
               have hEnd : i + j < 0 := by
-                simpa [native_zlt, SmtEval.native_zlt, native_zplus] using
+                have hsimpa :=
                   hNegBool
+                try simp [native_zlt, SmtEval.native_zlt, native_zplus] at hsimpa ⊢
+                exact of_decide_eq_true hsimpa
               have hBodyEq :
                   body = Term.UOp1 UserOp1.seq_empty (__eo_typeof a) := by
                 simp [body, u, hUEq, __eo_is_neg, hNegBool, eo_ite_true]
@@ -6727,7 +6737,9 @@ private theorem seq_eval_smt_type_and_value_rel
           term_has_non_none_type
             (SmtTerm.str_contains (__eo_to_smt t) (__eo_to_smt s)) := by
         unfold term_has_non_none_type
-        simpa using hNN
+        have hsimpa := hNN
+        try simp at hsimpa ⊢
+        exact hsimpa
       rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_contains)
           (typeof_str_contains_eq (__eo_to_smt t) (__eo_to_smt s))
           hContainsNN with
@@ -6930,7 +6942,9 @@ private theorem seq_eval_smt_type_and_value_rel
             (SmtTerm.str_replace (__eo_to_smt t) (__eo_to_smt s)
               (__eo_to_smt r)) := by
         unfold term_has_non_none_type
-        simpa using hNN
+        have hsimpa := hNN
+        try simp at hsimpa ⊢
+        exact hsimpa
       rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace)
           (typeof_str_replace_eq (__eo_to_smt t) (__eo_to_smt s)
             (__eo_to_smt r))
@@ -7463,8 +7477,9 @@ private theorem seq_eval_smt_type_and_value_rel
       let guard := __is_seq_const t
       let out := __eo_requires guard (Term.Boolean true) body
       have hOutNe : out ≠ Term.Stuck := by
-        simpa [__seq_eval, b, a, repl, lent, replaced, emptyPat, body,
-          guard, out] using hEvalNe
+        have hsimpa := hEvalNe
+        try simp [__seq_eval, b, a, repl, lent, replaced, emptyPat, body, guard, out] at hsimpa ⊢
+        exact hsimpa
       have hBodyNe : body ≠ Term.Stuck :=
         eo_requires_result_ne_stuck_of_ne_stuck guard (Term.Boolean true)
           body (by simpa [out] using hOutNe)
@@ -7477,7 +7492,9 @@ private theorem seq_eval_smt_type_and_value_rel
             (SmtTerm.str_replace_all (__eo_to_smt t) (__eo_to_smt s)
               (__eo_to_smt r)) := by
         unfold term_has_non_none_type
-        simpa using hNN
+        have hsimpa := hNN
+        try simp at hsimpa ⊢
+        exact hsimpa
       rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace_all)
           (typeof_str_replace_all_eq (__eo_to_smt t) (__eo_to_smt s)
             (__eo_to_smt r))
@@ -7823,9 +7840,11 @@ private theorem seq_eval_smt_type_and_value_rel
         eo_requires_result_ne_stuck_of_ne_stuck guard (Term.Boolean true)
           body (by simpa [out] using hOutNe)
       have hOutEq : out = body := by
-        simpa [out] using
+        have hsimpa :=
           eo_requires_eq_result_of_ne_stuck guard (Term.Boolean true) body
             (by simpa [out] using hOutNe)
+        try simp [out] at hsimpa ⊢
+        exact hsimpa
       have hEvalEq :
           __seq_eval
               (Term.Apply
@@ -7839,7 +7858,9 @@ private theorem seq_eval_smt_type_and_value_rel
             (SmtTerm.str_indexof (__eo_to_smt t) (__eo_to_smt s)
               (__eo_to_smt n)) := by
         unfold term_has_non_none_type
-        simpa using hNN
+        have hsimpa := hNN
+        try simp at hsimpa ⊢
+        exact hsimpa
       rcases str_indexof_args_of_non_none hIndexNN with
         ⟨T, htTy, hsTy, hnTy⟩
       have hIntroTNe : a ≠ Term.Stuck := by
@@ -7885,17 +7906,14 @@ private theorem seq_eval_smt_type_and_value_rel
         intro hSubstrNe
         simpa [substr] using
           smt_typeof_seq_substr_body_of_seq a n len T hATy
-            (by simpa [substr] using hSubstrNe)
+            (by have hsimpa := hSubstrNe; (try simp [substr] at hsimpa ⊢); exact hsimpa)
       have hOutTy :
           __smtx_typeof (__eo_to_smt out) = SmtType.Int := by
         rw [hOutEq]
         rcases eo_ite_cases_of_ne_stuck (__eo_is_neg n)
             (Term.Numeral (-1 : native_Int)) inRange hBodyNe with
           hNeg | hNeg
-        · simpa [body, hNeg, eo_ite_true] using
-            (show __smtx_typeof
-                (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int by
-              rw [__smtx_typeof.eq_2])
+        · have hsimpa := (show __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int by rw [__smtx_typeof.eq_2]); (try simp [body, hNeg, eo_ite_true] at hsimpa ⊢); exact hsimpa
         · have hInRangeNe : inRange ≠ Term.Stuck := by
             simpa [body, hNeg, eo_ite_false] using hBodyNe
           have hInRangeTy :
@@ -7903,10 +7921,7 @@ private theorem seq_eval_smt_type_and_value_rel
             rcases eo_ite_cases_of_ne_stuck (__eo_gt n len)
                 (Term.Numeral (-1 : native_Int)) find hInRangeNe with
               hGt | hGt
-            · simpa [inRange, hGt, eo_ite_true] using
-                (show __smtx_typeof
-                    (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int by
-                  rw [__smtx_typeof.eq_2])
+            · have hsimpa := (show __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int by rw [__smtx_typeof.eq_2]); (try simp [inRange, hGt, eo_ite_true] at hsimpa ⊢); exact hsimpa
             · have hFindNe : find ≠ Term.Stuck := by
                 simpa [inRange, hGt, eo_ite_false] using hInRangeNe
               have hSubstrNe : substr ≠ Term.Stuck := by
@@ -8312,7 +8327,9 @@ private theorem seq_eval_smt_type_and_value_rel
           term_has_non_none_type
             (SmtTerm.str_prefixof (__eo_to_smt t) (__eo_to_smt s)) := by
         unfold term_has_non_none_type
-        simpa using hNN
+        have hsimpa := hNN
+        try simp at hsimpa ⊢
+        exact hsimpa
       rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_prefixof)
           (typeof_str_prefixof_eq (__eo_to_smt t) (__eo_to_smt s))
           hPrefixNN with
@@ -8435,7 +8452,7 @@ private theorem seq_eval_smt_type_and_value_rel
               __smtx_model_eval_str_prefixof
                 (__smtx_model_eval M (__eo_to_smt t))
                 (__smtx_model_eval M (__eo_to_smt s)) := by
-          simpa using
+          have hsimpa :=
             (show
               __smtx_model_eval M
                   (SmtTerm.str_prefixof (__eo_to_smt t) (__eo_to_smt s)) =
@@ -8443,6 +8460,8 @@ private theorem seq_eval_smt_type_and_value_rel
                   (__smtx_model_eval M (__eo_to_smt t))
                   (__smtx_model_eval M (__eo_to_smt s)) by
               rw [__smtx_model_eval.eq_84])
+          try simp at hsimpa ⊢
+          exact hsimpa
         rw [hEvalEq]
         rw [hOrigEval]
         change RuleProofs.smt_value_rel
@@ -8523,7 +8542,9 @@ private theorem seq_eval_smt_type_and_value_rel
           term_has_non_none_type
             (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s)) := by
         unfold term_has_non_none_type
-        simpa using hNN
+        have hsimpa := hNN
+        try simp at hsimpa ⊢
+        exact hsimpa
       rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_suffixof)
           (typeof_str_suffixof_eq (__eo_to_smt t) (__eo_to_smt s))
           hSuffixNN with
@@ -8694,7 +8715,7 @@ private theorem seq_eval_smt_type_and_value_rel
               __smtx_model_eval_str_suffixof
                 (__smtx_model_eval M (__eo_to_smt t))
                 (__smtx_model_eval M (__eo_to_smt s)) := by
-          simpa using
+          have hsimpa :=
             (show
               __smtx_model_eval M
                   (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s)) =
@@ -8702,6 +8723,8 @@ private theorem seq_eval_smt_type_and_value_rel
                   (__smtx_model_eval M (__eo_to_smt t))
                   (__smtx_model_eval M (__eo_to_smt s)) by
               rw [__smtx_model_eval.eq_85])
+          try simp at hsimpa ⊢
+          exact hsimpa
         rw [hEvalEq]
         rw [hOrigEval]
         change RuleProofs.smt_value_rel
@@ -8832,7 +8855,9 @@ private theorem seq_eval_smt_type_and_value_rel
           term_has_non_none_type
             (SmtTerm.str_at (__eo_to_smt t) (__eo_to_smt n)) := by
         unfold term_has_non_none_type
-        simpa using hNN
+        have hsimpa := hNN
+        try simp at hsimpa ⊢
+        exact hsimpa
       rcases str_at_args_of_non_none hAtNN with ⟨T, htTy, hnTy⟩
       have hIntroNe : a ≠ Term.Stuck := by
         simpa [a] using str_nary_intro_ne_stuck_of_seq_type t T htTy
@@ -8933,8 +8958,10 @@ private theorem seq_eval_smt_type_and_value_rel
                 native_zlt (native_zplus i 1) 0 = true := by
               simpa [u, hUEq, __eo_is_neg] using hCond
             have hEnd : i + 1 < 0 := by
-              simpa [native_zlt, SmtEval.native_zlt, native_zplus] using
+              have hsimpa :=
                 hNegBool
+              try simp [native_zlt, SmtEval.native_zlt, native_zplus] at hsimpa ⊢
+              exact of_decide_eq_true hsimpa
             have hBodyEq :
                 body = Term.UOp1 UserOp1.seq_empty (__eo_typeof a) := by
               simp [body, u, hUEq, __eo_is_neg, hNegBool, eo_ite_true]
@@ -9053,7 +9080,9 @@ private theorem seq_eval_smt_type_and_value_rel
       have hRevNN :
           term_has_non_none_type (SmtTerm.str_rev (__eo_to_smt t)) := by
         unfold term_has_non_none_type
-        simpa using hNN
+        have hsimpa := hNN
+        try simp at hsimpa ⊢
+        exact hsimpa
       rcases seq_arg_of_non_none (op := SmtTerm.str_rev)
           (typeof_str_rev_eq (__eo_to_smt t)) hRevNN with
         ⟨T, htTy⟩
