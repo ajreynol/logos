@@ -12700,6 +12700,8 @@ theorem EvaluateProofInternal.eo_mod_total_left_ne_stuck {x y : Term} :
       x ≠ Term.Stuck := by
   intro h hx
   rw [hx] at h
+  -- every branch of the guard chain is `Term.Stuck`, so the whole chain is
+  -- `Term.Stuck` and contradicts `h`; `simp` no longer collapses it itself
   cases y <;> simp [__eo_eq, __eo_ite, __eo_zmod, native_ite] at h
 
 theorem EvaluateProofInternal.eo_and_typeof_bitvec_of_args_bitvec
@@ -13205,10 +13207,17 @@ theorem EvaluateProofInternal.eo_concat_typeof_seq_of_args_seq_and_ne_stuck
   cases x <;> cases y <;> simp [__eo_concat] at hX hY hNe ⊢
   all_goals
     first
+    -- `__eo_typeof (Term.String _)` is `Seq Char` for any string, but the
+    -- concatenated literal no longer matches `hX`/`hY` syntactically.  This
+    -- must come first: `cases hX` succeeds without closing the goal.
+    | rfl
     | simpa using hX
     | cases hX
     | cases hY
     | contradiction
+  -- `cases hX` substitutes `U` but does not close the goal; once `U` is
+  -- concrete the literal's type is `rfl`
+  all_goals rfl
 
 theorem EvaluateProofInternal.eo_extract_typeof_seq_of_target_seq_and_ne_stuck
     (x i j U : Term)
@@ -13221,9 +13230,11 @@ theorem EvaluateProofInternal.eo_extract_typeof_seq_of_target_seq_and_ne_stuck
     simp [__eo_extract] at hX hNe ⊢
   all_goals
     first
+    | rfl
     | simpa using hX
     | cases hX
     | contradiction
+  all_goals rfl
 
 theorem EvaluateProofInternal.eo_not_is_neg_find_typeof_bool_of_ne_stuck
     (x y : Term)
