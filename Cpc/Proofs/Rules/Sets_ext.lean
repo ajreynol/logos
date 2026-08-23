@@ -71,7 +71,7 @@ private theorem sets_ext_set_types_of_result_bool
   have hNot :
       __eo_typeof_not (__eo_typeof (Term.Apply (Term.Apply Term.eq lhs) rhs)) =
         Term.Bool := by
-    simpa [__eo_prog_sets_ext, idx, lhs, rhs] using h
+    exact h
   have hEqTy :
       __eo_typeof (Term.Apply (Term.Apply Term.eq lhs) rhs) = Term.Bool :=
     eo_typeof_not_bool_arg _ hNot
@@ -108,7 +108,7 @@ private theorem sets_ext_operand_translations_of_premise_bool
     RuleProofs.eo_has_bool_type_not_arg _ hPremBool
   rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type a b hEqBool with
     ⟨hEq, hNonNone⟩
-  exact ⟨hNonNone, by simpa [hEq] using hNonNone, hEq⟩
+  exact ⟨hNonNone, by have hsimpa := hNonNone; (try simp [hEq] at hsimpa ⊢); exact hsimpa, hEq⟩
 
 private theorem eo_to_smt_type_set_of_non_none
     (T : Term)
@@ -355,10 +355,10 @@ private theorem facts___eo_prog_sets_ext_impl
             (__eo_to_smt (Term.Apply (Term.Apply Term.set_member idx) b))) =
         SmtValue.Boolean false
     rw [eo_to_smt_set_member_eq idx a, eo_to_smt_set_member_eq idx b]
-    simpa [idx, hIdxSmtTerm,
-      __smtx_model_eval, __smtx_model_eval_set_member,
-      __smtx_model_eval_map_diff, __smtx_map_select, hEvalA, hEvalB] using
+    have hsimpa :=
       hSelectEqFalse
+    try simp [idx, hIdxSmtTerm, __smtx_model_eval, __smtx_model_eval_set_member, __smtx_model_eval_map_diff, __smtx_map_select, hEvalA, hEvalB] at hsimpa ⊢
+    exact hsimpa
   have hEqFalse : eo_interprets M (Term.Apply (Term.Apply Term.eq lhs) rhs) false :=
     RuleProofs.eo_interprets_of_bool_eval M
       (Term.Apply (Term.Apply Term.eq lhs) rhs) false hEqBool hEqEvalFalse

@@ -115,7 +115,7 @@ private theorem bv_merge_sign_extend_1_context
   have hRhsCore :
       __eo_typeof_zero_extend (__eo_typeof k) k (__eo_typeof x) ≠
         Term.Stuck := by
-    simpa [bvMergeSignExtend1Rhs] using hRhsNe
+    exact hRhsNe
   rcases eo_typeof_sign_extend_arg_bitvec_of_ne_stuck hRhsCore with
     ⟨widthTerm, hXTy⟩
   rcases smt_bitvec_type_of_eo_bitvec_type_with_width x widthTerm
@@ -128,7 +128,7 @@ private theorem bv_merge_sign_extend_1_context
           (__eo_typeof
             (Term.Apply (Term.UOp1 UserOp1.sign_extend j) x)) ≠
         Term.Stuck := by
-    simpa [bvMergeSignExtend1Lhs] using hLhsNe
+    exact hLhsNe
   rcases eo_typeof_sign_extend_arg_bitvec_of_ne_stuck hLhsCore with
     ⟨innerWidth, hInnerTyRaw⟩
   have hInnerNe :
@@ -144,8 +144,10 @@ private theorem bv_merge_sign_extend_1_context
       simpa [SmtEval.native_zleq] using hw0
     have hj : (0 : Int) ≤ jv := by
       simpa [SmtEval.native_zleq] using hjv0
-    simpa [SmtEval.native_zleq, SmtEval.native_zplus] using
+    have hsimpa :=
       Int.add_nonneg hw hj
+    try simp [SmtEval.native_zleq, SmtEval.native_zplus] at hsimpa ⊢
+    exact decide_eq_true hsimpa
   rcases sign_extend_full_context
       (Term.Apply (Term.UOp1 UserOp1.sign_extend j) x) i
       (native_zplus w jv) hInnerTy hLhsNe with
@@ -178,8 +180,10 @@ private theorem typed_bv_merge_sign_extend_1_term
       simpa [SmtEval.native_zleq] using hw0
     have hj : (0 : Int) ≤ jv := by
       simpa [SmtEval.native_zleq] using hjv0
-    simpa [SmtEval.native_zleq, SmtEval.native_zplus] using
+    have hsimpa :=
       Int.add_nonneg hj hw
+    try simp [SmtEval.native_zleq, SmtEval.native_zplus] at hsimpa ⊢
+    exact decide_eq_true hsimpa
   have hInnerTy :
       __smtx_typeof
           (__eo_to_smt
@@ -614,7 +618,7 @@ private theorem bv_merge_sign_extend_2_context
   have hRhsCore :
       __eo_typeof_zero_extend (__eo_typeof k) k (__eo_typeof x) ≠
         Term.Stuck := by
-    simpa [bvMergeSignExtend2Rhs] using hRhsNe
+    exact hRhsNe
   rcases eo_typeof_sign_extend_arg_bitvec_of_ne_stuck hRhsCore with
     ⟨widthTerm, hXTy⟩
   rcases smt_bitvec_type_of_eo_bitvec_type_with_width x widthTerm
@@ -627,7 +631,7 @@ private theorem bv_merge_sign_extend_2_context
           (__eo_typeof
             (Term.Apply (Term.UOp1 UserOp1.zero_extend j) x)) ≠
         Term.Stuck := by
-    simpa [bvMergeSignExtend2Lhs] using hLhsNe
+    exact hLhsNe
   rcases eo_typeof_sign_extend_arg_bitvec_of_ne_stuck hLhsCore with
     ⟨innerWidth, hInnerTyRaw⟩
   have hInnerNe :
@@ -687,8 +691,10 @@ private theorem typed_bv_merge_sign_extend_2_term
       simpa [SmtEval.native_zleq] using hw0
     have hj : (0 : Int) ≤ jv := by
       simpa [SmtEval.native_zleq] using hjv0
-    simpa [SmtEval.native_zleq, SmtEval.native_zplus] using
+    have hsimpa :=
       Int.add_nonneg hj hw
+    try simp [SmtEval.native_zleq, SmtEval.native_zplus] at hsimpa ⊢
+    exact decide_eq_true hsimpa
   have hInnerTy :
       __smtx_typeof
           (__eo_to_smt

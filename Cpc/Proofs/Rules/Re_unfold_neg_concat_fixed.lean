@@ -231,7 +231,9 @@ theorem eo_get_nil_rec_re_concat_list_rev_rec_eq
             Term.Boolean true :=
         eo_is_list_cons_self_true_of_tail_list
           (Term.UOp UserOp.re_concat) x acc (by decide) hAccList
-      simpa [__eo_list_rev_rec] using ih hTailTailList hConsAccList
+      have hsimpa := ih hTailTailList hConsAccList
+      try simp [__eo_list_rev_rec] at hsimpa ⊢
+      exact hsimpa
   | case4 nil acc hNil hAcc hNot =>
       simp [__eo_list_rev_rec]
 
@@ -953,7 +955,9 @@ theorem re_unfold_neg_concat_fixed_false_eval_true
           (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt t))
             (SmtTerm.Numeral n))) =
       SmtValue.Seq rightSeq at hRightSubEval
-    simpa [__smtx_model_eval, hLenEval', hNegEval'] using hRightSubEval
+    have hsimpa := hRightSubEval
+    try simp [__smtx_model_eval, hLenEval'] at hsimpa ⊢
+    exact hsimpa
   have hRightSubEval'' :
       __smtx_model_eval_str_substr (__smtx_model_eval M (__eo_to_smt t))
           (SmtValue.Numeral n)
@@ -989,7 +993,9 @@ theorem re_unfold_neg_concat_fixed_false_eval_true
           (__eo_to_smt
             (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) r2))) =
       SmtValue.Boolean (native_str_in_re rightStr rvTail) at hRightInEval
-    simpa [__smtx_model_eval, hLenEval', hNegEval'] using hRightInEval
+    have hsimpa := hRightInEval
+    try simp [__smtx_model_eval, hLenEval'] at hsimpa ⊢
+    exact hsimpa
   have hLeftInEvalSeq :
       __smtx_model_eval_str_in_re (SmtValue.Seq leftSeq)
           (__smtx_model_eval M (__eo_to_smt r1)) =
@@ -1266,7 +1272,9 @@ theorem re_unfold_neg_concat_fixed_true_eval_true
             (SmtTerm.Numeral n))
           (SmtTerm.Numeral n)) =
       SmtValue.Seq suffixSeq at hSuffixSubEval
-    simpa [__smtx_model_eval, hLenEval', hNegEval'] using hSuffixSubEval
+    have hsimpa := hSuffixSubEval
+    try simp [__smtx_model_eval, hLenEval'] at hsimpa ⊢
+    exact hsimpa
   have hSuffixSubEval'' :
       __smtx_model_eval_str_substr (__smtx_model_eval M (__eo_to_smt t))
           (__smtx_model_eval__ (SmtValue.Numeral len) (SmtValue.Numeral n))
@@ -1282,7 +1290,9 @@ theorem re_unfold_neg_concat_fixed_true_eval_true
           (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt t))
             (SmtTerm.Numeral n))) =
       SmtValue.Seq prefixSeq at hPrefixSubEval
-    simpa [__smtx_model_eval, hLenEval', hNegEval'] using hPrefixSubEval
+    have hsimpa := hPrefixSubEval
+    try simp [__smtx_model_eval, hLenEval'] at hsimpa ⊢
+    exact hsimpa
   have hPrefixSubEval'' :
       __smtx_model_eval_str_substr (__smtx_model_eval M (__eo_to_smt t))
           (SmtValue.Numeral 0)

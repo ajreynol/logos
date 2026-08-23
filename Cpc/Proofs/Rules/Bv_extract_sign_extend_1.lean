@@ -78,7 +78,7 @@ by
                                   __eo_typeof
                                       (bvExtractSignExtend1Program
                                         x low high k P) = Term.Bool := by
-                                simpa [P] using hResultTy
+                                exact hResultTy
                               refine ⟨?_, ?_⟩
                               · intro hPremisesTrue
                                 have hPTrue : eo_interprets M P true :=

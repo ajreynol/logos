@@ -128,16 +128,13 @@ by
                           subst a4
                           have hA1Trans :
                               RuleProofs.eo_has_smt_translation a1 := by
-                            simpa [cmdTranslationOk,
-                              cArgListTranslationOk] using hCmdTrans.1
+                            exact hCmdTrans.1
                           have hA2Trans :
                               RuleProofs.eo_has_smt_translation a2 := by
-                            simpa [cmdTranslationOk,
-                              cArgListTranslationOk] using hCmdTrans.2.1
+                            exact hCmdTrans.2.1
                           have hA3Trans :
                               RuleProofs.eo_has_smt_translation a3 := by
-                            simpa [cmdTranslationOk,
-                              cArgListTranslationOk] using hCmdTrans.2.2.1
+                            exact hCmdTrans.2.2.1
                           have hA1Ne :=
                             RuleProofs.term_ne_stuck_of_has_smt_translation
                               a1 hA1Trans

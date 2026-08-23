@@ -557,31 +557,31 @@ private theorem native_str_in_re_re_mult_append_intro
         simpa [native_re_mult, native_re_mk_star] using
           nativeListInRe_star_append_closed s1 s2 r0 h1Parts.2 h2Star
     | char c =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.char c) s1 s2
           h1Parts.2 h2Parts.2
     | range lo hi =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.range lo hi) s1 s2
           h1Parts.2 h2Parts.2
     | allchar =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro SmtRegLan.allchar s1 s2
           h1Parts.2 h2Parts.2
     | concat r0 r1 =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.concat r0 r1) s1 s2
           h1Parts.2 h2Parts.2
     | union r0 r1 =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.union r0 r1) s1 s2
           h1Parts.2 h2Parts.2
     | inter r0 r1 =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.inter r0 r1) s1 s2
           h1Parts.2 h2Parts.2
     | comp r0 =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.comp r0) s1 s2
           h1Parts.2 h2Parts.2
   simpa [native_str_in_re, hValidAppend, nativeListInRe] using hList
@@ -653,7 +653,7 @@ private theorem reConcat_smt_value_rel_right_empty_eval
     SmtValue.Boolean true
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hIdEval]
   cases r <;>
-    simp [__smtx_model_eval_eq, native_re_concat, native_re_mk_concat,
+    simp [__smtx_model_eval_eq, native_re_concat,
       native_str_to_re, native_re_of_list, native_string_to_values]
 
 private theorem reConcat_is_list_nil_boolean_of_ne_stuck (t : Term) :

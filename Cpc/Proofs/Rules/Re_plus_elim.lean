@@ -109,7 +109,7 @@ private theorem typed___eo_prog_re_plus_elim_impl
           (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
             (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))))) = SmtType.RegLan
     rw [typeof_re_concat_eq]
-    simp [hA1SmtTy, hInnerConcatTy, native_ite, native_Teq]
+    simp [hA1SmtTy, native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.RegLan := by
     simpa [rhs] using hRhsTyRaw
   have hBoolEq :

@@ -87,7 +87,8 @@ private theorem str_arith_entail_simple_rec_mon_denote_nonneg
                                 arith_poly_norm_atom_denote_real M
                                   (Term.Apply (Term.UOp UserOp.str_len) s) <;>
                               cases hRest : arith_mvar_denote_real M rest <;>
-                              simp [arith_mon_denote_real, arith_mvar_denote_real, hAtom,
+                              simp [arith_mon_denote_real, arith_mvar_denote_real,,
+                                hAtom]
                                 hRest, __smtx_model_eval_mult, native_qmult] at hDen
                             case Rational.Rational qa qr =>
                               have hRestMon :
@@ -95,7 +96,8 @@ private theorem str_arith_entail_simple_rec_mon_denote_nonneg
                                       (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon)
                                         rest) (Term.Rational c)) =
                                     SmtValue.Rational (native_qmult c qr) := by
-                                simp [arith_mon_denote_real, hRest, __smtx_model_eval_mult,
+                                simp [arith_mon_denote_real, hRest,,
+                                  __smtx_model_eval_mult]
                                   native_qmult]
                               have hRec :=
                                 str_arith_entail_simple_rec_mon_denote_nonneg M tail
@@ -181,10 +183,12 @@ private theorem str_arith_entail_simple_rec_denote_nonneg
                                               rw [← hDen]
                                               exact Rat.add_nonneg hMonTail.1 hTailNonneg
                                       | _ =>
-                                          simp [arith_poly_denote_real, arith_mon_denote_real,
+                                          simp [arith_poly_denote_real,,
+                                            arith_mon_denote_real]
                                             __smtx_model_eval_plus] at hDen
                                   | _ =>
-                                      simp [arith_poly_denote_real, arith_mon_denote_real,
+                                      simp [arith_poly_denote_real,,
+                                        arith_mon_denote_real]
                                         __smtx_model_eval_plus] at hDen
                               | _ =>
                                   simp [arith_poly_denote_real, arith_mon_denote_real,
@@ -2089,6 +2093,14 @@ private theorem nat_toString_len_pos
   simp [Nat.repr, Nat.toDigits]
   simpa using nat_toDigitsCore_len_gt_acc 10 n n []
 
+/-- `List.length (native_string_lit (toString (Int.ofNat n)))` is the decimal
+length of `n`.  This used to close by `rfl` inside `exact`; under v4.33 the
+`String.length`/`List.map` layers no longer reduce, so it needs `simp`. -/
+private theorem native_string_lit_toString_ofNat_length (n : Nat) :
+    List.length (native_string_lit (toString (Int.ofNat n))) =
+      (toString n).length := by
+  simp [native_string_lit, String.length, Int.repr]
+
 private theorem native_str_from_int_len_pos_of_nonneg
     (z : native_Int) :
     0 <= z ->
@@ -2098,7 +2110,8 @@ private theorem native_str_from_int_len_pos_of_nonneg
   | ofNat n =>
       have hlt : ¬ ((Int.ofNat n : Int) < 0) :=
         Int.not_lt.mpr (Int.natCast_nonneg n)
-      rw [native_str_from_int, if_neg hlt]
+      rw [native_str_from_int, if_neg hlt,
+        native_string_lit_toString_ofNat_length]
       exact Int.ofNat_lt.mpr (nat_toString_len_pos n)
   | negSucc n =>
       have hFalse : False := (Int.negSucc_not_nonneg n).mp hz
@@ -2113,7 +2126,8 @@ private theorem native_str_from_int_len_le_succ
   | ofNat n =>
       have hlt : ¬ ((Int.ofNat n : Int) < 0) :=
         Int.not_lt.mpr (Int.natCast_nonneg n)
-      rw [native_str_from_int, if_neg hlt]
+      rw [native_str_from_int, if_neg hlt,
+        native_string_lit_toString_ofNat_length]
       exact Int.ofNat_le.mpr (nat_toString_len_le_succ n)
   | negSucc n =>
       have hFalse : False := (Int.negSucc_not_nonneg n).mp hz
@@ -2130,7 +2144,8 @@ private theorem native_str_from_int_len_le_self_of_pos
         exact Int.ofNat_lt.mp hz
       have hlt : ¬ ((Int.ofNat n : Int) < 0) :=
         Int.not_lt.mpr (Int.natCast_nonneg n)
-      rw [native_str_from_int, if_neg hlt]
+      rw [native_str_from_int, if_neg hlt,
+        native_string_lit_toString_ofNat_length]
       exact Int.ofNat_le.mpr (nat_toString_len_le_self_of_pos n hn)
     | negSucc n =>
         have hFalse : False := by
@@ -2874,6 +2889,9 @@ private theorem str_len_l1_true_order
             exact str_from_int_len_l1_true_order M hM x m zn zm
               hNInt hNEval hMEval
               (by
+                simp [__eo_l_1___str_arith_entail_is_approx,,
+                  __str_arith_entail_is_approx_len, __eo_not, native_not,,
+                  SmtEval.native_not]
                 exact hL1Branch)
       | Apply g y =>
           cases g with
@@ -2892,11 +2910,17 @@ private theorem str_len_l1_true_order
                     exact str_substr_len_l1_true_order M hM z y x m zn zm
                       hNInt hNEval hMEval
                       (by
+                        simp [__eo_l_1___str_arith_entail_is_approx,,
+                          __str_arith_entail_is_approx_len, __eo_not, native_not,,
+                          SmtEval.native_not]
                         exact hL1Branch)
                   case str_replace =>
                     exact str_replace_len_l1_true_order M hM z y x m zn zm
                       hNInt hNEval hMEval
                       (by
+                        simp [__eo_l_1___str_arith_entail_is_approx,,
+                          __str_arith_entail_is_approx_len, __eo_not, native_not,,
+                          SmtEval.native_not]
                         exact hL1Branch)
               | _ =>
                   simp [__eo_l_1___str_arith_entail_is_approx,
@@ -2944,6 +2968,9 @@ private theorem str_len_l1_false_order
             exact str_from_int_len_l1_false_order M hM x m zn zm
               hNInt hNEval hMEval
               (by
+                simp [__eo_l_1___str_arith_entail_is_approx,,
+                  __str_arith_entail_is_approx_len, __eo_not, native_not,,
+                  SmtEval.native_not]
                 exact hL1Branch)
       | Apply g y =>
           cases g with
@@ -2961,11 +2988,15 @@ private theorem str_len_l1_false_order
                     exact str_substr_len_l1_false_order M hM z y x m zn zm
                       hNInt hNEval hMEval
                       (by
+                        simp [__eo_l_1___str_arith_entail_is_approx,,
+                          __str_arith_entail_is_approx_len, __eo_not, native_not]
                         exact hL1Branch)
                   case str_replace =>
                     exact str_replace_len_l1_false_order M hM z y x m zn zm
                       hNInt hNEval hMEval
                       (by
+                        simp [__eo_l_1___str_arith_entail_is_approx,,
+                          __str_arith_entail_is_approx_len, __eo_not, native_not]
                         exact hL1Branch)
               | _ =>
                   simp [__eo_l_1___str_arith_entail_is_approx,
@@ -3761,6 +3792,9 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                     exact str_from_int_len_l1_true_order M hM x m zn zm
                       hNInt hNEval hMEval
                       (by
+                        simp [__eo_l_1___str_arith_entail_is_approx,,
+                          __str_arith_entail_is_approx_len, __eo_not, native_not,,
+                          SmtEval.native_not]
                         exact hL1Branch)
               | Apply g y =>
                   cases g with
@@ -3778,11 +3812,17 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                             exact str_substr_len_l1_true_order M hM z y x m zn zm
                               hNInt hNEval hMEval
                               (by
+                                simp [__eo_l_1___str_arith_entail_is_approx,,
+                                  __str_arith_entail_is_approx_len, __eo_not,,
+                                  native_not]
                                 exact hL1Branch)
                           case str_replace =>
                             exact str_replace_len_l1_true_order M hM z y x m zn zm
                               hNInt hNEval hMEval
                               (by
+                                simp [__eo_l_1___str_arith_entail_is_approx,,
+                                  __str_arith_entail_is_approx_len, __eo_not,,
+                                  native_not]
                                 exact hL1Branch)
                       | _ =>
                           simp [__eo_l_1___str_arith_entail_is_approx,
@@ -3815,6 +3855,8 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                     exact str_from_int_len_l1_false_order M hM x m zn zm
                       hNInt hNEval hMEval
                       (by
+                        simp [__eo_l_1___str_arith_entail_is_approx,,
+                          __str_arith_entail_is_approx_len, __eo_not, native_not]
                         exact hL1Branch)
               | Apply g y =>
                   cases g with
@@ -3832,11 +3874,17 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                             exact str_substr_len_l1_false_order M hM z y x m zn zm
                               hNInt hNEval hMEval
                               (by
+                                simp [__eo_l_1___str_arith_entail_is_approx,,
+                                  __str_arith_entail_is_approx_len, __eo_not,,
+                                  native_not]
                                 exact hL1Branch)
                           case str_replace =>
                             exact str_replace_len_l1_false_order M hM z y x m zn zm
                               hNInt hNEval hMEval
                               (by
+                                simp [__eo_l_1___str_arith_entail_is_approx,,
+                                  __str_arith_entail_is_approx_len, __eo_not,,
+                                  native_not]
                                 exact hL1Branch)
                       | _ =>
                           simp [__eo_l_1___str_arith_entail_is_approx,
@@ -3871,6 +3919,8 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                     exact str_len_l1_true_order M hM x m zn zm
                       hNInt hMInt hNEval hMEval
                       (by
+                        simp [__eo_l_1___str_arith_entail_is_approx,,
+                          __str_arith_entail_is_approx_len, __eo_not, native_not]
                         exact hL1Branch)
                   case str_to_int =>
                     exact str_to_int_l1_true_order M hM x m zn zm
@@ -3905,7 +3955,9 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                                                     cases mg with
                                                     | UOp mop =>
                                                         cases mop <;> try
-                                                          simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                          simp [__eo_l_1___str_arith_e,
+                                                            ntail_is_approx] at,
+                                                            hL1Branc]
                                                         next =>
                                                           cases mArg with
                                                           | Apply mf2 mArg2 =>
@@ -3914,7 +3966,13 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                                                                   cases mg2 with
                                                                   | UOp mop2 =>
                                                                       cases mop2 <;> try
-                                                                        simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                                        simp [__eo_l_1,
+                                                                          ___str_a,
+                                                                          rith_ent,
+                                                                          ail_is_a,
+                                                                          pprox],
+                                                                          at,
+                                                                          hL1Branc]
                                                                       next =>
                                                                         cases mArg2 with
                                                                         | Numeral k2 =>
@@ -3990,26 +4048,55 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                                                                             · simp [__eo_l_1___str_arith_entail_is_approx,hk2]
                                                                                 at hL1Branch
                                                                         | _ =>
-                                                                            simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                                            simp [__eo,
+                                                                              _l_1,
+                                                                              ___s,
+                                                                              tr_a,
+                                                                              rith,
+                                                                              _ent,
+                                                                              ail_,
+                                                                              is_a,
+                                                                              ppro,
+                                                                              x],
+                                                                              at h,
+                                                                              L1Br,
+                                                                              anc]
                                                                   | _ =>
-                                                                      simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                                      simp [__eo_l_1__,
+                                                                        _str_arith,
+                                                                        _entail_is,
+                                                                        _approx],
+                                                                        at,
+                                                                        hL1Branc]
                                                               | _ =>
-                                                                  simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                                  simp [__eo_l_1___str,
+                                                                    _arith_entail_,
+                                                                    is_approx] at,
+                                                                    hL1Branc]
                                                           | _ =>
-                                                              simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                              simp [__eo_l_1___str_ari,
+                                                                th_entail_is_appro,
+                                                                x] at hL1Branc]
                                                     | _ =>
-                                                        simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                        simp [__eo_l_1___str_arith_ent,
+                                                          ail_is_approx] at,
+                                                          hL1Branc]
                                                 | _ =>
-                                                    simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                    simp [__eo_l_1___str_arith_entail_,
+                                                      is_approx] at hL1Branc]
                                             | _ =>
-                                                simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                simp [__eo_l_1___str_arith_entail_is_a,
+                                                  pprox] at hL1Branc]
                                           · simp [__eo_l_1___str_arith_entail_is_approx,hk] at hL1Branch
                                       | _ =>
-                                          simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                          simp [__eo_l_1___str_arith_entail_is_approx],
+                                            at hL1Branc]
                                 | _ =>
-                                    simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                    simp [__eo_l_1___str_arith_entail_is_approx] at,
+                                      hL1Branc]
                             | _ =>
-                                simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                simp [__eo_l_1___str_arith_entail_is_approx] at,
+                                  hL1Branc]
                         | _ =>
                             simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
                       case plus =>
@@ -4020,7 +4107,8 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                                 cases mg with
                                 | UOp mop =>
                                     cases mop <;> try
-                                      simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                      simp [__eo_l_1___str_arith_entail_is_approx] at,
+                                        hL1Branc]
                                     case plus =>
                                       have hAnd :
                                           __eo_and
@@ -4052,9 +4140,11 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                                           Int.add_le_add_right h13 z4
                                         _ ≤ z1 + z2 := Int.add_le_add_left h24 z1
                                 | _ =>
-                                    simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                    simp [__eo_l_1___str_arith_entail_is_approx] at,
+                                      hL1Branc]
                             | _ =>
-                                simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                simp [__eo_l_1___str_arith_entail_is_approx] at,
+                                  hL1Branc]
                         | _ =>
                             simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
                   | Apply h z =>
@@ -4131,7 +4221,9 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                                                     cases mg with
                                                     | UOp mop =>
                                                         cases mop <;> try
-                                                          simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                          simp [__eo_l_1___str_arith_e,
+                                                            ntail_is_approx] at,
+                                                            hL1Branc]
                                                         next =>
                                                           cases mArg with
                                                           | Apply mf2 mArg2 =>
@@ -4140,7 +4232,13 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                                                                   cases mg2 with
                                                                   | UOp mop2 =>
                                                                       cases mop2 <;> try
-                                                                        simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                                        simp [__eo_l_1,
+                                                                          ___str_a,
+                                                                          rith_ent,
+                                                                          ail_is_a,
+                                                                          pprox],
+                                                                          at,
+                                                                          hL1Branc]
                                                                       next =>
                                                                         cases mArg2 with
                                                                         | Numeral k2 =>
@@ -4216,26 +4314,55 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                                                                             · simp [__eo_l_1___str_arith_entail_is_approx,hk2]
                                                                                 at hL1Branch
                                                                         | _ =>
-                                                                            simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                                            simp [__eo,
+                                                                              _l_1,
+                                                                              ___s,
+                                                                              tr_a,
+                                                                              rith,
+                                                                              _ent,
+                                                                              ail_,
+                                                                              is_a,
+                                                                              ppro,
+                                                                              x],
+                                                                              at h,
+                                                                              L1Br,
+                                                                              anc]
                                                                   | _ =>
-                                                                      simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                                      simp [__eo_l_1__,
+                                                                        _str_arith,
+                                                                        _entail_is,
+                                                                        _approx],
+                                                                        at,
+                                                                        hL1Branc]
                                                               | _ =>
-                                                                  simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                                  simp [__eo_l_1___str,
+                                                                    _arith_entail_,
+                                                                    is_approx] at,
+                                                                    hL1Branc]
                                                           | _ =>
-                                                              simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                              simp [__eo_l_1___str_ari,
+                                                                th_entail_is_appro,
+                                                                x] at hL1Branc]
                                                     | _ =>
-                                                        simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                        simp [__eo_l_1___str_arith_ent,
+                                                          ail_is_approx] at,
+                                                          hL1Branc]
                                                 | _ =>
-                                                    simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                    simp [__eo_l_1___str_arith_entail_,
+                                                      is_approx] at hL1Branc]
                                             | _ =>
-                                                simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                                simp [__eo_l_1___str_arith_entail_is_a,
+                                                  pprox] at hL1Branc]
                                           · simp [__eo_l_1___str_arith_entail_is_approx,hk] at hL1Branch
                                       | _ =>
-                                          simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                          simp [__eo_l_1___str_arith_entail_is_approx],
+                                            at hL1Branc]
                                 | _ =>
-                                    simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                    simp [__eo_l_1___str_arith_entail_is_approx] at,
+                                      hL1Branc]
                             | _ =>
-                                simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                simp [__eo_l_1___str_arith_entail_is_approx] at,
+                                  hL1Branc]
                         | _ =>
                             simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
                       case plus =>
@@ -4246,7 +4373,8 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                                 cases mg with
                                 | UOp mop =>
                                     cases mop <;> try
-                                      simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                      simp [__eo_l_1___str_arith_entail_is_approx] at,
+                                        hL1Branc]
                                     case plus =>
                                       have hAnd :
                                           __eo_and
@@ -4278,9 +4406,11 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
                                           Int.add_le_add_right h13 z2
                                         _ ≤ z3 + z4 := Int.add_le_add_left h24 z3
                                 | _ =>
-                                    simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                    simp [__eo_l_1___str_arith_entail_is_approx] at,
+                                      hL1Branc]
                             | _ =>
-                                simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
+                                simp [__eo_l_1___str_arith_entail_is_approx] at,
+                                  hL1Branc]
                         | _ =>
                             simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
                   | Apply h z =>

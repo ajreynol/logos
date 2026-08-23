@@ -659,7 +659,7 @@ private theorem typeof_bvxor_args_of_result_bitvec
   intro h
   have hNe :
       __eo_typeof_bvand (__eo_typeof x) (__eo_typeof y) ≠ Term.Stuck := by
-    simpa [xor] using (show __eo_typeof (xor x y) ≠ Term.Stuck by
+    exact (show __eo_typeof (xor x y) ≠ Term.Stuck by
       rw [h]
       intro hBad
       cases hBad)
@@ -883,7 +883,7 @@ private theorem list_smt_type_or_nil_of_concat_type
       have hNonNone :
           term_has_non_none_type
             (SmtTerm.bvxor (__eo_to_smt x) (__eo_to_smt xs)) := by
-        simpa [RuleProofs.eo_has_smt_translation, xor, op] using hATrans
+        exact hATrans
       rcases bv_binop_args_of_non_none (op := SmtTerm.bvxor)
           (show
             __smtx_typeof (SmtTerm.bvxor (__eo_to_smt x) (__eo_to_smt xs)) =
@@ -1007,7 +1007,7 @@ private theorem lhs_component_types
   have hInsertedOpNe :
       __eo_typeof_bvand (__eo_typeof first)
           (__eo_typeof (inner ys zs second)) ≠ Term.Stuck := by
-    simpa [inserted, xor, op] using hInsertedNe
+    exact hInsertedNe
   rcases typeof_bvand_arg_types_of_ne_stuck hInsertedOpNe with
     ⟨width, hFirstTy, hInnerTy⟩
   have hWidthNe : width ≠ Term.Stuck := by
@@ -1095,7 +1095,7 @@ theorem inferred_argument_types1
   intro hXsTrans hYsTrans hZsTrans hXTrans hXsList hYsList hResultTy
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (lhs xs ys zs x x)) (__eo_typeof (base xs ys zs))
-    (by simpa [term1, eqTerm] using hResultTy)
+    (by have hsimpa := hResultTy; (try simp [term1, eqTerm] at hsimpa ⊢); exact hsimpa)
   exact inferred_argument_types_common xs ys zs x x x
     hXsTrans hYsTrans hZsTrans hXTrans hXsList hYsList hSides.1
       (fun _ hFirst _ => hFirst)
@@ -1118,7 +1118,7 @@ theorem inferred_argument_types2
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (lhs xs ys zs x (bvnot x)))
     (__eo_typeof (bvnot (base xs ys zs)))
-    (by simpa [term2, eqTerm] using hResultTy)
+    (by have hsimpa := hResultTy; (try simp [term2, eqTerm] at hsimpa ⊢); exact hsimpa)
   exact inferred_argument_types_common xs ys zs x (bvnot x) x
     hXsTrans hYsTrans hZsTrans hXTrans hXsList hYsList hSides.1
       (fun _ hFirst _ => hFirst)
@@ -1141,7 +1141,7 @@ theorem inferred_argument_types3
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (lhs xs ys zs (bvnot x) x))
     (__eo_typeof (bvnot (base xs ys zs)))
-    (by simpa [term3, eqTerm] using hResultTy)
+    (by have hsimpa := hResultTy; (try simp [term3, eqTerm] at hsimpa ⊢); exact hsimpa)
   exact inferred_argument_types_common xs ys zs (bvnot x) x x
     hXsTrans hYsTrans hZsTrans hXTrans hXsList hYsList hSides.1
       (fun _ _ hSecond => hSecond)
@@ -1251,7 +1251,7 @@ private theorem lhs_base_smt_types
     hXsTy hYZTy
   have hBaseTy := BvNaryXorSupport.listSingletonElimSmtType
     (baseList xs ys zs) w (by simpa [op] using hBaseListList) hBaseListTy
-  exact ⟨hLhsTy, by simpa [base] using hBaseTy⟩
+  exact ⟨hLhsTy, by have hsimpa := hBaseTy; (try simp [base] at hsimpa ⊢); exact hsimpa⟩
 
 private theorem eval_lhs_base
     (M : SmtModel) (hM : model_total_typed M)

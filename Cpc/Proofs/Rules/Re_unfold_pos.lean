@@ -182,8 +182,9 @@ private theorem nativeListInRe_str_to_re_true_eq :
       | nil => rfl
       | cons c cs =>
           have hEq : nativeListInRe cs SmtRegLan.empty = true := by
-            simpa [native_str_to_re, native_re_of_list, nativeListInRe,
-              native_re_deriv] using h
+            have hsimpa := h
+            try simp [native_str_to_re, nativeListInRe] at hsimpa ⊢
+            exact hsimpa
           have hFalse : false = true :=
             (RuleProofs.nativeListInRe_empty cs).symm.trans hEq
           cases hFalse
@@ -192,7 +193,9 @@ private theorem nativeListInRe_str_to_re_true_eq :
           nativeListInRe xs
               (native_re_mk_concat (SmtRegLan.char c)
                 (native_re_of_list cs)) = true := by
-        simpa [native_str_to_re, native_re_of_list] using h
+        have hsimpa := h
+        try simp [native_str_to_re] at hsimpa ⊢
+        exact hsimpa
       rcases
           (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append xs
             (SmtRegLan.char c) (native_re_of_list cs)).1 hConcat with
@@ -779,7 +782,9 @@ private theorem native_str_indexof_re_split_spec
     simpa [native_str_in_re, nativeListInRe] using h
   have hList :
       nativeListInRe s (native_re_mk_concat r1 r2) = true := by
-    simpa [native_re_concat] using hParts.2
+    have hsimpa := hParts.2
+    try simp [native_re_concat] at hsimpa ⊢
+    exact hsimpa
   rcases
       (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append s r1 r2).1
         hList with
@@ -1028,7 +1033,9 @@ private theorem seq_value_type_of_eval_seq
     by
       simpa [hTy] using
         smt_model_eval_preserves_type_of_non_none M hM t hNN
-  simpa [hEval] using hValTy
+  have hsimpa := hValTy
+  try simp [hEval] at hsimpa ⊢
+  exact hsimpa
 
 private theorem term_ne_stuck_of_smt_type_seq_char (t : Term) :
     __smtx_typeof (__eo_to_smt t) = SmtType.Seq SmtType.Char ->
@@ -1693,7 +1700,7 @@ private theorem re_unfold_pos_concat_rec_eval_true
                         SmtEval.native_zplus, __pair_first, __pair_second,
                         __eo_mk_apply, mkStrToRe]
                       constructor
-                      · simpa [comp, mkAtReUnfoldPosComponent] using hConcatAppEq
+                      · have hsimpa := hConcatAppEq; (try simp [comp, mkAtReUnfoldPosComponent] at hsimpa ⊢); exact hsimpa
                       · simpa [comp, mkAtReUnfoldPosComponent, mkStrInRe] using
                           hGuardAppEq
                     · have hConcatEvalFirst :=
@@ -2121,7 +2128,7 @@ private theorem re_unfold_pos_concat_rec_types
                         SmtEval.native_zplus, __pair_first, __pair_second,
                         __eo_mk_apply, mkStrToRe]
                       constructor
-                      · simpa [comp, mkAtReUnfoldPosComponent] using hConcatAppEq
+                      · have hsimpa := hConcatAppEq; (try simp [comp, mkAtReUnfoldPosComponent] at hsimpa ⊢); exact hsimpa
                       · simpa [comp, mkAtReUnfoldPosComponent, mkStrInRe] using
                           hGuardAppEq
               | _ =>
@@ -2696,7 +2703,7 @@ theorem re_unfold_pos_star_interprets_true_and_bool
                 (__eo_to_smt (reUnfoldPosStarFirst t r))) =
             SmtValue.Boolean true
           simp [__smtx_model_eval, __smtx_model_eval_eq, htEval,
-            hFirstEval, native_veq]
+            native_veq]
         have hEqFirstInterp :
             eo_interprets M (mkEq t (reUnfoldPosStarFirst t r)) true :=
           RuleProofs.eo_interprets_of_bool_eval M _ true
@@ -2836,7 +2843,9 @@ theorem re_unfold_pos_concat_eval_true_and_bool
         andTerm := by
     have h := eo_mk_apply_eq_apply_of_ne_stuck _ _ hAndAppNe
     rw [hAndFunEq] at h
-    simpa [andTerm, mkAnd] using h
+    have hsimpa := h
+    try simp [andTerm, mkAnd] at hsimpa ⊢
+    exact hsimpa
   have hRecEq0 :
       __re_unfold_pos_concat_rec t (mkReConcat r1 r2)
           (mkReConcat r1 r2) (Term.Numeral 0) =
@@ -2989,7 +2998,9 @@ theorem re_unfold_pos_concat_has_bool_type
         andTerm := by
     have h := eo_mk_apply_eq_apply_of_ne_stuck _ _ hAndAppNe
     rw [hAndFunEq] at h
-    simpa [andTerm, mkAnd] using h
+    have hsimpa := h
+    try simp [andTerm, mkAnd] at hsimpa ⊢
+    exact hsimpa
   have hRecEq0 :
       __re_unfold_pos_concat_rec t (mkReConcat r1 r2)
           (mkReConcat r1 r2) (Term.Numeral 0) =

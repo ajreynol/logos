@@ -899,7 +899,7 @@ private theorem extractString_cons_succ_nat_local
         omega
       simp [h]
     simp [RuleProofs.extractString, native_str_substr, native_str_len,
-      native_zplus, native_zneg, hLeftNonneg, hRightNonneg, hLenNotLe,
+      native_zplus, native_zneg, hLenNotLe,
       hMinLeft, hMinRight, List.drop_succ_cons]
   · have hLeft : ((i : Int) + 1) >= ((cs.length : Int) + 1) := by
       omega

@@ -469,9 +469,9 @@ private theorem facts___eo_prog_array_read_over_write2_impl
                                             rw [prog_array_read_over_write2_eq
                                                   t1 i1 j1 e1 i1 j1
                                                   hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck] at hProgBool
-                                            simpa [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
-                                              native_ite, native_teq, native_not,
-                                              SmtEval.native_not] using hProgBool
+                                            have hsimpa := hProgBool
+                                            try simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite, native_teq, native_not, SmtEval.native_not] at hsimpa ⊢
+                                            exact hsimpa
                                           rw [prog_array_read_over_write2_eq
                                                 t1 i1 j1 e1 i1 j1
                                                 hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck]

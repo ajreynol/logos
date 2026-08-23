@@ -430,12 +430,12 @@ private theorem facts
       native_unpack_seq sc1 =
         native_string_to_values (native_unpack_string sc1) :=
     native_unpack_seq_eq_string_to_values_of_typeof_seq_char (by
-      simpa using hSc1Ty)
+      exact hSc1Ty)
   have hSc2Unpack :
       native_unpack_seq sc2 =
         native_string_to_values (native_unpack_string sc2) :=
     native_unpack_seq_eq_string_to_values_of_typeof_seq_char (by
-      simpa using hSc2Ty)
+      exact hSc2Ty)
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt (lhs s c1 c2)) =
         __smtx_model_eval M (__eo_to_smt (rhs s c1 c2)) := by

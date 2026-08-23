@@ -1516,7 +1516,9 @@ theorem atom_eval_eq_of_seqElemVal_veq_true (M : SmtModel) (T : SmtType)
     · have hvalid : native_char_valid cha = true :=
         char_valid_of_charAtom_seq_type cha T haTy
       have hval : SmtValue.Char cha = __smtx_model_eval M (__eo_to_smt eb) := by
-        simpa [native_veq, seqElemVal] using hveq
+        have hsimpa := hveq
+        try simp [native_veq, seqElemVal] at hsimpa ⊢
+        exact of_decide_eq_true hsimpa
       rw [show __eo_to_smt (Term.String [cha]) = SmtTerm.String [cha] from rfl,
         show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) eb) =
           SmtTerm.seq_unit (__eo_to_smt eb) from rfl]
@@ -1527,7 +1529,9 @@ theorem atom_eval_eq_of_seqElemVal_veq_true (M : SmtModel) (T : SmtType)
     · have hvalid : native_char_valid chb = true :=
         char_valid_of_charAtom_seq_type chb T hbTy
       have hval : __smtx_model_eval M (__eo_to_smt ea) = SmtValue.Char chb := by
-        simpa [native_veq, seqElemVal] using hveq
+        have hsimpa := hveq
+        try simp [native_veq, seqElemVal] at hsimpa ⊢
+        exact of_decide_eq_true hsimpa
       rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) ea) =
           SmtTerm.seq_unit (__eo_to_smt ea) from rfl,
         show __eo_to_smt (Term.String [chb]) = SmtTerm.String [chb] from rfl]
@@ -1536,7 +1540,9 @@ theorem atom_eval_eq_of_seqElemVal_veq_true (M : SmtModel) (T : SmtType)
       simp [native_pack_string, native_pack_seq, __smtx_typeof_value, hvalid, native_ite]
     · have hval : __smtx_model_eval M (__eo_to_smt ea) =
           __smtx_model_eval M (__eo_to_smt eb) := by
-        simpa [native_veq, seqElemVal] using hveq
+        have hsimpa := hveq
+        try simp [native_veq, seqElemVal] at hsimpa ⊢
+        exact of_decide_eq_true hsimpa
       rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) ea) =
           SmtTerm.seq_unit (__eo_to_smt ea) from rfl,
         show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) eb) =
