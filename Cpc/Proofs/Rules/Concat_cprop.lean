@@ -899,8 +899,20 @@ private theorem extractString_cons_succ_nat_local
         omega
       simp [h]
     simp [RuleProofs.extractString, native_str_substr, native_str_len,
-      native_zplus, native_zneg, hLeftNonneg, hRightNonneg, hLenNotLe,
+      native_zplus, native_zneg, hLenNotLe,
       hMinLeft, hMinRight, List.drop_succ_cons]
+    -- both guards are false and both branches agree.  `rw [if_neg ..]` cannot
+    -- be used: it must match the goal's `Decidable` instance syntactically,
+    -- while `refine` unifies it up to defeq and hands us the exact conditions.
+    refine Eq.trans (if_neg ?_) (Eq.symm (if_neg ?_))
+    -- reuse the negations proved above; the goal's disjunct is the `Bool`
+    -- form `decide _ = true`, which is only propositionally equal to theirs
+    · rintro (h | h)
+      · exact hLeftNonneg (Or.inl h)
+      · exact hLeftNonneg (Or.inr (of_decide_eq_true h))
+    · rintro (h | h)
+      · exact hRightNonneg (Or.inl h)
+      · exact hRightNonneg (Or.inr (of_decide_eq_true h))
   · have hLeft : ((i : Int) + 1) >= ((cs.length : Int) + 1) := by
       omega
     have hLenLe : cs.length <= i := Nat.le_of_not_gt hLt
