@@ -1439,11 +1439,14 @@ theorem EvaluateProofInternal.eo_str_from_int_digit_term_nat (n : Nat) :
       Int.toNat ((48 : Int) + (Int.ofNat n % 10)) =
         Char.toNat (Nat.digitChar (n % 10)) := by
     simpa [r] using hDigit
+  -- `native_zleq`/`native_zlt` unfold to `decide (_ < 196608)`, which simp then
+  -- tries to evaluate by unary `Nat.rec` and blows the recursion limit.  Leave
+  -- them folded; the `rw [if_pos ..]` steps below discharge the guards.
   simp [__eo_zmod, __eo_add, __eo_to_str, native_ite, native_zeq,
-    native_zplus, native_mod_total, native_and, native_zleq, native_zlt,
-    native_str_from_code]
-  rw [if_pos ⟨hCodeNonnegRaw, hCodeLtRaw⟩]
-  rw [if_pos ⟨hCodeNonnegRaw, hCodeValidRaw⟩]
+    native_zplus, native_mod_total, native_and, native_str_from_code]
+  -- the guards are now the folded `Bool` forms, so bridge each with `decide`
+  rw [if_pos ⟨decide_eq_true hCodeNonnegRaw, decide_eq_true hCodeLtRaw⟩]
+  rw [if_pos ⟨decide_eq_true hCodeNonnegRaw, hCodeValidRaw⟩]
   change
     Term.String [Int.toNat ((48 : Int) + (Int.ofNat n % (10 : Int)))] =
       Term.String [Char.toNat (Nat.digitChar (n % 10))]
@@ -5610,7 +5613,7 @@ theorem EvaluateProofInternal.eo_extract_literal_arg_binary_of_typeof_bitvec
     · have hDeltaNotLt : ¬ i + -j < 0 := by
         have hsimpa := hDeltaNeg
         try simp [native_zlt, SmtEval.native_zlt, native_zplus, SmtEval.native_zplus, native_zneg, SmtEval.native_zneg] at hsimpa ⊢
-        exact hsimpa
+        exact Int.not_lt.mp (of_decide_eq_false hsimpa)
       have hDeltaNonneg : 0 <= i + -j :=
         Int.le_of_not_gt hDeltaNotLt
       have hWidthNonneg : native_zleq 0 (i + -j + 1) = true := by
@@ -5678,7 +5681,8 @@ theorem EvaluateProofInternal.eo_extract_literal_arg_binary_of_typeof_bitvec
         SmtEval.native_zplus, native_zneg, SmtEval.native_zneg]
       constructor
       · exact hWidthZeroInt.symm
-      · rw [hWidthZeroInt]
+      · -- `rw` cannot abstract a term the `Decidable` instance depends on
+        simp only [hWidthZeroInt]
         simp [native_mod_total, native_int_pow2, native_zexp_total]
   case String s =>
     change
@@ -5777,7 +5781,8 @@ theorem EvaluateProofInternal.eo_sign_extend_msb_eq
       native_ite, native_or, native_teq, native_zeq,
       SmtEval.native_zeq, native_zplus, SmtEval.native_zplus,
       native_zneg, SmtEval.native_zneg]
-    constructor <;> intro h <;> exact h.symm
+    -- simp now leaves the goal as `decide _ = decide _` rather than an `Iff`
+    exact decide_eq_decide.mpr ⟨fun h => h.symm, fun h => h.symm⟩
 
 theorem EvaluateProofInternal.eo_sbv_to_int_msb_zero_eq_of_pos
     {w n : native_Int} (hwpos : 0 < w) :
@@ -6202,7 +6207,7 @@ theorem EvaluateProofInternal.eo_sign_extend_payload_eq_uts
       have hsimpa :=
         Int.not_lt_of_ge hwp0
       try simp [native_zlt, SmtEval.native_zlt, native_zplus, SmtEval.native_zplus, native_zneg, SmtEval.native_zneg] at hsimpa ⊢
-      exact hsimpa
+      exact decide_eq_false (Int.not_lt.mpr hsimpa)
     rw [EvaluateProofInternal.eo_sign_extend_payload, EvaluateProofInternal.eo_sign_extend_msb_set, hMsbNeg,
       hLow]
     simpa [native_zplus, SmtEval.native_zplus, native_zneg,
