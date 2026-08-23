@@ -75,7 +75,9 @@ by
                                           a1 a2 a3 a4
                                           (Proof.pf P1) (Proof.pf P2) ≠
                                         Term.Stuck := by
-                                    simpa [P1, P2] using hProg
+                                    have hsimpa := hProg
+                                    try simp [P1, P2] at hsimpa ⊢
+                                    exact hsimpa
                                   rcases
                                       bv_merge_sign_extend_2_shape_of_ne_stuck
                                         a1 a2 a3 a4 P1 P2 hProgLocal with
