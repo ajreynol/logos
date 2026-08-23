@@ -1117,8 +1117,10 @@ private theorem qforall_idx_eval_true_of_forall_values
   · rcases hEx with ⟨v, hvTy, hvCan, hEvalNot⟩
     have hEval := hAll v hvTy hvCan
     simp [__smtx_model_eval_not, hEval, SmtEval.native_not] at hEvalNot
-  · rw [dif_neg hEx]
-    simp [__smtx_model_eval_not, SmtEval.native_not, __eo_to_smt, __smtx_model_eval, __smtx_typeof_value, __smtx_value_canonical_bool, idxName, native_model_push]
+  · -- `rw` would have to match the goal's `Decidable` instance syntactically;
+    -- routing through `congrArg` lets `refine` unify it up to defeq instead
+    refine Eq.trans (congrArg __smtx_model_eval_not (dif_neg hEx)) ?_
+    simp [__smtx_model_eval_not, SmtEval.native_not]
 
 private theorem re_unfold_neg_star_body_eval_true
     (M : SmtModel) (hM : model_total_typed M)
