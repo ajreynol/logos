@@ -146,8 +146,9 @@ private theorem type_and_facts
     change __smtx_model_eval M
         (SmtTerm.re_concat (__eo_to_smt (star r))
           (__eo_to_smt (shortTail r ys))) = _
-    simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-      hStarEval, hShortEval]
+    simp only [__smtx_model_eval]
+    rw [hStarEval, hShortEval]
+    simp [__smtx_model_eval_re_concat]
   rcases RuleProofs.reConcat_list_concat_eval_rel M xs (longTail r ys)
       rxs (native_re_concat (native_re_mult rr)
         (native_re_concat (native_re_mult rr) rys))
