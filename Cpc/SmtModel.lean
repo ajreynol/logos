@@ -811,11 +811,6 @@ def __smtx_model_eval_map_diff : SmtValue -> SmtValue -> SmtValue
   | v1, v2 => SmtValue.NotValue
 
 
-def __smtx_bv_sizeof_type : SmtType -> native_Int
-  | (SmtType.BitVec x1) => (native_nat_to_int x1)
-  | t1 => (native_zneg 1)
-
-
 def __smtx_model_eval_concat : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => 
     let _v0 := (native_zplus x1 x3)
@@ -1743,8 +1738,8 @@ def __smtx_typeof : SmtTerm -> SmtType
   | x1 => SmtType.None
 
 
-def __smtx_tuple_datatype_decl (d : SmtDatatype) : SmtDatatypeDecl :=
-  (SmtDatatypeDecl.cons (native_string_lit "@Tuple") d SmtDatatypeDecl.nil)
+def __smtx_is_unit_type (T : SmtType) : native_Bool :=
+  (__smtx_type_bounded true T)
 
 def __smtx_is_finite_type (T : SmtType) : native_Bool :=
   (__smtx_type_bounded false T)

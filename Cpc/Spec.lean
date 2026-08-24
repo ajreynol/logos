@@ -53,6 +53,11 @@ def __eo_to_smt_array_deq_diff (a : SmtTerm) : SmtType -> SmtTerm -> SmtType -> 
   | aT, b, bT => SmtTerm.None
 
 
+def __eo_to_smt_bv_size : SmtType -> native_Int
+  | (SmtType.BitVec x1) => (native_nat_to_int x1)
+  | t1 => (native_zneg 1)
+
+
 def __eo_to_smt_seq_empty : SmtType -> SmtTerm
   | (SmtType.Seq T) => (SmtTerm.seq_empty T)
   | T => SmtTerm.None
@@ -94,8 +99,11 @@ def __eo_to_smt_updater : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | sel, t, u => SmtTerm.None
 
 
+def __eo_to_smt_tuple_decl (d : SmtDatatype) : SmtDatatypeDecl :=
+  (SmtDatatypeDecl.cons (native_string_lit "@Tuple") d SmtDatatypeDecl.nil)
+
 def __eo_to_smt_type_tuple (U : SmtType) : SmtType -> SmtType
-  | (SmtType.Datatype s (SmtDatatypeDecl.cons s2 (SmtDatatype.sum c SmtDatatype.null) SmtDatatypeDecl.nil)) => (native_ite (native_and (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (__smtx_type_wf_component U)) (SmtType.Datatype (native_string_lit "@Tuple") (__smtx_tuple_datatype_decl (SmtDatatype.sum (SmtDatatypeCons.cons U c) SmtDatatype.null))) SmtType.None)
+  | (SmtType.Datatype s (SmtDatatypeDecl.cons s2 (SmtDatatype.sum c SmtDatatype.null) SmtDatatypeDecl.nil)) => (native_ite (native_and (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (__smtx_type_wf_component U)) (SmtType.Datatype (native_string_lit "@Tuple") (__eo_to_smt_tuple_decl (SmtDatatype.sum (SmtDatatypeCons.cons U c) SmtDatatype.null))) SmtType.None)
   | T => SmtType.None
 
 
@@ -106,9 +114,9 @@ def __eo_to_smt_tuple_prepend_rec (dd : SmtDatatypeDecl) (d : SmtDatatype) (tail
 
 def __eo_to_smt_tuple_prepend_of_type : SmtType -> SmtTerm -> SmtType -> SmtTerm -> SmtTerm
   | (SmtType.Datatype s (SmtDatatypeDecl.cons s2 (SmtDatatype.sum c SmtDatatype.null) SmtDatatypeDecl.nil)), h, hT, tail => 
-    let _v1 := (__smtx_tuple_datatype_decl (SmtDatatype.sum (SmtDatatypeCons.cons hT c) SmtDatatype.null))
+    let _v1 := (__eo_to_smt_tuple_decl (SmtDatatype.sum (SmtDatatypeCons.cons hT c) SmtDatatype.null))
     let _v3 := (SmtDatatype.sum c SmtDatatype.null)
-    (native_ite (native_and (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (__smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") _v1))) (__eo_to_smt_tuple_prepend_rec (__smtx_tuple_datatype_decl _v3) _v3 tail (__smtx_dt_num_sels _v3 native_nat_zero) (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") _v1 native_nat_zero) h)) SmtTerm.None)
+    (native_ite (native_and (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (__smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") _v1))) (__eo_to_smt_tuple_prepend_rec (__eo_to_smt_tuple_decl _v3) _v3 tail (__smtx_dt_num_sels _v3 native_nat_zero) (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") _v1 native_nat_zero) h)) SmtTerm.None)
   | T, h, hT, tail => SmtTerm.None
 
 
@@ -116,12 +124,12 @@ def __eo_to_smt_tuple_prepend (h : SmtTerm) (hT : SmtType) (tail : SmtTerm) : Sm
   (__eo_to_smt_tuple_prepend_of_type (__smtx_typeof tail) h hT tail)
 
 def __eo_to_smt_tuple_select : SmtType -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtType.Datatype s (SmtDatatypeDecl.cons s2 d SmtDatatypeDecl.nil)), (SmtTerm.Numeral n), t => (native_ite (native_and (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (native_zleq 0 n)) (SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") (__smtx_tuple_datatype_decl d) native_nat_zero (native_int_to_nat n)) t) SmtTerm.None)
+  | (SmtType.Datatype s (SmtDatatypeDecl.cons s2 d SmtDatatypeDecl.nil)), (SmtTerm.Numeral n), t => (native_ite (native_and (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (native_zleq 0 n)) (SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") (__eo_to_smt_tuple_decl d) native_nat_zero (native_int_to_nat n)) t) SmtTerm.None)
   | T, n, t => SmtTerm.None
 
 
 def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtType.Datatype s (SmtDatatypeDecl.cons s2 d SmtDatatypeDecl.nil)), (SmtTerm.Numeral n), t, u => (native_ite (native_and (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (native_zleq 0 n)) (__eo_to_smt_updater (SmtTerm.DtSel (native_string_lit "@Tuple") (__smtx_tuple_datatype_decl d) native_nat_zero (native_int_to_nat n)) t u) SmtTerm.None)
+  | (SmtType.Datatype s (SmtDatatypeDecl.cons s2 d SmtDatatypeDecl.nil)), (SmtTerm.Numeral n), t, u => (native_ite (native_and (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (native_zleq 0 n)) (__eo_to_smt_updater (SmtTerm.DtSel (native_string_lit "@Tuple") (__eo_to_smt_tuple_decl d) native_nat_zero (native_int_to_nat n)) t u) SmtTerm.None)
   | T, n, t, u => SmtTerm.None
 
 
@@ -260,7 +268,7 @@ def __eo_to_smt : Term -> SmtTerm
     let _v1 := (__eo_to_smt x1)
     (__eo_to_smt_array_deq_diff _v1 (__smtx_typeof _v1) _v0 (__smtx_typeof _v0))
   | (Term.Apply (Term.UOp UserOp._at_bvsize) x1) => 
-    let _v0 := (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x1)))
+    let _v0 := (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x1)))
     (native_ite (native_zleq 0 _v0) (SmtTerm._at_purify (SmtTerm.Numeral _v0)) SmtTerm.None)
   | (Term.Apply (Term.Apply (Term.UOp UserOp.concat) x1) x2) => (SmtTerm.concat (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.UOp2 UserOp2.extract x1 x2) x3) => (SmtTerm.extract (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
@@ -310,10 +318,10 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvsltbv) x1) x2) => (SmtTerm.ite (SmtTerm.bvslt (__eo_to_smt x1) (__eo_to_smt x2)) (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
   | (Term.Apply (Term.UOp UserOp.bvredand) x1) => 
     let _v0 := (__eo_to_smt x1)
-    (SmtTerm.bvcomp _v0 (SmtTerm.bvnot (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)))
+    (SmtTerm.bvcomp _v0 (SmtTerm.bvnot (SmtTerm.Binary (__eo_to_smt_bv_size (__smtx_typeof _v0)) 0)))
   | (Term.Apply (Term.UOp UserOp.bvredor) x1) => 
     let _v0 := (__eo_to_smt x1)
-    (SmtTerm.bvnot (SmtTerm.bvcomp _v0 (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)))
+    (SmtTerm.bvnot (SmtTerm.bvcomp _v0 (SmtTerm.Binary (__eo_to_smt_bv_size (__smtx_typeof _v0)) 0)))
   | (Term.Apply (Term.UOp1 UserOp1._at_bit x1) x2) => 
     let _v1 := (__eo_to_smt x1)
     (SmtTerm.eq (SmtTerm.extract _v1 _v1 (__eo_to_smt x2)) (SmtTerm.Binary 1 1))
