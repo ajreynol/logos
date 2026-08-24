@@ -63,7 +63,7 @@ def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> native_Nat ->
   | (SmtTerm.re_concat r1 r2), (native_nat_succ n) => 
     let _v0 := (SmtTerm.str_indexof_re_split s r1 r2)
     (__eo_to_smt_re_unfold_pos_component (SmtTerm.str_substr s _v0 (SmtTerm.neg (SmtTerm.str_len s) _v0)) r2 n)
-  | r1, n => SmtTerm.None
+  | _y2, _y3 => SmtTerm.None
 
 
 def __eo_to_smt_set_empty : SmtType -> SmtTerm

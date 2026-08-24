@@ -54,15 +54,13 @@ inductive SmtTerm : Type where
   | forall : native_String -> SmtType -> SmtTerm -> SmtTerm
   | choice : native_String -> SmtType -> SmtTerm -> SmtTerm
   | bind : native_String -> SmtType -> SmtTerm -> SmtTerm -> SmtTerm
-  | map_diff : SmtTerm -> SmtTerm -> SmtTerm
-  | seq_diff : SmtTerm -> SmtTerm -> SmtTerm
   | DtCons : native_String -> SmtDatatypeDecl -> native_Nat -> SmtTerm
   | DtSel : native_String -> SmtDatatypeDecl -> native_Nat -> native_Nat -> SmtTerm
   | DtTester : native_String -> SmtDatatypeDecl -> native_Nat -> SmtTerm
   | UConst : native_String -> SmtType -> SmtTerm
   | not : SmtTerm -> SmtTerm
-  | or : SmtTerm -> SmtTerm -> SmtTerm
   | and : SmtTerm -> SmtTerm -> SmtTerm
+  | or : SmtTerm -> SmtTerm -> SmtTerm
   | imp : SmtTerm -> SmtTerm -> SmtTerm
 
 deriving Repr, DecidableEq, Inhabited
