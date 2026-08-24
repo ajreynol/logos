@@ -1444,11 +1444,16 @@ theorem EvaluateProofInternal.eo_str_from_int_digit_term_nat (n : Nat) :
   -- them folded; the `rw [if_pos ..]` steps below discharge the guards.
   simp [__eo_zmod, __eo_add, __eo_to_str, native_ite, native_zeq,
     native_zplus, native_mod_total, native_and, native_str_from_code]
-  -- the guards are now the folded `Bool` forms, so bridge each with `decide`
-  rw [if_pos ⟨decide_eq_true hCodeNonnegRaw, decide_eq_true hCodeLtRaw⟩]
-  -- the condition is the `Bool` conjunction `(_ && _) = true`, not an `And`;
-  -- rewriting both conjuncts to `true` avoids elaborating it as one
-  rw [if_pos (by rw [decide_eq_true hCodeNonnegRaw, hCodeValidRaw])]
+  -- both guards are folded `Bool` conjunctions `native_and _ _ = true`, not
+  -- `And`s, so an anonymous constructor mis-elaborates; discharge them with the
+  -- component facts instead (which also keeps the `196608` literal from being
+  -- evaluated unarily)
+  rw [if_pos (by
+    simp [native_and, native_zleq, native_zlt]
+    exact ⟨hCodeNonnegRaw, hCodeLtRaw⟩)]
+  rw [if_pos (by
+    try simp [native_and, native_zleq]
+    exact ⟨hCodeNonnegRaw, hCodeValidRaw⟩)]
   change
     Term.String [Int.toNat ((48 : Int) + (Int.ofNat n % (10 : Int)))] =
       Term.String [Char.toNat (Nat.digitChar (n % 10))]
@@ -12710,6 +12715,14 @@ theorem EvaluateProofInternal.eo_mod_total_left_ne_stuck {x y : Term} :
   -- every branch of the guard chain is `Term.Stuck`, so the whole chain is
   -- `Term.Stuck` and contradicts `h`; `simp` no longer collapses it itself
   cases y <;> simp [__eo_eq, __eo_ite, __eo_zmod, native_ite] at h
+  -- what simp leaves is a guard chain whose every branch is `Term.Stuck`,
+  -- so the chain equals `Term.Stuck` and contradicts `h`
+  all_goals
+    first
+      | exact h rfl
+      | exact h (by split <;> (try split) <;> rfl)
+      | exact h (by simp [native_teq, native_ite, ite_self])
+      | exact h (by simp only [native_teq]; split <;> (try split) <;> rfl)
 
 theorem EvaluateProofInternal.eo_and_typeof_bitvec_of_args_bitvec
     (x y : Term) (w : native_Int)
