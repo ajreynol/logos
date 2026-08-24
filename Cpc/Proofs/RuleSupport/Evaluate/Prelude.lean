@@ -10836,7 +10836,7 @@ theorem EvaluateProofInternal.smt_value_rel_model_eval_str_update_to_string_of_r
           (__smtx_model_eval M (__eo_to_smt s))
           (__smtx_model_eval M (__eo_to_smt n))
           (__smtx_model_eval M (__eo_to_smt repl)) by
-    rw [__smtx_model_eval.eq_87]]
+    rw [__smtx_model_eval.eq_88]]
   rw [hRunEval] at hRel
   exact hRel
 

@@ -48,16 +48,6 @@ theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
   · simpa [__eo_prog_refl, hNotEqStuck, __eo_to_smt, __smtx_model_eval] using
       smtx_model_eval_eq_refl M (__smtx_model_eval M (__eo_to_smt x1))
 
-/-- Lemma about `not_eo_interprets_prog_refl_or_true`. -/
-theorem not_eo_interprets_prog_refl_or_true (M : SmtModel) :
-  ¬ eo_interprets M (__eo_prog_refl (Term.UOp UserOp.or)) true := by
-  rw [eo_interprets_iff_smt_interprets]
-  intro h
-  cases h with
-  | intro_true hTy hEval =>
-      simp [__eo_prog_refl, __eo_to_smt, __smtx_typeof, __smtx_typeof_eq,
-        __smtx_typeof_guard, native_ite, native_Teq] at hTy
-
 end RuleProofs
 
 /-- Proves correctness of the EO program for `refl_impl`. -/

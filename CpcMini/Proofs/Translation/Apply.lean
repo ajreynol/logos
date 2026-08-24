@@ -56,22 +56,6 @@ theorem smtx_typeof_translation_not_of_non_none
   rw [__eo_to_smt.eq_def, typeof_not_eq]
   simp [native_ite, native_Teq, hArg]
 
-/-- Computes `__smtx_typeof` for `translation_or_of_non_none`. -/
-theorem smtx_typeof_translation_or_of_non_none
-    (x y : Term) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) y)) ≠ SmtType.None ->
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) y)) = SmtType.Bool := by
-  intro hNonNone
-  rw [__eo_to_smt.eq_def] at hNonNone
-  have hApplyNN :
-      term_has_non_none_type
-        (SmtTerm.or (__eo_to_smt x) (__eo_to_smt y)) := by
-    simpa [term_has_non_none_type] using hNonNone
-  have hArgs := bool_binop_args_bool_of_non_none
-    (op := SmtTerm.or) (typeof_or_eq (__eo_to_smt x) (__eo_to_smt y)) hApplyNN
-  rw [__eo_to_smt.eq_def, typeof_or_eq]
-  simp [native_ite, native_Teq, hArgs.1, hArgs.2]
-
 /-- Computes `__smtx_typeof` for `translation_and_of_non_none`. -/
 theorem smtx_typeof_translation_and_of_non_none
     (x y : Term) :
