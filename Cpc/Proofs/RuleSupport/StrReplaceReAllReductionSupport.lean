@@ -229,9 +229,7 @@ private theorem prefix_go_some_minimal (r : SmtRegLan) :
         · intro k hk
           cases k with
           | zero =>
-              have hsimpa := hNull
-              try simp [RuleProofs.native_str_in_re, native_string_valid] at hsimpa ⊢
-              exact hsimpa
+              simpa' [RuleProofs.native_str_in_re, native_string_valid] using hNull
           | succ k =>
               have hk' : k < found - (n + 1) := by omega
               rw [List.take_succ_cons,

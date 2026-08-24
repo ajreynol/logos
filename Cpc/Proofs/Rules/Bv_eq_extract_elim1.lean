@@ -113,10 +113,8 @@ by
                                                                     x y i j wm jp im
                                                                     P1 P2 P3 P4 P5) =
                                                                 Term.Bool := by
-                                                            have hsimpa :=
+                                                            simpa' [P1, P2, P3, P4, P5] using
                                                               hResultTy
-                                                            try simp [P1, P2, P3, P4, P5] at hsimpa ⊢
-                                                            exact hsimpa
                                                           refine ⟨?_, ?_⟩
                                                           · intro hPremisesTrue
                                                             exact

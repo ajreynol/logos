@@ -91,9 +91,7 @@ by
                                 __eo_typeof
                                     (bvMultSltProgram true x y a n m tn an
                                       P1 P2 P3 P4) = Term.Bool := by
-                              have hsimpa := hResultTy
-                              try simp [P1, P2, P3, P4] at hsimpa ⊢
-                              exact hsimpa
+                              simpa' [P1, P2, P3, P4] using hResultTy
                             refine ⟨?_, ?_⟩
                             · intro hPremisesTrue
                               have hP1True : eo_interprets M P1 true :=

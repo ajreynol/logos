@@ -324,9 +324,7 @@ private theorem premise_nonempty_seq
         rw [hSSmtTy]
         simp)
   have hSSeqTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
-    have hsimpa := hSEvalTy
-    try simp [hSEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hSEval] using hSEvalTy
   have hSeqEmpty : ss = native_pack_string [] :=
     smtseq_empty_char_of_unpack_nil ss hNil hSSeqTy
   rw [RuleProofs.eo_interprets_iff_smt_interprets] at hPrem

@@ -1527,9 +1527,7 @@ private theorem ripple_carry_eval_acc {M : SmtModel}
             (term_ne_stuck_of_eval_boolean hc) hr.ne_stuck]
           have hrec :=
             ih hytail hcarry hnewRes htail
-          have hsimpa := hrec
-          try simp [addBits, addCarry, List.reverse_cons, List.append_assoc] at hsimpa ⊢
-          exact hsimpa
+          simpa' [addBits, addCarry, List.reverse_cons, List.append_assoc] using hrec
 
 theorem ripple_carry_eval {M : SmtModel}
     {a b carry : Term} {xs ys : List Bool} {cb : Bool}
@@ -2095,9 +2093,7 @@ private theorem bitblast_ult_rec_eval {M : SmtModel}
           have hstep := eval_ultStepTerm hx hy hp
           rw [__bv_bitblast_ult_rec.eq_3 previous x xtail y ytail
             (term_ne_stuck_of_eval_boolean hp)]
-          have hsimpa := ih hytail hstep htail
-          try simp [ultBits] at hsimpa ⊢
-          exact hsimpa
+          simpa' [ultBits] using ih hytail hstep htail
 
 private theorem eval_ult_initial {M : SmtModel}
     {x y : Term} {xb yb orEqual : Bool}
@@ -3658,9 +3654,7 @@ private theorem eval_step_bvslt_or_le_aux
     rw [typeof_value_binary_of_nonneg _ _ hwb hcb] at hpresB
     injection hpresA with hla
     injection hpresB with hlb
-    have hsimpa := hla.trans hlb.symm
-    try simp at hsimpa ⊢
-    exact hsimpa
+    simpa' using hla.trans hlb.symm
   have hasNe : as ≠ [] := by
     intro has
     subst as
@@ -4121,9 +4115,7 @@ private theorem band_assoc_values
           (__smtx_model_eval M (__eo_to_smt y))
           (__smtx_model_eval M (__eo_to_smt z)))
   rw [hx.eval, hy.eval, hxW, hyW]
-  have hsimpa := hassoc
-  try simp [xc, yc] at hsimpa ⊢
-  exact hsimpa
+  simpa' [xc, yc] using hassoc
 
 private theorem testBitsBand
     (M : SmtModel) (hM : model_total_typed M)
@@ -4300,9 +4292,7 @@ private theorem testBitsBand
           (__smtx_model_eval M (__eo_to_smt acc))
           (__smtx_model_eval M (__eo_to_smt rest))
     rw [hacc.eval]
-    have hsimpa := hid.symm
-    try simp [xc] at hsimpa ⊢
-    exact hsimpa
+    simpa' [xc] using hid.symm
 termination_by sizeOf rest
 
 theorem eval_step_bvand_fold
@@ -4520,9 +4510,7 @@ private theorem bor_assoc_values
           (__smtx_model_eval M (__eo_to_smt y))
           (__smtx_model_eval M (__eo_to_smt z)))
   rw [hx.eval, hy.eval, hxW, hyW]
-  have hsimpa := hassoc
-  try simp [xc, yc] at hsimpa ⊢
-  exact hsimpa
+  simpa' [xc, yc] using hassoc
 
 private theorem testBitsOr
     (M : SmtModel) (hM : model_total_typed M)
@@ -4699,9 +4687,7 @@ private theorem testBitsOr
           (__smtx_model_eval M (__eo_to_smt acc))
           (__smtx_model_eval M (__eo_to_smt rest))
     rw [hacc.eval]
-    have hsimpa := hid.symm
-    try simp [xc] at hsimpa ⊢
-    exact hsimpa
+    simpa' [xc] using hid.symm
 termination_by sizeOf rest
 
 theorem eval_step_bvor_fold
@@ -4919,9 +4905,7 @@ private theorem bxor_assoc_values
           (__smtx_model_eval M (__eo_to_smt y))
           (__smtx_model_eval M (__eo_to_smt z)))
   rw [hx.eval, hy.eval, hxW, hyW]
-  have hsimpa := hassoc
-  try simp [xc, yc] at hsimpa ⊢
-  exact hsimpa
+  simpa' [xc, yc] using hassoc
 
 private theorem testBitsXor
     (M : SmtModel) (hM : model_total_typed M)
@@ -5098,9 +5082,7 @@ private theorem testBitsXor
           (__smtx_model_eval M (__eo_to_smt acc))
           (__smtx_model_eval M (__eo_to_smt rest))
     rw [hacc.eval]
-    have hsimpa := hid.symm
-    try simp [xc] at hsimpa ⊢
-    exact hsimpa
+    simpa' [xc] using hid.symm
 termination_by sizeOf rest
 
 theorem eval_step_bvxor_fold
@@ -5358,9 +5340,7 @@ private theorem add_assoc_values
           (__smtx_model_eval M (__eo_to_smt y))
           (__smtx_model_eval M (__eo_to_smt z)))
   rw [hx.eval, hy.eval, hxW, hyW]
-  have hsimpa := hassoc
-  try simp [xc, yc] at hsimpa ⊢
-  exact hsimpa
+  simpa' [xc, yc] using hassoc
 
 private theorem testBitsAdd
     (M : SmtModel) (hM : model_total_typed M)
@@ -5476,9 +5456,7 @@ private theorem testBitsAdd
           (__smtx_model_eval M (__eo_to_smt acc))
           (__smtx_model_eval M (__eo_to_smt rest))
     rw [hacc.eval]
-    have hsimpa := hid.symm
-    try simp [xc, BvNaryAddSupport.add_eq] at hsimpa ⊢
-    exact hsimpa
+    simpa' [xc, BvNaryAddSupport.add_eq] using hid.symm
 termination_by sizeOf rest
 
 theorem eval_step_bvadd_fold
@@ -5618,9 +5596,7 @@ private theorem bitCons_type_info
   have hConcatTy :
       __smtx_typeof (SmtTerm.concat (__eo_to_smt tail) bit) =
         SmtType.BitVec W := by
-    have hsimpa := hTy
-    try simp [bit] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bit] using hTy
   have hConcatNN :
       term_has_non_none_type
         (SmtTerm.concat (__eo_to_smt tail) bit) := by
@@ -5636,9 +5612,7 @@ private theorem bitCons_type_info
   rcases ite_args_of_non_none hbitNN with
     ⟨T, hbTy, honeTy, _hzeroTy, _hT⟩
   have hT : T = SmtType.BitVec 1 := by
-    have hsimpa := honeTy.symm
-    try simp [__smtx_typeof] at hsimpa ⊢
-    exact hsimpa
+    simpa' [__smtx_typeof] using honeTy.symm
   have hwb : wb = 1 := by
     rw [typeof_ite_eq, hbTy] at hbitTy
     simp [__smtx_typeof_ite, native_ite] at hbitTy
@@ -5649,9 +5623,7 @@ private theorem bitCons_type_info
       SmtEval.native_zplus, native_nat_to_int,
       SmtEval.native_nat_to_int, native_int_to_nat,
       SmtEval.native_int_to_nat] at hConcatTy
-    have hsimpa := hConcatTy.symm
-    try simp at hsimpa ⊢
-    exact hsimpa
+    simpa' using hConcatTy.symm
   exact ⟨wt, by simpa [hwb] using hW, htailTy, hbTy⟩
 
 private theorem eval_bool_of_type
@@ -5810,9 +5782,7 @@ private theorem prefix_eval_typed
             Term.Binary 0 0 := by
         simpa using __bv_bitblast_prefix.eq_3 a haNe
       rw [hprefix]
-      have hsimpa := smtx_eval_binary_term_eq M 0 0
-      try simp at hsimpa ⊢
-      exact hsimpa
+      simpa' using smtx_eval_binary_term_eq M 0 0
   | succ n ih =>
       generalize hlen :
           Term.Numeral ((n + 1 : Nat) : Int) = len at hne ⊢
@@ -6935,9 +6905,7 @@ private theorem bvmul_args_of_bitvec_type
       __smtx_typeof
           (SmtTerm.bvmul (__eo_to_smt x) (__eo_to_smt y)) =
         SmtType.BitVec W := by
-    have hsimpa := hTy
-    try simp at hsimpa ⊢
-    exact hsimpa
+    simpa' using hTy
   have hNN : term_has_non_none_type
       (SmtTerm.bvmul (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
@@ -7115,9 +7083,7 @@ private theorem bvmul_assoc_values
           (__smtx_model_eval M (__eo_to_smt y))
           (__smtx_model_eval M (__eo_to_smt z)))
   rw [hx.eval, hy.eval, hxW, hyW]
-  have hsimpa := hassoc
-  try simp [xc, yc] at hsimpa ⊢
-  exact hsimpa
+  simpa' [xc, yc] using hassoc
 
 private theorem bvmul_comm_values
     (M : SmtModel) (x y : Term) (xs ys : List Bool)
@@ -8357,9 +8323,7 @@ private theorem testBitsMul
           (__smtx_model_eval M (__eo_to_smt acc))
           (__smtx_model_eval M (__eo_to_smt rest))
     rw [hacc.eval, hxW]
-    have hsimpa := hid.symm
-    try simp [xc] at hsimpa ⊢
-    exact hsimpa
+    simpa' [xc] using hid.symm
 termination_by sizeOf rest
 
 private theorem eval_step_bvmul_fold
@@ -9511,9 +9475,7 @@ private theorem div_mod_impl_eval {M : SmtModel}
             (!(!candCarry)) :: (divDoubleBits qs).tail
           have hqNew :
               BitListEval M qNewTerm qNewBits := by
-            have hsimpa := hqnew
-            try simp [qNewTerm, qNewBits] at hsimpa ⊢
-            exact hsimpa
+            simpa' [qNewTerm, qNewBits] using hqnew
           have hqNewLen : qNewBits.length = W := by
             have hdlen :=
               divDoubleBits_length qs hqPos
@@ -10073,9 +10035,7 @@ private theorem eval_step_bvudiv
       rw [hindicesNil]
       rw [__bv_div_mod_impl.eq_5 a divisor zero
         haNe hb.ne_stuck hz.ne_stuck]
-      have hsimpa := hz
-      try simp [hWzero] at hsimpa ⊢
-      exact hsimpa
+      simpa' [hWzero] using hz
     have hout :=
       hones.apply_ite_choose hguard hq (by simp [hWzero])
     rcases eval_bitvec_of_type M hM a 0 (by
@@ -10749,9 +10709,7 @@ private theorem shiftConstBits_eval
   have hout :=
     const_rec_eval M W (W : Int) (Int.natCast_nonneg W)
       (generated_bit_indices W)
-  have hsimpa := hout
-  try simp [shiftConstBits, hbin] at hsimpa ⊢
-  exact hsimpa
+  simpa' [shiftConstBits, hbin] using hout
 
 private theorem eval_step_bvshl
     (M : SmtModel) (hM : model_total_typed M)
@@ -10957,14 +10915,12 @@ private theorem eval_step_bvshl
           (shiftLszTerm (Term.Numeral (W : Int))))
         (shlBarrelBits xs 0 ys L) := by
     rw [hlsz]
-    have hsimpa :=
+    simpa' only [Nat.zero_add] using
       shl_rec_eval ha hamount 0 L W hxW
         (by rw [hyW]; exact barrelWidth_le W hW)
         (by
           intro j hj
           simpa using barrelWidth_pow_le W hW j hj)
-    try simp only [Nat.zero_add] at hsimpa ⊢
-    exact hsimpa
   have htrueLen : (shlBarrelBits xs 0 ys L).length = W :=
     shlBarrelBits_length xs ys 0 L W hxW
       (by rw [hyW]; exact barrelWidth_le W hW)
@@ -11408,15 +11364,13 @@ private theorem eval_step_bvlshr
           (Term.Boolean false))
         (shrBarrelBits xs 0 ys L false) := by
     rw [hlsz]
-    have hsimpa :=
+    simpa' only [Nat.zero_add] using
       shr_rec_eval ha hamount
         (signTerm := Term.Boolean false) (sign := false) rfl 0 L W hxW
         (by rw [hyW]; exact barrelWidth_le W hW)
         (by
           intro j hj
           simpa using barrelWidth_pow_le W hW j hj)
-    try simp only [Nat.zero_add] at hsimpa ⊢
-    exact hsimpa
   have htrueLen : (shrBarrelBits xs 0 ys L false).length = W :=
     shrBarrelBits_length xs ys 0 L W false hxW
       (by rw [hyW]; exact barrelWidth_le W hW)
@@ -11695,9 +11649,7 @@ private theorem eval_step_bvashr
       (by intro hh; cases hh) hsignNe] at hfillNe
     rw [show native_zlt (W : Int) 0 = false by
       simp [native_zlt]] at hfillNe
-    have hsimpa := hfillNe
-    try simp [native_ite] at hsimpa ⊢
-    exact hsimpa
+    simpa' [native_ite] using hfillNe
   have hsignTy : __eo_typeof sign ≠ Term.Stuck :=
     list_repeat_rec_from_bools_type_ne hrepeatRecNe
   have hconst :
@@ -11750,14 +11702,12 @@ private theorem eval_step_bvashr
           (shiftLszTerm (Term.Numeral (W : Int))) sign)
         (shrBarrelBits xs 0 ys L s) := by
     rw [hlsz]
-    have hsimpa :=
+    simpa' only [Nat.zero_add] using
       shr_rec_eval ha hamount hsign 0 L W hxW
         (by rw [hyW]; exact barrelWidth_le W hW)
         (by
           intro j hj
           simpa using barrelWidth_pow_le W hW j hj)
-    try simp only [Nat.zero_add] at hsimpa ⊢
-    exact hsimpa
   have htrueLen : (shrBarrelBits xs 0 ys L s).length = W :=
     shrBarrelBits_length xs ys 0 L W s hxW
       (by rw [hyW]; exact barrelWidth_le W hW)
@@ -11989,9 +11939,7 @@ private theorem eval_step_sign_extend
       (by intro hh; cases hh) hsignNe] at hrepeatNe
     rw [show native_zlt (K : Int) 0 = false by
       simp [native_zlt]] at hrepeatNe
-    have hsimpa := hrepeatNe
-    try simp [native_ite] at hsimpa ⊢
-    exact hsimpa
+    simpa' [native_ite] using hrepeatNe
   have hsignTy : __eo_typeof sign ≠ Term.Stuck :=
     list_repeat_rec_from_bools_type_ne hrepeatRecNe
   have hrev := ha.rev

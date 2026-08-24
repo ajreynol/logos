@@ -182,9 +182,7 @@ private theorem nativeListInRe_str_to_re_true_eq :
       | nil => rfl
       | cons c cs =>
           have hEq : nativeListInRe cs SmtRegLan.empty = true := by
-            have hsimpa := h
-            try simp [native_str_to_re, nativeListInRe] at hsimpa ⊢
-            exact hsimpa
+            simpa' [native_str_to_re, nativeListInRe] using h
           have hFalse : false = true :=
             (RuleProofs.nativeListInRe_empty cs).symm.trans hEq
           cases hFalse
@@ -193,9 +191,7 @@ private theorem nativeListInRe_str_to_re_true_eq :
           nativeListInRe xs
               (native_re_mk_concat (SmtRegLan.char c)
                 (native_re_of_list cs)) = true := by
-        have hsimpa := h
-        try simp [native_str_to_re] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_str_to_re] using h
       rcases
           (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append xs
             (SmtRegLan.char c) (native_re_of_list cs)).1 hConcat with
@@ -384,11 +380,11 @@ private theorem native_str_in_re_re_mult_middle_factor
     cases r with
     | empty =>
         have hs : s = [] := native_str_in_re_str_to_re_true_eq (by
-          have hsimpa := hStar; (try simp [native_re_mult, native_str_to_re] at hsimpa ⊢); exact hsimpa)
+          simpa' [native_re_mult, native_str_to_re] using hStar)
         exact False.elim (hNe hs)
     | epsilon =>
         have hs : s = [] := native_str_in_re_str_to_re_true_eq (by
-          have hsimpa := hStar; (try simp [native_re_mult, native_str_to_re] at hsimpa ⊢); exact hsimpa)
+          simpa' [native_re_mult, native_str_to_re] using hStar)
         exact False.elim (hNe hs)
     | star r0 =>
         exact False.elim (hNotBase (by
@@ -435,11 +431,11 @@ private theorem native_str_in_re_re_mult_middle_factor
       cases r with
       | empty =>
           have hs : s = [] := native_str_in_re_str_to_re_true_eq (by
-            have hsimpa := hStar; (try simp [native_re_mult, native_str_to_re] at hsimpa ⊢); exact hsimpa)
+            simpa' [native_re_mult, native_str_to_re] using hStar)
           exact False.elim (hNe hs)
       | epsilon =>
           have hs : s = [] := native_str_in_re_str_to_re_true_eq (by
-            have hsimpa := hStar; (try simp [native_re_mult, native_str_to_re] at hsimpa ⊢); exact hsimpa)
+            simpa' [native_re_mult, native_str_to_re] using hStar)
           exact False.elim (hNe hs)
       | star r0 =>
           exact False.elim (hNotBase (by
@@ -778,9 +774,7 @@ private theorem native_str_indexof_re_split_spec
     simpa [native_str_in_re, nativeListInRe] using h
   have hList :
       nativeListInRe s (native_re_mk_concat r1 r2) = true := by
-    have hsimpa := hParts.2
-    try simp [native_re_concat] at hsimpa ⊢
-    exact hsimpa
+    simpa' [native_re_concat] using hParts.2
   rcases
       (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append s r1 r2).1
         hList with
@@ -1029,9 +1023,7 @@ private theorem seq_value_type_of_eval_seq
     by
       simpa [hTy] using
         smt_model_eval_preserves_type_of_non_none M hM t hNN
-  have hsimpa := hValTy
-  try simp [hEval] at hsimpa ⊢
-  exact hsimpa
+  simpa' [hEval] using hValTy
 
 private theorem term_ne_stuck_of_smt_type_seq_char (t : Term) :
     __smtx_typeof (__eo_to_smt t) = SmtType.Seq SmtType.Char ->
@@ -1696,8 +1688,8 @@ private theorem re_unfold_pos_concat_rec_eval_true
                         SmtEval.native_zplus, __pair_first, __pair_second,
                         __eo_mk_apply, mkStrToRe]
                       constructor
-                      · have hsimpa := hConcatAppEq; (try simp [comp, mkAtReUnfoldPosComponent] at hsimpa ⊢); exact hsimpa
-                      · have hsimpa := hGuardAppEq; (try simp [comp, mkAtReUnfoldPosComponent, mkStrInRe] at hsimpa ⊢); exact hsimpa
+                      · simpa' [comp, mkAtReUnfoldPosComponent] using hConcatAppEq
+                      · simpa' [comp, mkAtReUnfoldPosComponent, mkStrInRe] using hGuardAppEq
                     · have hConcatEvalFirst :=
                         eval_str_concat_of_seq M comp tailFirst leftSeq rightSeq
                           hCompEval hTailFirstEval
@@ -2123,8 +2115,8 @@ private theorem re_unfold_pos_concat_rec_types
                         SmtEval.native_zplus, __pair_first, __pair_second,
                         __eo_mk_apply, mkStrToRe]
                       constructor
-                      · have hsimpa := hConcatAppEq; (try simp [comp, mkAtReUnfoldPosComponent] at hsimpa ⊢); exact hsimpa
-                      · have hsimpa := hGuardAppEq; (try simp [comp, mkAtReUnfoldPosComponent, mkStrInRe] at hsimpa ⊢); exact hsimpa
+                      · simpa' [comp, mkAtReUnfoldPosComponent] using hConcatAppEq
+                      · simpa' [comp, mkAtReUnfoldPosComponent, mkStrInRe] using hGuardAppEq
               | _ =>
                   exact False.elim (by
                     unfold __re_unfold_pos_concat_rec at hRecNe
@@ -2840,9 +2832,7 @@ theorem re_unfold_pos_concat_eval_true_and_bool
         andTerm := by
     have h := eo_mk_apply_eq_apply_of_ne_stuck _ _ hAndAppNe
     rw [hAndFunEq] at h
-    have hsimpa := h
-    try simp [andTerm, mkAnd] at hsimpa ⊢
-    exact hsimpa
+    simpa' [andTerm, mkAnd] using h
   have hRecEq0 :
       __re_unfold_pos_concat_rec t (mkReConcat r1 r2)
           (mkReConcat r1 r2) (Term.Numeral 0) =
@@ -2995,9 +2985,7 @@ theorem re_unfold_pos_concat_has_bool_type
         andTerm := by
     have h := eo_mk_apply_eq_apply_of_ne_stuck _ _ hAndAppNe
     rw [hAndFunEq] at h
-    have hsimpa := h
-    try simp [andTerm, mkAnd] at hsimpa ⊢
-    exact hsimpa
+    simpa' [andTerm, mkAnd] using h
   have hRecEq0 :
       __re_unfold_pos_concat_rec t (mkReConcat r1 r2)
           (mkReConcat r1 r2) (Term.Numeral 0) =

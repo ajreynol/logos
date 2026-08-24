@@ -191,9 +191,7 @@ private theorem smtx_typeof_str_to_re_of_seq_char
         __smtx_typeof (__eo_to_smt s) = __eo_to_smt_type (__eo_typeof s) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation s hSTrans
     rw [hSTy] at hTyRaw
-    have hsimpa := hTyRaw
-    try simp [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hsimpa ⊢
-    exact hsimpa
+    simpa' [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] using hTyRaw
   change __smtx_typeof (SmtTerm.str_to_re (__eo_to_smt s)) =
     SmtType.RegLan
   rw [typeof_str_to_re_eq]
@@ -211,17 +209,13 @@ private theorem typed___eo_prog_re_in_cstring_impl
         __smtx_typeof (__eo_to_smt a1) = __eo_to_smt_type (__eo_typeof a1) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation a1 hA1Trans
     rw [hA1Ty] at hTyRaw
-    have hsimpa := hTyRaw
-    try simp [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hsimpa ⊢
-    exact hsimpa
+    simpa' [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] using hTyRaw
   have hA2SmtTy : __smtx_typeof (__eo_to_smt a2) = SmtType.Seq SmtType.Char := by
     have hTyRaw :
         __smtx_typeof (__eo_to_smt a2) = __eo_to_smt_type (__eo_typeof a2) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation a2 hA2Trans
     rw [hA2Ty] at hTyRaw
-    have hsimpa := hTyRaw
-    try simp [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hsimpa ⊢
-    exact hsimpa
+    simpa' [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] using hTyRaw
   have hStrToReTy :
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_re) a2)) =
@@ -279,17 +273,13 @@ private theorem facts___eo_prog_re_in_cstring_impl
         __smtx_typeof (__eo_to_smt a1) = __eo_to_smt_type (__eo_typeof a1) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation a1 hA1Trans
     rw [hA1Ty] at hTyRaw
-    have hsimpa := hTyRaw
-    try simp [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hsimpa ⊢
-    exact hsimpa
+    simpa' [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] using hTyRaw
   have hA2SmtTy : __smtx_typeof (__eo_to_smt a2) = SmtType.Seq SmtType.Char := by
     have hTyRaw :
         __smtx_typeof (__eo_to_smt a2) = __eo_to_smt_type (__eo_typeof a2) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation a2 hA2Trans
     rw [hA2Ty] at hTyRaw
-    have hsimpa := hTyRaw
-    try simp [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hsimpa ⊢
-    exact hsimpa
+    simpa' [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] using hTyRaw
   have hA1EvalTy :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a1)) =
         SmtType.Seq SmtType.Char := by

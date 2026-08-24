@@ -749,34 +749,22 @@ theorem facts_first_concat
         rw [hPreList, hPostList]
   have hTSeqTy : __smtx_typeof_seq_value st =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hTEvalTy
-    try simp [hTEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hTEval] using hTEvalTy
   have hTailSeqTy : __smtx_typeof_seq_value stail =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hTailEvalTy
-    try simp [hTailEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hTailEval] using hTailEvalTy
   have hPatSeqTy : __smtx_typeof_seq_value spat =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hPatEvalTy
-    try simp [hPatEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hPatEval] using hPatEvalTy
   have hReplSeqTy : __smtx_typeof_seq_value srepl =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hReplEvalTy
-    try simp [hReplEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hReplEval] using hReplEvalTy
   have hPreSeqTy : __smtx_typeof_seq_value spre =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hPreEvalTy
-    try simp [hPreEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hPreEval] using hPreEvalTy
   have hPostSeqTy : __smtx_typeof_seq_value spost =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hPostEvalTy
-    try simp [hPostEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hPostEval] using hPostEvalTy
   have hTElem := elem_typeof_seq_value_of_typeof_seq_value hTSeqTy
   have hTailElem := elem_typeof_seq_value_of_typeof_seq_value hTailSeqTy
   have hPatElem := elem_typeof_seq_value_of_typeof_seq_value hPatSeqTy
@@ -1031,29 +1019,19 @@ theorem facts_base
       _ _ _ hIndexNonneg, ← hPreList, ← hPostList]
   have hTSeqTy : __smtx_typeof_seq_value st =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hTEvalTy
-    try simp [hTEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hTEval] using hTEvalTy
   have hPatSeqTy : __smtx_typeof_seq_value spat =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hPatEvalTy
-    try simp [hPatEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hPatEval] using hPatEvalTy
   have hReplSeqTy : __smtx_typeof_seq_value srepl =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hReplEvalTy
-    try simp [hReplEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hReplEval] using hReplEvalTy
   have hPreSeqTy : __smtx_typeof_seq_value spre =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hPreEvalTy
-    try simp [hPreEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hPreEval] using hPreEvalTy
   have hPostSeqTy : __smtx_typeof_seq_value spost =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hPostEvalTy
-    try simp [hPostEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hPostEval] using hPostEvalTy
   have hTElem := elem_typeof_seq_value_of_typeof_seq_value hTSeqTy
   have hPatElem := elem_typeof_seq_value_of_typeof_seq_value hPatSeqTy
   have hReplElem := elem_typeof_seq_value_of_typeof_seq_value hReplSeqTy

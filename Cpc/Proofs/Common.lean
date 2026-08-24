@@ -14,6 +14,32 @@ open Eo
 open SmtEval
 open Smtm
 
+open Lean Parser.Tactic in
+/-- Stand-in for `simpa .. using e`.
+
+Under Lean v4.33 `simpa`'s final match is too strict to close the delta/iota
+gaps these proofs rely on (`__eo_to_smt` spines, `__eo_cmd_step_proven`
+reducing to `__eo_prog_*`, `eo_type_valid` vs `eo_type_valid_rec`, ...).  This
+runs the same two `simp` steps and finishes with a full-transparency `exact`.
+
+Once `simpa` handles those again this can be redefined as plain `simpa`, or
+removed and the call sites rewritten back. -/
+syntax "simpa'" (&" only")? (simpArgs)? " using " term : tactic
+
+macro_rules
+  | `(tactic| simpa' using $e) =>
+    `(tactic| (have hsimpa' := $e
+               try simp at hsimpa' ⊢
+               exact hsimpa'))
+  | `(tactic| simpa' [$args,*] using $e) =>
+    `(tactic| (have hsimpa' := $e
+               try simp [$args,*] at hsimpa' ⊢
+               exact hsimpa'))
+  | `(tactic| simpa' only [$args,*] using $e) =>
+    `(tactic| (have hsimpa' := $e
+               try simp only [$args,*] at hsimpa' ⊢
+               exact hsimpa'))
+
 /-- Proof-side bridge predicate: an SMT term is Boolean-typed and evaluates to `b`.
     Formerly defined in the model; now a proof-only helper after `smt_satisfiability`
     was simplified to refer to `__smtx_model_eval` directly. -/

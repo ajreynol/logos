@@ -102,9 +102,7 @@ by
                                                   (bvConcatMergeConstProgram xs n1
                                                     w1 n2 w2 ww zs P) =
                                                 Term.Bool := by
-                                            have hsimpa := hResultTy
-                                            try simp [P] at hsimpa ⊢
-                                            exact hsimpa
+                                            simpa' [P] using hResultTy
                                           have hProgramNe :
                                               bvConcatMergeConstProgram xs n1 w1
                                                   n2 w2 ww zs P ≠ Term.Stuck :=

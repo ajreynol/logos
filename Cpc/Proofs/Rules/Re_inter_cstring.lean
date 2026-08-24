@@ -174,9 +174,7 @@ by
                               TranslationProofs.eo_to_smt_typeof_matches_translation
                                 a3 hA3Trans
                             rw [hA3Ty] at hTyRaw
-                            have hsimpa := hTyRaw
-                            try simp [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hsimpa ⊢
-                            exact hsimpa
+                            simpa' [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] using hTyRaw
                           have hProgBool :
                               RuleProofs.eo_has_bool_type
                                 (__eo_prog_re_inter_cstring a1 a2 a3

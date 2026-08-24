@@ -522,9 +522,7 @@ theorem str_multiset_overapprox_sound
           __smtx_typeof
               (SmtTerm.str_substr (__eo_to_smt s) (__eo_to_smt n) (__eo_to_smt m)) =
             SmtType.Seq T := by
-        have hsimpa := hTy
-        try simp at hsimpa ⊢
-        exact hsimpa
+        simpa' using hTy
       obtain ⟨U, hsTy, _hnTy, _hmTy⟩ :=
         str_substr_args_of_non_none
           (by
@@ -562,9 +560,7 @@ theorem str_multiset_overapprox_sound
               (SmtTerm.str_replace (__eo_to_smt s) (__eo_to_smt pat)
                 (__eo_to_smt repl)) =
             SmtType.Seq T := by
-        have hsimpa := hTy
-        try simp at hsimpa ⊢
-        exact hsimpa
+        simpa' using hTy
       obtain ⟨U, hsTy, hpatTy, hreplTy⟩ :=
         seq_triop_args_of_non_none (op := SmtTerm.str_replace)
           (typeof_str_replace_eq (__eo_to_smt s) (__eo_to_smt pat) (__eo_to_smt repl))
@@ -1105,9 +1101,7 @@ theorem str_multiset_overapprox_noAtom
           __smtx_typeof
               (SmtTerm.str_substr (__eo_to_smt s) (__eo_to_smt n) (__eo_to_smt m)) =
             SmtType.Seq T := by
-        have hsimpa := hTy
-        try simp at hsimpa ⊢
-        exact hsimpa
+        simpa' using hTy
       obtain ⟨U, hsTy, _hnTy, _hmTy⟩ :=
         str_substr_args_of_non_none
           (by
@@ -1131,9 +1125,7 @@ theorem str_multiset_overapprox_noAtom
               (SmtTerm.str_replace (__eo_to_smt s) (__eo_to_smt pat)
                 (__eo_to_smt repl)) =
             SmtType.Seq T := by
-        have hsimpa := hTy
-        try simp at hsimpa ⊢
-        exact hsimpa
+        simpa' using hTy
       obtain ⟨U, hsTy, _hpatTy, hreplTy⟩ :=
         seq_triop_args_of_non_none (op := SmtTerm.str_replace)
           (typeof_str_replace_eq (__eo_to_smt s) (__eo_to_smt pat) (__eo_to_smt repl))
@@ -1951,9 +1943,7 @@ theorem scratch_concat_singleton_head_guard
       change __eo_typeof_str_concat (__eo_typeof head)
           (__eo_typeof (Term.String [])) ≠ Term.Stuck at hWholeTyNe
       rw [hHeadType] at hWholeTyNe
-      have hsimpa := hWholeTyNe
-      try simp at hsimpa ⊢
-      exact hsimpa
+      simpa' using hWholeTyNe
     have hAChar :
         A = Term.UOp UserOp.Char :=
       scratch_str_concat_type_left_seq_char_tail_eq_char A hConcatTyNe
@@ -3142,9 +3132,7 @@ theorem scratch_str_is_multiset_subset_strict_flat_count_lt
     have hGood :=
       smt_term_result_seq_components_wf_of_non_none (__eo_to_smt needle)
         hNeedleNN
-    have hsimpa := hGood
-    try simp [hNeedleTy] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hNeedleTy] using hGood
   obtain ⟨hTInh, hTWf⟩ := seq_component_inhabited_wf_of_seq_wf T hSeqWF
   have hIntroNN :
       __smtx_typeof (__eo_to_smt (__str_nary_intro needle)) ≠ SmtType.None :=

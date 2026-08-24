@@ -141,9 +141,7 @@ private theorem qforall_single_has_bool_type_of_has_smt_translation
           (SmtTerm.not
             (__eo_to_smt_exists (qsingle x) (SmtTerm.not (__eo_to_smt F)))) ≠
         SmtType.None := by
-    have hsimpa := hForallTrans
-    try simp [qforall] at hsimpa ⊢
-    exact hsimpa
+    simpa' [qforall] using hForallTrans
   unfold RuleProofs.eo_has_bool_type
   rw [qforall, eo_to_smt_forall_eq_of_non_nil (qsingle x) F hXsNonNil]
   exact smtx_typeof_not_eq_bool_of_non_none

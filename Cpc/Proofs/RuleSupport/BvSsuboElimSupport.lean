@@ -48,13 +48,13 @@ private theorem typeof_bvSaddoAnd_inv_ssubo {a b : Term} :
     __eo_typeof (bvSaddoAnd a b) = Term.Bool ->
     __eo_typeof a = Term.Bool ∧ __eo_typeof b = Term.Bool := by
   intro h
-  exact typeof_or_bool_args_ssubo _ _ (by have hsimpa := h; (try simp [bvSaddoAnd] at hsimpa ⊢); exact hsimpa)
+  exact typeof_or_bool_args_ssubo _ _ (by simpa' [bvSaddoAnd] using h)
 
 private theorem typeof_bvSaddoOr_inv_ssubo {a b : Term} :
     __eo_typeof (bvSaddoOr a b) = Term.Bool ->
     __eo_typeof a = Term.Bool ∧ __eo_typeof b = Term.Bool := by
   intro h
-  exact typeof_or_bool_args_ssubo _ _ (by have hsimpa := h; (try simp [bvSaddoOr] at hsimpa ⊢); exact hsimpa)
+  exact typeof_or_bool_args_ssubo _ _ (by simpa' [bvSaddoOr] using h)
 
 private theorem bv_ssubo_rhs_x_sign_bool {x y nm : Term} :
     __eo_typeof (bvSsuboRhs x y nm) = Term.Bool ->
@@ -94,12 +94,10 @@ private theorem bv_ssubo_context (x y nm : Term) :
   have hYSmtTy :
       __smtx_typeof (__eo_to_smt y) =
         SmtType.BitVec (native_int_to_nat w) := by
-    have hsimpa :=
+    simpa' [__eo_to_smt_type, hw0] using
       (RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
         y (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
         (__eo_to_smt y) rfl hYTrans hYTy)
-    try simp [__eo_to_smt_type, hw0] at hsimpa ⊢
-    exact hsimpa
   have hLhsTy :
       __eo_typeof_bvult (__eo_typeof x) (__eo_typeof y) = Term.Bool := by
     rw [hXTy, hYTy]
@@ -111,9 +109,9 @@ private theorem bv_ssubo_context (x y nm : Term) :
   have hSignTy := bv_ssubo_rhs_x_sign_bool hRhsTy
   have hExtractNe : __eo_typeof (bvSdivExtract nm x) ≠ Term.Stuck :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-      (by have hsimpa := hSignTy; (try simp [bvSdivSign] at hsimpa ⊢); exact hsimpa)).1
+      (by simpa' [bvSdivSign] using hSignTy)).1
   rcases bv_extract_context_of_non_stuck x nm nm hXTrans
-      (by have hsimpa := hExtractNe; (try simp [bvSdivExtract] at hsimpa ⊢); exact hsimpa) with
+      (by simpa' [bvSdivExtract] using hExtractNe) with
     ⟨w', nHi, nLo, hXTy', hNmHi, hNmLo, hw'0, hn0, hnW,
       _hOne0, hXSmtTy'⟩
   have hWNat : native_int_to_nat w' = native_int_to_nat w := by
@@ -172,9 +170,7 @@ private theorem typed_bv_ssubo_term (x y nm : Term) :
         SmtType.BitVec 1 := by
     have h := smt_typeof_extract_of_context z w n n
       (by simpa [W] using hz) hw0 hn0 hnW hOneWidth
-    have hsimpa := h
-    try simp [bvSdivExtract, hOneIndex, native_int_to_nat, SmtEval.native_int_to_nat] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvSdivExtract, hOneIndex, native_int_to_nat, SmtEval.native_int_to_nat] using h
   have hExtractXTy := extractTy x hXSmtTyW
   have hExtractYTy := extractTy y hYSmtTyW
   have hExtractDiffTy := extractTy (bvSsuboDiff x y) hDiffTy

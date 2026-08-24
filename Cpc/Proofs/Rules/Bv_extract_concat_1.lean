@@ -85,9 +85,7 @@ by
                                   have hProgLocal :
                                       bvExtractConcat1Program x xs y i j
                                           (Proof.pf P1) ≠ Term.Stuck := by
-                                    have hsimpa := hProg
-                                    try simp [bvExtractConcat1Program, P1] at hsimpa ⊢
-                                    exact hsimpa
+                                    simpa' [bvExtractConcat1Program, P1] using hProg
                                   rcases bvExtractConcat1Program_normalize
                                       x xs y i j P1 hXTrans hXsTrans
                                       hYTrans hITrans hJTrans hProgLocal with

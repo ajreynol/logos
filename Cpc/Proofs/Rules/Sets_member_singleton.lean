@@ -80,9 +80,7 @@ private theorem memberSingleton_eo_arg_types
         (__eo_typeof_set_member (__eo_typeof a1)
           (__eo_typeof_set_singleton (__eo_typeof a2)))
         (__eo_typeof_eq (__eo_typeof a1) (__eo_typeof a2)) = Term.Bool := by
-    have hsimpa := hTy
-    try simp [memberSingletonFormula, SetsBasicRewritesSupport.mkEq, SetsBasicRewritesSupport.mkSetMember, SetsBasicRewritesSupport.mkSetSingleton] at hsimpa ⊢
-    exact hsimpa
+    simpa' [memberSingletonFormula, SetsBasicRewritesSupport.mkEq, SetsBasicRewritesSupport.mkSetMember, SetsBasicRewritesSupport.mkSetSingleton] using hTy
   obtain ⟨hSame, hMemberNS⟩ := SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy
   -- hSame : member = inner   ;   hMemberNS : member ≠ Stuck
   have hInnerNS :

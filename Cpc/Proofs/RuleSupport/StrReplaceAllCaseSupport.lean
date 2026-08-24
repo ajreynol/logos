@@ -715,9 +715,7 @@ theorem str_replace_all_reduction_pred_true
   let tx := __eo_to_smt x
   have hOrigNN :
       term_has_non_none_type (SmtTerm.str_replace_all tz ty tx) := by
-    have hsimpa := hTrans
-    try simp [tz, ty, tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [tz, ty, tx, RuleProofs.eo_has_smt_translation] using hTrans
   rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace_all)
       (typeof_str_replace_all_eq tz ty tx) hOrigNN with
     ⟨T, hzTy, hyTy, hxTy⟩
@@ -735,13 +733,13 @@ theorem str_replace_all_reduction_pred_true
     exact seq_ne_none T
   have hZTermNe : z ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation z (by
-      have hsimpa := hZNN; (try simp [tz, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
+      simpa' [tz, RuleProofs.eo_has_smt_translation] using hZNN)
   have hYTermNe : y ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation y (by
-      have hsimpa := hYNN; (try simp [ty, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
+      simpa' [ty, RuleProofs.eo_has_smt_translation] using hYNN)
   have hXTermNe : x ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation x (by
-      have hsimpa := hXNN; (try simp [tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
+      simpa' [tx, RuleProofs.eo_has_smt_translation] using hXNN)
   have hTWf : __smtx_type_wf T = true :=
     (smt_seq_component_wf_of_non_none_type tz T hzTy).2
   have hTInh : type_inhabited T :=
@@ -857,11 +855,9 @@ theorem str_replace_all_reduction_pred_true
     simpa [nilSegS] using
       smt_typeof_nil_str_concat_typeof_of_smt_type_seq segEO T hSegEoTy
   have hEmptyNN : term_has_non_none_type emptyS := by
-    have hsimpa :=
+    simpa' [emptyS, tz] using
       seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
         z T (by simpa [tz] using hzTy) hTInh hTWf
-    try simp [emptyS, tz] at hsimpa ⊢
-    exact hsimpa
   have hEmptyTy : __smtx_typeof emptyS = SmtType.Seq T := by
     simpa [emptyS, tz] using
       smt_typeof_seq_empty_typeof z T (by simpa [tz] using hzTy) hEmptyNN

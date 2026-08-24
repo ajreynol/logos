@@ -452,9 +452,7 @@ private theorem str_indexof_re_eval_first_match_rec_smallest_eq_go
           str_eval_str_in_re_rec_substrWord_eq M hM [] r rv
             (by simp [native_string_valid]) hRTy hREval (by
               simpa [substrWord, str_eval_empty_eq_nullable] using hNullNe)
-        have hsimpa := h
-        try simp [substrWord, str_eval_empty_eq_nullable] at hsimpa ⊢
-        exact hsimpa
+        simpa' [substrWord, str_eval_empty_eq_nullable] using h
       cases hNull : native_re_nullable rv
       · have hFalse : False := by
           rw [hNull] at hNullEq
@@ -508,9 +506,7 @@ private theorem str_indexof_re_eval_first_match_rec_smallest_eq_go
           str_eval_str_in_re_rec_substrWord_eq M hM [] r rv
             (by simp [native_string_valid]) hRTy hREval (by
               simpa [substrWord, str_eval_empty_eq_nullable] using hNullNe)
-        have hsimpa := h
-        try simp [substrWord, str_eval_empty_eq_nullable] at hsimpa ⊢
-        exact hsimpa
+        simpa' [substrWord, str_eval_empty_eq_nullable] using h
       cases hNull : native_re_nullable rv
       · rw [hNull] at hNullEq
         rw [hNullEq] at hNeIte ⊢
@@ -894,12 +890,10 @@ private theorem str_indexof_re_eval_idx_term_eq
           __str_first_match_rec (Term.String []) r
               (str_indexof_re_eval_match_regex r) (Term.Numeral 0) =
             __eo_ite test thenTerm elseTerm := by
-        have hsimpa :=
+        simpa' [test, thenTerm, elseTerm, str_indexof_re_eval_match_test] using
           Eo.__str_first_match_rec.eq_5 r
             (str_indexof_re_eval_match_regex r) (Term.Numeral 0)
             hRNe hRsNe (by simp)
-        try simp [test, thenTerm, elseTerm, str_indexof_re_eval_match_test] at hsimpa ⊢
-        exact hsimpa
       have hFirstNe :
           __eo_ite test thenTerm elseTerm ≠ Term.Stuck := by
         intro hFirst
@@ -1263,9 +1257,7 @@ private theorem str_indexof_re_eval_concrete_side_model_eval
       have hSideEval :=
         str_indexof_re_eval_in_bounds_side_model_eval M hM str r ni rv hSTy
           hRTy hREval hNiNonneg hStartLe hSideNe
-      have hsimpa := hSideEval
-      try simp [native_str_indexof_re, hNeg, hStartLeValues] at hsimpa ⊢
-      exact hsimpa
+      simpa' [native_str_indexof_re, hNeg, hStartLeValues] using hSideEval
 
 private theorem str_indexof_re_eval_side_model_eval
     (M : SmtModel) (hM : model_total_typed M)
@@ -1334,10 +1326,7 @@ private theorem str_indexof_re_eval_side_model_eval
       cases n
       case Numeral ni =>
         have hConcreteSideNe : str_indexof_re_eval_side str r ni ≠ Term.Stuck := by
-          have hsimpa := hSideNe
-          try simp [str_indexof_re_eval_side, side, lenTerm, tail, matchTerm,
-            idxTerm] at hsimpa ⊢
-          exact hsimpa
+          simpa' [str_indexof_re_eval_side, side, lenTerm, tail, matchTerm, idxTerm] using hSideNe
         have hSideEval :=
           str_indexof_re_eval_concrete_side_model_eval M hM str r ni rv
             hArgTypes.1 hRTy hREval hConcreteSideNe
@@ -1355,10 +1344,7 @@ private theorem str_indexof_re_eval_side_model_eval
           simp [__smtx_model_eval, hREval, __smtx_model_eval_str_indexof_re,
             ]
         rw [← hSideEq, hLhsEval]
-        have hsimpa := hSideEval.symm
-        try simp [str_indexof_re_eval_side, side, lenTerm, tail, matchTerm,
-          idxTerm] at hsimpa ⊢
-        exact hsimpa
+        simpa' [str_indexof_re_eval_side, side, lenTerm, tail, matchTerm, idxTerm] using hSideEval.symm
       all_goals
         (change side ≠ Term.Stuck at hSideNe
          simp [lenTerm, side, __eo_len,

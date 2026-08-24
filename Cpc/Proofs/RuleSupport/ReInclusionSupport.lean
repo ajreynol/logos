@@ -125,9 +125,7 @@ theorem native_includes_concat
   intro str hValid hMem
   have hListMem :
       nativeListInRe str (native_re_mk_concat s1 s2) = true := by
-    have hsimpa := hMem
-    try simp [native_str_in_re, hValid, native_re_concat] at hsimpa ⊢
-    exact hsimpa
+    simpa' [native_str_in_re, hValid, native_re_concat] using hMem
   rcases (nativeListInRe_mk_concat_true_iff_exists_append str s1 s2).1 hListMem with
     ⟨xs1, xs2, hAppend, hLeft, hRight⟩
   have hValid1 : native_string_valid xs1 = true :=
@@ -148,9 +146,7 @@ theorem native_includes_concat
       nativeListInRe str (native_re_mk_concat r1 r2) = true :=
     (nativeListInRe_mk_concat_true_iff_exists_append str r1 r2).2
       ⟨xs1, xs2, hAppend, hLeft', hRight'⟩
-  have hsimpa := hConcat
-  try simp [native_str_in_re, hValid, native_re_concat] at hsimpa ⊢
-  exact hsimpa
+  simpa' [native_str_in_re, hValid, native_re_concat] using hConcat
 
 private theorem native_includes_concat_left_of_prefix_closed
     {sup tail r : SmtRegLan}
@@ -160,9 +156,7 @@ private theorem native_includes_concat_left_of_prefix_closed
   intro str hValid hMem
   have hListMem :
       nativeListInRe str (native_re_mk_concat r tail) = true := by
-    have hsimpa := hMem
-    try simp [native_str_in_re, hValid, native_re_concat] at hsimpa ⊢
-    exact hsimpa
+    simpa' [native_str_in_re, hValid, native_re_concat] using hMem
   rcases (nativeListInRe_mk_concat_true_iff_exists_append str r tail).1
       hListMem with
     ⟨xs1, xs2, hAppend, hLeft, hRight⟩
@@ -182,9 +176,7 @@ private theorem native_prefix_closed_all_concat (tail : SmtRegLan) :
     native_string_valid_append_right pre suf hValid
   have hListMem :
       nativeListInRe suf (native_re_mk_concat native_re_all tail) = true := by
-    have hsimpa := hMem
-    try simp [native_str_in_re, hSufValid, native_re_concat] at hsimpa ⊢
-    exact hsimpa
+    simpa' [native_str_in_re, hSufValid, native_re_concat] using hMem
   rcases (nativeListInRe_mk_concat_true_iff_exists_append suf
       native_re_all tail).1 hListMem with
     ⟨xs1, xs2, hAppend, hLeft, hRight⟩
@@ -204,9 +196,7 @@ private theorem native_prefix_closed_all_concat (tail : SmtRegLan) :
     (nativeListInRe_mk_concat_true_iff_exists_append ((pre ++ xs1) ++ xs2)
       native_re_all tail).2
       ⟨pre ++ xs1, xs2, rfl, hAllPrefix, hRight⟩
-  have hsimpa := hConcat
-  try simp [native_str_in_re, hValid, native_re_concat, List.append_assoc, hAppend] at hsimpa ⊢
-  exact hsimpa
+  simpa' [native_str_in_re, hValid, native_re_concat, List.append_assoc, hAppend] using hConcat
 
 private theorem native_includes_all_concat_tail (tail : SmtRegLan) :
     NativeIncludes (native_re_concat native_re_all tail) tail := by
@@ -237,9 +227,7 @@ private theorem native_prefix_closed_allchar_concat
       have hListMem :
           nativeListInRe suf (native_re_mk_concat native_re_allchar tail) =
             true := by
-        have hsimpa := hMem
-        try simp [native_str_in_re, hSufValid, native_re_concat] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_str_in_re, hSufValid, native_re_concat] using hMem
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf
           native_re_allchar tail).1 hListMem with
         ⟨xs1, xs2, hAppend, hLeft, hRight⟩
@@ -316,44 +304,28 @@ private theorem nativeListInRe_mk_star_once
       simp [native_re_mk_star, native_re_mult, nativeListInRe,
         native_re_nullable]
   | star r =>
-      have hsimpa := hMem
-      try simp [native_re_mk_star] at hsimpa ⊢
-      exact hsimpa
+      simpa' [native_re_mk_star] using hMem
   | char c =>
-      have hsimpa :=
+      simpa' [native_re_mk_star] using
         nativeListInRe_raw_star_once xs (SmtRegLan.char c) hMem
-      try simp [native_re_mk_star] at hsimpa ⊢
-      exact hsimpa
   | range lo hi =>
-      have hsimpa :=
+      simpa' [native_re_mk_star] using
         nativeListInRe_raw_star_once xs (SmtRegLan.range lo hi) hMem
-      try simp [native_re_mk_star] at hsimpa ⊢
-      exact hsimpa
   | allchar =>
-      have hsimpa :=
+      simpa' [native_re_mk_star] using
         nativeListInRe_raw_star_once xs SmtRegLan.allchar hMem
-      try simp [native_re_mk_star] at hsimpa ⊢
-      exact hsimpa
   | concat r s =>
-      have hsimpa :=
+      simpa' [native_re_mk_star] using
         nativeListInRe_raw_star_once xs (SmtRegLan.concat r s) hMem
-      try simp [native_re_mk_star] at hsimpa ⊢
-      exact hsimpa
   | union r s =>
-      have hsimpa :=
+      simpa' [native_re_mk_star] using
         nativeListInRe_raw_star_once xs (SmtRegLan.union r s) hMem
-      try simp [native_re_mk_star] at hsimpa ⊢
-      exact hsimpa
   | inter r s =>
-      have hsimpa :=
+      simpa' [native_re_mk_star] using
         nativeListInRe_raw_star_once xs (SmtRegLan.inter r s) hMem
-      try simp [native_re_mk_star] at hsimpa ⊢
-      exact hsimpa
   | comp r =>
-      have hsimpa :=
+      simpa' [native_re_mk_star] using
         nativeListInRe_raw_star_once xs (SmtRegLan.comp r) hMem
-      try simp [native_re_mk_star] at hsimpa ⊢
-      exact hsimpa
 
 private theorem nativeListInRe_raw_star_mono :
     (xs : List native_Char) -> (rSup rSub : SmtRegLan) ->
@@ -429,36 +401,34 @@ private theorem nativeListInRe_mk_star_mono
       exact nativeListInRe_nil_mk_star rSup
   | epsilon =>
       have hNil : xs = [] := (nativeListInRe_epsilon_iff xs).1 (by
-        have hsimpa := hMem; (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa)
+        simpa' [native_re_mk_star] using hMem)
       subst xs
       exact nativeListInRe_nil_mk_star rSup
   | star r =>
       have hAsSub : nativeListInRe xs (SmtRegLan.star r) = true := by
-        have hsimpa := hMem
-        try simp [native_re_mk_star] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_re_mk_star] using hMem
       exact nativeListInRe_mk_star_once xs rSup (hIncl xs hValid hAsSub)
   | char c =>
       exact nativeListInRe_raw_star_mono xs rSup (SmtRegLan.char c) hValid
-        hIncl (by have hsimpa := hMem; (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa)
+        hIncl (by simpa' [native_re_mk_star] using hMem)
   | range lo hi =>
       exact nativeListInRe_raw_star_mono xs rSup (SmtRegLan.range lo hi) hValid
-        hIncl (by have hsimpa := hMem; (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa)
+        hIncl (by simpa' [native_re_mk_star] using hMem)
   | allchar =>
       exact nativeListInRe_raw_star_mono xs rSup SmtRegLan.allchar hValid
-        hIncl (by have hsimpa := hMem; (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa)
+        hIncl (by simpa' [native_re_mk_star] using hMem)
   | concat r s =>
       exact nativeListInRe_raw_star_mono xs rSup (SmtRegLan.concat r s) hValid
-        hIncl (by have hsimpa := hMem; (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa)
+        hIncl (by simpa' [native_re_mk_star] using hMem)
   | union r s =>
       exact nativeListInRe_raw_star_mono xs rSup (SmtRegLan.union r s) hValid
-        hIncl (by have hsimpa := hMem; (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa)
+        hIncl (by simpa' [native_re_mk_star] using hMem)
   | inter r s =>
       exact nativeListInRe_raw_star_mono xs rSup (SmtRegLan.inter r s) hValid
-        hIncl (by have hsimpa := hMem; (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa)
+        hIncl (by simpa' [native_re_mk_star] using hMem)
   | comp r =>
       exact nativeListInRe_raw_star_mono xs rSup (SmtRegLan.comp r) hValid
-        hIncl (by have hsimpa := hMem; (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa)
+        hIncl (by simpa' [native_re_mk_star] using hMem)
 
 theorem native_includes_star_self (r : SmtRegLan) :
     NativeIncludes (native_re_mult r) r := by
@@ -466,9 +436,7 @@ theorem native_includes_star_self (r : SmtRegLan) :
   have hList : nativeListInRe str r = true := by
     simpa [native_str_in_re, hValid, nativeListInRe] using hMem
   have hStar := nativeListInRe_mk_star_once str r hList
-  have hsimpa := hStar
-  try simp [native_str_in_re, hValid, native_re_mult] at hsimpa ⊢
-  exact hsimpa
+  simpa' [native_str_in_re, hValid, native_re_mult] using hStar
 
 theorem native_includes_star_mono {rSup rSub : SmtRegLan}
     (hIncl : NativeIncludes rSup rSub) :
@@ -476,9 +444,7 @@ theorem native_includes_star_mono {rSup rSub : SmtRegLan}
   intro str hValid hMem
   have hList :
       nativeListInRe str (native_re_mk_star rSub) = true := by
-    have hsimpa := hMem
-    try simp [native_str_in_re, hValid, native_re_mult] at hsimpa ⊢
-    exact hsimpa
+    simpa' [native_str_in_re, hValid, native_re_mult] using hMem
   have hInclList :
       ∀ ys : List native_Char,
         native_string_valid ys = true ->
@@ -490,9 +456,7 @@ theorem native_includes_star_mono {rSup rSub : SmtRegLan}
     have hNative' := hIncl ys hys hNative
     simpa [native_str_in_re, hys, nativeListInRe] using hNative'
   have hStar := nativeListInRe_mk_star_mono str rSup rSub hValid hInclList hList
-  have hsimpa := hStar
-  try simp [native_str_in_re, hValid, native_re_mult] at hsimpa ⊢
-  exact hsimpa
+  simpa' [native_str_in_re, hValid, native_re_mult] using hStar
 
 private theorem nativeListInRe_char_true_eq
     (xs : List native_Char) (c : native_Char)
@@ -611,9 +575,7 @@ theorem smt_value_rel_str_to_re_append
         nativeListInRe str
             (native_re_mk_concat (native_str_to_re xs)
               (native_str_to_re ys)) = true := by
-      have hsimpa := hMem
-      try simp [native_str_in_re, hValid, native_re_concat] at hsimpa ⊢
-      exact hsimpa
+      simpa' [native_str_in_re, hValid, native_re_concat] using hMem
     rcases
         (nativeListInRe_mk_concat_true_iff_exists_append str
           (native_str_to_re xs) (native_str_to_re ys)).1 hListMem with
@@ -697,7 +659,7 @@ theorem native_str_in_re_re_union
     native_str_in_re str (native_re_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
   by_cases hValid : native_string_valid str = true
-  · have hsimpa := nativeListInRe_mk_union str r s; (try simp [native_str_in_re, hValid, native_re_union] at hsimpa ⊢); exact hsimpa
+  · simpa' [native_str_in_re, hValid, native_re_union] using nativeListInRe_mk_union str r s
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
     simp [native_str_in_re, hInvalid]
@@ -2128,10 +2090,8 @@ private theorem smt_value_rel_re_concat_assoc_local
   intro str hValid
   rw [← native_str_in_re_eq_model str _,
     ← native_str_in_re_eq_model str _]
-  have hsimpa :=
+  simpa' [native_str_in_re, hValid, native_re_concat] using
     nativeListInRe_mk_concat_assoc str r s t
-  try simp [native_str_in_re, hValid, native_re_concat] at hsimpa ⊢
-  exact hsimpa
 
 private theorem smt_value_rel_re_mult_local
     {r r' : SmtRegLan}
@@ -3319,9 +3279,7 @@ private theorem re_split_str_to_re_eval_rel
       rcases seq_value_canonical hRestEvalTy with ⟨srest, hRestEval⟩
       have hScTy :
           __smtx_typeof_seq_value sc = SmtType.Seq SmtType.Char := by
-        have hsimpa := hCEvalTy
-        try simp [hCEval] at hsimpa ⊢
-        exact hsimpa
+        simpa' [hCEval] using hCEvalTy
       have hPartsEvalCalc :
           __smtx_model_eval M (__eo_to_smt (mkConcat c rest)) =
             SmtValue.Seq
@@ -3760,9 +3718,7 @@ theorem re_flatten_false_eval_rel
       rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
       have hSsTy :
           __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
-        have hsimpa := hSEvalTy
-        try simp [hSEval] at hsimpa ⊢
-        exact hsimpa
+        simpa' [hSEval] using hSEvalTy
       rcases smt_model_eval_reglan_of_type M hM b hArgs.2 with
         ⟨rb, hBEval⟩
       have hHeadEval :
@@ -3987,9 +3943,7 @@ theorem re_flatten_false_eval_rel
       rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
       have hSsTy :
           __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
-        have hsimpa := hSEvalTy
-        try simp [hSEval] at hsimpa ⊢
-        exact hsimpa
+        simpa' [hSEval] using hSEvalTy
       have hOrigEval :
           __smtx_model_eval M
               (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_re) s)) =
@@ -4095,8 +4049,8 @@ theorem re_flatten_false_eval_rel
             (SmtValue.RegLan rv) :=
         smt_value_rel_reglan_of_eq (native_re_concat_right_empty rv)
       refine ⟨native_re_concat flatRv (native_str_to_re []), ?_, ?_, ?_⟩
-      · have hsimpa := hFullEval; (try simp [__re_flatten, flatC, eps, hInnerEq] at hsimpa ⊢); exact hsimpa
-      · have hsimpa := hFullTy; (try simp [__re_flatten, flatC, eps, hInnerEq] at hsimpa ⊢); exact hsimpa
+      · simpa' [__re_flatten, flatC, eps, hInnerEq] using hFullEval
+      · simpa' [__re_flatten, flatC, eps, hInnerEq] using hFullTy
       · exact RuleProofs.smt_value_rel_trans _ _ _
           hConcatRel hRightEmpty
   | case8 =>

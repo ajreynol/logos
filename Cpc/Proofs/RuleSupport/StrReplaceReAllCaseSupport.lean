@@ -611,9 +611,7 @@ theorem str_replace_re_all_reduction_pred_true
   let tx := __eo_to_smt x
   have hOrigNN :
       term_has_non_none_type (SmtTerm.str_replace_re_all tz ty tx) := by
-    have hsimpa := hTrans
-    try simp [tz, ty, tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [tz, ty, tx, RuleProofs.eo_has_smt_translation] using hTrans
   rcases str_replace_re_args_of_non_none
       (op := SmtTerm.str_replace_re_all)
       (typeof_str_replace_re_all_eq tz ty tx) hOrigNN with
@@ -632,13 +630,13 @@ theorem str_replace_re_all_reduction_pred_true
     exact seq_ne_none SmtType.Char
   have hZTermNe : z ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation z (by
-      have hsimpa := hZNN; (try simp [tz, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
+      simpa' [tz, RuleProofs.eo_has_smt_translation] using hZNN)
   have hYTermNe : y ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation y (by
-      have hsimpa := hYNN; (try simp [ty, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
+      simpa' [ty, RuleProofs.eo_has_smt_translation] using hYNN)
   have hXTermNe : x ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation x (by
-      have hsimpa := hXNN; (try simp [tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
+      simpa' [tx, RuleProofs.eo_has_smt_translation] using hXNN)
   have hClosedArgs :
       __eo_is_closed z = Term.Boolean true ∧
         __eo_is_closed y = Term.Boolean true ∧
@@ -1240,9 +1238,7 @@ theorem str_replace_re_all_reduction_pred_true
                 omega
               have hCast := Int.ofNat_sub hStartLe
               rw [hDiff] at hCast
-              have hsimpa := hCast.symm
-              try simp only [Int.sub_eq_add_neg] at hsimpa ⊢
-              exact hsimpa
+              simpa' only [Int.sub_eq_add_neg] using hCast.symm
             have hMatchSegN :
                 __smtx_model_eval N matchSeg =
                   SmtValue.Seq
@@ -1297,10 +1293,8 @@ theorem str_replace_re_all_reduction_pred_true
               rw [eval_neg_term_eq, hStartN, hOiN]
               simp only [__smtx_model_eval__, native_zplus, native_zneg]
               congr 1
-              have hsimpa :=
+              simpa' only [Int.sub_eq_add_neg] using
                 (Int.ofNat_sub hBoundary).symm
-              try simp only [Int.sub_eq_add_neg] at hsimpa ⊢
-              exact hsimpa
             have hGapN :
                 __smtx_model_eval N
                     (SmtTerm.str_substr tz (oi idx)
@@ -1548,9 +1542,7 @@ theorem str_replace_re_all_reduction_pred_true
                 omega
               have hCast := Int.ofNat_sub hStartLe
               rw [hDiff] at hCast
-              have hsimpa := hCast.symm
-              try simp only [Int.sub_eq_add_neg] at hsimpa ⊢
-              exact hsimpa
+              simpa' only [Int.sub_eq_add_neg] using hCast.symm
             have hShortestN :
                 __smtx_model_eval N shortestPart =
                   SmtValue.Boolean true := by

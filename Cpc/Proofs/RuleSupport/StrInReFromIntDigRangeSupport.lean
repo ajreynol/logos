@@ -170,10 +170,8 @@ theorem nativeListInRe_digit_star_of_all_digits
     RuleProofs.nativeListInRe xs (native_re_mult digitRange) = true := by
   induction xs with
   | nil =>
-      have hsimpa :=
+      simpa' [native_re_mult] using
         RuleProofs.nativeListInRe_nil_mk_star digitRange
-      try simp [native_re_mult] at hsimpa ⊢
-      exact hsimpa
   | cons c cs ih =>
       have hParts :
           native_char_is_digit c = true ∧
@@ -190,21 +188,15 @@ theorem nativeListInRe_digit_star_of_all_digits
       have hCStar :
           RuleProofs.nativeListInRe [c]
             (native_re_mk_star digitRange) = true := by
-        have hsimpa := hCStarStr
-        try simp [RuleProofs.native_str_in_re, hCValid, native_re_mult] at hsimpa ⊢
-        exact hsimpa
+        simpa' [RuleProofs.native_str_in_re, hCValid, native_re_mult] using hCStarStr
       have hCsStar :
           RuleProofs.nativeListInRe cs
             (native_re_mk_star digitRange) = true := by
-        have hsimpa := ih hParts.2
-        try simp [native_re_mult] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_re_mult] using ih hParts.2
       have hAppend :=
         RuleProofs.nativeListInRe_mk_star_append [c] cs digitRange
           hCStar hCsStar
-      have hsimpa := hAppend
-      try simp [native_re_mult] at hsimpa ⊢
-      exact hsimpa
+      simpa' [native_re_mult] using hAppend
 
 private theorem native_str_in_re_from_int_digit_range_star
     (i : native_Int) :
@@ -345,9 +337,7 @@ theorem typed_concl
     have hFromTy' :
         __smtx_typeof (SmtTerm.str_from_int (__eo_to_smt n)) =
           SmtType.Seq SmtType.Char := by
-      have hsimpa := hFromTy
-      try simp at hsimpa ⊢
-      exact hsimpa
+      simpa' using hFromTy
     rw [typeof_str_in_re_eq]
     simp [hFromTy', smtx_typeof_star_range, native_ite, native_Teq]
   have hRhsTy :

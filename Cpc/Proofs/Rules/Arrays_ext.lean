@@ -56,9 +56,7 @@ private theorem arrays_ext_array_types_of_result_bool
   have hNot :
       __eo_typeof_not (__eo_typeof (Term.Apply (Term.Apply Term.eq lhs) rhs)) =
         Term.Bool := by
-    have hsimpa := h
-    try simp [__eo_prog_arrays_ext, idx, lhs, rhs] at hsimpa ⊢
-    exact hsimpa
+    simpa' [__eo_prog_arrays_ext, idx, lhs, rhs] using h
   have hEqTy :
       __eo_typeof (Term.Apply (Term.Apply Term.eq lhs) rhs) = Term.Bool :=
     eo_typeof_not_bool_arg _ hNot
@@ -112,7 +110,7 @@ private theorem arrays_ext_operand_translations_of_premise_bool
     RuleProofs.eo_has_bool_type_not_arg _ hPremBool
   rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type a b hEqBool with
     ⟨hEq, hNonNone⟩
-  exact ⟨hNonNone, by have hsimpa := hNonNone; (try simp [hEq] at hsimpa ⊢); exact hsimpa, hEq⟩
+  exact ⟨hNonNone, by simpa' [hEq] using hNonNone, hEq⟩
 
 private theorem arrays_ext_smt_array_types
     (a b : Term)
@@ -301,15 +299,11 @@ private theorem facts___eo_prog_arrays_ext_impl
   have hm1Ty :
       __smtx_typeof_map_value m1 =
         SmtType.Map (__eo_to_smt_type I) (__eo_to_smt_type E) := by
-    have hsimpa := hEvalATy
-    try simp [hEvalA] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hEvalA] using hEvalATy
   have hm2Ty :
       __smtx_typeof_map_value m2 =
         SmtType.Map (__eo_to_smt_type I) (__eo_to_smt_type E) := by
-    have hsimpa := hEvalBTy
-    try simp [hEvalB] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hEvalB] using hEvalBTy
   have hACan : __smtx_value_canonical (__smtx_model_eval M (__eo_to_smt a)) :=
     RuleProofs.model_eval_eo_to_smt_canonical M hM a hATrans
   have hBCan : __smtx_value_canonical (__smtx_model_eval M (__eo_to_smt b)) :=
@@ -342,9 +336,7 @@ private theorem facts___eo_prog_arrays_ext_impl
       __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply Term.eq lhs) rhs)) =
         SmtValue.Boolean false := by
     rw [RuleProofs.eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
-    have hsimpa := hSelectEqFalse
-    try simp [lhs, rhs, idx, RuleProofs.eo_to_smt_select_eq, hIdxSmtTerm, __smtx_model_eval, __smtx_model_eval_select, __smtx_model_eval_map_diff, hEvalA, hEvalB] at hsimpa ⊢
-    exact hsimpa
+    simpa' [lhs, rhs, idx, RuleProofs.eo_to_smt_select_eq, hIdxSmtTerm, __smtx_model_eval, __smtx_model_eval_select, __smtx_model_eval_map_diff, hEvalA, hEvalB] using hSelectEqFalse
   have hEqFalse : eo_interprets M (Term.Apply (Term.Apply Term.eq lhs) rhs) false :=
     RuleProofs.eo_interprets_of_bool_eval M
       (Term.Apply (Term.Apply Term.eq lhs) rhs) false hEqBool hEqEvalFalse

@@ -117,10 +117,8 @@ by
                                                         x low high k rn nm
                                                         P1 P2 P3) =
                                                     Term.Bool := by
-                                                have hsimpa :=
+                                                simpa' [P1, P2, P3] using
                                                   hResultTy
-                                                try simp [P1, P2, P3] at hsimpa ⊢
-                                                exact hsimpa
                                               refine ⟨?_, ?_⟩
                                               · intro hPremisesTrue
                                                 have hP1True :

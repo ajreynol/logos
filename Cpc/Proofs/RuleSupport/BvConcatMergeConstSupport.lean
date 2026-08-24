@@ -373,9 +373,7 @@ private theorem bv_concat_merge_const_int_to_bv_context
   cases w <;> simp [__eo_gt] at hGuard
   case Numeral W =>
     have hW0 : native_zleq 0 W = true := by
-      have hsimpa := hGuard
-      try simp [SmtEval.native_zlt, SmtEval.native_zleq] at hsimpa ⊢
-      exact hsimpa
+      simpa' [SmtEval.native_zlt, SmtEval.native_zleq] using hGuard
     exact ⟨W, rfl, hWidth, hW0, hNTy⟩
 
 private theorem int_pow2_add_nat (w1 w2 : Nat) :
@@ -385,10 +383,8 @@ private theorem int_pow2_add_nat (w1 w2 : Nat) :
   have h1 := natpow2_eq w1
   have h2 := natpow2_eq w2
   have h12 := natpow2_eq (w1 + w2)
-  have hsimpa :=
+  simpa' [native_nat_to_int, SmtEval.native_nat_to_int, Int.pow_add] using
     h12.trans (Int.pow_add 2 w1 w2)
-  try simp [native_nat_to_int, SmtEval.native_nat_to_int, Int.pow_add] at hsimpa ⊢
-  exact hsimpa
 
 private theorem int_mod_mul_pow2_congr
     (p : Int) (w1 w2 : Nat) :
@@ -588,7 +584,7 @@ private theorem bv_concat_merge_const_lhs_context
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvConcatMergeConstLhs xs n1 w1 n2 w2 zs))
       (__eo_typeof (bvConcatMergeConstRhs xs n1 n2 w2 ww zs))
-      (by have hsimpa := hTermTy; (try simp [bvConcatMergeConstTerm] at hsimpa ⊢); exact hsimpa)).1
+      (by simpa' [bvConcatMergeConstTerm] using hTermTy)).1
   have hLhsTermNe :=
     (bv_concat_merge_const_body_args_ne_stuck
       xs n1 w1 n2 w2 ww zs hBodyTy).1
@@ -603,12 +599,12 @@ private theorem bv_concat_merge_const_lhs_context
     exact eo_is_list_tail_true_of_cons_self
       (Term.UOp UserOp.concat) (bvConcatMergeConstAt w1 n1)
       (bvConcatTerm (bvConcatMergeConstAt w2 n2) zs)
-      (by have hsimpa := hLeftSeedList; (try simp [bvConcatMergeConstLeftSeed] at hsimpa ⊢); exact hsimpa)
+      (by simpa' [bvConcatMergeConstLeftSeed] using hLeftSeedList)
   have hZsList :
       __eo_is_list (Term.UOp UserOp.concat) zs = Term.Boolean true := by
     exact eo_is_list_tail_true_of_cons_self
       (Term.UOp UserOp.concat) (bvConcatMergeConstAt w2 n2) zs
-      (by have hsimpa := hInnerList; (try simp at hsimpa ⊢); exact hsimpa)
+      (by simpa' using hInnerList)
   have hLeftSeedTyNe :
       __eo_typeof (bvConcatMergeConstLeftSeed n1 w1 n2 w2 zs) ≠
         Term.Stuck :=
@@ -756,7 +752,7 @@ private theorem bv_concat_merge_const_body_context
       __eo_typeof (bvConcatMergeConstLhs xs n1 w1 n2 w2 zs) =
         __eo_typeof (bvConcatMergeConstRhs xs n1 n2 w2 ww zs) :=
     RuleProofs.eo_typeof_eq_bool_operands_eq _ _
-      (by have hsimpa := hTermTy; (try simp [bvConcatMergeConstTerm] at hsimpa ⊢); exact hsimpa)
+      (by simpa' [bvConcatMergeConstTerm] using hTermTy)
   have hLhsTrans : RuleProofs.eo_has_smt_translation
       (bvConcatMergeConstLhs xs n1 (Term.Numeral W1)
         n2 (Term.Numeral W2) zs) := by
@@ -1106,7 +1102,7 @@ theorem typed_bv_concat_merge_const_program
           (bvConcatMergeConstRhs xs n1 n2 (Term.Numeral W2)
             (Term.Numeral WW) zs) :=
     RuleProofs.eo_typeof_eq_bool_operands_eq _ _
-      (by have hsimpa := hTermTy; (try simp [bvConcatMergeConstTerm] at hsimpa ⊢); exact hsimpa)
+      (by simpa' [bvConcatMergeConstTerm] using hTermTy)
   have hLhsTrans : RuleProofs.eo_has_smt_translation
       (bvConcatMergeConstLhs xs n1 (Term.Numeral W1) n2
         (Term.Numeral W2) zs) := by

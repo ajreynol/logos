@@ -810,9 +810,7 @@ theorem EvaluateProofInternal.eo_str_to_lower_result_arg_typeof_seq_char
     rfl
   all_goals
     apply EvaluateProofInternal.eo_typeof_apply_str_to_lower_eq_seq_char_arg
-    have hsimpa := h
-    try simp [__eo_is_str, __eo_is_str_internal, __eo_ite, __eo_mk_apply, native_ite, native_teq, native_and, native_not] at hsimpa ⊢
-    exact hsimpa
+    simpa' [__eo_is_str, __eo_is_str_internal, __eo_ite, __eo_mk_apply, native_ite, native_teq, native_and, native_not] using h
 
 theorem EvaluateProofInternal.eo_str_to_upper_result_arg_typeof_seq_char
     (t : Term) :
@@ -830,9 +828,7 @@ theorem EvaluateProofInternal.eo_str_to_upper_result_arg_typeof_seq_char
     rfl
   all_goals
     apply EvaluateProofInternal.eo_typeof_apply_str_to_upper_eq_seq_char_arg
-    have hsimpa := h
-    try simp [__eo_is_str, __eo_is_str_internal, __eo_ite, __eo_mk_apply, native_ite, native_teq, native_and, native_not] at hsimpa ⊢
-    exact hsimpa
+    simpa' [__eo_is_str, __eo_is_str_internal, __eo_ite, __eo_mk_apply, native_ite, native_teq, native_and, native_not] using h
 
 theorem EvaluateProofInternal.eo_typeof_seq_char_of_smt_type_seq_char
     (t : Term)
@@ -2932,9 +2928,7 @@ theorem EvaluateProofInternal.eo_str_rev_result_arg_typeof_seq
     exact h
   all_goals
     apply EvaluateProofInternal.eo_typeof_apply_str_rev_eq_seq_arg
-    have hsimpa := h
-    try simp [__eo_is_str, __eo_is_str_internal, __eo_ite, __eo_mk_apply, native_ite, native_teq, native_and, native_not] at hsimpa ⊢
-    exact hsimpa
+    simpa' [__eo_is_str, __eo_is_str_internal, __eo_ite, __eo_mk_apply, native_ite, native_teq, native_and, native_not] using h
 
 theorem EvaluateProofInternal.str_to_lower_result_string
     {s : native_String}
@@ -3573,9 +3567,7 @@ theorem EvaluateProofInternal.has_bool_type_not_of_has_translation
   intro hTrans
   have hTrans' :
       __smtx_typeof (SmtTerm.not (__eo_to_smt b)) ≠ SmtType.None := by
-    have hsimpa := hTrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hTrans
   unfold RuleProofs.eo_has_bool_type
   change __smtx_typeof (SmtTerm.not (__eo_to_smt b)) = SmtType.Bool
   rw [typeof_not_eq]
@@ -3633,9 +3625,7 @@ theorem EvaluateProofInternal.has_bool_type_xor_of_has_translation
   have hTrans' :
       __smtx_typeof (SmtTerm.xor (__eo_to_smt a) (__eo_to_smt b)) ≠
         SmtType.None := by
-    have hsimpa := hTrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hTrans
   unfold RuleProofs.eo_has_bool_type
   change __smtx_typeof (SmtTerm.xor (__eo_to_smt a) (__eo_to_smt b)) =
     SmtType.Bool
@@ -3655,9 +3645,7 @@ theorem EvaluateProofInternal.has_bool_type_imp_of_has_translation
   have hTrans' :
       __smtx_typeof (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) ≠
         SmtType.None := by
-    have hsimpa := hTrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hTrans
   unfold RuleProofs.eo_has_bool_type
   change __smtx_typeof (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) =
     SmtType.Bool
@@ -6511,19 +6499,15 @@ theorem EvaluateProofInternal.smt_bvsgt_formula_eq_signed_gt
             native_zplus (native_zneg p) r1
           else r1) =
           native_binary_uts w n1 := by
-      have hsimpa :=
+      simpa' [EvaluateProofInternal.smt_bv_msb_set, p, r1, Int.sub_eq_add_neg] using
         EvaluateProofInternal.sign_payload_eq_uts_core (w := w) (n := n1) hw0 hCanon1
-      try simp [EvaluateProofInternal.smt_bv_msb_set, p, r1, Int.sub_eq_add_neg] at hsimpa ⊢
-      exact hsimpa
     have hUts2 :
         (if EvaluateProofInternal.smt_bv_msb_set w n2 then
             native_zplus (native_zneg p) r2
           else r2) =
           native_binary_uts w n2 := by
-      have hsimpa :=
+      simpa' [EvaluateProofInternal.smt_bv_msb_set, p, r2, Int.sub_eq_add_neg] using
         EvaluateProofInternal.sign_payload_eq_uts_core (w := w) (n := n2) hw0 hCanon2
-      try simp [EvaluateProofInternal.smt_bv_msb_set, p, r2, Int.sub_eq_add_neg] at hsimpa ⊢
-      exact hsimpa
     have hr1Range :
         0 <= r1 ∧ r1 < p := by
       simpa [r1, p] using
@@ -6653,19 +6637,15 @@ theorem EvaluateProofInternal.native_binary_uts_eq_iff_canonical
             native_zplus (native_zneg p) r1
           else r1) =
           native_binary_uts w n1 := by
-      have hsimpa :=
+      simpa' [EvaluateProofInternal.smt_bv_msb_set, p, r1, Int.sub_eq_add_neg] using
         EvaluateProofInternal.sign_payload_eq_uts_core (w := w) (n := n1) hw0 hCanon1
-      try simp [EvaluateProofInternal.smt_bv_msb_set, p, r1, Int.sub_eq_add_neg] at hsimpa ⊢
-      exact hsimpa
     have hUts2 :
         (if EvaluateProofInternal.smt_bv_msb_set w n2 then
             native_zplus (native_zneg p) r2
           else r2) =
           native_binary_uts w n2 := by
-      have hsimpa :=
+      simpa' [EvaluateProofInternal.smt_bv_msb_set, p, r2, Int.sub_eq_add_neg] using
         EvaluateProofInternal.sign_payload_eq_uts_core (w := w) (n := n2) hw0 hCanon2
-      try simp [EvaluateProofInternal.smt_bv_msb_set, p, r2, Int.sub_eq_add_neg] at hsimpa ⊢
-      exact hsimpa
     have hr1Range :
         0 <= r1 ∧ r1 < p := by
       simpa [r1, p] using
@@ -11339,9 +11319,7 @@ theorem EvaluateProofInternal.eo_qdiv_total_to_q_args_shape_of_typeof_real
         __eo_typeof (__eo_qdiv (__eo_to_q x) (__eo_to_q y)) =
           Term.UOp UserOp.Real := by
       rw [hGuard] at hTy
-      have hsimpa := hTy
-      try simp [__eo_ite] at hsimpa ⊢
-      exact hsimpa
+      simpa' [__eo_ite] using hTy
     rcases EvaluateProofInternal.eo_to_q_shape y with hYStuck | ⟨qy, hY⟩
     · rw [hYStuck] at hGuard
       simp [__eo_eq] at hGuard
@@ -11415,9 +11393,7 @@ theorem EvaluateProofInternal.eo_div_total_args_shape_of_typeof_int
   · have hZDivTy :
         __eo_typeof (__eo_zdiv x y) = Term.UOp UserOp.Int := by
       rw [hGuard] at hTy
-      have hsimpa := hTy
-      try simp [__eo_ite] at hsimpa ⊢
-      exact hsimpa
+      simpa' [__eo_ite] using hTy
     rcases EvaluateProofInternal.eo_zdiv_args_numeral_of_typeof_int x y hZDivTy with
       ⟨nx, ny, hX, hY, hNZ⟩
     exact ⟨ny, hY, Or.inr ⟨nx, hX, hNZ⟩⟩
@@ -11446,9 +11422,7 @@ theorem EvaluateProofInternal.eo_mod_total_args_shape_of_typeof_int
   · have hZModTy :
         __eo_typeof (__eo_zmod x y) = Term.UOp UserOp.Int := by
       rw [hGuard] at hTy
-      have hsimpa := hTy
-      try simp [__eo_ite] at hsimpa ⊢
-      exact hsimpa
+      simpa' [__eo_ite] using hTy
     rcases EvaluateProofInternal.eo_zmod_args_numeral_of_typeof_int x y hZModTy with
       ⟨nx, ny, hX, hY, hNZ⟩
     exact ⟨ny, hY, Or.inr ⟨nx, hX, hNZ⟩⟩
@@ -12972,15 +12946,11 @@ theorem EvaluateProofInternal.eo_ite_to_bin_typeof_bitvec_of_width_numeral_and_n
     ⟨b, hCond, hSel⟩
   cases b
   · rw [hCond]
-    have hsimpa :=
+    simpa' [__eo_ite] using
       EvaluateProofInternal.eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck w m hSel
-    try simp [__eo_ite] at hsimpa ⊢
-    exact hsimpa
   · rw [hCond]
-    have hsimpa :=
+    simpa' [__eo_ite] using
       EvaluateProofInternal.eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck w n hSel
-    try simp [__eo_ite] at hsimpa ⊢
-    exact hsimpa
 
 theorem EvaluateProofInternal.eo_typeof_bvult_bool_of_smt_bitvec_args
     (x y : Term) (w : native_Nat)
@@ -13657,17 +13627,13 @@ theorem EvaluateProofInternal.str_leq_eval_rec_typeof_bool_of_ne_stuck :
       · rw [hCond]
         change __eo_gt (__eo_to_z t1) (__eo_to_z s1) ≠ Term.Stuck
           at hSel
-        have hsimpa :=
+        simpa' [__eo_ite] using
           EvaluateProofInternal.eo_gt_typeof_bool_of_ne_stuck
             (__eo_to_z t1) (__eo_to_z s1) hSel
-        try simp [__eo_ite] at hsimpa ⊢
-        exact hsimpa
       · rw [hCond]
         change __str_leq_eval_rec s2 t2 ≠ Term.Stuck at hSel
-        have hsimpa :=
+        simpa' [__eo_ite] using
           EvaluateProofInternal.str_leq_eval_rec_typeof_bool_of_ne_stuck s2 t2 hSel
-        try simp [__eo_ite] at hsimpa ⊢
-        exact hsimpa
   | Term.String s, y, hNe => by
       cases s <;> cases y <;>
         simp [__str_leq_eval_rec] at hNe ⊢ <;> rfl
@@ -13703,17 +13669,13 @@ theorem EvaluateProofInternal.str_leq_eval_rec_typeof_bool_of_ne_stuck :
             · rw [hCond]
               change __eo_gt (__eo_to_z t1) (__eo_to_z s1) ≠ Term.Stuck
                 at hSel
-              have hsimpa :=
+              simpa' [__eo_ite] using
                 EvaluateProofInternal.eo_gt_typeof_bool_of_ne_stuck
                   (__eo_to_z t1) (__eo_to_z s1) hSel
-              try simp [__eo_ite] at hsimpa ⊢
-              exact hsimpa
             · rw [hCond]
               change __str_leq_eval_rec a b ≠ Term.Stuck at hSel
-              have hsimpa :=
+              simpa' [__eo_ite] using
                 EvaluateProofInternal.str_leq_eval_rec_typeof_bool_of_ne_stuck a b hSel
-              try simp [__eo_ite] at hsimpa ⊢
-              exact hsimpa
           · simp [__str_leq_eval_rec, hOp2] at hNe ⊢ <;> try rfl
         · simp [__str_leq_eval_rec, hOp1] at hNe ⊢ <;> try rfl
       all_goals

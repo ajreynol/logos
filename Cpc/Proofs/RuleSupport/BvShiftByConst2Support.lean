@@ -1120,9 +1120,7 @@ private theorem eval_repeat_rec_one_bit :
         have hNonneg :
             (0 : Int) <= Int.ofNat (Nat.succ n) :=
           Int.natCast_nonneg (Nat.succ n)
-        have hsimpa := hNonneg
-        try simp [SmtEval.native_zleq] at hsimpa ⊢
-        exact hsimpa
+        simpa' [SmtEval.native_zleq] using hNonneg
       have hMod :=
         native_pow2_minus_one_mod_self_local
           (native_nat_to_int (Nat.succ n)) hSucc0
@@ -1255,9 +1253,7 @@ private theorem bv_ashr_by_const_2_context
   have hRepeatNe :
       __eo_typeof_repeat (__eo_typeof rn) rn
           (__eo_typeof (bvExtractTerm x nm nm)) ≠ Term.Stuck := by
-    have hsimpa := hRhsNe
-    try simp [bvAshrByConst2Rhs] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvAshrByConst2Rhs] using hRhsNe
   rcases eo_typeof_repeat_arg_bitvec_of_ne_stuck_local2 hRepeatNe with
     ⟨signWidth, hSignTy⟩
   have hSignNe : __eo_typeof (bvExtractTerm x nm nm) ≠ Term.Stuck := by
@@ -1318,9 +1314,7 @@ private theorem typed_bv_ashr_by_const_2_term
   have hROne : native_zleq 1 R = true := by
     have hRInt : (0 : Int) < R := by
       simpa [SmtEval.native_zlt] using hRPos
-    have hsimpa := hRInt
-    try simp [SmtEval.native_zleq] at hsimpa ⊢
-    exact hsimpa
+    simpa' [SmtEval.native_zleq] using hRInt
   have hRhsTy :
       __smtx_typeof
           (__eo_to_smt
@@ -1692,7 +1686,7 @@ private theorem eval_bv_ashr_by_const_2_term
     rw [hSignEval]
   rw [hLhsEval, hRhsEval]
   exact ashr_const2_value_local2 W A N R p hw0 hwPos ha0 hwa
-    (by have hsimpa := hN; (try simp [SmtEval.native_zplus, SmtEval.native_zneg] at hsimpa ⊢); exact hsimpa)
+    (by simpa' [SmtEval.native_zplus, SmtEval.native_zneg] using hN)
     hR hRange.1 hRange.2
 
 private theorem facts_bv_ashr_by_const_2_term

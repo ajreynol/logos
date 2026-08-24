@@ -61,9 +61,7 @@ by
                           have hProgLocal :
                               __eo_prog_bv_ssubo_eliminate a1 a2 a3
                                   (Proof.pf P1) ≠ Term.Stuck := by
-                            have hsimpa := hProg
-                            try simp [P1] at hsimpa ⊢
-                            exact hsimpa
+                            simpa' [P1] using hProg
                           rcases bv_ssubo_eliminate_shape_of_ne_stuck
                               a1 a2 a3 P1 hProgLocal with
                             ⟨hA1Ne, hA2Ne, hA3Ne, pnm, px, hP1⟩

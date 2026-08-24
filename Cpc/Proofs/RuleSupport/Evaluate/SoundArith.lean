@@ -27,9 +27,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_plus_core
       term_has_non_none_type
         (SmtTerm.plus (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   rcases arith_binop_args_of_non_none
       (op := SmtTerm.plus) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (typeof_plus_eq (__eo_to_smt a) (__eo_to_smt b)) hPlusNN with
@@ -378,9 +376,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mult_core
       term_has_non_none_type
         (SmtTerm.mult (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   rcases arith_binop_args_of_non_none
       (op := SmtTerm.mult) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (typeof_mult_eq (__eo_to_smt a) (__eo_to_smt b)) hMultNN with
@@ -729,9 +725,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_neg_core
       term_has_non_none_type
         (SmtTerm.neg (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   rcases arith_binop_args_of_non_none
       (op := SmtTerm.neg) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (typeof_neg_eq (__eo_to_smt a) (__eo_to_smt b)) hNegNN with
@@ -1125,9 +1119,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_lt_core
       term_has_non_none_type
         (SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   let runLt :=
     __eo_is_neg (__eo_add (__run_evaluate a) (__eo_neg (__run_evaluate b)))
   have hRunLtNe : runLt ≠ Term.Stuck := by
@@ -1365,9 +1357,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_leq_core
       term_has_non_none_type
         (SmtTerm.leq (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   let runLeq :=
     let d := __eo_add (__run_evaluate a) (__eo_neg (__run_evaluate b))
     __eo_or (__eo_is_neg d)
@@ -1606,9 +1596,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_gt_core
       term_has_non_none_type
         (SmtTerm.gt (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   let runGt :=
     __eo_is_neg (__eo_add (__run_evaluate b) (__eo_neg (__run_evaluate a)))
   have hRunGtNe : runGt ≠ Term.Stuck := by
@@ -1846,9 +1834,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_geq_core
       term_has_non_none_type
         (SmtTerm.geq (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   let runGeq :=
     let d := __eo_add (__run_evaluate b) (__eo_neg (__run_evaluate a))
     __eo_or (__eo_is_neg d)
@@ -2087,9 +2073,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_core
       term_has_non_none_type
         (SmtTerm.div (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   rcases int_binop_args_of_non_none
       (op := SmtTerm.div) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (R := SmtType.Int)
@@ -2307,9 +2291,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_core
       term_has_non_none_type
         (SmtTerm.mod (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   rcases int_binop_args_of_non_none
       (op := SmtTerm.mod) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (R := SmtType.Int)
@@ -2527,9 +2509,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
       term_has_non_none_type
         (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   let runQDiv :=
     __eo_qdiv (__eo_to_q (__run_evaluate a))
       (__eo_to_q (__run_evaluate b))
@@ -2863,9 +2843,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
       term_has_non_none_type
         (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   let runBToQ := __eo_to_q (__run_evaluate b)
   let runQDivTotal :=
     __eo_ite (__eo_eq runBToQ (Term.Rational (native_mk_rational 0 1)))
@@ -3452,9 +3430,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_total_core
       term_has_non_none_type
         (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   rcases int_binop_args_of_non_none
       (op := SmtTerm.div_total)
       (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
@@ -3734,9 +3710,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_total_core
       term_has_non_none_type
         (SmtTerm.mod_total (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    have hsimpa := hATrans
-    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-    exact hsimpa
+    simpa' [RuleProofs.eo_has_smt_translation] using hATrans
   rcases int_binop_args_of_non_none
       (op := SmtTerm.mod_total)
       (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)

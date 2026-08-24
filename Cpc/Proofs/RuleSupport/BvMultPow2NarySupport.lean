@@ -379,7 +379,7 @@ private theorem typeof_bvmul_args_of_result_bitvec
       __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) width := by
   intro h
   exact BvXorOnesSupport.typeof_bvxor_args_of_result_bitvec x y width
-    (by have hsimpa := h; (try simp [mul, op] at hsimpa ⊢); exact hsimpa)
+    (by simpa' [mul, op] using h)
 
 private theorem list_concat_rec_cons_of_right_ne_stuck
     (f x xs z : Term) :
@@ -647,9 +647,7 @@ private theorem bvmul_args_of_smt_type
     have hTy' :
         __smtx_typeof (SmtTerm.bvmul (__eo_to_smt x) (__eo_to_smt y)) =
           SmtType.BitVec w := by
-      have hsimpa := hTy
-      try simp [mul] at hsimpa ⊢
-      exact hsimpa
+      simpa' [mul] using hTy
     rw [hTy']
     simp
   rcases bv_binop_args_of_non_none (op := SmtTerm.bvmul)
@@ -660,9 +658,7 @@ private theorem bvmul_args_of_smt_type
       have hTy' :
           __smtx_typeof (SmtTerm.bvmul (__eo_to_smt x) (__eo_to_smt y)) =
             SmtType.BitVec w := by
-        have hsimpa := hTy
-        try simp [mul] at hsimpa ⊢
-        exact hsimpa
+        simpa' [mul] using hTy
       rw [smtx_typeof_bvmul_term_eq_nary] at hTy'
       simpa [__smtx_typeof_bv_op_2, hXTy, hYTy, native_ite,
         native_nateq, SmtEval.native_nateq] using hTy'
@@ -860,16 +856,14 @@ theorem inferred_argument_types
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (lhs xs ys z size n))
     (__eo_typeof (bvMultPow2Rhs (base xs ys z) exponent u))
-    (by have hsimpa := hTermTy; (try simp [term] at hsimpa ⊢); exact hsimpa)
+    (by simpa' [term] using hTermTy)
   have hLhsTailTyNe := list_concat_rec_right_type_ne_stuck xs
     (mul z (mul (bvMultPow2Const size n) ys)) hXsList hSides.1
   have hOuterNe :
       __eo_typeof_bvand (__eo_typeof z)
           (__eo_typeof (mul (bvMultPow2Const size n) ys)) ≠
         Term.Stuck := by
-    have hsimpa := hLhsTailTyNe
-    try simp [mul, op] at hsimpa ⊢
-    exact hsimpa
+    simpa' [mul, op] using hLhsTailTyNe
   rcases BvXorOnesSupport.typeof_bvand_arg_types_of_ne_stuck hOuterNe with
     ⟨width, hZEoTy, hInnerEoTy⟩
   have hInnerParts := typeof_bvmul_args_of_result_bitvec
@@ -961,7 +955,7 @@ theorem inferred_argument_types
     have hTypeEq := RuleProofs.eo_typeof_eq_bool_operands_eq
       (__eo_typeof (lhs xs ys z (Term.Numeral W) n))
       (__eo_typeof (bvMultPow2Rhs (base xs ys z) exponent u))
-      (by have hsimpa := hTermTy; (try simp [term] at hsimpa ⊢); exact hsimpa)
+      (by simpa' [term] using hTermTy)
     rw [show __eo_typeof (lhs xs ys z (Term.Numeral W) n) =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral W) by
       simpa [lhs] using hLhsTy] at hTypeEq
@@ -997,7 +991,7 @@ private theorem pos_term_type_implies_term_type
     (__eo_typeof
       (BvMultPow2PosSupport.bvMultPow2PosRhs
         (base xs ys z) exponent u))
-    (by have hsimpa := hPosTy; (try simp [posTerm] at hsimpa ⊢); exact hsimpa)
+    (by simpa' [posTerm] using hPosTy)
   have hExtractNe :
       __eo_typeof (bvExtractTerm (base xs ys z) u (Term.Numeral 0)) ≠
         Term.Stuck := by
@@ -1041,9 +1035,7 @@ private theorem pos_term_type_implies_term_type
       (__eo_typeof (bvMultPow2Rhs (base xs ys z) exponent u)) =
     Term.Bool
   rw [hRhsTyEq]
-  have hsimpa := hPosTy
-  try simp [posTerm] at hsimpa ⊢
-  exact hsimpa
+  simpa' [posTerm] using hPosTy
 
 theorem inferred_pos_argument_types
     (xs ys z size n exponent u : Term) :
@@ -1108,9 +1100,7 @@ theorem inferred_pos_argument_types
         (BvMultPow2PosSupport.bvMultPow2PosRhs
           (base xs ys z) exponent u)) = Term.Bool
     rw [← hRhsTyEq]
-    have hsimpa := hSimpleTy
-    try simp [simpleTerm] at hsimpa ⊢
-    exact hsimpa
+    simpa' [simpleTerm] using hSimpleTy
   exact ⟨W, hSize, hW0, hXsType, hYsTy, hZTy, hNTy, hBaseEoTy,
     hBaseSmtTy, hSimplePosTy⟩
 

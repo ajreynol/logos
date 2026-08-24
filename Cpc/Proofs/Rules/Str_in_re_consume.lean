@@ -432,7 +432,7 @@ theorem str_re_consume_model_rel
         (fun _hFallbackNe =>
           StrInReConsumeInternal.smt_typeof_str_in_re_of_types_local sConcat rConcat
             (by simpa [sConcat] using hSTy)
-            (by have hsimpa := hRTy; (try simp [rConcat] at hsimpa ⊢); exact hsimpa))
+            (by simpa' [rConcat] using hRTy))
         hWholeNe
     · intro s1 s2 r3 r2 fc fr _v0 _v1 _v3 _v4 _v5
         ihLeft ihRight _ihLeftAgain ihResidual hSTy hRTy hNe
@@ -486,7 +486,7 @@ theorem str_re_consume_model_rel
           apply hWholeNe
           simpa [whole, hLeftFalse, eo_ite_true] using hBad
         simpa [whole, hLeftFalse, eo_ite_true, right] using
-          ihRight (by have hsimpa := hSTy; (try simp at hsimpa ⊢); exact hsimpa) hRConcatArgs.2 (by simpa [right] using hRightNe)
+          ihRight (by simpa' using hSTy) hRConcatArgs.2 (by simpa [right] using hRightNe)
       · have hMemIteNe : memIte ≠ Term.Stuck := by
           intro hBad
           apply hWholeNe
@@ -532,7 +532,7 @@ theorem str_re_consume_model_rel
               simpa [whole, hLeftNotFalse, eo_ite_false, memIte,
                 hMemEps, eo_ite_true, rightFalseIte, hRightFalse,
                 sameIte, hDifferent, residual] using
-                ihResidual hTailTy (by have hsimpa := hRTy; (try simp at hsimpa ⊢); exact hsimpa) (by simpa [residual] using hResidualNe)
+                ihResidual hTailTy (by simpa' using hRTy) (by simpa [residual] using hResidualNe)
           · simpa [whole, hLeftNotFalse, eo_ite_false, memIte,
               hMemEps, eo_ite_true, rightFalseIte, hRightNotFalse,
               eo_ite_false, fallback] using

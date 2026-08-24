@@ -95,9 +95,7 @@ private theorem bv_extract_sign_extend_3_context
   have hRhsNe' :
       __eo_typeof_repeat (__eo_typeof rn) rn
           (__eo_typeof (bvExtractTerm x nm nm)) ≠ Term.Stuck := by
-    have hsimpa := hRhsNe
-    try simp [bvExtractSignExtend3Rhs] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvExtractSignExtend3Rhs] using hRhsNe
   rcases eo_typeof_repeat_arg_bitvec_of_ne_stuck hRhsNe' with
     ⟨innerWidthTerm, hInnerEoTy⟩
   have hInnerNe : __eo_typeof (bvExtractTerm x nm nm) ≠ Term.Stuck := by
@@ -119,9 +117,7 @@ private theorem bv_extract_sign_extend_3_context
           (__eo_typeof
             (Term.Apply (Term.UOp1 UserOp1.sign_extend k) x)) ≠
         Term.Stuck := by
-    have hsimpa := hLhsNe
-    try simp [bvExtractSignExtend3Lhs, bvExtractTerm] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvExtractSignExtend3Lhs, bvExtractTerm] using hLhsNe
   rcases eo_typeof_extract_arg_bitvec_of_ne_stuck hLhsNe' with
     ⟨signWidthTerm, hSignEoTy⟩
   rcases sign_extend_index_context x k signWidthTerm w hXTy hSignEoTy with
@@ -218,9 +214,7 @@ private theorem typed_bv_extract_sign_extend_3_term
   have hr1 : native_zleq 1 r = true := by
     have hrInt : (0 : Int) < r := by
       simpa [SmtEval.native_zlt] using hr0
-    have hsimpa := hrInt
-    try simp [SmtEval.native_zleq] at hsimpa ⊢
-    exact hsimpa
+    simpa' [SmtEval.native_zleq] using hrInt
   have hRhsTy :
       __smtx_typeof
           (__eo_to_smt
@@ -255,9 +249,7 @@ private theorem typed_bv_extract_sign_extend_3_term
     cases hBad
   have hEOTypeEq : __eo_typeof lhs = __eo_typeof rhs := by
     apply RuleProofs.eo_typeof_eq_bool_operands_eq
-    have hsimpa := hResultTy
-    try simp [bvExtractSignExtend3Term, lhs, rhs] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvExtractSignExtend3Term, lhs, rhs] using hResultTy
   have hLhsBridge :
       __smtx_typeof (__eo_to_smt lhs) =
         __eo_to_smt_type (__eo_typeof lhs) :=
@@ -586,9 +578,7 @@ private theorem eval_repeat_rec_one_bit_3 :
           native_zleq 0 (native_nat_to_int (Nat.succ n)) = true := by
         have hNonneg : (0 : Int) ≤ Int.ofNat (Nat.succ n) :=
           Int.natCast_nonneg (Nat.succ n)
-        have hsimpa := hNonneg
-        try simp [SmtEval.native_zleq] at hsimpa ⊢
-        exact hsimpa
+        simpa' [SmtEval.native_zleq] using hNonneg
       have hMod := native_pow2_minus_one_mod_self_3
         (native_nat_to_int (Nat.succ n)) hSucc0
       have hWidth :

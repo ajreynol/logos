@@ -220,9 +220,7 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                       change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String (native_string_lit ""))) =
                           SmtValue.RegLan rv at hREval
                       rw [__smtx_model_eval.eq_104, __smtx_model_eval.eq_4] at hREval
-                      have hsimpa := hREval.symm
-                      try simp [__smtx_model_eval_str_to_re, native_str_to_re, native_pack_string] at hsimpa ⊢
-                      exact hsimpa
+                      simpa' [__smtx_model_eval_str_to_re, native_str_to_re, native_pack_string] using hREval.symm
                     subst rv
                     cases exact
                     · rw [str_in_re_sigma_rec_empty_false_eq s n hSNe]

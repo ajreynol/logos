@@ -121,7 +121,7 @@ theorem uaddo_nil_ne (x y n : Term) :
   intro hTy hNil
   have hRhsNe : __eo_typeof (uaddoRhs x y n) ≠ Term.Stuck :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-      (by have hsimpa := hTy; (try simp [uaddoTerm] at hsimpa ⊢); exact hsimpa)).2
+      (by simpa' [uaddoTerm] using hTy)).2
   have hBitNe : __eo_typeof (uaddoBit x y n) ≠ Term.Stuck := by
     intro hBit
     apply hRhsNe
@@ -164,7 +164,7 @@ theorem uaddo_nil_eq_zero (x : Term) (w : Nat)
       have hBoundFalse : ¬ native_nat_to_int (w + 1) <= 4294967296 := by
         simpa [SmtEval.native_zleq] using hBound
       simp [__eo_to_bin, hBoundFalse, native_ite, SmtEval.native_zleq]
-    exact False.elim (hNilNe (by have hsimpa := hStuck; (try simp [uaddoNil, hExtTy] at hsimpa ⊢); exact hsimpa))
+    exact False.elim (hNilNe (by simpa' [uaddoNil, hExtTy] using hStuck))
 
 theorem smt_typeof_uaddo_nil (x : Term) (w : Nat)
     (hNilEq : uaddoNil x = Term.Binary (native_nat_to_int (w + 1)) 0) :
@@ -242,12 +242,10 @@ theorem uaddo_context (x y n : Term) :
   have hYSmtTy :
       __smtx_typeof (__eo_to_smt y) =
         SmtType.BitVec (native_int_to_nat w) := by
-    have hsimpa :=
+    simpa' [__eo_to_smt_type, hw0] using
       (RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
         y (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
         (__eo_to_smt y) rfl hYTrans hYTy)
-    try simp [__eo_to_smt_type, hw0] at hsimpa ⊢
-    exact hsimpa
   have hLeftTy : __eo_typeof (uaddoLhs x y) = Term.Bool := by
     change __eo_typeof_bvult (__eo_typeof x) (__eo_typeof y) = Term.Bool
     rw [hXTy, hYTy]
@@ -257,14 +255,12 @@ theorem uaddo_context (x y n : Term) :
   have hRhsTy : __eo_typeof (uaddoRhs x y n) = Term.Bool := by
     have hLeftTy' :
         __eo_typeof_bvult (__eo_typeof x) (__eo_typeof y) = Term.Bool := by
-      have hsimpa := hLeftTy
-      try simp [uaddoLhs] at hsimpa ⊢
-      exact hsimpa
+      simpa' [uaddoLhs] using hLeftTy
     rw [hLeftTy'] at hTypeEq
     exact hTypeEq.symm
   have hBitNe : __eo_typeof (uaddoBit x y n) ≠ Term.Stuck :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-      (by have hsimpa := hRhsTy; (try simp [uaddoRhs] at hsimpa ⊢); exact hsimpa)).1
+      (by simpa' [uaddoRhs] using hRhsTy)).1
   let W := native_int_to_nat w
   have hRound : native_nat_to_int W = w :=
     native_nat_to_int_int_to_nat_eq w hw0
@@ -274,7 +270,7 @@ theorem uaddo_context (x y n : Term) :
           (Term.Numeral (native_nat_to_int W)) := by
     simpa [W, hRound] using hXTy
   have hExtTy := typeof_uaddo_ext x W hXTyW
-  have hNilNe := uaddo_nil_ne x y n (by have hsimpa := hResultTy; (try simp [uaddoTerm] at hsimpa ⊢); exact hsimpa)
+  have hNilNe := uaddo_nil_ne x y n (by simpa' [uaddoTerm] using hResultTy)
   have hNilEq := uaddo_nil_eq_zero x W hExtTy hNilNe
   have hSumSmtTy :
       __smtx_typeof (__eo_to_smt (uaddoSum x y)) =
@@ -287,7 +283,7 @@ theorem uaddo_context (x y n : Term) :
     intro h
     cases h
   rcases bv_extract_context_of_non_stuck (uaddoSum x y) n n
-      hSumTrans (by have hsimpa := hBitNe; (try simp [uaddoBit] at hsimpa ⊢); exact hsimpa) with
+      hSumTrans (by simpa' [uaddoBit] using hBitNe) with
     ⟨ws, hi, lo, _hSumEoTy, hNHi, hNLo, hws0, hlo0, hiws,
       _hExtractWidth0, hSumSmtTy'⟩
   have hLo : lo = hi := by
@@ -523,9 +519,7 @@ theorem eval_uaddo_rhs
       __smtx_model_eval M (__eo_to_smt uaddoOneBit) =
         SmtValue.Binary 1 1 := by
     have h := eval_bv_const M 1 1 (by decide)
-    have hsimpa := h
-    try simp [uaddoOneBit, SmtEval.native_mod_total] at hsimpa ⊢
-    exact hsimpa
+    simpa' [uaddoOneBit, SmtEval.native_mod_total] using h
   unfold uaddoRhs
   change __smtx_model_eval M
       (SmtTerm.eq

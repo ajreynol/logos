@@ -286,7 +286,7 @@ private theorem typeofAndBoolArgs {a b : Term} :
     __eo_typeof a = Term.Bool ∧ __eo_typeof b = Term.Bool := by
   intro h
   exact RuleProofs.eo_typeof_or_bool_args (__eo_typeof a) (__eo_typeof b)
-    (by have hsimpa := h; (try simp at hsimpa ⊢); exact hsimpa)
+    (by simpa' using h)
 
 private theorem typeofNotArgBool {a : Term} :
     __eo_typeof (Term.Apply (Term.UOp UserOp.not) a) = Term.Bool ->
@@ -352,9 +352,9 @@ theorem inferredArgumentTypes (x ys zs c w : Term) :
   intro hXTrans hYsTrans hZsTrans hCTrans hWTrans hYsList hZsList hTermTy
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (lhs x ys zs c)) (__eo_typeof (rhs x ys zs w))
-    (by have hsimpa := hTermTy; (try simp [term] at hsimpa ⊢); exact hsimpa)
+    (by simpa' [term] using hTermTy)
   rcases typeof_bvult_args_of_ne_stuck (by
-      have hsimpa := hSides.1; (try simp [lhs] at hsimpa ⊢); exact hsimpa) with ⟨width, hXTy, hIncTy⟩
+      simpa' [lhs] using hSides.1) with ⟨width, hXTy, hIncTy⟩
   rcases _root_.smt_bitvec_type_of_eo_bitvec_type_with_width x width
       hXTrans hXTy with ⟨W, hWidth, hW0, hXSTy⟩
   subst width
@@ -365,7 +365,7 @@ theorem inferredArgumentTypes (x ys zs c w : Term) :
   have hTailTyNe : __eo_typeof (add c zs) ≠ Term.Stuck :=
     listConcatRecRightTypeNeStuck ys (add c zs) hYsList hIncTyNe
   rcases BvXorOnesSupport.typeof_bvand_arg_types_of_ne_stuck
-      (by have hsimpa := hTailTyNe; (try simp [add, op] at hsimpa ⊢); exact hsimpa) with
+      (by simpa' [add, op] using hTailTyNe) with
     ⟨tailWidth, hCTy, hZsTy⟩
   have hTailWidthNe : tailWidth ≠ Term.Stuck := by
     intro h
@@ -420,14 +420,14 @@ theorem inferredArgumentTypes (x ys zs c w : Term) :
       native_teq, native_not]
   have hTypeEq := RuleProofs.eo_typeof_eq_bool_operands_eq
     (__eo_typeof (lhs x ys zs c)) (__eo_typeof (rhs x ys zs w))
-    (by have hsimpa := hTermTy; (try simp [term] at hsimpa ⊢); exact hsimpa)
+    (by simpa' [term] using hTermTy)
   rw [hLhsTy] at hTypeEq
   have hRhsTy : __eo_typeof (rhs x ys zs w) = Term.Bool := hTypeEq.symm
   have hRhsParts := typeofAndBoolArgs (by simpa [rhs] using hRhsTy)
   have hEqBaseMaxTy := typeofNotArgBool hRhsParts.1
   have hBaseMaxTypeEq := RuleProofs.eo_typeof_eq_bool_operands_eq
     (__eo_typeof (base ys zs)) (__eo_typeof (maxValue w))
-    (by have hsimpa := hEqBaseMaxTy; (try simp at hsimpa ⊢); exact hsimpa)
+    (by simpa' using hEqBaseMaxTy)
   have hMaxTy :
       __eo_typeof (maxValue w) =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral W) := by
@@ -782,12 +782,10 @@ theorem factsTerm
         (SmtValue.Binary W pc)
         (SmtValue.Binary W
           (native_mod_total 1 (native_int_pow2 W))) := by
-    have hsimpa := (show RuleProofs.smt_value_rel
+    simpa' [bvConst] using (show RuleProofs.smt_value_rel
       (SmtValue.Binary W pc)
       (__smtx_model_eval M (__eo_to_smt (bvConst (Term.Numeral W) 1))) from
         hConstRel)
-    try simp [bvConst] at hsimpa ⊢
-    exact hsimpa
   have hPc : pc = native_mod_total 1 (native_int_pow2 W) :=
     binaryRelPayloadEq hConstRel'
   have hIncBaseAdd := evalIncEqBaseAdd M hM ys zs c width hYsList

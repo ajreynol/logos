@@ -166,7 +166,7 @@ private theorem nativeListInRe_concat_all_true_iff_exists
   · intro h
     rcases
       (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append xs r native_re_all).1
-        (by have hsimpa := h; (try simp [native_re_concat] at hsimpa ⊢); exact hsimpa) with
+        (by simpa' [native_re_concat] using h) with
       ⟨pre, post, hAppend, hLeft, _hRight⟩
     exact ⟨pre, post, hAppend, hLeft⟩
   · intro h
@@ -182,11 +182,9 @@ private theorem nativeListInRe_concat_all_true_iff_exists
           simpa [List.all_append, Bool.and_eq_true] using hAllAppend
         exact hAllParts.2
       exact RuleProofs.nativeListInRe_re_all post hAll
-    have hsimpa :=
+    simpa' [native_re_concat] using
       (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append xs r native_re_all).2
         ⟨pre, post, hAppend, hLeft, hRight⟩
-    try simp [native_re_concat] at hsimpa ⊢
-    exact hsimpa
 
 private theorem native_re_prefix_match_isSome_iff_concat_all
     (r : SmtRegLan) (xs : native_String)
@@ -300,9 +298,7 @@ theorem str_first_match_rec_smallest_eq_go
           str_eval_str_in_re_rec_substrWord_eq M hM [] r rv
             (by simp [native_string_valid]) hRTy hREval (by
               simpa [substrWord, str_eval_empty_eq_nullable] using hNullNe)
-        have hsimpa := h
-        try simp [substrWord, str_eval_empty_eq_nullable] at hsimpa ⊢
-        exact hsimpa
+        simpa' [substrWord, str_eval_empty_eq_nullable] using h
       cases hNull : native_re_nullable rv
       · have hFalse : False := by
           rw [hNull] at hNullEq
@@ -356,9 +352,7 @@ theorem str_first_match_rec_smallest_eq_go
           str_eval_str_in_re_rec_substrWord_eq M hM [] r rv
             (by simp [native_string_valid]) hRTy hREval (by
               simpa [substrWord, str_eval_empty_eq_nullable] using hNullNe)
-        have hsimpa := h
-        try simp [substrWord, str_eval_empty_eq_nullable] at hsimpa ⊢
-        exact hsimpa
+        simpa' [substrWord, str_eval_empty_eq_nullable] using h
       cases hNull : native_re_nullable rv
       · rw [hNull] at hNullEq
         rw [hNullEq] at hNeIte ⊢
@@ -478,9 +472,7 @@ theorem native_pack_seq_char_append_unpack_string
       List.map SmtValue.Char
           (List.map native_ssm_char_of_value (native_unpack_seq ss)) =
         native_unpack_seq ss := by
-    have hsimpa := hMap
-    try simp [List.map_map] at hsimpa ⊢
-    exact hsimpa
+    simpa' [List.map_map] using hMap
   unfold native_pack_string native_unpack_string
   simp only [List.map_append]
   rw [hMap']
@@ -925,7 +917,7 @@ private theorem str_eval_replace_re_pair_eval
       native_str_substr str (↑(idx + len) : Int)
           ((↑str.length : Int) + -↑(idx + len) + 1) =
         str.drop (idx + len) by
-    have hsimpa := native_str_substr_suffix_drop str (idx + len); (try simp at hsimpa ⊢); exact hsimpa]
+    simpa' using native_str_substr_suffix_drop str (idx + len)]
   simpa [List.append_assoc] using
     smtx_model_eval_str_concat_replacement M t repl (str.take idx)
       (str.drop (idx + len)) hTEval hReplTy
@@ -1171,9 +1163,7 @@ private theorem str_replace_re_eval_valid_properties
               t))
           side) =
         Term.Apply (Term.Apply (Term.UOp UserOp.eq) lhs') side := by
-    have hsimpa := hResult
-    try simp [lhs, body, matchRaw, matchTerm, side, lhs'] at hsimpa ⊢
-    exact hsimpa
+    simpa' [lhs, body, matchRaw, matchTerm, side, lhs'] using hResult
   refine ⟨?_, ?_⟩
   · intro _hPremises
     rw [hResult']

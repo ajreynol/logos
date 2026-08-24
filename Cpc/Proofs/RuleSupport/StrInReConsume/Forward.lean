@@ -501,9 +501,7 @@ theorem StrInReConsumeInternal.str_flatten_singleton_intro_string_single_local
       Term.Apply
         (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
         (Term.String []) := by
-  have hsimpa := str_flatten_nary_intro_cons c []
-  try simp [__str_nary_intro] at hsimpa ⊢
-  exact hsimpa
+  simpa' [__str_nary_intro] using str_flatten_nary_intro_cons c []
 
 theorem StrInReConsumeInternal.str_flattened_chunks_string_atom_chain_local :
     ∀ w : native_String,
@@ -1087,9 +1085,7 @@ theorem StrInReConsumeInternal.re_split_str_to_re_eval_rel_consume_local
                 unfold term_has_non_none_type
                 rw [hArgs.1]
                 simp)
-        have hsimpa := hCEvalTy
-        try simp [hCEval] at hsimpa ⊢
-        exact hsimpa
+        simpa' [hCEval] using hCEvalTy
       have hRestSplitNe :
           __re_split_str_to_re rest tail ≠ Term.Stuck := by
         intro hBad
@@ -3848,9 +3844,7 @@ theorem StrInReConsumeInternal.eo_get_nil_rec_re_concat_list_rev_rec_eq_consume_
             Term.Boolean true :=
         eo_is_list_cons_self_true_of_tail_list
           (Term.UOp UserOp.re_concat) x acc (by decide) hAccList
-      have hsimpa := ih hTailTailList hConsAccList
-      try simp [__eo_list_rev_rec] at hsimpa ⊢
-      exact hsimpa
+      simpa' [__eo_list_rev_rec] using ih hTailTailList hConsAccList
   | case4 nil acc hNil hAcc hNot =>
       simp [__eo_list_rev_rec]
 

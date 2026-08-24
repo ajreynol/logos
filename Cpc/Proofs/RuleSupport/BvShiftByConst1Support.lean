@@ -185,9 +185,7 @@ private theorem smt_typeof_bvshl_same1
       __smtx_typeof
           (SmtTerm.int_to_bv (SmtTerm.Numeral W) (__eo_to_smt amount)) =
         SmtType.BitVec (native_int_to_nat W) := by
-    have hsimpa := hConstTy
-    try simp [bvShiftByConst2Const] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvShiftByConst2Const] using hConstTy
   change __smtx_typeof
       (SmtTerm.bvshl (__eo_to_smt x)
         (SmtTerm.int_to_bv (SmtTerm.Numeral W) (__eo_to_smt amount))) = _
@@ -209,9 +207,7 @@ private theorem smt_typeof_bvlshr_same1
       __smtx_typeof
           (SmtTerm.int_to_bv (SmtTerm.Numeral W) (__eo_to_smt amount)) =
         SmtType.BitVec (native_int_to_nat W) := by
-    have hsimpa := hConstTy
-    try simp [bvShiftByConst2Const] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvShiftByConst2Const] using hConstTy
   change __smtx_typeof
       (SmtTerm.bvlshr (__eo_to_smt x)
         (SmtTerm.int_to_bv (SmtTerm.Numeral W) (__eo_to_smt amount))) = _
@@ -281,7 +277,7 @@ private theorem bv_lshr_by_const_1_context
       __eo_typeof_concat
           (__eo_typeof (bvExtractTerm x nm (Term.Numeral A)))
           (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
-    have hsimpa := (show
+    simpa' using (show
       __eo_typeof
           (Term.Apply (Term.Apply (Term.UOp UserOp.concat)
             (bvExtractTerm x nm (Term.Numeral A))) (Term.Binary 0 0)) ≠
@@ -289,8 +285,6 @@ private theorem bv_lshr_by_const_1_context
       rw [hInnerTy]
       intro h
       cases h)
-    try simp at hsimpa ⊢
-    exact hsimpa
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hInnerNe with
     ⟨we, w0, hExtractTy, _hEmptyTy⟩
   have hExtractNe :
@@ -387,7 +381,7 @@ private theorem bv_shl_by_const_1_context
   have hInnerNe :
       __eo_typeof_concat (__eo_typeof (bvShiftByConst1Zero amount))
           (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
-    have hsimpa := (show
+    simpa' using (show
       __eo_typeof
           (Term.Apply (Term.Apply (Term.UOp UserOp.concat)
             (bvShiftByConst1Zero amount)) (Term.Binary 0 0)) ≠
@@ -395,8 +389,6 @@ private theorem bv_shl_by_const_1_context
       rw [hInnerTy]
       intro h
       cases h)
-    try simp at hsimpa ⊢
-    exact hsimpa
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hInnerNe with
     ⟨wz, w0, hZeroTy, _hEmptyTy⟩
   have hAmountNe :=
@@ -879,9 +871,7 @@ private theorem eval_bv_lshr_by_const_1_term
   have haw : A < W := by
     simpa [SmtEval.native_zlt] using hAW
   have hn : N = W - 1 := by
-    have hsimpa := hN
-    try simp [SmtEval.native_zplus, SmtEval.native_zneg] at hsimpa ⊢
-    exact hsimpa
+    simpa' [SmtEval.native_zplus, SmtEval.native_zneg] using hN
   rcases eval_bv_term_local1 M hM x W hW0 hXSmtTy with
     ⟨p, hXEval, hCanonical⟩
   have hRange := bitvec_payload_range_of_canonical hW0 hCanonical
@@ -1591,9 +1581,7 @@ private theorem smt_typeof_bvashr_same1
       __smtx_typeof
           (SmtTerm.int_to_bv (SmtTerm.Numeral W) (__eo_to_smt amount)) =
         SmtType.BitVec (native_int_to_nat W) := by
-    have hsimpa := hConstTy
-    try simp [bvShiftByConst2Const] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvShiftByConst2Const] using hConstTy
   change __smtx_typeof
       (SmtTerm.bvashr (__eo_to_smt x)
         (SmtTerm.int_to_bv (SmtTerm.Numeral W) (__eo_to_smt amount))) = _
@@ -1640,7 +1628,7 @@ private theorem bv_ashr_by_const_1_context
   have hInnerNe :
       __eo_typeof_concat (__eo_typeof (bvExtractTerm x nm amount))
           (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
-    have hsimpa := (show
+    simpa' using (show
       __eo_typeof
           (Term.Apply (Term.Apply (Term.UOp UserOp.concat)
             (bvExtractTerm x nm amount)) (Term.Binary 0 0)) ≠
@@ -1648,8 +1636,6 @@ private theorem bv_ashr_by_const_1_context
       rw [hInnerTy]
       intro h
       cases h)
-    try simp at hsimpa ⊢
-    exact hsimpa
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_local hInnerNe with
     ⟨_wExtract, _wEmpty, hExtractTy, _hEmptyTy⟩
   have hExtractNe : __eo_typeof (bvExtractTerm x nm amount) ≠
@@ -1678,9 +1664,7 @@ private theorem bv_ashr_by_const_1_context
       __eo_typeof_repeat (Term.UOp UserOp.Int) (Term.Numeral A)
           (__eo_typeof (bvAshrByConst1Sign x (Term.Numeral N))) ≠
         Term.Stuck := by
-    have hsimpa := hFillNe
-    try simp [bvAshrByConst1Fill] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvAshrByConst1Fill] using hFillNe
   rcases eo_typeof_repeat_arg_bitvec_of_ne_stuck_local1 hFillNe' with
     ⟨wSign, hSignTy⟩
   have hSignNe :
@@ -1752,9 +1736,7 @@ private theorem typed_bv_ashr_by_const_1_term
   have hAOne : native_zleq 1 A = true := by
     have hAInt : (0 : Int) < A := by
       simpa [SmtEval.native_zlt] using hAPos
-    have hsimpa := hAInt
-    try simp [SmtEval.native_zleq] at hsimpa ⊢
-    exact hsimpa
+    simpa' [SmtEval.native_zleq] using hAInt
   have hFillTy :
       __smtx_typeof
           (__eo_to_smt
@@ -2023,9 +2005,7 @@ private theorem eval_repeat_rec_one_bit_local1 :
           native_zleq 0 (native_nat_to_int (Nat.succ n)) = true := by
         have hNonneg : (0 : Int) ≤ Int.ofNat (Nat.succ n) :=
           Int.natCast_nonneg (Nat.succ n)
-        have hsimpa := hNonneg
-        try simp [SmtEval.native_zleq] at hsimpa ⊢
-        exact hsimpa
+        simpa' [SmtEval.native_zleq] using hNonneg
       have hMod := native_pow2_minus_one_mod_self_local1
         (native_nat_to_int (Nat.succ n)) hSucc0
       have hWidthInt : (1 : Int) + ↑n = ↑n + 1 := by
@@ -2200,9 +2180,7 @@ private theorem eval_bv_ashr_by_const_1_term
   have haw : A < W := by
     simpa [SmtEval.native_zlt] using hAW
   have hn : N = W - 1 := by
-    have hsimpa := hN
-    try simp [SmtEval.native_zplus, SmtEval.native_zneg] at hsimpa ⊢
-    exact hsimpa
+    simpa' [SmtEval.native_zplus, SmtEval.native_zneg] using hN
   rcases eval_bv_term_local1 M hM x W hW0 hXSmtTy with
     ⟨p, hXEval, hCanonical⟩
   have hRange := bitvec_payload_range_of_canonical hW0 hCanonical

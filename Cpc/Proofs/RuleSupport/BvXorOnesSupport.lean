@@ -105,7 +105,7 @@ private theorem context
   intro hResultTy
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (lhs xs zs n w)) (__eo_typeof (rhs xs zs))
-    (by have hsimpa := hResultTy; (try simp [term] at hsimpa ⊢); exact hsimpa)
+    (by simpa' [term] using hResultTy)
   have hLhsNe : lhs xs zs n w ≠ Term.Stuck := by
     intro h
     apply hSides.1
@@ -268,9 +268,7 @@ private theorem list_smt_type_or_nil_of_concat_type
       have hNonNone :
           term_has_non_none_type
             (SmtTerm.bvxor (__eo_to_smt x) (__eo_to_smt xs)) := by
-        have hsimpa := hATrans
-        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
-        exact hsimpa
+        simpa' [RuleProofs.eo_has_smt_translation] using hATrans
       rcases bv_binop_args_of_non_none (op := SmtTerm.bvxor)
           (show
             __smtx_typeof (SmtTerm.bvxor (__eo_to_smt x) (__eo_to_smt xs)) =
@@ -328,10 +326,10 @@ theorem inferred_argument_types
   have hLists := context xs zs n w hResultTy
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (lhs xs zs n w)) (__eo_typeof (rhs xs zs))
-    (by have hsimpa := hResultTy; (try simp [term] at hsimpa ⊢); exact hsimpa)
+    (by simpa' [term] using hResultTy)
   have hTypesEq := RuleProofs.eo_typeof_eq_bool_operands_eq
     (__eo_typeof (lhs xs zs n w)) (__eo_typeof (rhs xs zs))
-    (by have hsimpa := hResultTy; (try simp [term] at hsimpa ⊢); exact hsimpa)
+    (by simpa' [term] using hResultTy)
   have hBaseTy : ∃ width,
       __eo_typeof (base xs zs) =
         Term.Apply (Term.UOp UserOp.BitVec) width := by

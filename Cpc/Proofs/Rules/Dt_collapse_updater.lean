@@ -809,14 +809,12 @@ private theorem tuple_update_type_eq_tuple_type_of_shape
           (__smtx_tuple_datatype_decl d)
           (__smtx_dt_resolve d (__smtx_tuple_datatype_decl d))
           native_nat_zero (__smtx_dt_num_sels d native_nat_zero) := by
-    have hsimpa :=
+    simpa' [recTerm] using
       TranslationProofs.eo_to_smt_updater_rec_type_of_non_none
         (native_string_lit "@Tuple") (__smtx_tuple_datatype_decl d)
         native_nat_zero (native_int_to_nat n)
         (__smtx_dt_num_sels d native_nat_zero) (__eo_to_smt t) (__eo_to_smt a)
         hRecNN
-    try simp [recTerm] at hsimpa ⊢
-    exact hsimpa
   have hNumResolve :
       __smtx_dt_num_sels
           (__smtx_dt_resolve d (__smtx_tuple_datatype_decl d))
@@ -1091,7 +1089,7 @@ private theorem tuple_collapse_updater_rhs_projection
               __smtx_typeof
                   (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) ≠
                 SmtType.None
-            have hsimpa := hTupleNN; (try simp [tupleTerm, headSmt, tailSmt, headTy] at hsimpa ⊢); exact hsimpa)
+            simpa' [tupleTerm, headSmt, tailSmt, headTy] using hTupleNN)
     have hD : d = fullD := by
       rw [hT] at hTupleTyFull
       injection hTupleTyFull with _ hD'
@@ -1140,7 +1138,7 @@ private theorem tuple_collapse_updater_rhs_projection
                 __smtx_typeof
                     (__eo_to_smt_tuple_prepend aSmt (__smtx_typeof aSmt)
                       tailSmt) ≠ SmtType.None
-              have hsimpa := hRhsBaseNN; (try simp [aSmt, tailSmt] at hsimpa ⊢); exact hsimpa)
+              simpa' [aSmt, tailSmt] using hRhsBaseNN)
       have hFullArgEq :
           SmtDatatype.sum (SmtDatatypeCons.cons (__smtx_typeof aSmt) c)
               SmtDatatype.null =
@@ -1168,10 +1166,8 @@ private theorem tuple_collapse_updater_rhs_projection
                   __smtx_typeof
                       (__eo_to_smt_tuple_prepend aSmt (__smtx_typeof aSmt)
                         tailSmt) ≠ SmtType.None
-                have hsimpa := hRhsBaseNN; (try simp [aSmt, tailSmt] at hsimpa ⊢); exact hsimpa)
-          have hsimpa := hProj
-          try simp [fullD, fullC, aSmt, native_nateq, SmtEval.native_nateq] at hsimpa ⊢
-          exact hsimpa
+                simpa' [aSmt, tailSmt] using hRhsBaseNN)
+          simpa' [fullD, fullC, aSmt, native_nateq, SmtEval.native_nateq] using hProj
       | succ j =>
           have hjTail :
               j < __smtx_dt_num_sels tailD native_nat_zero := by
@@ -1186,7 +1182,7 @@ private theorem tuple_collapse_updater_rhs_projection
                   __smtx_typeof
                       (__eo_to_smt_tuple_prepend aSmt (__smtx_typeof aSmt)
                         tailSmt) ≠ SmtType.None
-                have hsimpa := hRhsBaseNN; (try simp [aSmt, tailSmt] at hsimpa ⊢); exact hsimpa)
+                simpa' [aSmt, tailSmt] using hRhsBaseNN)
               (by simpa [tailD] using hjTail)
           have hSelEval :
               __smtx_model_eval M
@@ -1211,7 +1207,7 @@ private theorem tuple_collapse_updater_rhs_projection
                   __smtx_typeof
                       (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) ≠
                     SmtType.None
-                have hsimpa := hTupleNN; (try simp [tupleTerm, headSmt, tailSmt, headTy] at hsimpa ⊢); exact hsimpa)
+                simpa' [tupleTerm, headSmt, tailSmt, headTy] using hTupleNN)
               (by simpa [tailD] using hjTail)
           have hRhsSucc' :
               __vsm_apply_arg_nth
@@ -1222,14 +1218,10 @@ private theorem tuple_collapse_updater_rhs_projection
                   (Nat.succ j) (__smtx_dt_num_sels fullD native_nat_zero) =
                 __vsm_apply_arg_nth (__smtx_model_eval M tailSmt) j
                   (__smtx_dt_num_sels tailD native_nat_zero) := by
-            have hsimpa := hRhsSucc
-            try simp [aSmt, tailSmt, tailD, hFullArgEq] at hsimpa ⊢
-            exact hsimpa
+            simpa' [aSmt, tailSmt, tailD, hFullArgEq] using hRhsSucc
           rw [hRhsSucc']
-          have hsimpa :=
+          simpa' [fullD, fullC, native_nateq, SmtEval.native_nateq] using
             (hSelEval.trans hOrigSucc).symm
-          try simp [fullD, fullC, native_nateq, SmtEval.native_nateq] at hsimpa ⊢
-          exact hsimpa
     · let pred := native_zplus n (-1 : native_Int)
       let tailRhs := __tuple_collapse_updater_rhs tail a (Term.Numeral pred)
       have hPredNonneg : 0 ≤ pred :=
@@ -1313,7 +1305,7 @@ private theorem tuple_collapse_updater_rhs_projection
                 __smtx_typeof
                     (__eo_to_smt_tuple_prepend headSmt headTy
                       (__eo_to_smt tailRhs)) ≠ SmtType.None
-              have hsimpa := hRhsPrependNN; (try simp [headSmt] at hsimpa ⊢); exact hsimpa)
+              simpa' [headSmt] using hRhsPrependNN)
       have hCRhs : cRhs = c := by
         have h := hRhsPrependTy.symm.trans hRhsTyBase
         injection h with _ hD'
@@ -1337,7 +1329,7 @@ private theorem tuple_collapse_updater_rhs_projection
                   __smtx_typeof
                       (__eo_to_smt_tuple_prepend headSmt headTy
                         (__eo_to_smt tailRhs)) ≠ SmtType.None
-                have hsimpa := hRhsPrependNN; (try simp [headSmt] at hsimpa ⊢); exact hsimpa)
+                simpa' [headSmt] using hRhsPrependNN)
           have hSelEval :
               __smtx_model_eval M
                   (SmtTerm.Apply
@@ -1361,7 +1353,7 @@ private theorem tuple_collapse_updater_rhs_projection
                   __smtx_typeof
                       (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) ≠
                     SmtType.None
-                have hsimpa := hTupleNN; (try simp [tupleTerm, headSmt, tailSmt, headTy] at hsimpa ⊢); exact hsimpa)
+                simpa' [tupleTerm, headSmt, tailSmt, headTy] using hTupleNN)
           have hRhsZero' :
               __vsm_apply_arg_nth
                   (__smtx_model_eval M
@@ -1371,9 +1363,7 @@ private theorem tuple_collapse_updater_rhs_projection
                   native_nat_zero
                   (__smtx_dt_num_sels fullD native_nat_zero) =
                 __smtx_model_eval M headSmt := by
-            have hsimpa := hRhsZero
-            try simp [headSmt, fullD, fullC] at hsimpa ⊢
-            exact hsimpa
+            simpa' [headSmt, fullD, fullC] using hRhsZero
           rw [hRhsZero']
           simpa [fullD, fullC, hNatSucc, native_nateq,
             SmtEval.native_nateq] using
@@ -1392,7 +1382,7 @@ private theorem tuple_collapse_updater_rhs_projection
                   __smtx_typeof
                       (__eo_to_smt_tuple_prepend headSmt headTy
                         (__eo_to_smt tailRhs)) ≠ SmtType.None
-                have hsimpa := hRhsPrependNN; (try simp [headSmt] at hsimpa ⊢); exact hsimpa)
+                simpa' [headSmt] using hRhsPrependNN)
               (by simpa [tailD] using hjTail)
           have hRecProj :=
             tuple_collapse_updater_rhs_projection M hM
@@ -1424,7 +1414,7 @@ private theorem tuple_collapse_updater_rhs_projection
                   __smtx_typeof
                       (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) ≠
                     SmtType.None
-                have hsimpa := hTupleNN; (try simp [tupleTerm, headSmt, tailSmt, headTy] at hsimpa ⊢); exact hsimpa)
+                simpa' [tupleTerm, headSmt, tailSmt, headTy] using hTupleNN)
               (by simpa [tailD] using hjTail)
           have hTailSelEval :
               __smtx_model_eval M
@@ -1467,9 +1457,7 @@ private theorem tuple_collapse_updater_rhs_projection
                   (Nat.succ j) (__smtx_dt_num_sels fullD native_nat_zero) =
                 __vsm_apply_arg_nth (__smtx_model_eval M (__eo_to_smt tailRhs))
                   j (__smtx_dt_num_sels tailD native_nat_zero) := by
-            have hsimpa := hRhsSucc
-            try simp [headSmt, tailD, fullD, fullC] at hsimpa ⊢
-            exact hsimpa
+            simpa' [headSmt, tailD, fullD, fullC] using hRhsSucc
           rw [hRhsSucc']
           rw [hRecProj]
           cases hEq : native_nateq (native_int_to_nat pred) j
@@ -1564,7 +1552,7 @@ private theorem tuple_collapse_updater_eval_eq
               __smtx_typeof
                   (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) ≠
                 SmtType.None
-            have hsimpa := hTupleNN; (try simp [tupleTerm, headSmt, tailSmt, headTy] at hsimpa ⊢); exact hsimpa)
+            simpa' [tupleTerm, headSmt, tailSmt, headTy] using hTupleNN)
     have hD : d = fullD := by
       rw [hT] at hTupleTyFull
       injection hTupleTyFull with _ hD'
@@ -1604,9 +1592,7 @@ private theorem tuple_collapse_updater_eval_eq
                 (SmtTerm.DtCons (native_string_lit "@Tuple")
                   (__smtx_tuple_datatype_decl fullD)
                   native_nat_zero)) := by
-        have hsimpa := hLhsEval
-        try simp [fullD, aSmt] at hsimpa ⊢
-        exact hsimpa
+        simpa' [fullD, aSmt] using hLhsEval
       have hANe : a ≠ Term.Stuck := by
         intro hA
         apply hRhsTermNN
@@ -1677,7 +1663,7 @@ private theorem tuple_collapse_updater_eval_eq
                 __smtx_typeof
                     (__eo_to_smt_tuple_prepend aSmt (__smtx_typeof aSmt)
                       tailSmt) ≠ SmtType.None
-              have hsimpa := hRhsNNBase; (try simp [aSmt, tailSmt] at hsimpa ⊢); exact hsimpa)
+              simpa' [aSmt, tailSmt] using hRhsNNBase)
       have hFullArgEq :
           SmtDatatype.sum (SmtDatatypeCons.cons (__smtx_typeof aSmt) c)
               SmtDatatype.null =
@@ -1732,10 +1718,8 @@ private theorem tuple_collapse_updater_eval_eq
                     __smtx_typeof
                         (__eo_to_smt_tuple_prepend aSmt (__smtx_typeof aSmt)
                           tailSmt) ≠ SmtType.None
-                  have hsimpa := hRhsNNBase; (try simp [aSmt, tailSmt] at hsimpa ⊢); exact hsimpa)
-            have hsimpa := hLhsArg.trans hRhsArg.symm
-            try simp [hCompCount, hRhsCount, hFullArgEq, aSmt] at hsimpa ⊢
-            exact hsimpa
+                  simpa' [aSmt, tailSmt] using hRhsNNBase)
+            simpa' [hCompCount, hRhsCount, hFullArgEq, aSmt] using hLhsArg.trans hRhsArg.symm
         | succ j =>
             have hjTail :
                 j < __smtx_dt_num_sels tailD native_nat_zero := by
@@ -1765,7 +1749,7 @@ private theorem tuple_collapse_updater_eval_eq
                     __smtx_typeof
                         (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) ≠
                       SmtType.None
-                  have hsimpa := hTupleNN; (try simp [tupleTerm, headSmt, tailSmt, headTy] at hsimpa ⊢); exact hsimpa)
+                  simpa' [tupleTerm, headSmt, tailSmt, headTy] using hTupleNN)
                 (by simpa [tailD] using hjTail)
             have hRhsSucc :=
               tuple_prepend_succ_projection M hM aSmt tailSmt
@@ -1776,7 +1760,7 @@ private theorem tuple_collapse_updater_eval_eq
                     __smtx_typeof
                         (__eo_to_smt_tuple_prepend aSmt (__smtx_typeof aSmt)
                           tailSmt) ≠ SmtType.None
-                  have hsimpa := hRhsNNBase; (try simp [aSmt, tailSmt] at hsimpa ⊢); exact hsimpa)
+                  simpa' [aSmt, tailSmt] using hRhsNNBase)
                 (by simpa [tailD] using hjTail)
             have hLhsArg' :
                 __vsm_apply_arg_nth
@@ -1817,10 +1801,8 @@ private theorem tuple_collapse_updater_eval_eq
                         (__eo_to_smt tupleTerm)) := by
                 simpa [hNe, tupleTerm] using hLhsArg
               exact hLhsSel.trans (hSelEval.trans hOrigSucc)
-            have hsimpa :=
+            simpa' [hCompCount, hRhsCount, hFullArgEq, hLhsArg', tailD] using
               hRhsSucc.symm
-            try simp [hCompCount, hRhsCount, hFullArgEq, hLhsArg', tailD] at hsimpa ⊢
-            exact hsimpa
     · have hLhsEval :=
         tuple_update_eval_eq_rec_of_tuple_type M hM (Term.Numeral n)
           tupleTerm a fullC n
@@ -1893,7 +1875,7 @@ private theorem tuple_collapse_updater_eval_eq
         rw [smt_model_eval_preserves_type_of_non_none M hM
           (__eo_to_smt
             (__tuple_collapse_updater_rhs tupleTerm a (Term.Numeral n)))
-          (by have hsimpa := hRhsNN; (try simp [tupleTerm] at hsimpa ⊢); exact hsimpa), hRhsTy]
+          (by simpa' [tupleTerm] using hRhsNN), hRhsTy]
       have hRhsHead :
           __vsm_apply_head
               (__smtx_model_eval M

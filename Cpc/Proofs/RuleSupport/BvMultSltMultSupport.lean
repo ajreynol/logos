@@ -874,7 +874,7 @@ private theorem mult_typeof_and_inv {p q : Term} :
     __eo_typeof p = Term.Bool ∧ __eo_typeof q = Term.Bool := by
   intro h
   exact RuleProofs.eo_typeof_or_bool_args (__eo_typeof p) (__eo_typeof q)
-    (by have hsimpa := h; (try simp at hsimpa ⊢); exact hsimpa)
+    (by simpa' using h)
 
 private theorem mult_typeof_not_inv {p : Term} :
     __eo_typeof (Term.Apply (Term.UOp UserOp.not) p) = Term.Bool ->
@@ -927,9 +927,7 @@ private theorem mult_int_to_bv_context
   cases w <;> simp [__eo_gt] at hGuard
   case Numeral W =>
     have hW0 : native_zleq 0 W = true := by
-      have hsimpa := hGuard
-      try simp [SmtEval.native_zlt, SmtEval.native_zleq] at hsimpa ⊢
-      exact hsimpa
+      simpa' [SmtEval.native_zlt, SmtEval.native_zleq] using hGuard
     exact ⟨W, rfl, hWidth, hW0⟩
 
 private theorem mult_smt_type_of_eo_bv
@@ -981,9 +979,7 @@ private theorem bv_mult_slt_rhs_context
   have hOrderNe' :
       __eo_typeof_bvult (__eo_typeof y) (__eo_typeof x) ≠ Term.Stuck := by
     cases unsigned <;>
-      (have hsimpa := hOrderNe
-       try simp at hsimpa ⊢
-       exact hsimpa)
+      (simpa' using hOrderNe)
   rcases RuleProofs.eo_typeof_bvult_args_of_ne_stuck _ _
       hOrderNe' with ⟨tWidth, hYTy, hXTy, _hTWidthNe⟩
   rcases smt_bitvec_type_of_eo_bitvec_type_with_width x tWidth
@@ -991,7 +987,7 @@ private theorem bv_mult_slt_rhs_context
   subst tWidth
   have hYSmtTy := mult_smt_type_of_eo_bv y T hYTrans hYTy hT0
   rcases RuleProofs.eo_typeof_bvult_args_of_ne_stuck _ _
-      (by have hsimpa := hSgtNe; (try simp at hsimpa ⊢); exact hsimpa) with ⟨uWidth, hATy, hZeroATy, _hUWidthNe⟩
+      (by simpa' using hSgtNe) with ⟨uWidth, hATy, hZeroATy, _hUWidthNe⟩
   rcases smt_bitvec_type_of_eo_bitvec_type_with_width a uWidth
       hATrans hATy with ⟨U, hUWidth, hU0, hASmtTy⟩
   subst uWidth
@@ -1034,9 +1030,7 @@ private theorem mult_extend_full_context
       __eo_typeof_zero_extend (__eo_typeof k) k (__eo_typeof z) ≠
         Term.Stuck := by
     cases unsigned <;>
-      (have hsimpa := hExtNe
-       try simp [bvMultSltExt] at hsimpa ⊢
-       exact hsimpa)
+      (simpa' [bvMultSltExt] using hExtNe)
   rw [hZTy] at hCore
   have hParts :
       __eo_typeof k = Term.UOp UserOp.Int ∧
@@ -1108,9 +1102,7 @@ private theorem bv_mult_slt_context
           (__eo_typeof (bvMultSltProduct unsigned y a n m))
           (__eo_typeof (bvMultSltProduct unsigned x a n m)) ≠
         Term.Stuck := by
-    have hsimpa := hLhsNe
-    try simp [bvMultSltLhs] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvMultSltLhs] using hLhsNe
   rcases RuleProofs.eo_typeof_bvult_args_of_ne_stuck _ _ hLhsCore with
     ⟨prodWidth, hProdYTy, hProdXTy, _hProdWidthNe⟩
   have hLhsTy : __eo_typeof (bvMultSltLhs unsigned x y a n m) =
@@ -1138,9 +1130,7 @@ private theorem bv_mult_slt_context
       __eo_typeof_bvand (__eo_typeof (bvMultSltExt unsigned n y))
           (__eo_typeof (bvMultSltTimesOne unsigned y a n m)) ≠
         Term.Stuck := by
-    have hsimpa := hProdYNe
-    try simp [bvMultSltProduct] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvMultSltProduct] using hProdYNe
   rcases RuleProofs.eo_typeof_bvand_args_of_ne_stuck _ _ hProdYCore with
     ⟨wide, hYExtTy, hTimesYTy, _hWideNe⟩
   have hTimesYNe : __eo_typeof (bvMultSltTimesOne unsigned y a n m) ≠
@@ -1152,9 +1142,7 @@ private theorem bv_mult_slt_context
       __eo_typeof_bvand
           (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.sign_extend m) a))
           (__eo_typeof (bvMultSltNil unsigned n y)) ≠ Term.Stuck := by
-    have hsimpa := hTimesYNe
-    try simp [bvMultSltTimesOne] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvMultSltTimesOne] using hTimesYNe
   rcases RuleProofs.eo_typeof_bvand_args_of_ne_stuck _ _ hTimesYCore with
     ⟨wideA, hAExtTy, _hNilYTy, _hWideANe⟩
   have hWideEq : wideA = wide := by
@@ -1732,11 +1720,11 @@ private theorem typed_bv_mult_slt_raw
   have hProdXSmt := mult_smt_typeof_bvmul
     (bvMultSltExt unsigned (Term.Numeral N) x)
     (bvMultSltTimesOne unsigned x a (Term.Numeral N) (Term.Numeral M))
-    Wide hXExtSmt' (by have hsimpa := hTimesXSmt; (try simp [bvMultSltTimesOne] at hsimpa ⊢); exact hsimpa)
+    Wide hXExtSmt' (by simpa' [bvMultSltTimesOne] using hTimesXSmt)
   have hProdYSmt := mult_smt_typeof_bvmul
     (bvMultSltExt unsigned (Term.Numeral N) y)
     (bvMultSltTimesOne unsigned y a (Term.Numeral N) (Term.Numeral M))
-    Wide hYExtSmt' (by have hsimpa := hTimesYSmt; (try simp [bvMultSltTimesOne] at hsimpa ⊢); exact hsimpa)
+    Wide hYExtSmt' (by simpa' [bvMultSltTimesOne] using hTimesYSmt)
   have hLhsBool := mult_smt_typeof_bvslt
     (bvMultSltProduct unsigned y a (Term.Numeral N) (Term.Numeral M))
     (bvMultSltProduct unsigned x a (Term.Numeral N) (Term.Numeral M))
@@ -1748,14 +1736,10 @@ private theorem typed_bv_mult_slt_raw
     (Term.UOp1 UserOp1.int_to_bv (Term.Numeral U)) (Term.Numeral 0)
   have hZeroTSmt : __smtx_typeof (__eo_to_smt zeroT) =
       SmtType.BitVec (native_int_to_nat T) := by
-    have hsimpa := smtx_typeof_int_to_bv_numerals T 0 hT0
-    try simp [zeroT] at hsimpa ⊢
-    exact hsimpa
+    simpa' [zeroT] using smtx_typeof_int_to_bv_numerals T 0 hT0
   have hZeroUSmt : __smtx_typeof (__eo_to_smt zeroU) =
       SmtType.BitVec (native_int_to_nat U) := by
-    have hsimpa := smtx_typeof_int_to_bv_numerals U 0 hU0
-    try simp [zeroU] at hsimpa ⊢
-    exact hsimpa
+    simpa' [zeroU] using smtx_typeof_int_to_bv_numerals U 0 hU0
   let sub := Term.Apply (Term.Apply (Term.UOp UserOp.bvsub) y) x
   have hSubSmt := mult_smt_typeof_bvsub y x (native_int_to_nat T)
     hYSmtTy hXSmtTy

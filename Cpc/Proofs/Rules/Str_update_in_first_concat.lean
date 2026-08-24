@@ -509,29 +509,19 @@ private theorem facts___eo_prog_str_update_in_first_concat_impl
     exact hUpdate
   have hTSeqTy : __smtx_typeof_seq_value st =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hTEvalTy
-    try simp [hTEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hTEval] using hTEvalTy
   have hTailSeqTy : __smtx_typeof_seq_value stail =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hTailEvalTy
-    try simp [hTailEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hTailEval] using hTailEvalTy
   have hSSeqTy : __smtx_typeof_seq_value ss =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hSEvalTy
-    try simp [hSEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hSEval] using hSEvalTy
   have hPreSeqTy : __smtx_typeof_seq_value spre =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hPreEvalTy
-    try simp [hPreEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hPreEval] using hPreEvalTy
   have hPostSeqTy : __smtx_typeof_seq_value spost =
       SmtType.Seq (__eo_to_smt_type T) := by
-    have hsimpa := hPostEvalTy
-    try simp [hPostEval] at hsimpa ⊢
-    exact hsimpa
+    simpa' [hPostEval] using hPostEvalTy
   have hTElem : __smtx_elem_typeof_seq_value st = __eo_to_smt_type T :=
     elem_typeof_seq_value_of_typeof_seq_value hTSeqTy
   have hTailElem : __smtx_elem_typeof_seq_value stail = __eo_to_smt_type T :=

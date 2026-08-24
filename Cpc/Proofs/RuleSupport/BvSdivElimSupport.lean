@@ -140,9 +140,7 @@ private theorem bv_sdiv_context (x y nm : Term) :
       __eo_typeof (bvSdivSign nm x) = Term.Bool ∧
         __eo_typeof (bvSdivSign nm y) = Term.Bool := by
     apply typeof_or_bool_args
-    have hsimpa := hOuter.1
-    try simp at hsimpa ⊢
-    exact hsimpa
+    simpa' using hOuter.1
   have hExtractNe : __eo_typeof (bvSdivExtract nm x) ≠ Term.Stuck :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
       (by simpa [bvSdivSign, __eo_typeof, __eo_typeof_or, __eo_typeof_eq, bvSdivBitOne, bvSdivExtract] using hSigns.1)).1
@@ -220,9 +218,7 @@ private theorem typed_bv_sdiv_term (x y nm : Term) :
         (bvSdivExtract (Term.Numeral n) y)) = SmtType.BitVec 1 := by
     have h := smt_typeof_extract_of_context y w n n hYSmtTy hw0 hn0 hnW
       hOneWidth
-    have hsimpa := h
-    try simp [bvSdivExtract, hOneIndex, native_int_to_nat, SmtEval.native_int_to_nat] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvSdivExtract, hOneIndex, native_int_to_nat, SmtEval.native_int_to_nat] using h
   have hBitOneTy :
       __smtx_typeof (__eo_to_smt bvSdivBitOne) = SmtType.BitVec 1 := by
     simpa [bvSdivBitOne, native_int_to_nat, SmtEval.native_int_to_nat]
@@ -438,9 +434,7 @@ theorem eval_bv_sdiv_sign
   have hOne' :
       __smtx_model_eval M (__eo_to_smt bvSdivBitOne) =
         SmtValue.Binary 1 1 := by
-    have hsimpa := hOne
-    try simp [bvSdivBitOne] at hsimpa ⊢
-    exact hsimpa
+    simpa' [bvSdivBitOne] using hOne
   rw [hOne']
   rfl
 

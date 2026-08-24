@@ -69,9 +69,7 @@ private theorem typeof_a1_set_of_result_bool (a1 T0 : Term) :
       __eo_typeof_eq
           (__eo_typeof_set_is_empty (__eo_typeof a1))
           (__eo_typeof (setsIsEmptyRhs a1 T0)) = Term.Bool := by
-    have hsimpa := hTy
-    try simp [SetsBasicRewritesSupport.mkEq] at hsimpa ⊢
-    exact hsimpa
+    simpa' [SetsBasicRewritesSupport.mkEq] using hTy
   rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with ⟨hSame, hLNS⟩
   have hA1Set : ∃ U, __eo_typeof a1 = Term.Apply (Term.UOp UserOp.Set) U := by
     cases hA1Ty : __eo_typeof a1
@@ -94,9 +92,7 @@ private theorem typeof_a1_set_of_result_bool (a1 T0 : Term) :
   have hInnerEqTy :
       __eo_typeof_eq (__eo_typeof a1)
           (__eo_typeof (SetsBasicRewritesSupport.mkSetEmpty T0)) = Term.Bool := by
-    have hsimpa := hRhsBool
-    try simp [setsIsEmptyRhs, SetsBasicRewritesSupport.mkEq] at hsimpa ⊢
-    exact hsimpa
+    simpa' [setsIsEmptyRhs, SetsBasicRewritesSupport.mkEq] using hRhsBool
   rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hInnerEqTy with
     ⟨hInnerSame, _⟩
   have hEmptyTy :

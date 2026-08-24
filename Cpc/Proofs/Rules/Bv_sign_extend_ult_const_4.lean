@@ -99,9 +99,7 @@ by
                                                   (bvSignExtendUltConst4Program
                                                     x m c nm nm2 P1 P2 P3) =
                                                 Term.Bool := by
-                                            have hsimpa := hResultTy
-                                            try simp [P1, P2, P3] at hsimpa ⊢
-                                            exact hsimpa
+                                            simpa' [P1, P2, P3] using hResultTy
                                           refine ⟨?_, ?_⟩
                                           · intro hPremisesTrue
                                             have hP1True :

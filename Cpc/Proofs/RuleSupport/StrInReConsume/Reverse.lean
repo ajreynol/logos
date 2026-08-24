@@ -854,9 +854,7 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_word_suffixes_false_local
       have hListMem :
           nativeListInRe suf
               (native_re_mk_concat A (native_str_to_re u)) = true := by
-        have hsimpa := hMem
-        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_str_in_re, native_re_concat, hValid] using hMem
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           (native_str_to_re u)).1 hListMem with
         ⟨x, y, hSplit, hX, hY⟩
@@ -912,9 +910,7 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_len_one_suffixes_false_loca
         | false => simp [native_str_in_re, h] at hMem
       have hListMem :
           nativeListInRe suf (native_re_mk_concat A H) = true := by
-        have hsimpa := hMem
-        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_str_in_re, native_re_concat, hValid] using hMem
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           H).1 hListMem with
         ⟨x, y, hSplit, hX, hY⟩
@@ -1204,9 +1200,7 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_mismatch_suffixes_false_loc
         | false => simp [native_str_in_re, h] at hMem
       have hListMem :
           nativeListInRe suf (native_re_mk_concat A H) = true := by
-        have hsimpa := hMem
-        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_str_in_re, native_re_concat, hValid] using hMem
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           H).1 hListMem with
         ⟨x, y, hSplit, _hX, hY⟩
@@ -1260,10 +1254,8 @@ theorem StrInReConsumeInternal.native_str_in_re_star_nonempty_suffix_local
     have hStarEq :
         StrInReConsumeInternal.native_re_reverse_raw_consume_local (native_re_mult r) =
           native_re_mult (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) := by
-      have hsimpa :=
+      simpa' [native_re_mult] using
         StrInReConsumeInternal.native_re_reverse_raw_mk_star_consume_local r
-      try simp [native_re_mult] at hsimpa ⊢
-      exact hsimpa
     rw [hStarEq] at hMem
     exact hMem
   have hRevListMem :
@@ -1333,9 +1325,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_star_suffixes_false_local
       have hListMem :
           nativeListInRe suf
               (native_re_mk_concat A (native_re_mult B)) = true := by
-        have hsimpa := hMem
-        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_str_in_re, native_re_concat, hValid] using hMem
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           (native_re_mult B)).1 hListMem with
         ⟨x, y, hSplit, hX, hY⟩
@@ -1411,9 +1401,7 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_len_one_eq_consume_local
         have hListMem :
             nativeListInRe (w ++ u) (native_re_mk_concat A H) =
               true := by
-          have hsimpa := hMem
-          try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
-          exact hsimpa
+          simpa' [native_str_in_re, native_re_concat, hValid] using hMem
         rcases (nativeListInRe_mk_concat_true_iff_exists_append _ A
             H).1 hListMem with
           ⟨x, y, hSplit, hX, hY⟩
@@ -1455,9 +1443,7 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_word_eq_consume_local
             nativeListInRe (w ++ u)
                 (native_re_mk_concat A (native_str_to_re u)) =
               true := by
-          have hsimpa := hMem
-          try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
-          exact hsimpa
+          simpa' [native_str_in_re, native_re_concat, hValid] using hMem
         rcases (nativeListInRe_mk_concat_true_iff_exists_append _ A
             (native_str_to_re u)).1 hListMem with
           ⟨x, y, hSplit, hX, hY⟩
@@ -1511,9 +1497,7 @@ theorem StrInReConsumeInternal.typed_seq_unpack_values_of_eval_local
       rw [hTy]
       simp)
   rw [hEval, hTy] at h
-  have hsimpa := h
-  try simp at hsimpa ⊢
-  exact hsimpa
+  simpa' using h
 
 theorem StrInReConsumeInternal.typed_seq_value_of_eval_local
     (M : SmtModel) (hM : model_total_typed M) (s : SmtTerm) (ss : SmtSeq)
@@ -1642,9 +1626,7 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_word_mismatch_suffixes_fals
       have hListMem :
           nativeListInRe suf
               (native_re_mk_concat A (native_str_to_re [d])) = true := by
-        have hsimpa := hMem
-        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_str_in_re, native_re_concat, hValid] using hMem
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           (native_str_to_re [d])).1 hListMem with
         ⟨x, y, hSplit, _hX, hY⟩
@@ -1923,9 +1905,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_no_suffix_right_false_loc
         | false => simp [native_str_in_re, h] at hMem
       have hListMem :
           nativeListInRe suf (native_re_mk_concat A H) = true := by
-        have hsimpa := hMem
-        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_str_in_re, native_re_concat, hValid] using hMem
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           H).1 hListMem with ⟨x, y, hSplit, _hX, hY⟩
       have hYValid : native_string_valid y = true :=
@@ -2090,9 +2070,7 @@ theorem StrInReConsumeInternal.consume_no_suffix_concat_of_residual_local
           nativeListInRe w'
               (native_re_mk_concat (native_str_to_re pre) rvU2) =
             true := by
-        have hsimpa := hLhs
-        try simp [native_str_in_re, native_re_concat, hW'Valid] at hsimpa ⊢
-        exact hsimpa
+        simpa' [native_str_in_re, native_re_concat, hW'Valid] using hLhs
       rcases (nativeListInRe_mk_concat_true_iff_exists_append w' _
           _).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
       have hXValid : native_string_valid x = true :=
@@ -2624,9 +2602,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_left_no_suffix_eq_l
             nativeListInRe w
                 (native_re_mk_concat qv (native_re_union v1 v2)) =
               true := by
-          have hsimpa := hMem
-          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
-          exact hsimpa
+          simpa' [native_str_in_re, native_re_concat, hWV] using hMem
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             _).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2658,9 +2634,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_left_no_suffix_eq_l
       · intro hMem
         have hListMem :
             nativeListInRe w (native_re_mk_concat qv v2) = true := by
-          have hsimpa := hMem
-          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
-          exact hsimpa
+          simpa' [native_str_in_re, native_re_concat, hWV] using hMem
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             v2).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2714,9 +2688,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_right_no_suffix_eq_
             nativeListInRe w
                 (native_re_mk_concat qv (native_re_union v1 v2)) =
               true := by
-          have hsimpa := hMem
-          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
-          exact hsimpa
+          simpa' [native_str_in_re, native_re_concat, hWV] using hMem
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             _).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2748,9 +2720,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_right_no_suffix_eq_
       · intro hMem
         have hListMem :
             nativeListInRe w (native_re_mk_concat qv v1) = true := by
-          have hsimpa := hMem
-          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
-          exact hsimpa
+          simpa' [native_str_in_re, native_re_concat, hWV] using hMem
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             v1).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2804,9 +2774,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_both_eq_local
             nativeListInRe w
                 (native_re_mk_concat qv (native_re_union v1 v2)) =
               true := by
-          have hsimpa := hMem
-          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
-          exact hsimpa
+          simpa' [native_str_in_re, native_re_concat, hWV] using hMem
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             _).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2849,9 +2817,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_both_eq_local
           exact hMem
         have hListMem :
             nativeListInRe w (native_re_mk_concat qv v1) = true := by
-          have hsimpa := hW1
-          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
-          exact hsimpa
+          simpa' [native_str_in_re, native_re_concat, hWV] using hW1
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             v1).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2906,9 +2872,7 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_inter_both_eq_local
             nativeListInRe w
                 (native_re_mk_concat qv (native_re_inter v1 v2)) =
               true := by
-          have hsimpa := hMem
-          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
-          exact hsimpa
+          simpa' [native_str_in_re, native_re_concat, hWV] using hMem
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             _).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -4210,10 +4174,8 @@ theorem StrInReConsumeInternal.native_str_in_re_star_nonempty_suffix_full_local
     have hStarEq :
         StrInReConsumeInternal.native_re_reverse_raw_consume_local (native_re_mult r) =
           native_re_mult (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) := by
-      have hsimpa :=
+      simpa' [native_re_mult] using
         StrInReConsumeInternal.native_re_reverse_raw_mk_star_consume_local r
-      try simp [native_re_mult] at hsimpa ⊢
-      exact hsimpa
     rw [hStarEq] at hMem
     exact hMem
   have hRevListMem :
@@ -4254,10 +4216,8 @@ theorem StrInReConsumeInternal.native_str_in_re_star_nonempty_suffix_full_local
     have hStarEq :
         StrInReConsumeInternal.native_re_reverse_raw_consume_local (native_re_mult r) =
           native_re_mult (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) := by
-      have hsimpa :=
+      simpa' [native_re_mult] using
         StrInReConsumeInternal.native_re_reverse_raw_mk_star_consume_local r
-      try simp [native_re_mult] at hsimpa ⊢
-      exact hsimpa
     rw [hStarEq] at hEq
     rw [← hEq]
     exact hSufStrMem
@@ -4292,10 +4252,8 @@ theorem StrInReConsumeInternal.native_str_in_re_star_append_local
   have hStarEq :
       StrInReConsumeInternal.native_re_reverse_raw_consume_local (native_re_mult B) =
         native_re_mult (StrInReConsumeInternal.native_re_reverse_raw_consume_local B) := by
-    have hsimpa :=
+    simpa' [native_re_mult] using
       StrInReConsumeInternal.native_re_reverse_raw_mk_star_consume_local B
-    try simp [native_re_mult] at hsimpa ⊢
-    exact hsimpa
   have hBsRev :
       native_str_in_re bs.reverse
           (native_re_mult (StrInReConsumeInternal.native_re_reverse_raw_consume_local B)) =
@@ -4471,9 +4429,7 @@ theorem StrInReConsumeInternal.consume_mult_left_false_residual_eq_local
           exact hMem
         have hListMem :
             nativeListInRe w (native_re_mk_concat qv A) = true := by
-          have hsimpa := hW1
-          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
-          exact hsimpa
+          simpa' [native_str_in_re, native_re_concat, hWV] using hW1
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             A).1 hListMem with ⟨α, x, hSplit, hAl, hXm⟩
         have hAlValid : native_string_valid α = true :=

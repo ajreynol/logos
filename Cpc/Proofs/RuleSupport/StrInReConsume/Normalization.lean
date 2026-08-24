@@ -4675,9 +4675,7 @@ theorem StrInReConsumeInternal.consume_str_in_re_concat_intro_local
       true :=
     (nativeListInRe_mk_concat_true_iff_exists_append (x1 ++ x2) r
       s).2 ⟨x1, x2, rfl, hL1, hL2⟩
-  have hsimpa := hL
-  try simp [native_str_in_re, hV, native_re_concat] at hsimpa ⊢
-  exact hsimpa
+  simpa' [native_str_in_re, hV, native_re_concat] using hL
 
 theorem StrInReConsumeInternal.consume_str_in_re_concat_elim_local
     (w : native_String) (r s : SmtRegLan)
@@ -4687,9 +4685,7 @@ theorem StrInReConsumeInternal.consume_str_in_re_concat_elim_local
       x1 ++ x2 = w ∧ native_str_in_re x1 r = true ∧
         native_str_in_re x2 s = true := by
   have hL : nativeListInRe w (native_re_mk_concat r s) = true := by
-    have hsimpa := h
-    try simp [native_str_in_re, hV, native_re_concat] at hsimpa ⊢
-    exact hsimpa
+    simpa' [native_str_in_re, hV, native_re_concat] using h
   rcases (nativeListInRe_mk_concat_true_iff_exists_append w r s).1 hL
     with ⟨x1, x2, hApp, hL1, hL2⟩
   subst hApp

@@ -170,9 +170,7 @@ theorem typed_concl
     smtx_typeof_str_to_re_of_seq_char s hSTy
   have hStrToReSmtTy :
       __smtx_typeof (SmtTerm.str_to_re (__eo_to_smt s)) = SmtType.RegLan := by
-    have hsimpa := hStrToReTy
-    try simp at hsimpa ⊢
-    exact hsimpa
+    simpa' using hStrToReTy
   have hInnerTy :
       __smtx_typeof (__eo_to_smt (reInter x ys)) = SmtType.RegLan := by
     change __smtx_typeof (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt ys)) =

@@ -102,9 +102,7 @@ by
                                                   (bvConcatExtractMergeProgram xs x
                                                     ys i j1 j2 k P) =
                                                 Term.Bool := by
-                                            have hsimpa := hResultTy
-                                            try simp [P] at hsimpa ⊢
-                                            exact hsimpa
+                                            simpa' [P] using hResultTy
                                           have hProgramNe :
                                               bvConcatExtractMergeProgram xs x ys i
                                                   j1 j2 k P ≠ Term.Stuck :=

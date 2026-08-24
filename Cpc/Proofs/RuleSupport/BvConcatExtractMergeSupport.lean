@@ -335,7 +335,7 @@ private theorem bv_concat_extract_merge_body_context
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvConcatExtractMergeLhs xs s ys i j1 j2 k))
       (__eo_typeof (bvConcatExtractMergeRhs xs s ys i k))
-      (by have hsimpa := hTermTy; (try simp [bvConcatExtractMergeTerm] at hsimpa ⊢); exact hsimpa)).1
+      (by simpa' [bvConcatExtractMergeTerm] using hTermTy)).1
   have hLhsTermNe :=
     (bv_concat_extract_merge_body_args_ne_stuck
       xs s ys i j1 j2 k hBodyTy).1
@@ -350,12 +350,12 @@ private theorem bv_concat_extract_merge_body_context
     eo_is_list_tail_true_of_cons_self
       (Term.UOp UserOp.concat) (bvConcatExtractMergeHigh s k j2)
       (bvConcatTerm (bvConcatExtractMergeLow s j1 i) ys)
-      (by have hsimpa := hLeftSeedList; (try simp [bvConcatExtractMergeLeftSeed] at hsimpa ⊢); exact hsimpa)
+      (by simpa' [bvConcatExtractMergeLeftSeed] using hLeftSeedList)
   have hYsList :
       __eo_is_list (Term.UOp UserOp.concat) ys = Term.Boolean true :=
     eo_is_list_tail_true_of_cons_self
       (Term.UOp UserOp.concat) (bvConcatExtractMergeLow s j1 i) ys
-      (by have hsimpa := hInnerList; (try simp at hsimpa ⊢); exact hsimpa)
+      (by simpa' using hInnerList)
   have hLeftSeedTyNe :
       __eo_typeof (bvConcatExtractMergeLeftSeed s i j1 j2 k ys) ≠
         Term.Stuck :=
@@ -490,7 +490,7 @@ private theorem bv_concat_extract_merge_body_context
       __eo_typeof (bvConcatExtractMergeLhs xs s ys i j1 j2 k) =
         __eo_typeof (bvConcatExtractMergeRhs xs s ys i k) :=
     RuleProofs.eo_typeof_eq_bool_operands_eq _ _
-      (by have hsimpa := hTermTy; (try simp [bvConcatExtractMergeTerm] at hsimpa ⊢); exact hsimpa)
+      (by simpa' [bvConcatExtractMergeTerm] using hTermTy)
   have hRhsEoTy :
       __eo_typeof
           (bvConcatExtractMergeRhs xs s ys (Term.Numeral iv)
@@ -1014,7 +1014,7 @@ theorem typed_bv_concat_extract_merge_program
     (__eo_typeof
       (bvConcatExtractMergeRhs xs s ys (Term.Numeral iv)
         (Term.Numeral kv)))
-    (by have hsimpa := hTermTy; (try simp [bvConcatExtractMergeTerm] at hsimpa ⊢); exact hsimpa)
+    (by simpa' [bvConcatExtractMergeTerm] using hTermTy)
   have hLhsTrans : RuleProofs.eo_has_smt_translation
       (bvConcatExtractMergeLhs xs s ys (Term.Numeral iv)
         (Term.Numeral j1v) (Term.Numeral j2v) (Term.Numeral kv)) := by
