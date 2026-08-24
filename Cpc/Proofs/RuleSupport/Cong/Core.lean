@@ -260,7 +260,8 @@ theorem eo_list_rev_and_premiseAndFormulaList :
   simp [__eo_requires, premiseAndFormulaList_is_and_list,
     eo_get_nil_rec_and_premiseAndFormulaList, native_ite, native_teq,
     native_not, SmtEval.native_not]
-  simpa using eo_list_rev_rec_and_premiseAndFormulaList ps []
+  simpa [premiseAndFormulaList] using
+    eo_list_rev_rec_and_premiseAndFormulaList ps []
 
 theorem all_interpreted_true_reverse
     (M : SmtModel) (ps : List Term) :
@@ -1600,12 +1601,12 @@ theorem congTrueSpine_not_eq_true
         (Term.Apply (Term.UOp UserOp.not) x)
         (Term.Apply (Term.UOp UserOp.not) y) hEqBool
     have hxNotNN :
-        __smtx_typeof (SmtTerm.not (__eo_to_smt x)) ≠ SmtType.None := by
-      simpa using hTypes.2
+        __smtx_typeof (SmtTerm.not (__eo_to_smt x)) ≠ SmtType.None :=
+      hTypes.2
     have hyNotNN :
         __smtx_typeof (SmtTerm.not (__eo_to_smt y)) ≠ SmtType.None := by
       rw [hTypes.1] at hTypes
-      simpa using hTypes.2
+      exact hTypes.2
     have hxBool :
         __smtx_typeof (__eo_to_smt x) = SmtType.Bool :=
       smt_typeof_not_arg_bool_of_non_none (__eo_to_smt x) hxNotNN
@@ -2081,7 +2082,7 @@ theorem native_str_in_re_re_concat_congr
             native_list_in_re ys r₂ = native_list_in_re ys r₂' := by
       intro ys hys
       simpa [native_str_in_re, native_list_in_re, hys] using h₂ ys hys
-    simpa [native_str_in_re, native_list_in_re, native_re_concat, hValid] using
+    simpa [native_str_in_re, native_list_in_re, native_re_concat, hValid, native_list_in_re_mk_concat_congr_valid, native_re_mk_concat] using
       native_list_in_re_mk_concat_congr_valid s r₁ r₁' r₂ r₂'
         hValid h₁List h₂List
   · have hInvalid : native_string_valid s = false := by

@@ -110,7 +110,9 @@ theorem bv_all_ones_const_context
   cases w <;> simp [__eo_gt] at hGuard
   case Numeral W =>
     have hW0 : native_zleq 0 W = true := by
-      simpa [SmtEval.native_zlt, SmtEval.native_zleq] using hGuard
+      have hsimpa := hGuard
+      try simp [SmtEval.native_zlt, SmtEval.native_zleq] at hsimpa ⊢
+      exact hsimpa
     exact ⟨W, rfl, hWidth, hW0, hNTy⟩
 
 theorem bv_ule_max_context
@@ -510,7 +512,9 @@ theorem typed_bv_ult_ones_term
             (__eo_to_smt
               (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral W)) n))) =
         SmtType.Bool := by
-    simpa [RuleProofs.eo_has_bool_type] using hEqBool
+    have hsimpa := hEqBool
+    try simp [RuleProofs.eo_has_bool_type] at hsimpa ⊢
+    exact hsimpa
   have hEqOpTy :
       __smtx_typeof_eq (__smtx_typeof (__eo_to_smt x))
           (__smtx_typeof

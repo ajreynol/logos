@@ -91,7 +91,7 @@ private theorem facts
         (SmtTerm.re_inter (__eo_to_smt r1)
           (SmtTerm.re_inter (SmtTerm.re_comp (__eo_to_smt r2))
             SmtTerm.re_all)) = SmtType.RegLan by
-      simpa [lhs, mkReInter, mkReComp] using hLhsTy]
+      have hsimpa := hLhsTy; (try simp [lhs, mkReInter, mkReComp] at hsimpa ⊢); exact hsimpa]
     simp
   have hArgs := reglan_binop_args_of_non_none (op := SmtTerm.re_inter)
     (typeof_re_inter_eq (__eo_to_smt r1)
@@ -181,7 +181,9 @@ by
               change StepRuleProperties M []
                 (__eo_prog_re_inter_inclusion a1)
               have hLocal : __eo_prog_re_inter_inclusion a1 ≠ Term.Stuck := by
-                simpa using hProg
+                have hsimpa := hProg
+                try simp at hsimpa ⊢
+                exact hsimpa
               rcases ReInterInclusionProof.prog_form a1 hLocal with
                 ⟨r1, r2, flat1, flat2, side, hA1Eq, hFlat1, hFlat2,
                   hSide, hSideTrue, hProgEq⟩

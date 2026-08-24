@@ -333,8 +333,9 @@ private theorem extractLead_operand_context
           (__eo_typeof
             (extractLeadApp2 (Term.UOp UserOp.concat) tail
               (Term.Binary 0 0))) ≠ Term.Stuck := by
-    simpa [bvExtractMultLeadingOperand, extractLeadApp1, extractLeadApp2]
-      using hOperandNe
+    have hsimpa := hOperandNe
+    try simp [bvExtractMultLeadingOperand, extractLeadApp1, extractLeadApp2] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hOuterCore with
     ⟨prefixWidth, tailWidth, hPrefixTy, hTailConcatTy⟩
   have hPrefixNe :
@@ -360,7 +361,9 @@ private theorem extractLead_operand_context
   have hTailCore :
       __eo_typeof_concat (__eo_typeof tail)
           (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
-    simpa [extractLeadApp2] using hTailConcatNe
+    have hsimpa := hTailConcatNe
+    try simp [extractLeadApp2] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hTailCore with
     ⟨tailArgWidth, _emptyWidth, hTailTyRaw, _hEmptyTy⟩
   rcases smt_bitvec_type_of_eo_bitvec_type_with_width tail tailArgWidth
@@ -538,7 +541,9 @@ private theorem bvExtractMultLeading_context
               (__eo_nil (Term.UOp UserOp.bvmul)
                 (__eo_typeof (bvExtractMultLeadingOperand xi xin x))))) ≠
         Term.Stuck := by
-    simpa [bvExtractMultLeadingProduct, extractLeadApp2] using hProductTyNe
+    have hsimpa := hProductTyNe
+    try simp [bvExtractMultLeadingProduct, extractLeadApp2] at hsimpa ⊢
+    exact hsimpa
   rcases RuleProofs.eo_typeof_bvand_args_of_ne_stuck _ _ hProductCore with
     ⟨fullWidth, hXFullTy, hInnerTy, _hFullWidthNe⟩
   have hInnerNe :
@@ -558,7 +563,9 @@ private theorem bvExtractMultLeading_context
             (__eo_nil (Term.UOp UserOp.bvmul)
               (__eo_typeof (bvExtractMultLeadingOperand xi xin x)))) ≠
         Term.Stuck := by
-    simpa [extractLeadApp2] using hInnerNe
+    have hsimpa := hInnerNe
+    try simp [extractLeadApp2] at hsimpa ⊢
+    exact hsimpa
   rcases RuleProofs.eo_typeof_bvand_args_of_ne_stuck _ _ hInnerCore with
     ⟨innerWidth, hYFullTy, hNilTy, _hInnerWidthNe⟩
   have hInnerWidth : innerWidth = fullWidth := by
@@ -604,7 +611,9 @@ private theorem bvExtractMultLeading_context
     have h2 : (0 : Int) ≤ XW := by
       simpa [SmtEval.native_zleq] using hXW0
     have : (0 : Int) ≤ XIN + XW := by omega
-    simpa [SmtEval.native_zleq, SmtEval.native_zplus] using this
+    have hsimpa := this
+    try simp [SmtEval.native_zleq, SmtEval.native_zplus] at hsimpa ⊢
+    exact decide_eq_true hsimpa
   let FW := native_int_to_nat (native_zplus XIN XW)
   have hNatX :
       FW = native_int_to_nat XIN + native_int_to_nat XW := by
@@ -916,7 +925,9 @@ private theorem bvExtractMultLeadingZerosInt_eq_nat
     unfold native_int_log2
     have hCast := Int.natCast_sub hLogLe
     rw [← hnRound]
-    simpa [native_nat_to_int, SmtEval.native_nat_to_int] using hCast.symm
+    have hsimpa := hCast.symm
+    try simp [native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+    exact hsimpa
 
 private theorem extractLead_low_of_premise
     (M : SmtModel) (low xi x yi : Term)

@@ -352,7 +352,7 @@ private theorem eq_rhs_ite_bad_tester_not_bool
           (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt c))
             (__eo_to_smt t)) =
         SmtType.None := by
-      simpa using hNone
+      exact hNone
     change
       __smtx_typeof
         (SmtTerm.ite
@@ -1460,7 +1460,7 @@ private theorem dt_updater_elim_update_rel
                   native_nat_zero)
                 (__eo_to_smt t)) := by
           unfold term_has_non_none_type
-          simpa [__eo_to_smt_tester] using hCondRhsNN
+          exact hCondRhsNN
         have hTupleTType :=
           dt_tester_arg_datatype_of_non_none hTupleCondNN
         rw [hTType] at hTupleTType

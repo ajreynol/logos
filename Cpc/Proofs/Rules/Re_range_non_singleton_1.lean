@@ -324,8 +324,7 @@ by
                           TranslationProofs.eo_to_smt_typeof_matches_translation
                             a1 hA1Trans
                         rw [hArgTypes.1] at hTyRaw
-                        simpa [TranslationProofs.eo_to_smt_type_seq,
-                          TranslationProofs.eo_to_smt_type_char] using hTyRaw
+                        exact hTyRaw
                       have hA2SmtTy :
                           __smtx_typeof (__eo_to_smt a2) =
                             SmtType.Seq SmtType.Char := by
@@ -335,8 +334,7 @@ by
                           TranslationProofs.eo_to_smt_typeof_matches_translation
                             a2 hA2Trans
                         rw [hArgTypes.2] at hTyRaw
-                        simpa [TranslationProofs.eo_to_smt_type_seq,
-                          TranslationProofs.eo_to_smt_type_char] using hTyRaw
+                        exact hTyRaw
                       have hBool :=
                         ReRangeNonSingleton1Proof.typed_concl a1 a2 hA1SmtTy hA2SmtTy
                       rw [hProgEq]

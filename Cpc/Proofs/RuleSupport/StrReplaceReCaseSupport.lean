@@ -259,6 +259,7 @@ private theorem find_some_shortest (r : SmtRegLan) :
           simp [hPref] at hFind
           obtain ⟨rfl, rfl⟩ := hFind
           have hSpec := prefix_some_shortest r (c :: cs) n hValid hPref
+          simp only [native_string_to_values, List.map] at hSpec
           refine ⟨by simp, by simp, ?_, ?_, ?_⟩
           · simpa using hSpec.1
           · simpa using hSpec.2.1
@@ -683,13 +684,19 @@ private theorem extract_pack_string
   simp only [List.length_map, apply_ite, List.map_nil,
     List.map_take, List.map_drop]
   split <;> simp_all
-  intro hbad
-  rcases ‹(0 ≤ i ∧ 0 < n) ∧ i < Int.ofNat s.length› with
-    ⟨⟨hi0, hn0⟩, hilt⟩
-  rcases hbad with (hi | hn) | hlen
-  · exact False.elim ((Int.not_lt_of_ge hi0) hi)
-  · exact False.elim ((Int.not_le_of_gt hn0) hn)
-  · exact False.elim ((Int.not_le_of_gt hilt) hlen)
+  -- v4.33 `simp_all` no longer pushes the `ite` through `List.map`, so the
+  -- guard has to be discharged explicitly before the two sides line up.
+  have hbadFalse :
+      ¬ (((i < 0 ∨ n ≤ 0) ∨ ((s.length : Int)) ≤ i)) := by
+    intro hbad
+    rcases ‹(0 ≤ i ∧ 0 < n) ∧ i < Int.ofNat s.length› with
+      ⟨⟨hi0, hn0⟩, hilt⟩
+    rcases hbad with (hi | hn) | hlen
+    · exact False.elim ((Int.not_lt_of_ge hi0) hi)
+    · exact False.elim ((Int.not_le_of_gt hn0) hn)
+    · exact False.elim ((Int.not_le_of_gt hilt) hlen)
+  rw [if_neg hbadFalse]
+  simp [List.map_take, List.map_drop]
 
 private theorem unpack_extract_pack_string
     (s : native_String) (i n : native_Int) :
@@ -781,7 +788,7 @@ theorem str_replace_re_reduction_pred_true
   let tx := __eo_to_smt x
   have hOrigNN :
       term_has_non_none_type (SmtTerm.str_replace_re tz ty tx) := by
-    simpa [tz, ty, tx, RuleProofs.eo_has_smt_translation] using hTrans
+    exact hTrans
   rcases str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re)
       (typeof_str_replace_re_eq tz ty tx) hOrigNN with
     ⟨hzTy, hyTy, hxTy⟩
@@ -799,13 +806,13 @@ theorem str_replace_re_reduction_pred_true
     exact seq_ne_none SmtType.Char
   have hZTermNe : z ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation z (by
-      simpa [tz, RuleProofs.eo_has_smt_translation] using hZNN)
+      exact hZNN)
   have hYTermNe : y ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation y (by
-      simpa [ty, RuleProofs.eo_has_smt_translation] using hYNN)
+      exact hYNN)
   have hXTermNe : x ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation x (by
-      simpa [tx, RuleProofs.eo_has_smt_translation] using hXNN)
+      exact hXNN)
   have hClosedArgs :
       __eo_is_closed z = Term.Boolean true ∧
         __eo_is_closed y = Term.Boolean true ∧
@@ -1305,7 +1312,7 @@ theorem str_replace_re_reduction_pred_true
                 SmtValue.Numeral (Int.ofNat matchLen) := by
             simp [__smtx_model_eval, __smtx_model_eval__,
               hFinishEval, hFirstEval, native_zplus, native_zneg]
-            simpa [Int.ofNat_eq_natCast] using hEndDiff
+            exact hEndDiff
           have hSuffixLenEval :
               __smtx_model_eval M (SmtTerm.neg sourceLen finish) =
                 SmtValue.Numeral
@@ -1501,7 +1508,7 @@ theorem str_replace_re_reduction_pred_true
                   SmtValue.Numeral (Int.ofNat matchLen) := by
               simp [__smtx_model_eval, __smtx_model_eval__,
                 hFinishEvalPush, hFirstEvalPush, native_zplus, native_zneg]
-              simpa [Int.ofNat_eq_natCast] using hEndDiff
+              exact hEndDiff
             have hMatchedSubEvalPush :
                 __smtx_model_eval Mk
                     (SmtTerm.str_substr tz first

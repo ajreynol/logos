@@ -254,10 +254,10 @@ private theorem bv_sdivo_context
     RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsdivo) x) y))
       (__eo_typeof (bvSdivoRhs x y w wm))
-      (by simpa [bvSdivoTerm] using hResultTy)
+      (by exact hResultTy)
   have hLeftNN :
       __eo_typeof_bvult (__eo_typeof x) (__eo_typeof y) ≠ Term.Stuck := by
-    simpa using hOperandsNN.1
+    exact hOperandsNN.1
   rcases eo_typeof_bvult_args_of_ne_stuck hLeftNN with
     ⟨width, hXTy, hYTy, hWidthNe⟩
   have hLeftTy :
@@ -271,7 +271,7 @@ private theorem bv_sdivo_context
     RuleProofs.eo_typeof_eq_bool_operands_eq
       (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsdivo) x) y))
       (__eo_typeof (bvSdivoRhs x y w wm))
-      (by simpa [bvSdivoTerm] using hResultTy)
+      (by exact hResultTy)
   have hRightTy : __eo_typeof (bvSdivoRhs x y w wm) = Term.Bool := by
     rw [← hTypeEq]
     exact hLeftTy
@@ -292,7 +292,7 @@ private theorem bv_sdivo_context
               (Term.Apply (Term.Apply (Term.UOp UserOp.eq) y)
                 (bvSdivoDivisor w)))
             (Term.Boolean true))) = Term.Bool := by
-    simpa [bvSdivoRhs] using hRightTy
+    exact hRightTy
   rcases eo_typeof_or_bool_args _ _ hOuterAnd with ⟨hEqXMinBool, hInnerAndBool⟩
   have hInnerAnd :
       __eo_typeof_or
@@ -300,7 +300,7 @@ private theorem bv_sdivo_context
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) y)
             (bvSdivoDivisor w)))
         (__eo_typeof (Term.Boolean true)) = Term.Bool := by
-    simpa using hInnerAndBool
+    exact hInnerAndBool
   rcases eo_typeof_or_bool_args _ _ hInnerAnd with ⟨hEqYDivBool, _hTrueBool⟩
   have hBvNegoTermTy : __eo_typeof (bvNegoTerm x wm) = Term.Bool := by
     unfold bvNegoTerm
@@ -310,7 +310,7 @@ private theorem bv_sdivo_context
     have hEqXMinBool' :
         __eo_typeof_eq (__eo_typeof x) (__eo_typeof (bvNegoMin wm)) =
           Term.Bool := by
-      simpa using hEqXMinBool
+      exact hEqXMinBool
     rw [hEqXMinBool', hXTy]
     simp [__eo_typeof_bvnego, __eo_typeof_eq, __eo_requires, __eo_eq,
       native_ite, native_teq, native_not]
@@ -557,7 +557,7 @@ by
                                       __eo_prog_bv_sdivo_eliminate a1 a2 a3 a4
                                           (Proof.pf P1) (Proof.pf P2) ≠
                                         Term.Stuck := by
-                                    simpa [P1, P2] using hProg
+                                    exact hProg
                                   rcases bv_sdivo_shape_of_ne_stuck a1 a2 a3 a4
                                       P1 P2 hProgLocal with
                                     ⟨hA1Ne, hA2Ne, hA3Ne, hA4Ne, px, pwm,

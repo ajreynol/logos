@@ -81,7 +81,7 @@ theorem congTrueSpine_var_apply_apply_apply_apply_apply_apply_eq_true
         __smtx_typeof
           (mkSmtAppSpineRev F [X₆, X₅, X₄, X₃, X₂, X₁]) ≠
             SmtType.None := by
-      simpa [F, X₁, X₂, X₃, X₄, X₅, X₆, mkSmtAppSpineRev] using hTypes.2
+      exact hTypes.2
     change
       RuleProofs.smt_value_rel
         (__smtx_model_eval M
@@ -164,7 +164,7 @@ theorem congTrueSpine_uconst_apply_apply_apply_apply_apply_apply_eq_true
         __smtx_typeof
           (mkSmtAppSpineRev F [X₆, X₅, X₄, X₃, X₂, X₁]) ≠
             SmtType.None := by
-      simpa [F, X₁, X₂, X₃, X₄, X₅, X₆, mkSmtAppSpineRev] using hTypes.2
+      exact hTypes.2
     change
       RuleProofs.smt_value_rel
         (__smtx_model_eval M
@@ -1049,8 +1049,13 @@ private theorem eo_to_smt_updater_rec_update_arg_non_reg_of_non_none
   induction n generalizing acc with
   | zero =>
       have hj : (j : Int) < 0 := by
-        simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
-          SmtEval.native_nat_to_int] using hIdx
+        -- `simp` rewrites inside `decide`'s `Prop` argument but leaves the
+        -- `Decidable` instance stale, so `decide_eq_true_eq` no longer fires on
+        -- the hypothesis; strip the `decide` explicitly instead.
+        have h := hIdx
+        simp [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+          SmtEval.native_nat_to_int] at h
+        exact of_decide_eq_true h
       have hjNonneg : (0 : Int) ≤ j := Int.natCast_nonneg j
       omega
   | succ k ih =>
@@ -1080,9 +1085,10 @@ private theorem eo_to_smt_updater_rec_update_arg_non_reg_of_non_none
           have hjk : j < k := by
             have hjSucc : j < Nat.succ k := by
               have hjSuccInt : (j : Int) < (Nat.succ k : Int) := by
-                apply of_decide_eq_true
-                simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
-                  SmtEval.native_nat_to_int] using hIdx
+                have h := hIdx
+                simp [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+                  SmtEval.native_nat_to_int] at h
+                exact of_decide_eq_true h
               exact Int.ofNat_lt.mp hjSuccInt
             have hne : j ≠ k := by
               intro h

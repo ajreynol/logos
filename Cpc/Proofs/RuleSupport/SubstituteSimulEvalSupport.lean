@@ -3950,31 +3950,41 @@ theorem smtx_model_eval_eo_to_smt_tuple_update_cross_eq_of_eval_eq
         __smtx_model_eval N u') :
     __smtx_model_eval M (__eo_to_smt_tuple_update T idx t u) =
       __smtx_model_eval N (__eo_to_smt_tuple_update T idx t' u') := by
-  cases T <;> cases idx <;>
-    try simp [__eo_to_smt_tuple_update, __smtx_model_eval]
-  case Datatype.Numeral s dd n =>
+  -- `__eo_to_smt_tuple_update` only inspects `idx` under a `@Tuple` datatype
+  -- type, so split `T` first and reach for `idx` only in that one branch: the
+  -- flat `cases T <;> cases idx` produced 15 * 151 goals, each re-unfolding the
+  -- 151-arm `__smtx_model_eval` match, which exhausts `isDefEq`'s heartbeats.
+  have hNone : ∀ {A B : SmtTerm}, A = SmtTerm.None → B = SmtTerm.None →
+      __smtx_model_eval M A = __smtx_model_eval N B := by
+    rintro _ _ rfl rfl
+    simp [__smtx_model_eval]
+  cases T
+  case Datatype s dd =>
     cases dd with
-    | nil =>
-        simp [__smtx_model_eval]
+    | nil => exact hNone rfl rfl
     | cons s2 d rest =>
         cases rest with
-        | cons s3 d3 rest3 =>
-            simp [__smtx_model_eval]
+        | cons s3 d3 rest3 => exact hNone rfl rfl
         | nil =>
-            cases hCond :
-                native_and
-                  (native_and
-                    (native_streq s (native_string_lit "@Tuple"))
-                    (native_streq s2 (native_string_lit "@Tuple")))
-                  (native_zleq 0 n)
-            · simp [hCond, native_ite, __smtx_model_eval]
-            · simp [hCond, native_ite]
-              exact
-                smtx_model_eval_eo_to_smt_updater_cross_eq_of_eval_eq hGlobals
-                  (SmtTerm.DtSel (native_string_lit "@Tuple")
-                    (__smtx_tuple_datatype_decl d) native_nat_zero
-                    (native_int_to_nat n))
-                  t t' u u' ht hu
+            cases idx
+            case Numeral n =>
+              cases hCond :
+                  native_and
+                    (native_and
+                      (native_streq s (native_string_lit "@Tuple"))
+                      (native_streq s2 (native_string_lit "@Tuple")))
+                    (native_zleq 0 n)
+              · simp [__eo_to_smt_tuple_update, hCond, native_ite,
+                  __smtx_model_eval]
+              · simp [__eo_to_smt_tuple_update, hCond, native_ite]
+                exact
+                  smtx_model_eval_eo_to_smt_updater_cross_eq_of_eval_eq hGlobals
+                    (SmtTerm.DtSel (native_string_lit "@Tuple")
+                      (__smtx_tuple_datatype_decl d) native_nat_zero
+                      (native_int_to_nat n))
+                    t t' u u' ht hu
+            all_goals exact hNone rfl rfl
+  all_goals exact hNone rfl rfl
 
 theorem substFalse_eval_unary_uop1_tuple_select
     (idx a xs ss bvs : Term) {M N : SmtModel}
@@ -8135,9 +8145,9 @@ theorem substFalse_eval_unary_uop2_any
         rfl)
       (quant_skolemize_apply_generic_type i j a)
       (by
-        simpa [hHeadSub] using
-          quant_skolemize_apply_generic_type i j
-            (__substitute_simul_rec (Term.Boolean isRename) a xs ss bvs))
+        rw [hHeadSub]
+        exact quant_skolemize_apply_generic_type i j
+          (__substitute_simul_rec (Term.Boolean isRename) a xs ss bvs))
       (quant_skolemize_apply_generic_eval i j a)
       (by
         simpa [hHeadSub] using
@@ -8155,9 +8165,9 @@ theorem substFalse_eval_unary_uop2_any
         rfl)
       (at_const_apply_generic_type i j a)
       (by
-        simpa [hHeadSub] using
-          at_const_apply_generic_type i j
-            (__substitute_simul_rec (Term.Boolean isRename) a xs ss bvs))
+        rw [hHeadSub]
+        exact at_const_apply_generic_type i j
+          (__substitute_simul_rec (Term.Boolean isRename) a xs ss bvs))
       (at_const_apply_generic_eval i j a)
       (by
         simpa [hHeadSub] using
@@ -8215,9 +8225,9 @@ theorem substFalse_eval_unary_uop3_any
         rfl)
       (witness_string_length_apply_generic_type i j k a)
       (by
-        simpa [hHeadSub] using
-          witness_string_length_apply_generic_type i j k
-            (__substitute_simul_rec (Term.Boolean isRename) a xs ss bvs))
+        rw [hHeadSub]
+        exact witness_string_length_apply_generic_type i j k
+          (__substitute_simul_rec (Term.Boolean isRename) a xs ss bvs))
       (witness_string_length_apply_generic_eval i j k a)
       (by
         simpa [hHeadSub] using

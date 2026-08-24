@@ -60,7 +60,10 @@ theorem typeof_extract_bit_of_bv
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1)
   have hStartNonneg :
       native_zlt (native_nat_to_int start) (-1 : native_Int) = false := by
-    simp [native_zlt, native_nat_to_int]
+    simp only [native_zlt, native_nat_to_int]
+    refine decide_eq_false ?_
+    show ¬ ((start : Int) < -1)
+    omega
   have hStartGtNeg :
       __eo_gt (Term.Numeral (native_nat_to_int start))
         (Term.Numeral (-1 : native_Int)) = Term.Boolean true := by
@@ -606,9 +609,7 @@ theorem nil_bvmul_bitvec_succ_of_ne_stuck
     rfl
   · simp [native_ite, hBound]
     have hNonneg : native_zleq 0 (native_nat_to_int (w + 1)) = true := by
-      have h : (0 : Int) ≤ ((w + 1 : Nat) : Int) :=
-        Int.natCast_nonneg (w + 1)
-      simpa [native_zleq, native_nat_to_int] using h
+      exact decide_eq_true (Int.natCast_nonneg (w + 1))
     simp [__eo_mk_binary, native_ite, hNonneg]
     have hmod : native_mod_total (1 : native_Int)
         (native_int_pow2 (native_nat_to_int (w + 1))) = 1 := by

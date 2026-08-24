@@ -116,8 +116,9 @@ by
                             have hResultTyLocal : __eo_typeof
                                 (bvConcatPullup1Program .bxor xs ws y z ys
                                   nxm ny nym P1 P2 P3) = Term.Bool := by
-                              simpa [bvConcatPullup1Program, P1, P2, P3]
-                                using hResultTy
+                              have hsimpa := hResultTy
+                              try simp [bvConcatPullup1Program, P1, P2, P3] at hsimpa ⊢
+                              exact hsimpa
                             simpa [bvConcatPullup1Program, P1, P2, P3] using
                               (bvConcatPullup1ProgramProperties M hM .bxor
                                 xs ws y z ys nxm ny nym P1 P2 P3

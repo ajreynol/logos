@@ -577,9 +577,9 @@ private theorem facts___eo_prog_array_store_swap_impl
                                           have hBodyBool :
                                               RuleProofs.eo_has_bool_type body := by
                                             rw [hProgEq] at hProgBool
-                                            simpa [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
-                                              native_ite, native_teq, native_not,
-                                              SmtEval.native_not] using hProgBool
+                                            have hsimpa := hProgBool
+                                            try simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite, native_teq, native_not, SmtEval.native_not] at hsimpa ⊢
+                                            exact hsimpa
                                           rw [hProgEq]
                                           simp [__eo_requires, __eo_and, __eo_eq,
                                             native_ite, native_teq, native_not, SmtEval.native_not]

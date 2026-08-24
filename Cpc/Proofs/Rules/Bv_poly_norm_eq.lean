@@ -415,7 +415,7 @@ private theorem prog_bv_poly_norm_eq_eq_arg_of_typeof_bool_shape
             (Term.Apply (Term.Apply (Term.UOp UserOp.eq) xb1) xb2))
             (Term.Apply (Term.Apply (Term.UOp UserOp.eq) yb1) yb2))))
   have hOuter : __eo_requires guardSame (Term.Boolean true) restOne ≠ Term.Stuck := by
-    simpa [guardSame, restOne] using hProg
+    simpa [guardSame, restOne, __eo_and, __eo_eq, __eo_prog_bv_poly_norm_eq, __eo_requires, __eo_to_z, __eo_zmod] using hProg
   have hGuardSame : guardSame = Term.Boolean true :=
     eo_requires_arg_eq_of_ne_stuck hOuter
   have hRestOne : restOne ≠ Term.Stuck :=
@@ -673,7 +673,7 @@ private theorem facts___eo_prog_bv_poly_norm_eq_impl_shape
             (Term.Apply (Term.Apply (Term.UOp UserOp.eq) xb1) xb2))
             (Term.Apply (Term.Apply (Term.UOp UserOp.eq) yb1) yb2))))
   have hOuter : __eo_requires guardSame (Term.Boolean true) restOne ≠ Term.Stuck := by
-    simpa [guardSame, restOne] using hProg
+    simpa [guardSame, restOne, __eo_and, __eo_eq, __eo_prog_bv_poly_norm_eq, __eo_requires, __eo_to_z, __eo_zmod] using hProg
   have hGuardSame : guardSame = Term.Boolean true :=
     eo_requires_arg_eq_of_ne_stuck hOuter
   have hRestOne : restOne ≠ Term.Stuck :=
@@ -742,10 +742,10 @@ private theorem facts___eo_prog_bv_poly_norm_eq_impl_shape
   have hCxTyBin :
       __smtx_typeof (SmtTerm.Binary (native_nat_to_int w) ncx) = SmtType.BitVec w := by
     rw [hCxLit] at hCxTy
-    simpa using hCxTy
+    exact hCxTy
   have hCyTyBin :
       __smtx_typeof (SmtTerm.Binary (native_nat_to_int w) ncy) = SmtType.BitVec w := by
-    rw [hCyLit] at hCyTy
+    rw [hCyLit, __eo_to_smt] at hCyTy
     simpa using hCyTy
   have hCxRange := binary_literal_range_of_bitvec_type hCxTyBin
   have hCyRange := binary_literal_range_of_bitvec_type hCyTyBin

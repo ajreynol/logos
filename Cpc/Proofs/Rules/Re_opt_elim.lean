@@ -29,7 +29,7 @@ private theorem native_str_in_re_re_union_local
     ← RuleProofs.native_str_in_re_eq_model str r,
     ← RuleProofs.native_str_in_re_eq_model str s]
   by_cases hValid : native_string_valid str = true
-  · simpa [native_re_union, RuleProofs.native_str_in_re, hValid]
+  · simpa [native_re_union, RuleProofs.native_str_in_re, hValid, native_re_mk_union]
       using RuleProofs.nativeListInRe_mk_union str r s
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
@@ -103,8 +103,11 @@ private theorem typed___eo_prog_re_opt_elim_impl
         (SmtTerm.re_union (__eo_to_smt eps)
           (__eo_to_smt (Term.Apply (Term.Apply Term.re_union a1) Term.re_none))) =
       SmtType.RegLan
-    rw [typeof_re_union_eq]
-    simp [hEpsTy, hInnerTy, native_ite, native_Teq]
+    -- rewrite with the component types *before* `simp` normalises
+    -- `__eo_to_smt (Apply ..)` into the `SmtTerm` spine, after which
+    -- `hInnerTy`'s left-hand side no longer occurs.
+    rw [typeof_re_union_eq, hEpsTy, hInnerTy]
+    simp [native_ite, native_Teq]
   have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = SmtType.RegLan := by
     change __smtx_typeof (SmtTerm.re_opt (__eo_to_smt a1)) = SmtType.RegLan
     rw [typeof_re_opt_eq]

@@ -97,8 +97,7 @@ theorem bv_commutative_xor_args_type_of_bool (x y : Term) :
         (__eo_typeof (bvCommutativeXorLhs x y))
         (__eo_typeof (bvCommutativeXorRhs x y))
         (by
-          simpa [bvCommutativeXorTerm, bvCommutativeXorLhs,
-            bvCommutativeXorRhs] using hTy)
+          exact hTy)
     exact hOperands.1
   have hOuterNN :
       __eo_typeof_bvand (__eo_typeof x)
@@ -106,14 +105,14 @@ theorem bv_commutative_xor_args_type_of_bool (x y : Term) :
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y)
               (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))) ≠
         Term.Stuck := by
-    simpa [bvCommutativeXorLhs] using hLeftNN
+    exact hLeftNN
   rcases eo_typeof_bvand_arg_types_of_ne_stuck_local hOuterNN with
     ⟨w, hXTy, hInnerTy⟩
   have hInnerEq :
       __eo_typeof_bvand (__eo_typeof y)
           (__eo_typeof (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x))) =
         Term.Apply (Term.UOp UserOp.BitVec) w := by
-    simpa [bvCommutativeXorLhs] using hInnerTy
+    exact hInnerTy
   rcases eo_typeof_bvand_args_of_eq_bitvec hInnerEq with
     ⟨hYTy, _hNilTy, hWNe⟩
   exact ⟨w, hXTy, hYTy, hWNe⟩
@@ -129,8 +128,7 @@ theorem bv_commutative_xor_nil_x_ne (x y : Term) :
         (__eo_typeof (bvCommutativeXorLhs x y))
         (__eo_typeof (bvCommutativeXorRhs x y))
         (by
-          simpa [bvCommutativeXorTerm, bvCommutativeXorLhs,
-            bvCommutativeXorRhs] using hTy)
+          exact hTy)
     exact hOperands.1
   apply hLeftNN
   change __eo_typeof
@@ -155,8 +153,7 @@ theorem bv_commutative_xor_nil_y_ne (x y : Term) :
         (__eo_typeof (bvCommutativeXorLhs x y))
         (__eo_typeof (bvCommutativeXorRhs x y))
         (by
-          simpa [bvCommutativeXorTerm, bvCommutativeXorLhs,
-            bvCommutativeXorRhs] using hTy)
+          exact hTy)
     exact hOperands.2
   apply hRightNN
   change __eo_typeof
@@ -657,7 +654,7 @@ theorem bv_xor_not_args_type_of_bool (x y : Term) :
       RuleProofs.eo_typeof_eq_bool_operands_not_stuck
         (__eo_typeof (bvXorNotLhs x y))
         (__eo_typeof (bvXorNotRhs x y))
-        (by simpa [bvXorNotTerm, bvXorNotLhs, bvXorNotRhs] using hTy)
+        (by exact hTy)
     exact hOperands.2
   have hOuterNN :
       __eo_typeof_bvand (__eo_typeof x)
@@ -665,14 +662,14 @@ theorem bv_xor_not_args_type_of_bool (x y : Term) :
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y)
               (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))) ≠
         Term.Stuck := by
-    simpa [bvXorNotRhs] using hRightNN
+    exact hRightNN
   rcases eo_typeof_bvand_arg_types_of_ne_stuck_local hOuterNN with
     ⟨w, hXTy, hInnerTy⟩
   have hInnerEq :
       __eo_typeof_bvand (__eo_typeof y)
           (__eo_typeof (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x))) =
         Term.Apply (Term.UOp UserOp.BitVec) w := by
-    simpa [bvXorNotRhs] using hInnerTy
+    exact hInnerTy
   rcases eo_typeof_bvand_args_of_eq_bitvec hInnerEq with
     ⟨hYTy, _hNilTy, hWNe⟩
   exact ⟨w, hXTy, hYTy, hWNe⟩
@@ -687,7 +684,7 @@ theorem bv_xor_not_nil_x_ne (x y : Term) :
       RuleProofs.eo_typeof_eq_bool_operands_not_stuck
         (__eo_typeof (bvXorNotLhs x y))
         (__eo_typeof (bvXorNotRhs x y))
-        (by simpa [bvXorNotTerm, bvXorNotLhs, bvXorNotRhs] using hTy)
+        (by exact hTy)
     exact hOperands.2
   apply hRightNN
   change __eo_typeof
@@ -712,7 +709,7 @@ theorem bv_xor_not_nil_not_x_ne (x y : Term) :
       RuleProofs.eo_typeof_eq_bool_operands_not_stuck
         (__eo_typeof (bvXorNotLhs x y))
         (__eo_typeof (bvXorNotRhs x y))
-        (by simpa [bvXorNotTerm, bvXorNotLhs, bvXorNotRhs] using hTy)
+        (by exact hTy)
     exact hOperands.1
   apply hLeftNN
   change __eo_typeof
@@ -1190,8 +1187,7 @@ theorem bv_xor_duplicate_nil_ne (x w : Term) :
       RuleProofs.eo_typeof_eq_bool_operands_not_stuck
         (__eo_typeof (bvXorDuplicateLhs x))
         (__eo_typeof (bvXorDuplicateRhs w))
-        (by simpa [bvXorDuplicateTerm, bvXorDuplicateLhs,
-          bvXorDuplicateRhs] using hTy)
+        (by exact hTy)
     exact hOperands.1
   apply hLeftNN
   change __eo_typeof
@@ -1271,8 +1267,7 @@ theorem bv_xor_duplicate_arg_type_of_bool (x w : Term) :
       RuleProofs.eo_typeof_eq_bool_operands_not_stuck
         (__eo_typeof (bvXorDuplicateLhs x))
         (__eo_typeof (bvXorDuplicateRhs w))
-        (by simpa [bvXorDuplicateTerm, bvXorDuplicateLhs,
-          bvXorDuplicateRhs] using hTy)
+        (by exact hTy)
     exact hOperands.1
   have hOuterNN :
       __eo_typeof_bvand (__eo_typeof x)
@@ -1280,14 +1275,14 @@ theorem bv_xor_duplicate_arg_type_of_bool (x w : Term) :
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x)
               (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))) ≠
         Term.Stuck := by
-    simpa [bvXorDuplicateLhs] using hLeftNN
+    exact hLeftNN
   rcases eo_typeof_bvand_arg_types_of_ne_stuck_local hOuterNN with
     ⟨u, hXTy, hInnerTy⟩
   have hInnerEq :
       __eo_typeof_bvand (__eo_typeof x)
           (__eo_typeof (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x))) =
         Term.Apply (Term.UOp UserOp.BitVec) u := by
-    simpa [bvXorDuplicateLhs] using hInnerTy
+    exact hInnerTy
   rcases eo_typeof_bvand_args_of_eq_bitvec hInnerEq with
     ⟨_hXTyInner, _hNilTy, hUNe⟩
   have hLhsTy :
@@ -1307,8 +1302,7 @@ theorem bv_xor_duplicate_arg_type_of_bool (x w : Term) :
     support_eo_typeof_eq_bool_operands_eq
       (__eo_typeof (bvXorDuplicateLhs x))
       (__eo_typeof (bvXorDuplicateRhs w))
-      (by simpa [bvXorDuplicateTerm, bvXorDuplicateLhs,
-        bvXorDuplicateRhs] using hTy)
+      (by exact hTy)
   have hRhsTy :
       __eo_typeof (bvXorDuplicateRhs w) =
         Term.Apply (Term.UOp UserOp.BitVec) u := by
@@ -1642,22 +1636,21 @@ theorem bv_not_xor_args_type_of_bool (x y z : Term) :
       RuleProofs.eo_typeof_eq_bool_operands_not_stuck
         (__eo_typeof (bvNotXorLhs x y z))
         (__eo_typeof (bvNotXorRhs x y z))
-        (by simpa [bvNotXorTerm, bvNotXorLhs, bvNotXorRhs,
-          bvNotXorTail] using hTy)
+        (by exact hTy)
     exact hOperands.1
   rcases eo_typeof_bvnot_arg_type_of_ne_stuck (by
-      simpa [bvNotXorLhs, bvNotXorTail] using hLeftNN) with
+      exact hLeftNN) with
     ⟨w, hInnerTy⟩
   have hOuterEq :
       __eo_typeof_bvand (__eo_typeof x) (__eo_typeof (bvNotXorTail y z)) =
         Term.Apply (Term.UOp UserOp.BitVec) w := by
-    simpa [bvNotXorTail] using hInnerTy
+    exact hInnerTy
   rcases eo_typeof_bvand_args_of_eq_bitvec hOuterEq with
     ⟨hXTy, hTailTy, hWNe⟩
   have hTailEq :
       __eo_typeof_bvand (__eo_typeof y) (__eo_typeof z) =
         Term.Apply (Term.UOp UserOp.BitVec) w := by
-    simpa [bvNotXorTail] using hTailTy
+    exact hTailTy
   rcases eo_typeof_bvand_args_of_eq_bitvec hTailEq with
     ⟨hYTy, hZTy, _hWNeTail⟩
   exact ⟨w, hXTy, hYTy, hZTy, hWNe⟩
@@ -2162,11 +2155,11 @@ private theorem bv_eq_xor_solve_left_eq_type_of_result_type
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvEqXorSolveLeftEq x y z))
       (__eo_typeof (bvEqXorSolveRightEq x y z))
-      (by simpa [bvEqXorSolveBody] using hBodyTy)).1
+      (by exact hBodyTy)).1
   change __eo_typeof_eq (__eo_typeof (bvEqXorSolveLhsXor x y))
       (__eo_typeof z) = Term.Bool
   apply eo_typeof_eq_bool_of_ne_stuck_local
-  simpa [bvEqXorSolveLeftEq] using hLeftNN
+  exact hLeftNN
 
 private theorem bv_eq_xor_solve_right_eq_type_of_result_type
     (x y z : Term) :
@@ -2179,11 +2172,11 @@ private theorem bv_eq_xor_solve_right_eq_type_of_result_type
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvEqXorSolveLeftEq x y z))
       (__eo_typeof (bvEqXorSolveRightEq x y z))
-      (by simpa [bvEqXorSolveBody] using hBodyTy)).2
+      (by exact hBodyTy)).2
   change __eo_typeof_eq (__eo_typeof x)
       (__eo_typeof (bvEqXorSolveRhsXor y z)) = Term.Bool
   apply eo_typeof_eq_bool_of_ne_stuck_local
-  simpa [bvEqXorSolveRightEq] using hRightNN
+  exact hRightNN
 
 theorem bv_eq_xor_solve_args_type_of_bool (x y z : Term) :
     __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
@@ -2197,26 +2190,26 @@ theorem bv_eq_xor_solve_args_type_of_bool (x y z : Term) :
       __eo_typeof (bvEqXorSolveLhsXor x y) ≠ Term.Stuck :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvEqXorSolveLhsXor x y)) (__eo_typeof z)
-      (by simpa [bvEqXorSolveLeftEq] using hLeftEqTy)).1
+      (by exact hLeftEqTy)).1
   have hLhsZEq :
       __eo_typeof (bvEqXorSolveLhsXor x y) = __eo_typeof z :=
     support_eo_typeof_eq_bool_operands_eq
       (__eo_typeof (bvEqXorSolveLhsXor x y)) (__eo_typeof z)
-      (by simpa [bvEqXorSolveLeftEq] using hLeftEqTy)
+      (by exact hLeftEqTy)
   have hOuterNN :
       __eo_typeof_bvand (__eo_typeof x)
           (__eo_typeof
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y)
               (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))) ≠
         Term.Stuck := by
-    simpa [bvEqXorSolveLhsXor, bvCommutativeXorLhs] using hLhsXorNN
+    exact hLhsXorNN
   rcases eo_typeof_bvand_arg_types_of_ne_stuck_local hOuterNN with
     ⟨w, hXTy, hInnerTy⟩
   have hInnerEq :
       __eo_typeof_bvand (__eo_typeof y)
           (__eo_typeof (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x))) =
-        Term.Apply (Term.UOp UserOp.BitVec) w := by
-    simpa using hInnerTy
+        Term.Apply (Term.UOp UserOp.BitVec) w :=
+    hInnerTy
   rcases eo_typeof_bvand_args_of_eq_bitvec hInnerEq with
     ⟨hYTy, _hNilTy, hWNe⟩
   have hLhsXorTy :
@@ -2250,7 +2243,7 @@ theorem bv_eq_xor_solve_nil_x_ne (x y z : Term) :
       __eo_typeof (bvEqXorSolveLhsXor x y) ≠ Term.Stuck :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof (bvEqXorSolveLhsXor x y)) (__eo_typeof z)
-      (by simpa [bvEqXorSolveLeftEq] using hLeftEqTy)).1
+      (by exact hLeftEqTy)).1
   apply hLhsXorNN
   change __eo_typeof
       (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x)
@@ -2272,7 +2265,7 @@ theorem bv_eq_xor_solve_nil_z_ne (x y z : Term) :
       __eo_typeof (bvEqXorSolveRhsXor y z) ≠ Term.Stuck :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof x) (__eo_typeof (bvEqXorSolveRhsXor y z))
-      (by simpa [bvEqXorSolveRightEq] using hRightEqTy)).2
+      (by exact hRightEqTy)).2
   apply hRhsXorNN
   change __eo_typeof
       (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) z)

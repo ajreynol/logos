@@ -1736,7 +1736,7 @@ theorem congTrueSpine_bvite_eq_true
         hEqBool
     have hLeftNN :
         __smtx_typeof (bvIteTerm C T E) ≠ SmtType.None := by
-      simpa [C, T, E, bvIteTerm] using hTypes.2
+      exact hTypes.2
     have hIteNN : term_has_non_none_type (bvIteTerm C T E) := by
       unfold term_has_non_none_type
       exact hLeftNN
@@ -2264,7 +2264,7 @@ theorem congTrueSpine_str_in_re_eq_true
         hEqBool
     have hLeftNN :
         __smtx_typeof (SmtTerm.str_in_re X₁ X₂) ≠ SmtType.None := by
-      simpa [X₁, X₂] using hTypes.2
+      exact hTypes.2
     have hTerm : term_has_non_none_type (SmtTerm.str_in_re X₁ X₂) := by
       unfold term_has_non_none_type
       exact hLeftNN
@@ -2371,7 +2371,7 @@ theorem congTrueSpine_re_comp_eq_true
         (Term.Apply (Term.UOp UserOp.re_comp) y)
         hEqBool
     have hLeftNN : __smtx_typeof (SmtTerm.re_comp X) ≠ SmtType.None := by
-      simpa [X] using hTypes.2
+      exact hTypes.2
     have hTerm : term_has_non_none_type (SmtTerm.re_comp X) := by
       unfold term_has_non_none_type
       exact hLeftNN
@@ -2457,7 +2457,7 @@ theorem congTrueSpine_re_mult_eq_true
         (Term.Apply (Term.UOp UserOp.re_mult) y)
         hEqBool
     have hLeftNN : __smtx_typeof (SmtTerm.re_mult X) ≠ SmtType.None := by
-      simpa [X] using hTypes.2
+      exact hTypes.2
     have hTerm : term_has_non_none_type (SmtTerm.re_mult X) := by
       unfold term_has_non_none_type
       exact hLeftNN
@@ -2529,7 +2529,7 @@ theorem congTrueSpine_re_plus_eq_true
         (Term.Apply (Term.UOp UserOp.re_plus) y)
         hEqBool
     have hLeftNN : __smtx_typeof (SmtTerm.re_plus X) ≠ SmtType.None := by
-      simpa [X] using hTypes.2
+      exact hTypes.2
     have hTerm : term_has_non_none_type (SmtTerm.re_plus X) := by
       unfold term_has_non_none_type
       exact hLeftNN
@@ -2580,8 +2580,8 @@ theorem congTrueSpine_re_plus_eq_true
       __smtx_model_eval_re_mult, native_re_mult,
       native_re_concat, __smtx_model_eval_eq]
     intro s hs
-    simpa [native_re_plus, native_model_str_in_re_eq_local] using
-      hExtPlus s hs
+    simpa [native_re_plus, native_re_concat, native_re_mult,
+      native_model_str_in_re_eq_local] using hExtPlus s hs
 
 theorem congTrueSpine_re_opt_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x rhs : Term) :
@@ -2606,7 +2606,7 @@ theorem congTrueSpine_re_opt_eq_true
         (Term.Apply (Term.UOp UserOp.re_opt) y)
         hEqBool
     have hLeftNN : __smtx_typeof (SmtTerm.re_opt X) ≠ SmtType.None := by
-      simpa [X] using hTypes.2
+      exact hTypes.2
     have hTerm : term_has_non_none_type (SmtTerm.re_opt X) := by
       unfold term_has_non_none_type
       exact hLeftNN

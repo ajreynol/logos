@@ -373,7 +373,7 @@ theorem bv_rotate_decomp_context
   have hInnerNe :
       __eo_typeof_concat (__eo_typeof (bvExtractTerm x u2 l1))
           (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
-    simpa using (show
+    exact (show
       __eo_typeof
           (Term.Apply (Term.Apply (Term.UOp UserOp.concat)
             (bvExtractTerm x u2 l1)) (Term.Binary 0 0)) ≠ Term.Stuck by
@@ -857,13 +857,15 @@ private theorem bv_rotate_left_indices_of_premises
   refine ⟨?_, ?_, ?_⟩
   · apply numeral_eq_of_interprets M a _ _
       (eval_rotate_left_upper1_value M x i w r hw0 hXSmtTy hModEval)
-    simpa [bvRotateLeftUpper1Prem] using hA
+    simp only [bvRotateLeftUpper1Prem] at hA
+    exact hA
   · apply numeral_eq_of_interprets M b _ _
       (eval_rotate_width_minus_one M x w hw0 hXSmtTy)
     simpa [bvRotateUpper2Prem] using hB
   · apply numeral_eq_of_interprets M c _ _
       (eval_rotate_left_lower_value M x i w r hw0 hXSmtTy hModEval)
-    simpa [bvRotateLeftLowerPrem] using hC
+    simp only [bvRotateLeftLowerPrem] at hC
+    exact hC
 
 private theorem bv_rotate_right_indices_of_premises
     (M : SmtModel) (x : Term) (i w r a b c : native_Int)
@@ -944,11 +946,14 @@ private theorem eval_bv_rotate_decomp
           hXSmtTy hModEval hUpper1 hUpper2 hLower with
         ⟨hA, hB, hC⟩
       have hAInt : a = w - (1 + (r + 0)) := by
-        simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hA
+        simp only [SmtEval.native_zplus, SmtEval.native_zneg] at hA
+        exact hA
       have hBInt : b = w - 1 := by
-        simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hB
+        simp only [SmtEval.native_zplus, SmtEval.native_zneg] at hB
+        exact hB
       have hCInt : c = w - r := by
-        simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hC
+        simp only [SmtEval.native_zplus, SmtEval.native_zneg] at hC
+        exact hC
       have hwNe : w ≠ 0 := by
         intro hwz
         have hrLe : r ≤ 0 := by
@@ -1094,9 +1099,11 @@ private theorem eval_bv_rotate_decomp
           hXSmtTy hModEval hUpper1 hUpper2 hLower with
         ⟨hA, hB, hC⟩
       have hAInt : a = r - 1 := by
-        simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hA
+        simp only [SmtEval.native_zplus, SmtEval.native_zneg] at hA
+        exact hA
       have hBInt : b = w - 1 := by
-        simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hB
+        simp only [SmtEval.native_zplus, SmtEval.native_zneg] at hB
+        exact hB
       have hCInt : c = r := hC
       have hwNe : w ≠ 0 := by
         intro hwz

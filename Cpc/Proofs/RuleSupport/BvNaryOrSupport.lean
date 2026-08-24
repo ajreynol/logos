@@ -647,6 +647,9 @@ theorem listSingletonElimSmtType
           cases b <;>
             simp [__eo_list_singleton_elim_2, hNil, __eo_ite,
               native_ite, native_teq, hArgs.1, hTy]
+          -- v4.33 leaves the folded `__eo_to_smt` application; `exact` still
+          -- closes it by iota reduction.
+          exact hTy
       | _ =>
           simpa [__eo_list_singleton_elim_2] using hTy
   | _ =>

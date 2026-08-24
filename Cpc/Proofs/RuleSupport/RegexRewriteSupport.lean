@@ -43,7 +43,7 @@ theorem smt_value_rel_re_concat_congr
   · intro h
     rcases
       (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append
-        xs r s).1 (by simpa [native_re_concat] using h) with
+        xs r s).1 (by have hsimpa := h; (try simp [native_re_concat] at hsimpa ⊢); exact hsimpa) with
       ⟨left, right, hAppend, hLeft, hRight⟩
     have hAppendValid : native_string_valid (left ++ right) = true := by
       rw [hAppend]
@@ -64,13 +64,15 @@ theorem smt_value_rel_re_concat_congr
         RuleProofs.native_str_in_re_eq_nativeListInRe right s' hRightValid]
         at hEq
       rwa [← hEq]
-    simpa [native_re_concat] using
+    have hsimpa :=
       (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append
         xs r' s').2 ⟨left, right, hAppend, hLeft', hRight'⟩
+    try simp [native_re_concat] at hsimpa ⊢
+    exact hsimpa
   · intro h
     rcases
       (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append
-        xs r' s').1 (by simpa [native_re_concat] using h) with
+        xs r' s').1 (by have hsimpa := h; (try simp [native_re_concat] at hsimpa ⊢); exact hsimpa) with
       ⟨left, right, hAppend, hLeft, hRight⟩
     have hAppendValid : native_string_valid (left ++ right) = true := by
       rw [hAppend]
@@ -91,9 +93,11 @@ theorem smt_value_rel_re_concat_congr
         RuleProofs.native_str_in_re_eq_nativeListInRe right s' hRightValid]
         at hEq
       rwa [hEq]
-    simpa [native_re_concat] using
+    have hsimpa :=
       (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append
         xs r s).2 ⟨left, right, hAppend, hLeft', hRight'⟩
+    try simp [native_re_concat] at hsimpa ⊢
+    exact hsimpa
 
 theorem smt_value_rel_re_concat_assoc
     (r s t : SmtRegLan) :
@@ -106,8 +110,10 @@ theorem smt_value_rel_re_concat_assoc
   intro xs hValid
   rw [RuleProofs.native_str_in_re_eq_nativeListInRe xs _ hValid,
     RuleProofs.native_str_in_re_eq_nativeListInRe xs _ hValid]
-  simpa [native_re_concat] using
+  have hsimpa :=
     RuleProofs.nativeListInRe_mk_concat_assoc xs r s t
+  try simp [native_re_concat] at hsimpa ⊢
+  exact hsimpa
 
 theorem nativeListInRe_raw_star_once
     (xs : List native_Char) (r : SmtRegLan)
@@ -145,28 +151,44 @@ theorem nativeListInRe_mk_star_once
       subst xs
       simp [native_re_mk_star, native_re_mult, nativeListInRe, native_re_nullable]
   | star r =>
-      simpa [native_re_mk_star] using hMem
+      have hsimpa := hMem
+      try simp [native_re_mk_star] at hsimpa ⊢
+      exact hsimpa
   | char c =>
-      simpa [native_re_mk_star] using
+      have hsimpa :=
         nativeListInRe_raw_star_once xs (SmtRegLan.char c) hMem
+      try simp [native_re_mk_star] at hsimpa ⊢
+      exact hsimpa
   | range lo hi =>
-      simpa [native_re_mk_star] using
+      have hsimpa :=
         nativeListInRe_raw_star_once xs (SmtRegLan.range lo hi) hMem
+      try simp [native_re_mk_star] at hsimpa ⊢
+      exact hsimpa
   | allchar =>
-      simpa [native_re_mk_star] using
+      have hsimpa :=
         nativeListInRe_raw_star_once xs SmtRegLan.allchar hMem
+      try simp [native_re_mk_star] at hsimpa ⊢
+      exact hsimpa
   | concat r s =>
-      simpa [native_re_mk_star] using
+      have hsimpa :=
         nativeListInRe_raw_star_once xs (SmtRegLan.concat r s) hMem
+      try simp [native_re_mk_star] at hsimpa ⊢
+      exact hsimpa
   | union r s =>
-      simpa [native_re_mk_star] using
+      have hsimpa :=
         nativeListInRe_raw_star_once xs (SmtRegLan.union r s) hMem
+      try simp [native_re_mk_star] at hsimpa ⊢
+      exact hsimpa
   | inter r s =>
-      simpa [native_re_mk_star] using
+      have hsimpa :=
         nativeListInRe_raw_star_once xs (SmtRegLan.inter r s) hMem
+      try simp [native_re_mk_star] at hsimpa ⊢
+      exact hsimpa
   | comp r =>
-      simpa [native_re_mk_star] using
+      have hsimpa :=
         nativeListInRe_raw_star_once xs (SmtRegLan.comp r) hMem
+      try simp [native_re_mk_star] at hsimpa ⊢
+      exact hsimpa
 
 theorem nativeListInRe_raw_star_cons_decomp
     {c : native_Char} {cs : List native_Char} {r : SmtRegLan}
@@ -308,20 +330,13 @@ theorem nativeListInRe_mk_star_swap
       native_re_concat, RuleProofs.nativeListInRe_empty]
   | epsilon => simp [native_re_mk_star, native_re_mult, native_re_mk_concat]
   | star r => simp [native_re_mk_star, native_re_mult]
-  | char c => simpa [native_re_mk_star] using
-      nativeListInRe_raw_star_swap xs (SmtRegLan.char c)
-  | range lo hi => simpa [native_re_mk_star] using
-      nativeListInRe_raw_star_swap xs (SmtRegLan.range lo hi)
-  | allchar => simpa [native_re_mk_star] using
-      nativeListInRe_raw_star_swap xs SmtRegLan.allchar
-  | concat r s => simpa [native_re_mk_star] using
-      nativeListInRe_raw_star_swap xs (SmtRegLan.concat r s)
-  | union r s => simpa [native_re_mk_star] using
-      nativeListInRe_raw_star_swap xs (SmtRegLan.union r s)
-  | inter r s => simpa [native_re_mk_star] using
-      nativeListInRe_raw_star_swap xs (SmtRegLan.inter r s)
-  | comp r => simpa [native_re_mk_star] using
-      nativeListInRe_raw_star_swap xs (SmtRegLan.comp r)
+  | char c => have hsimpa := nativeListInRe_raw_star_swap xs (SmtRegLan.char c); (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa
+  | range lo hi => have hsimpa := nativeListInRe_raw_star_swap xs (SmtRegLan.range lo hi); (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa
+  | allchar => have hsimpa := nativeListInRe_raw_star_swap xs SmtRegLan.allchar; (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa
+  | concat r s => have hsimpa := nativeListInRe_raw_star_swap xs (SmtRegLan.concat r s); (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa
+  | union r s => have hsimpa := nativeListInRe_raw_star_swap xs (SmtRegLan.union r s); (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa
+  | inter r s => have hsimpa := nativeListInRe_raw_star_swap xs (SmtRegLan.inter r s); (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa
+  | comp r => have hsimpa := nativeListInRe_raw_star_swap xs (SmtRegLan.comp r); (try simp [native_re_mk_star] at hsimpa ⊢); exact hsimpa
 
 theorem smt_value_rel_re_concat_star_swap_core
     (r : SmtRegLan) :
@@ -334,8 +349,10 @@ theorem smt_value_rel_re_concat_star_swap_core
   intro xs hValid
   rw [RuleProofs.native_str_in_re_eq_nativeListInRe xs _ hValid,
     RuleProofs.native_str_in_re_eq_nativeListInRe xs _ hValid]
-  simpa [native_re_concat, native_re_mult] using
+  have hsimpa :=
     nativeListInRe_mk_star_swap xs r
+  try simp [native_re_concat, native_re_mult] at hsimpa ⊢
+  exact hsimpa
 
 theorem smt_value_rel_re_concat_star_repeat_core
     (r : SmtRegLan) :
@@ -353,17 +370,21 @@ theorem smt_value_rel_re_concat_star_repeat_core
     rcases
       (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append
         xs (native_re_mk_star r) (native_re_mk_star r)).1
-        (by simpa [native_re_concat, native_re_mult] using h) with
+        (by have hsimpa := h; (try simp [native_re_concat, native_re_mult] at hsimpa ⊢); exact hsimpa) with
       ⟨left, right, hAppend, hLeft, hRight⟩
-    simpa [native_re_mult, ← hAppend] using
+    have hsimpa :=
       RuleProofs.nativeListInRe_mk_star_append left right r hLeft hRight
+    try simp [native_re_mult, ← hAppend] at hsimpa ⊢
+    exact hsimpa
   · intro h
     have hNil : nativeListInRe [] (native_re_mk_star r) = true :=
       RuleProofs.nativeListInRe_nil_mk_star r
-    simpa [native_re_concat, native_re_mult] using
+    have hsimpa :=
       (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append
         xs (native_re_mk_star r) (native_re_mk_star r)).2
-        ⟨[], xs, by simp, hNil, by simpa [native_re_mult] using h⟩
+        ⟨[], xs, by simp, hNil, by have hsimpa := h; (try simp [native_re_mult] at hsimpa ⊢); exact hsimpa⟩
+    try simp [native_re_concat, native_re_mult] at hsimpa ⊢
+    exact hsimpa
 
 theorem smt_value_rel_re_concat_star_repeat
     (pre r suffix : SmtRegLan) :
@@ -427,8 +448,9 @@ theorem native_includes_star_epsilon (r : SmtRegLan) :
   subst str
   have hNil : nativeListInRe [] (native_re_mk_star r) = true :=
     nativeListInRe_nil_mk_star r
-  simpa [native_str_in_re, native_string_valid, native_re_mult,
-    nativeListInRe] using hNil
+  have hsimpa := hNil
+  try simp [native_str_in_re, native_string_valid, native_re_mult, nativeListInRe] at hsimpa ⊢
+  exact hsimpa
 
 theorem native_includes_star_closure
     {r s : SmtRegLan}

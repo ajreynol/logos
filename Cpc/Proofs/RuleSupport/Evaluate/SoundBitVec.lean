@@ -142,7 +142,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvnot_core
   have hBvNotNN :
       term_has_non_none_type (SmtTerm.bvnot (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_unop_arg_of_non_none
       (op := SmtTerm.bvnot) (t := __eo_to_smt b)
       (by rw [__smtx_typeof.eq_36])
@@ -324,7 +326,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvneg_core
   have hBvNegNN :
       term_has_non_none_type (SmtTerm.bvneg (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_unop_arg_of_non_none
       (op := SmtTerm.bvneg) (t := __eo_to_smt b)
       (by rw [__smtx_typeof.eq_44])
@@ -500,7 +504,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_to_real_core
   have hToRealNN :
       term_has_non_none_type (SmtTerm.to_real (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hRunToQNe : __eo_to_q (__run_evaluate x) ≠ Term.Stuck := by
     intro hStuck
     change
@@ -586,7 +592,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_to_int_core
   have hToIntNN :
       term_has_non_none_type (SmtTerm.to_int (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hRunToZNe : __eo_to_z (__run_evaluate x) ≠ Term.Stuck := by
     intro hStuck
     change
@@ -674,7 +682,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_is_int_core
   have hIsIntNN :
       term_has_non_none_type (SmtTerm.is_int (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hRunToQNe : __eo_to_q (__run_evaluate x) ≠ Term.Stuck := by
     intro hStuck
     change
@@ -772,7 +782,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_uneg_core
   have hUnegNN :
       term_has_non_none_type (SmtTerm.uneg (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases arith_unop_arg_of_non_none
       (op := SmtTerm.uneg) (t := __eo_to_smt b)
       (typeof_uneg_eq (__eo_to_smt b)) hUnegNN with hBTyInt | hBTyReal
@@ -1029,7 +1041,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_abs_core
   have hAbsNN :
       term_has_non_none_type (SmtTerm.abs (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases abs_arg_of_non_none hAbsNN with hBTyInt | hBTyReal
   · have hBTrans : RuleProofs.eo_has_smt_translation b := by
       unfold RuleProofs.eo_has_smt_translation
@@ -1372,7 +1386,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_int_pow2_core
   have hPowNN :
       term_has_non_none_type (SmtTerm.int_pow2 (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hBTyInt : __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
     int_ret_arg_of_non_none (op := SmtTerm.int_pow2)
       (typeof_int_pow2_eq (__eo_to_smt b)) hPowNN
@@ -1545,7 +1561,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_int_log2_core
   have hLogNN :
       term_has_non_none_type (SmtTerm.int_log2 (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hBTyInt : __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
     int_ret_arg_of_non_none (op := SmtTerm.int_log2)
       (typeof_int_log2_eq (__eo_to_smt b)) hLogNN
@@ -1723,8 +1741,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_int_ispow2_core
   have hIspowNN :
       term_has_non_none_type (SmtTerm.and geqTerm eqTerm) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation, geqTerm, eqTerm]
-      using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation, geqTerm, eqTerm] at hsimpa ⊢
+    exact hsimpa
   have hArgs :
       __smtx_typeof geqTerm = SmtType.Bool ∧
         __smtx_typeof eqTerm = SmtType.Bool :=
@@ -2018,7 +2037,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_zero_extend_core
       term_has_non_none_type
         (SmtTerm.zero_extend (__eo_to_smt n) (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases zero_extend_args_of_non_none hZeroNN with
     ⟨i, w, hnSmt, hxSmtTy, hi0⟩
   have hnTerm : n = Term.Numeral i :=
@@ -2155,7 +2176,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_zero_extend_core
   have hWidthNonneg :
       native_zleq 0 (native_zplus (native_nat_to_int w) i) = true := by
     have hAdd : 0 <= native_nat_to_int w + i := Int.add_nonneg hw hi
-    simpa [SmtEval.native_zleq, SmtEval.native_zplus] using hAdd
+    have hsimpa := hAdd
+    try simp [SmtEval.native_zleq, SmtEval.native_zplus] at hsimpa ⊢
+    exact decide_eq_true hsimpa
   have hWidthComm :
       native_zplus i (native_nat_to_int w) =
         native_zplus (native_nat_to_int w) i := by
@@ -2273,7 +2296,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_sign_extend_core
       term_has_non_none_type
         (SmtTerm.sign_extend (__eo_to_smt n) (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases sign_extend_args_of_non_none hSignNN with
     ⟨i, w, hnSmt, hxSmtTy, hi0⟩
   have hnTerm : n = Term.Numeral i :=
@@ -2401,7 +2426,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_sign_extend_core
   have hWidthNonneg :
       native_zleq 0 (native_zplus (native_nat_to_int w) i) = true := by
     have hAdd : 0 <= native_nat_to_int w + i := Int.add_nonneg hw hi
-    simpa [SmtEval.native_zleq, SmtEval.native_zplus] using hAdd
+    have hsimpa := hAdd
+    try simp [SmtEval.native_zleq, SmtEval.native_zplus] at hsimpa ⊢
+    exact decide_eq_true hsimpa
   have hWidthComm :
       native_zplus i (native_nat_to_int w) =
         native_zplus (native_nat_to_int w) i := by
@@ -2553,7 +2580,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_repeat_core
       term_has_non_none_type
         (SmtTerm.repeat (__eo_to_smt n) (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases repeat_args_of_non_none hRepeatNN with
     ⟨i, w, hnSmt, hxSmtTy, hi1⟩
   have hnTerm : n = Term.Numeral i :=
@@ -2726,8 +2755,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_repeat_core
       simp [SmtEval.native_nat_to_int]
     have hMul : 0 <= i * native_nat_to_int w :=
       Int.mul_nonneg hi0Int hw
-    simpa [native_zleq, SmtEval.native_zleq, native_zmult,
-      SmtEval.native_zmult] using hMul
+    have hsimpa := hMul
+    try simp [native_zleq, SmtEval.native_zleq, native_zmult, SmtEval.native_zmult] at hsimpa ⊢
+    exact decide_eq_true hsimpa
   have hListRun :
       __eo_list_repeat (Term.UOp UserOp.concat)
           (Term.Binary (native_nat_to_int w) runN) (Term.Numeral i) =
@@ -3782,7 +3812,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvadd_core
       term_has_non_none_type
         (SmtTerm.bvadd (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvadd) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (by rw [__smtx_typeof.eq_45]) hBvAddNN with
@@ -4035,7 +4067,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvmul_core
       term_has_non_none_type
         (SmtTerm.bvmul (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvmul) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (by rw [__smtx_typeof.eq_46]) hBvMulNN with
@@ -4288,7 +4322,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvudiv_core
       term_has_non_none_type
         (SmtTerm.bvudiv (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvudiv) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (by rw [__smtx_typeof.eq_47]) hBvUdivNN with
@@ -4436,10 +4472,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvudiv_core
               (Term.Numeral (native_nat_to_int w)) := by
         dsimp [runDiv, runBTerm, maxTerm, widthTerm] at hRunDivEoBv
         rw [hRunB] at hRunDivEoBv
-        simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_eq, __eo_ite,
-          __eo_add, __eo_pow, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
-          native_binary_max, native_teq, native_ite, SmtEval.native_zlt,
-          SmtEval.native_nat_to_int] using hRunDivEoBv
+        have hsimpa := hRunDivEoBv
+        try simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_eq, __eo_ite, __eo_add, __eo_pow, __eo_is_z, __eo_is_z_internal, __eo_is_neg, native_binary_max, native_teq, native_ite, SmtEval.native_zlt, SmtEval.native_nat_to_int] at hsimpa ⊢
+        exact hsimpa
       have hRunDivEq :
           runDiv =
             Term.Binary (native_nat_to_int w)
@@ -4451,10 +4486,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvudiv_core
             (native_nat_to_int w) (native_nat_to_int w) hMaxType
         dsimp [runDiv, runBTerm, maxTerm, widthTerm]
         rw [hRunB]
-        simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_eq, __eo_ite,
-          __eo_add, __eo_pow, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
-          native_binary_max, native_teq, native_ite, SmtEval.native_zlt,
-          SmtEval.native_nat_to_int] using hToBin
+        have hsimpa := hToBin
+        try simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_eq, __eo_ite, __eo_add, __eo_pow, __eo_is_z, __eo_is_z_internal, __eo_is_neg, native_binary_max, native_teq, native_ite, SmtEval.native_zlt, SmtEval.native_nat_to_int] at hsimpa ⊢
+        exact hsimpa
       rw [hRunDivEq]
       constructor
       · rw [show
@@ -4657,7 +4691,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvurem_core
       term_has_non_none_type
         (SmtTerm.bvurem (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvurem) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (by rw [__smtx_typeof.eq_48]) hBvUremNN with
@@ -5019,7 +5055,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvult_core
       term_has_non_none_type
         (SmtTerm.bvult (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvult) (ret := SmtType.Bool)
       (by rw [__smtx_typeof.eq_53]) hBvUltNN with
@@ -5273,7 +5311,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvugt_core
       term_has_non_none_type
         (SmtTerm.bvugt (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvugt) (ret := SmtType.Bool)
       (by rw [__smtx_typeof.eq_55]) hBvUgtNN with
@@ -5452,7 +5492,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvuge_core
       term_has_non_none_type
         (SmtTerm.bvuge (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvuge) (ret := SmtType.Bool)
       (by rw [__smtx_typeof.eq_56]) hBvUgeNN with
@@ -5728,7 +5770,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvule_core
       term_has_non_none_type
         (SmtTerm.bvule (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvule) (ret := SmtType.Bool)
       (by rw [__smtx_typeof.eq_54]) hBvUleNN with
@@ -5998,7 +6042,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvsgt_core
       term_has_non_none_type
         (SmtTerm.bvsgt (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvsgt) (ret := SmtType.Bool)
       (by rw [__smtx_typeof.eq_def] <;> simp only) hBvSgtNN with
@@ -6314,7 +6360,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvslt_core
       term_has_non_none_type
         (SmtTerm.bvslt (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvslt) (ret := SmtType.Bool)
       (by rw [__smtx_typeof.eq_def] <;> simp only) hBvSltNN with
@@ -6520,7 +6568,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvsge_core
       term_has_non_none_type
         (SmtTerm.bvsge (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvsge) (ret := SmtType.Bool)
       (by rw [__smtx_typeof.eq_def] <;> simp only) hBvSgeNN with
@@ -6854,7 +6904,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvsle_core
       term_has_non_none_type
         (SmtTerm.bvsle (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvsle) (ret := SmtType.Bool)
       (by rw [__smtx_typeof.eq_def] <;> simp only) hBvSleNN with
@@ -7189,7 +7241,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvshl_core
       term_has_non_none_type
         (SmtTerm.bvshl (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvshl) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (by rw [__smtx_typeof.eq_def] <;> simp only) hBvShlNN with
@@ -7348,8 +7402,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvshl_core
               (Term.Numeral (native_nat_to_int w)) := by
         dsimp [runShift, runAmt, widthTerm, powAmt] at hRunShiftEoBv
         rw [hRunB] at hRunShiftEoBv
-        simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_gt, __eo_ite,
-          native_ite, hGt] using hRunShiftEoBv
+        have hsimpa := hRunShiftEoBv
+        try simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_gt, __eo_ite, native_ite, hGt] at hsimpa ⊢
+        exact hsimpa
       have hRunShiftEq :
           runShift =
             Term.Binary (native_nat_to_int w)
@@ -7360,8 +7415,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvshl_core
             (native_nat_to_int w) (native_nat_to_int w) hZeroTy
         dsimp [runShift, runAmt, widthTerm, powAmt]
         rw [hRunB]
-        simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_gt, __eo_ite,
-          native_ite, hGt] using hToBin
+        have hsimpa := hToBin
+        try simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_gt, __eo_ite, native_ite, hGt] at hsimpa ⊢
+        exact hsimpa
       rw [hRunShiftEq]
       constructor
       · rw [show
@@ -7595,7 +7651,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvlshr_core
       term_has_non_none_type
         (SmtTerm.bvlshr (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvlshr) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (by rw [__smtx_typeof.eq_def] <;> simp only) hBvLshrNN with
@@ -7754,8 +7812,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvlshr_core
               (Term.Numeral (native_nat_to_int w)) := by
         dsimp [runShift, runAmt, widthTerm, powAmt] at hRunShiftEoBv
         rw [hRunB] at hRunShiftEoBv
-        simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_gt, __eo_ite,
-          native_ite, hGt] using hRunShiftEoBv
+        have hsimpa := hRunShiftEoBv
+        try simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_gt, __eo_ite, native_ite, hGt] at hsimpa ⊢
+        exact hsimpa
       have hRunShiftEq :
           runShift =
             Term.Binary (native_nat_to_int w)
@@ -7766,8 +7825,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvlshr_core
             (native_nat_to_int w) (native_nat_to_int w) hZeroTy
         dsimp [runShift, runAmt, widthTerm, powAmt]
         rw [hRunB]
-        simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_gt, __eo_ite,
-          native_ite, hGt] using hToBin
+        have hsimpa := hToBin
+        try simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_gt, __eo_ite, native_ite, hGt] at hsimpa ⊢
+        exact hsimpa
       rw [hRunShiftEq]
       constructor
       · rw [show
@@ -8010,7 +8070,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvashr_core
       term_has_non_none_type
         (SmtTerm.bvashr (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvashr) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (by rw [__smtx_typeof.eq_def] <;> simp only) hBvAshrNN with
@@ -8214,8 +8276,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvashr_core
           hRunWANonneg hRunACanon] at hRunShiftEoBv
         simp [__eo_to_z] at hRunShiftEoBv
         rw [hPowAmt] at hRunShiftEoBv
-        simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
-          hPowZeroFalse] using hRunShiftEoBv
+        have hsimpa := hRunShiftEoBv
+        try simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv, hPowZeroFalse] at hsimpa ⊢
+        exact hsimpa
       have hRunShiftEq :
           runShift =
             Term.Binary (native_nat_to_int w)
@@ -8237,8 +8300,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvashr_core
           hRunWANonneg hRunACanon]
         simp [__eo_to_z]
         rw [hPowAmt]
-        simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
-          hPowZeroFalse] using hToBin
+        have hsimpa := hToBin
+        try simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv, hPowZeroFalse] at hsimpa ⊢
+        exact hsimpa
       rw [hRunShiftEq]
       constructor
       · rw [show
@@ -8381,7 +8445,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_bvsub_core
       term_has_non_none_type
         (SmtTerm.bvsub (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvsub) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
       (by rw [__smtx_typeof.eq_49]) hBvSubNN with

@@ -97,7 +97,7 @@ private theorem typed___eo_prog_str_is_digit_elim_impl
     simp [hSSmtTy, native_ite, native_Teq]
   have hRawCodeTy :
       __smtx_typeof (SmtTerm.str_to_code (__eo_to_smt s)) = SmtType.Int := by
-    simpa using hCodeTy
+    exact hCodeTy
   have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = SmtType.Bool := by
     change __smtx_typeof (SmtTerm.str_is_digit (__eo_to_smt s)) = SmtType.Bool
     rw [typeof_str_is_digit_eq]
@@ -118,7 +118,7 @@ private theorem typed___eo_prog_str_is_digit_elim_impl
       __smtx_typeof
         (SmtTerm.leq (SmtTerm.str_to_code (__eo_to_smt s))
           (SmtTerm.Numeral 57)) = SmtType.Bool := by
-    simpa using hUpperTy
+    exact hUpperTy
   have hTrueTy :
       __smtx_typeof (__eo_to_smt (Term.Boolean true)) = SmtType.Bool := by
     change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
@@ -140,14 +140,14 @@ private theorem typed___eo_prog_str_is_digit_elim_impl
       __smtx_typeof
         (SmtTerm.leq (SmtTerm.Numeral 48)
           (SmtTerm.str_to_code (__eo_to_smt s))) = SmtType.Bool := by
-    simpa using hLowerTy
+    exact hLowerTy
   have hRawRightAndTy :
       __smtx_typeof
         (SmtTerm.and
           (SmtTerm.leq (SmtTerm.str_to_code (__eo_to_smt s))
             (SmtTerm.Numeral 57))
           (SmtTerm.Boolean true)) = SmtType.Bool := by
-    simpa using hRightAndTy
+    exact hRightAndTy
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.Bool := by
     change __smtx_typeof
       (SmtTerm.and

@@ -432,17 +432,21 @@ private theorem facts_bvExtractMultLeadingProgram
   generalize hQ6 : Proof.pf P6 = q6 at hProgramTy hProg' ⊢
   generalize hQ7 : Proof.pf P7 = q7 at hProgramTy hProg' ⊢
   revert hProgramTy hProg'
-  fun_cases
-    __eo_prog_bv_extract_mult_leading_bit high low xi xin x yi yin y w
-      q1 q2 q3 q4 q5 q6 q7 <;>
+  -- `fun_cases` cannot build the cases principle for this 16-argument function
+  -- under v4.33 (it diverges); unfolding to the raw matcher and using `split`
+  -- gives the same eleven cases without generating a principle.
+  unfold __eo_prog_bv_extract_mult_leading_bit
+  split <;>
     simp_all [bvExtractMultLeadingNonnegPrem,
       bvExtractMultLeadingRangePrem, bvExtractMultLeadingLowPrem,
       bvExtractMultLeadingZerosTerm, bvExtractMultLeadingRaw,
       bvExtractMultLeadingOperand, extractLeadApp1, extractLeadApp2,
       extractLeadApp3]
-  case case10 =>
+  case h_10 =>
+    -- `split` re-binds the nine `Term` arguments and the seven `Proof`s ahead of
+    -- the pattern variables, so name only the trailing 22 (`xFull` was unused)
     rename_i r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15 r16
-      r17 r18 r19 r20 r21 r22 xFull
+      r17 r18 r19 r20 r21 r22
     intro hMatchedTy hMatched
     have hGuardRaw := support_eo_requires_cond_eq_of_non_stuck hMatched
     have hGuard :
@@ -508,14 +512,16 @@ private theorem typed_bvExtractMultLeadingProgram
   generalize hQ6 : Proof.pf P6 = q6 at hProgramTy hProg' ⊢
   generalize hQ7 : Proof.pf P7 = q7 at hProgramTy hProg' ⊢
   revert hProgramTy hProg'
-  fun_cases
-    __eo_prog_bv_extract_mult_leading_bit high low xi xin x yi yin y w
-      q1 q2 q3 q4 q5 q6 q7 <;>
+  -- as above: `fun_cases` diverges on this 16-argument function under v4.33
+  unfold __eo_prog_bv_extract_mult_leading_bit
+  split <;>
     simp_all [bvExtractMultLeadingRaw, bvExtractMultLeadingOperand,
       extractLeadApp1, extractLeadApp2]
-  case case10 =>
+  case h_10 =>
+    -- `split` re-binds the nine `Term` arguments and the seven `Proof`s ahead of
+    -- the pattern variables, so name only the trailing 22 (`xFull` was unused)
     rename_i r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15 r16
-      r17 r18 r19 r20 r21 r22 xFull
+      r17 r18 r19 r20 r21 r22
     intro hMatchedTy hMatched
     have hGuardRaw := support_eo_requires_cond_eq_of_non_stuck hMatched
     have hGuard :

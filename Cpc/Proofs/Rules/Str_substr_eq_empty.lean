@@ -412,10 +412,10 @@ private theorem facts___eo_prog_str_substr_eq_empty_impl
     exact List.eq_nil_of_length_eq_zero hLenNat
   have hSSeqTy :
       __smtx_typeof_seq_value ss = SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [hSEval] using hSEvalTy
+    simpa [hSEval, __smtx_typeof_seq_value, __smtx_typeof_value] using hSEvalTy
   have hRSeqTy :
       __smtx_typeof_seq_value rs = SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [hREval] using hREvalTy
+    simpa [hREval, __smtx_typeof_seq_value, __smtx_typeof_value] using hREvalTy
   have hSElem : __smtx_elem_typeof_seq_value ss = __eo_to_smt_type T :=
     elem_typeof_seq_value_of_typeof_seq_value hSSeqTy
   have hRElem : __smtx_elem_typeof_seq_value rs = __eo_to_smt_type T :=
@@ -615,7 +615,9 @@ by
                                             extract a2
                                             (by rw [hExtractSmtTy, hA2SmtTy])
                                             (by rw [hExtractSmtTy]; simp)
-                                        simpa [lhs, substrEqEmptyLhs] using hEqBool
+                                        simpa [lhs, substrEqEmptyLhs, __eo_to_smt, __smtx_typeof, extract,
+                                          substrEqEmptyExtract,
+                                          RuleProofs.eo_has_bool_type] using hEqBool
                                       have hRhsSmtTy :
                                           __smtx_typeof (__eo_to_smt rhs) =
                                             SmtType.Bool := by
@@ -626,7 +628,8 @@ by
                                             a1 a2
                                             (by rw [hA1SmtTy, hA2SmtTy])
                                             (by rw [hA1SmtTy]; simp)
-                                        simpa [rhs, substrEqEmptyRhs] using hEqBool
+                                        simpa [rhs, substrEqEmptyRhs, __eo_to_smt, __smtx_typeof,
+                                          RuleProofs.eo_has_bool_type] using hEqBool
                                       have hBoolEq :
                                           RuleProofs.eo_has_bool_type
                                             (substrEqEmptyConclusion a1 a2 a3 a4) := by

@@ -463,8 +463,8 @@ private theorem run_process_scope_bool
       rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ (by simp) hExtNe,
         eo_mk_apply_eq_apply_of_ne_stuck _ _ (by simp) hCNe] at hRunTy
       have hTy' :
-          __eo_typeof_or (__eo_typeof A) (__eo_typeof C) = Term.Bool := by
-        simpa using hRunTy
+          __eo_typeof_or (__eo_typeof A) (__eo_typeof C) = Term.Bool :=
+        hRunTy
       exact typeof_or_eq_bool_right hTy'
     have hCBool : RuleProofs.eo_has_bool_type C :=
       RuleProofs.eo_typeof_bool_implies_has_bool_type C hCTrans hCTy
@@ -519,8 +519,8 @@ private theorem run_process_scope_sound
       rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ (by simp) hExtNe,
         eo_mk_apply_eq_apply_of_ne_stuck _ _ (by simp) hCNe] at hRunTy
       have hTy' :
-          __eo_typeof_or (__eo_typeof A) (__eo_typeof C) = Term.Bool := by
-        simpa using hRunTy
+          __eo_typeof_or (__eo_typeof A) (__eo_typeof C) = Term.Bool :=
+        hRunTy
       exact typeof_or_eq_bool_right hTy'
     have hCBool : RuleProofs.eo_has_bool_type C :=
       RuleProofs.eo_typeof_bool_implies_has_bool_type C hCTrans hCTy

@@ -756,7 +756,8 @@ theorem bv_extract_extract_context
   have hLhsNe' :
       __eo_typeof_extract (__eo_typeof l) l (__eo_typeof k) k
           (__eo_typeof (bvExtractTerm x j i)) ≠ Term.Stuck := by
-    simpa [bvExtractExtractLhs, bvExtractTerm] using hLhsNe
+    simp only [bvExtractExtractLhs, bvExtractTerm] at hLhsNe
+    exact hLhsNe
   rcases eo_typeof_extract_arg_bitvec_of_ne_stuck hLhsNe' with
     ⟨innerWidth, hInnerType⟩
   have hInnerNe : __eo_typeof (bvExtractTerm x j i) ≠ Term.Stuck := by
@@ -858,7 +859,8 @@ theorem typed_bv_extract_extract_term (x i j k l ll kk : Term) :
     cases h
   have hEOTypeEq : __eo_typeof lhs = __eo_typeof rhs := by
     apply RuleProofs.eo_typeof_eq_bool_operands_eq
-    simpa [bvExtractExtractTerm, lhs, rhs] using hResultTy
+    simp only [bvExtractExtractTerm, lhs, rhs] at hResultTy
+    exact hResultTy
   have hLhsBridge :
       __smtx_typeof (__eo_to_smt lhs) = __eo_to_smt_type (__eo_typeof lhs) :=
     RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type

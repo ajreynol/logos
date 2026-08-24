@@ -132,8 +132,7 @@ private theorem term_ne_stuck_of_smt_type_non_none
 private theorem list_singleton_elim_stuck
     (f : Term) :
     __eo_list_singleton_elim f Term.Stuck = Term.Stuck := by
-  simp [__eo_list_singleton_elim, __eo_list_singleton_elim_2, __eo_is_list,
-    __eo_requires, native_teq, native_ite]
+  cases f <;> rfl
 
 private theorem distinct_pairs_eval_bool
     (M : SmtModel) (s : SmtTerm) :

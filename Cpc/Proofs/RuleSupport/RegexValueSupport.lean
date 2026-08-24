@@ -40,7 +40,7 @@ move between the two views along that observation.
     Smtm.native_str_in_re (native_unpack_seq ss) r =
       RuleProofs.native_str_in_re (native_unpack_string ss) r := by
   apply model_str_in_re_unpack_eq_string ss r
-  simpa using hTy
+  exact hTy
 
 theorem seq_value_canonical_with_char_type {v : SmtValue}
     (hTy : __smtx_typeof_value v = SmtType.Seq SmtType.Char) :
@@ -53,7 +53,12 @@ theorem seq_value_canonical_with_char_type {v : SmtValue}
   rw [← hEval]
   exact hTy
 
-theorem native_unpack_seq_pack_seq (T : SmtType) :
+-- `private`: `RuleProofs.native_unpack_seq_pack_seq` is also declared (with a
+-- byte-identical proof) in `RuleSupport/StrInReEvalSupport.lean`, and under
+-- v4.33 the generated `._f` auxiliary makes the two collide in any module
+-- importing both, e.g. `RuleSupport/ReInclusionSupport.lean`.  Both of this
+-- module's consumers reach it through `import all`, so they still see it.
+private theorem native_unpack_seq_pack_seq (T : SmtType) :
     ∀ xs : List SmtValue, native_unpack_seq (native_pack_seq T xs) = xs
   | [] => rfl
   | _ :: xs => by

@@ -121,8 +121,9 @@ by
                                                       bvExtractConcat3Program
                                                           x y xs i j u l P1 P2 P3 ≠
                                                         Term.Stuck := by
-                                                    simpa [bvExtractConcat3Program,
-                                                      P1, P2, P3] using hProg
+                                                    have hsimpa := hProg
+                                                    try simp [bvExtractConcat3Program, P1, P2, P3] at hsimpa ⊢
+                                                    exact hsimpa
                                                   rcases
                                                       bvExtractConcat3Program_normalize
                                                         x y xs i j u l P1 P2 P3

@@ -564,10 +564,10 @@ by
                       | nil =>
                           let P := __eo_state_proven_nth s n
                           have hA1Trans : RuleProofs.eo_has_smt_translation a1 := by
-                            simpa [cmdTranslationOk, cArgListTranslationOk] using
+                            simpa [cmdTranslationOk, cArgListTranslationOk, argTranslationOkMasked] using
                               hCmdTrans.1
                           have hA2Trans : RuleProofs.eo_has_smt_translation a2 := by
-                            simpa [cmdTranslationOk, cArgListTranslationOk] using
+                            simpa [cmdTranslationOk, cArgListTranslationOk, argTranslationOkMasked] using
                               hCmdTrans.2.1
                           change __eo_typeof
                               (__eo_prog_str_contains_char a1 a2 A (Proof.pf P)) =

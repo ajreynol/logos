@@ -26,7 +26,7 @@ private theorem eq_of_requires_eq_true_not_stuck (x1 A B : Term) :
   A = x1 := by
   intro hProg
   have hProg' := hProg
-  simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
+  simp [__eo_requires, native_ite, native_teq, native_not,
     SmtEval.native_not] at hProg'
   have hReq : __eo_eq x1 A = Term.Boolean true := hProg'.1
   by_cases hx : x1 = Term.Stuck

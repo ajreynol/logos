@@ -68,8 +68,7 @@ private theorem typed___eo_prog_re_in_sigma_star_impl
         __smtx_typeof (__eo_to_smt a1) = __eo_to_smt_type (__eo_typeof a1) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation a1 hA1Trans
     rw [hA1Ty] at hTyRaw
-    simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char]
-      using hTyRaw
+    exact hTyRaw
   have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = SmtType.Bool := by
     change __smtx_typeof
       (SmtTerm.str_in_re (__eo_to_smt a1) (SmtTerm.re_mult SmtTerm.re_allchar)) =
@@ -137,8 +136,7 @@ private theorem facts___eo_prog_re_in_sigma_star_impl
         __smtx_typeof (__eo_to_smt a1) = __eo_to_smt_type (__eo_typeof a1) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation a1 hA1Trans
     rw [hA1Ty] at hTyRaw
-    simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char]
-      using hTyRaw
+    exact hTyRaw
   have hA1EvalTy :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a1)) =
         SmtType.Seq SmtType.Char := by

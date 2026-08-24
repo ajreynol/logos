@@ -75,7 +75,7 @@ by
                                                   (bvEqExtractElim3Program
                                                     x y i j im P1 P2 P3) =
                                                 Term.Bool := by
-                                            simpa [P1, P2, P3] using hResultTy
+                                            exact hResultTy
                                           refine ⟨?_, ?_⟩
                                           · intro hPremisesTrue
                                             exact facts_bv_eq_extract_elim3_program

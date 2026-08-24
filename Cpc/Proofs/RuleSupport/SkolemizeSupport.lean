@@ -638,8 +638,10 @@ theorem substActuals_skolems (F : Term) :
   | cons hTail ih =>
       rename_i s T env vars
       intro i hFacts
-      have hHead : SkolemEntryFacts F (i + Int.ofNat 0) T := by
-        simpa using hFacts 0 (by simp)
+      -- `((s, T) :: vars)[0].2` reduces to `T` by iota, but `simp` no longer
+      -- rewrites it here, so hand the gap to `exact`'s defeq check instead.
+      have hHead : SkolemEntryFacts F (i + Int.ofNat 0) T :=
+        hFacts 0 (by simp)
       rw [show i + Int.ofNat 0 = i by simp] at hHead
       have hTailFacts :
           ∀ (j : Nat) (hj : j < vars.length),

@@ -158,7 +158,9 @@ by
                                   __eo_prog_bv_ule_max a1 a2 a3
                                       (Proof.pf P1) (Proof.pf P2) ≠
                                     Term.Stuck := by
-                                simpa [P1, P2] using hProg
+                                have hsimpa := hProg
+                                try simp [P1, P2] at hsimpa ⊢
+                                exact hsimpa
                               rcases bv_ule_max_shape_of_ne_stuck
                                   a1 a2 a3 P1 P2 hProgLocal with
                                 ⟨hA1Ne, hA2Ne, hA3Ne,

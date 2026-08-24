@@ -324,7 +324,7 @@ private theorem typed___eo_prog_str_contains_repl_tgt_impl
       native_ite, native_Teq]
   have hReplTy :
       __smtx_typeof (__eo_to_smt repl) = SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [repl, containsReplTgtRepl] using hReplSmtTy
+    simpa [repl, containsReplTgtRepl, __eo_to_smt, __eo_to_smt_type, __smtx_typeof] using hReplSmtTy
   have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = SmtType.Bool := by
     change __smtx_typeof
         (SmtTerm.str_contains

@@ -388,7 +388,10 @@ theorem native_qlt_mul_of_pos_left {c a b : native_Rat} :
   have hab' : a < b := by
     simpa [native_qlt] using hab
   have hres : c * a < c * b := rat_mul_lt_of_pos_left hc' hab'
-  simpa [native_qlt, native_qmult] using hres
+  -- v4.33 `simp` rewrites inside `decide` without refreshing the instance,
+  -- so the goal keeps its `decide _ = true` shape; supply it directly.
+  simp only [native_qlt, native_qmult]
+  exact decide_eq_true hres
 
 theorem native_qleq_mul_of_pos_left {c a b : native_Rat} :
     native_qlt (native_mk_rational 0 1) c = true ->
@@ -400,7 +403,10 @@ theorem native_qleq_mul_of_pos_left {c a b : native_Rat} :
   have hab' : a ≤ b := by
     simpa [native_qleq] using hab
   have hres : c * a ≤ c * b := rat_mul_le_of_pos_left hc' hab'
-  simpa [native_qleq, native_qmult] using hres
+  -- v4.33 `simp` rewrites inside `decide` without refreshing the instance,
+  -- so the goal keeps its `decide _ = true` shape; supply it directly.
+  simp only [native_qleq, native_qmult]
+  exact decide_eq_true hres
 
 theorem native_qlt_mul_of_neg_left {c a b : native_Rat} :
     native_qlt c (native_mk_rational 0 1) = true ->
@@ -412,7 +418,10 @@ theorem native_qlt_mul_of_neg_left {c a b : native_Rat} :
   have hab' : a < b := by
     simpa [native_qlt] using hab
   have hres : c * b < c * a := rat_mul_lt_of_neg_left hc' hab'
-  simpa [native_qlt, native_qmult] using hres
+  -- v4.33 `simp` rewrites inside `decide` without refreshing the instance,
+  -- so the goal keeps its `decide _ = true` shape; supply it directly.
+  simp only [native_qlt, native_qmult]
+  exact decide_eq_true hres
 
 theorem native_qleq_mul_of_neg_left {c a b : native_Rat} :
     native_qlt c (native_mk_rational 0 1) = true ->
@@ -424,7 +433,10 @@ theorem native_qleq_mul_of_neg_left {c a b : native_Rat} :
   have hab' : a ≤ b := by
     simpa [native_qleq] using hab
   have hres : c * b ≤ c * a := rat_mul_le_of_neg_left hc' hab'
-  simpa [native_qleq, native_qmult] using hres
+  -- v4.33 `simp` rewrites inside `decide` without refreshing the instance,
+  -- so the goal keeps its `decide _ = true` shape; supply it directly.
+  simp only [native_qleq, native_qmult]
+  exact decide_eq_true hres
 
 theorem native_qeq_mul_congr_left {c a b : native_Rat} :
     native_qeq a b = true ->
@@ -462,7 +474,7 @@ theorem arith_rel_op_has_bool_type_of_translation
           SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b) by rfl]
       have hNN : term_has_non_none_type (SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b)) := by
         unfold term_has_non_none_type
-        simpa [relTerm] using hTrans
+        simpa [relTerm, __eo_to_smt, __smtx_typeof] using hTrans
       rcases arith_binop_ret_bool_args_of_non_none
           (op := SmtTerm.lt) (typeof_lt_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
           with hArgs | hArgs
@@ -476,7 +488,7 @@ theorem arith_rel_op_has_bool_type_of_translation
           SmtTerm.leq (__eo_to_smt a) (__eo_to_smt b) by rfl]
       have hNN : term_has_non_none_type (SmtTerm.leq (__eo_to_smt a) (__eo_to_smt b)) := by
         unfold term_has_non_none_type
-        simpa [relTerm] using hTrans
+        simpa [relTerm, __eo_to_smt, __smtx_typeof] using hTrans
       rcases arith_binop_ret_bool_args_of_non_none
           (op := SmtTerm.leq) (typeof_leq_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
           with hArgs | hArgs
@@ -490,7 +502,7 @@ theorem arith_rel_op_has_bool_type_of_translation
           SmtTerm.gt (__eo_to_smt a) (__eo_to_smt b) by rfl]
       have hNN : term_has_non_none_type (SmtTerm.gt (__eo_to_smt a) (__eo_to_smt b)) := by
         unfold term_has_non_none_type
-        simpa [relTerm] using hTrans
+        simpa [relTerm, __eo_to_smt, __smtx_typeof] using hTrans
       rcases arith_binop_ret_bool_args_of_non_none
           (op := SmtTerm.gt) (typeof_gt_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
           with hArgs | hArgs
@@ -504,7 +516,7 @@ theorem arith_rel_op_has_bool_type_of_translation
           SmtTerm.geq (__eo_to_smt a) (__eo_to_smt b) by rfl]
       have hNN : term_has_non_none_type (SmtTerm.geq (__eo_to_smt a) (__eo_to_smt b)) := by
         unfold term_has_non_none_type
-        simpa [relTerm] using hTrans
+        simpa [relTerm, __eo_to_smt, __smtx_typeof] using hTrans
       rcases arith_binop_ret_bool_args_of_non_none
           (op := SmtTerm.geq) (typeof_geq_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
           with hArgs | hArgs
@@ -3058,17 +3070,17 @@ private theorem eo_abs_rel_args_of_typeof_bool (r a b : Term)
       (__eo_typeof a = Term.Real ∧ __eo_typeof b = Term.Real) := by
   rcases hr with rfl | rfl
   · exact eo_typeof_lt_bool_abs_args (__eo_typeof a) (__eo_typeof b)
-      (by simpa [relTerm, absTerm] using hTy)
+      (by simpa [relTerm, absTerm, __eo_typeof, __eo_typeof_abs, __eo_typeof_lt] using hTy)
   · have hEq : __eo_typeof_abs (__eo_typeof a) =
         __eo_typeof_abs (__eo_typeof b) :=
       RuleProofs.eo_typeof_eq_bool_operands_eq _ _
-        (by simpa [relTerm, absTerm] using hTy)
+        (by simpa [relTerm, absTerm, __eo_typeof, __eo_typeof_abs, __eo_typeof_eq] using hTy)
     have hANe : __eo_typeof_abs (__eo_typeof a) ≠ Term.Stuck :=
       (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-        (by simpa [relTerm, absTerm] using hTy)).1
+        (by simpa [relTerm, absTerm, __eo_typeof, __eo_typeof_abs, __eo_typeof_eq] using hTy)).1
     have hBNe : __eo_typeof_abs (__eo_typeof b) ≠ Term.Stuck :=
       (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-        (by simpa [relTerm, absTerm] using hTy)).2
+        (by simpa [relTerm, absTerm, __eo_typeof, __eo_typeof_abs, __eo_typeof_eq] using hTy)).2
     rcases eo_typeof_abs_nonstuck_arg_arith (__eo_typeof a) hANe with ha | ha <;>
       rcases eo_typeof_abs_nonstuck_arg_arith (__eo_typeof b) hBNe with hb | hb
     · exact Or.inl ⟨ha, hb⟩
@@ -3857,7 +3869,7 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
       · subst tv
         by_cases hZero :
             __eo_to_q z = Term.Rational (native_mk_rational 0 1)
-        · simp [__eo_eq, __eo_ite, __eo_requires, hZero, native_teq,
+        · simp [__eo_ite, __eo_requires, hZero, native_teq,
             native_ite, native_not, SmtEval.native_not] at hTy ⊢
           have hLeftType :
               RuleProofs.eo_has_bool_type
@@ -3885,13 +3897,11 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
                 rcases htArith with hInt | hReal
                 · rw [hInt.1]; simp
                 · rw [hReal.1]; simp)
-          have hEqSelfRaw :
-              (match t, t with
-                | Term.Stuck, _ => Term.Stuck
-                | _, Term.Stuck => Term.Stuck
-                | t, s => Term.Boolean (decide (s = t))) =
-                Term.Boolean true := by
-            cases t <;> simp at htNe ⊢
+          -- state this in the folded shape: v4.33 keeps `__eo_eq` folded in the
+          -- `ite` guard, and the unfolded `match` form is a distinct (dependent)
+          -- matcher that no longer converts.
+          have hEqSelfRaw : __eo_eq t t = Term.Boolean true :=
+            RuleProofs.eo_eq_self_of_ne_stuck t htNe
           rcases abs_eq_factor_type M hM t u hEqAbsType with
             ⟨nt, nu, htList, huList⟩
           cases hAcc with
@@ -3915,9 +3925,11 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
                 rw [hRelEq]
                 exact AbsCmpTypeAcc.gt _ _ _ _ _ _ hLeft hRight
               have hRec := ih hBType hAccNew (by
-                simpa [hEqSelfRaw] using hTy)
-              simpa [hEqSelfRaw] using hRec
-        · simp [__eo_eq, __eo_ite, __eo_requires, hZero, native_teq,
+                rw [if_pos hEqSelfRaw] at hTy
+                exact hTy)
+              rw [if_pos hEqSelfRaw]
+              exact hRec
+        · simp [__eo_ite, __eo_requires, hZero, native_teq,
             native_ite, __eo_l_2___mk_arith_mult_abs_comparison_rec] at hTy
           exact False.elim (false_of_typeof_stuck_bool (by simpa using hTy))
       · cases hCond : __eo_eq t tv with
@@ -4161,7 +4173,7 @@ private theorem facts_arith_mult_abs_comparison_rec
       · subst tv
         by_cases hZero :
             __eo_to_q z = Term.Rational (native_mk_rational 0 1)
-        · simp [__eo_eq, __eo_ite, __eo_requires, hZero, native_teq,
+        · simp [__eo_ite, __eo_requires, hZero, native_teq,
             native_ite, native_not, SmtEval.native_not] at hTy ⊢
           have hLeftTrue :
               eo_interprets M
@@ -4199,13 +4211,11 @@ private theorem facts_arith_mult_abs_comparison_rec
               cases nt <;> simp [ArithValue.smtType])
           have hEqSelf : __eo_eq t t = Term.Boolean true :=
             eo_eq_self_of_ne_stuck htNe
-          have hEqSelfRaw :
-              (match t, t with
-                | Term.Stuck, _ => Term.Stuck
-                | _, Term.Stuck => Term.Stuck
-                | t, s => Term.Boolean (decide (s = t))) =
-                Term.Boolean true := by
-            cases t <;> simp at htNe ⊢
+          -- state this in the folded shape: v4.33 keeps `__eo_eq` folded in the
+          -- `ite` guard, and the unfolded `match` form is a distinct (dependent)
+          -- matcher that no longer converts.
+          have hEqSelfRaw : __eo_eq t t = Term.Boolean true :=
+            RuleProofs.eo_eq_self_of_ne_stuck t htNe
           cases hAcc with
           | gt _ _ ka kb va vb ha hb hLt =>
               have hPos := abs_factor_nonzero_factors M t z nt htTy htEval hZero hNotEqTrue
@@ -4232,9 +4242,11 @@ private theorem facts_arith_mult_abs_comparison_rec
                 exact
                   AbsCmpAcc.gt _ _ _ _ _ _ hLeft hRight hNewLt
               have hRec := ih hBTrue hAccNew (by
-                simpa [hEqSelfRaw] using hTy)
-              simpa [hEqSelfRaw] using hRec
-        · simp [__eo_eq, __eo_ite, __eo_requires, hZero, native_teq,
+                rw [if_pos hEqSelfRaw] at hTy
+                exact hTy)
+              rw [if_pos hEqSelfRaw]
+              exact hRec
+        · simp [__eo_ite, __eo_requires, hZero, native_teq,
             native_ite, __eo_l_2___mk_arith_mult_abs_comparison_rec] at hTy
           exact False.elim (false_of_typeof_stuck_bool (by simpa using hTy))
       · cases hCond : __eo_eq t tv with

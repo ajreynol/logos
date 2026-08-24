@@ -90,7 +90,7 @@ private theorem smt_typeof_binary_one_one :
     __smtx_typeof (SmtTerm.Binary 1 1) = SmtType.BitVec 1 := by
   have hNN : __smtx_typeof (SmtTerm.Binary 1 1) ≠ SmtType.None := by
     native_decide
-  simpa using TranslationProofs.smtx_typeof_binary_of_non_none 1 1 hNN
+  exact TranslationProofs.smtx_typeof_binary_of_non_none 1 1 hNN
 
 private theorem smt_typeof_c1_bitvec_one
     (c1 : Term) :
@@ -104,7 +104,7 @@ private theorem smt_typeof_c1_bitvec_one
     exact RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
       c1 (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1)) (__eo_to_smt c1) rfl
       hC1Trans hC1Type
-  simpa [__eo_to_smt_type, SmtEval.native_zleq] using hSmtType
+  simpa [__eo_to_smt_type, SmtEval.native_zleq, native_int_to_nat, native_ite] using hSmtType
 
 private theorem smt_typeof_bvite_same
     (c1 x1 : Term) :

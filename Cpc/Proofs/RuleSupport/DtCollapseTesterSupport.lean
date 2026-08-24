@@ -494,7 +494,7 @@ private theorem ctorSpineRoot_tuple_typeof_tuple
           TranslationProofs.smtx_tuple_prepend_typeof_of_tail_tuple_type
             (__eo_to_smt a) (__eo_to_smt head) headTy c hTailTy
             hPrependNN
-        exact ⟨headTy, c, by simpa [headTy] using hTy⟩
+        exact ⟨headTy, c, by have hsimpa := hTy; (try simp [headTy] at hsimpa ⊢); exact hsimpa⟩
 
 private theorem ctorSpineRoot_tupleUnit_typeof_unit
     {t : Term}

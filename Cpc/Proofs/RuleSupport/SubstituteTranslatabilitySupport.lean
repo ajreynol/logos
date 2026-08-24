@@ -198,7 +198,7 @@ theorem forall_binder_types_wf_of_has_smt_translation
                         (Term.Var (Term.String s) T)) env)
                       (SmtTerm.not (__eo_to_smt F)))) ≠
                 SmtType.None
-            simpa [RuleProofs.eo_has_smt_translation] using hForall)
+            simpa [RuleProofs.eo_has_smt_translation, __eo_to_smt, __eo_to_smt_exists, __eo_to_smt_type] using hForall)
       have hExistsTy :
           __smtx_typeof
               (__eo_to_smt_exists
@@ -1386,7 +1386,7 @@ theorem instantiate_smtx_typeof_apply_non_none_of_eo_typeof_apply_non_stuck
       have hX : T = X := instantiate_eo_requires_arg_eq_of_ne_stuck hAppReq
       subst X
       have hValid : TranslationProofs.eo_type_valid_rec [] (Term.DtcAppType T U) := by
-        simpa [TranslationProofs.eo_type_valid] using hFValid
+        simpa [TranslationProofs.eo_type_valid, TranslationProofs.eo_type_valid_rec, __eo_to_smt, __eo_to_smt_type, __smtx_typeof_guard] using hFValid
       rcases eo_type_valid_rec_dtc_app_args hValid with ⟨hT, hU⟩
       have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
         TranslationProofs.eo_type_valid_rec_non_none hT
@@ -1410,7 +1410,7 @@ theorem instantiate_smtx_typeof_apply_non_none_of_eo_typeof_apply_non_stuck
               have hValid :
                   TranslationProofs.eo_type_valid_rec []
                     (Term.Apply (Term.Apply Term.FunType T) U) := by
-                simpa [TranslationProofs.eo_type_valid] using hFValid
+                simpa [TranslationProofs.eo_type_valid, TranslationProofs.eo_type_valid_rec, __eo_to_smt, __eo_to_smt_type, __smtx_typeof_guard] using hFValid
               rcases eo_type_valid_rec_fun_args hValid with
                 ⟨hT, hU⟩
               have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
@@ -1758,7 +1758,7 @@ theorem quant_binder_types_wf_of_has_smt_translation
                           (Term.Var (Term.String s) T)) env)
                         (SmtTerm.not (__eo_to_smt F)))) ≠
                   SmtType.None
-              simpa [RuleProofs.eo_has_smt_translation] using hTrans)
+              simpa [RuleProofs.eo_has_smt_translation, __eo_to_smt, __eo_to_smt_exists, __eo_to_smt_type] using hTrans)
         have hExistsTy :
             __smtx_typeof
                 (__eo_to_smt_exists
@@ -1798,7 +1798,7 @@ theorem quant_binder_types_wf_of_has_smt_translation
                         (Term.Var (Term.String s) T)) env)
                       (__eo_to_smt F)) ≠
                   SmtType.None
-              simpa [RuleProofs.eo_has_smt_translation] using hTrans)
+              simpa [RuleProofs.eo_has_smt_translation, __eo_to_smt, __eo_to_smt_exists, __eo_to_smt_type] using hTrans)
         exact
           smtx_type_wf_of_eo_var_env_exists_bool
             (EoVarEnv.cons (s := s) (T := T) hTail) hExistsTy

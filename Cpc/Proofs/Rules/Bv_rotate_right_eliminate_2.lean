@@ -59,7 +59,7 @@ by
                           __eo_prog_bv_rotate_right_eliminate_2 x amount
                               (Proof.pf P) ≠
                             Term.Stuck := by
-                        simpa [P] using hProg
+                        exact hProg
                       rcases bv_rotate_right_elim_shape_of_ne_stuck
                           x amount P hProgLocal with
                         ⟨hXNe, hAmountNe, pa, px, hPShape⟩

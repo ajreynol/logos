@@ -109,11 +109,11 @@ private theorem bv_eq_extract_elim2_inner_types
   . change __eo_typeof_eq
       (__eo_typeof (bvEqExtractElim2Slice x j)) (__eo_typeof y) = Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck_bv_extract
-    simpa [bvEqExtractElim2LeftEq] using hLeft
+    exact hLeft
   . change __eo_typeof_eq (__eo_typeof x)
       (__eo_typeof (bvEqExtractElim2Rebuild x y wm jp)) = Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck_bv_extract
-    simpa [bvEqExtractElim2RightEq] using hRight
+    exact hRight
 
 private theorem bv_eq_extract_elim2_smt_context
     (x y j wm jp : Term) :
@@ -196,7 +196,7 @@ private theorem bv_eq_extract_elim2_smt_context
           (__eo_typeof
             (Term.Apply (Term.Apply (Term.UOp UserOp.concat) y)
               (Term.Binary 0 0))) ≠ Term.Stuck := by
-    simpa [bvEqExtractElim2Rebuild] using hRebuildNe
+    exact hRebuildNe
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_bv_extract hOuterConcatNe with
     ⟨highWidthTerm, innerWidthTerm, hHighEo, _hInnerEo⟩
   have hHighNe :
@@ -1009,11 +1009,11 @@ private theorem bv_eq_extract_elim3_inner_types
       (__eo_typeof (bvEqExtractElim3Slice x j i)) (__eo_typeof y) =
         Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck_bv_extract
-    simpa [bvEqExtractElim3LeftEq] using hLeft
+    exact hLeft
   · change __eo_typeof_eq (__eo_typeof x)
       (__eo_typeof (bvEqExtractElim3Rebuild x y im)) = Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck_bv_extract
-    simpa [bvEqExtractElim3RightEq] using hRight
+    exact hRight
 
 private theorem bv_eq_extract_elim3_smt_context
     (x y i j im : Term) :
@@ -1090,7 +1090,7 @@ private theorem bv_eq_extract_elim3_smt_context
               (Term.Apply (Term.UOp UserOp.concat)
                 (bvEqExtractElim3Low x im))
               (Term.Binary 0 0))) ≠ Term.Stuck := by
-    simpa [bvEqExtractElim3Rebuild] using hRebuildNe
+    exact hRebuildNe
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_bv_extract
       hOuterConcatNe with
     ⟨_yWidthTerm, innerWidthTerm, _hYEo, hInnerEo⟩
@@ -1106,7 +1106,7 @@ private theorem bv_eq_extract_elim3_smt_context
   have hInnerConcatNe :
       __eo_typeof_concat (__eo_typeof (bvEqExtractElim3Low x im))
           (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
-    simpa using hInnerNe
+    exact hInnerNe
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_bv_extract
       hInnerConcatNe with
     ⟨lowWidthTerm, _emptyWidthTerm, hLowEo, _hEmptyEo⟩
@@ -1951,11 +1951,11 @@ private theorem bv_eq_extract_elim1_inner_types
       (__eo_typeof (bvEqExtractElim1Slice x j i)) (__eo_typeof y) =
         Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck_bv_extract
-    simpa [bvEqExtractElim1LeftEq] using hLeft
+    exact hLeft
   · change __eo_typeof_eq (__eo_typeof x)
       (__eo_typeof (bvEqExtractElim1Rebuild x y wm jp im)) = Term.Bool
     apply eo_typeof_eq_bool_of_ne_stuck_bv_extract
-    simpa [bvEqExtractElim1RightEq] using hRight
+    exact hRight
 
 private theorem bv_eq_extract_elim1_smt_context
     (x y i j wm jp im : Term) :
@@ -2043,8 +2043,7 @@ private theorem bv_eq_extract_elim1_smt_context
   have hOuterConcatNe :
       __eo_typeof_concat (__eo_typeof (bvEqExtractElim1High x wm jp))
           (__eo_typeof middleWithLow) ≠ Term.Stuck := by
-    simpa [bvEqExtractElim1Rebuild, middleWithLow, lowWithEmpty] using
-      hRebuildNe
+    exact hRebuildNe
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_bv_extract
       hOuterConcatNe with
     ⟨_highWidthTerm, _middleWidthTerm, hHighEo, hMiddleEo⟩
@@ -2060,7 +2059,7 @@ private theorem bv_eq_extract_elim1_smt_context
   have hMiddleConcatNe :
       __eo_typeof_concat (__eo_typeof y) (__eo_typeof lowWithEmpty) ≠
         Term.Stuck := by
-    simpa [middleWithLow] using hMiddleNe
+    exact hMiddleNe
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_bv_extract
       hMiddleConcatNe with
     ⟨_yWidthTerm, _lowWithEmptyWidthTerm, _hYEo, hLowWithEmptyEo⟩
@@ -2072,7 +2071,7 @@ private theorem bv_eq_extract_elim1_smt_context
   have hLowConcatNe :
       __eo_typeof_concat (__eo_typeof (bvEqExtractElim1Low x im))
           (__eo_typeof (Term.Binary 0 0)) ≠ Term.Stuck := by
-    simpa [lowWithEmpty] using hLowWithEmptyNe
+    exact hLowWithEmptyNe
   rcases eo_typeof_concat_args_bitvec_of_ne_stuck_bv_extract
       hLowConcatNe with
     ⟨_lowWidthTerm, _emptyWidthTerm, hLowEo, _hEmptyEo⟩

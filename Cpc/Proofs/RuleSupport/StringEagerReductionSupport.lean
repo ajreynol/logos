@@ -121,7 +121,8 @@ private theorem smt_typeof_seq_empty_typeof_of_smt_type_seq
   have hSeqWF : __smtx_type_wf (SmtType.Seq T) = true := by
     have hGood :=
       smt_term_result_seq_components_wf_of_non_none (__eo_to_smt x) hTrans
-    simpa [hxTy] using hGood
+    rw [hxTy] at hGood
+    simpa [type_result_seq_components_wf] using hGood
   by_cases hSpecial :
       __eo_typeof x =
         Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
@@ -729,7 +730,7 @@ private theorem native_str_in_re_concat_true
   have hValid := native_string_valid_of_str_in_re_true h
   have hList :
       nativeListInRe str (native_re_mk_concat r s) = true := by
-    simpa [native_re_concat] using nativeListInRe_of_str_in_re_true h
+    exact nativeListInRe_of_str_in_re_true h
   rcases (nativeListInRe_mk_concat_true_iff_exists_append str r s).1 hList with
     ⟨xs, ys, hAppend, hLeft, hRight⟩
   have hAppendValid : native_string_valid (xs ++ ys) = true := by
@@ -1319,7 +1320,7 @@ theorem string_eager_reduction_has_bool_type
               __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char :=
             seq_char_arg_of_non_none (op := SmtTerm.str_to_code)
               (typeof_str_to_code_eq (__eo_to_smt x))
-              (by simpa [term_has_non_none_type] using hATrans)
+              (by simpa [term_has_non_none_type, __eo_to_smt, __smtx_typeof] using hATrans)
           change
             __smtx_typeof
               (SmtTerm.ite
@@ -1343,7 +1344,7 @@ theorem string_eager_reduction_has_bool_type
           have hnTy : __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
             int_arg_of_non_none_ret (op := SmtTerm.str_from_code)
               (typeof_str_from_code_eq (__eo_to_smt x))
-              (by simpa [term_has_non_none_type] using hATrans)
+              (by simpa [term_has_non_none_type, __eo_to_smt, __smtx_typeof] using hATrans)
           change
             __smtx_typeof
               (SmtTerm.ite
@@ -1367,7 +1368,7 @@ theorem string_eager_reduction_has_bool_type
               __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char :=
             seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
               (typeof_str_to_int_eq (__eo_to_smt x))
-              (by simpa [term_has_non_none_type] using hATrans)
+              (by simpa [term_has_non_none_type, __eo_to_smt, __smtx_typeof] using hATrans)
           change
             __smtx_typeof
                 (SmtTerm.geq (SmtTerm.str_to_int (__eo_to_smt x))
@@ -1389,7 +1390,7 @@ theorem string_eager_reduction_has_bool_type
             rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_contains)
                 (R := SmtType.Bool)
                 (typeof_str_contains_eq (__eo_to_smt y) (__eo_to_smt x))
-                (by simpa [term_has_non_none_type] using hATrans) with
+                (by simpa [term_has_non_none_type, __eo_to_smt, __smtx_typeof] using hATrans) with
               ⟨T, hyTy, hxTy⟩
             let pre :=
               Term.Apply (Term.UOp UserOp._at_purify)
@@ -1510,7 +1511,7 @@ theorem string_eager_reduction_has_bool_type
                 term_has_non_none_type
                   (SmtTerm.str_in_re (__eo_to_smt y) (__eo_to_smt x)) := by
               unfold term_has_non_none_type
-              simpa using hATrans
+              exact hATrans
             have hArgs :=
               seq_char_reglan_args_of_non_none
                 (op := SmtTerm.str_in_re)
@@ -1573,7 +1574,7 @@ theorem string_eager_reduction_has_bool_type
             apply RuleProofs.eo_typeof_bool_implies_has_bool_type
             · unfold RuleProofs.eo_has_smt_translation at hATrans ⊢
               rcases str_indexof_args_of_non_none
-                  (by simpa [term_has_non_none_type] using hATrans) with
+                  (by simpa [term_has_non_none_type, __eo_to_smt, __smtx_typeof] using hATrans) with
                 ⟨T, hzTy, hyTy, hxTy⟩
               change
                 __smtx_typeof
@@ -1604,7 +1605,7 @@ theorem string_eager_reduction_has_bool_type
             apply RuleProofs.eo_typeof_bool_implies_has_bool_type
             · unfold RuleProofs.eo_has_smt_translation at hATrans ⊢
               rcases str_indexof_re_args_of_non_none
-                  (by simpa [term_has_non_none_type] using hATrans) with
+                  (by simpa [term_has_non_none_type, __eo_to_smt, __smtx_typeof] using hATrans) with
                 ⟨hzTy, hyTy, hxTy⟩
               change
                 __smtx_typeof
@@ -1658,7 +1659,7 @@ theorem string_eager_reduction_true
         let cond := SmtTerm.eq (SmtTerm.str_len tx) (SmtTerm.Numeral 1)
         have hFormulaTy :
             __smtx_typeof (SmtTerm.ite cond thenTerm elseTerm) = SmtType.Bool := by
-          simpa [RuleProofs.eo_has_bool_type, tx, code, thenTerm, elseTerm, cond]
+          simpa [RuleProofs.eo_has_bool_type, tx, code, thenTerm, elseTerm, cond, __eo_to_smt, __smtx_typeof]
             using hBool
         have hFormulaNN : term_has_non_none_type (SmtTerm.ite cond thenTerm elseTerm) := by
           unfold term_has_non_none_type
@@ -1705,7 +1706,7 @@ theorem string_eager_reduction_true
             (by simp [term_has_non_none_type, hsTy])
         have hSeqTy :
             __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
-          simpa [tx, hSEval, hsTy] using hEvalTy
+          simpa [tx, hSEval, hsTy, __smtx_typeof_seq_value, __smtx_typeof_value] using hEvalTy
         have hValid :
             native_string_valid (native_unpack_string ss) = true :=
           native_unpack_string_valid_of_typeof_seq_char hSeqTy
@@ -1758,7 +1759,7 @@ theorem string_eager_reduction_true
         let elseTerm := SmtTerm.eq strFrom (SmtTerm.String [])
         have hFormulaTy :
             __smtx_typeof (SmtTerm.ite cond thenTerm elseTerm) = SmtType.Bool := by
-          simpa [RuleProofs.eo_has_bool_type, tx, strFrom, cond, thenTerm, elseTerm]
+          simpa [RuleProofs.eo_has_bool_type, tx, strFrom, cond, thenTerm, elseTerm, __eo_to_smt, __smtx_typeof]
             using hBool
         have hFormulaNN : term_has_non_none_type (SmtTerm.ite cond thenTerm elseTerm) := by
           unfold term_has_non_none_type
@@ -1835,7 +1836,7 @@ theorem string_eager_reduction_true
             __smtx_typeof
               (SmtTerm.geq (SmtTerm.str_to_int (__eo_to_smt x))
                 (SmtTerm.Numeral (-1 : native_Int))) = SmtType.Bool := by
-          simpa [RuleProofs.eo_has_bool_type] using hBool
+          simpa [RuleProofs.eo_has_bool_type, __eo_to_smt, __smtx_typeof] using hBool
         have hNN :
             term_has_non_none_type
               (SmtTerm.geq (SmtTerm.str_to_int (__eo_to_smt x))
@@ -1964,9 +1965,7 @@ theorem string_eager_reduction_true
               (SmtTerm.not (SmtTerm.eq ty tx))
           have hFormulaTy : __smtx_typeof formula = SmtType.Bool := by
             unfold RuleProofs.eo_has_bool_type at hGenBool
-            simpa [gen, iteHead, thenEo, rhs1, rhs2, rhs3, nil, suffix, start,
-              pre, condEo, elseEo, formula, cond, rhs, nilS, suffixS, cut,
-              pfx, idx, ty, tx, __eo_mk_apply, hNilNe] using hGenBool
+            simpa [gen, iteHead, thenEo, rhs1, rhs2, rhs3, nil, suffix, start, pre, condEo, elseEo, formula, cond, rhs, nilS, suffixS, cut, pfx, idx, ty, tx, __eo_mk_apply, hNilNe, __eo_nil, __eo_to_smt, __eo_typeof, __smtx_typeof] using hGenBool
           have hFormulaNN : term_has_non_none_type formula := by
             unfold term_has_non_none_type
             rw [hFormulaTy]
@@ -1992,7 +1991,8 @@ theorem string_eager_reduction_true
             Smtm.smt_model_eval_preserves_type_of_non_none M hM ty
               (by simp [term_has_non_none_type, hyTy])
           have hSyTy : __smtx_typeof_seq_value sy = SmtType.Seq U := by
-            simpa [ty, hYEval, hyTy] using hYEvalTy
+            rw [hYEval] at hYEvalTy
+            simpa [__smtx_typeof_value, hyTy] using hYEvalTy
           have hElemY : __smtx_elem_typeof_seq_value sy = U :=
             elem_typeof_seq_value_of_typeof_seq_value hSyTy
           have hPreTy :
@@ -2111,8 +2111,8 @@ theorem string_eager_reduction_true
           let formula := SmtTerm.imp lhs rhs
           have hFormulaTy : __smtx_typeof formula = SmtType.Bool := by
             unfold RuleProofs.eo_has_bool_type at hGenBool
-            simpa [gen, rhsEo, fixed, formula, lhs, rhs, ty, tx,
-              __eo_mk_apply, hFixed] using hGenBool
+            simpa [gen, rhsEo, fixed, formula, lhs, rhs, ty, tx, hFixed,
+              __eo_mk_apply, __eo_to_smt] using hGenBool
           have hFormulaNN : term_has_non_none_type formula := by
             unfold term_has_non_none_type
             rw [hFormulaTy]
@@ -2199,8 +2199,7 @@ theorem string_eager_reduction_true
                 (SmtTerm.Boolean true)
             have hFormulaTy :
                 __smtx_typeof (SmtTerm.and leftTerm rightTerm) = SmtType.Bool := by
-              simpa [RuleProofs.eo_has_bool_type, tz, ty, tx, idx, leftTerm,
-                rightTerm] using hBool
+              exact hBool
             have hFormulaNN :
                 term_has_non_none_type (SmtTerm.and leftTerm rightTerm) := by
               unfold term_has_non_none_type
@@ -2293,8 +2292,7 @@ theorem string_eager_reduction_true
                 (SmtTerm.Boolean true)
             have hFormulaTy :
                 __smtx_typeof (SmtTerm.and leftTerm rightTerm) = SmtType.Bool := by
-              simpa [RuleProofs.eo_has_bool_type, tz, ty, tx, idx, leftTerm,
-                rightTerm] using hBool
+              exact hBool
             have hFormulaNN :
                 term_has_non_none_type (SmtTerm.and leftTerm rightTerm) := by
               unfold term_has_non_none_type

@@ -65,7 +65,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.bvnot (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       rcases bv_unop_arg_of_non_none
           (op := SmtTerm.bvnot) (t := __eo_to_smt x)
           (by rw [__smtx_typeof.eq_36])
@@ -108,7 +110,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.bvneg (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       rcases bv_unop_arg_of_non_none
           (op := SmtTerm.bvneg) (t := __eo_to_smt x)
           (by rw [__smtx_typeof.eq_44])
@@ -152,7 +156,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.to_real (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hRunToQNe :
           __eo_to_q (__run_evaluate x) ≠ Term.Stuck := by
         simpa [__run_evaluate] using hRunNe
@@ -190,7 +196,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.to_int (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hRunToZNe :
           __eo_to_z (__run_evaluate x) ≠ Term.Stuck := by
         simpa [__run_evaluate] using hRunNe
@@ -239,7 +247,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.is_int (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hRunEqNe :
           __eo_eq (__eo_to_q (__eo_to_z (__run_evaluate x)))
               (__eo_to_q (__run_evaluate x)) ≠ Term.Stuck := by
@@ -284,7 +294,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.uneg (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hRunNegNe :
           __eo_neg (__run_evaluate x) ≠ Term.Stuck := by
         simpa [__run_evaluate] using hRunNe
@@ -365,7 +377,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.abs (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hRunAbsNe :
           __eo_ite (__eo_is_neg (__run_evaluate x))
               (__eo_neg (__run_evaluate x))
@@ -456,7 +470,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.int_pow2 (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hXInt :
           __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
         int_ret_arg_of_non_none (op := SmtTerm.int_pow2)
@@ -509,7 +525,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.int_log2 (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hXInt :
           __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
         int_ret_arg_of_non_none (op := SmtTerm.int_log2)
@@ -566,8 +584,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
       have hIspowNN :
           term_has_non_none_type (SmtTerm.and geqTerm eqTerm) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation, geqTerm, eqTerm]
-          using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation, geqTerm, eqTerm] at hsimpa ⊢
+        exact hsimpa
       have hArgs :
           __smtx_typeof geqTerm = SmtType.Bool ∧
             __smtx_typeof eqTerm = SmtType.Bool :=
@@ -660,7 +679,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
               (SmtTerm._at_purify (SmtTerm.Numeral _v0))
               SmtTerm.None) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hArgExists :
           ∃ w : native_Nat,
             __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w := by
@@ -696,7 +717,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.str_len (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       rcases seq_arg_of_non_none_ret (op := SmtTerm.str_len)
           (typeof_str_len_eq (__eo_to_smt x)) hLenNN with
         ⟨T, hXTySeq⟩
@@ -723,7 +746,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.ubv_to_int (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       rcases bv_unop_ret_arg_of_non_none
           (op := SmtTerm.ubv_to_int) (ret := SmtType.Int)
           (by rw [smtx_typeof_ubv_to_int_term_eq]) hUbvNN with
@@ -758,7 +783,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.sbv_to_int (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       rcases bv_unop_ret_arg_of_non_none
           (op := SmtTerm.sbv_to_int) (ret := SmtType.Int)
           (by rw [__smtx_typeof.eq_def] <;> simp only)
@@ -831,7 +858,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.str_to_code (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hXTyChar :
           __smtx_typeof (__eo_to_smt x) =
             SmtType.Seq SmtType.Char :=
@@ -897,7 +926,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.str_to_int (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hXTyChar :
           __smtx_typeof (__eo_to_smt x) =
             SmtType.Seq SmtType.Char :=
@@ -974,7 +1005,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.str_from_int (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hXInt :
           __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
         int_arg_of_non_none_ret (op := SmtTerm.str_from_int)
@@ -1020,7 +1053,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.str_from_code (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hXInt :
           __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
         int_arg_of_non_none_ret (op := SmtTerm.str_from_code)
@@ -1060,7 +1095,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.str_to_lower (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hXTyChar :
           __smtx_typeof (__eo_to_smt x) =
             SmtType.Seq SmtType.Char :=
@@ -1126,7 +1163,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.str_to_upper (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       have hXTyChar :
           __smtx_typeof (__eo_to_smt x) =
             SmtType.Seq SmtType.Char :=
@@ -1192,7 +1231,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
           term_has_non_none_type
             (SmtTerm.str_rev (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       rcases seq_arg_of_non_none (op := SmtTerm.str_rev)
           (typeof_str_rev_eq (__eo_to_smt x)) hRevNN with
         ⟨T, hXTySeq⟩
@@ -1637,7 +1678,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.plus (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunAddNe :
         __eo_add (__run_evaluate y) (__run_evaluate x) ≠
           Term.Stuck := by
@@ -1758,7 +1801,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.mult (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunMulNe :
         __eo_mul (__run_evaluate y) (__run_evaluate x) ≠
           Term.Stuck := by
@@ -1879,7 +1924,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.neg (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunSubNe :
         __eo_add (__run_evaluate y)
             (__eo_neg (__run_evaluate x)) ≠
@@ -2016,7 +2063,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.lt (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunLtNe :
         __eo_is_neg
             (__eo_add (__run_evaluate y)
@@ -2181,7 +2230,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.gt (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunGtNe :
         __eo_is_neg
             (__eo_add (__run_evaluate x)
@@ -2346,7 +2397,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.leq (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunLeqNe :
         (let d :=
           __eo_add (__run_evaluate y)
@@ -2507,7 +2560,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.geq (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunGeqNe :
         (let d :=
           __eo_add (__run_evaluate x)
@@ -2668,7 +2723,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.div (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunDivNe :
         __eo_zdiv (__run_evaluate y) (__run_evaluate x) ≠
           Term.Stuck := by
@@ -2736,7 +2793,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.mod (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunModNe :
         __eo_zmod (__run_evaluate y) (__run_evaluate x) ≠
           Term.Stuck := by
@@ -2804,7 +2863,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.qdiv (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunQDivNe :
         __eo_qdiv (__eo_to_q (__run_evaluate y))
             (__eo_to_q (__run_evaluate x)) ≠
@@ -2970,7 +3031,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.qdiv_total (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunQDivTotalNe :
         __eo_ite
             (__eo_eq (__eo_to_q (__run_evaluate x))
@@ -3099,7 +3162,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.div_total (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunDivTotalNe :
         __eo_ite
             (__eo_eq (__run_evaluate x) (Term.Numeral 0))
@@ -3177,7 +3242,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.mod_total (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunModTotalNe :
         __eo_ite
             (__eo_eq (__run_evaluate x) (Term.Numeral 0))
@@ -3570,7 +3637,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvadd (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunAddNe :
         __eo_add (__run_evaluate y) (__run_evaluate x) ≠
           Term.Stuck := by
@@ -3647,7 +3716,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvmul (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunMulNe :
         __eo_mul (__run_evaluate y) (__run_evaluate x) ≠
           Term.Stuck := by
@@ -3724,7 +3795,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvsub (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunSubNe :
         __eo_add (__run_evaluate y)
             (__eo_neg (__run_evaluate x)) ≠
@@ -3813,7 +3886,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvudiv (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases bv_binop_args_of_non_none
         (op := SmtTerm.bvudiv) (t1 := __eo_to_smt y)
         (t2 := __eo_to_smt x)
@@ -3888,7 +3963,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           EvaluateProofInternal.eo_zdiv_typeof_bitvec_of_args_bitvec_and_ne_stuck
             (__run_evaluate y) (__run_evaluate x)
             (native_nat_to_int w) hRunYBv hRunXBv hSel
-        simpa [__eo_ite] using hZDivTy
+        have hsimpa := hZDivTy
+        try simp [__eo_ite] at hsimpa ⊢
+        exact hsimpa
       · rw [hCond]
         change
           __eo_to_bin (__bv_bitwidth (__eo_typeof y)) _ ≠
@@ -3903,7 +3980,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           EvaluateProofInternal.eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck
             (native_nat_to_int w) _
             (by simpa [__bv_bitwidth] using hSel)
-        simpa [__eo_ite, hYEoBv, __bv_bitwidth] using hThenTy
+        have hsimpa := hThenTy
+        try simp [__eo_ite, hYEoBv, __bv_bitwidth] at hsimpa ⊢
+        exact hsimpa
     have hRhsTy :
         __eo_typeof_bvand (__eo_typeof y)
             (__eo_typeof x) =
@@ -3924,7 +4003,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvurem (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases bv_binop_args_of_non_none
         (op := SmtTerm.bvurem) (t1 := __eo_to_smt y)
         (t2 := __eo_to_smt x)
@@ -3999,7 +4080,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           EvaluateProofInternal.eo_zmod_typeof_bitvec_of_args_bitvec_and_ne_stuck
             (__run_evaluate y) (__run_evaluate x)
             (native_nat_to_int w) hRunYBv hRunXBv hSel
-        simpa [__eo_ite] using hZModTy
+        have hsimpa := hZModTy
+        try simp [__eo_ite] at hsimpa ⊢
+        exact hsimpa
       · rw [hCond]
         change __run_evaluate y ≠ Term.Stuck at hSel
         have hYPres :=
@@ -4009,7 +4092,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
               Term.Apply (Term.UOp UserOp.BitVec)
                 (Term.Numeral (native_nat_to_int w)) :=
           hYPres.trans hYEoBv
-        simpa [__eo_ite] using hRunYBv
+        have hsimpa := hRunYBv
+        try simp [__eo_ite] at hsimpa ⊢
+        exact hsimpa
     have hRhsTy :
         __eo_typeof_bvand (__eo_typeof y)
             (__eo_typeof x) =
@@ -4030,7 +4115,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvult (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunCmpNe :
         __eo_gt (__eo_to_z (__run_evaluate x))
             (__eo_to_z (__run_evaluate y)) ≠
@@ -4066,7 +4153,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvugt (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunCmpNe :
         __eo_gt (__eo_to_z (__run_evaluate y))
             (__eo_to_z (__run_evaluate x)) ≠
@@ -4102,7 +4191,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvule (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     let rx := __run_evaluate x
     let ry := __run_evaluate y
     have hRunOrNe :
@@ -4145,7 +4236,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvuge (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     let rx := __run_evaluate x
     let ry := __run_evaluate y
     have hRunOrNe :
@@ -4188,7 +4281,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvslt (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunCmpNe :
         __run_evaluate
             (Term.Apply
@@ -4228,7 +4323,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvsle (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunOrNe :
         __run_evaluate
             (Term.Apply
@@ -4277,7 +4374,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvsgt (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunCmpNe :
         __run_evaluate
             (Term.Apply
@@ -4317,7 +4416,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvsge (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunOrNe :
         __run_evaluate
             (Term.Apply
@@ -4366,7 +4467,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvshl (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases bv_binop_args_of_non_none
         (op := SmtTerm.bvshl) (t1 := __eo_to_smt y)
         (t2 := __eo_to_smt x)
@@ -4424,7 +4527,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvlshr (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases bv_binop_args_of_non_none
         (op := SmtTerm.bvlshr) (t1 := __eo_to_smt y)
         (t2 := __eo_to_smt x)
@@ -4482,7 +4587,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.bvashr (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases bv_binop_args_of_non_none
         (op := SmtTerm.bvashr) (t1 := __eo_to_smt y)
         (t2 := __eo_to_smt x)
@@ -4622,7 +4729,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.str_at (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     have hRunAtNe :
         __eo_extract (__run_evaluate y)
             (__run_evaluate x) (__run_evaluate x) ≠
@@ -4679,7 +4788,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.str_prefixof (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases seq_binop_args_of_non_none_ret
         (op := SmtTerm.str_prefixof)
         (typeof_str_prefixof_eq (__eo_to_smt y)
@@ -4756,7 +4867,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.str_suffixof (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases seq_binop_args_of_non_none_ret
         (op := SmtTerm.str_suffixof)
         (typeof_str_suffixof_eq (__eo_to_smt y)
@@ -4842,7 +4955,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.str_contains (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases seq_binop_args_of_non_none_ret
         (op := SmtTerm.str_contains)
         (typeof_str_contains_eq (__eo_to_smt y)
@@ -4917,7 +5032,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_binary_uop
           (SmtTerm.str_leq (__eo_to_smt y)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases seq_char_binop_args_of_non_none
         (op := SmtTerm.str_leq)
         (typeof_str_leq_eq (__eo_to_smt y)
@@ -5140,7 +5257,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_ternary_uop
             (SmtTerm.str_substr (__eo_to_smt b)
               (__eo_to_smt y) (__eo_to_smt x)) := by
         unfold term_has_non_none_type
-        simpa [RuleProofs.eo_has_smt_translation] using hTrans
+        have hsimpa := hTrans
+        try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+        exact hsimpa
       rcases str_substr_args_of_non_none hSubstrNN with
         ⟨T, hBTySeq, hYTyInt, hXTyInt⟩
       have hBTrans : RuleProofs.eo_has_smt_translation b := by
@@ -5216,7 +5335,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_ternary_uop
           (SmtTerm.str_replace (__eo_to_smt b)
             (__eo_to_smt y) (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases seq_triop_args_of_non_none
         (op := SmtTerm.str_replace)
         (typeof_str_replace_eq (__eo_to_smt b)
@@ -5349,7 +5470,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_ternary_uop
           (SmtTerm.str_indexof (__eo_to_smt b)
             (__eo_to_smt y) (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases str_indexof_args_of_non_none hIndexNN with
       ⟨T, hBTySeq, hYTySeq, hXTyInt⟩
     have hBTrans : RuleProofs.eo_has_smt_translation b := by
@@ -5454,7 +5577,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_ternary_uop
           (SmtTerm.str_update (__eo_to_smt b)
             (__eo_to_smt y) (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases str_update_args_of_non_none hUpdateNN with
       ⟨T, hBTySeq, hYTyInt, hXTySeq⟩
     have hBTrans : RuleProofs.eo_has_smt_translation b := by
@@ -5614,7 +5739,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop1
         term_has_non_none_type
           (SmtTerm.repeat (__eo_to_smt n) (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases repeat_args_of_non_none hRepeatNN with
       ⟨i, w, hnSmt, hxSmtTy, hi1⟩
     have hnTerm : n = Term.Numeral i :=
@@ -5703,7 +5830,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop1
           (SmtTerm.zero_extend (__eo_to_smt n)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases zero_extend_args_of_non_none hZeroNN with
       ⟨i, w, hnSmt, hxSmtTy, hi0⟩
     have hnTerm : n = Term.Numeral i :=
@@ -5778,7 +5907,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop1
           (SmtTerm.sign_extend (__eo_to_smt n)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases sign_extend_args_of_non_none hSignNN with
       ⟨i, w, hnSmt, hxSmtTy, hi0⟩
     have hnTerm : n = Term.Numeral i :=
@@ -5893,7 +6024,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop1
           (SmtTerm.int_to_bv (__eo_to_smt n)
             (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases int_to_bv_args_of_non_none hIntToBvNN with
       ⟨i, hnSmt, hxSmtTy, hi0⟩
     have hnTerm : n = Term.Numeral i :=
@@ -5958,7 +6091,9 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop2
           (SmtTerm.extract (__eo_to_smt hi)
             (__eo_to_smt lo) (__eo_to_smt x)) := by
       unfold term_has_non_none_type
-      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+      have hsimpa := hTrans
+      try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+      exact hsimpa
     rcases extract_args_of_non_none hExtNN with
       ⟨i, j, w, hHiSmt, hLoSmt, hxSmtTy, hj0, hji, hiw⟩
     have hHiTerm : hi = Term.Numeral i :=

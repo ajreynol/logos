@@ -99,7 +99,9 @@ theorem eo_typeof_set_union_bool_info
       __eo_typeof_eq
         (__eo_typeof_set_union (__eo_typeof x) (__eo_typeof y))
         (__eo_typeof rhs) = Term.Bool := by
-    simpa [mkEq, mkSetUnion] using hTy
+    have hsimpa := hTy
+    try simp [mkEq, mkSetUnion] at hsimpa ⊢
+    exact hsimpa
   rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with
     ⟨hSame, hUnionNS⟩
   rcases eo_typeof_set_union_ne_stuck_info hUnionNS with
@@ -149,7 +151,9 @@ theorem eo_typeof_set_subset_eq_bool_info
       __eo_typeof_eq
         (__eo_typeof_set_subset (__eo_typeof x) (__eo_typeof y))
         (__eo_typeof rhs) = Term.Bool := by
-    simpa [mkEq] using hTy
+    have hsimpa := hTy
+    try simp [mkEq] at hsimpa ⊢
+    exact hsimpa
   rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with
     ⟨hSame, hSubsetNS⟩
   rcases eo_typeof_set_subset_ne_stuck_info hSubsetNS with
@@ -437,7 +441,9 @@ theorem eo_typeof_set_minus_self_bool_info
       __eo_typeof_eq
           (__eo_typeof_set_union (__eo_typeof x) (__eo_typeof x))
           (__eo_typeof (mkSetEmpty T)) = Term.Bool := by
-    simpa [mkEq, mkSetMinus] using hTy
+    have hsimpa := hTy
+    try simp [mkEq, mkSetMinus] at hsimpa ⊢
+    exact hsimpa
   rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with
     ⟨hSame, hMinusNS⟩
   rcases eo_typeof_set_union_ne_stuck_info hMinusNS with
@@ -678,7 +684,9 @@ theorem eo_typeof_set_member_false_bool_info
       __eo_typeof_eq
           (__eo_typeof_set_member (__eo_typeof x) (__eo_typeof y))
           Term.Bool = Term.Bool := by
-    simpa [mkEq, mkSetMember] using hTy
+    have hsimpa := hTy
+    try simp [mkEq, mkSetMember] at hsimpa ⊢
+    exact hsimpa
   rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with
     ⟨hSame, _hMemberNS⟩
   have hMemberBool :
@@ -834,7 +842,9 @@ theorem eo_typeof_eq_false_inner_bool_info
     __eo_typeof inner = Term.Bool := by
   have hEqTy :
       __eo_typeof_eq (__eo_typeof inner) Term.Bool = Term.Bool := by
-    simpa [mkEq] using hTy
+    have hsimpa := hTy
+    try simp [mkEq] at hsimpa ⊢
+    exact hsimpa
   exact (SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy).1
 
 theorem eo_typeof_set_eq_singleton_bool_info
@@ -846,7 +856,9 @@ theorem eo_typeof_set_eq_singleton_bool_info
   have hEqTy :
       __eo_typeof_eq (__eo_typeof x) (__eo_typeof (mkSetSingleton y)) =
         Term.Bool := by
-    simpa [mkEq] using hTy
+    have hsimpa := hTy
+    try simp [mkEq] at hsimpa ⊢
+    exact hsimpa
   rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with
     ⟨hSame, hXNotStuck⟩
   change __eo_typeof x = __eo_typeof_set_singleton (__eo_typeof y) at hSame
@@ -1287,7 +1299,9 @@ theorem eo_typeof_set_inter_bool_info
       __eo_typeof_eq
         (__eo_typeof_set_union (__eo_typeof x) (__eo_typeof y))
         (__eo_typeof rhs) = Term.Bool := by
-    simpa [mkEq, mkSetInter] using hTy
+    have hsimpa := hTy
+    try simp [mkEq, mkSetInter] at hsimpa ⊢
+    exact hsimpa
   rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with
     ⟨hSame, hInterNS⟩
   rcases eo_typeof_set_union_ne_stuck_info hInterNS with
@@ -1305,7 +1319,9 @@ theorem eo_typeof_set_minus_bool_info
       __eo_typeof_eq
         (__eo_typeof_set_union (__eo_typeof x) (__eo_typeof y))
         (__eo_typeof rhs) = Term.Bool := by
-    simpa [mkEq, mkSetMinus] using hTy
+    have hsimpa := hTy
+    try simp [mkEq, mkSetMinus] at hsimpa ⊢
+    exact hsimpa
   rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with
     ⟨hSame, hMinusNS⟩
   rcases eo_typeof_set_union_ne_stuck_info hMinusNS with

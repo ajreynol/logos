@@ -63,7 +63,7 @@ private theorem typed___eo_prog_str_substr_ctn_impl
           (SmtTerm.str_substr (__eo_to_smt s) (__eo_to_smt n)
             (__eo_to_smt m)) =
         SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [extract, substrCtnExtract] using hExtractTy
+    simpa [extract, substrCtnExtract, __eo_to_smt, __eo_to_smt_type, __smtx_typeof] using hExtractTy
   have hLhsTy : RuleProofs.eo_has_bool_type lhs := by
     change __smtx_typeof
         (SmtTerm.str_contains (__eo_to_smt s)

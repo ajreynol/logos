@@ -34,7 +34,7 @@ public theorem cmd_step_dt_cons_eq_properties
                 simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
               have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
               have hProgRule : __eo_prog_dt_cons_eq a1 ≠ Term.Stuck := by
-                simpa using hProg
+                exact hProg
               cases a1 with
               | Apply f B =>
                   cases f with
