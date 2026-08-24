@@ -145,7 +145,7 @@ theorem nativeReExpRec_mk_star_subset
           nativeListInRe xs
             (native_re_mk_concat (nativeReExpRec k (native_re_mk_star r))
               (native_re_mk_star r)) = true := by
-        simpa [nativeReExpRec, native_re_concat] using h
+        exact h
       rcases
         (nativeListInRe_mk_concat_true_iff_exists_append xs
           (nativeReExpRec k (native_re_mk_star r))
@@ -177,7 +177,7 @@ theorem nativeReExpRec_mk_star_pos
       (nativeReExpRec k' (native_re_mk_star r))
       (native_re_mk_star r)).2
       ⟨[], xs, by simp, hNilLeft, h⟩
-  simpa [nativeReExpRec, native_re_concat] using hConcat
+  exact hConcat
 
 /-! ## `nativeReLoopRec` over a star base -/
 
@@ -200,7 +200,7 @@ theorem nativeReLoopRec_mk_star_subset
                 (native_re_mk_star r))
               (nativeReExpRec (native_int_to_nat hi)
                 (native_re_mk_star r))) = true := by
-        simpa [nativeReLoopRec, native_re_union] using h
+        exact h
       rw [nativeListInRe_mk_union] at hUnion
       simp only [Bool.or_eq_true] at hUnion
       rcases hUnion with hL | hR
@@ -353,7 +353,6 @@ theorem re_loop_star_smt_value_rel
   intro str hValid
   rw [native_str_in_re_eq_nativeListInRe str _ hValid,
     native_str_in_re_eq_nativeListInRe str _ hValid]
-  simpa [native_re_mult] using
-    nativeReLoopRec_mk_star_ext lo hi rv str hhi hlohi
+  exact nativeReLoopRec_mk_star_ext lo hi rv str hhi hlohi
 
 end RuleProofs

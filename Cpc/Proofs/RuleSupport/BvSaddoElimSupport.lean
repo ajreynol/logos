@@ -77,13 +77,13 @@ private theorem typeof_bvSaddoAnd_inv {a b : Term} :
     __eo_typeof (bvSaddoAnd a b) = Term.Bool ->
     __eo_typeof a = Term.Bool ∧ __eo_typeof b = Term.Bool := by
   intro h
-  exact typeof_or_bool_args _ _ (by simpa [bvSaddoAnd] using h)
+  exact typeof_or_bool_args _ _ (by have hsimpa := h; (try simp [bvSaddoAnd] at hsimpa ⊢); exact hsimpa)
 
 private theorem typeof_bvSaddoOr_inv {a b : Term} :
     __eo_typeof (bvSaddoOr a b) = Term.Bool ->
     __eo_typeof a = Term.Bool ∧ __eo_typeof b = Term.Bool := by
   intro h
-  exact typeof_or_bool_args _ _ (by simpa [bvSaddoOr] using h)
+  exact typeof_or_bool_args _ _ (by have hsimpa := h; (try simp [bvSaddoOr] at hsimpa ⊢); exact hsimpa)
 
 private theorem bv_saddo_rhs_x_sign_bool {x y nm : Term} :
     __eo_typeof (bvSaddoRhs x y nm) = Term.Bool ->
@@ -110,9 +110,9 @@ theorem bvSaddo_nil_ne (x y nm : Term) :
   intro hTy hNil
   have hRhsTy : __eo_typeof (bvSaddoRhs x y nm) = Term.Bool := by
     have hEq := RuleProofs.eo_typeof_eq_bool_operands_eq _ _
-      (by simpa [bvSaddoTerm] using hTy)
+      (by have hsimpa := hTy; (try simp [bvSaddoTerm] at hsimpa ⊢); exact hsimpa)
     have hLhsNe := (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-      (by simpa [bvSaddoTerm] using hTy)).1
+      (by have hsimpa := hTy; (try simp [bvSaddoTerm] at hsimpa ⊢); exact hsimpa)).1
     change __eo_typeof_bvult (__eo_typeof x) (__eo_typeof y) ≠
       Term.Stuck at hLhsNe
     rcases typeof_bvult_args_of_ne_stuck hLhsNe with ⟨w, hXTy, hYTy⟩
@@ -127,7 +127,7 @@ theorem bvSaddo_nil_ne (x y nm : Term) :
   have hExtractNe :
       __eo_typeof (bvSdivExtract nm (bvSaddoSum x y)) ≠ Term.Stuck :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-      (by simpa [bvSdivSign] using hSignTy)).1
+      (by have hsimpa := hSignTy; (try simp [bvSdivSign] at hsimpa ⊢); exact hsimpa)).1
   apply hExtractNe
   unfold bvSdivExtract bvSaddoSum
   rw [show bvSaddoNil x = Term.Stuck from hNil]
@@ -168,10 +168,12 @@ private theorem bv_saddo_context (x y nm : Term) :
   have hYSmtTy :
       __smtx_typeof (__eo_to_smt y) =
         SmtType.BitVec (native_int_to_nat w) := by
-    simpa [__eo_to_smt_type, hw0] using
+    have hsimpa :=
       (RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
         y (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
         (__eo_to_smt y) rfl hYTrans hYTy)
+    try simp [__eo_to_smt_type, hw0] at hsimpa ⊢
+    exact hsimpa
   have hLhsTy :
       __eo_typeof_bvult (__eo_typeof x) (__eo_typeof y) = Term.Bool := by
     rw [hXTy, hYTy]
@@ -183,9 +185,9 @@ private theorem bv_saddo_context (x y nm : Term) :
   have hSignTy := bv_saddo_rhs_x_sign_bool hRhsTy
   have hExtractNe : __eo_typeof (bvSdivExtract nm x) ≠ Term.Stuck :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-      (by simpa [bvSdivSign] using hSignTy)).1
+      (by have hsimpa := hSignTy; (try simp [bvSdivSign] at hsimpa ⊢); exact hsimpa)).1
   rcases bv_extract_context_of_non_stuck x nm nm hXTrans
-      (by simpa [bvSdivExtract] using hExtractNe) with
+      (by have hsimpa := hExtractNe; (try simp [bvSdivExtract] at hsimpa ⊢); exact hsimpa) with
     ⟨w', nHi, nLo, hXTy', hNmHi, hNmLo, hw'0, hn0, hnW,
       _hOne0, hXSmtTy'⟩
   have hWNat : native_int_to_nat w' = native_int_to_nat w := by
@@ -201,7 +203,7 @@ private theorem bv_saddo_context (x y nm : Term) :
   subst nLo
   exact ⟨w, nHi, hXTy, hYTy, hNmHi, hw0, hn0, hnW,
     hXSmtTy, hYSmtTy, bvSaddo_nil_ne x y nm (by
-      simpa [bvSaddoTerm] using hResultTy)⟩
+      have hsimpa := hResultTy; (try simp [bvSaddoTerm] at hsimpa ⊢); exact hsimpa)⟩
 
 private theorem eo_has_bool_type_or_of_bool_args (a b : Term) :
     RuleProofs.eo_has_bool_type a -> RuleProofs.eo_has_bool_type b ->
@@ -264,8 +266,9 @@ private theorem typed_bv_saddo_term (x y nm : Term) :
         SmtType.BitVec 1 := by
     have h := smt_typeof_extract_of_context z w n n
       (by simpa [W] using hz) hw0 hn0 hnW hOneWidth
-    simpa [bvSdivExtract, hOneIndex, native_int_to_nat,
-      SmtEval.native_int_to_nat] using h
+    have hsimpa := h
+    try simp [bvSdivExtract, hOneIndex, native_int_to_nat, SmtEval.native_int_to_nat] at hsimpa ⊢
+    exact hsimpa
   have hExtractXTy := extractTy x hXSmtTyW
   have hExtractYTy := extractTy y hYSmtTyW
   have hExtractSumTy := extractTy (bvSaddoSum x y) hSumTy
@@ -337,7 +340,9 @@ theorem eval_bvSaddo_one_bit (M : SmtModel) :
     __smtx_model_eval M (__eo_to_smt bvSdivBitOne) =
       SmtValue.Binary 1 1 := by
   have h := eval_bv_const M 1 1 (by decide)
-  simpa [bvSdivBitOne, SmtEval.native_mod_total] using h
+  have hsimpa := h
+  try simp [bvSdivBitOne, SmtEval.native_mod_total] at hsimpa ⊢
+  exact hsimpa
 
 theorem eval_bvSaddo_zero_bit (M : SmtModel) :
     __smtx_model_eval M (__eo_to_smt bvSaddoZeroBit) =

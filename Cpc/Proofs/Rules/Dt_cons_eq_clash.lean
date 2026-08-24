@@ -69,7 +69,9 @@ by
                 simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
               have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
               have hProgRule : __eo_prog_dt_cons_eq_clash a1 ≠ Term.Stuck := by
-                simpa using hProg
+                have hsimpa := hProg
+                try simp at hsimpa ⊢
+                exact hsimpa
               cases a1 with
               | Apply f B =>
                   cases B with

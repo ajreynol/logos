@@ -76,7 +76,9 @@ private theorem typed_concl
     smtx_typeof_str_to_re_of_seq_char s hSTy
   have hStrToReSmtTy :
       __smtx_typeof (SmtTerm.str_to_re (__eo_to_smt s)) = SmtType.RegLan := by
-    simpa using hStrToReTy
+    have hsimpa := hStrToReTy
+    try simp at hsimpa ⊢
+    exact hsimpa
   have hInnerTy :
       __smtx_typeof (__eo_to_smt (reInter x ys)) = SmtType.RegLan := by
     change __smtx_typeof (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt ys)) =
@@ -430,8 +432,9 @@ by
                               TranslationProofs.eo_to_smt_typeof_matches_translation
                                 a3 hA3Trans
                             rw [hA3Ty] at hTyRaw
-                            simpa [TranslationProofs.eo_to_smt_type_seq,
-                              TranslationProofs.eo_to_smt_type_char] using hTyRaw
+                            have hsimpa := hTyRaw
+                            try simp [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hsimpa ⊢
+                            exact hsimpa
                           have hProgBool :
                               RuleProofs.eo_has_bool_type
                                 (__eo_prog_re_inter_cstring_neg a1 a2 a3

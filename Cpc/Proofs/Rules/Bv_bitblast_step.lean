@@ -111,7 +111,9 @@ by
                   Term.Bool at hResultTy
               have hProgNe' :
                   __eo_prog_bv_bitblast_step A ≠ Term.Stuck := by
-                simpa using hProgNe
+                -- `__eo_cmd_step_proven ..` delta-reduces to `__eo_prog_..`;
+                -- `simpa` no longer bridges that, but `exact` does
+                exact hProgNe
               rcases bv_bitblast_step_shape A hProgNe' with
                 ⟨lhs, rhs, hShape⟩
               subst A

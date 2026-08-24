@@ -523,9 +523,9 @@ private theorem mini_vsm_apply_arg_nth_canonical :
               SmtEval.native_and] at hParts
             exact hParts.2
           cases hEq : native_nateq n npos
-          · simpa [__vsm_apply_arg_nth, hEq] using
+          · simpa [__vsm_apply_arg_nth, hEq, SmtEval.native_ite] using
               mini_vsm_apply_arg_nth_canonical hf
-          · simpa [__vsm_apply_arg_nth, hEq] using ha
+          · simpa [__vsm_apply_arg_nth, hEq, SmtEval.native_ite] using ha
   | SmtValue.NotValue, n, npos, hv => by
       simpa [__vsm_apply_arg_nth] using mini_value_canonical_notValue
   | SmtValue.Boolean b, n, npos, hv => by

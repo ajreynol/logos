@@ -211,7 +211,8 @@ private theorem facts
         simp)
   rcases seq_value_canonical hEvalTy with ⟨ss, hSEval⟩
   have hSSTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
-    simpa [hSEval] using hEvalTy
+    simp only [hSEval] at hEvalTy
+    exact hEvalTy
   have hSSValid : native_string_valid (native_unpack_string ss) = true :=
     native_unpack_string_valid_of_typeof_seq_char hSSTy
   have hUnpack :
@@ -351,8 +352,8 @@ by
                           __eo_to_smt_type (__eo_typeof a1) :=
                       TranslationProofs.eo_to_smt_typeof_matches_translation a1 hA1Trans
                     rw [hA1Ty] at hTyRaw
-                    simpa [TranslationProofs.eo_to_smt_type_seq,
-                      TranslationProofs.eo_to_smt_type_char] using hTyRaw
+                    simp only [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hTyRaw
+                    exact hTyRaw
                   have hBool :=
                     ReRangeReflProof.typed_concl a1 hA1SmtTy
                   rw [hProgEq]

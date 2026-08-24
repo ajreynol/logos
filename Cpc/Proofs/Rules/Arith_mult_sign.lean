@@ -561,21 +561,21 @@ private theorem strip_even_exponent_signMatches
             | true =>
                 rcases eo_eq_pair_true_eq htStuck ht2Ne ht3Ne hCond with ⟨rfl, rfl⟩
                 have hSub : signMatches M acc out (__strip_even_exponent t m) := by
-                  simpa [__strip_even_exponent, __eo_ite, hCond, htStuck] using hSign
+                  simpa [__strip_even_exponent, __eo_ite, hCond, htStuck, __eo_l_1___strip_even_exponent, native_ite, native_teq] using hSign
                 have hmSign : signMatches M acc out m :=
                   strip_even_exponent_signMatches M hM t m acc out hmNN htNZ hSub
                 exact signMatches_square_factor M hM acc out t m hNN htNZ hmSign
             | false =>
                 simpa [__strip_even_exponent, __eo_ite, __eo_l_1___strip_even_exponent,
-                  hCond, htStuck] using hSign
+                  hCond, htStuck, native_ite, native_teq] using hSign
         | Stuck =>
             have hSt : signMatches M acc out Term.Stuck := by
-              simpa [__strip_even_exponent, __eo_ite, hCond, htStuck] using hSign
+              simpa [__strip_even_exponent, __eo_ite, hCond, htStuck, __eo_l_1___strip_even_exponent, native_ite, native_teq] using hSign
             exfalso
             exact not_signMatches_stuck M acc out hSt
         | _ =>
             have hSt : signMatches M acc out Term.Stuck := by
-              simpa [__strip_even_exponent, __eo_ite, hCond, htStuck] using hSign
+              simpa [__strip_even_exponent, __eo_ite, hCond, htStuck, __eo_l_1___strip_even_exponent, native_ite, native_teq] using hSign
             exfalso
             exact not_signMatches_stuck M acc out hSt
   | m, acc, out, _hNN, _htNZ, hSign => by
@@ -690,7 +690,7 @@ private theorem strip_even_exponent_signMatches
                                   ⟨rfl, rfl⟩
                                 have hSub : signMatches M acc out
                                     (__strip_even_exponent t m) := by
-                                  simpa [__strip_even_exponent, __eo_ite, hCond, htStuck]
+                                  simpa [__strip_even_exponent, __eo_ite, hCond, htStuck, __eo_l_1___strip_even_exponent, hSign, native_ite, native_teq]
                                     using hSign
                                 have hmSign : signMatches M acc out m :=
                                   strip_even_exponent_signMatches M hM t m acc out hmNN
@@ -699,17 +699,17 @@ private theorem strip_even_exponent_signMatches
                                   _htNZ hmSign
                             | false =>
                                 simpa [__strip_even_exponent, __eo_ite,
-                                  __eo_l_1___strip_even_exponent, hCond, htStuck]
+                                  __eo_l_1___strip_even_exponent, hCond, htStuck, hSign, native_ite, native_teq]
                                   using hSign
                         | Stuck =>
                             have hSt : signMatches M acc out Term.Stuck := by
-                              simpa [__strip_even_exponent, __eo_ite, hCond, htStuck]
+                              simpa [__strip_even_exponent, __eo_ite, hCond, htStuck, __eo_l_1___strip_even_exponent, hSign, native_ite, native_teq]
                                 using hSign
                             exfalso
                             exact not_signMatches_stuck M acc out hSt
                         | _ =>
                             have hSt : signMatches M acc out Term.Stuck := by
-                              simpa [__strip_even_exponent, __eo_ite, hCond, htStuck]
+                              simpa [__strip_even_exponent, __eo_ite, hCond, htStuck, __eo_l_1___strip_even_exponent, hSign, native_ite, native_teq]
                                 using hSign
                             exfalso
                             exact not_signMatches_stuck M acc out hSt
@@ -742,10 +742,10 @@ private theorem strip_even_exponent_has_smt_translation (t : Term) :
       | true =>
           rcases eo_eq_pair_true_eq htNe ht2Ne ht3Ne hCond with ⟨rfl, rfl⟩
           have hRec := strip_even_exponent_has_smt_translation t m htNe hmNN
-          simpa [__strip_even_exponent, __eo_ite, hCond, htNe] using hRec
+          simpa [__strip_even_exponent, __eo_ite, hCond, htNe, __eo_l_1___strip_even_exponent, native_ite, native_teq] using hRec
       | false =>
           simpa [__strip_even_exponent, __eo_ite, __eo_l_1___strip_even_exponent,
-            hCond, htNe] using hNN
+            hCond, htNe, native_ite, native_teq] using hNN
   | m, htNe, hNN => by
       cases m <;>
         try simpa [__strip_even_exponent, __eo_l_1___strip_even_exponent, htNe] using hNN
@@ -785,10 +785,10 @@ private theorem strip_even_exponent_has_smt_translation (t : Term) :
                       | true =>
                           rcases eo_eq_pair_true_eq htNe ht2Ne ht3Ne hCond with ⟨rfl, rfl⟩
                           have hRec := strip_even_exponent_has_smt_translation t m htNe hmNN
-                          simpa [__strip_even_exponent, __eo_ite, hCond, htNe] using hRec
+                          simpa [__strip_even_exponent, __eo_ite, hCond, htNe, __eo_l_1___strip_even_exponent, native_ite, native_teq] using hRec
                       | false =>
                           simpa [__strip_even_exponent, __eo_ite,
-                            __eo_l_1___strip_even_exponent, hCond, htNe] using hNN
+                            __eo_l_1___strip_even_exponent, hCond, htNe, native_ite, native_teq] using hNN
 termination_by m _ _ => m
 
 private inductive MultSignStage where
@@ -891,7 +891,7 @@ private theorem mk_arith_mult_sign_sgn_stage_signMatches
                       (__strip_even_exponent t m')) = Term.Boolean out := by
                 simpa [run_arith_mult_sign_sgn_stage,
                   __eo_l_2___mk_arith_mult_sign_sgn, __eo_ite, hCond, htNe,
-                  __eo_not] using hOut
+                  __eo_not, __eo_l_3___mk_arith_mult_sign_sgn, native_ite, native_teq] using hOut
               rcases requires_rational_bool_result hThen with ⟨hZ, hRecOut⟩
               have htNeg := smtValueNeg_of_lt_zero M t z hZ hAtom
               have htNZ := smtValueNonzero_of_neg htNeg
@@ -962,7 +962,7 @@ private theorem mk_arith_mult_sign_sgn_stage_signMatches
                     (__mk_arith_mult_sign_sgn sgn F
                       (__strip_even_exponent t m')) = Term.Boolean out := by
                 simpa [run_arith_mult_sign_sgn_stage,
-                  __eo_l_1___mk_arith_mult_sign_sgn, __eo_ite, hCond, htNe] using hOut
+                  __eo_l_1___mk_arith_mult_sign_sgn, __eo_ite, hCond, htNe, __eo_l_2___mk_arith_mult_sign_sgn, native_ite, native_teq] using hOut
               rcases requires_rational_bool_result hThen with ⟨hZ, hRecOut⟩
               have htPos := smtValuePos_of_gt_zero M t z hZ hAtom
               have htNZ := smtValueNonzero_of_pos htPos
@@ -1037,7 +1037,7 @@ private theorem mk_arith_mult_sign_sgn_stage_signMatches
                     (__mk_arith_mult_sign_sgn sgn F
                       (__strip_even_exponent t m')) = Term.Boolean out := by
                 simpa [run_arith_mult_sign_sgn_stage,
-                  __mk_arith_mult_sign_sgn, __eo_ite, hCond, htNe] using hOut
+                  __mk_arith_mult_sign_sgn, __eo_ite, hCond, htNe, __eo_l_1___mk_arith_mult_sign_sgn, native_ite, native_teq] using hOut
               rcases requires_rational_bool_result hThen with ⟨hZ, hRecOut⟩
               have htNZ := smtValueNonzero_of_not_eq_zero M hM t z hZ hAtom
               have hStripNN := strip_even_exponent_has_smt_translation t m' htNe hmNN

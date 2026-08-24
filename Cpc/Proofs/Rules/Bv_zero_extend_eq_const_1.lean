@@ -101,7 +101,9 @@ by
                                                   (bvZeroExtendEqConst1Program
                                                     x m c nm nm2 nmm1 P1 P2) =
                                                 Term.Bool := by
-                                            simpa [P1, P2] using hResultTy
+                                            have hsimpa := hResultTy
+                                            try simp [P1, P2] at hsimpa ⊢
+                                            exact hsimpa
                                           refine ⟨?_, ?_⟩
                                           · intro hPremisesTrue
                                             have hP1True :

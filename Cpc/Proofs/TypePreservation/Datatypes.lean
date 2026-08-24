@@ -834,7 +834,7 @@ theorem apply_arg_nth_type_of_non_none :
               exact (hSuccNN hTyEq.symm).elim
         have hcond : SmtEval.native_nateq (vsm_num_apply_args f) (vsm_num_apply_args f) = true := by
           simp [SmtEval.native_nateq]
-        simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hcond] using hArgTy
+        simpa [__vsm_apply_arg_nth, vsm_num_apply_args, native_ite, hcond] using hArgTy
       · have hjSucc : j < Nat.succ (vsm_num_apply_args f) := by
           simpa [vsm_num_apply_args] using hj
         have hj' : j < vsm_num_apply_args f := by
@@ -846,7 +846,7 @@ theorem apply_arg_nth_type_of_non_none :
               exact hLt
         have hcond : SmtEval.native_nateq j (vsm_num_apply_args f) = false := by
           simp [SmtEval.native_nateq, hLast]
-        simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hcond] using
+        simpa [__vsm_apply_arg_nth, vsm_num_apply_args, native_ite, hcond] using
           apply_arg_nth_type_of_non_none hHeadF hFunNN hj'
 
 /-- Derives `dt_sel_arg_datatype` from `non_none`. -/

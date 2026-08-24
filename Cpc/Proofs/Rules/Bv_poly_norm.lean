@@ -572,7 +572,7 @@ private theorem bv_poly_int_wf_of_poly_add
                               p2) ≠ Term.Stuck :=
                         bv_poly_int_wf_ne_stuck hRec
                       simpa [__poly_add, __eo_eq, __eo_ite, native_teq, hEq', hVars1, hVars2,
-                        __eo_cmp, hCmp, __eo_mk_apply, hTail] using
+                        __eo_cmp, hCmp, __eo_mk_apply, hTail, __eo_add, hRec, native_ite, native_mk_rational] using
                         (bv_poly_int_wf.cons
                           (Term.Apply
                             (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
@@ -612,7 +612,7 @@ private theorem bv_poly_int_wf_of_poly_add
                             p2 ≠ Term.Stuck :=
                         bv_poly_int_wf_ne_stuck hRec
                       simpa [__poly_add, __eo_eq, __eo_ite, native_teq, hEq', hVars1, hVars2,
-                        __eo_cmp, hCmp, __eo_mk_apply, hTail] using
+                        __eo_cmp, hCmp, __eo_mk_apply, hTail, __eo_add, hRec, native_ite, native_mk_rational] using
                         (bv_poly_int_wf.cons
                           (Term.Apply
                             (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)

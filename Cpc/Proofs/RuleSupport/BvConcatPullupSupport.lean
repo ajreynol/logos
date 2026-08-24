@@ -525,10 +525,10 @@ private theorem bvConcatPullup1RhsRaw_eq
   have hLoR := eo_mk_apply_arg_ne_stuck_of_ne_stuck op.term loR hLoHead
   have hHiREq := eo_mk_apply_eq_apply_of_ne_stuck
     (Term.UOp2 UserOp2.extract nxm ny)
-    (bvConcatPullupAggregate op xs ws) (by simpa [hiR] using hHiR)
+    (bvConcatPullupAggregate op xs ws) (by have hsimpa := hHiR; (try simp [hiR] at hsimpa ⊢); exact hsimpa)
   have hLoREq := eo_mk_apply_eq_apply_of_ne_stuck
     (Term.UOp2 UserOp2.extract nym (Term.Numeral 0))
-    (bvConcatPullupAggregate op xs ws) (by simpa [loR] using hLoR)
+    (bvConcatPullupAggregate op xs ws) (by have hsimpa := hLoR; (try simp [loR] at hsimpa ⊢); exact hsimpa)
   have hHiTailHeadEq := eo_mk_apply_eq_apply_of_ne_stuck op.term
     (bvConcatPullup1ConcatZs z ys) hHiTailHead
   have hHiTailEq := eo_mk_apply_eq_apply_of_ne_stuck hiTailHead
@@ -1245,7 +1245,9 @@ private theorem pullup_typeof_apply_args_of_result_bitvec
   have h' : __eo_typeof_bvand (__eo_typeof x) (__eo_typeof y) =
       Term.Apply (Term.UOp UserOp.BitVec) width := by
     cases op <;>
-      simpa [BvConcatPullupOp.apply, BvConcatPullupOp.term] using h
+      (have hsimpa := h
+       try simp [BvConcatPullupOp.apply, BvConcatPullupOp.term] at hsimpa ⊢
+       exact hsimpa)
   have hNe :
       __eo_typeof_bvand (__eo_typeof x) (__eo_typeof y) ≠ Term.Stuck := by
     rw [h']
@@ -1519,7 +1521,7 @@ theorem bvConcatPullup1ListsOfBodyType
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (bvConcatPullup1Lhs op xs ws y z ys))
     (__eo_typeof (bvConcatPullup1Rhs op xs ws y z ys nxm ny nym))
-    (by simpa [bvConcatPullup1Term] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatPullup1Term] at hsimpa ⊢); exact hsimpa)
   have hLhsNe : bvConcatPullup1Lhs op xs ws y z ys ≠ Term.Stuck := by
     intro h
     rw [h] at hSides
@@ -1575,7 +1577,7 @@ theorem bvConcatPullup1BaseContextFromFull
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (bvConcatPullup1Lhs op xs ws y z ys))
     (__eo_typeof (bvConcatPullup1Rhs op xs ws y z ys nxm ny nym))
-    (by simpa [bvConcatPullup1Term] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatPullup1Term] at hsimpa ⊢); exact hsimpa)
   have hLhsNe : bvConcatPullup1Lhs op xs ws y z ys ≠ Term.Stuck := by
     intro h
     rw [h] at hSides
@@ -1704,17 +1706,19 @@ theorem bvConcatPullup1Prem2Type (nxm z y ys : Term) :
         (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) full))
         (SmtTerm.Numeral 1)) := by
     unfold term_has_non_none_type
-    simpa [rhs] using hRhsNN
+    have hsimpa := hRhsNN
+    try simp [rhs] at hsimpa ⊢
+    exact hsimpa
   rcases arith_binop_args_of_non_none (op := SmtTerm.neg)
       (typeof_neg_eq
         (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) full))
         (SmtTerm.Numeral 1)) hNegNN with hArgs | hArgs
   · rcases bvConcat_bvsize_smt_type_inv full hArgs.1 with ⟨w, hFullTy⟩
     rcases bvConcat_term_smt_type_inv z (bvConcatPullupConcat y ys) w
-        (by simpa [full, bvConcatPullupConcat] using hFullTy) with
+        (by have hsimpa := hFullTy; (try simp [full, bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa) with
       ⟨wz, wt, hZTy, hTailTy, _⟩
     rcases bvConcat_term_smt_type_inv y ys wt
-        (by simpa [bvConcatPullupConcat] using hTailTy) with
+        (by have hsimpa := hTailTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa) with
       ⟨wy, wys, hYTy, hYsTy, _⟩
     exact ⟨wz, wy, wys, hZTy, hYTy, hYsTy⟩
   · have hBad := hArgs.2
@@ -1746,12 +1750,12 @@ theorem bvConcatPullup1ConcatTypes
       (bvConcatPullupConcat y (Term.Binary 0 0)) (by decide) hYEmptyList
   have hZYEmptyTy := bvConcat_term_smt_type z
     (bvConcatPullupConcat y (Term.Binary 0 0)) wz (wy + 0) hZTy
-    (by simpa [bvConcatPullupConcat] using hYEmptyTy)
+    (by have hsimpa := hYEmptyTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hFullTy := bvConcat_list_concat_smt_type ys
     (bvConcatPullupConcat z
       (bvConcatPullupConcat y (Term.Binary 0 0))) wys (wz + (wy + 0))
     hYsList hZYEmptyList hYsTy
-    (by simpa [bvConcatPullupConcat] using hZYEmptyTy)
+    (by have hsimpa := hZYEmptyTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hZEmptyList := eo_is_list_cons_self_true_of_tail_list
     (Term.UOp UserOp.concat) z (Term.Binary 0 0) (by decide) hEmptyList
   have hZEmptyTy := bvConcat_term_smt_type z (Term.Binary 0 0) wz 0
@@ -1759,7 +1763,7 @@ theorem bvConcatPullup1ConcatTypes
   have hHighListTy := bvConcat_list_concat_smt_type ys
     (bvConcatPullupConcat z (Term.Binary 0 0)) wys (wz + 0)
     hYsList hZEmptyList hYsTy
-    (by simpa [bvConcatPullupConcat] using hZEmptyTy)
+    (by have hsimpa := hZEmptyTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hHighList : __eo_is_list (Term.UOp UserOp.concat)
       (__eo_list_concat (Term.UOp UserOp.concat) ys
         (bvConcatPullupConcat z (Term.Binary 0 0))) =
@@ -1809,7 +1813,7 @@ theorem bvConcatPullup1FullEval
     wz wy 0 hZTy hYTy hEmptyTy
   have hZyEmpty := bvConcat_eval_right_empty M hM
     (bvConcatPullupConcat z y) (wz + wy)
-    (by simpa [bvConcatPullupConcat] using hZyTy)
+    (by have hsimpa := hZyTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hZEmpty := bvConcat_eval_right_empty M hM z wz hZTy
   have hZEmpty' : __smtx_model_eval M
       (__eo_to_smt (bvConcatPullupConcat z (Term.Binary 0 0))) =
@@ -1828,7 +1832,9 @@ theorem bvConcatPullup1FullEval
           (__eo_to_smt
             (bvConcatPullupConcat
               (bvConcatPullupConcat z y) (Term.Binary 0 0))) := by
-            simpa [bvConcatPullupConcat] using hBaseLeft
+            have hsimpa := hBaseLeft
+            try simp [bvConcatPullupConcat] at hsimpa ⊢
+            exact hsimpa
       _ = __smtx_model_eval M
           (__eo_to_smt (bvConcatPullupConcat z y)) := hZyEmpty
       _ = __smtx_model_eval M
@@ -1852,9 +1858,9 @@ theorem bvConcatPullup1FullEval
     (by
       have h := bvConcat_term_smt_type z
         (bvConcatPullupConcat y (Term.Binary 0 0)) wz (wy + 0) hZTy
-        (by simpa [bvConcatPullupConcat] using hYEmptyTy)
-      simpa [bvConcatPullupConcat, Nat.add_assoc] using h)
-    (by simpa [bvConcatPullupConcat] using hZEmptyTy) hYTy hBase
+        (by have hsimpa := hYEmptyTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
+      have hsimpa := h; (try simp [bvConcatPullupConcat, Nat.add_assoc] at hsimpa ⊢); exact hsimpa)
+    (by have hsimpa := hZEmptyTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa) hYTy hBase
   have hHighRawList : __eo_is_list (Term.UOp UserOp.concat)
       (__eo_list_concat (Term.UOp UserOp.concat) ys
         (bvConcatPullupConcat z (Term.Binary 0 0))) =
@@ -1866,7 +1872,7 @@ theorem bvConcatPullup1FullEval
   have hHighRawTy := bvConcat_list_concat_smt_type ys
     (bvConcatPullupConcat z (Term.Binary 0 0)) wys (wz + 0)
     hYsList hZEmptyList hYsTy
-    (by simpa [bvConcatPullupConcat] using hZEmptyTy)
+    (by have hsimpa := hZEmptyTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hElim := bvConcat_singleton_elim_eval_eq M hM
     (__eo_list_concat (Term.UOp UserOp.concat) ys
       (bvConcatPullupConcat z (Term.Binary 0 0))) (wys + (wz + 0))
@@ -1910,7 +1916,7 @@ theorem bvConcatPullup1ExtractTypesNonStuck
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (bvConcatPullup1Lhs op xs ws y z ys))
     (__eo_typeof (bvConcatPullup1Rhs op xs ws y z ys nxm ny nym))
-    (by simpa [bvConcatPullup1Term] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatPullup1Term] at hsimpa ⊢); exact hsimpa)
   let highExt := bvConcatPullup1High op xs ws nxm ny
   let lowExt := bvConcatPullup1Low op xs ws nym
   let highTail := op.apply (bvConcatPullup1ConcatZs z ys)
@@ -1922,9 +1928,9 @@ theorem bvConcatPullup1ExtractTypesNonStuck
   let lowConcat := bvConcatPullupConcat lowPart (Term.Binary 0 0)
   have hOuter : __eo_typeof_concat (__eo_typeof highPart)
       (__eo_typeof lowConcat) ≠ Term.Stuck := by
-    simpa [bvConcatPullup1Rhs, highExt, lowExt, highTail, lowTail,
-      highPart, lowPart, lowConcat, bvConcatPullupConcat]
-      using hSides.2
+    have hsimpa := hSides.2
+    try simp [bvConcatPullup1Rhs, highExt, lowExt, highTail, lowTail, highPart, lowPart, lowConcat, bvConcatPullupConcat] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hOuter with
     ⟨wh, wl, hHighPartTy, hLowConcatTy⟩
   have hLowOuter : __eo_typeof_concat (__eo_typeof lowPart)
@@ -1933,7 +1939,9 @@ theorem bvConcatPullup1ExtractTypesNonStuck
       rw [hLowConcatTy]
       intro h
       cases h
-    simpa [lowConcat, bvConcatPullupConcat] using hNe
+    have hsimpa := hNe
+    try simp [lowConcat, bvConcatPullupConcat] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hLowOuter with
     ⟨wlo, we, hLowPartTy, _⟩
   have hHighArgs := pullup_typeof_apply_args_of_result_bitvec op
@@ -1989,7 +1997,7 @@ theorem bvConcatPullup1RhsEoContext
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (bvConcatPullup1Lhs op xs ws y z ys))
     (__eo_typeof (bvConcatPullup1Rhs op xs ws y z ys nxm ny nym))
-    (by simpa [bvConcatPullup1Term] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatPullup1Term] at hsimpa ⊢); exact hsimpa)
   let highExt := bvConcatPullup1High op xs ws nxm ny
   let lowExt := bvConcatPullup1Low op xs ws nym
   let highTail := op.apply (bvConcatPullup1ConcatZs z ys)
@@ -2000,9 +2008,9 @@ theorem bvConcatPullup1RhsEoContext
   let lowConcat := bvConcatPullupConcat lowPart (Term.Binary 0 0)
   have hOuter : __eo_typeof_concat (__eo_typeof highPart)
       (__eo_typeof lowConcat) ≠ Term.Stuck := by
-    simpa [bvConcatPullup1Rhs, highExt, lowExt, highTail, lowTail,
-      highPart, lowPart, lowConcat, bvConcatPullupConcat]
-      using hSides.2
+    have hsimpa := hSides.2
+    try simp [bvConcatPullup1Rhs, highExt, lowExt, highTail, lowTail, highPart, lowPart, lowConcat, bvConcatPullupConcat] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hOuter with
     ⟨wh, _wlOuter, hHighPartTy, hLowConcatTy⟩
   have hLowOuter : __eo_typeof_concat (__eo_typeof lowPart)
@@ -2011,7 +2019,9 @@ theorem bvConcatPullup1RhsEoContext
       rw [hLowConcatTy]
       intro h
       cases h
-    simpa [lowConcat, bvConcatPullupConcat] using hNe
+    have hsimpa := hNe
+    try simp [lowConcat, bvConcatPullupConcat] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hLowOuter with
     ⟨wl, _we, hLowPartTy, _hEmptyTy⟩
   have hHighArgs := pullup_typeof_apply_args_of_result_bitvec op
@@ -2098,10 +2108,11 @@ theorem bvConcatPullup1RhsSmtTypes
     omega
   have hHighHi : native_zlt (native_nat_to_int (A + B - 1))
       (native_nat_to_int (A + B)) = true := by
-    simpa [SmtEval.native_zlt, native_nat_to_int,
-      SmtEval.native_nat_to_int] using
+    have hsimpa :=
       (show (↑(A + B - 1) : Int) < ↑(A + B) by
         exact_mod_cast (show A + B - 1 < A + B by omega))
+    try simp [SmtEval.native_zlt, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+    exact decide_eq_true hsimpa
   have hHighWidth : native_zlt 0
       (native_zplus (native_zplus (native_nat_to_int (A + B - 1)) 1)
         (native_zneg (native_nat_to_int B))) = true := by
@@ -2110,10 +2121,11 @@ theorem bvConcatPullup1RhsSmtTypes
       SmtEval.native_nat_to_int] using hAPos
   have hLowHi : native_zlt (native_nat_to_int (B - 1))
       (native_nat_to_int (A + B)) = true := by
-    simpa [SmtEval.native_zlt, native_nat_to_int,
-      SmtEval.native_nat_to_int] using
+    have hsimpa :=
       (show (↑(B - 1) : Int) < ↑(A + B) by
         exact_mod_cast (show B - 1 < A + B by omega))
+    try simp [SmtEval.native_zlt, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+    exact decide_eq_true hsimpa
   have hLowWidth : native_zlt 0
       (native_zplus (native_zplus (native_nat_to_int (B - 1)) 1)
         (native_zneg 0)) = true := by
@@ -2164,8 +2176,7 @@ theorem bvConcatPullup1RhsSmtTypes
         (bvConcatPullupAggregate op xs ws)
         (native_nat_to_int (A + B))
         (native_nat_to_int (A + B - 1)) (native_nat_to_int B)
-        (by simpa [native_int_to_nat, SmtEval.native_int_to_nat,
-          native_nat_to_int, SmtEval.native_nat_to_int] using hAggTy)
+        (by have hsimpa := hAggTy; (try simp [native_int_to_nat, SmtEval.native_int_to_nat, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢); exact hsimpa)
         (hNatWidth0 (A + B))
         (hNatWidth0 B)
         hHighHi hHighWidth
@@ -2180,8 +2191,7 @@ theorem bvConcatPullup1RhsSmtTypes
     have hContext := smt_typeof_extract_of_context
         (bvConcatPullupAggregate op xs ws)
         (native_nat_to_int (A + B)) (native_nat_to_int (B - 1)) 0
-        (by simpa [native_int_to_nat, SmtEval.native_int_to_nat,
-          native_nat_to_int, SmtEval.native_nat_to_int] using hAggTy)
+        (by have hsimpa := hAggTy; (try simp [native_int_to_nat, SmtEval.native_int_to_nat, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢); exact hsimpa)
         (hNatWidth0 (A + B))
         (by simp [SmtEval.native_zleq])
         hLowHi hLowWidth
@@ -2440,9 +2450,10 @@ theorem typed_bvConcatPullup1Term
     have hOuter := bvConcat_term_smt_type highPart
       (bvConcatPullupConcat lowPart (Term.Binary 0 0))
       (wys + wz) (wy + 0) hHighPartTy
-      (by simpa [bvConcatPullupConcat] using hLowConcatTy)
-    simpa [bvConcatPullup1Rhs, highExt, lowExt, highTail, lowTail,
-      highPart, lowPart, Nat.add_assoc] using hOuter
+      (by have hsimpa := hLowConcatTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
+    have hsimpa := hOuter
+    try simp [bvConcatPullup1Rhs, highExt, lowExt, highTail, lowTail, highPart, lowPart, Nat.add_assoc] at hsimpa ⊢
+    exact hsimpa
   unfold bvConcatPullup1Term
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (bvConcatPullup1Lhs op xs ws y z ys)
@@ -2488,9 +2499,9 @@ theorem bvConcatPullup1Prem2Eval
   have hTailTy := bvConcat_term_smt_type y ys wy wys hYTy hYsTy
   have hFullTy := bvConcat_term_smt_type z
     (bvConcatPullupConcat y ys) wz (wy + wys) hZTy
-    (by simpa [bvConcatPullupConcat] using hTailTy)
+    (by have hsimpa := hTailTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hSize := bvConcat_eval_bvsize_of_smt_bitvec_nat M full
-    (wz + (wy + wys)) (by simpa [full, bvConcatPullupConcat] using hFullTy)
+    (wz + (wy + wys)) (by have hsimpa := hFullTy; (try simp [full, bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hEq := bvConcat_model_eval_eq_true_of_eo_eq_true M nxm
     (Term.Apply (Term.Apply (Term.UOp UserOp.neg)
       (Term.Apply (Term.UOp UserOp._at_bvsize) full)) (Term.Numeral 1))
@@ -2512,7 +2523,7 @@ theorem bvConcatPullup1Prem2Eval
         (Term.Apply (Term.Apply (Term.UOp UserOp.neg)
           (Term.Apply (Term.UOp UserOp._at_bvsize) full))
           (Term.Numeral 1))) = _ by
-        simpa using hRhsEval] at hEq
+        have hsimpa := hRhsEval; (try simp at hsimpa ⊢); exact hsimpa] at hEq
   exact pullup_model_eval_eq_numeral_left _ _ hEq
 
 theorem bvConcatPullup1Prem3Eval
@@ -2543,7 +2554,7 @@ theorem bvConcatPullup1Prem3Eval
         (Term.Apply (Term.Apply (Term.UOp UserOp.neg)
           (Term.Apply (Term.UOp UserOp._at_bvsize) y))
           (Term.Numeral 1))) = _ by
-        simpa using hRhsEval] at hEq
+        have hsimpa := hRhsEval; (try simp at hsimpa ⊢); exact hsimpa] at hEq
   exact pullup_model_eval_eq_numeral_left _ _ hEq
 
 theorem bvConcatPullup1Indices
@@ -2635,9 +2646,9 @@ theorem bvConcatPullup1Indices
     rw [hHHRaw, hLH] at hHighWidth
     have hIntRaw : (0 : Int) <
         (↑wz : Int) + (↑wy + ↑wys) + -1 + 1 + -↑wy := by
-      simpa [SmtEval.native_zlt, SmtEval.native_zplus,
-        SmtEval.native_zneg, native_nat_to_int,
-        SmtEval.native_nat_to_int] using hHighWidth
+      have hsimpa := hHighWidth
+      try simp [SmtEval.native_zlt, SmtEval.native_zplus, SmtEval.native_zneg, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+      exact of_decide_eq_true hsimpa
     have hInt : (0 : Int) < (↑(wys + wz) : Int) := by
       push_cast
       omega
@@ -2737,16 +2748,19 @@ theorem eval_bvConcatPullup1
   have hYRange := bitvec_payload_range_of_canonical hB0 hYCan
   have hAgg0 : 0 ≤ pa := by exact hAggRange.1
   have hAgg1 : pa < (2 : Int) ^ (wys + wz + wy) := by
-    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int]
-      using hAggRange.2
+    have hsimpa := hAggRange.2
+    try simp [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+    exact hsimpa
   have hFull0 : 0 ≤ pf := by exact hFullRange.1
   have hFull1 : pf < (2 : Int) ^ (wys + wz + wy) := by
-    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int]
-      using hFullRange.2
+    have hsimpa := hFullRange.2
+    try simp [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+    exact hsimpa
   have hHigh0 : 0 ≤ ph := by exact hHighRange.1
   have hHigh1 : ph < (2 : Int) ^ (wys + wz) := by
-    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int]
-      using hHighRange.2
+    have hsimpa := hHighRange.2
+    try simp [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+    exact hsimpa
   have hY0 : 0 ≤ py := by exact hYRange.1
   have hY1 : py < (2 : Int) ^ wy := by
     simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int]
@@ -2877,7 +2891,9 @@ theorem eval_bvConcatPullup1
     _ = op.eval
         (__smtx_model_eval M (__eo_to_smt agg))
         (__smtx_model_eval M (__eo_to_smt full)) := by
-          simpa [bvConcatPullup1Lhs, agg, full] using hLhsEval
+          have hsimpa := hLhsEval
+          try simp [bvConcatPullup1Lhs, agg, full] at hsimpa ⊢
+          exact hsimpa
     _ = op.eval (SmtValue.Binary ↑(wys + wz + wy) pa)
         (SmtValue.Binary ↑(wys + wz + wy) pf) := by
           rw [hAggEval, hFullEval]
@@ -2965,9 +2981,10 @@ theorem facts_bvConcatPullup1Term
     have hOuter := bvConcat_term_smt_type highPart
       (bvConcatPullupConcat lowPart (Term.Binary 0 0))
       (wys + wz) (wy + 0) hHighPartTy
-      (by simpa [bvConcatPullupConcat] using hLowConcatTy)
-    simpa [bvConcatPullup1Rhs, highExt, lowExt, highTail, lowTail,
-      highPart, lowPart, Nat.add_assoc] using hOuter
+      (by have hsimpa := hLowConcatTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
+    have hsimpa := hOuter
+    try simp [bvConcatPullup1Rhs, highExt, lowExt, highTail, lowTail, highPart, lowPart, Nat.add_assoc] at hsimpa ⊢
+    exact hsimpa
   have hEqBool := RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (bvConcatPullup1Lhs op xs ws y z ys)
     (bvConcatPullup1Rhs op xs ws y z ys nxm ny nym)
@@ -3485,10 +3502,10 @@ private theorem bvConcatPullupTwoRhsRaw_eq
     (__eo_nil op.term (__eo_typeof loR)) hLoTail
   have hHiREq := eo_mk_apply_eq_apply_of_ne_stuck
     (Term.UOp2 UserOp2.extract nxm ny)
-    (bvConcatPullupAggregate op xs ws) (by simpa [hiR] using hHiR)
+    (bvConcatPullupAggregate op xs ws) (by have hsimpa := hHiR; (try simp [hiR] at hsimpa ⊢); exact hsimpa)
   have hLoREq := eo_mk_apply_eq_apply_of_ne_stuck
     (Term.UOp2 UserOp2.extract nym (Term.Numeral 0))
-    (bvConcatPullupAggregate op xs ws) (by simpa [loR] using hLoR)
+    (bvConcatPullupAggregate op xs ws) (by have hsimpa := hLoR; (try simp [loR] at hsimpa ⊢); exact hsimpa)
   have hHiTailHeadEq := eo_mk_apply_eq_apply_of_ne_stuck op.term
     highComp hHiTailHead
   have hHiTailEq := eo_mk_apply_eq_apply_of_ne_stuck hiTailHead
@@ -3634,7 +3651,7 @@ theorem bvConcatPullupTwoListsOfBodyType
     (__eo_typeof (bvConcatPullupTwoLhs op xs ws full))
     (__eo_typeof
       (bvConcatPullupTwoRhs op xs ws highComp lowComp nxm ny nym))
-    (by simpa [bvConcatPullupTwoTerm] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatPullupTwoTerm] at hsimpa ⊢); exact hsimpa)
   have hLhsNe : bvConcatPullupTwoLhs op xs ws full ≠ Term.Stuck := by
     intro h
     rw [h] at hSides
@@ -3666,7 +3683,7 @@ theorem bvConcatPullupTwoBaseContextFromFull
     (__eo_typeof (bvConcatPullupTwoLhs op xs ws full))
     (__eo_typeof
       (bvConcatPullupTwoRhs op xs ws highComp lowComp nxm ny nym))
-    (by simpa [bvConcatPullupTwoTerm] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatPullupTwoTerm] at hsimpa ⊢); exact hsimpa)
   have hLhsNe : bvConcatPullupTwoLhs op xs ws full ≠ Term.Stuck := by
     intro h
     rw [h] at hSides
@@ -3772,7 +3789,7 @@ theorem bvConcatPullupTwoRhsEoContext
     (__eo_typeof (bvConcatPullupTwoLhs op xs ws full))
     (__eo_typeof
       (bvConcatPullupTwoRhs op xs ws highComp lowComp nxm ny nym))
-    (by simpa [bvConcatPullupTwoTerm] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatPullupTwoTerm] at hsimpa ⊢); exact hsimpa)
   let highExt := bvConcatPullupTwoHigh op xs ws nxm ny
   let lowExt := bvConcatPullupTwoLow op xs ws nym
   let highTail := op.apply highComp
@@ -3784,8 +3801,9 @@ theorem bvConcatPullupTwoRhsEoContext
   let lowConcat := bvConcatPullupConcat lowPart (Term.Binary 0 0)
   have hOuter : __eo_typeof_concat (__eo_typeof highPart)
       (__eo_typeof lowConcat) ≠ Term.Stuck := by
-    simpa [bvConcatPullupTwoRhs, highExt, lowExt, highTail, lowTail,
-      highPart, lowPart, lowConcat, bvConcatPullupConcat] using hSides.2
+    have hsimpa := hSides.2
+    try simp [bvConcatPullupTwoRhs, highExt, lowExt, highTail, lowTail, highPart, lowPart, lowConcat, bvConcatPullupConcat] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hOuter with
     ⟨wh, _wlOuter, hHighPartTy, hLowConcatTy⟩
   have hLowOuter : __eo_typeof_concat (__eo_typeof lowPart)
@@ -3794,7 +3812,9 @@ theorem bvConcatPullupTwoRhsEoContext
       rw [hLowConcatTy]
       intro h
       cases h
-    simpa [lowConcat, bvConcatPullupConcat] using hNe
+    have hsimpa := hNe
+    try simp [lowConcat, bvConcatPullupConcat] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hLowOuter with
     ⟨wl, _we, hLowPartTy, _hEmptyTy⟩
   have hHighArgs := pullup_typeof_apply_args_of_result_bitvec op
@@ -3999,9 +4019,10 @@ theorem typed_bvConcatPullupTwoTerm
     have hOuter := bvConcat_term_smt_type highPart
       (bvConcatPullupConcat lowPart (Term.Binary 0 0))
       A (B + 0) hHighPartTy
-      (by simpa [bvConcatPullupConcat] using hLowConcatTy)
-    simpa [bvConcatPullupTwoRhs, highExt, lowExt, highTail, lowTail,
-      highPart, lowPart, Nat.add_assoc] using hOuter
+      (by have hsimpa := hLowConcatTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
+    have hsimpa := hOuter
+    try simp [bvConcatPullupTwoRhs, highExt, lowExt, highTail, lowTail, highPart, lowPart, Nat.add_assoc] at hsimpa ⊢
+    exact hsimpa
   unfold bvConcatPullupTwoTerm
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (bvConcatPullupTwoLhs op xs ws full)
@@ -4062,12 +4083,12 @@ theorem bvConcatPullup2ConcatTypes
   have hTailTy := bvConcat_term_smt_type y ys wy wys hYTy hYsTy
   have hLowCompTy := bvConcat_singleton_elim_smt_type
     (bvConcatPullupConcat y ys) (wy + wys) hTailList
-    (by simpa [bvConcatPullupConcat] using hTailTy)
+    (by have hsimpa := hTailTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hFullTy := bvConcat_term_smt_type z
     (bvConcatPullupConcat y ys) wz (wy + wys) hZTy
-    (by simpa [bvConcatPullupConcat] using hTailTy)
+    (by have hsimpa := hTailTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   exact ⟨hTailList,
-    by simpa [bvConcatPullup2Full, bvConcatPullupConcat] using hFullTy,
+    by have hsimpa := hFullTy; (try simp [bvConcatPullup2Full, bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa,
     by simpa [bvConcatPullup2LowComp] using hLowCompTy⟩
 
 theorem typed_bvConcatPullup2Term
@@ -4167,12 +4188,14 @@ theorem eval_bvConcatPullupTwo
   have hLowRange := bitvec_payload_range_of_canonical hB0 hLowCompCan
   have hAgg0 : 0 ≤ pa := hAggRange.1
   have hAgg1 : pa < (2 : Int) ^ (A + B) := by
-    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int]
-      using hAggRange.2
+    have hsimpa := hAggRange.2
+    try simp [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+    exact hsimpa
   have hFull0 : 0 ≤ pf := hFullRange.1
   have hFull1 : pf < (2 : Int) ^ (A + B) := by
-    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int]
-      using hFullRange.2
+    have hsimpa := hFullRange.2
+    try simp [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+    exact hsimpa
   have hHigh0 : 0 ≤ ph := hHighRange.1
   have hHigh1 : ph < (2 : Int) ^ A := by
     simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int]
@@ -4304,7 +4327,9 @@ theorem eval_bvConcatPullupTwo
   calc
     _ = op.eval (__smtx_model_eval M (__eo_to_smt agg))
         (__smtx_model_eval M (__eo_to_smt full)) := by
-      simpa [bvConcatPullupTwoLhs, agg] using hLhsEval
+      have hsimpa := hLhsEval
+      try simp [bvConcatPullupTwoLhs, agg] at hsimpa ⊢
+      exact hsimpa
     _ = op.eval (SmtValue.Binary ↑(A + B) pa)
         (SmtValue.Binary ↑(A + B) pf) := by
       rw [hAggEval, hFullEval]
@@ -4335,10 +4360,10 @@ theorem bvConcatPullup2Prem1Eval
   let full := bvConcatPullupConcat z tail
   have hTailTy := bvConcat_term_smt_type y ys wy wys hYTy hYsTy
   have hFullTy := bvConcat_term_smt_type z tail wz (wy + wys) hZTy
-    (by simpa [tail, bvConcatPullupConcat] using hTailTy)
+    (by have hsimpa := hTailTy; (try simp [tail, bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hFullSize := bvConcat_eval_bvsize_of_smt_bitvec_nat M full
     (wz + (wy + wys))
-    (by simpa [full, tail, bvConcatPullupConcat] using hFullTy)
+    (by have hsimpa := hFullTy; (try simp [full, tail, bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hZSize := bvConcat_eval_bvsize_of_smt_bitvec_nat M z wz hZTy
   let rhs := Term.Apply (Term.Apply (Term.UOp UserOp.neg)
     (Term.Apply (Term.UOp UserOp._at_bvsize) full))
@@ -4361,7 +4386,9 @@ theorem bvConcatPullup2Prem1Eval
       SmtValue.Numeral
         (native_zplus (native_nat_to_int (wz + (wy + wys)))
           (native_zneg (native_nat_to_int wz))) := by
-    simpa [rhs] using hRhsEvalSmt
+    have hsimpa := hRhsEvalSmt
+    try simp [rhs] at hsimpa ⊢
+    exact hsimpa
   rw [hRhsEval] at hEq
   exact pullup_model_eval_eq_numeral_left _ _ hEq
 
@@ -4382,10 +4409,10 @@ theorem bvConcatPullup2Prem3Eval
   let full := bvConcatPullupConcat z tail
   have hTailTy := bvConcat_term_smt_type y ys wy wys hYTy hYsTy
   have hFullTy := bvConcat_term_smt_type z tail wz (wy + wys) hZTy
-    (by simpa [tail, bvConcatPullupConcat] using hTailTy)
+    (by have hsimpa := hTailTy; (try simp [tail, bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hFullSize := bvConcat_eval_bvsize_of_smt_bitvec_nat M full
     (wz + (wy + wys))
-    (by simpa [full, tail, bvConcatPullupConcat] using hFullTy)
+    (by have hsimpa := hFullTy; (try simp [full, tail, bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hZSize := bvConcat_eval_bvsize_of_smt_bitvec_nat M z wz hZTy
   let inner := Term.Apply (Term.Apply (Term.UOp UserOp.neg)
     (Term.Apply (Term.UOp UserOp._at_bvsize) full))
@@ -4417,7 +4444,9 @@ theorem bvConcatPullup2Prem3Eval
           (native_zplus (native_nat_to_int (wz + (wy + wys)))
             (native_zneg (native_nat_to_int wz)))
           (native_zneg 1)) := by
-    simpa [rhs, inner] using hRhsEvalSmt
+    have hsimpa := hRhsEvalSmt
+    try simp [rhs, inner] at hsimpa ⊢
+    exact hsimpa
   rw [hRhsEval] at hEq
   exact pullup_model_eval_eq_numeral_left _ _ hEq
 
@@ -4534,9 +4563,9 @@ theorem bvConcatPullup2Indices
     have hIntRaw : (0 : Int) <
         (↑(wz + (wy + wys)) : Int) + -1 + 1 +
           -((↑(wz + (wy + wys)) : Int) + -↑wz) := by
-      simpa [SmtEval.native_zlt, SmtEval.native_zplus,
-        SmtEval.native_zneg, native_nat_to_int,
-        SmtEval.native_nat_to_int] using hHighWidth
+      have hsimpa := hHighWidth
+      try simp [SmtEval.native_zlt, SmtEval.native_zplus, SmtEval.native_zneg, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+      exact of_decide_eq_true hsimpa
     have hInt : (0 : Int) < ↑wz := by
       push_cast
       omega
@@ -4581,7 +4610,7 @@ theorem bvConcatPullup2FullEval
   have hTailTy := bvConcat_term_smt_type y ys wy wys hYTy hYsTy
   have hElim := bvConcat_singleton_elim_eval_eq M hM
     (bvConcatPullupConcat y ys) (wy + wys) hTailList
-    (by simpa [bvConcatPullupConcat] using hTailTy)
+    (by have hsimpa := hTailTy; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   change __smtx_model_eval_concat
       (__smtx_model_eval M (__eo_to_smt z))
       (__smtx_model_eval M
@@ -5285,13 +5314,13 @@ private theorem bvConcatPullup3RhsRaw_eq
     (__eo_nil op.term (__eo_typeof loR)) hLoTail
   have hHiREq := eo_mk_apply_eq_apply_of_ne_stuck
     (Term.UOp2 UserOp2.extract nxm nyu)
-    (bvConcatPullupAggregate op xs ws) (by simpa [hiR] using hHiR)
+    (bvConcatPullupAggregate op xs ws) (by have hsimpa := hHiR; (try simp [hiR] at hsimpa ⊢); exact hsimpa)
   have hMiREq := eo_mk_apply_eq_apply_of_ne_stuck
     (Term.UOp2 UserOp2.extract nyum nu)
-    (bvConcatPullupAggregate op xs ws) (by simpa [miR] using hMiR)
+    (bvConcatPullupAggregate op xs ws) (by have hsimpa := hMiR; (try simp [miR] at hsimpa ⊢); exact hsimpa)
   have hLoREq := eo_mk_apply_eq_apply_of_ne_stuck
     (Term.UOp2 UserOp2.extract num (Term.Numeral 0))
-    (bvConcatPullupAggregate op xs ws) (by simpa [loR] using hLoR)
+    (bvConcatPullupAggregate op xs ws) (by have hsimpa := hLoR; (try simp [loR] at hsimpa ⊢); exact hsimpa)
   have hHiTailHeadEq := eo_mk_apply_eq_apply_of_ne_stuck op.term z hHiTailHead
   have hHiTailEq := eo_mk_apply_eq_apply_of_ne_stuck hiTailHead
     (__eo_nil op.term (__eo_typeof hiR)) hHiTail
@@ -5448,7 +5477,7 @@ theorem bvConcatPullup3BaseContextFromFull
     (__eo_typeof (bvConcatPullup3Lhs op xs ws z y u))
     (__eo_typeof
       (bvConcatPullup3Rhs op xs ws z y u nxm nyu nyum nu num))
-    (by simpa [bvConcatPullup3Term] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatPullup3Term] at hsimpa ⊢); exact hsimpa)
   have hLhsNe : bvConcatPullup3Lhs op xs ws z y u ≠ Term.Stuck := by
     intro h
     rw [h] at hSides
@@ -5562,7 +5591,7 @@ theorem bvConcatPullup3RhsEoContext
     (__eo_typeof (bvConcatPullup3Lhs op xs ws z y u))
     (__eo_typeof
       (bvConcatPullup3Rhs op xs ws z y u nxm nyu nyum nu num))
-    (by simpa [bvConcatPullup3Term] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatPullup3Term] at hsimpa ⊢); exact hsimpa)
   let highExt := bvConcatPullup3High op xs ws nxm nyu
   let midExt := bvConcatPullup3Mid op xs ws nyum nu
   let lowExt := bvConcatPullup3Low op xs ws num
@@ -5576,9 +5605,9 @@ theorem bvConcatPullup3RhsEoContext
   let midConcat := bvConcatPullupConcat midPart lowConcat
   have hOuter : __eo_typeof_concat (__eo_typeof highPart)
       (__eo_typeof midConcat) ≠ Term.Stuck := by
-    simpa [bvConcatPullup3Rhs, highExt, midExt, lowExt, highTail,
-      midTail, lowTail, highPart, midPart, lowPart, lowConcat,
-      midConcat, bvConcatPullupConcat] using hSides.2
+    have hsimpa := hSides.2
+    try simp [bvConcatPullup3Rhs, highExt, midExt, lowExt, highTail, midTail, lowTail, highPart, midPart, lowPart, lowConcat, midConcat, bvConcatPullupConcat] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hOuter with
     ⟨wh, _wrest, hHighPartTy, hMidConcatTy⟩
   have hMidOuter : __eo_typeof_concat (__eo_typeof midPart)
@@ -5587,7 +5616,9 @@ theorem bvConcatPullup3RhsEoContext
       rw [hMidConcatTy]
       intro h
       cases h
-    simpa [midConcat, bvConcatPullupConcat] using hNe
+    have hsimpa := hNe
+    try simp [midConcat, bvConcatPullupConcat] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hMidOuter with
     ⟨wm, _wlow, hMidPartTy, hLowConcatTy⟩
   have hLowOuter : __eo_typeof_concat (__eo_typeof lowPart)
@@ -5596,7 +5627,9 @@ theorem bvConcatPullup3RhsEoContext
       rw [hLowConcatTy]
       intro h
       cases h
-    simpa [lowConcat, bvConcatPullupConcat] using hNe
+    have hsimpa := hNe
+    try simp [lowConcat, bvConcatPullupConcat] at hsimpa ⊢
+    exact hsimpa
   rcases bvConcat_eo_typeof_concat_args_bitvec hLowOuter with
     ⟨wl, _we, hLowPartTy, _hEmptyTy⟩
   have hHighArgs := pullup_typeof_apply_args_of_result_bitvec op
@@ -5696,7 +5729,9 @@ theorem bvConcatPullup3Prem1Type (nxm u y z : Term) :
   have hNegNN : term_has_non_none_type
       (SmtTerm.neg (__eo_to_smt pu) (SmtTerm.Numeral 1)) := by
     unfold term_has_non_none_type
-    simpa [rhs] using hRhsNN
+    have hsimpa := hRhsNN
+    try simp [rhs] at hsimpa ⊢
+    exact hsimpa
   have hBvsizeNeReal (t : Term) :
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) t)) ≠
@@ -5779,13 +5814,15 @@ theorem bvConcatPullup3FullType
     hUTy bvConcat_empty_smt_type
   have hYTail := bvConcat_term_smt_type y
     (bvConcatPullupConcat u (Term.Binary 0 0)) wy (wu + 0) hYTy
-    (by simpa [bvConcatPullupConcat] using hUEmpty)
+    (by have hsimpa := hUEmpty; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hFull := bvConcat_term_smt_type z
     (bvConcatPullupConcat y
       (bvConcatPullupConcat u (Term.Binary 0 0)))
     wz (wy + (wu + 0)) hZTy
-    (by simpa [bvConcatPullupConcat] using hYTail)
-  simpa [bvConcatPullup3Full, bvConcatPullupConcat] using hFull
+    (by have hsimpa := hYTail; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
+  have hsimpa := hFull
+  try simp [bvConcatPullup3Full, bvConcatPullupConcat] at hsimpa ⊢
+  exact hsimpa
 
 theorem typed_bvConcatPullup3Term
     (op : BvConcatPullupOp)
@@ -5844,7 +5881,7 @@ theorem typed_bvConcatPullup3Term
     wu 0 hLowPartTy bvConcat_empty_smt_type
   have hMidConcat := bvConcat_term_smt_type midPart
     (bvConcatPullupConcat lowPart (Term.Binary 0 0)) wy (wu + 0)
-    hMidPartTy (by simpa [bvConcatPullupConcat] using hLowConcat)
+    hMidPartTy (by have hsimpa := hLowConcat; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
   have hRhsTy : __smtx_typeof
       (__eo_to_smt
         (bvConcatPullup3Rhs op xs ws z y u nxm nyu nyum nu num)) =
@@ -5853,9 +5890,10 @@ theorem typed_bvConcatPullup3Term
       (bvConcatPullupConcat midPart
         (bvConcatPullupConcat lowPart (Term.Binary 0 0)))
       wz (wy + (wu + 0)) hHighPartTy
-      (by simpa [bvConcatPullupConcat] using hMidConcat)
-    simpa [bvConcatPullup3Rhs, highExt, midExt, lowExt, highTail,
-      midTail, lowTail, highPart, midPart, lowPart] using hOuter
+      (by have hsimpa := hMidConcat; (try simp [bvConcatPullupConcat] at hsimpa ⊢); exact hsimpa)
+    have hsimpa := hOuter
+    try simp [bvConcatPullup3Rhs, highExt, midExt, lowExt, highTail, midTail, lowTail, highPart, midPart, lowPart] at hsimpa ⊢
+    exact hsimpa
   unfold bvConcatPullup3Term
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (bvConcatPullup3Lhs op xs ws z y u)
@@ -5923,7 +5961,9 @@ theorem bvConcatPullup3Prem1Eval
       SmtValue.Numeral
         (native_zplus (native_nat_to_int (wz + wy + wu))
           (native_zneg 1)) := by
-    simpa [rhs] using hRhsEvalSmt
+    have hsimpa := hRhsEvalSmt
+    try simp [rhs] at hsimpa ⊢
+    exact hsimpa
   rw [hRhsEval] at hEq
   exact pullup_model_eval_eq_numeral_left _ _ hEq
 
@@ -5964,7 +6004,9 @@ theorem bvConcatPullup3Prem2Eval
       native_nat_to_int, SmtEval.native_nat_to_int]
   have hRhsEval : __smtx_model_eval M (__eo_to_smt rhs) =
       SmtValue.Numeral (native_nat_to_int (wy + wu)) := by
-    simpa [rhs] using hRhsEvalSmt
+    have hsimpa := hRhsEvalSmt
+    try simp [rhs] at hsimpa ⊢
+    exact hsimpa
   rw [hRhsEval] at hEq
   exact pullup_model_eval_eq_numeral_left _ _ hEq
 
@@ -6014,7 +6056,9 @@ theorem bvConcatPullup3Prem3Eval
   have hRhsEval : __smtx_model_eval M (__eo_to_smt rhs) =
       SmtValue.Numeral
         (native_zplus (native_nat_to_int (wy + wu)) (native_zneg 1)) := by
-    simpa [rhs, sum] using hRhsEvalSmt
+    have hsimpa := hRhsEvalSmt
+    try simp [rhs, sum] at hsimpa ⊢
+    exact hsimpa
   rw [hRhsEval] at hEq
   exact pullup_model_eval_eq_numeral_left _ _ hEq
 
@@ -6133,9 +6177,9 @@ theorem bvConcatPullup3Indices
     rw [hMHRaw, hML] at hMidWidth
     have hIntRaw : (0 : Int) <
         (↑(wy + wu) : Int) + -1 + 1 + -↑wu := by
-      simpa [SmtEval.native_zlt, SmtEval.native_zplus,
-        SmtEval.native_zneg, native_nat_to_int,
-        SmtEval.native_nat_to_int] using hMidWidth
+      have hsimpa := hMidWidth
+      try simp [SmtEval.native_zlt, SmtEval.native_zplus, SmtEval.native_zneg, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+      exact of_decide_eq_true hsimpa
     have hInt : (0 : Int) < ↑wy := by
       push_cast
       omega
@@ -6144,9 +6188,9 @@ theorem bvConcatPullup3Indices
     rw [hHHRaw, hLH] at hHighWidth
     have hIntRaw : (0 : Int) <
         (↑(wz + wy + wu) : Int) + -1 + 1 + -↑(wy + wu) := by
-      simpa [SmtEval.native_zlt, SmtEval.native_zplus,
-        SmtEval.native_zneg, native_nat_to_int,
-        SmtEval.native_nat_to_int] using hHighWidth
+      have hsimpa := hHighWidth
+      try simp [SmtEval.native_zlt, SmtEval.native_zplus, SmtEval.native_zneg, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+      exact of_decide_eq_true hsimpa
     have hInt : (0 : Int) < ↑wz := by
       push_cast
       omega
@@ -6257,12 +6301,14 @@ theorem eval_bvConcatPullup3
   have hURange := bitvec_payload_range_of_canonical (hNatWidth0 wu) hUCan
   have hAgg0 : 0 ≤ pa := hAggRange.1
   have hAgg1 : pa < (2 : Int) ^ (wz + wy + wu) := by
-    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int]
-      using hAggRange.2
+    have hsimpa := hAggRange.2
+    try simp [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+    exact hsimpa
   have hFull0 : 0 ≤ pf := hFullRange.1
   have hFull1 : pf < (2 : Int) ^ (wz + wy + wu) := by
-    simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int]
-      using hFullRange.2
+    have hsimpa := hFullRange.2
+    try simp [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
+    exact hsimpa
   have hZ0 : 0 ≤ pz := hZRange.1
   have hZ1 : pz < (2 : Int) ^ wz := by
     simpa [natpow2_eq, native_nat_to_int, SmtEval.native_nat_to_int]
@@ -6452,7 +6498,9 @@ theorem eval_bvConcatPullup3
   calc
     _ = op.eval (__smtx_model_eval M (__eo_to_smt agg))
         (__smtx_model_eval M (__eo_to_smt full)) := by
-      simpa [bvConcatPullup3Lhs, agg, full] using hLhsEval
+      have hsimpa := hLhsEval
+      try simp [bvConcatPullup3Lhs, agg, full] at hsimpa ⊢
+      exact hsimpa
     _ = op.eval (SmtValue.Binary ↑(wz + wy + wu) pa)
         (SmtValue.Binary ↑(wz + wy + wu) pf) := by
       rw [hAggEval, hFullEval]
@@ -6821,7 +6869,7 @@ theorem bvConcatPullup1BaseContext
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (bvConcatPullup1Lhs op xs ws y z ys))
     (__eo_typeof (bvConcatPullup1Rhs op xs ws y z ys nxm ny nym))
-    (by simpa [bvConcatPullup1Term] using hTermTy)
+    (by have hsimpa := hTermTy; (try simp [bvConcatPullup1Term] at hsimpa ⊢); exact hsimpa)
   have hLhsNe : bvConcatPullup1Lhs op xs ws y z ys ≠ Term.Stuck := by
     intro h
     rw [h] at hSides
@@ -6841,8 +6889,9 @@ theorem bvConcatPullup1BaseContext
           (__smtx_typeof
             (__eo_to_smt (bvConcatPullup1Rhs op xs ws y z ys nxm ny nym))) ≠
         SmtType.None := by
-    simpa [RuleProofs.eo_has_smt_translation, bvConcatPullup1Term]
-      using hBodyTrans
+    have hsimpa := hBodyTrans
+    try simp [RuleProofs.eo_has_smt_translation, bvConcatPullup1Term] at hsimpa ⊢
+    exact hsimpa
   have hEqArgs := TranslationProofs.smtx_typeof_eq_non_none hEqNN
   have hLhsSmtNN :
       __smtx_typeof (__eo_to_smt (bvConcatPullup1Lhs op xs ws y z ys)) ≠

@@ -212,7 +212,7 @@ private theorem facts___eo_prog_str_substr_empty_str_impl
     list_eq_nil_of_native_seq_len_zero (native_unpack_seq sx) hXLenZero
   have hXSeqTy :
       __smtx_typeof_seq_value sx = SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [hXEval] using hXEvalTy
+    simpa [hXEval, __smtx_typeof_seq_value, __smtx_typeof_value] using hXEvalTy
   have hXElem : __smtx_elem_typeof_seq_value sx = __eo_to_smt_type T :=
     elem_typeof_seq_value_of_typeof_seq_value hXSeqTy
   have hXPack :

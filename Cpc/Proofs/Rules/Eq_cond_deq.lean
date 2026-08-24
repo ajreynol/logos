@@ -336,9 +336,13 @@ private theorem facts___eo_prog_eq_cond_deq_impl
   rw [requires_and_eq_self_true_body s r (eqCondDeqBody t s r)
     hSNotStuck hRNotStuck]
   apply RuleProofs.eo_interprets_eq_of_rel M
-  · simpa [prog_eq_cond_deq_eq t s r s r hTNotStuck hSNotStuck hRNotStuck,
-      requires_and_eq_self_true_body s r (eqCondDeqBody t s r)
-        hSNotStuck hRNotStuck] using hProgBool
+  · -- v4.33 unfolds `eqCondDeqBody` in the goal, so peel the `__eo_requires`
+    -- guard first and only then unfold, or the lemma instance stops matching.
+    have hB : RuleProofs.eo_has_bool_type (eqCondDeqBody t s r) := by
+      simpa [prog_eq_cond_deq_eq t s r s r hTNotStuck hSNotStuck hRNotStuck,
+        requires_and_eq_self_true_body s r (eqCondDeqBody t s r)
+          hSNotStuck hRNotStuck] using hProgBool
+    simpa [eqCondDeqBody, mkEq, mkAnd, mkNot] using hB
   · change RuleProofs.smt_value_rel
       (__smtx_model_eval M (__eo_to_smt (mkEq (mkEq t s) (mkEq t r))))
       (__smtx_model_eval M

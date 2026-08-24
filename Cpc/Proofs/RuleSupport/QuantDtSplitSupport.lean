@@ -272,7 +272,7 @@ theorem vsmMkSpine_dtcons_type_aux
           intro j hj
           have hTy := hTypes (Nat.succ j)
             (by simpa using Nat.succ_lt_succ hj)
-          simpa [Nat.succ_add] using hTy)
+          simpa [Nat.succ_add, Nat.add_assoc] using hTy)
       change __smtx_typeof_value
           (vsmMkSpine (SmtValue.Apply head a) args) =
         dt_cons_applied_type_rec s d0 d i (n + Nat.succ args.length)
@@ -3280,7 +3280,7 @@ theorem split_backward
                 (eoCons (Term.UOp UserOp.tuple) Term.__eo_List_nil) 0
                 (Term.UOp UserOp.tuple))
         obtain ⟨g, crel, hgTy, hgTrue⟩ :=
-          splitRel_pick_true M srel (by simpa using hAt) hGTy hRHS
+          splitRel_pick_true M srel (by exact hAt) hGTy hRHS
         have hEnc : gEnc g = __eo_to_smt g :=
           gEnc_eq_eo_to_smt_of_bool hgTy
         have hgEncTy : __smtx_typeof (gEnc g) = SmtType.Bool := by
@@ -3448,7 +3448,7 @@ theorem split_backward
                   (Term.Var (Term.String s₂) T₂)) := by
               apply ctor_spine_translation
                 (CS.apply (CS.apply (CS.head CH.tuple) hU₁Wf) hU₂Wf)
-              · simpa using hFinalType
+              · exact hFinalType
               · exact hWfX
             have hPrependNN : __smtx_typeof
                 (__eo_to_smt_tuple_prepend
@@ -3550,7 +3550,7 @@ theorem split_backward
                 (eoCons (Term.UOp UserOp.tuple_unit) Term.__eo_List_nil) 0
                 (Term.UOp UserOp.tuple_unit))
         obtain ⟨g, crel, hgTy, hgTrue⟩ :=
-          splitRel_pick_true M srel (by simpa using hAt) hGTy hRHS
+          splitRel_pick_true M srel (by exact hAt) hGTy hRHS
         have hEnc : gEnc g = __eo_to_smt g :=
           gEnc_eq_eo_to_smt_of_bool hgTy
         have hgEncTy : __smtx_typeof (gEnc g) = SmtType.Bool := by
@@ -3572,7 +3572,7 @@ theorem split_backward
         let unitDD := __smtx_tuple_datatype_decl unitD
         have hwTyUnit : __smtx_typeof_value w =
             SmtType.Datatype (native_string_lit "@Tuple") unitDD := by
-          simpa [unitDD, unitD,
+          simpa [unitDD, unitD, __smtx_tuple_datatype_decl,
             TranslationProofs.eo_to_smt_type_unit_tuple] using hwTy
         obtain ⟨ci, args, hW, hCiLt, hArgLen, hArgTypes⟩ :=
           datatype_value_spine hwTyUnit
@@ -3591,7 +3591,8 @@ theorem split_backward
         have hEval : __smtx_model_eval N₀
             (__eo_to_smt (conjFinal crel)) = w := by
           rw [hFull, TranslationProofs.eo_to_smt_term_tuple_unit]
-          simpa [__smtx_model_eval, vsmMkSpine] using hW.symm
+          simpa [__smtx_model_eval, vsmMkSpine, unitDD, unitD,
+            __smtx_tuple_datatype_decl] using hW.symm
         have hCI := ctorInst_of_no_absorbed crel N₀ w hAbs hEval
         have hBody := conj_backward_aux sx (Term.UOp UserOp.UnitTuple) F hWfX
           hFTrans crel (CS.head CH.tupleUnit) M hM hgEncTy hgEncTrue

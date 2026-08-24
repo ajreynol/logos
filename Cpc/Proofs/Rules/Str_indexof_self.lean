@@ -20,9 +20,7 @@ private theorem native_seq_indexof_self_eq_empty_self
   | ofNat n =>
       cases n with
       | zero =>
-          simpa using
-            (native_seq_indexof_self_zero xs).trans
-              (native_seq_indexof_self_zero ([] : List SmtValue)).symm
+          exact (native_seq_indexof_self_zero xs).trans (native_seq_indexof_self_zero ([] : List SmtValue)).symm
       | succ n =>
           unfold native_seq_indexof
           have hLeft : ¬ Nat.succ n + xs.length ≤ xs.length := by
@@ -344,11 +342,9 @@ by
                         simpa [cmdTranslationOk, cArgListTranslationOkMask]
                           using hCmdTrans
                       have hA1Trans : RuleProofs.eo_has_smt_translation a1 := by
-                        simpa [argTranslationOkMasked, eoHasSmtTranslation]
-                          using hMask.1
+                        exact hMask.1
                       have hA2Trans : RuleProofs.eo_has_smt_translation a2 := by
-                        simpa [argTranslationOkMasked, eoHasSmtTranslation]
-                          using hMask.2.1
+                        exact hMask.2.1
                       have hA3Wf :
                           __smtx_type_wf (__eo_to_smt_type a3) = true := by
                         simpa [argTranslationOkMasked] using hMask.2.2.1

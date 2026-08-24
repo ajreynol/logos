@@ -21,7 +21,7 @@ theorem eo_requires_eq_of_ne_stuck (x y z : Term) :
     __eo_requires x y z ≠ Term.Stuck ->
     x = y := by
   intro h
-  simp [__eo_requires, native_ite, native_teq] at h
+  simp [__eo_requires, native_ite, native_teq, native_not] at h
   exact h.1
 
 theorem eo_requires_result_eq_of_ne_stuck (x y z : Term) :
@@ -29,24 +29,24 @@ theorem eo_requires_result_eq_of_ne_stuck (x y z : Term) :
     __eo_requires x y z = z := by
   intro h
   have h' := h
-  simp [__eo_requires, native_ite, native_teq] at h'
+  simp [__eo_requires, native_ite, native_teq, native_not] at h'
   rcases h' with ⟨hxy, hxOk, _hz⟩
   subst y
-  simp [__eo_requires, native_ite, native_teq, hxOk]
+  simp [__eo_requires, native_ite, native_teq, hxOk, native_not]
 
 theorem eo_requires_left_ne_stuck_of_ne_stuck (x y z : Term) :
     __eo_requires x y z ≠ Term.Stuck ->
     x ≠ Term.Stuck := by
   intro h
   have h' := h
-  simp [__eo_requires, native_ite, native_teq] at h'
+  simp [__eo_requires, native_ite, native_teq, native_not] at h'
   rcases h' with ⟨_hxy, hxOk, _hz⟩
   intro hx
   subst x
   have hxNe : y ≠ Term.Stuck := by
     intro hy
     subst y
-    simp [native_not] at hxOk
+    simp at hxOk
   exact hxNe hx
 
 theorem eo_requires_result_ne_stuck_of_ne_stuck (x y z : Term) :
@@ -54,7 +54,7 @@ theorem eo_requires_result_ne_stuck_of_ne_stuck (x y z : Term) :
     z ≠ Term.Stuck := by
   intro h
   have h' := h
-  simp [__eo_requires, native_ite, native_teq] at h'
+  simp [__eo_requires, native_ite, native_teq, native_not] at h'
   exact h'.2.2
 
 theorem eq_operands_same_smt_type_of_eq_has_smt_translation
@@ -878,9 +878,28 @@ private theorem extractString_cons_succ_nat
             1 := by
         omega
       simp [h]
+    have hLeftLt : ¬ ((i : Int) + 1 < 0) := by omega
+    have hRightLt : ¬ ((i : Int) < 0) := by omega
     simp [extractString, native_str_substr, native_str_len, native_zplus,
-      native_zneg, hLeftNonneg, hRightNonneg, hLenNotLe, hMinLeft,
+      native_zneg, hLeftLt, hRightLt, hLenNotLe, hMinLeft,
       hMinRight, List.drop_succ_cons]
+    -- v4.33 `simp` rewrites inside `decide`'s proposition without refreshing the
+    -- `Decidable` instance, so the remaining guards cannot be rewritten; split
+    -- on them instead.
+    split <;> split
+    case isTrue.isTrue => rfl
+    case isFalse.isFalse => rfl
+    case isTrue.isFalse h1 _ =>
+        exfalso
+        -- ascribe the cast form `omega` understands (`↑i`, not `Int.ofNat i`)
+        have h : ((i : Int) + 1 + -((i : Int) + 1) + 1) ≤ 0 :=
+          of_decide_eq_true h1
+        omega
+    case isFalse.isTrue _ h2 =>
+        exfalso
+        have h : ((i : Int) + -(i : Int) + 1) ≤ 0 :=
+          of_decide_eq_true h2
+        omega
   · have hLeft : ((i : Int) + 1) >= ((cs.length : Int) + 1) := by
       omega
     have hLenLe : cs.length ≤ i := Nat.le_of_not_gt hLt
@@ -1112,7 +1131,7 @@ private theorem native_str_in_re_mk_comp_list :
                 (native_re_nullable
                     (List.foldl (fun acc c => native_re_deriv c acc)
                       (native_re_deriv c r) cs)) := by
-          simpa [native_re_mk_comp, native_re_comp] using hComp
+          exact hComp
         cases hA :
             native_re_nullable
               (List.foldl (fun acc c => native_re_deriv c acc)
@@ -1940,7 +1959,8 @@ private theorem smt_value_rel_re_concat
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   simp [__smtx_model_eval_eq]
   intro str hValid
-  simpa [native_str_in_re, hValid, native_re_concat, nativeListInRe] using
+  simpa [native_str_in_re, hValid, native_re_concat, native_re_mk_concat,
+    nativeListInRe] using
     nativeListInRe_mk_concat_congr_valid str r r' s s' hValid
       (by
         intro ys hys
@@ -1959,7 +1979,8 @@ private theorem smt_value_rel_re_concat_assoc
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   simp [__smtx_model_eval_eq]
   intro str hValid
-  simpa [native_str_in_re, hValid, native_re_concat, nativeListInRe] using
+  simpa [native_str_in_re, hValid, native_re_concat, native_re_mk_concat,
+    nativeListInRe] using
     nativeListInRe_mk_concat_assoc str r s t
 
 private theorem smt_value_rel_reglan_native_union_of_contains_iff
@@ -2493,7 +2514,9 @@ private theorem reConcat_list_concat_rec_rel_eval
           have hTailRel :
               RuleProofs.smt_value_rel (SmtValue.RegLan rtail)
                 (SmtValue.RegLan (native_re_concat ry rz)) := by
-            simpa [hTailEval, hYZEval] using hIH.2.2
+            have h := hIH.2.2
+            rw [hTailEval, hYZEval] at h
+            exact h
           have hLeftEval :
               __smtx_model_eval M
                   (__eo_to_smt
@@ -2536,19 +2559,18 @@ private theorem reConcat_list_concat_rec_rel_eval
                   (__eo_to_smt (mkReConcat x (__eo_list_concat_rec y z))))
                 (__smtx_model_eval M
                   (__eo_to_smt (mkReConcat x (mkReConcat y z)))) := by
-            simpa [hLeftEval, hRightEval] using
-              smt_value_rel_re_concat
-                (RuleProofs.smt_value_rel_refl (SmtValue.RegLan rx))
-                hTailRel
+            rw [hLeftEval, hRightEval]
+            exact smt_value_rel_re_concat
+              (RuleProofs.smt_value_rel_refl (SmtValue.RegLan rx)) hTailRel
           have hAssoc :
               RuleProofs.smt_value_rel
                 (__smtx_model_eval M
                   (__eo_to_smt (mkReConcat x (mkReConcat y z))))
                 (__smtx_model_eval M
                   (__eo_to_smt (mkReConcat (mkReConcat x y) z))) := by
-            simpa [hRightEval, hAssocRightEval] using
-              RuleProofs.smt_value_rel_symm _ _
-                (smt_value_rel_re_concat_assoc rx ry rz)
+            rw [hRightEval, hAssocRightEval]
+            exact RuleProofs.smt_value_rel_symm _ _
+              (smt_value_rel_re_concat_assoc rx ry rz)
           exact ⟨
             eo_is_list_cons_self_true_of_tail_list
               (Term.UOp UserOp.re_concat) x (__eo_list_concat_rec y z)
@@ -2602,8 +2624,8 @@ private theorem reConcat_list_concat_rec_rel_eval
               RuleProofs.smt_value_rel
                 (__smtx_model_eval M (__eo_to_smt (mkReConcat nil z)))
                 (__smtx_model_eval M (__eo_to_smt z)) := by
-            simpa [hConcatEval, hzEval, hNative] using
-              RuleProofs.smt_value_rel_refl (SmtValue.RegLan rz)
+            rw [hConcatEval, hNative, hzEval]
+            exact RuleProofs.smt_value_rel_refl (SmtValue.RegLan rz)
           exact ⟨hZList, hZWF,
             RuleProofs.smt_value_rel_symm _ _ hLeftRel⟩
 
@@ -2643,7 +2665,9 @@ theorem reConcat_list_concat_rec_eval_rel
   have hRel :
       RuleProofs.smt_value_rel (SmtValue.RegLan r)
         (SmtValue.RegLan (native_re_concat ra rb)) := by
-    simpa [hRecEval, hMkEval] using hConcat.2.2
+    have h := hConcat.2.2
+    rw [hRecEval, hMkEval] at h
+    exact h
   exact ⟨r, hRecEval, reConcatListWF_type hConcat.2.1, hRel⟩
 
 theorem reConcat_list_concat_eval_rel
@@ -2689,7 +2713,9 @@ theorem reConcat_list_concat_eval_rel
   have hRel :
       RuleProofs.smt_value_rel (SmtValue.RegLan r)
         (SmtValue.RegLan (native_re_concat ra rb)) := by
-    simpa [hRecEval, hMkEval] using hConcat.2.2
+    have h := hConcat.2.2
+    rw [hRecEval, hMkEval] at h
+    exact h
   refine ⟨r, ?_, ?_, hRel⟩
   · rw [hConcatEq]
     exact hRecEval
@@ -2856,8 +2882,8 @@ private theorem native_str_in_re_re_union_eval_support
     native_str_in_re str (native_re_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
   by_cases hValid : native_string_valid str = true
-  · simpa [native_str_in_re, hValid, native_re_union, nativeListInRe] using
-      nativeListInRe_mk_union str r s
+  · simpa [native_str_in_re, hValid, nativeListInRe, native_re_union,
+      native_re_mk_union] using nativeListInRe_mk_union str r s
   · have hInvalid : native_string_valid str = false := by
       cases h : native_string_valid str <;> simp [h] at hValid ⊢
     simp [native_str_in_re, hInvalid]
@@ -5143,7 +5169,7 @@ private theorem re_ac_merge_union_l3_eval_rel
                 (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
               (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) ≠
             Term.Stuck := by
-        simpa [hHead] using hTopNe
+        exact hTopNe
       rcases eo_ite_cases_of_ne_stuck
           (__eo_is_neg
             (__eo_list_find (Term.UOp UserOp.re_union)
@@ -5298,7 +5324,7 @@ private theorem re_ac_merge_union_l2_eval_rel
                 (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
               (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) ≠
             Term.Stuck := by
-        simpa [hHead] using hTopNe
+        exact hTopNe
       rcases eo_ite_cases_of_ne_stuck
           (__eo_is_neg
             (__eo_list_find (Term.UOp UserOp.re_union)
@@ -5462,7 +5488,7 @@ private theorem re_ac_merge_union_l1_eval_rel
                 (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss))
               (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss) ≠
             Term.Stuck := by
-        simpa [hHead] using hTopNe
+        exact hTopNe
       rcases reUnion_lists_of_concat_diff_union_ne_stuck
           (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
           (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss)
@@ -5747,7 +5773,7 @@ private theorem re_ac_merge_inter_l3_eval_rel
                 (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
               (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) ≠
             Term.Stuck := by
-        simpa [hHead] using hTopNe
+        exact hTopNe
       rcases eo_ite_cases_of_ne_stuck
           (__eo_is_neg
             (__eo_list_find (Term.UOp UserOp.re_inter)
@@ -5902,7 +5928,7 @@ private theorem re_ac_merge_inter_l2_eval_rel
                 (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
               (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) ≠
             Term.Stuck := by
-        simpa [hHead] using hTopNe
+        exact hTopNe
       rcases eo_ite_cases_of_ne_stuck
           (__eo_is_neg
             (__eo_list_find (Term.UOp UserOp.re_inter)
@@ -6066,7 +6092,7 @@ private theorem re_ac_merge_inter_l1_eval_rel
                 (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss))
               (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss) ≠
             Term.Stuck := by
-        simpa [hHead] using hTopNe
+        exact hTopNe
       rcases reInter_lists_of_concat_diff_inter_ne_stuck
           (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
           (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss)
@@ -6601,13 +6627,13 @@ private theorem re_concat_merge_re_mult_eval_rel
                 (SmtTerm.re_mult (__eo_to_smt x)) =
               SmtValue.RegLan (native_re_mult rx) := by
           simp [__smtx_model_eval, __smtx_model_eval_re_mult, hXEval]
-        simpa [__re_concat_merge] using hStarEval
+        exact hStarEval
       · have hStarTy :
             __smtx_typeof (SmtTerm.re_mult (__eo_to_smt x)) =
               SmtType.RegLan := by
           rw [typeof_re_mult_eq]
           simp [hXTy, native_ite, native_Teq]
-        simpa [__re_concat_merge] using hStarTy
+        exact hStarTy
       · exact smt_value_rel_reglan_of_eq (by
           change native_re_mult rx =
             native_re_concat (native_str_to_re []) (native_re_mult rx)
@@ -6694,7 +6720,8 @@ private theorem native_str_in_re_re_concat_left_congr_valid
       (SmtValue.RegLan r')) :
     native_str_in_re str (native_re_concat r s) =
       native_str_in_re str (native_re_concat r' s) := by
-  simpa [native_str_in_re, hValid, native_re_concat, nativeListInRe] using
+  simpa [native_str_in_re, hValid, native_re_concat, native_re_mk_concat,
+    nativeListInRe] using
     nativeListInRe_mk_concat_congr_valid str r r' s s hValid
       (by
         intro ys hys
@@ -6712,9 +6739,13 @@ private theorem native_str_in_re_deriv_mult_raw
       native_str_in_re str (native_re_deriv c (native_re_mult r)) := by
   cases r with
   | star r =>
-      simpa [native_str_in_re, hValid, native_re_concat, native_re_mult,
-        native_re_mk_star, native_re_deriv, nativeListInRe] using
-        nativeListInRe_concat_star_absorb str (native_re_deriv c r) r
+      -- bridge to `nativeListInRe` explicitly: v4.33's `simp` drives the goal
+      -- all the way to the fold form, which no longer matches the lemma.
+      have hBridge : ∀ R, native_str_in_re str R = nativeListInRe str R := by
+        intro R
+        simp [native_str_in_re, hValid, nativeListInRe]
+      rw [hBridge, hBridge]
+      exact nativeListInRe_concat_star_absorb str (native_re_deriv c r) r
   | empty =>
       simp [native_str_in_re, hValid, native_re_concat, native_re_mult,
         native_re_deriv]
@@ -6797,8 +6828,12 @@ private theorem smt_value_rel_deriv_concat_not_nullable
                   (native_re_deriv c (native_re_mk_concat ry rx)) := by
             simpa [hNull, hUnionEmpty] using
               (nativeListInRe_deriv_mk_concat str c ry rx).symm
-          simpa [native_str_in_re, hValid, native_re_concat, nativeListInRe]
-            using hDeriv
+          have hBridge : ∀ R, native_str_in_re str R = nativeListInRe str R := by
+            intro R
+            simp [native_str_in_re, native_re_str_valid_string, hValid,
+              nativeListInRe]
+          simp only [hBridge]
+          exact hDeriv
 
 private theorem smt_value_rel_deriv_concat_nullable
     (c : native_Char) (ry rx dy dx : SmtRegLan)
@@ -6857,8 +6892,12 @@ private theorem smt_value_rel_deriv_concat_nullable
               (native_re_mk_concat (native_re_deriv c ry) rx)
               (native_re_deriv c rx)
           rw [hUnion] at hDeriv
-          simpa [native_str_in_re, hValid, native_re_concat, nativeListInRe]
-            using hDeriv
+          have hBridge : ∀ R, native_str_in_re str R = nativeListInRe str R := by
+            intro R
+            simp [native_str_in_re, native_re_str_valid_string, hValid,
+              nativeListInRe]
+          simp only [hBridge]
+          exact hDeriv
 
 private theorem native_re_deriv_all_valid
     (c : native_Char) (hc : native_char_valid c = true) :
@@ -7375,7 +7414,7 @@ theorem smtx_model_eval_derivative_single_rel
                 have hArgValid :
                     native_string_valid (d :: ds) = true :=
                   native_string_valid_of_smtx_typeof_eo_string (d :: ds)
-                    (by simpa using hArgTy)
+                    (by exact hArgTy)
                 have hDsValid : native_string_valid ds = true :=
                   (native_string_valid_cons_parts hArgValid).2
                 change __smtx_model_eval M
@@ -7783,10 +7822,10 @@ theorem smtx_model_eval_derivative_single_rel
                     simp)
             have hloStringValid : native_string_valid [lo] = true :=
               native_string_valid_of_smtx_typeof_eo_string [lo]
-                (by simpa using hArgs.1)
+                (by exact hArgs.1)
             have hhiStringValid : native_string_valid [hi] = true :=
               native_string_valid_of_smtx_typeof_eo_string [hi]
-                (by simpa using hArgs.2)
+                (by exact hArgs.2)
             have hloValid : native_char_valid lo = true :=
               (native_string_valid_cons_parts hloStringValid).1
             have hhiValid : native_char_valid hi = true :=
@@ -7811,9 +7850,7 @@ theorem smtx_model_eval_derivative_single_rel
                             (Term.String [hi])) =
                         Term.Apply (Term.UOp UserOp.str_to_re)
                           (Term.String []) := by
-                    simpa using
-                      (re_range_derivative_singletons_eq c lo hi hc
-                        hloValid hhiValid true true hLower hUpper)
+                    exact (re_range_derivative_singletons_eq c lo hi hc hloValid hhiValid true true hLower hUpper)
                   have hEval :
                       __smtx_model_eval M
                           (__eo_to_smt
@@ -7845,9 +7882,7 @@ theorem smtx_model_eval_derivative_single_rel
                             (Term.String [hi])) =
                         Term.Apply (Term.UOp UserOp.str_to_re)
                           (Term.String []) := by
-                    simpa using
-                      (re_range_derivative_singletons_eq c lo hi hc
-                        hloValid hhiValid true true hLower hUpper)
+                    exact (re_range_derivative_singletons_eq c lo hi hc hloValid hhiValid true true hLower hUpper)
                   have hTy :
                       __smtx_typeof
                           (__eo_to_smt
@@ -7882,9 +7917,7 @@ theorem smtx_model_eval_derivative_single_rel
                               (Term.String [lo]))
                             (Term.String [hi])) =
                         Term.UOp UserOp.re_none := by
-                    simpa using
-                      (re_range_derivative_singletons_eq c lo hi hc
-                        hloValid hhiValid true false hLower hUpper)
+                    exact (re_range_derivative_singletons_eq c lo hi hc hloValid hhiValid true false hLower hUpper)
                   have hEval :
                       __smtx_model_eval M
                           (__eo_to_smt (Term.UOp UserOp.re_none)) =
@@ -7911,9 +7944,7 @@ theorem smtx_model_eval_derivative_single_rel
                               (Term.String [lo]))
                             (Term.String [hi])) =
                         Term.UOp UserOp.re_none := by
-                    simpa using
-                      (re_range_derivative_singletons_eq c lo hi hc
-                        hloValid hhiValid true false hLower hUpper)
+                    exact (re_range_derivative_singletons_eq c lo hi hc hloValid hhiValid true false hLower hUpper)
                   change __smtx_typeof
                       (__eo_to_smt
                         (__derivative (Term.String [c])
@@ -7939,9 +7970,7 @@ theorem smtx_model_eval_derivative_single_rel
                               (Term.String [lo]))
                             (Term.String [hi])) =
                         Term.UOp UserOp.re_none := by
-                    simpa using
-                      (re_range_derivative_singletons_eq c lo hi hc
-                        hloValid hhiValid false true hLower hUpper)
+                    exact (re_range_derivative_singletons_eq c lo hi hc hloValid hhiValid false true hLower hUpper)
                   have hEval :
                       __smtx_model_eval M
                           (__eo_to_smt (Term.UOp UserOp.re_none)) =
@@ -7968,9 +7997,7 @@ theorem smtx_model_eval_derivative_single_rel
                               (Term.String [lo]))
                             (Term.String [hi])) =
                         Term.UOp UserOp.re_none := by
-                    simpa using
-                      (re_range_derivative_singletons_eq c lo hi hc
-                        hloValid hhiValid false true hLower hUpper)
+                    exact (re_range_derivative_singletons_eq c lo hi hc hloValid hhiValid false true hLower hUpper)
                   change __smtx_typeof
                       (__eo_to_smt
                         (__derivative (Term.String [c])
@@ -7995,9 +8022,7 @@ theorem smtx_model_eval_derivative_single_rel
                               (Term.String [lo]))
                             (Term.String [hi])) =
                         Term.UOp UserOp.re_none := by
-                    simpa using
-                      (re_range_derivative_singletons_eq c lo hi hc
-                        hloValid hhiValid false false hLower hUpper)
+                    exact (re_range_derivative_singletons_eq c lo hi hc hloValid hhiValid false false hLower hUpper)
                   have hEval :
                       __smtx_model_eval M
                           (__eo_to_smt (Term.UOp UserOp.re_none)) =
@@ -8024,9 +8049,7 @@ theorem smtx_model_eval_derivative_single_rel
                               (Term.String [lo]))
                             (Term.String [hi])) =
                         Term.UOp UserOp.re_none := by
-                    simpa using
-                      (re_range_derivative_singletons_eq c lo hi hc
-                        hloValid hhiValid false false hLower hUpper)
+                    exact (re_range_derivative_singletons_eq c lo hi hc hloValid hhiValid false false hLower hUpper)
                   change __smtx_typeof
                       (__eo_to_smt
                         (__derivative (Term.String [c])

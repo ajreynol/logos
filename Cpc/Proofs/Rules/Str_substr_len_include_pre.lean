@@ -420,10 +420,10 @@ private theorem facts___eo_prog_str_substr_len_include_pre_impl
   rcases int_value_canonical hNEvalTy with ⟨ni, hNEval⟩
   have hS1SeqTy : __smtx_typeof_seq_value ss1 =
       SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [hS1Eval] using hS1EvalTy
+    simpa [hS1Eval, __smtx_typeof_seq_value, __smtx_typeof_value] using hS1EvalTy
   have hS2SeqTy : __smtx_typeof_seq_value ss2 =
       SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [hS2Eval] using hS2EvalTy
+    simpa [hS2Eval, __smtx_typeof_seq_value, __smtx_typeof_value] using hS2EvalTy
   have hS1Elem :
       __smtx_elem_typeof_seq_value ss1 = __eo_to_smt_type T :=
     elem_typeof_seq_value_of_typeof_seq_value hS1SeqTy

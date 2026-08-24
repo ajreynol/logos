@@ -113,8 +113,10 @@ by
                                                     (bvUremPow2Program x v n
                                                       nmp pm P1 P2 P3 P4) =
                                                     Term.Bool := by
-                                                simpa [P1, P2, P3, P4] using
+                                                have hsimpa :=
                                                   hResultTy
+                                                try simp [P1, P2, P3, P4] at hsimpa ⊢
+                                                exact hsimpa
                                               refine ⟨?_, ?_⟩
                                               · intro hPremisesTrue
                                                 have hP1True :

@@ -184,9 +184,7 @@ private theorem smt_typeof_bv_one_one :
     have hNonneg : native_zleq 0 1 = true := by
       native_decide
     simp [SmtEval.native_and, native_ite, hMod, hNonneg]
-  simpa [native_ite] using
-    TranslationProofs.smtx_typeof_binary_of_non_none 1
-      (native_mod_total 1 (native_int_pow2 1)) hNN
+  exact TranslationProofs.smtx_typeof_binary_of_non_none 1 (native_mod_total 1 (native_int_pow2 1)) hNN
 
 private theorem smt_typeof_bv_zero_one :
     __smtx_typeof
@@ -207,9 +205,7 @@ private theorem smt_typeof_bv_zero_one :
     have hNonneg : native_zleq 0 1 = true := by
       native_decide
     simp [SmtEval.native_and, native_ite, hMod, hNonneg]
-  simpa [native_ite] using
-    TranslationProofs.smtx_typeof_binary_of_non_none 1
-      (native_mod_total 0 (native_int_pow2 1)) hNN
+  exact TranslationProofs.smtx_typeof_binary_of_non_none 1 (native_mod_total 0 (native_int_pow2 1)) hNN
 
 private theorem smt_typeof_bvcomp_same
     (x1 y1 : Term) :

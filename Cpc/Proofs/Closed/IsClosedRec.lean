@@ -120,50 +120,12 @@ by
       · simp [hBodyNone, hBodyInt]
       · simp [hBodyNone, hBodyInt]
   case tuple_unit =>
-    have hHead := TranslationProofs.smtx_typeof_tuple_unit_translation
-    simp only [__smtx_typeof] at hHead
-    have hHead' :
-        (if
-            native_inhabited_type
-                  (SmtType.Datatype (native_string_lit "@Tuple")
-                    (__smtx_tuple_datatype_decl
-                      (SmtDatatype.sum SmtDatatypeCons.unit
-                        SmtDatatype.null))) =
-                true ∧
-              __smtx_dd_has_dt (native_string_lit "@Tuple")
-                    (__smtx_tuple_datatype_decl
-                      (SmtDatatype.sum SmtDatatypeCons.unit
-                        SmtDatatype.null)) =
-                  true ∧
-                __smtx_decl_wf_rec
-                    (__smtx_tuple_datatype_decl
-                      (SmtDatatype.sum SmtDatatypeCons.unit
-                        SmtDatatype.null))
-                    (__smtx_tuple_datatype_decl
-                      (SmtDatatype.sum SmtDatatypeCons.unit
-                        SmtDatatype.null)) =
-                  true then
-          __smtx_typeof_dt_cons_rec
-            (SmtType.Datatype (native_string_lit "@Tuple")
-              (__smtx_tuple_datatype_decl
-                (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)))
-            (__smtx_dt_resolve
-              (__smtx_dd_lookup (native_string_lit "@Tuple")
-                (__smtx_tuple_datatype_decl
-                  (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)))
-              (__smtx_tuple_datatype_decl
-                (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)))
-            native_nat_zero
-        else SmtType.None) =
-          SmtType.Datatype (native_string_lit "@Tuple")
-            (__smtx_tuple_datatype_decl
-              (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) := by
-      simpa [__smtx_typeof_guard_wf, __smtx_type_wf,
-        __smtx_type_wf_component, __smtx_type_wf_rec, native_ite,
-        native_and] using hHead
-    have hHead'' := hHead'
-    simp only [__smtx_tuple_datatype_decl] at hHead''
-    rw [hHead'']
+    generalize hHead :
+      (if _ = true ∧ _ = true ∧ _ = true then (_ : SmtType)
+       else SmtType.None) = head
+    cases head <;> simp
+    case FunType T U => cases T <;> simp
+    case DtcAppType T U => cases T <;> simp
   case tuple =>
     cases hBody : __smtx_typeof (__eo_to_smt body)
     all_goals
@@ -332,7 +294,7 @@ by
         EoSmtVarEnv.nil
       have hList := hEnvNil.is_list
       simpa [__is_closed_rec, __eo_list_find, __eo_requires, hList,
-        native_ite, native_teq]
+        native_ite, native_teq, native_not]
         using
           eo_list_find_rec_var_nonneg_eq_eo_is_closed_rec
             hEnvNil s T 0
@@ -349,7 +311,7 @@ by
         EoSmtVarEnv.cons hTail
       have hList := hEnvCons.is_list
       simpa [__is_closed_rec, __eo_list_find, __eo_requires, hList,
-        native_ite, native_teq]
+        native_ite, native_teq, native_not]
         using
           eo_list_find_rec_var_nonneg_eq_eo_is_closed_rec
             hEnvCons s T 0
@@ -469,7 +431,7 @@ by
         EoSmtVarEnv.nil
       have hList := hEnvNil.is_list
       simpa [__is_closed_rec, __eo_list_find, __eo_requires, hList,
-        native_ite, native_teq]
+        native_ite, native_teq, native_not]
         using
           eo_list_find_rec_var_nonneg_eq_eo_is_closed_rec_any
             hEnvNil name T 0
@@ -486,7 +448,7 @@ by
         EoSmtVarEnv.cons hTail
       have hList := hEnvCons.is_list
       simpa [__is_closed_rec, __eo_list_find, __eo_requires, hList,
-        native_ite, native_teq]
+        native_ite, native_teq, native_not]
         using
           eo_list_find_rec_var_nonneg_eq_eo_is_closed_rec_any
             hEnvCons name T 0
@@ -1400,11 +1362,13 @@ by
       | _ =>
           exact eo_is_closed_rec_eq_true_of_eo_type_valid_rec
             (refs := []) hEnv
-            (by simpa [TranslationProofs.eo_type_valid] using hValid)
+            (by simpa only [TranslationProofs.eo_type_valid,
+                TranslationProofs.eo_type_valid_rec] using hValid)
   | _ =>
       exact eo_is_closed_rec_eq_true_of_eo_type_valid_rec
         (refs := []) hEnv
-        (by simpa [TranslationProofs.eo_type_valid] using hValid)
+        (by simpa only [TranslationProofs.eo_type_valid,
+            TranslationProofs.eo_type_valid_rec] using hValid)
 
 theorem is_closed_rec_apply_eq_of_not_list_branch
     {f x env : Term} {vars : List SmtVarKey}
@@ -1716,11 +1680,13 @@ by
       | _ =>
           exact is_closed_rec_eq_true_of_eo_type_valid_rec
             (refs := []) hEnv
-            (by simpa [TranslationProofs.eo_type_valid] using hValid)
+            (by simpa only [TranslationProofs.eo_type_valid,
+                TranslationProofs.eo_type_valid_rec] using hValid)
   | _ =>
       exact is_closed_rec_eq_true_of_eo_type_valid_rec
         (refs := []) hEnv
-        (by simpa [TranslationProofs.eo_type_valid] using hValid)
+        (by simpa only [TranslationProofs.eo_type_valid,
+            TranslationProofs.eo_type_valid_rec] using hValid)
 
 theorem eo_type_valid_of_seq_empty_has_smt_translation
     {T : Term}
@@ -2504,6 +2470,27 @@ by
       unfold eoHasSmtTranslation at hTrans
       change __smtx_typeof SmtTerm.None ≠ SmtType.None at hTrans
       exact hTrans TranslationProofs.smtx_typeof_none
+  case _at_const =>
+    unfold eoHasSmtTranslation at hTrans
+    cases hValid : __eo_to_smt_nat_is_valid x
+    · rw [TranslationProofs.eo_to_smt_at_const_of_invalid hValid] at hTrans
+      exact False.elim (hTrans TranslationProofs.smtx_typeof_none)
+    · rw [TranslationProofs.eo_to_smt_at_const_of_valid hValid] at hTrans
+      have hYWF : __smtx_type_wf (__eo_to_smt_type y) = true :=
+        Smtm.smtx_typeof_guard_wf_wf_of_non_none
+          (__eo_to_smt_type y) (__eo_to_smt_type y) (by
+            simpa [__smtx_typeof] using hTrans)
+      have hYValid : TranslationProofs.eo_type_valid y :=
+        TranslationProofs.eo_type_valid_of_smt_wf y hYWF
+      have hYClosed := eo_is_closed_rec_eq_true_of_eo_type_valid hEnv hYValid
+      obtain ⟨n, rfl⟩ :=
+        TranslationProofs.eo_to_smt_nat_is_valid_eq_numeral hValid
+      refine ⟨?_, ⟨true, ?_⟩⟩
+      · cases hEnv <;>
+          simp [__is_closed_rec, __eo_is_closed_rec, hYClosed, __eo_and,
+            native_and]
+      · cases hEnv <;>
+          simp [__eo_is_closed_rec, hYClosed, __eo_and, native_and]
   all_goals
     exfalso
     unfold eoHasSmtTranslation at hTrans
@@ -4210,7 +4197,8 @@ by
     simp [native_ite, SmtEval.native_and, native_zleq, native_zeq,
       native_mod_total, native_int_pow2]
     rfl
-  simpa using TranslationProofs.smtx_typeof_binary_of_non_none 1 1 hNN
+  have hNat : native_int_to_nat 1 = 1 := by native_decide
+  simpa [hNat] using TranslationProofs.smtx_typeof_binary_of_non_none 1 1 hNN
 
 theorem smtx_typeof_eq_non_none_closed
     {T U : SmtType}
@@ -12564,15 +12552,15 @@ by
   · subst op
     refine ⟨?_, ?_⟩
     · cases hEnv <;>
-        simpa [__is_closed_rec, __eo_is_closed_rec, hBodyEq, hConcat]
-          using eo_and_true_left_eq_of_boolean hBodyBool
+        simp [__is_closed_rec, __eo_is_closed_rec, hBodyEq, hConcat,
+          hBodyBool, __eo_and, native_and]
     · exact ⟨b, by
         cases hEnv <;> simpa [__eo_is_closed_rec, hConcat] using hBodyBool⟩
   · subst op
     refine ⟨?_, ?_⟩
     · cases hEnv <;>
-        simpa [__is_closed_rec, __eo_is_closed_rec, hBodyEq, hConcat]
-          using eo_and_true_left_eq_of_boolean hBodyBool
+        simp [__is_closed_rec, __eo_is_closed_rec, hBodyEq, hConcat,
+          hBodyBool, __eo_and, native_and]
     · exact ⟨b, by
         cases hEnv <;> simpa [__eo_is_closed_rec, hConcat] using hBodyBool⟩
 

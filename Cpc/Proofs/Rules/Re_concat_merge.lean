@@ -267,8 +267,11 @@ private theorem type_and_facts
     change __smtx_model_eval M
         (SmtTerm.re_concat (__eo_to_smt (strRe s))
           (__eo_to_smt (leftInner t ys))) = _
-    simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-      hStrSEval, hLeftInnerEval]
+    -- rewrite the component evaluations before `simp` unfolds
+    -- `__eo_to_smt (leftInner ..)` past `hLeftInnerEval`'s left-hand side
+    simp only [__smtx_model_eval]
+    rw [hStrSEval, hLeftInnerEval]
+    simp [__smtx_model_eval_re_concat]
   have hMergedEval :=
     eval_merged_string M s t ss ts hSEval hTEval hSValTy hTValTy
   have hMergedValid :

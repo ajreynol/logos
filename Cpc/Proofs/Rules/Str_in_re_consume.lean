@@ -432,7 +432,7 @@ theorem str_re_consume_model_rel
         (fun _hFallbackNe =>
           StrInReConsumeInternal.smt_typeof_str_in_re_of_types_local sConcat rConcat
             (by simpa [sConcat] using hSTy)
-            (by simpa [rConcat] using hRTy))
+            (by have hsimpa := hRTy; (try simp [rConcat] at hsimpa ⊢); exact hsimpa))
         hWholeNe
     · intro s1 s2 r3 r2 fc fr _v0 _v1 _v3 _v4 _v5
         ihLeft ihRight _ihLeftAgain ihResidual hSTy hRTy hNe
@@ -486,8 +486,7 @@ theorem str_re_consume_model_rel
           apply hWholeNe
           simpa [whole, hLeftFalse, eo_ite_true] using hBad
         simpa [whole, hLeftFalse, eo_ite_true, right] using
-          ihRight (by simpa [sConcat] using hSTy) hRConcatArgs.2
-            (by simpa [right] using hRightNe)
+          ihRight (by have hsimpa := hSTy; (try simp at hsimpa ⊢); exact hsimpa) hRConcatArgs.2 (by simpa [right] using hRightNe)
       · have hMemIteNe : memIte ≠ Term.Stuck := by
           intro hBad
           apply hWholeNe
@@ -533,8 +532,7 @@ theorem str_re_consume_model_rel
               simpa [whole, hLeftNotFalse, eo_ite_false, memIte,
                 hMemEps, eo_ite_true, rightFalseIte, hRightFalse,
                 sameIte, hDifferent, residual] using
-                ihResidual hTailTy (by simpa [rConcat] using hRTy)
-                  (by simpa [residual] using hResidualNe)
+                ihResidual hTailTy (by have hsimpa := hRTy; (try simp at hsimpa ⊢); exact hsimpa) (by simpa [residual] using hResidualNe)
           · simpa [whole, hLeftNotFalse, eo_ite_false, memIte,
               hMemEps, eo_ite_true, rightFalseIte, hRightNotFalse,
               eo_ite_false, fallback] using
@@ -5194,7 +5192,7 @@ theorem str_re_consume_model_rel
           change __smtx_model_eval M
               (SmtTerm.str_to_re (SmtTerm.String [])) = _
           simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-            native_unpack_string, StrInReConsumeInternal.consume_unpack_pack_string_map]
+           ]
         injection hEpsEval.symm.trans hNextREval2 with hRvEq2
         rw [← hRvEq2] at hNilFalse
         rw [StrInReConsumeInternal.native_str_in_re_nil_str_to_re_nil_consume_local]

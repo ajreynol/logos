@@ -64,7 +64,8 @@ private theorem eo_list_rev_and_premiseAndFormulaList :
   simp [__eo_requires, premiseAndFormulaList_is_and_list,
     eo_get_nil_rec_and_premiseAndFormulaList, native_ite, native_teq,
     native_not, SmtEval.native_not]
-  simpa using eo_list_rev_rec_and_premiseAndFormulaList ps []
+  simpa [premiseAndFormulaList] using
+    eo_list_rev_rec_and_premiseAndFormulaList ps []
 
 private theorem all_interpreted_true_reverse
     (M : SmtModel) (ps : List Term) :

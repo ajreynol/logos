@@ -202,7 +202,7 @@ theorem seq_canonical_pack_replace_all_aux
       | none =>
           cases xs with
           | nil =>
-              simpa [native_re_replace_all_nonempty_list_aux] using
+              simpa [native_re_replace_all_nonempty_list_aux, hMatch] using
                 seq_canonical_pack_seq T hxs
           | cons x xs =>
               have hx : __smtx_value_canonical x := hxs x List.mem_cons_self
@@ -222,7 +222,7 @@ theorem seq_canonical_pack_replace_all_aux
           | zero =>
               cases xs with
               | nil =>
-                  simpa [native_re_replace_all_nonempty_list_aux] using
+                  simpa [native_re_replace_all_nonempty_list_aux, hMatch] using
                     seq_canonical_pack_seq T hxs
               | cons x xs =>
                   have hx : __smtx_value_canonical x := hxs x List.mem_cons_self
@@ -327,7 +327,7 @@ theorem native_unpack_string_valid_of_seq_canonical
   cases v <;>
     simp [native_ssm_char_of_value, native_char_valid,
       __smtx_value_canonical, __smtx_value_canonical_bool] at hvCan ⊢
-  exact hvCan
+  exact decide_eq_true hvCan
 
 /-- Packing a valid native string gives a canonical sequence. -/
 theorem seq_canonical_pack_string

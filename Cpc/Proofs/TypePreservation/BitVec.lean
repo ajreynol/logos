@@ -506,7 +506,8 @@ theorem typeof_value_model_eval_repeat
     simpa [SmtEval.native_zleq] using hw0
   have hMult : native_zleq 0 (native_zmult i (native_nat_to_int w)) = true := by
     have hMultInt : 0 <= i * native_nat_to_int w := Int.mul_nonneg hi hw
-    simpa [SmtEval.native_zleq, SmtEval.native_zmult] using hMultInt
+    unfold native_zleq native_zmult
+    exact decide_eq_true hMultInt
   rcases model_eval_repeat_rec_binary (native_int_to_nat i) (native_nat_to_int w) n with ⟨m, hm, hCanon⟩
   rw [hm]
   have hNat :
@@ -800,7 +801,8 @@ theorem typeof_value_model_eval_zero_extend
     simpa [SmtEval.native_zleq] using hw0
   have hWidth : native_zleq 0 (native_zplus i (native_nat_to_int w)) = true := by
     have hAdd : 0 <= i + native_nat_to_int w := Int.add_nonneg hi hw
-    simpa [SmtEval.native_zleq, SmtEval.native_zplus] using hAdd
+    unfold native_zleq native_zplus
+    exact decide_eq_true hAdd
   have hMod :
       native_zeq n (native_mod_total n (native_int_pow2 (native_zplus i (native_nat_to_int w)))) = true := by
     have hCanon :
@@ -836,7 +838,8 @@ theorem typeof_value_model_eval_sign_extend
     simpa [SmtEval.native_zleq] using hw0
   have hWidth : native_zleq 0 (native_zplus i (native_nat_to_int w)) = true := by
     have hAdd : 0 <= i + native_nat_to_int w := Int.add_nonneg hi hw
-    simpa [SmtEval.native_zleq, SmtEval.native_zplus] using hAdd
+    unfold native_zleq native_zplus
+    exact decide_eq_true hAdd
   simpa [__smtx_model_eval_sign_extend] using
     typeof_value_binary_mod_of_nonneg (native_zplus i (native_nat_to_int w))
       (native_binary_uts (native_nat_to_int w) n) hWidth

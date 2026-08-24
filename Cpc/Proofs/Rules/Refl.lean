@@ -121,7 +121,9 @@ by
           cases premises with
           | nil =>
               have hATransPair : RuleProofs.eo_has_smt_translation a1 ∧ True := by
-                simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+                simpa [cmdTranslationOk, cArgListTranslationOk,
+                  eoHasSmtTranslation, RuleProofs.eo_has_smt_translation]
+                  using hCmdTrans
               have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
               have hProgRefl : __eo_prog_refl a1 ≠ Term.Stuck := by
                 change __eo_prog_refl a1 ≠ Term.Stuck at hProg

@@ -187,7 +187,7 @@ private theorem typed___eo_prog_str_to_lower_from_int_impl
     have hRhsTy' :
         __smtx_typeof (SmtTerm.str_from_int (__eo_to_smt n1)) =
           SmtType.Seq SmtType.Char := by
-      simpa [rhs] using hRhsTy
+      simpa [rhs, __eo_to_smt, __smtx_typeof] using hRhsTy
     change __smtx_typeof
         (SmtTerm.str_to_lower (SmtTerm.str_from_int (__eo_to_smt n1))) =
       SmtType.Seq SmtType.Char

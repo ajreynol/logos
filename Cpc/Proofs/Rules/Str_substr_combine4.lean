@@ -406,7 +406,7 @@ private theorem facts___eo_prog_str_substr_combine4_impl
           SmtEval.native_zplus] using hLeBool
   have hSeqTy : __smtx_typeof_seq_value ss =
       SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [hSEval] using hSEvalTy
+    simpa [hSEval, __smtx_typeof_seq_value, __smtx_typeof_value] using hSEvalTy
   have hElem : __smtx_elem_typeof_seq_value ss = __eo_to_smt_type T :=
     elem_typeof_seq_value_of_typeof_seq_value hSeqTy
   have hEvalEq : __smtx_model_eval M (__eo_to_smt lhs) =

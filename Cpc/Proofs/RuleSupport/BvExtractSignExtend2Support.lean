@@ -158,7 +158,9 @@ private theorem bv_extract_sign_extend_2_context
   have hRhsNe' :
       __eo_typeof_zero_extend (__eo_typeof sn) sn
           (__eo_typeof (bvExtractTerm x nm low)) ≠ Term.Stuck := by
-    simpa [bvExtractSignExtend2Rhs] using hRhsNe
+    have hsimpa := hRhsNe
+    try simp [bvExtractSignExtend2Rhs] at hsimpa ⊢
+    exact hsimpa
   rcases eo_typeof_sign_extend_arg_bitvec_of_ne_stuck hRhsNe' with
     ⟨innerWidthTerm, hInnerEoTy⟩
   have hInnerNe : __eo_typeof (bvExtractTerm x nm low) ≠ Term.Stuck := by
@@ -176,7 +178,9 @@ private theorem bv_extract_sign_extend_2_context
           (__eo_typeof
             (Term.Apply (Term.UOp1 UserOp1.sign_extend k) x)) ≠
         Term.Stuck := by
-    simpa [bvExtractSignExtend2Lhs, bvExtractTerm] using hLhsNe
+    have hsimpa := hLhsNe
+    try simp [bvExtractSignExtend2Lhs, bvExtractTerm] at hsimpa ⊢
+    exact hsimpa
   rcases eo_typeof_extract_arg_bitvec_of_ne_stuck hLhsNe' with
     ⟨signWidthTerm, hSignEoTy⟩
   have hSignNe :
@@ -302,7 +306,9 @@ private theorem typed_bv_extract_sign_extend_2_term
     cases hBad
   have hEOTypeEq : __eo_typeof lhs = __eo_typeof rhs := by
     apply RuleProofs.eo_typeof_eq_bool_operands_eq
-    simpa [bvExtractSignExtend2Term, lhs, rhs] using hResultTy
+    have hsimpa := hResultTy
+    try simp [bvExtractSignExtend2Term, lhs, rhs] at hsimpa ⊢
+    exact hsimpa
   have hLhsBridge :
       __smtx_typeof (__eo_to_smt lhs) =
         __eo_to_smt_type (__eo_typeof lhs) :=
@@ -602,7 +608,9 @@ private theorem eval_bv_extract_sign_extend_2
   have hwhInt : w ≤ h := by
     simpa [SmtEval.native_zleq] using hwh
   have hhwaInt : h < a + w := by
-    simpa [SmtEval.native_zlt, SmtEval.native_zplus] using hhwa
+    have hsimpa := hhwa
+    try simp [SmtEval.native_zlt, SmtEval.native_zplus] at hsimpa ⊢
+    exact of_decide_eq_true hsimpa
   have hLowInt : (↑L : Int) < (↑W : Int) := by
     rw [hLRound, hWRound]
     exact hlwInt

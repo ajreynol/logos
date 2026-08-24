@@ -159,7 +159,7 @@ theorem smtx_typeof_neg_of_int (x y : Term)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int) :
     __smtx_typeof (__eo_to_smt (mkNeg x y)) = SmtType.Int := by
-  simpa [mkNeg] using smtx_typeof_neg_int (__eo_to_smt x) (__eo_to_smt y) hx hy
+  simpa [mkNeg, __eo_to_smt, __smtx_typeof] using smtx_typeof_neg_int (__eo_to_smt x) (__eo_to_smt y) hx hy
 
 private theorem native_unpack_seq_pack_seq (T : SmtType) :
     ∀ xs : List SmtValue, native_unpack_seq (native_pack_seq T xs) = xs

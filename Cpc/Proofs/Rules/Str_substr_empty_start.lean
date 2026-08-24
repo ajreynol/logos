@@ -287,7 +287,7 @@ private theorem facts___eo_prog_str_substr_empty_start_impl
         simpa [SmtEval.native_zleq] using hLeBool
   have hXSeqTy :
       __smtx_typeof_seq_value sx = SmtType.Seq (__eo_to_smt_type T) := by
-    simpa [hXEval] using hXEvalTy
+    simpa [hXEval, __smtx_typeof_seq_value, __smtx_typeof_value] using hXEvalTy
   have hXElem : __smtx_elem_typeof_seq_value sx = __eo_to_smt_type T :=
     elem_typeof_seq_value_of_typeof_seq_value hXSeqTy
   have hEmptyEval :
@@ -357,15 +357,15 @@ by
                               let P := __eo_state_proven_nth s p
                               have hA1Trans :
                                   RuleProofs.eo_has_smt_translation a1 := by
-                                simpa [cmdTranslationOk, cArgListTranslationOk]
+                                simpa [cmdTranslationOk, cArgListTranslationOk, argTranslationOkMasked]
                                   using hCmdTrans.1
                               have hA2Trans :
                                   RuleProofs.eo_has_smt_translation a2 := by
-                                simpa [cmdTranslationOk, cArgListTranslationOk]
+                                simpa [cmdTranslationOk, cArgListTranslationOk, argTranslationOkMasked]
                                   using hCmdTrans.2.1
                               have hA3Trans :
                                   RuleProofs.eo_has_smt_translation a3 := by
-                                simpa [cmdTranslationOk, cArgListTranslationOk]
+                                simpa [cmdTranslationOk, cArgListTranslationOk, argTranslationOkMasked]
                                   using hCmdTrans.2.2.1
                               change __eo_typeof
                                   (__eo_prog_str_substr_empty_start a1 a2 a3 A

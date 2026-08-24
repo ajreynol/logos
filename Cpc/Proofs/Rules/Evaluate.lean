@@ -68,5 +68,5 @@ by
                 change __eo_typeof (__eo_prog_evaluate a1) = Term.Bool
                   at hResultTy
                 exact hResultTy
-              simpa [premiseTermList] using
-                run_evaluate_properties M hM a1 hATrans hEvalTy
+              -- `__eo_cmd_step_proven ..` delta-reduces to `__eo_prog_evaluate ..`
+              exact run_evaluate_properties M hM a1 hATrans hEvalTy

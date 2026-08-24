@@ -189,7 +189,7 @@ private theorem len_nonzero_seq_type_of_bool (u : Term)
     ⟨_hSame, hLeftNN⟩
   have hLenTerm : term_has_non_none_type (SmtTerm.str_len (__eo_to_smt u)) := by
     unfold term_has_non_none_type
-    simpa [mkStrLen] using hLeftNN
+    simpa [mkStrLen, __eo_to_smt, __smtx_typeof] using hLeftNN
   exact seq_arg_of_non_none_ret (op := SmtTerm.str_len)
     (typeof_str_len_eq (__eo_to_smt u)) hLenTerm
 

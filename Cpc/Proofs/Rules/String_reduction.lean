@@ -256,13 +256,16 @@ private theorem sr_native_seq_extract_pack_string
   simp only [List.length_map, apply_ite, List.map_nil,
     List.map_take, List.map_drop]
   split <;> simp_all
-  intro hbad
+  -- the `ite` now survives into the goal instead of `simp` having turned it
+  -- into an implication, so discharge its condition here
   rcases ‹(0 ≤ i ∧ 0 < n) ∧ i < Int.ofNat s.length› with
     ⟨⟨hi0, hn0⟩, hilt⟩
-  rcases hbad with (hi | hn) | hlen
-  · exact False.elim ((Int.not_lt_of_ge hi0) hi)
-  · exact False.elim ((Int.not_le_of_gt hn0) hn)
-  · exact False.elim ((Int.not_le_of_gt hilt) hlen)
+  rw [if_neg (by
+    rintro ((hi | hn) | hlen)
+    · exact False.elim ((Int.not_lt_of_ge hi0) hi)
+    · exact False.elim ((Int.not_le_of_gt hn0) hn)
+    · exact False.elim ((Int.not_le_of_gt hilt) hlen))]
+  simp [List.map_take, List.map_drop]
 
 /-- The generated evaluator retains the packed sequence's inferred element
     type at extraction sites; for strings, that type is `Char`. -/
@@ -319,7 +322,9 @@ private theorem sr_native_unpack_extract_pack_string
       native_string_to_values (native_str_substr s i n) := by
   have h := congrArg native_unpack_seq
     (sr_native_seq_extract_pack_string_eval s i n)
-  simpa [native_pack_string, Smtm.native_unpack_pack_seq] using h
+  have hsimpa := h
+  try simp [native_pack_string, Smtm.native_unpack_pack_seq] at hsimpa ⊢
+  exact hsimpa
 
 /-- For an in-bounds natural index, extracting one sequence element is the
     corresponding one-element `drop`/`take` slice. -/
@@ -777,7 +782,11 @@ private theorem sr_native_str_substr_one_nat (s : native_String) (j : Nat)
   simp only [native_str_substr, native_str_len]
   rw [e1, e2]
   simp only [Bool.false_or, decide_eq_true_eq]
-  rw [if_neg (show ¬ Int.ofNat j ≥ Int.ofNat s.length by omega)]
+  -- the guard is the `Bool` form `decide _ = true`, and `rw` would additionally
+  -- have to match the goal's `Decidable` instance syntactically; `refine`
+  -- unifies it up to defeq instead
+  refine Eq.trans (if_neg (fun h => absurd (of_decide_eq_true h)
+    (show ¬ Int.ofNat j ≥ Int.ofNat s.length by omega))) ?_
   rw [htake, htn]
   have hDrop := congrArg (List.take 1) (List.drop_eq_getElem_cons hj)
   exact hDrop
@@ -1039,9 +1048,11 @@ private theorem sr_native_str_to_int_from_int (i : native_Int)
       have hNonneg : ¬ (Int.ofNat n < 0) := Int.not_lt_of_ge hi
       have hAll : (native_string_lit (toString n)).all
           native_char_is_digit = true := by
-        simpa [native_str_from_int, hNonneg] using
+        have hsimpa :=
           (StrInReFromIntDigRangeProof.native_str_from_int_all_digits
             (Int.ofNat n))
+        try simp [native_str_from_int, hNonneg] at hsimpa ⊢
+        exact hsimpa
       rw [native_str_from_int, if_neg hNonneg]
       change native_str_to_int (native_string_lit (toString n)) = Int.ofNat n
       rw [sr_native_str_to_int_of_ne_nil_all _
@@ -1055,8 +1066,10 @@ private theorem sr_native_str_from_int_ne_nil (i : native_Int)
   | negSucc n => simp at hi
   | ofNat n =>
       have hNonneg : ¬ (Int.ofNat n < 0) := Int.not_lt_of_ge hi
-      simpa [native_str_from_int, hNonneg] using
+      have hsimpa :=
         sr_native_string_lit_nat_toString_ne_nil n
+      try simp [native_str_from_int, hNonneg] at hsimpa ⊢
+      exact hsimpa
 
 private theorem sr_native_str_from_int_head_pos (i : native_Int)
     (hi : 0 ≤ i) (hLen : 1 < (native_str_from_int i).length) :
@@ -1345,7 +1358,9 @@ private theorem sr_nondigit_find_aux :
         refine ⟨j + 1, d, c :: pre, ?_⟩
         refine ⟨⟨post, by simp [hcs]⟩, by simpa using hlen,
           by simpa using hd, ?_⟩
-        simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hfind
+        have hsimpa := hfind
+        try simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] at hsimpa ⊢
+        exact hsimpa
       · simp [hc]
         exact ⟨0, c, [], ⟨⟨cs, by simp⟩, by simp,
           by simpa using hc, by simp⟩⟩
@@ -1576,7 +1591,9 @@ private theorem sr_native_str_leq_witness :
         exact h.1
       refine ⟨0, by simp, by simp, by simp, ?_⟩
       have hSub : native_str_substr (b :: bs) 0 1 = [b] := by
-        simpa using sr_native_str_substr_one_nat (b :: bs) 0 (by simp)
+        have hsimpa := sr_native_str_substr_one_nat (b :: bs) 0 (by simp)
+        try simp at hsimpa ⊢
+        exact hsimpa
       have hEmpty : native_str_substr [] 0 1 = [] := by
         simp [native_str_substr, native_str_len]
       simp [sr_native_str_leq_bool, native_str_lt, native_or,
@@ -1591,7 +1608,9 @@ private theorem sr_native_str_leq_witness :
         exact h.1
       refine ⟨0, by simp, by simp, by simp, ?_⟩
       have hSub : native_str_substr (a :: as) 0 1 = [a] := by
-        simpa using sr_native_str_substr_one_nat (a :: as) 0 (by simp)
+        have hsimpa := sr_native_str_substr_one_nat (a :: as) 0 (by simp)
+        try simp at hsimpa ⊢
+        exact hsimpa
       have hEmpty : native_str_substr [] 0 1 = [] := by
         simp [native_str_substr, native_str_len]
       simp [sr_native_str_leq_bool, native_str_lt, native_or,
@@ -1936,7 +1955,9 @@ private theorem string_reduction_pred_true
       case str_to_int =>
         have hToNN : term_has_non_none_type
             (SmtTerm.str_to_int (__eo_to_smt x)) := by
-          simpa [RuleProofs.eo_has_smt_translation] using hTrans
+          have hsimpa := hTrans
+          try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+          exact hsimpa
         have hxTy : __smtx_typeof (__eo_to_smt x) =
             SmtType.Seq SmtType.Char :=
           seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
@@ -2147,7 +2168,9 @@ private theorem string_reduction_pred_true
           have hXClosed : __eo_is_closed x = Term.Boolean true := by
             apply sr_eo_is_closed_apply_uop_arg UserOp.str_to_int x
             · apply RuleProofs.term_ne_stuck_of_has_smt_translation
-              simpa [RuleProofs.eo_has_smt_translation] using hXNN
+              have hsimpa := hXNN
+              try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             · exact hClosed
           let r := native_str_to_int w
           have hResultEval : __smtx_model_eval M result =
@@ -2234,7 +2257,9 @@ private theorem string_reduction_pred_true
                 · by_cases hklt : k < Int.ofNat w.length
                   · let j := Int.toNat k
                     have hCast : Int.ofNat j = k := by
-                      simpa only [j] using Int.toNat_of_nonneg hk0
+                      have hsimpa := Int.toNat_of_nonneg hk0
+                      try simp only [j] at hsimpa ⊢
+                      exact hsimpa
                     have hj : j < w.length := by
                       rw [← hCast] at hklt
                       exact Int.ofNat_lt.mp hklt
@@ -2432,7 +2457,9 @@ private theorem string_reduction_pred_true
       case str_from_int =>
         have hFromNN : term_has_non_none_type
             (SmtTerm.str_from_int (__eo_to_smt x)) := by
-          simpa [RuleProofs.eo_has_smt_translation] using hTrans
+          have hsimpa := hTrans
+          try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+          exact hsimpa
         have hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
           int_arg_of_non_none_ret (op := SmtTerm.str_from_int)
             (typeof_str_from_int_eq (__eo_to_smt x)) hFromNN
@@ -2566,7 +2593,9 @@ private theorem string_reduction_pred_true
           have hXClosed : __eo_is_closed x = Term.Boolean true := by
             apply sr_eo_is_closed_apply_uop_arg UserOp.str_from_int x
             · apply RuleProofs.term_ne_stuck_of_has_smt_translation
-              simpa [RuleProofs.eo_has_smt_translation] using hXNN
+              have hsimpa := hXNN
+              try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             · exact hClosed
           let w := native_str_from_int n
           have hValid : native_string_valid w = true := by
@@ -2901,7 +2930,9 @@ private theorem string_reduction_pred_true
         have hOrigNN :
             term_has_non_none_type
               (SmtTerm.str_to_lower (__eo_to_smt x)) := by
-          simpa [RuleProofs.eo_has_smt_translation] using hTrans
+          have hsimpa := hTrans
+          try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+          exact hsimpa
         have hxTy :
             __smtx_typeof (__eo_to_smt x) =
               SmtType.Seq SmtType.Char :=
@@ -2944,7 +2975,9 @@ private theorem string_reduction_pred_true
         have hXClosed : __eo_is_closed x = Term.Boolean true := by
           apply sr_eo_is_closed_apply_uop_arg UserOp.str_to_lower x
           · apply RuleProofs.term_ne_stuck_of_has_smt_translation
-            simpa [RuleProofs.eo_has_smt_translation] using hXNN
+            have hsimpa := hXNN
+            try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+            exact hsimpa
           · exact hClosed
         let idxName := native_string_lit "@var.str_index"
         let idx := SmtTerm.Var idxName SmtType.Int
@@ -3135,7 +3168,9 @@ private theorem string_reduction_pred_true
         have hOrigNN :
             term_has_non_none_type
               (SmtTerm.str_to_upper (__eo_to_smt x)) := by
-          simpa [RuleProofs.eo_has_smt_translation] using hTrans
+          have hsimpa := hTrans
+          try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+          exact hsimpa
         have hxTy :
             __smtx_typeof (__eo_to_smt x) =
               SmtType.Seq SmtType.Char :=
@@ -3178,7 +3213,9 @@ private theorem string_reduction_pred_true
         have hXClosed : __eo_is_closed x = Term.Boolean true := by
           apply sr_eo_is_closed_apply_uop_arg UserOp.str_to_upper x
           · apply RuleProofs.term_ne_stuck_of_has_smt_translation
-            simpa [RuleProofs.eo_has_smt_translation] using hXNN
+            have hsimpa := hXNN
+            try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+            exact hsimpa
           · exact hClosed
         let idxName := native_string_lit "@var.str_index"
         let idx := SmtTerm.Var idxName SmtType.Int
@@ -3368,7 +3405,9 @@ private theorem string_reduction_pred_true
       case str_rev =>
         have hOrigNN :
             term_has_non_none_type (SmtTerm.str_rev (__eo_to_smt x)) := by
-          simpa [RuleProofs.eo_has_smt_translation] using hTrans
+          have hsimpa := hTrans
+          try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+          exact hsimpa
         rcases seq_arg_of_non_none (op := SmtTerm.str_rev)
             (typeof_str_rev_eq (__eo_to_smt x)) hOrigNN with ⟨T, hxTy⟩
         have hXNN : term_has_non_none_type (__eo_to_smt x) := by
@@ -3396,7 +3435,9 @@ private theorem string_reduction_pred_true
         have hXClosed : __eo_is_closed x = Term.Boolean true := by
           apply sr_eo_is_closed_apply_uop_arg UserOp.str_rev x
           · apply RuleProofs.term_ne_stuck_of_has_smt_translation
-            simpa [RuleProofs.eo_has_smt_translation] using hXNN
+            have hsimpa := hXNN
+            try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+            exact hsimpa
           · exact hClosed
         let idxName := native_string_lit "@var.str_index"
         let idx := SmtTerm.Var idxName SmtType.Int
@@ -3500,7 +3541,9 @@ private theorem string_reduction_pred_true
                     right
                     let j := Int.toNat k
                     have hCast : Int.ofNat j = k := by
-                      simpa only [j] using Int.toNat_of_nonneg hk0
+                      have hsimpa := Int.toNat_of_nonneg hk0
+                      try simp only [j] at hsimpa ⊢
+                      exact hsimpa
                     have hj : j < (native_unpack_seq sx).length := by
                       have h := hklt
                       rw [← hCast] at h
@@ -3559,7 +3602,9 @@ private theorem string_reduction_pred_true
           let tx := __eo_to_smt x
           have hOrigNN :
               term_has_non_none_type (SmtTerm.str_contains ty tx) := by
-            simpa [ty, tx, RuleProofs.eo_has_smt_translation] using hTrans
+            have hsimpa := hTrans
+            try simp [ty, tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+            exact hsimpa
           rcases seq_binop_args_of_non_none_ret
               (op := SmtTerm.str_contains)
               (typeof_str_contains_eq ty tx) hOrigNN with
@@ -3615,9 +3660,13 @@ private theorem string_reduction_pred_true
             · decide
             · decide
             · apply RuleProofs.term_ne_stuck_of_has_smt_translation
-              simpa [ty, RuleProofs.eo_has_smt_translation] using hYNN
+              have hsimpa := hYNN
+              try simp [ty, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             · apply RuleProofs.term_ne_stuck_of_has_smt_translation
-              simpa [tx, RuleProofs.eo_has_smt_translation] using hXNN
+              have hsimpa := hXNN
+              try simp [tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             · exact hClosed
           let idxName := native_string_lit "@var.str_index"
           let idx := SmtTerm.Var idxName SmtType.Int
@@ -3871,7 +3920,9 @@ private theorem string_reduction_pred_true
           have hOrigNN :
               term_has_non_none_type
                 (SmtTerm.seq_nth (__eo_to_smt y) (__eo_to_smt x)) := by
-            simpa [RuleProofs.eo_has_smt_translation] using hTrans
+            have hsimpa := hTrans
+            try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+            exact hsimpa
           rcases seq_nth_args_of_non_none hOrigNN with ⟨T, hyTy, hxTy⟩
           let pre := srPurify
             (Term.Apply
@@ -3949,7 +4000,9 @@ private theorem string_reduction_pred_true
             simp [remaining, hLenTy, hNextTy, typeof_neg_eq,
               __smtx_typeof_arith_overload_op_2]
           have hPreSTy : __smtx_typeof preS = SmtType.Seq T := by
-            simpa [preS, ty, tx, pre] using hPreTy
+            have hsimpa := hPreTy
+            try simp [preS, ty, tx, pre] at hsimpa ⊢
+            exact hsimpa
           have hNthSTy : __smtx_typeof nthS = T := by
             simpa [nthS, ty, tx, __smtx_typeof] using hNthTy
           have hSuffixTy : __smtx_typeof suffixS = SmtType.Seq T := by
@@ -4038,11 +4091,15 @@ private theorem string_reduction_pred_true
                     Int.ofNat xs.length + -(i + 1) =
                       Int.ofNat (xs.length - (j + 1)) := by
                   rw [hNextCast]
-                  simpa using (Int.ofNat_sub hjSuccLe).symm
+                  have hsimpa := (Int.ofNat_sub hjSuccLe).symm
+                  try simp at hsimpa ⊢
+                  exact hsimpa
                 have hRemainingNatCast :
                     Int.ofNat xs.length + -Int.ofNat (j + 1) =
                       Int.ofNat (xs.length - (j + 1)) := by
-                  simpa using (Int.ofNat_sub hjSuccLe).symm
+                  have hsimpa := (Int.ofNat_sub hjSuccLe).symm
+                  try simp at hsimpa ⊢
+                  exact hsimpa
                 have hPreExtract :
                     native_seq_extract xs 0 i = xs.take j := by
                   rw [← hCast]
@@ -4102,7 +4159,9 @@ private theorem string_reduction_pred_true
           let tx := __eo_to_smt x
           have hOrigNN :
               term_has_non_none_type (SmtTerm.str_leq ty tx) := by
-            simpa [ty, tx, RuleProofs.eo_has_smt_translation] using hTrans
+            have hsimpa := hTrans
+            try simp [ty, tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+            exact hsimpa
           have hArgs := seq_char_binop_args_of_non_none
             (op := SmtTerm.str_leq) (typeof_str_leq_eq ty tx) hOrigNN
           have hyTy : __smtx_typeof ty = SmtType.Seq SmtType.Char := hArgs.1
@@ -4166,9 +4225,13 @@ private theorem string_reduction_pred_true
             · decide
             · decide
             · apply RuleProofs.term_ne_stuck_of_has_smt_translation
-              simpa [ty, RuleProofs.eo_has_smt_translation] using hYNN
+              have hsimpa := hYNN
+              try simp [ty, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             · apply RuleProofs.term_ne_stuck_of_has_smt_translation
-              simpa [tx, RuleProofs.eo_has_smt_translation] using hXNN
+              have hsimpa := hXNN
+              try simp [tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             · exact hClosed
           let idxName := native_string_lit "@var.str_index"
           let idx := SmtTerm.Var idxName SmtType.Int
@@ -4365,7 +4428,9 @@ private theorem string_reduction_pred_true
                 term_has_non_none_type
                   (SmtTerm.str_substr (__eo_to_smt z) (__eo_to_smt y)
                     (__eo_to_smt x)) := by
-              simpa [RuleProofs.eo_has_smt_translation] using hTrans
+              have hsimpa := hTrans
+              try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             rcases str_substr_args_of_non_none hOrigNN with
               ⟨T, hzTy, hyTy, hxTy⟩
             let pre := srPurify
@@ -4443,9 +4508,11 @@ private theorem string_reduction_pred_true
                     (SmtTerm.Boolean true))))
             let formula := SmtTerm.ite cond rhs (SmtTerm.eq mid emptyS)
             have hEmptyNN : term_has_non_none_type emptyS := by
-              simpa [emptyS] using
+              have hsimpa :=
                 seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
                   z T hzTy hTInh hTWf
+              try simp [emptyS] at hsimpa ⊢
+              exact hsimpa
             have hEmptyTy : __smtx_typeof emptyS = SmtType.Seq T := by
               simpa [emptyS] using
                 smt_typeof_seq_empty_typeof z T hzTy hEmptyNN
@@ -4467,7 +4534,9 @@ private theorem string_reduction_pred_true
               simp [typeof_str_substr_eq, tz, tn, tm, hzTy, hyTy, hxTy,
                 __smtx_typeof_str_substr]
             have hPrefixTy : __smtx_typeof preS = SmtType.Seq T := by
-              simpa [preS, tz, tn, pre] using hPreTy
+              have hsimpa := hPreTy
+              try simp [preS, tz, tn, pre] at hsimpa ⊢
+              exact hsimpa
             have hSuffixTy : __smtx_typeof suffix = SmtType.Seq T := by
               change __smtx_typeof (SmtTerm.str_substr tz next remaining) =
                 SmtType.Seq T
@@ -4659,7 +4728,9 @@ private theorem string_reduction_pred_true
             let tx := __eo_to_smt x
             have hOrigNN :
                 term_has_non_none_type (SmtTerm.str_replace tz ty tx) := by
-              simpa [tz, ty, tx, RuleProofs.eo_has_smt_translation] using hTrans
+              have hsimpa := hTrans
+              try simp [tz, ty, tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace)
                 (typeof_str_replace_eq tz ty tx) hOrigNN with
               ⟨T, hzTy, hyTy, hxTy⟩
@@ -4677,13 +4748,13 @@ private theorem string_reduction_pred_true
               exact seq_ne_none T
             have hZTermNe : z ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation z (by
-                simpa [tz, RuleProofs.eo_has_smt_translation] using hZNN)
+                have hsimpa := hZNN; (try simp [tz, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hYTermNe : y ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation y (by
-                simpa [ty, RuleProofs.eo_has_smt_translation] using hYNN)
+                have hsimpa := hYNN; (try simp [ty, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hXTermNe : x ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation x (by
-                simpa [tx, RuleProofs.eo_has_smt_translation] using hXNN)
+                have hsimpa := hXNN; (try simp [tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hTWf : __smtx_type_wf T = true :=
               (smt_seq_component_wf_of_non_none_type tz T hzTy).2
             have hTInh : type_inhabited T :=
@@ -4712,7 +4783,9 @@ private theorem string_reduction_pred_true
                 native_Teq]
             have hPreEoTy :
                 __smtx_typeof (__eo_to_smt pre) = SmtType.Seq T := by
-              simpa [pre, preS, idx, tz, ty] using hPreTy
+              have hsimpa := hPreTy
+              try simp [pre, preS, idx, tz, ty] at hsimpa ⊢
+              exact hsimpa
             have hNilPreNe :
                 __eo_nil (Term.UOp UserOp.str_concat) (__eo_typeof pre) ≠
                   Term.Stuck :=
@@ -4773,9 +4846,11 @@ private theorem string_reduction_pred_true
               (SmtTerm.eq result emptyResult)
               (SmtTerm.ite contains foundCase (SmtTerm.eq result tz))
             have hEmptyNN : term_has_non_none_type emptyS := by
-              simpa [emptyS, ty] using
+              have hsimpa :=
                 seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
                   y T (by simpa [ty] using hyTy) hTInh hTWf
+              try simp [emptyS, ty] at hsimpa ⊢
+              exact hsimpa
             have hEmptyTy : __smtx_typeof emptyS = SmtType.Seq T := by
               simpa [emptyS, ty] using
                 smt_typeof_seq_empty_typeof y T (by simpa [ty] using hyTy)
@@ -5142,7 +5217,9 @@ private theorem string_reduction_pred_true
             let tx := __eo_to_smt x
             have hOrigNN :
                 term_has_non_none_type (SmtTerm.str_indexof tz ty tx) := by
-              simpa [tz, ty, tx, RuleProofs.eo_has_smt_translation] using hTrans
+              have hsimpa := hTrans
+              try simp [tz, ty, tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             rcases str_indexof_args_of_non_none hOrigNN with
               ⟨T, hzTy, hyTy, hxTy⟩
             have hZNN : term_has_non_none_type tz := by
@@ -5159,13 +5236,13 @@ private theorem string_reduction_pred_true
               decide
             have hZTermNe : z ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation z (by
-                simpa [tz, RuleProofs.eo_has_smt_translation] using hZNN)
+                have hsimpa := hZNN; (try simp [tz, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hYTermNe : y ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation y (by
-                simpa [ty, RuleProofs.eo_has_smt_translation] using hYNN)
+                have hsimpa := hYNN; (try simp [ty, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hXTermNe : x ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation x (by
-                simpa [tx, RuleProofs.eo_has_smt_translation] using hXNN)
+                have hsimpa := hXNN; (try simp [tx, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hTWf : __smtx_type_wf T = true :=
               (smt_seq_component_wf_of_non_none_type tz T hzTy).2
             have hTInh : type_inhabited T :=
@@ -5222,7 +5299,9 @@ private theorem string_reduction_pred_true
                 __smtx_typeof_str_substr, __smtx_typeof]
             have hPreEoTy :
                 __smtx_typeof (__eo_to_smt pre) = SmtType.Seq T := by
-              simpa [pre, preS, tailIdx, tail, sourceLen, tz, ty, tx] using hPreTy
+              have hsimpa := hPreTy
+              try simp [pre, preS, tailIdx, tail, sourceLen, tz, ty, tx] at hsimpa ⊢
+              exact hsimpa
             have hNilNe :
                 __eo_nil (Term.UOp UserOp.str_concat) (__eo_typeof pre) ≠
                   Term.Stuck :=
@@ -5289,9 +5368,11 @@ private theorem string_reduction_pred_true
               (resultEq (SmtTerm.Numeral (-1)))
               (SmtTerm.ite (SmtTerm.eq ty emptyS) (resultEq tx) foundCase)
             have hEmptyNN : term_has_non_none_type emptyS := by
-              simpa [emptyS, tz] using
+              have hsimpa :=
                 seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
                   z T (by simpa [tz] using hzTy) hTInh hTWf
+              try simp [emptyS, tz] at hsimpa ⊢
+              exact hsimpa
             have hEmptyTy : __smtx_typeof emptyS = SmtType.Seq T := by
               simpa [emptyS, tz] using
                 smt_typeof_seq_empty_typeof z T (by simpa [tz] using hzTy)
@@ -5580,8 +5661,7 @@ private theorem string_reduction_pred_true
                   by_cases hContains : native_seq_contains ts ys = true
                   · by_cases hYs : ys = []
                     · have hTailIndex : native_seq_indexof ts ys 0 = 0 := by
-                        simpa [hYs] using
-                          StrEqReplSupport.native_seq_indexof_nil_zero ts
+                        simp [hYs, StrEqReplSupport.native_seq_indexof_nil_zero]
                       have hContains' :
                           native_seq_contains (List.drop j zs) ys = true := by
                         simpa [ts] using hContains
@@ -5947,8 +6027,10 @@ private theorem string_reduction_pred_true
             let tr := __eo_to_smt x
             have hOrigNN :
                 term_has_non_none_type (SmtTerm.str_update tz tn tr) := by
-              simpa [tz, tn, tr, RuleProofs.eo_has_smt_translation] using
+              have hsimpa :=
                 hTrans
+              try simp [tz, tn, tr, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             rcases str_update_args_of_non_none hOrigNN with
               ⟨T, hzTy, hyTy, hxTy⟩
             have hZNN : term_has_non_none_type tz := by
@@ -5965,13 +6047,13 @@ private theorem string_reduction_pred_true
               exact seq_ne_none T
             have hZTermNe : z ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation z (by
-                simpa [tz, RuleProofs.eo_has_smt_translation] using hZNN)
+                have hsimpa := hZNN; (try simp [tz, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hYTermNe : y ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation y (by
-                simpa [tn, RuleProofs.eo_has_smt_translation] using hYNN)
+                have hsimpa := hYNN; (try simp [tn, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hXTermNe : x ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation x (by
-                simpa [tr, RuleProofs.eo_has_smt_translation] using hXNN)
+                have hsimpa := hXNN; (try simp [tr, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hTWf : __smtx_type_wf T = true :=
               (smt_seq_component_wf_of_non_none_type tz T hzTy).2
             have hTInh : type_inhabited T :=
@@ -5997,7 +6079,9 @@ private theorem string_reduction_pred_true
                 native_Teq]
             have hPreEoTy :
                 __smtx_typeof (__eo_to_smt pre) = SmtType.Seq T := by
-              simpa [pre, preS, tz, tn] using hPreTy
+              have hsimpa := hPreTy
+              try simp [pre, preS, tz, tn] at hsimpa ⊢
+              exact hsimpa
             have hNilNe :
                 __eo_nil (Term.UOp UserOp.str_concat) (__eo_typeof pre) ≠
                   Term.Stuck :=
@@ -6592,7 +6676,9 @@ private theorem string_reduction_pred_true
             let tn := __eo_to_smt x
             have hOrigNN :
                 term_has_non_none_type (SmtTerm.str_indexof_re ts tr tn) := by
-              simpa [ts, tr, tn, RuleProofs.eo_has_smt_translation] using hTrans
+              have hsimpa := hTrans
+              try simp [ts, tr, tn, RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+              exact hsimpa
             rcases str_indexof_re_args_of_non_none hOrigNN with
               ⟨hsTy, hrTy, hnTy⟩
             have hSNN : term_has_non_none_type ts := by
@@ -6609,13 +6695,13 @@ private theorem string_reduction_pred_true
               decide
             have hSTermNe : z ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation z (by
-                simpa [ts, RuleProofs.eo_has_smt_translation] using hSNN)
+                have hsimpa := hSNN; (try simp [ts, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hRTermNe : y ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation y (by
-                simpa [tr, RuleProofs.eo_has_smt_translation] using hRNN)
+                have hsimpa := hRNN; (try simp [tr, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hNTermNe : x ≠ Term.Stuck :=
               RuleProofs.term_ne_stuck_of_has_smt_translation x (by
-                simpa [tn, RuleProofs.eo_has_smt_translation] using hNNN)
+                have hsimpa := hNNN; (try simp [tn, RuleProofs.eo_has_smt_translation] at hsimpa ⊢); exact hsimpa)
             have hClosedArgs :
                 __eo_is_closed z = Term.Boolean true ∧
                   __eo_is_closed y = Term.Boolean true ∧

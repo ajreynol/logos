@@ -279,8 +279,7 @@ private theorem ubv_generated_expansion_eq_raw
     simp [__eo_is_neg, __eo_requires, native_zlt, native_teq, native_not,
       SmtEval.native_not, native_ite, native_nat_to_int, hnot]
   rw [hIndices]
-  simpa [native_int_pow2, native_zexp_total] using
-    ubv_abconv_iota_eq b (term_ne_stuck_of_smt_bitvec b w hbTy) 0 w
+  exact ubv_abconv_iota_eq b (term_ne_stuck_of_smt_bitvec b w hbTy) 0 w
 
 private def natScaledBitSum (n start : Nat) : Nat -> Nat
   | 0 => 0
@@ -684,7 +683,7 @@ by
               change __eo_typeof (__eo_prog_ubv_to_int_elim A) = Term.Bool
                 at hResultTy
               have hProgNe' : __eo_prog_ubv_to_int_elim A ≠ Term.Stuck := by
-                simpa using hProgNe
+                exact hProgNe
               rcases ubv_to_int_elim_shape_of_ne_stuck A hProgNe' with
                 ⟨b, m, hShape⟩
               subst A
@@ -733,7 +732,7 @@ by
                   term_has_non_none_type
                     (SmtTerm.ubv_to_int (__eo_to_smt b)) := by
                 unfold term_has_non_none_type
-                simpa [lhs] using hLhsNN
+                exact hLhsNN
               rcases
                   bv_unop_ret_arg_of_non_none
                     (op := SmtTerm.ubv_to_int) (ret := SmtType.Int)

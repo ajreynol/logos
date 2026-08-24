@@ -49,7 +49,9 @@ theorem addArgsOfBitvecType (x y : Term) (w : Nat) :
   have hTy' :
       __smtx_typeof (SmtTerm.bvadd (__eo_to_smt x) (__eo_to_smt y)) =
         SmtType.BitVec w := by
-    simpa [add, op] using hTy
+    have hsimpa := hTy
+    try simp [add, op] at hsimpa ⊢
+    exact hsimpa
   have hNN : term_has_non_none_type
       (SmtTerm.bvadd (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
@@ -483,7 +485,7 @@ theorem addArgsOfEoBitvecType (x y width : Term) :
       __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) width := by
   intro h
   exact BvXorOnesSupport.typeof_bvxor_args_of_result_bitvec x y width
-    (by simpa [add, op] using h)
+    (by have hsimpa := h; (try simp [add, op] at hsimpa ⊢); exact hsimpa)
 
 private theorem listConcatRecConsOfRightNeStuck
     (f x xs z : Term) :

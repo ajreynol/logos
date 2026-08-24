@@ -1704,7 +1704,8 @@ theorem finite_type_enumerable
         have hnMod : n = n % (2 : Int) ^ w := by
           have := hParts.2
           rw [hPow] at this
-          simpa [native_zeq, native_mod_total] using this
+          simp only [native_zeq, native_mod_total] at this
+          exact of_decide_eq_true this
         have hPowPos : (0 : Int) < 2 ^ w := by
           exact_mod_cast Nat.pow_pos (show 0 < 2 by decide) (n := w)
         have hnNonneg : 0 ≤ n := by

@@ -160,7 +160,7 @@ theorem substitute_simul_bvite_preserves_type_and_translation_of_typeof_ne_stuck
           have hMatch :=
             TranslationProofs.eo_to_smt_typeof_matches_translation C hCTrans
           rw [hCTy] at hMatch
-          simpa [__eo_to_smt_type, native_ite] using hMatch
+          simpa [__eo_to_smt_type, native_ite, native_int_to_nat, native_zleq] using hMatch
         have hCondTy :
             __smtx_typeof
                 (SmtTerm.eq (__eo_to_smt C) (SmtTerm.Binary 1 1)) =

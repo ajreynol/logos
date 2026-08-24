@@ -491,7 +491,8 @@ theorem substitute_simul_rec_eo_type_valid_eq_self
       | UOp op =>
           exact False.elim (hUOp ⟨op, rfl⟩)
       | _ =>
-          simpa [TranslationProofs.eo_type_valid] using hValid
+          simpa [TranslationProofs.eo_type_valid,
+            TranslationProofs.eo_type_valid_rec] using hValid
     exact
       substitute_simul_rec_eo_type_valid_rec_eq_self
         T xs ss bvs hXsEnv hBvsEnv hSs hValidRec

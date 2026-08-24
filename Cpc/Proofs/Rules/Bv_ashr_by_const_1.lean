@@ -84,7 +84,9 @@ by
                                       __eo_typeof
                                           (bvAshrByConst1Program x amount sz nm
                                             P1 P2) = Term.Bool := by
-                                    simpa [P1, P2] using hResultTy
+                                    have hsimpa := hResultTy
+                                    try simp [P1, P2] at hsimpa ⊢
+                                    exact hsimpa
                                   refine ⟨?_, ?_⟩
                                   · intro hPremisesTrue
                                     have hP1True : eo_interprets M P1 true :=

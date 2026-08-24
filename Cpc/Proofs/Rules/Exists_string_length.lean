@@ -350,7 +350,7 @@ private theorem eslFormula_true
             (SmtTerm.str_len
               (SmtTerm.Var (native_string_lit "@x") (SmtType.Seq A)))
             (SmtTerm.Numeral k))) = SmtValue.Numeral k := by
-    simpa [eslSmtBody] using hChoiceLen
+    exact hChoiceLen
   have hBool : RuleProofs.eo_has_bool_type (eslFormula U (Term.Numeral k) id) :=
     eslFormula_has_bool_type U id A k hkGt hIdGt hSeqTy hSeqWF
   have hEval :

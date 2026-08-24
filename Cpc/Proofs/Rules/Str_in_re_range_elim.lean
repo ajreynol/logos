@@ -246,8 +246,8 @@ private theorem smtx_typeof_of_eo_seq_char
       __smtx_typeof (__eo_to_smt a) = __eo_to_smt_type (__eo_typeof a) :=
     TranslationProofs.eo_to_smt_typeof_matches_translation a hTrans
   rw [hTy] at hTyRaw
-  simpa [TranslationProofs.eo_to_smt_type_seq,
-    TranslationProofs.eo_to_smt_type_char] using hTyRaw
+  simp only [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hTyRaw
+  exact hTyRaw
 
 private theorem typed_concl
     (s c1 c2 : Term)
@@ -328,8 +328,10 @@ private theorem typed_concl
               (Term.Apply (Term.UOp UserOp.and)
                 (Term.Apply (Term.Apply (Term.UOp UserOp.leq) codeS) codeC2))
               (Term.Boolean true)))) = SmtType.Bool
-    rw [typeof_and_eq]
-    simp [hLe1Ty, hInnerTy, native_ite, native_Teq]
+    -- rewrite the component types before `simp` normalises
+    -- `__eo_to_smt (Apply ..)` past their left-hand sides
+    rw [typeof_and_eq, hLe1Ty, hInnerTy]
+    simp [native_ite, native_Teq]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type (lhs s c1 c2) (rhs s c1 c2)
     (by rw [hLhsTy, hRhsTy]) (by rw [hLhsTy]; decide)
 
@@ -404,13 +406,16 @@ private theorem facts
     ⟨sc2, hC2Eval, hSc2Ty⟩
   have hSValid : native_string_valid (native_unpack_string ss) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
-    simpa [hSEval] using hSEvalTy
+    simp only [hSEval] at hSEvalTy
+    exact hSEvalTy
   have hC1Valid : native_string_valid (native_unpack_string sc1) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
-    simpa [hC1Eval] using hC1EvalTy
+    simp only [hC1Eval] at hC1EvalTy
+    exact hC1EvalTy
   have hC2Valid : native_string_valid (native_unpack_string sc2) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
-    simpa [hC2Eval] using hC2EvalTy
+    simp only [hC2Eval] at hC2EvalTy
+    exact hC2EvalTy
   have hC1Len : native_seq_len (native_unpack_seq sc1) = 1 :=
     seq_len_one_of_prem M c1 sc1 hC1Eval hPremC1
   have hC2Len : native_seq_len (native_unpack_seq sc2) = 1 :=
@@ -427,12 +432,12 @@ private theorem facts
       native_unpack_seq sc1 =
         native_string_to_values (native_unpack_string sc1) :=
     native_unpack_seq_eq_string_to_values_of_typeof_seq_char (by
-      simpa using hSc1Ty)
+      exact hSc1Ty)
   have hSc2Unpack :
       native_unpack_seq sc2 =
         native_string_to_values (native_unpack_string sc2) :=
     native_unpack_seq_eq_string_to_values_of_typeof_seq_char (by
-      simpa using hSc2Ty)
+      exact hSc2Ty)
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt (lhs s c1 c2)) =
         __smtx_model_eval M (__eo_to_smt (rhs s c1 c2)) := by

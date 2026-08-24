@@ -587,7 +587,8 @@ by
           exact False.elim (hNotStuck rfl)
       | cons so s =>
           by_cases hTy : __eo_typeof (__eo_cmd_step_proven (CState.cons so s) r args premises) = Term.Bool
-          · simpa [__eo_invoke_cmd, push_proven_eq_cons_of_typeof_bool, hTy, checkerShapeInvariant] using hSuffix
+          · simpa [__eo_invoke_cmd, push_proven_eq_cons_of_typeof_bool, hTy,
+              checkerShapeInvariant, stateAssumptionSuffix] using hSuffix
           · simp [__eo_invoke_cmd, push_proven_eq_stuck_of_typeof_ne_bool, hTy, checkerShapeInvariant]
   | step_pop r args premises =>
       cases s with
@@ -698,12 +699,14 @@ by
           change checkerTranslationInvariant
             (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
           exact push_assume_preserves_translationInvariant CState.nil A hsTrans
-            (by simpa [cmdTranslationOk] using hCmdTrans)
+            (by simpa [cmdTranslationOk, eoHasSmtTranslation,
+                RuleProofs.eo_has_smt_translation] using hCmdTrans)
       | cons so s =>
           change checkerTranslationInvariant
             (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
           exact push_assume_preserves_translationInvariant (CState.cons so s) A hsTrans
-            (by simpa [cmdTranslationOk] using hCmdTrans)
+            (by simpa [cmdTranslationOk, eoHasSmtTranslation,
+                RuleProofs.eo_has_smt_translation] using hCmdTrans)
       | Stuck =>
           exact False.elim (hNotStuck rfl)
   | check_proven proven =>
@@ -832,7 +835,7 @@ theorem eo_has_bool_type_of_translatableAssumptionList (F : Term) :
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
-        simpa [__eo_invoke_assume_list] using hOk
+        simpa [__eo_invoke_assume_list, assumptionCheckGuard] using hOk
       have hTyA : __eo_typeof A = Term.Bool :=
         push_input_assume_typeof_bool_of_stateOk A
           (__eo_invoke_assume_list CState.nil rest) hPushOk

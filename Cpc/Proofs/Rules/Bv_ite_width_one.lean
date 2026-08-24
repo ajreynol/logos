@@ -102,7 +102,7 @@ private theorem smt_typeof_binary_one_one :
     __smtx_typeof (SmtTerm.Binary 1 1) = SmtType.BitVec 1 := by
   have hNN : __smtx_typeof (SmtTerm.Binary 1 1) ≠ SmtType.None := by
     native_decide
-  simpa using TranslationProofs.smtx_typeof_binary_of_non_none 1 1 hNN
+  exact TranslationProofs.smtx_typeof_binary_of_non_none 1 1 hNN
 
 private theorem smt_typeof_bv_one_one :
     __smtx_typeof
@@ -153,7 +153,7 @@ private theorem smt_typeof_c1_bitvec_one
     exact RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
       c1 (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1)) (__eo_to_smt c1) rfl
       hC1Trans hC1Type
-  simpa [__eo_to_smt_type, SmtEval.native_zleq] using hSmtType
+  simpa [__eo_to_smt_type, SmtEval.native_zleq, native_int_to_nat, native_ite] using hSmtType
 
 private theorem smt_typeof_bv_ite_width_one
     (c1 : Term) :
@@ -228,13 +228,13 @@ private theorem eval_bv_ite_width_one
   rcases bitvec_value_canonical hEvalTy with ⟨payload, hEvalC⟩
   have hPayloadCanon :
       native_zeq payload (native_mod_total payload (native_int_pow2 1)) = true := by
-    exact bitvec_payload_canonical (by simpa [hEvalC] using hEvalTy)
+    exact bitvec_payload_canonical (by simpa [hEvalC, native_nat_to_int] using hEvalTy)
   have hWidth : native_zleq 0 1 = true := by
     native_decide
   have hRange := bitvec_payload_range_of_canonical hWidth hPayloadCanon
   have hPayloadCases : payload = 0 ∨ payload = 1 := by
     have hLtTwo : payload < 2 := by
-      simpa [native_int_pow2] using hRange.2
+      simpa [native_int_pow2, native_zexp_total] using hRange.2
     have hLeOne : payload ≤ 1 := Int.le_of_lt_add_one hLtTwo
     rcases Int.lt_or_eq_of_le hRange.1 with hPos | hZero
     · have hGeOne : 1 ≤ payload := (Int.add_one_le_iff).mpr hPos

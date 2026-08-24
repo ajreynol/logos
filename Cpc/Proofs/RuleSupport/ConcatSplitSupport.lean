@@ -278,10 +278,10 @@ theorem len_eq_seq_types_of_bool (x y : Term)
     exact hLeftNN
   have hLeftTerm : term_has_non_none_type (SmtTerm.str_len (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [mkStrLen] using hLeftNN
+    simpa [mkStrLen, __eo_to_smt, __smtx_typeof] using hLeftNN
   have hRightTerm : term_has_non_none_type (SmtTerm.str_len (__eo_to_smt y)) := by
     unfold term_has_non_none_type
-    simpa [mkStrLen] using hRightNN
+    simpa [mkStrLen, __eo_to_smt, __smtx_typeof] using hRightNN
   rcases seq_arg_of_non_none_ret (op := SmtTerm.str_len)
       (typeof_str_len_eq (__eo_to_smt x)) hLeftTerm with
     ⟨T, hxTy⟩

@@ -141,8 +141,11 @@ private theorem type_and_facts
     change __smtx_model_eval M
         (SmtTerm.re_concat (__eo_to_smt (star r))
           (__eo_to_smt (leftShort r ys))) = _
-    simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-      hStarEval, hLeftShortEval]
+    -- rewrite the component evaluations before `simp` unfolds
+    -- `__eo_to_smt (leftShort ..)` past `hLeftShortEval`'s left-hand side
+    simp only [__smtx_model_eval]
+    rw [hStarEval, hLeftShortEval]
+    simp [__smtx_model_eval_re_concat]
   have hRightShortEval :
       __smtx_model_eval M (__eo_to_smt (rightShort r ys)) =
         SmtValue.RegLan (native_re_concat (native_re_mult rr) rys) := by
@@ -156,8 +159,9 @@ private theorem type_and_facts
     change __smtx_model_eval M
         (SmtTerm.re_concat (__eo_to_smt r)
           (__eo_to_smt (rightShort r ys))) = _
-    simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-      hREval, hRightShortEval]
+    simp only [__smtx_model_eval]
+    rw [hREval, hRightShortEval]
+    simp [__smtx_model_eval_re_concat]
   rcases RuleProofs.reConcat_list_concat_eval_rel M xs (leftTail r ys)
       rxs (native_re_concat (native_re_mult rr) (native_re_concat rr rys))
       hXsList hLeftTailList hXsTy hLeftTailTy hXsEval hLeftTailEval with
