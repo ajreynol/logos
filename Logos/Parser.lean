@@ -422,11 +422,6 @@ def registerStepPop (id : String) : ParserM T Unit := do
 ## Terms
 -/
 
-/-- Split the tail of `(_ f i₁ … i_k)` into the operator name and its indices. -/
-def splitIndexed : List Sexp → ParserM T (String × List Sexp)
-  | .atom name :: idxs => return (name, idxs)
-  | ss => throw s!"Error: expected an indexed operator name, got {Sexp.expr ss}"
-
 /-- Recognize `f` or `(_ f i₁ … i_k)` as the head of an application. -/
 def asOpHead : Sexp → Option (String × List Sexp)
   | .atom name => some (name, [])
@@ -492,9 +487,10 @@ partial def parseTermCore (cfg : Config T R C CL) : Sexp → ParserM T T
     let opCand : Option T := do
       let d ← decls.find? isNullary <|> decls.head?
       d.build []
-    if opCand.isNone && !decls.isEmpty then
+    let bound := (← get).terms.getD a []
+    if opCand.isNone && !decls.isEmpty && bound.isEmpty then
       throw s!"Error: could not build operator {a}"
-    if let some t := resolve cfg (opCand.toList ++ (← get).terms.getD a []) then
+    if let some t := resolve cfg (bound ++ opCand.toList) then
       return t
     if let some t := (Literal.ofString a).bind cfg.parseLiteral then
       return t
@@ -513,19 +509,33 @@ partial def parseTermCore (cfg : Config T R C CL) : Sexp → ParserM T T
     parseApp cfg name [ty] []
   | .expr [.atom "let", .expr bindings, body] =>
     parseLet cfg bindings body
-  | .expr (.atom "_" :: rest) => do
-    let (name, idxs) ← splitIndexed rest
-    parseUnderscoreApp cfg name idxs []
+  | .expr (.atom "_" :: rest) =>
+    parseUnderscoreExpr cfg rest []
   | .expr (f :: args) => do
     let args ← args.mapM (parseTerm cfg)
     match f with
-    | .expr (.atom "_" :: rest) => do
-      let (name, idxs) ← splitIndexed rest
-      parseUnderscoreApp cfg name idxs args
+    | .expr (.atom "_" :: rest) =>
+      parseUnderscoreExpr cfg rest args
     | _ =>
       match asOpHead f with
       | some (name, idxs) => parseApp cfg name idxs args
       | none => return args.foldl cfg.apply (← parseTerm cfg f)
+
+/--
+Parse an expression headed by `_`, applied to `args`.  Eunoia writes both an
+indexed operator and a curried application with `_`, and only a name can be
+indexed: `(_ f a₁ … aₙ)` whose head is itself an expression is an application,
+as cvc5 prints partially applied functions.
+-/
+partial def parseUnderscoreExpr (cfg : Config T R C CL) (rest : List Sexp)
+    (args : List T) : ParserM T T := do
+  match rest with
+  | .atom name :: idxs => parseUnderscoreApp cfg name idxs args
+  | f :: inner => do
+    let head ← parseTerm cfg f
+    let inner ← inner.mapM (parseTerm cfg)
+    return (inner ++ args).foldl cfg.apply head
+  | [] => throw "Error: expected an operator name or a term after _"
 
 /--
 Parse an expression headed by `_`.  If the name has an operator declaration
@@ -574,7 +584,10 @@ partial def parseApp (cfg : Config T R C CL) (name : String) (idxs : List Sexp)
         let (flatIdxs, flatArgs) := args.splitAt d.indexArity
         pure (some (← buildOpApp cfg name d flatIdxs flatArgs))
       else pure none
-  if let some t := resolve cfg (opCand.toList ++ boundCands) then
+  -- A symbol the proof declares shadows the signature operator of the same name,
+  -- so its reading is tried first; the operator is still used when the proof's
+  -- declaration gives no well-typed reading of this application.
+  if let some t := resolve cfg (boundCands ++ opCand.toList) then
     return t
   if !decls.isEmpty then
     throw s!"Error: no declaration of {name} takes {idxs.length} indices and \
