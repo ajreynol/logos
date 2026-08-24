@@ -170,9 +170,9 @@ inductive SmtTerm : Type where
   | re_diff : SmtTerm -> SmtTerm -> SmtTerm
   | re_loop : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | str_in_re : SmtTerm -> SmtTerm -> SmtTerm
-  | str_indexof_re_split : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | seq_unit : SmtTerm -> SmtTerm
   | seq_nth : SmtTerm -> SmtTerm -> SmtTerm
+  | str_indexof_re_split : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | seq_diff : SmtTerm -> SmtTerm -> SmtTerm
   | _at_strings_occur_index : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | _at_strings_occur_index_re : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
