@@ -242,10 +242,12 @@ theorem usubo_context (x y n : Term) :
   have hYSmtTy :
       __smtx_typeof (__eo_to_smt y) =
         SmtType.BitVec (native_int_to_nat w) := by
-    simpa [__eo_to_smt_type, hw0] using
+    have hsimpa :=
       (RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
         y (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
         (__eo_to_smt y) rfl hYTrans hYTy)
+    try simp [__eo_to_smt_type, hw0] at hsimpa ⊢
+    exact hsimpa
   have hLeftTy : __eo_typeof (usuboLhs x y) = Term.Bool := by
     change __eo_typeof_bvult (__eo_typeof x) (__eo_typeof y) = Term.Bool
     rw [hXTy, hYTy]
@@ -255,12 +257,14 @@ theorem usubo_context (x y n : Term) :
   have hRhsTy : __eo_typeof (usuboRhs x y n) = Term.Bool := by
     have hLeftTy' :
         __eo_typeof_bvult (__eo_typeof x) (__eo_typeof y) = Term.Bool := by
-      simpa [usuboLhs] using hLeftTy
+      have hsimpa := hLeftTy
+      try simp [usuboLhs] at hsimpa ⊢
+      exact hsimpa
     rw [hLeftTy'] at hTypeEq
     exact hTypeEq.symm
   have hBitNe : __eo_typeof (usuboBit x y n) ≠ Term.Stuck :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-      (by simpa [usuboRhs] using hRhsTy)).1
+      (by have hsimpa := hRhsTy; (try simp [usuboRhs] at hsimpa ⊢); exact hsimpa)).1
   let W := native_int_to_nat w
   have hDiffSmtTy :
       __smtx_typeof (__eo_to_smt (usuboDiff x y)) =
@@ -273,7 +277,7 @@ theorem usubo_context (x y n : Term) :
     intro h
     cases h
   rcases bv_extract_context_of_non_stuck (usuboDiff x y) n n
-      hDiffTrans (by simpa [usuboBit] using hBitNe) with
+      hDiffTrans (by have hsimpa := hBitNe; (try simp [usuboBit] at hsimpa ⊢); exact hsimpa) with
     ⟨wd, hi, lo, _hDiffEoTy, hNHi, hNLo, hwd0, hlo0, hiwd,
       _hExtractWidth0, hDiffSmtTy'⟩
   have hILo : lo = hi := by

@@ -956,8 +956,8 @@ by
   rcases EoVarEnv.setof_rec hEnv with ⟨recVars, hRec⟩
   have hTop :
       EoVarEnv (__eo_list_setof Term.__eo_List_cons env) recVars := by
-    simpa [__eo_list_setof, __eo_requires, hList, native_ite,
-      native_teq] using hRec
+    simpa [__eo_list_setof, __eo_requires, hList, native_ite, native_teq,
+      native_not] using hRec
   have hEq : setVars = recVars :=
     EoVarEnv.vars_eq_of_same_env hSet hTop
   subst setVars
@@ -1069,8 +1069,8 @@ by
   have hInclRec :
       __eo_list_minclude_rec a b (Term.Boolean true) =
         Term.Boolean true := by
-    simpa [__eo_list_minclude, __eo_requires, hAList, hBList,
-      native_ite, native_teq, hAGet, hBGet] using hIncl
+    simpa [__eo_list_minclude, __eo_requires, hAList, hBList, hAGet, hBGet,
+      native_ite, native_teq, native_not] using hIncl
   exact eo_var_env_minclude_rec_mem_subset hA hB hInclRec
 
 private theorem eo_var_env_diff_rec_mem_or :
@@ -1225,8 +1225,8 @@ by
   have hKnownDiff :
       EoVarEnv (__eo_list_diff Term.__eo_List_cons a b)
         knownDiffVars := by
-    simpa [__eo_list_diff, __eo_requires, hAList, hBList,
-      native_ite, native_teq] using hKnownDiffRec
+    simpa [__eo_list_diff, __eo_requires, hAList, hBList, native_ite,
+      native_teq, native_not] using hKnownDiffRec
   have hVarsEq : diffVars = knownDiffVars :=
     EoVarEnv.vars_eq_of_same_env hDiff hKnownDiff
   subst diffVars
@@ -1796,7 +1796,7 @@ by
                           (Term.Var (Term.String s) T)) env)
                         (SmtTerm.not (__eo_to_smt F)))) ≠
                   SmtType.None
-              simpa [qterm, RuleProofs.eo_has_smt_translation] using hTrans)
+              exact hTrans)
         have hExistsBool :
             __smtx_typeof
                 (__eo_to_smt_exists
@@ -1836,7 +1836,7 @@ by
                         (Term.Var (Term.String s) T)) env)
                       (__eo_to_smt F)) ≠
                   SmtType.None
-              simpa [qterm, RuleProofs.eo_has_smt_translation] using hTrans)
+              exact hTrans)
         exact
           TranslationProofs.eo_to_smt_exists_body_bool_of_bool
             (Term.Apply (Term.Apply Term.__eo_List_cons
@@ -1975,7 +1975,7 @@ by
                           (Term.Var (Term.String s) T)) env)
                         (SmtTerm.not (__eo_to_smt F)))) ≠
                   SmtType.None
-              simpa [qterm, RuleProofs.eo_has_smt_translation] using hTrans)
+              exact hTrans)
         have hExistsTy :
             __smtx_typeof
                 (__eo_to_smt_exists
@@ -2015,7 +2015,7 @@ by
                         (Term.Var (Term.String s) T)) env)
                       (__eo_to_smt F)) ≠
                   SmtType.None
-              simpa [qterm, RuleProofs.eo_has_smt_translation] using hTrans)
+              exact hTrans)
         exact
           smtx_type_wf_of_eo_var_env_exists_bool
             (EoVarEnv.cons (s := s) (T := T) hTail) hExistsTy

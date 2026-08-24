@@ -987,7 +987,9 @@ private theorem eval_bv_udiv_pow2_term
   have hpd : P + D = W := by
     simpa [SmtEval.native_zplus] using hPD
   have hn : N = W - 1 := by
-    simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hN
+    have hsimpa := hN
+    try simp [SmtEval.native_zplus, SmtEval.native_zneg] at hsimpa ⊢
+    exact hsimpa
   rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
       (native_int_to_nat W) hXSmtTy with ⟨p, hXEval, hCanonical⟩
   have hRound := native_int_to_nat_roundtrip W hW0

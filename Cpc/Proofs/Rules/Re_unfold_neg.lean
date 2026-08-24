@@ -184,7 +184,7 @@ theorem smtx_typeof_str_in_re_of_seq_reglan (s r : Term)
 theorem smtx_typeof_str_len_of_seq_char (s : Term)
     (hs : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char) :
     __smtx_typeof (__eo_to_smt (mkStrLen s)) = SmtType.Int := by
-  simpa [mkStrLen] using
+  simpa [mkStrLen, __eo_to_smt, __smtx_typeof] using
     smtx_typeof_str_len_seq (__eo_to_smt s) SmtType.Char hs
 
 theorem smtx_typeof_substr_of_seq_char (s i n : Term)
@@ -193,7 +193,7 @@ theorem smtx_typeof_substr_of_seq_char (s i n : Term)
     (hn : __smtx_typeof (__eo_to_smt n) = SmtType.Int) :
     __smtx_typeof (__eo_to_smt (mkSubstr s i n)) =
       SmtType.Seq SmtType.Char := by
-  simpa [mkSubstr] using
+  simpa [mkSubstr, __eo_to_smt, __smtx_typeof] using
     smtx_typeof_str_substr_seq (__eo_to_smt s) (__eo_to_smt i)
       (__eo_to_smt n) SmtType.Char hs hi hn
 
@@ -201,7 +201,7 @@ theorem smtx_typeof_neg_of_int (x y : Term)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int) :
     __smtx_typeof (__eo_to_smt (mkNeg x y)) = SmtType.Int := by
-  simpa [mkNeg] using smtx_typeof_neg_int (__eo_to_smt x) (__eo_to_smt y) hx hy
+  simpa [mkNeg, __eo_to_smt, __smtx_typeof] using smtx_typeof_neg_int (__eo_to_smt x) (__eo_to_smt y) hx hy
 
 private theorem smtx_typeof_lt_of_int (x y : Term)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int)
@@ -557,31 +557,31 @@ private theorem native_str_in_re_re_mult_append_intro
         simpa [native_re_mult, native_re_mk_star] using
           nativeListInRe_star_append_closed s1 s2 r0 h1Parts.2 h2Star
     | char c =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.char c) s1 s2
           h1Parts.2 h2Parts.2
     | range lo hi =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.range lo hi) s1 s2
           h1Parts.2 h2Parts.2
     | allchar =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro SmtRegLan.allchar s1 s2
           h1Parts.2 h2Parts.2
     | concat r0 r1 =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.concat r0 r1) s1 s2
           h1Parts.2 h2Parts.2
     | union r0 r1 =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.union r0 r1) s1 s2
           h1Parts.2 h2Parts.2
     | inter r0 r1 =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.inter r0 r1) s1 s2
           h1Parts.2 h2Parts.2
     | comp r0 =>
-        simp [native_re_mult, native_re_mk_star] at h2Parts ⊢
+        simp [native_re_mult] at h2Parts ⊢
         exact nativeListInRe_star_append_intro (SmtRegLan.comp r0) s1 s2
           h1Parts.2 h2Parts.2
   simpa [native_str_in_re, hValidAppend, nativeListInRe] using hList
@@ -653,7 +653,7 @@ private theorem reConcat_smt_value_rel_right_empty_eval
     SmtValue.Boolean true
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hIdEval]
   cases r <;>
-    simp [__smtx_model_eval_eq, native_re_concat, native_re_mk_concat,
+    simp [__smtx_model_eval_eq, native_re_concat,
       native_str_to_re, native_re_of_list, native_string_to_values]
 
 private theorem reConcat_is_list_nil_boolean_of_ne_stuck (t : Term) :
@@ -1117,7 +1117,9 @@ private theorem qforall_idx_eval_true_of_forall_values
   · rcases hEx with ⟨v, hvTy, hvCan, hEvalNot⟩
     have hEval := hAll v hvTy hvCan
     simp [__smtx_model_eval_not, hEval, SmtEval.native_not] at hEvalNot
-  · rw [dif_neg hEx]
+  · -- `rw` would have to match the goal's `Decidable` instance syntactically;
+    -- routing through `congrArg` lets `refine` unify it up to defeq instead
+    refine Eq.trans (congrArg __smtx_model_eval_not (dif_neg hEx)) ?_
     simp [__smtx_model_eval_not, SmtEval.native_not]
 
 private theorem re_unfold_neg_star_body_eval_true

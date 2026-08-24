@@ -48,7 +48,8 @@ theorem typeof_value_model_eval_concat
   have hWidth :
       native_zleq 0 (native_zplus (native_nat_to_int w1) (native_nat_to_int w2)) = true := by
     have hAdd : 0 <= native_nat_to_int w1 + native_nat_to_int w2 := Int.add_nonneg hw1 hw2
-    simpa [SmtEval.native_zleq, SmtEval.native_zplus] using hAdd
+    unfold native_zleq native_zplus
+    exact decide_eq_true hAdd
   simpa [__smtx_model_eval_concat] using
     typeof_value_binary_mod_of_nonneg
       (native_zplus (native_nat_to_int w1) (native_nat_to_int w2))
@@ -251,9 +252,11 @@ theorem typeof_value_model_eval_bvcomp_value
   rcases bool_value_canonical hEq with ⟨b, hb⟩
   rw [hb]
   cases b
-  · simpa [__smtx_model_eval_ite] using
+  · simpa [__smtx_model_eval_ite, native_int_to_nat,
+      SmtEval.native_int_to_nat] using
       typeof_value_binary_of_nonneg 1 0 (by native_decide) (by native_decide)
-  · simpa [__smtx_model_eval_ite] using
+  · simpa [__smtx_model_eval_ite, native_int_to_nat,
+      SmtEval.native_int_to_nat] using
       typeof_value_binary_of_nonneg 1 1 (by native_decide) (by native_decide)
 
 /-- Shows that evaluating `bvugt_value` terms produces values of the expected type. -/

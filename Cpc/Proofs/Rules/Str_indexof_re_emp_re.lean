@@ -52,7 +52,7 @@ private theorem native_str_indexof_re_empty_hit
     have hParts :
         native_string_valid ([] : native_String) = true ∧
           native_re_nullable r = true := by
-      simpa [native_str_in_re, native_string_lit_empty] using hEmpty
+      simpa [native_str_in_re, native_string_lit_empty, native_re_deriv, native_re_str_valid, native_string_to_values, native_string_valid] using hEmpty
     exact hParts.2
   change (-1 : Int) <= i at hGe
   cases i with
@@ -112,7 +112,8 @@ private theorem smtx_typeof_of_eo_seq_char
       __smtx_typeof (__eo_to_smt a) = __eo_to_smt_type (__eo_typeof a) :=
     TranslationProofs.eo_to_smt_typeof_matches_translation a hTrans
   rw [hTy] at hTyRaw
-  simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char]
+  simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char,
+    __smtx_typeof_guard, native_ite, native_Teq]
     using hTyRaw
 
 private theorem smtx_typeof_of_eo_reglan
@@ -202,9 +203,7 @@ private theorem eval_empty_in_re_eq_true_of_premise
           (SmtTerm.Boolean true) := by
     rfl
   rw [hTranslate] at hEval
-  simpa [__smtx_model_eval, hrEval, __smtx_model_eval_str_in_re,
-    __smtx_model_eval_eq, native_veq, native_string_lit_empty,
-    native_pack_string, native_unpack_string, native_pack_seq, native_unpack_seq] using hEval
+  simpa [__smtx_model_eval, hrEval, __smtx_model_eval_str_in_re, __smtx_model_eval_eq, native_veq, native_string_lit_empty, native_pack_string, native_unpack_string, native_pack_seq, native_unpack_seq, native_string_to_values] using hEval
 
 private theorem eval_len_geq_n_eq_true_of_premise
     (M : SmtModel) (t n : Term) (ss : SmtSeq) (ni : native_Int)

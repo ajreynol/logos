@@ -65,7 +65,7 @@ private theorem prog_arith_poly_norm_rel_eq_arg_of_typeof_bool_shape
               (Term.Apply (Term.Apply r y1) y2)))))
   have hOuter :
       __eo_requires guardSame (Term.Boolean true) restOne ≠ Term.Stuck := by
-    simpa [guardSame, restOne] using hProg
+    simpa [__eo_prog_arith_poly_norm_rel, guardSame, restOne] using hProg
   have hGuardSame : guardSame = Term.Boolean true :=
     eo_requires_arg_eq_of_ne_stuck hOuter
   have hRestOne : restOne ≠ Term.Stuck :=
@@ -334,7 +334,7 @@ private theorem facts___eo_prog_arith_poly_norm_rel_impl_shape
               (Term.Apply (Term.Apply r y1) y2)))))
   have hOuter :
       __eo_requires guardSame (Term.Boolean true) restOne ≠ Term.Stuck := by
-    simpa [guardSame, restOne] using hProg
+    simpa [__eo_prog_arith_poly_norm_rel, guardSame, restOne] using hProg
   have hGuardSame : guardSame = Term.Boolean true :=
     eo_requires_arg_eq_of_ne_stuck hOuter
   have hRestOne : restOne ≠ Term.Stuck :=

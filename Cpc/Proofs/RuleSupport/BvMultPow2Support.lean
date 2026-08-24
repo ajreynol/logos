@@ -133,7 +133,9 @@ private theorem bv_mult_pow2_context
       __eo_typeof_bvand (__eo_typeof (bvMultPow2Const size n))
           (__eo_typeof (bvMultPow2Nil z)) =
         Term.Apply (Term.UOp UserOp.BitVec) widthTerm := by
-    simpa [bvMultPow2Lhs] using hInnerTy
+    have hsimpa := hInnerTy
+    try simp [bvMultPow2Lhs] at hsimpa ⊢
+    exact hsimpa
   have hInnerNe :
       __eo_typeof_bvand (__eo_typeof (bvMultPow2Const size n))
           (__eo_typeof (bvMultPow2Nil z)) ≠ Term.Stuck := by
@@ -499,7 +501,7 @@ private theorem bv_mult_pow2_nil_ne
   intro hTy hNil
   have hLhsNe :=
     (RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _
-      (by simpa [bvMultPow2Term] using hTy)).1
+      (by have hsimpa := hTy; (try simp [bvMultPow2Term] at hsimpa ⊢); exact hsimpa)).1
   apply hLhsNe
   change __eo_typeof_bvand (__eo_typeof z)
       (__eo_typeof_bvand (__eo_typeof (bvMultPow2Const size n))
@@ -1111,8 +1113,9 @@ private theorem eval_bv_mult_pow2
     rw [← hERound]
     exact native_int_pow2_nat EN
   have hNPow : N = (2 : Int) ^ WN - (2 : Int) ^ EN := by
-    simpa [SmtEval.native_zplus, SmtEval.native_zneg,
-      hNativePowW, hNativePowE] using hN
+    have hsimpa := hN
+    try simp [SmtEval.native_zplus, SmtEval.native_zneg, hNativePowW, hNativePowE] at hsimpa ⊢
+    exact hsimpa
   have hENLtWN : EN < WN := by
     calc
       EN < DN + EN := Nat.lt_add_of_pos_left hDNPos
@@ -1340,8 +1343,9 @@ theorem eval_bv_mult_pow2_direct
     rw [← hERound]
     exact native_int_pow2_nat EN
   have hNPow : N = (2 : Int) ^ WN - (2 : Int) ^ EN := by
-    simpa [SmtEval.native_zplus, SmtEval.native_zneg,
-      hNativePowW, hNativePowE] using hN
+    have hsimpa := hN
+    try simp [SmtEval.native_zplus, SmtEval.native_zneg, hNativePowW, hNativePowE] at hsimpa ⊢
+    exact hsimpa
   have hENLtWN : EN < WN := by
     calc
       EN < DN + EN := Nat.lt_add_of_pos_left hDNPos

@@ -13,6 +13,12 @@ open Eo
 open SmtEval
 open Smtm
 
+/-- The checker-facing and rule-proof-facing translation predicates are the
+same property; expose that fact to `simp` at their interface boundary. -/
+@[simp] theorem eoHasSmtTranslation_iff_ruleProofs (t : Term) :
+    eoHasSmtTranslation t ↔ RuleProofs.eo_has_smt_translation t :=
+  Iff.rfl
+
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 

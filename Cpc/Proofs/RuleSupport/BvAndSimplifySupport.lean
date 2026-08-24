@@ -301,10 +301,12 @@ private theorem typeof_bvand_args_of_result_bitvec
   intro h
   have hNe :
       __eo_typeof_bvand (__eo_typeof x) (__eo_typeof y) ≠ Term.Stuck := by
-    simpa [band] using (show __eo_typeof (band x y) ≠ Term.Stuck by
+    have hsimpa := (show __eo_typeof (band x y) ≠ Term.Stuck by
       rw [h]
       intro hBad
       cases hBad)
+    try simp [band] at hsimpa ⊢
+    exact hsimpa
   rcases typeof_bvand_arg_types_of_ne_stuck hNe with
     ⟨actualWidth, hXTy, hYTy⟩
   have hActualWidthNe : actualWidth ≠ Term.Stuck := by
@@ -525,7 +527,9 @@ private theorem list_smt_type_or_nil_of_concat_type
       have hNonNone :
           term_has_non_none_type
             (SmtTerm.bvand (__eo_to_smt x) (__eo_to_smt xs)) := by
-        simpa [RuleProofs.eo_has_smt_translation, band, op] using hATrans
+        have hsimpa := hATrans
+        try simp [RuleProofs.eo_has_smt_translation, band, op] at hsimpa ⊢
+        exact hsimpa
       rcases bv_binop_args_of_non_none (op := SmtTerm.bvand)
           (show
             __smtx_typeof (SmtTerm.bvand (__eo_to_smt x) (__eo_to_smt xs)) =
@@ -610,7 +614,9 @@ private theorem lhs_component_types
   have hInsertedOpNe :
       __eo_typeof_bvand (__eo_typeof first)
           (__eo_typeof (inner ys zs second)) ≠ Term.Stuck := by
-    simpa [inserted, band, op] using hInsertedNe
+    have hsimpa := hInsertedNe
+    try simp [inserted, band, op] at hsimpa ⊢
+    exact hsimpa
   rcases typeof_bvand_arg_types_of_ne_stuck hInsertedOpNe with
     ⟨width, hFirstTy, hInnerTy⟩
   have hWidthNe : width ≠ Term.Stuck := by
@@ -949,10 +955,10 @@ private theorem inferred_argument_types
   subst result
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (lhs xs ys zs first second)) (__eo_typeof (zeroConst w))
-    (by simpa [eqTerm] using hResultTy)
+    (by have hsimpa := hResultTy; (try simp [eqTerm] at hsimpa ⊢); exact hsimpa)
   have hTypesEq := RuleProofs.eo_typeof_eq_bool_operands_eq
     (__eo_typeof (lhs xs ys zs first second)) (__eo_typeof (zeroConst w))
-    (by simpa [eqTerm] using hResultTy)
+    (by have hsimpa := hResultTy; (try simp [eqTerm] at hsimpa ⊢); exact hsimpa)
   rcases inferred_argument_types_common xs ys zs first second x
       hXsTrans hYsTrans hZsTrans hXTrans hXsList hYsList hSides.1 hPickX with
     ⟨W, hW0, hLhsEoTy, hXsTy, hYsTy, hZsTy, hXTy⟩
@@ -1131,8 +1137,10 @@ private theorem typed_term_core
       __smtx_typeof
           (__eo_to_smt (bvAllOnesConst (Term.Numeral 0) (Term.Numeral W))) =
         SmtType.BitVec width := by
-    simpa [width] using
+    have hsimpa :=
       smt_typeof_bv_const_of_int_type (Term.Numeral 0) W hZeroTy hW0
+    try simp [width] at hsimpa ⊢
+    exact hsimpa
   have hZeroConstTy :
       __smtx_typeof (__eo_to_smt (zeroConst (Term.Numeral W))) =
         SmtType.BitVec width := by

@@ -110,7 +110,7 @@ by
                                                         x i j k l ll kk
                                                         (Proof.pf P1) (Proof.pf P2)) =
                                                     Term.Bool := by
-                                                simpa [P1, P2] using hResultTy
+                                                exact hResultTy
                                               refine ⟨?_, ?_⟩
                                               · intro hPremisesTrue
                                                 have hP1True : eo_interprets M P1 true :=

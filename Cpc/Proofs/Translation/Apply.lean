@@ -1772,7 +1772,8 @@ private theorem typeof_binary_one_eq :
     simp [native_ite, SmtEval.native_and, native_zleq, native_zeq, native_mod_total,
       native_int_pow2]
     native_decide
-  simpa using smtx_typeof_binary_of_non_none 1 1 hNN
+  simpa [native_int_to_nat, SmtEval.native_int_to_nat] using
+    smtx_typeof_binary_of_non_none 1 1 hNN
 
 private theorem eo_to_smt_type_injective_of_type_wf_rec
     {T U : Term} {A : SmtType}
@@ -7367,7 +7368,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_set_insert
     change __eo_to_smt_type (__eo_typeof_set_insert (__eo_typeof y) (__eo_typeof x)) =
       SmtType.Set A
     rw [hList, hBase]
-    simpa [__eo_to_smt_type, hU,
+    simpa [__eo_typeof_set_insert, __eo_to_smt_type, hU,
       smtx_typeof_guard_of_non_none A (SmtType.Set A) hANN] using
       congrArg __eo_to_smt_type
         (eo_requires_eo_eq_self_of_non_stuck U (Term.Apply (Term.UOp UserOp.Set) U) hUNS)
@@ -9045,7 +9046,7 @@ theorem smtx_dt_resolve_tuple_body_eq :
                   (__eo_to_smt_type x0)))
               (__eo_to_smt_type_tuple (__eo_to_smt_type y)
                 (__eo_to_smt_type x0)) SmtType.None = _ at hT
-          simpa [hRawWf] using hT
+          simpa [native_ite, hRawWf] using hT
         have hyComp :
             __smtx_type_wf_component (__eo_to_smt_type y) = true := by
           by_cases hc : __smtx_type_wf_component (__eo_to_smt_type y) = true
@@ -10519,7 +10520,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_eq_from_valid_i
         have hYValidDtc : eo_type_valid_rec [] (Term.DtcAppType Y1 Y2) := by
           have hYValidTop' := hYValidTop
           rw [hYEo] at hYValidTop'
-          simpa [eo_type_valid] using hYValidTop'
+          simpa [eo_type_valid, eo_type_valid_rec] using hYValidTop'
         have hYDtcTrans :
             __eo_to_smt_type (Term.DtcAppType Y1 Y2) = SmtType.DtcAppType A B := by
           simpa [hYEo] using hYD
@@ -11142,7 +11143,10 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_concat x y
       (by rfl)
       (fun w1 w2 hy hx => by
-        simpa [__eo_to_smt_type, __eo_mk_apply, __eo_add, native_ite, native_zleq] using
+        have hSum : (0 : Int) ≤ (w1 : Int) + (w2 : Int) := by omega
+        simpa [__eo_to_smt_type, __eo_mk_apply, __eo_add, native_ite, native_zleq,
+          SmtEval.native_zleq, SmtEval.native_zplus, SmtEval.native_nat_to_int,
+          hSum] using
           eo_to_smt_type_typeof_apply_apply_concat_of_bitvec_types x y
             (Term.Numeral (native_nat_to_int w1))
             (Term.Numeral (native_nat_to_int w2))
@@ -11485,7 +11489,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
       (by rfl)
       (by rw [__smtx_typeof.eq_def] <;> simp only)
       (fun w hy hx => by
-        simpa using eo_to_smt_type_typeof_apply_apply_bvcomp_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
+        simpa using eo_to_smt_type_typeof_apply_apply_bvultbv_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
           (bv_width_term_nonstuck w))
@@ -11496,7 +11500,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
       (by rfl)
       (by rw [__smtx_typeof.eq_def] <;> simp only)
       (fun w hy hx => by
-        simpa using eo_to_smt_type_typeof_apply_apply_bvcomp_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
+        simpa using eo_to_smt_type_typeof_apply_apply_bvsltbv_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
           (bv_width_term_nonstuck w))
@@ -13492,11 +13496,12 @@ theorem eo_to_smt_updater_rec_update_arg_non_none_of_non_none
     __smtx_typeof u ≠ SmtType.None := by
   induction n generalizing acc with
   | zero =>
-      have hj : (j : Int) < 0 := by
-        simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
-          SmtEval.native_nat_to_int] using hIdx
-      have hjNonneg : (0 : Int) ≤ j := Int.natCast_nonneg j
-      omega
+      have hIdx' := hIdx
+      unfold native_zlt at hIdx'
+      have hjInt := of_decide_eq_true hIdx'
+      unfold native_nat_to_int at hjInt
+      have hj : j < Nat.zero := Int.ofNat_lt.mp hjInt
+      exact (Nat.not_lt_zero j hj).elim
   | succ k ih =>
       by_cases hEq : native_nateq j k = true
       · have hRecSel :
@@ -13524,12 +13529,11 @@ theorem eo_to_smt_updater_rec_update_arg_non_none_of_non_none
       · have hIdxK :
             native_zlt (native_nat_to_int j) (native_nat_to_int k) = true := by
           have hjk : j < k := by
-            have hjSucc : j < Nat.succ k := by
-              have hjSuccInt : (j : Int) < (Nat.succ k : Int) := by
-                apply of_decide_eq_true
-                simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
-                  SmtEval.native_nat_to_int] using hIdx
-              exact Int.ofNat_lt.mp hjSuccInt
+            have hIdx' := hIdx
+            unfold native_zlt at hIdx'
+            have hjInt := of_decide_eq_true hIdx'
+            unfold native_nat_to_int at hjInt
+            have hjSucc : j < Nat.succ k := Int.ofNat_lt.mp hjInt
             have hne : j ≠ k := by
               intro h
               subst j
@@ -13667,11 +13671,12 @@ theorem eo_to_smt_updater_rec_update_arg_type_of_non_none
     __smtx_typeof u = __smtx_ret_typeof_sel s d i j := by
   induction n with
   | zero =>
-      have hj : (j : Int) < 0 := by
-        simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
-          SmtEval.native_nat_to_int] using hIdx
-      have hjNonneg : (0 : Int) ≤ j := Int.natCast_nonneg j
-      omega
+      have hIdx' := hIdx
+      unfold native_zlt at hIdx'
+      have hjInt := of_decide_eq_true hIdx'
+      unfold native_nat_to_int at hjInt
+      have hj : j < Nat.zero := Int.ofNat_lt.mp hjInt
+      exact (Nat.not_lt_zero j hj).elim
   | succ k ih =>
       let recTerm :=
         __eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u
@@ -13752,12 +13757,11 @@ theorem eo_to_smt_updater_rec_update_arg_type_of_non_none
       · have hIdxK :
             native_zlt (native_nat_to_int j) (native_nat_to_int k) = true := by
           have hjk : j < k := by
-            have hjSucc : j < Nat.succ k := by
-              have hjSuccInt : (j : Int) < (Nat.succ k : Int) := by
-                apply of_decide_eq_true
-                simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
-                  SmtEval.native_nat_to_int] using hIdx
-              exact Int.ofNat_lt.mp hjSuccInt
+            have hIdx' := hIdx
+            unfold native_zlt at hIdx'
+            have hjInt := of_decide_eq_true hIdx'
+            unfold native_nat_to_int at hjInt
+            have hjSucc : j < Nat.succ k := Int.ofNat_lt.mp hjInt
             have hne : j ≠ k := by
               intro h
               subst j
@@ -14025,7 +14029,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
         have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype (native_string_lit "@Tuple") tupleDD := by
           rw [hTranslate]
           simpa [__eo_to_smt_tuple_update, __smtx_tuple_datatype_decl,
-            tupleDD, hGe, native_ite] using hInnerTy
+            tupleDD, hGe, native_ite, native_and, native_streq,
+            SmtEval.native_streq] using hInnerTy
         have hRecNN :
             __smtx_typeof
                 (__eo_to_smt_updater_rec
@@ -14097,12 +14102,14 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
               hYTypeBody hYValidRec
         have hIdxNat :
             native_int_to_nat n < __smtx_dt_num_sels body native_nat_zero := by
-          have hIdxInt :
-              (native_int_to_nat n : Int) <
-                (__smtx_dt_num_sels body native_nat_zero : Int) := by
-            apply of_decide_eq_true
-            simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
-              SmtEval.native_nat_to_int] using hIdx
+          have hIdx' :
+              native_zlt (native_nat_to_int (native_int_to_nat n))
+                  (native_nat_to_int (__smtx_dt_num_sels body native_nat_zero)) = true := by
+            simpa [tupleDD, __smtx_tuple_datatype_decl, __smtx_dd_lookup,
+              native_ite, native_streq, SmtEval.native_streq] using hIdx
+          unfold native_zlt at hIdx'
+          have hIdxInt := of_decide_eq_true hIdx'
+          unfold native_nat_to_int at hIdxInt
           exact Int.ofNat_lt.mp hIdxInt
         have hNthValidRec :
             eo_type_valid_rec []

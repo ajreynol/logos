@@ -261,7 +261,7 @@ private theorem bv_extract_sign_extend_1_context
           (__eo_typeof
             (Term.Apply (Term.UOp1 UserOp1.sign_extend k) x)) ≠
         Term.Stuck := by
-    simpa [bvExtractSignExtend1Lhs, bvExtractTerm] using hLhsNe
+    simpa [bvExtractSignExtend1Lhs, bvExtractTerm, __eo_typeof, __eo_typeof_extract] using hLhsNe
   rcases eo_typeof_extract_arg_bitvec_of_ne_stuck hLhsNe' with
     ⟨widthTerm, hSignTy⟩
   rcases sign_extend_index_context x k widthTerm w hXTy hSignTy with

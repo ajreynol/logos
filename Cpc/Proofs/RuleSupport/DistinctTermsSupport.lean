@@ -586,7 +586,7 @@ private theorem set_union_eval_maps
   have hUnionNN :
       __smtx_typeof (SmtTerm.set_union (__eo_to_smt x) (__eo_to_smt y)) ≠
         SmtType.None := by
-    simpa using hTrans
+    exact hTrans
   rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
       (typeof_set_union_eq (__eo_to_smt x) (__eo_to_smt y)) hUnionNN with
     ⟨A, hxTy, hyTy⟩
@@ -678,7 +678,7 @@ private theorem seq_is_non_empty_model_eval
       simp [__smtx_model_eval, v, native_pack_seq]
     have hConcatNN :
         __smtx_typeof (__eo_to_smt (mkConcat unit ts)) ≠ SmtType.None := by
-      simpa [unit, mkConcat] using hTrans
+      exact hTrans
     rcases str_concat_args_of_non_none unit ts hConcatNN with
       ⟨T, _hUnitTy, hTsTy⟩
     have hTailTy :=
@@ -754,7 +754,7 @@ private theorem eval_concat_seq_unit_pack
   let unit := Term.Apply (Term.UOp UserOp.seq_unit) e
   have hConcatNN :
       __smtx_typeof (__eo_to_smt (mkConcat unit tail)) ≠ SmtType.None := by
-    simpa [unit] using hTrans
+    exact hTrans
   rcases str_concat_args_of_non_none unit tail hConcatNN with
     ⟨T, _hUnitTy, hTailTy⟩
   have hTailValTy :=
@@ -786,13 +786,13 @@ private theorem eval_concat_seq_unit_pack_with_tail
   let unit := Term.Apply (Term.UOp UserOp.seq_unit) e
   have hConcatNN :
       __smtx_typeof (__eo_to_smt (mkConcat unit tail)) ≠ SmtType.None := by
-    simpa [unit] using hTrans
+    exact hTrans
   rcases str_concat_args_of_non_none unit tail hConcatNN with
     ⟨T, hUnitTy, hTailTy⟩
   have hArgTyInfo :=
     seq_unit_type_eq_arg_of_eq
       (t := __eo_to_smt e) (A := T) (by
-        simpa [unit] using hUnitTy)
+        exact hUnitTy)
   have hArgNonNone :
       term_has_non_none_type (__eo_to_smt e) := by
     unfold term_has_non_none_type
@@ -1216,7 +1216,7 @@ private theorem set_union_arg_translations_of_translation (x y : Term) :
   have hUnionNN :
       __smtx_typeof (SmtTerm.set_union (__eo_to_smt x) (__eo_to_smt y)) ≠
         SmtType.None := by
-    simpa using hTrans
+    exact hTrans
   rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
       (typeof_set_union_eq (__eo_to_smt x) (__eo_to_smt y)) hUnionNN with
     ⟨T, hxTy, hyTy⟩

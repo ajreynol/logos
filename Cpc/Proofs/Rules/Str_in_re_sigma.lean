@@ -220,9 +220,9 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                       change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String (native_string_lit ""))) =
                           SmtValue.RegLan rv at hREval
                       rw [__smtx_model_eval.eq_104, __smtx_model_eval.eq_4] at hREval
-                      simpa [__smtx_model_eval_str_to_re, native_str_to_re,
-                        native_unpack_string, native_pack_string, native_pack_seq,
-                        native_unpack_seq, native_re_of_list] using hREval.symm
+                      have hsimpa := hREval.symm
+                      try simp [__smtx_model_eval_str_to_re, native_str_to_re, native_pack_string] at hsimpa ⊢
+                      exact hsimpa
                     subst rv
                     cases exact
                     · rw [str_in_re_sigma_rec_empty_false_eq s n hSNe]
@@ -397,24 +397,27 @@ private theorem eo_requires_result_eq_of_ne_stuck (x y z : Term) :
     __eo_requires x y z = z := by
   intro h
   have h' := h
-  simp [__eo_requires, native_ite, native_teq] at h'
+  simp [__eo_requires, native_ite, native_teq, native_not,
+    SmtEval.native_not] at h'
   rcases h' with ⟨hxy, hxOk, _hz⟩
   subst y
-  simp [__eo_requires, native_ite, native_teq, hxOk]
+  simp [__eo_requires, native_ite, native_teq, native_not,
+    SmtEval.native_not, hxOk]
 
 private theorem eo_requires_left_ne_stuck_of_ne_stuck (x y z : Term) :
     __eo_requires x y z ≠ Term.Stuck ->
     x ≠ Term.Stuck := by
   intro h
   have h' := h
-  simp [__eo_requires, native_ite, native_teq] at h'
+  simp [__eo_requires, native_ite, native_teq, native_not,
+    SmtEval.native_not] at h'
   rcases h' with ⟨_hxy, hxOk, _hz⟩
   intro hx
   subst x
   have hxNe : y ≠ Term.Stuck := by
     intro hy
     subst y
-    simp [native_not] at hxOk
+    simp at hxOk
   exact hxNe hx
 
 private theorem eq_operands_same_smt_type_of_eq_has_smt_translation
@@ -583,7 +586,8 @@ private theorem str_in_re_sigma_valid_properties
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
   have hSSValid : native_string_valid (native_unpack_string ss) = true := by
     apply native_unpack_string_valid_of_typeof_seq_char
-    simpa [hSEval] using hSEvalTy
+    simp only [hSEval] at hSEvalTy
+    exact hSEvalTy
   have hSNe : s ≠ Term.Stuck := by
     intro hs
     apply hSideNe

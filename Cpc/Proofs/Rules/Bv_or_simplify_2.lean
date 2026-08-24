@@ -72,7 +72,9 @@ by
                                       __eo_prog_bv_or_simplify_2
                                           a1 a2 a3 a4 a5 (Proof.pf P1) ≠
                                         Term.Stuck := by
-                                    simpa [P1] using hProg
+                                    have hsimpa := hProg
+                                    try simp [P1] at hsimpa ⊢
+                                    exact hsimpa
                                   rcases
                                       BvOrSimplifySupport.program2_shape_of_ne_stuck
                                         a1 a2 a3 a4 a5 P1 hProgLocal with

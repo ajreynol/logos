@@ -65,6 +65,60 @@ abbrev __eo_reserved_datatype_name : native_String -> native_Bool :=
 @[simp] theorem eo_to_smt_uconst (i : native_Nat) (T : Term) :
     __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T) := rfl
 
+/-- Simplifies EO-to-SMT translation for common binary operators. These
+explicit equations keep proof simplification independent of which generated
+equations Lean exposes for `__eo_to_smt`. -/
+@[simp] theorem eo_to_smt_or (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) y) =
+      SmtTerm.or (__eo_to_smt x) (__eo_to_smt y) := rfl
+
+@[simp] theorem eo_to_smt_and (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) y) =
+      SmtTerm.and (__eo_to_smt x) (__eo_to_smt y) := rfl
+
+@[simp] theorem eo_to_smt_ite (c t e : Term) :
+    __eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) t) e) =
+      SmtTerm.ite (__eo_to_smt c) (__eo_to_smt t) (__eo_to_smt e) := rfl
+
+@[simp] theorem eo_to_smt_concat (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.concat) x) y) =
+      SmtTerm.concat (__eo_to_smt x) (__eo_to_smt y) := rfl
+
+@[simp] theorem eo_to_smt_bvand (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x) y) =
+      SmtTerm.bvand (__eo_to_smt x) (__eo_to_smt y) := rfl
+
+@[simp] theorem eo_to_smt_bvor (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) x) y) =
+      SmtTerm.bvor (__eo_to_smt x) (__eo_to_smt y) := rfl
+
+@[simp] theorem eo_to_smt_bvxor (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) y) =
+      SmtTerm.bvxor (__eo_to_smt x) (__eo_to_smt y) := rfl
+
+@[simp] theorem eo_to_smt_str_concat (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y) =
+      SmtTerm.str_concat (__eo_to_smt x) (__eo_to_smt y) := rfl
+
+@[simp] theorem eo_to_smt_re_concat (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) x) y) =
+      SmtTerm.re_concat (__eo_to_smt x) (__eo_to_smt y) := rfl
+
+@[simp] theorem eo_to_smt_re_inter (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) x) y) =
+      SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt y) := rfl
+
+@[simp] theorem eo_to_smt_re_union (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) x) y) =
+      SmtTerm.re_union (__eo_to_smt x) (__eo_to_smt y) := rfl
+
+@[simp] theorem eo_to_smt_aci_sorted_marker (f t : Term) :
+    __eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) t) =
+      SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt f))
+        (__eo_to_smt t) := rfl
+
 /-- Simplifies EO-to-SMT translation for `@const`. -/
 theorem eo_to_smt_at_const (i T : Term) :
     __eo_to_smt (Term.UOp2 UserOp2._at_const i T) =

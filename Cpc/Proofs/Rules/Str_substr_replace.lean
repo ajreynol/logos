@@ -127,7 +127,7 @@ private theorem typed___eo_prog_str_substr_replace_impl
             (SmtTerm.str_replace (__eo_to_smt s) (__eo_to_smt t)
               (__eo_to_smt r)) =
           SmtType.Seq (__eo_to_smt_type T) by
-      simpa [value] using hValueTy]
+      simpa [value, __eo_to_smt, __eo_to_smt_type, __smtx_typeof, substrReplaceValue] using hValueTy]
     simp [hNSmtTy, __smtx_typeof_str_substr, __smtx_typeof.eq_def]
   have hRhsTy :
       __smtx_typeof (__eo_to_smt rhs) =
@@ -144,7 +144,7 @@ private theorem typed___eo_prog_str_substr_replace_impl
             (SmtTerm.str_substr (__eo_to_smt s) (SmtTerm.Numeral 0)
               (__eo_to_smt n)) =
           SmtType.Seq (__eo_to_smt_type T) by
-      simpa [extracted] using hExtractedTy]
+      simpa [extracted, __eo_to_smt, __eo_to_smt_type, __smtx_typeof, substrReplaceExtract] using hExtractedTy]
     simp [hTSmtTy, hRSmtTy, __smtx_typeof_seq_op_3,
       native_ite, native_Teq]
   have hBool : RuleProofs.eo_has_bool_type

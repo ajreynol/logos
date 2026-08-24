@@ -99,11 +99,12 @@ private theorem native_string_to_values_replace_all_aux :
                 congrArg (fun tail => SmtValue.Char c :: tail)
                   (native_string_to_values_replace_all_aux fuel r replacement cs)
           | succ n =>
-              simpa only [native_string_to_values, List.map_append,
-                List.map_drop] using
+              have hsimpa :=
                 congrArg (fun tail => List.map SmtValue.Char replacement ++ tail)
                   (native_string_to_values_replace_all_aux fuel r replacement
                     (cs.drop n))
+              try simp only [native_string_to_values, List.map_append, List.map_drop] at hsimpa ⊢
+              exact hsimpa
 
 private theorem native_string_to_values_str_replace_re_all
     (s : native_String) (r : SmtRegLan) (replacement : native_String) :
@@ -885,7 +886,7 @@ private theorem str_eval_replace_re_all_rec_properties
                             str_concat_eval_replacement_left M t tail repl
                               (native_re_replace_all_nonempty_list_aux fuel' rv
                                 (native_unpack_string repl) (cs.drop n))
-                              hTEval hReplTy (by simpa using hTailEval)
+                              hTEval hReplTy (by have hsimpa := hTailEval; (try simp at hsimpa ⊢); exact hsimpa)
                         have hOuter :
                             __smtx_model_eval M
                                 (__eo_to_smt
@@ -1198,9 +1199,9 @@ private theorem str_replace_re_all_eval_valid_properties
               (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re_all) (Term.String str)) r)
               t))
           side := by
-    simpa [lhs, body, lhs', side, inner, raw, rNonempty,
-      replace_re_all_nonempty_re]
-      using hResult
+    have hsimpa := hResult
+    try simp [lhs, body, side, inner, raw, rNonempty, replace_re_all_nonempty_re] at hsimpa ⊢
+    exact hsimpa
   refine ⟨?_, ?_⟩
   · intro _hPremises
     rw [hResult']

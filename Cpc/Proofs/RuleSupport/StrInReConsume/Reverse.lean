@@ -854,7 +854,9 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_word_suffixes_false_local
       have hListMem :
           nativeListInRe suf
               (native_re_mk_concat A (native_str_to_re u)) = true := by
-        simpa [native_str_in_re, native_re_concat, hValid] using hMem
+        have hsimpa := hMem
+        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
+        exact hsimpa
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           (native_str_to_re u)).1 hListMem with
         ⟨x, y, hSplit, hX, hY⟩
@@ -910,7 +912,9 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_len_one_suffixes_false_loca
         | false => simp [native_str_in_re, h] at hMem
       have hListMem :
           nativeListInRe suf (native_re_mk_concat A H) = true := by
-        simpa [native_str_in_re, native_re_concat, hValid] using hMem
+        have hsimpa := hMem
+        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
+        exact hsimpa
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           H).1 hListMem with
         ⟨x, y, hSplit, hX, hY⟩
@@ -1200,7 +1204,9 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_mismatch_suffixes_false_loc
         | false => simp [native_str_in_re, h] at hMem
       have hListMem :
           nativeListInRe suf (native_re_mk_concat A H) = true := by
-        simpa [native_str_in_re, native_re_concat, hValid] using hMem
+        have hsimpa := hMem
+        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
+        exact hsimpa
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           H).1 hListMem with
         ⟨x, y, hSplit, _hX, hY⟩
@@ -1254,8 +1260,10 @@ theorem StrInReConsumeInternal.native_str_in_re_star_nonempty_suffix_local
     have hStarEq :
         StrInReConsumeInternal.native_re_reverse_raw_consume_local (native_re_mult r) =
           native_re_mult (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) := by
-      simpa [native_re_mult] using
+      have hsimpa :=
         StrInReConsumeInternal.native_re_reverse_raw_mk_star_consume_local r
+      try simp [native_re_mult] at hsimpa ⊢
+      exact hsimpa
     rw [hStarEq] at hMem
     exact hMem
   have hRevListMem :
@@ -1325,7 +1333,9 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_star_suffixes_false_local
       have hListMem :
           nativeListInRe suf
               (native_re_mk_concat A (native_re_mult B)) = true := by
-        simpa [native_str_in_re, native_re_concat, hValid] using hMem
+        have hsimpa := hMem
+        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
+        exact hsimpa
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           (native_re_mult B)).1 hListMem with
         ⟨x, y, hSplit, hX, hY⟩
@@ -1401,8 +1411,9 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_len_one_eq_consume_local
         have hListMem :
             nativeListInRe (w ++ u) (native_re_mk_concat A H) =
               true := by
-          simpa [native_str_in_re, native_re_concat, nativeListInRe,
-            hValid] using hMem
+          have hsimpa := hMem
+          try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
+          exact hsimpa
         rcases (nativeListInRe_mk_concat_true_iff_exists_append _ A
             H).1 hListMem with
           ⟨x, y, hSplit, hX, hY⟩
@@ -1444,8 +1455,9 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_word_eq_consume_local
             nativeListInRe (w ++ u)
                 (native_re_mk_concat A (native_str_to_re u)) =
               true := by
-          simpa [native_str_in_re, native_re_concat, nativeListInRe,
-            hValid] using hMem
+          have hsimpa := hMem
+          try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
+          exact hsimpa
         rcases (nativeListInRe_mk_concat_true_iff_exists_append _ A
             (native_str_to_re u)).1 hListMem with
           ⟨x, y, hSplit, hX, hY⟩
@@ -1483,7 +1495,7 @@ theorem StrInReConsumeInternal.eval_string_unpack_consume_local
   · change __smtx_model_eval M (SmtTerm.String w) = _
     simp only [__smtx_model_eval]
   · simp [native_unpack_string, native_string_to_values,
-      StrInReConsumeInternal.consume_unpack_pack_string_map,
+     
       StrInReConsumeInternal.map_char_of_comp_char_consume_local]
 
 theorem StrInReConsumeInternal.typed_seq_unpack_values_of_eval_local
@@ -1499,7 +1511,9 @@ theorem StrInReConsumeInternal.typed_seq_unpack_values_of_eval_local
       rw [hTy]
       simp)
   rw [hEval, hTy] at h
-  simpa using h
+  have hsimpa := h
+  try simp at hsimpa ⊢
+  exact hsimpa
 
 theorem StrInReConsumeInternal.typed_seq_value_of_eval_local
     (M : SmtModel) (hM : model_total_typed M) (s : SmtTerm) (ss : SmtSeq)
@@ -1628,7 +1642,9 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_word_mismatch_suffixes_fals
       have hListMem :
           nativeListInRe suf
               (native_re_mk_concat A (native_str_to_re [d])) = true := by
-        simpa [native_str_in_re, native_re_concat, hValid] using hMem
+        have hsimpa := hMem
+        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
+        exact hsimpa
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           (native_str_to_re [d])).1 hListMem with
         ⟨x, y, hSplit, _hX, hY⟩
@@ -1700,8 +1716,8 @@ theorem StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_local
         (SmtTerm.re_concat (__eo_to_smt (__re_rev_comp head))
           (SmtTerm.str_to_re (SmtTerm.String []))) = _
     simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-      __smtx_model_eval_str_to_re, hCompEval, native_unpack_string,
-      StrInReConsumeInternal.consume_unpack_pack_string_map]
+      __smtx_model_eval_str_to_re, hCompEval,
+     ]
   have hEpsEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -1710,7 +1726,7 @@ theorem StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_local
     change __smtx_model_eval M
         (SmtTerm.str_to_re (SmtTerm.String [])) = _
     simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-      native_unpack_string, StrInReConsumeInternal.consume_unpack_pack_string_map]
+     ]
   rcases StrInReConsumeInternal.eval_rev_map_rev_acc_factor_consume_local M r2 _ rvU hRvU with
     ⟨⟨newAccV, hNewAccEval⟩, C, hTrans⟩
   rcases hTrans _ _ hAccEval2 with ⟨v1, hv1, hRel1⟩
@@ -1770,8 +1786,8 @@ theorem StrInReConsumeInternal.eval_unrev_re_concat_empty_left_bridge_local
           (SmtTerm.str_to_re (SmtTerm.String []))
           (SmtTerm.str_to_re (SmtTerm.String []))) = _
     simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-      __smtx_model_eval_str_to_re, native_unpack_string,
-      StrInReConsumeInternal.consume_unpack_pack_string_map]
+      __smtx_model_eval_str_to_re,
+     ]
   have hEpsEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -1780,7 +1796,7 @@ theorem StrInReConsumeInternal.eval_unrev_re_concat_empty_left_bridge_local
     change __smtx_model_eval M
         (SmtTerm.str_to_re (SmtTerm.String [])) = _
     simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-      native_unpack_string, StrInReConsumeInternal.consume_unpack_pack_string_map]
+     ]
   rcases StrInReConsumeInternal.eval_rev_map_rev_acc_factor_consume_local M r _ rvU hRvU with
     ⟨⟨newAccV, hNewAccEval⟩, C, hTrans⟩
   rcases hTrans _ _ hAccEval2 with ⟨v1, hv1, hRel1⟩
@@ -1907,7 +1923,9 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_no_suffix_right_false_loc
         | false => simp [native_str_in_re, h] at hMem
       have hListMem :
           nativeListInRe suf (native_re_mk_concat A H) = true := by
-        simpa [native_str_in_re, native_re_concat, hValid] using hMem
+        have hsimpa := hMem
+        try simp [native_str_in_re, native_re_concat, hValid] at hsimpa ⊢
+        exact hsimpa
       rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
           H).1 hListMem with ⟨x, y, hSplit, _hX, hY⟩
       have hYValid : native_string_valid y = true :=
@@ -1984,7 +2002,7 @@ theorem StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_exists_local
     change __smtx_model_eval M
         (SmtTerm.str_to_re (SmtTerm.String [])) = _
     simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-      native_unpack_string_pack_string]
+     ]
   have hEpsVEq : epsV = native_str_to_re [] := by
     injection hEpsEval2.symm.trans hEpsEvalConc
   subst hEpsVEq
@@ -2053,7 +2071,7 @@ theorem StrInReConsumeInternal.consume_no_suffix_concat_of_residual_local
               (__eo_to_smt (StrInReConsumeInternal.consume_unrev_re_local r2))) = _
         simp [__smtx_model_eval, __smtx_model_eval_re_concat,
           __smtx_model_eval_str_to_re, hRvU2,
-          native_unpack_string_pack_string]
+         ]
       have hEq := hQ _ _ hQEval
       have hLhs :
           native_str_in_re (w' ++ u)
@@ -2072,7 +2090,9 @@ theorem StrInReConsumeInternal.consume_no_suffix_concat_of_residual_local
           nativeListInRe w'
               (native_re_mk_concat (native_str_to_re pre) rvU2) =
             true := by
-        simpa [native_str_in_re, native_re_concat, hW'Valid] using hLhs
+        have hsimpa := hLhs
+        try simp [native_str_in_re, native_re_concat, hW'Valid] at hsimpa ⊢
+        exact hsimpa
       rcases (nativeListInRe_mk_concat_true_iff_exists_append w' _
           _).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
       have hXValid : native_string_valid x = true :=
@@ -2604,7 +2624,9 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_left_no_suffix_eq_l
             nativeListInRe w
                 (native_re_mk_concat qv (native_re_union v1 v2)) =
               true := by
-          simpa [native_str_in_re, native_re_concat, hWV] using hMem
+          have hsimpa := hMem
+          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
+          exact hsimpa
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             _).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2636,7 +2658,9 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_left_no_suffix_eq_l
       · intro hMem
         have hListMem :
             nativeListInRe w (native_re_mk_concat qv v2) = true := by
-          simpa [native_str_in_re, native_re_concat, hWV] using hMem
+          have hsimpa := hMem
+          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
+          exact hsimpa
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             v2).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2690,7 +2714,9 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_right_no_suffix_eq_
             nativeListInRe w
                 (native_re_mk_concat qv (native_re_union v1 v2)) =
               true := by
-          simpa [native_str_in_re, native_re_concat, hWV] using hMem
+          have hsimpa := hMem
+          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
+          exact hsimpa
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             _).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2722,7 +2748,9 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_right_no_suffix_eq_
       · intro hMem
         have hListMem :
             nativeListInRe w (native_re_mk_concat qv v1) = true := by
-          simpa [native_str_in_re, native_re_concat, hWV] using hMem
+          have hsimpa := hMem
+          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
+          exact hsimpa
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             v1).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2776,7 +2804,9 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_both_eq_local
             nativeListInRe w
                 (native_re_mk_concat qv (native_re_union v1 v2)) =
               true := by
-          simpa [native_str_in_re, native_re_concat, hWV] using hMem
+          have hsimpa := hMem
+          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
+          exact hsimpa
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             _).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2819,7 +2849,9 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_union_both_eq_local
           exact hMem
         have hListMem :
             nativeListInRe w (native_re_mk_concat qv v1) = true := by
-          simpa [native_str_in_re, native_re_concat, hWV] using hW1
+          have hsimpa := hW1
+          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
+          exact hsimpa
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             v1).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -2874,7 +2906,9 @@ theorem StrInReConsumeInternal.native_str_in_re_concat_inter_both_eq_local
             nativeListInRe w
                 (native_re_mk_concat qv (native_re_inter v1 v2)) =
               true := by
-          simpa [native_str_in_re, native_re_concat, hWV] using hMem
+          have hsimpa := hMem
+          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
+          exact hsimpa
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             _).1 hListMem with ⟨x, y, hSplit, hX, hY⟩
         have hXValid : native_string_valid x = true :=
@@ -3364,6 +3398,35 @@ def StrInReConsumeInternal.consume_wf_rev_comp_motive_local (c : Term) : Prop :=
   (StrInReConsumeInternal.consume_wf_union_tail_local c ->
     StrInReConsumeInternal.consume_wf_union_tail_local (__re_rev_comp c))
 
+/-- `__eo_mk_apply` only inspects whether its arguments are `Term.Stuck`, so a
+proof about `__eo_mk_apply op x` needs two cases, not one per `Term`
+constructor. -/
+private theorem StrInReConsumeInternal.mk_apply_unop_cases_local
+    {op x : Term} {P : Term -> Prop} (hop : op ≠ Term.Stuck)
+    (hStuck : P Term.Stuck) (hApply : P (Term.Apply op x)) :
+    P (__eo_mk_apply op x) := by
+  by_cases hx : x = Term.Stuck
+  · subst hx
+    rw [show __eo_mk_apply op Term.Stuck = Term.Stuck by cases op <;> rfl]
+    exact hStuck
+  · rw [show __eo_mk_apply op x = Term.Apply op x by
+      cases op <;> cases x <;> simp_all [__eo_mk_apply]]
+    exact hApply
+
+/-- The binary counterpart: three cases instead of 25 x 25. -/
+private theorem StrInReConsumeInternal.mk_apply_binop_cases_local
+    {op x y : Term} {P : Term -> Prop} (hop : op ≠ Term.Stuck)
+    (hStuck : P Term.Stuck)
+    (hApply : P (Term.Apply (Term.Apply op x) y)) :
+    P (__eo_mk_apply (__eo_mk_apply op x) y) := by
+  by_cases hx : x = Term.Stuck
+  · subst hx
+    rw [show __eo_mk_apply op Term.Stuck = Term.Stuck by cases op <;> rfl]
+    exact hStuck
+  · rw [show __eo_mk_apply op x = Term.Apply op x by
+      cases op <;> cases x <;> simp_all [__eo_mk_apply]]
+    exact StrInReConsumeInternal.mk_apply_unop_cases_local (by simp) hStuck hApply
+
 /--
 Well-formedness is preserved by `__re_rev_map_rev` / `__re_rev_comp`:
 the reversal only reorders chunks and recurses into combinator
@@ -3448,27 +3511,23 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
         (__eo_mk_apply (Term.UOp UserOp.re_mult)
           (__re_rev_map_rev body
             (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))
-      cases hX : __re_rev_map_rev body
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        rw [hX] at hRev <;>
-        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_chunk_local,
-          StrInReConsumeInternal.consume_wf_chain_local, StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_unop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_chunk_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp only [StrInReConsumeInternal.consume_wf_local]; exact hRev)
     · show StrInReConsumeInternal.consume_wf_inter_tail_local
         (__eo_mk_apply (Term.UOp UserOp.re_mult)
           (__re_rev_map_rev body
             (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))
-      cases hX : __re_rev_map_rev body
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        simp [__eo_mk_apply, StrInReConsumeInternal.consume_wf_inter_tail_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_unop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_inter_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp [StrInReConsumeInternal.consume_wf_inter_tail_local, StrInReConsumeInternal.consume_wf_local])
     · show StrInReConsumeInternal.consume_wf_union_tail_local
         (__eo_mk_apply (Term.UOp UserOp.re_mult)
           (__re_rev_map_rev body
             (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))
-      cases hX : __re_rev_map_rev body
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        simp [__eo_mk_apply, StrInReConsumeInternal.consume_wf_union_tail_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_unop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_union_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp [StrInReConsumeInternal.consume_wf_union_tail_local, StrInReConsumeInternal.consume_wf_local])
   have case9 : ∀ c1 c2,
       StrInReConsumeInternal.consume_wf_rev_map_motive_local c1
         (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) ->
@@ -3496,13 +3555,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        rw [hX] at hLeft <;>
-        cases hY : __re_rev_comp c2 <;>
-        rw [hY] at hRight <;>
-        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_chunk_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_chunk_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp only [StrInReConsumeInternal.consume_wf_local]; exact ⟨hLeft, hRight⟩)
     · rcases hBoth (StrInReConsumeInternal.consume_wf_inter_tail_parts_local hTail).1
           (StrInReConsumeInternal.consume_wf_inter_tail_parts_local hTail).2 with
         ⟨hLeft, hRight⟩
@@ -3513,14 +3568,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        rw [hX] at hLeft <;>
-        cases hY : __re_rev_comp c2 <;>
-        rw [hY] at hRight <;>
-        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_inter_tail_local,
-          StrInReConsumeInternal.consume_wf_chain_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_inter_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp only [StrInReConsumeInternal.consume_wf_local]; exact ⟨hLeft, hRight⟩)
     · show StrInReConsumeInternal.consume_wf_union_tail_local
         (__eo_mk_apply
           (__eo_mk_apply (Term.UOp UserOp.re_inter)
@@ -3528,11 +3578,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        cases hY : __re_rev_comp c2 <;>
-        simp [__eo_mk_apply, StrInReConsumeInternal.consume_wf_union_tail_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_union_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp [StrInReConsumeInternal.consume_wf_union_tail_local, StrInReConsumeInternal.consume_wf_local])
   have case10 : ∀ c1 c2,
       StrInReConsumeInternal.consume_wf_rev_map_motive_local c1
         (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) ->
@@ -3560,13 +3608,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        rw [hX] at hLeft <;>
-        cases hY : __re_rev_comp c2 <;>
-        rw [hY] at hRight <;>
-        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_chunk_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_chunk_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp only [StrInReConsumeInternal.consume_wf_local]; exact ⟨hLeft, hRight⟩)
     · show StrInReConsumeInternal.consume_wf_inter_tail_local
         (__eo_mk_apply
           (__eo_mk_apply (Term.UOp UserOp.re_union)
@@ -3574,11 +3618,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        cases hY : __re_rev_comp c2 <;>
-        simp [__eo_mk_apply, StrInReConsumeInternal.consume_wf_inter_tail_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_inter_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp [StrInReConsumeInternal.consume_wf_inter_tail_local, StrInReConsumeInternal.consume_wf_local])
     · rcases hBoth (StrInReConsumeInternal.consume_wf_union_tail_parts_local hTail).1
           (StrInReConsumeInternal.consume_wf_union_tail_parts_local hTail).2 with
         ⟨hLeft, hRight⟩
@@ -3589,14 +3631,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        rw [hX] at hLeft <;>
-        cases hY : __re_rev_comp c2 <;>
-        rw [hY] at hRight <;>
-        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_union_tail_local,
-          StrInReConsumeInternal.consume_wf_chain_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_union_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp only [StrInReConsumeInternal.consume_wf_local]; exact ⟨hLeft, hRight⟩)
   have case11 : ∀ c, (c = Term.Stuck -> False) ->
       (c = Term.UOp UserOp.re_all -> False) ->
       (c = Term.UOp UserOp.re_none -> False) ->
@@ -4173,8 +4210,10 @@ theorem StrInReConsumeInternal.native_str_in_re_star_nonempty_suffix_full_local
     have hStarEq :
         StrInReConsumeInternal.native_re_reverse_raw_consume_local (native_re_mult r) =
           native_re_mult (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) := by
-      simpa [native_re_mult] using
+      have hsimpa :=
         StrInReConsumeInternal.native_re_reverse_raw_mk_star_consume_local r
+      try simp [native_re_mult] at hsimpa ⊢
+      exact hsimpa
     rw [hStarEq] at hMem
     exact hMem
   have hRevListMem :
@@ -4215,8 +4254,10 @@ theorem StrInReConsumeInternal.native_str_in_re_star_nonempty_suffix_full_local
     have hStarEq :
         StrInReConsumeInternal.native_re_reverse_raw_consume_local (native_re_mult r) =
           native_re_mult (StrInReConsumeInternal.native_re_reverse_raw_consume_local r) := by
-      simpa [native_re_mult] using
+      have hsimpa :=
         StrInReConsumeInternal.native_re_reverse_raw_mk_star_consume_local r
+      try simp [native_re_mult] at hsimpa ⊢
+      exact hsimpa
     rw [hStarEq] at hEq
     rw [← hEq]
     exact hSufStrMem
@@ -4251,8 +4292,10 @@ theorem StrInReConsumeInternal.native_str_in_re_star_append_local
   have hStarEq :
       StrInReConsumeInternal.native_re_reverse_raw_consume_local (native_re_mult B) =
         native_re_mult (StrInReConsumeInternal.native_re_reverse_raw_consume_local B) := by
-    simpa [native_re_mult] using
+    have hsimpa :=
       StrInReConsumeInternal.native_re_reverse_raw_mk_star_consume_local B
+    try simp [native_re_mult] at hsimpa ⊢
+    exact hsimpa
   have hBsRev :
       native_str_in_re bs.reverse
           (native_re_mult (StrInReConsumeInternal.native_re_reverse_raw_consume_local B)) =
@@ -4428,7 +4471,9 @@ theorem StrInReConsumeInternal.consume_mult_left_false_residual_eq_local
           exact hMem
         have hListMem :
             nativeListInRe w (native_re_mk_concat qv A) = true := by
-          simpa [native_str_in_re, native_re_concat, hWV] using hW1
+          have hsimpa := hW1
+          try simp [native_str_in_re, native_re_concat, hWV] at hsimpa ⊢
+          exact hsimpa
         rcases (nativeListInRe_mk_concat_true_iff_exists_append w qv
             A).1 hListMem with ⟨α, x, hSplit, hAl, hXm⟩
         have hAlValid : native_string_valid α = true :=
@@ -4550,7 +4595,7 @@ theorem StrInReConsumeInternal.consume_mult_retry_no_suffix_local
                   (__eo_to_smt multt))) = _
           simp [__smtx_model_eval, __smtx_model_eval_re_concat,
             __smtx_model_eval_str_to_re, hAEval, hMultEval,
-            native_unpack_string_pack_string]
+           ]
         have hEq := hQ _ _ hQEval
         have hSufSplit : suf = (x ++ y1) ++ yk := by
           rw [List.append_assoc, hYSplit, hSplit]
@@ -5024,7 +5069,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local
             change __smtx_model_eval M
                 (SmtTerm.str_to_re (SmtTerm.String [d])) = _
             simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-              native_unpack_string_pack_string]
+             ]
           rcases StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_local M _ r2 rvU _
               hCompEval hRvU with ⟨rvU2, hRvU2, hRvURel⟩
           constructor
@@ -5216,7 +5261,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local
               (SmtTerm.re_range (SmtTerm.String [lo])
                 (SmtTerm.String [hi])) = _
           simp [__smtx_model_eval, __smtx_model_eval_re_range,
-            native_unpack_string_pack_string]
+           ]
         rcases eo_ite_cases_of_ne_stuck _ _ _
             (by
               rw [hIteFalse]
@@ -5368,7 +5413,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local
                 (SmtTerm.re_range (SmtTerm.String [lo])
                   (SmtTerm.String [hi])) = _
             simp [__smtx_model_eval, __smtx_model_eval_re_range,
-              native_unpack_string_pack_string]
+             ]
           rcases ih.2 side hS2Ty hR2Ty hSide2 hMemEps
               (StrInReConsumeInternal.consume_unrev_str_tail_ne_stuck_local _ s2 hUnrevNe)
               (StrInReConsumeInternal.consume_wf_chain_concat_parts_local hWf).2 with
@@ -5469,8 +5514,8 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local
               (SmtTerm.re_concat SmtTerm.re_allchar
                 (SmtTerm.str_to_re (SmtTerm.String []))) = _
           simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-            __smtx_model_eval_str_to_re, native_unpack_string,
-            StrInReConsumeInternal.consume_unpack_pack_string_map]
+            __smtx_model_eval_str_to_re,
+           ]
         have hEpsEval :
             __smtx_model_eval M
                 (__eo_to_smt
@@ -5480,7 +5525,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local
           change __smtx_model_eval M
               (SmtTerm.str_to_re (SmtTerm.String [])) = _
           simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-            native_unpack_string, StrInReConsumeInternal.consume_unpack_pack_string_map]
+           ]
         rcases StrInReConsumeInternal.eval_rev_map_rev_acc_factor_consume_local M r2 _ rvU
             hRvU with ⟨⟨newAccV, hNewAccEval⟩, C, hTrans⟩
         rcases hTrans _ _ hAccEval2 with ⟨v1, hv1, hRel1⟩
@@ -5597,8 +5642,8 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local
               (SmtTerm.re_concat SmtTerm.re_allchar
                 (SmtTerm.str_to_re (SmtTerm.String []))) = _
           simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-            __smtx_model_eval_str_to_re, native_unpack_string,
-            StrInReConsumeInternal.consume_unpack_pack_string_map]
+            __smtx_model_eval_str_to_re,
+           ]
         have hEpsEval :
             __smtx_model_eval M
                 (__eo_to_smt
@@ -5608,7 +5653,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local
           change __smtx_model_eval M
               (SmtTerm.str_to_re (SmtTerm.String [])) = _
           simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-            native_unpack_string, StrInReConsumeInternal.consume_unpack_pack_string_map]
+           ]
         rcases StrInReConsumeInternal.eval_rev_map_rev_acc_factor_consume_local M r2 _ rvU
             hRvU with ⟨⟨newAccV, hNewAccEval⟩, C, hTrans⟩
         rcases hTrans _ _ hAccEval2 with ⟨v1, hv1, hRel1⟩
@@ -6248,7 +6293,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_semantic_local
         change __smtx_model_eval M
             (SmtTerm.str_to_re (SmtTerm.String [])) = _
         simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-          native_unpack_string, StrInReConsumeInternal.consume_unpack_pack_string_map]
+         ]
       refine ⟨?_, ?_, ?_⟩
       · rw [hMembStr]
         exact hSTy
@@ -7204,7 +7249,7 @@ theorem StrInReConsumeInternal.str_re_consume_rec_unrev_model_rel_local
               (SmtTerm.re_range (SmtTerm.String [lo])
                 (SmtTerm.String [hi])) = _
           simp [__smtx_model_eval, __smtx_model_eval_re_range,
-            native_unpack_string_pack_string]
+           ]
         rcases StrInReConsumeInternal.eval_unrev_re_concat_head_bridge_local M _ r2 rvU _
             hCompEval hRvU with ⟨rvU2, hRvU2, hRvURel⟩
         have hUnrevNe2 := StrInReConsumeInternal.consume_unrev_str_tail_ne_stuck_local _ s2

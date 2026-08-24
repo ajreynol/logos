@@ -1128,9 +1128,7 @@ private theorem one_mod_pow2_succ_zeq_p (w : Nat) :
 
 private theorem bitvec_succ_nonneg_p (w : Nat) :
     native_zleq 0 (native_nat_to_int (Nat.succ w)) = true := by
-  have hle : (0 : Int) <= (w : Int) + 1 :=
-    Int.add_nonneg (Int.natCast_nonneg w) (by decide)
-  simpa [native_zleq, native_nat_to_int] using hle
+  exact decide_eq_true (Int.natCast_nonneg (Nat.succ w))
 
 private theorem bitvec_succ_one_typeof_p (w : Nat) :
     __smtx_typeof_value

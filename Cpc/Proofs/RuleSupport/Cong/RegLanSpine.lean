@@ -71,7 +71,7 @@ theorem congTrueSpine_re_exp_eq_true
         (Term.Apply (Term.UOp1 UserOp1.re_exp n) y)
         hEqBool
     have hLeftNN : __smtx_typeof (SmtTerm.re_exp I X) ≠ SmtType.None := by
-      simpa [I, X] using hTypes.2
+      exact hTypes.2
     rcases re_exp_index_arg_of_non_none I X hLeftNN with
       ⟨k, hI, hXTy⟩
     have hArgTy : __smtx_typeof X = __smtx_typeof Y :=
@@ -123,7 +123,7 @@ theorem congTrueSpine_re_loop_eq_true
         (Term.Apply (Term.UOp2 UserOp2.re_loop lo hi) y)
         hEqBool
     have hLeftNN : __smtx_typeof (SmtTerm.re_loop L H X) ≠ SmtType.None := by
-      simpa [L, H, X] using hTypes.2
+      exact hTypes.2
     rcases re_loop_index_arg_of_non_none L H X hLeftNN with
       ⟨loN, hiN, hL, hH, hXTy⟩
     have hArgTy : __smtx_typeof X = __smtx_typeof Y :=
@@ -483,7 +483,7 @@ private theorem set_choose_arg_non_reg_of_non_none (x : Term) :
       __smtx_typeof
           (SmtTerm.map_diff (__eo_to_smt x) (SmtTerm.set_empty T)) ≠
         SmtType.None
-    simpa [T] using hNN
+    exact hNN
   rcases map_diff_args_of_non_none hMapNN with hMap | hSet
   · rcases hMap with ⟨A, B, hX, _hEmpty, _hTy⟩
     exact ⟨SmtType.Map A B, hX, by simp, by simp⟩
@@ -1402,7 +1402,7 @@ theorem congTrueSpine_str_replace_re_eq_true
         hEqBool
     have hLeftNN : __smtx_typeof (SmtTerm.str_replace_re X₁ X₂ X₃) ≠
         SmtType.None := by
-      simpa [X₁, X₂, X₃] using hTypes.2
+      exact hTypes.2
     have hTerm :
         term_has_non_none_type (SmtTerm.str_replace_re X₁ X₂ X₃) := by
       unfold term_has_non_none_type
@@ -1526,7 +1526,7 @@ theorem congTrueSpine_str_replace_re_all_eq_true
     have hLeftNN :
         __smtx_typeof (SmtTerm.str_replace_re_all X₁ X₂ X₃) ≠
           SmtType.None := by
-      simpa [X₁, X₂, X₃] using hTypes.2
+      exact hTypes.2
     have hTerm :
         term_has_non_none_type (SmtTerm.str_replace_re_all X₁ X₂ X₃) := by
       unfold term_has_non_none_type
@@ -1645,7 +1645,7 @@ theorem congTrueSpine_str_indexof_re_eq_true
         hEqBool
     have hLeftNN : __smtx_typeof (SmtTerm.str_indexof_re X₁ X₂ X₃) ≠
         SmtType.None := by
-      simpa [X₁, X₂, X₃] using hTypes.2
+      exact hTypes.2
     have hTerm :
         term_has_non_none_type (SmtTerm.str_indexof_re X₁ X₂ X₃) := by
       unfold term_has_non_none_type
@@ -1762,7 +1762,7 @@ theorem congTrueSpine_str_indexof_re_split_eq_true
     have hLeftNN :
         __smtx_typeof (SmtTerm.str_indexof_re_split X₁ X₂ X₃) ≠
           SmtType.None := by
-      simpa [X₁, X₂, X₃] using hTypes.2
+      exact hTypes.2
     have hTerm :
         term_has_non_none_type (SmtTerm.str_indexof_re_split X₁ X₂ X₃) := by
       unfold term_has_non_none_type
@@ -1971,7 +1971,7 @@ theorem congTrueSpine_dt_sel_eq_true
         hEqBool
     have hxOpNN :
         __smtx_typeof (SmtTerm.Apply F X) ≠ SmtType.None := by
-      simpa [F, X] using hTypes.2
+      exact hTypes.2
     rcases dt_sel_arg_non_reg_of_non_none s d i j X hxOpNN with
       ⟨A, hxA, hANN, hAReg⟩
     have hArgTy : __smtx_typeof X = __smtx_typeof Y :=

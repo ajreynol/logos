@@ -441,7 +441,8 @@ theorem native_str_in_re_re_concat_intro
   have h := (nativeListInRe_mk_concat_true_iff_exists_append
     (s1 ++ s2) r1 r2).2
     ⟨s1, s2, by simp, h1Parts.2, h2Parts.2⟩
-  simpa [native_str_in_re, hValidAppend, nativeListInRe, native_re_concat] using h
+  change native_str_in_re (s1 ++ s2) (native_re_mk_concat r1 r2) = true
+  simpa [native_str_in_re, hValidAppend, nativeListInRe] using h
 
 theorem nativeListInRe_mk_concat_congr
     (xs : List native_Char) (r r' s s' : SmtRegLan)
@@ -560,15 +561,19 @@ theorem nativeListInRe_re_of_string_true_length :
       | cons c cs =>
           have hFalse : nativeListInRe (c :: cs)
               (native_re_of_list (native_string_to_values [])) = false := by
-            simpa [native_re_of_list, nativeListInRe, native_re_deriv] using
-              nativeListInRe_empty cs
+            change nativeListInRe cs SmtRegLan.empty = false
+            exact nativeListInRe_empty cs
           rw [hFalse] at h
           simp at h
   | c :: pat, xs, h => by
       rcases (nativeListInRe_mk_concat_true_iff_exists_append xs
           (SmtRegLan.char (SmtValue.Char c))
           (native_re_of_list (native_string_to_values pat))).1
-          (by simpa [native_re_of_list] using h) with
+          (by
+            change nativeListInRe xs
+              (native_re_mk_concat (SmtRegLan.char (SmtValue.Char c))
+                (native_re_of_list (native_string_to_values pat))) = true at h
+            exact h) with
         ⟨left, right, hAppend, hLeft, hRight⟩
       have hLeftLen : left.length = 1 :=
         nativeListInRe_char_true_length left (SmtValue.Char c) hLeft

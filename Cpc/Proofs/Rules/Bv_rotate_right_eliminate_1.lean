@@ -95,7 +95,7 @@ by
                                                       (Proof.pf P1) (Proof.pf P2)
                                                       (Proof.pf P3) (Proof.pf P4) ≠
                                                     Term.Stuck := by
-                                                simpa [P1, P2, P3, P4] using hProg
+                                                exact hProg
                                               rcases
                                                   bv_rotate_right_decomp_shape_of_ne_stuck
                                                     x amount u1 u2 l1 P1 P2 P3 P4

@@ -541,14 +541,14 @@ theorem typeof_value_seq_nth_wrong
     simpa [__smtx_map_select] using
       map_lookup_typed (m := m0) (A := SmtType.Seq T) (B := SmtType.Map SmtType.Int T)
         (i := SmtValue.Seq ss)
-        (by simpa [hm0] using hLookup)
+        (by simpa [hm0, __smtx_typeof_value] using hLookup)
         hssVal
   rcases map_value_canonical (A := SmtType.Int) (B := T) hInner with ⟨m1, hm1⟩
   rw [hm1]
   simpa [__smtx_map_select] using
     map_lookup_typed (m := m1) (A := SmtType.Int) (B := T)
       (i := SmtValue.Numeral n)
-      (by simpa [hm1] using hInner)
+          (by simpa [hm1, __smtx_typeof_value] using hInner)
       rfl
 
 /-- Derives `str_substr_args` from `non_none`. -/
@@ -1281,7 +1281,7 @@ theorem typeof_value_model_eval_str_rev
   have hxs : list_typed T (native_unpack_seq ss) :=
     typed_unpack_seq_of_typeof_seq_value hty
   rw [hss]
-  simpa [__smtx_model_eval_str_rev, hElem, __smtx_typeof_value] using
+  simpa [__smtx_model_eval_str_rev, hElem, __smtx_typeof_value, native_seq_rev] using
     (typeof_seq_value_pack_seq_of_typed
       (T := T)
       (xs := (native_unpack_seq ss).reverse)

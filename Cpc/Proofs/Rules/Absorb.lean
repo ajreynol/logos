@@ -956,7 +956,9 @@ private theorem bvAllOnes_to_bin_eq_of_ne_stuck (w : Nat) :
           (Term.Numeral (-1 : native_Int)) =
         Term.Numeral (native_int_pow2 (native_nat_to_int w) - 1) := by
     have hNotNeg : native_zlt (native_nat_to_int w) 0 = false := by
-      simp [native_zlt, native_nat_to_int]
+      have hNonneg : ¬native_nat_to_int w < 0 :=
+        Int.not_lt.mpr (by simp [native_nat_to_int])
+      simp [native_zlt, hNonneg]
     simp [__eo_ite, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
       __eo_pow, __eo_add, native_teq, native_ite,
       native_not, SmtEval.native_not, native_and, hNotNeg, native_int_pow2,

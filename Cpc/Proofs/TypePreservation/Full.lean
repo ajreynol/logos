@@ -41,18 +41,18 @@ private def tp_result_seq_components_wf : SmtType -> Prop
   | _ => True
 
 @[simp] private theorem tp_result_seq_components_wf_if
-    {c : Prop} [Decidable c] {A B : SmtType}
-    (hA : tp_result_seq_components_wf A)
-    (hB : tp_result_seq_components_wf B) :
-    tp_result_seq_components_wf (if c then A else B) := by
-  by_cases hc : c <;> simp [hc, hA, hB]
+    {c : Prop} [Decidable c] {A B : SmtType} :
+    tp_result_seq_components_wf (if c then A else B) ↔
+      (if c then tp_result_seq_components_wf A
+       else tp_result_seq_components_wf B) := by
+  by_cases hc : c <;> simp [hc]
 
 @[simp] private theorem tp_result_seq_components_wf_native_ite
-    (c : native_Bool) {A B : SmtType}
-    (hA : tp_result_seq_components_wf A)
-    (hB : tp_result_seq_components_wf B) :
-    tp_result_seq_components_wf (native_ite c A B) := by
-  cases c <;> simp [native_ite, hA, hB]
+    (c : native_Bool) {A B : SmtType} :
+    tp_result_seq_components_wf (native_ite c A B) ↔
+      (if c = true then tp_result_seq_components_wf A
+       else tp_result_seq_components_wf B) := by
+  cases c <;> simp [native_ite]
 
 private theorem tp_result_seq_components_wf_typeof_eq
     (T U : SmtType) :
@@ -208,10 +208,6 @@ private theorem tp_result_seq_components_wf_extract
     cases j <;> try simp [tp_result_seq_components_wf]
     case Numeral lo =>
       cases T <;> try simp [tp_result_seq_components_wf]
-      case BitVec w =>
-        cases h0 : native_zleq 0 lo <;>
-          simp [tp_result_seq_components_wf,
-            native_ite]
 
 private theorem tp_result_seq_components_wf_repeat
     (n : SmtTerm) (T : SmtType) :
@@ -373,7 +369,7 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf T = true :=
         smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-      simpa [__smtx_typeof,
+      simpa [__smtx_typeof, tp_result_seq_components_wf,
         smtx_typeof_guard_wf_of_non_none T T hGuardNN] using
         tp_result_seq_components_wf_of_type_wf hWf
     case UConst s T =>
@@ -382,7 +378,7 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf T = true :=
         smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-      simpa [__smtx_typeof,
+      simpa [__smtx_typeof, tp_result_seq_components_wf,
         smtx_typeof_guard_wf_of_non_none T T hGuardNN] using
         tp_result_seq_components_wf_of_type_wf hWf
     case seq_empty T =>
@@ -392,7 +388,7 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf (SmtType.Seq T) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN
-      simpa [__smtx_typeof,
+      simpa [__smtx_typeof, tp_result_seq_components_wf,
         smtx_typeof_guard_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN] using
         hWf
     case set_empty T =>
@@ -402,7 +398,7 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf (SmtType.Set T) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN
-      simpa [__smtx_typeof,
+      simpa [__smtx_typeof, tp_result_seq_components_wf,
         smtx_typeof_guard_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN] using
         hWf
     case seq_unit t =>
@@ -415,7 +411,7 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
       have hWf : __smtx_type_wf (SmtType.Seq (__smtx_typeof t)) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) hGuardNN
-      simpa [__smtx_typeof,
+      simpa [__smtx_typeof, tp_result_seq_components_wf,
         smtx_typeof_guard_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) hGuardNN] using
         hWf
@@ -429,7 +425,7 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
       have hWf : __smtx_type_wf (SmtType.Set (__smtx_typeof t)) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) hGuardNN
-      simpa [__smtx_typeof,
+      simpa [__smtx_typeof, tp_result_seq_components_wf,
         smtx_typeof_guard_wf_of_non_none (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) hGuardNN] using
         hWf
@@ -528,13 +524,13 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         seq_char_arg_of_non_none (op := SmtTerm.str_to_lower)
           (typeof_str_to_lower_eq t) hxNN
       rw [typeof_str_to_lower_eq, ht]
-      simpa [tp_result_seq_components_wf] using tp_seq_char_wf
+      simpa [tp_result_seq_components_wf, native_ite] using tp_seq_char_wf
     case str_to_upper t =>
       have ht : __smtx_typeof t = SmtType.Seq SmtType.Char :=
         seq_char_arg_of_non_none (op := SmtTerm.str_to_upper)
           (typeof_str_to_upper_eq t) hxNN
       rw [typeof_str_to_upper_eq, ht]
-      simpa [tp_result_seq_components_wf] using tp_seq_char_wf
+      simpa [tp_result_seq_components_wf, native_ite] using tp_seq_char_wf
     case str_from_code t =>
       rw [typeof_str_from_code_eq]
       cases h : __smtx_typeof t <;>
@@ -549,12 +545,12 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
       rw [typeof_str_replace_re_eq x y z]
       rcases str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re)
           (typeof_str_replace_re_eq x y z) hxNN with ⟨hx, hy, hz⟩
-      simpa [hx, hy, hz, tp_result_seq_components_wf] using tp_seq_char_wf
+      simpa [hx, hy, hz, tp_result_seq_components_wf, native_ite] using tp_seq_char_wf
     case str_replace_re_all x y z =>
       rw [typeof_str_replace_re_all_eq x y z]
       rcases str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re_all)
           (typeof_str_replace_re_all_eq x y z) hxNN with ⟨hx, hy, hz⟩
-      simpa [hx, hy, hz, tp_result_seq_components_wf] using tp_seq_char_wf
+      simpa [hx, hy, hz, tp_result_seq_components_wf, native_ite] using tp_seq_char_wf
     case seq_nth x y =>
       rcases seq_nth_args_of_non_none hxNN with ⟨T, hxT, hy⟩
       have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
@@ -752,21 +748,13 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         native_Teq, tp_result_seq_components_wf_typeof_eq,
         tp_result_seq_components_wf_arith_overload_op_1,
         tp_result_seq_components_wf_arith_overload_op_2,
-        tp_result_seq_components_wf_arith_overload_op_2_ret,
         tp_result_seq_components_wf_bv_op_1,
-        tp_result_seq_components_wf_bv_op_1_ret,
         tp_result_seq_components_wf_bv_op_2,
-        tp_result_seq_components_wf_bv_op_2_ret,
-        tp_result_seq_components_wf_seq_op_1_ret,
-        tp_result_seq_components_wf_seq_op_2_ret,
         tp_result_seq_components_wf_seq_diff,
         tp_result_seq_components_wf_str_indexof,
-        tp_result_seq_components_wf_str_indexof_re,
-        tp_result_seq_components_wf_str_indexof_re_split,
         tp_result_seq_components_wf_re_exp,
         tp_result_seq_components_wf_re_loop,
         tp_result_seq_components_wf_set_member,
-        tp_result_seq_components_wf_sets_op_2_ret,
         tp_result_seq_components_wf_int_to_bv,
         tp_result_seq_components_wf_concat,
         tp_result_seq_components_wf_extract,
@@ -775,6 +763,20 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         tp_result_seq_components_wf_sign_extend,
         tp_result_seq_components_wf_rotate_left,
         tp_result_seq_components_wf_rotate_right]
+    all_goals
+      first
+      | (apply tp_result_seq_components_wf_arith_overload_op_2_ret <;>
+          simp [tp_result_seq_components_wf])
+      | (apply tp_result_seq_components_wf_bv_op_1_ret <;>
+          simp [tp_result_seq_components_wf])
+      | (apply tp_result_seq_components_wf_bv_op_2_ret <;>
+          simp [tp_result_seq_components_wf])
+      | (apply tp_result_seq_components_wf_seq_op_1_ret <;>
+          simp [tp_result_seq_components_wf])
+      | (apply tp_result_seq_components_wf_seq_op_2_ret <;>
+          simp [tp_result_seq_components_wf])
+      | (apply tp_result_seq_components_wf_sets_op_2_ret <;>
+          simp [tp_result_seq_components_wf])
   exact go x hxNN
 
 theorem smt_term_fun_type_wf_of_non_none

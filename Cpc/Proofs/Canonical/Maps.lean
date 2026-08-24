@@ -53,7 +53,7 @@ theorem map_lookup_value_canonical :
       __smtx_map_canonical m = true ->
         __smtx_value_canonical (__smtx_msm_lookup m i)
   | SmtMap.default T e, i, h => by
-      simpa [__smtx_msm_lookup] using
+      simpa [__smtx_msm_lookup, __smtx_msm_get_default] using
         map_default_value_canonical (m := SmtMap.default T e) h
   | SmtMap.cons k v m, i, h => by
       have hv : __smtx_value_canonical v := by
@@ -145,7 +145,8 @@ theorem map_update_aux_get_default
             __smtx_msm_get_default, map_update_aux_get_default ed m i e]
         · simpa [__smtx_msm_update_aux, native_ite, hEq, hCmp] using
             map_update_aux_no_default_get_default ed (SmtMap.cons k v m) i e
-      · simpa [__smtx_msm_update_aux, native_ite, hEq] using
+      · simpa [__smtx_msm_update_aux, native_ite, hEq,
+          __smtx_msm_get_default] using
           map_update_aux_no_default_get_default ed m i e
 
 /-- The non-recursive update helper preserves the default leaf. -/
@@ -475,7 +476,7 @@ theorem map_lookup_update_aux_same
                 (__smtx_msm_update_aux (__smtx_msm_get_default m) m i e) i = e :=
             map_lookup_update_aux_same (m := m) hmTail
           simpa [__smtx_msm_update_aux, __smtx_msm_lookup, native_ite,
-            hEq, hCmp] using hRec
+            __smtx_msm_get_default, hEq, hCmp] using hRec
         · simpa [__smtx_msm_update_aux, native_ite, hEq, hCmp] using
             map_lookup_update_aux_no_default_same
               (m := SmtMap.cons k v m) (i := i) (e := e) hm

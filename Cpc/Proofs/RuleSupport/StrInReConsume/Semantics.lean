@@ -101,7 +101,7 @@ theorem StrInReConsumeInternal.consume_eval_eps_re_early_local (M : SmtModel) :
   rw [show __smtx_model_eval M (SmtTerm.String []) =
     SmtValue.Seq (native_pack_string []) from by
     simp [__smtx_model_eval]]
-  simp [__smtx_model_eval_str_to_re, native_unpack_string_pack_string]
+  simp [__smtx_model_eval_str_to_re]
 
 theorem StrInReConsumeInternal.native_str_in_re_congr_of_reglan_rel_early_local
     {r1 r2 : SmtRegLan}
@@ -519,7 +519,7 @@ theorem str_re_consume_rec_re_concat_empty_left_semantic_from_ih
           (SmtTerm.str_to_re (SmtTerm.String [])) =
         SmtValue.RegLan (native_str_to_re [])
       simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-        native_unpack_string_pack_string]
+       ]
     have hRvEps : rvEps = native_str_to_re [] := by
       rw [hEpsEval'] at hEpsEval
       cases hEpsEval
@@ -560,7 +560,7 @@ theorem str_re_consume_rec_re_concat_empty_left_semantic_from_ih
           (SmtTerm.str_to_re (SmtTerm.String [])) =
         SmtValue.RegLan (native_str_to_re [])
       simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-        native_unpack_string_pack_string]
+       ]
     have hRvEps : rvEps = native_str_to_re [] := by
       rw [hEpsEval'] at hEpsEval
       cases hEpsEval
@@ -1236,7 +1236,7 @@ theorem str_re_consume_inter_semantic_from_ih
                 SmtValue.RegLan
                   (native_str_to_re (native_unpack_string ss'))
               simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-                native_unpack_string_pack_string]
+               ]
             have hTailSelf :
                 native_str_in_re tailStr (native_str_to_re tailStr) = true :=
               native_str_in_re_str_to_re_self_local tailStr hTailValid
@@ -2250,7 +2250,7 @@ theorem str_re_consume_rec_str_concat_re_mult_concat_fuel_semantic_from_ih
                       simp [__smtx_model_eval, __smtx_model_eval_re_concat,
                         __smtx_model_eval_re_mult,
                         __smtx_model_eval_str_to_re, hR3Eval, hR2Eval,
-                        native_unpack_string_pack_string]
+                       ]
                     exact hLeftResidual.2 qTail ss rv3 ssTail
                       (native_re_concat
                         (native_re_concat (native_re_mult rv3) rv2)
@@ -2646,7 +2646,7 @@ theorem str_re_consume_rec_str_concat_re_concat_semantic_from_ih
                     (native_re_concat rv2 (native_str_to_re suf0))
                 simp [__smtx_model_eval, __smtx_model_eval_re_concat,
                   __smtx_model_eval_str_to_re, hR2Eval,
-                  native_unpack_string_pack_string]
+                 ]
               exact hLeftResidual.2 qTerm ss rv1 ssTail
                 (native_re_concat rv2 (native_str_to_re suf0)) hSEval
                 hR1Eval hTailEval hQEval)

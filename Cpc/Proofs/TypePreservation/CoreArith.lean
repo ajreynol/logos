@@ -468,7 +468,7 @@ theorem typeof_value_model_eval_select
   rw [hm]
   simpa [__smtx_model_eval_select, __smtx_map_select] using
     map_lookup_typed (m := m) (A := A) (B := B) (i := __smtx_model_eval M t2)
-      (by simpa [hm, h1] using hpres1)
+            (by simpa [hm, h1, __smtx_typeof_value] using hpres1)
       (by simpa [h2] using hpres2)
 
 /-- Shows that evaluating `store` terms produces values of the expected type. -/

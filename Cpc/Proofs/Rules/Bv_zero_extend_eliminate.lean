@@ -240,7 +240,7 @@ private theorem smt_typeof_zero_extend_eq_rhs
   have hInnerTySmt :
       __smtx_typeof (SmtTerm.concat (__eo_to_smt x) (SmtTerm.Binary 0 0)) =
         SmtType.BitVec (native_int_to_nat w) := by
-    simpa using hInnerTy
+    exact hInnerTy
   have hLhs :
       __smtx_typeof
           (__eo_to_smt
@@ -291,7 +291,7 @@ private theorem typed_bv_zero_extend_elim_term
       have hInnerTySmt :
           __smtx_typeof (SmtTerm.concat (__eo_to_smt x) (SmtTerm.Binary 0 0)) =
             SmtType.BitVec (native_int_to_nat w) := by
-        simpa using hInnerTy
+        exact hInnerTy
       unfold bvZeroExtendElimRhs
       change __smtx_typeof
           (SmtTerm.concat
@@ -440,14 +440,14 @@ private theorem eval_zero_extend_matches_concat
     have hEmptyEvalSmt :
         __smtx_model_eval M (SmtTerm.Binary 0 0) =
           SmtValue.Binary 0 0 := by
-      simpa using hEmptyEval
+      exact hEmptyEval
     rw [smtx_eval_concat_term_eq, hEvalX, hEmptyEvalSmt]
     exact concat_empty_right_value w payload hPayloadCanon
   have hInnerEvalSmt :
       __smtx_model_eval M
           (SmtTerm.concat (__eo_to_smt x) (SmtTerm.Binary 0 0)) =
         SmtValue.Binary w payload := by
-    simpa using hInnerEval
+    exact hInnerEval
   have hRhsEval :
       __smtx_model_eval M (__eo_to_smt (bvZeroExtendElimRhs x (Term.Numeral i))) =
         SmtValue.Binary (native_zplus i w) payload := by
@@ -526,7 +526,7 @@ by
                     (__eo_prog_bv_zero_extend_eliminate a1 a2)
                   have hProgLocal :
                       __eo_prog_bv_zero_extend_eliminate a1 a2 ≠ Term.Stuck := by
-                    simpa using hProg
+                    exact hProg
                   have hATransPair :
                       RuleProofs.eo_has_smt_translation a1 ∧
                         RuleProofs.eo_has_smt_translation a2 ∧ True := by

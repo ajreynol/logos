@@ -241,7 +241,7 @@ private theorem smodElimBody_type_bool_top_eq
     simp [__eo_mk_apply, hRhs] at hTy ⊢
   case Stuck =>
     cases hTy
-  all_goals simpa using hTy
+  all_goals exact hTy
 
 private theorem typeof_bvand_ne_stuck_inv :
     (A B : Term) ->
@@ -460,7 +460,7 @@ private theorem smodSignZero_type_forces_wm_numeral
   have hExtract :
       __eo_typeof_extract (__eo_typeof wm) wm (__eo_typeof wm) wm (__eo_typeof x) =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1) := by
-    simpa [smodBitZero] using hEq
+    exact hEq
   rcases typeof_extract_diag_bitvec_inv wm x (Term.Numeral 1) hExtract with
     ⟨wmv, _w, hwm, _hX, _hLo, _hHi⟩
   exact ⟨wmv, hwm⟩
@@ -634,7 +634,7 @@ private theorem smodElimRhs_outer_type_inv
           (Term.Apply (Term.Apply (Term.UOp UserOp.ite) (smodEq u z)) u)
           rest) =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n) := by
-    simpa [smodElimRhs, u, z, rest, smodAnd] using hRhsTy
+    exact hRhsTy
   have hTNe :
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n) ≠ Term.Stuck := by
     intro h
@@ -702,8 +702,7 @@ private theorem smodElimRhs_add_branches_type_inv
           (Term.Apply (Term.Apply (Term.UOp UserOp.ite) (smodEq u z)) u)
           rest1) =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n) := by
-    simpa [smodElimRhs, u, z, rest1, rest2, rest3, addNeg, addPos, negU,
-      smodAnd] using hRhsTy
+    exact hRhsTy
   have hTNe :
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n) ≠ Term.Stuck := by
     intro h
@@ -1327,7 +1326,8 @@ private theorem eval_smodElimRhs_num
     __eo_typeof_eq, __eo_typeof_int_to_bv, __eo_typeof_bvnot,
     __smtx_model_eval_bvsmod, native_ite, native_zplus, native_zneg]
   simp [__eo_mk_apply, hMax, hNonneg, native_ite]
-  rw [eo_to_smt_ite_term]
+  -- the standalone `rw` is redundant now: `eo_to_smt_ite_term` is in the
+  -- `simp only` set below, and the outermost head is no longer the `ite`.
   simp only [eo_to_smt_eq_term, eo_to_smt_and_term, eo_to_smt_ite_term,
     eo_to_smt_extract_term, eo_to_smt_bvurem_term, eo_to_smt_bvadd_term,
     eo_to_smt_bvneg_term, eo_to_smt_numeral, eo_to_smt_boolean,
@@ -1522,7 +1522,7 @@ private theorem trusted_bv_smod_eliminate_canonical_properties
         (__eo_typeof (Term.Numeral wmv)) (Term.Numeral wmv)
         (__eo_typeof x))
       (__eo_typeof smodBitZero) hSignXBoolNum
-    simpa [smodBitZero] using hEq
+    exact hEq
   rcases typeof_extract_diag_bitvec_inv (Term.Numeral wmv) x (Term.Numeral 1)
       hSignExtractTy with
     ⟨wmv', wx, hWmNumeral, hXTypeExtract, hWmLoRaw, hWmHiRaw⟩
@@ -2101,7 +2101,7 @@ by
                                   have hProgLocal :
                                       __eo_prog_bv_smod_eliminate x y w wm
                                           (Proof.pf P1) (Proof.pf P2) ≠ Term.Stuck := by
-                                    simpa [P1, P2] using hProg
+                                    exact hProg
                                   rcases bv_smod_eliminate_shape_of_ne_stuck
                                       x y w wm P1 P2 hProgLocal with
                                     ⟨pw, px, pwm, px', hP1, hP2⟩

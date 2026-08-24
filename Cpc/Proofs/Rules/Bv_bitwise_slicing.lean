@@ -174,6 +174,9 @@ private theorem nilval_bvor (M : SmtModel) (y : Term) (W : Nat) (vy : Int)
   have hz : __eo_to_z y = Term.Numeral 0 := by
     cases y <;> simp_all [__eo_is_list_nil, __eo_is_list_nil_bvor, __eo_is_eq, __eo_to_z,
       native_and, native_not, native_teq, reduceCtorEq]
+    -- v4.33 leaves the `String` case as a `decide`-wrapped equality whose
+    -- `Decidable` instance no longer matches; decode it directly.
+    exact (of_decide_eq_true hnil.2).symm
   exact to_z_numeral_eval M y W vy 0 hz hev
 
 private theorem nilval_bvxor (M : SmtModel) (y : Term) (W : Nat) (vy : Int)
@@ -182,6 +185,9 @@ private theorem nilval_bvxor (M : SmtModel) (y : Term) (W : Nat) (vy : Int)
   have hz : __eo_to_z y = Term.Numeral 0 := by
     cases y <;> simp_all [__eo_is_list_nil, __eo_is_list_nil_bvxor, __eo_is_eq, __eo_to_z,
       native_and, native_not, native_teq, reduceCtorEq]
+    -- v4.33 leaves the `String` case as a `decide`-wrapped equality whose
+    -- `Decidable` instance no longer matches; decode it directly.
+    exact (of_decide_eq_true hnil.2).symm
   exact to_z_numeral_eval M y W vy 0 hz hev
 
 
@@ -2303,7 +2309,7 @@ private theorem bv_bitwise_slicing_eval_rel_op (op : BvOpSpec)
         dsimp [start]
         rw [hWidth]
         change Term.Numeral ((↑W : Int) + (-1)) = Term.Numeral (↑(W - 1) : Int)
-        exact congrArg Term.Numeral (by simpa using hWsubInt)
+        exact congrArg Term.Numeral (by exact hWsubInt)
       have hThisNe :
           __bv_mk_bitwise_slicing_rec op.f (Term.Binary ↑W cn) erased bs bn
             (Term.Numeral ↑(W - 1)) (Term.Numeral ((↑W : Int) - 1)) ≠
@@ -2411,15 +2417,12 @@ private theorem bv_bitwise_slicing_eval_rel (M : SmtModel) (hM : model_total_typ
     eo_requires_arg_eq_of_ne_stuck hReqNe
   rcases bitwise_guard_true_cases f hGuardTrue with hAnd | hRest
   · subst f
-    simpa using
-      bv_bitwise_slicing_eval_rel_op bvOpAnd M hM a1 a2 hExpandedNe hRepNN
+    exact bv_bitwise_slicing_eval_rel_op bvOpAnd M hM a1 a2 hExpandedNe hRepNN
   · rcases hRest with hOr | hXor
     · subst f
-      simpa using
-        bv_bitwise_slicing_eval_rel_op bvOpOr M hM a1 a2 hExpandedNe hRepNN
+      exact bv_bitwise_slicing_eval_rel_op bvOpOr M hM a1 a2 hExpandedNe hRepNN
     · subst f
-      simpa using
-        bv_bitwise_slicing_eval_rel_op bvOpXor M hM a1 a2 hExpandedNe hRepNN
+      exact bv_bitwise_slicing_eval_rel_op bvOpXor M hM a1 a2 hExpandedNe hRepNN
 
 public theorem cmd_step_bv_bitwise_slicing_properties
     (M : SmtModel) (hM : model_total_typed M)
@@ -2456,7 +2459,7 @@ by
               change __eo_typeof (__eo_prog_bv_bitwise_slicing A) = Term.Bool
                 at hResultTy
               have hProgNe' : __eo_prog_bv_bitwise_slicing A ≠ Term.Stuck := by
-                simpa using hProgNe
+                exact hProgNe
               rcases bv_bitwise_slicing_shape_of_ne_stuck A hProgNe' with
                 ⟨lhs, rhs, hShape⟩
               subst A

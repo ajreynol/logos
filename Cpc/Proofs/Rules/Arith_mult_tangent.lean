@@ -322,7 +322,10 @@ private theorem native_z_tangent_geq (x y a b : native_Int) :
   simp [native_zleq, SmtEval.native_zleq, native_zplus, SmtEval.native_zplus,
     native_zmult, SmtEval.native_zmult, native_zneg, SmtEval.native_zneg,
     native_and, SmtEval.native_and, native_or, SmtEval.native_or]
-  exact Bool.eq_iff_iff.mpr (by simpa using hiff)
+  -- v4.33 keeps the goal's `decide _ = true` shape (stale `Decidable`
+  -- instance), so bridge it explicitly rather than via `simpa`.
+  exact Bool.eq_iff_iff.mpr
+    (Iff.trans (Iff.trans decide_eq_true_iff hiff) (by simp))
 
 private theorem native_z_tangent_leq (x y a b : native_Int) :
     native_zleq (native_zmult x y)
@@ -334,7 +337,10 @@ private theorem native_z_tangent_leq (x y a b : native_Int) :
   simp [native_zleq, SmtEval.native_zleq, native_zplus, SmtEval.native_zplus,
     native_zmult, SmtEval.native_zmult, native_zneg, SmtEval.native_zneg,
     native_and, SmtEval.native_and, native_or, SmtEval.native_or]
-  exact Bool.eq_iff_iff.mpr (by simpa using hiff)
+  -- v4.33 keeps the goal's `decide _ = true` shape (stale `Decidable`
+  -- instance), so bridge it explicitly rather than via `simpa`.
+  exact Bool.eq_iff_iff.mpr
+    (Iff.trans (Iff.trans decide_eq_true_iff hiff) (by simp))
 
 private theorem native_q_tangent_geq (x y a b : native_Rat) :
     native_qleq (native_qplus (native_qplus (native_qmult b x) (native_qmult a y))
@@ -345,7 +351,10 @@ private theorem native_q_tangent_geq (x y a b : native_Rat) :
   simp [native_qleq, SmtEval.native_qleq, native_qplus, SmtEval.native_qplus,
     native_qmult, SmtEval.native_qmult, native_qneg, SmtEval.native_qneg,
     native_and, SmtEval.native_and, native_or, SmtEval.native_or]
-  exact Bool.eq_iff_iff.mpr (by simpa using hiff)
+  -- v4.33 keeps the goal's `decide _ = true` shape (stale `Decidable`
+  -- instance), so bridge it explicitly rather than via `simpa`.
+  exact Bool.eq_iff_iff.mpr
+    (Iff.trans (Iff.trans decide_eq_true_iff hiff) (by simp))
 
 private theorem native_q_tangent_leq (x y a b : native_Rat) :
     native_qleq (native_qmult x y)
@@ -357,7 +366,10 @@ private theorem native_q_tangent_leq (x y a b : native_Rat) :
   simp [native_qleq, SmtEval.native_qleq, native_qplus, SmtEval.native_qplus,
     native_qmult, SmtEval.native_qmult, native_qneg, SmtEval.native_qneg,
     native_and, SmtEval.native_and, native_or, SmtEval.native_or]
-  exact Bool.eq_iff_iff.mpr (by simpa using hiff)
+  -- v4.33 keeps the goal's `decide _ = true` shape (stale `Decidable`
+  -- instance), so bridge it explicitly rather than via `simpa`.
+  exact Bool.eq_iff_iff.mpr
+    (Iff.trans (Iff.trans decide_eq_true_iff hiff) (by simp))
 
 private theorem native_mk_rational_zero :
     native_mk_rational 0 1 = (0 : Rat) := by

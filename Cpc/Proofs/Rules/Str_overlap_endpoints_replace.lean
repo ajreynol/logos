@@ -136,7 +136,7 @@ by
                   seq_triop_args_of_non_none (op := SmtTerm.str_replace)
                     (typeof_str_replace_eq (__eo_to_smt hay) (__eo_to_smt needle)
                       (__eo_to_smt r))
-                    (by simpa [lhs, hay, needle] using hLHStrans)
+                    (by have hsimpa := hLHStrans; (try simp [lhs, hay, needle] at hsimpa ⊢); exact hsimpa)
                 obtain ⟨hc1ty, hSWC2Ety⟩ := strConcat_args_of_seq_type c1
                   swc2emp T (by simpa [hay] using hHayTy)
                 obtain ⟨hswty, hC2Ety⟩ := strConcat_args_of_seq_type sw

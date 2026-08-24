@@ -1733,7 +1733,7 @@ theorem ctor_spine_translation {T c : Term} (hs : CS c)
     subst T
     have hTypeWf : __smtx_type_wf
         (__eo_to_smt_type (__eo_typeof_tuple U₁ U₂)) = true := by
-      simpa using hWf
+      exact hWf
     have hTypeEq := qds_typeof_tuple_eq_of_wf U₁ U₂ hTypeWf
     have hExplicitWf : __smtx_type_wf
         (__eo_to_smt_type

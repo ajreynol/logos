@@ -41,6 +41,9 @@ private theorem native_str_in_re_allchar_seq (ss : SmtSeq)
   have hList :=
     native_str_in_re_allchar_list (native_unpack_seq ss) hValid
   simp [Smtm.native_str_in_re, native_re_allchar, native_seq_len, hValid, hList]
+  -- simp leaves `decide X = decide X` with the two `Decidable` instances in
+  -- different (but defeq) forms; `rfl` closes that.
+  rfl
 
 private theorem smtx_model_eval_re_in_sigma (ss : SmtSeq)
     (hValid : native_re_str_valid (native_unpack_seq ss) = true) :
@@ -48,6 +51,7 @@ private theorem smtx_model_eval_re_in_sigma (ss : SmtSeq)
       __smtx_model_eval_eq (__smtx_model_eval_str_len (SmtValue.Seq ss)) (SmtValue.Numeral 1) := by
   simp [__smtx_model_eval_str_in_re, __smtx_model_eval_str_len, __smtx_model_eval_eq,
     native_veq, native_str_in_re_allchar_seq, native_seq_len, hValid]
+  rfl
 
 private theorem smtx_typeof_re_allchar :
     __smtx_typeof SmtTerm.re_allchar = SmtType.RegLan := by
@@ -81,8 +85,8 @@ private theorem typed___eo_prog_re_in_sigma_impl
         __smtx_typeof (__eo_to_smt a1) = __eo_to_smt_type (__eo_typeof a1) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation a1 hA1Trans
     rw [hA1Ty] at hTyRaw
-    simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char]
-      using hTyRaw
+    simp only [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hTyRaw
+    exact hTyRaw
   have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = SmtType.Bool := by
     change __smtx_typeof (SmtTerm.str_in_re (__eo_to_smt a1) SmtTerm.re_allchar) =
       SmtType.Bool
@@ -150,8 +154,8 @@ private theorem facts___eo_prog_re_in_sigma_impl
         __smtx_typeof (__eo_to_smt a1) = __eo_to_smt_type (__eo_typeof a1) :=
       TranslationProofs.eo_to_smt_typeof_matches_translation a1 hA1Trans
     rw [hA1Ty] at hTyRaw
-    simpa [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char]
-      using hTyRaw
+    simp only [TranslationProofs.eo_to_smt_type_seq, TranslationProofs.eo_to_smt_type_char] at hTyRaw
+    exact hTyRaw
   have hA1EvalTy :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a1)) =
         SmtType.Seq SmtType.Char := by
@@ -163,7 +167,8 @@ private theorem facts___eo_prog_re_in_sigma_impl
   rcases seq_value_canonical hA1EvalTy with ⟨ss, hss⟩
   have hSSValid : native_re_str_valid (native_unpack_seq ss) = true := by
     apply RuleProofs.native_re_str_valid_unpack_seq_of_typeof_seq_char
-    simpa [hss] using hA1EvalTy
+    simp only [hss] at hA1EvalTy
+    exact hA1EvalTy
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt lhs) =
         __smtx_model_eval M (__eo_to_smt rhs) := by

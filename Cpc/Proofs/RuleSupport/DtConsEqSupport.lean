@@ -280,7 +280,7 @@ private theorem vsm_apply_ext_aux :
             hArgs (vsm_num_apply_args f) (by simp [vsm_num_apply_args])
           have hab : a = b := by
             simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hCountFG,
-              SmtEval.native_nateq] using hLast
+              SmtEval.native_nateq, native_ite] using hLast
           have hfg : f = g := by
             apply ih f g hv
             · simpa [__vsm_apply_head] using hHead
@@ -296,7 +296,7 @@ private theorem vsm_apply_ext_aux :
                 apply hNeF
                 rw [hCountFG, hEq]
               simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hCountFG,
-                SmtEval.native_nateq, hNeF, hNeG] using hArg
+                SmtEval.native_nateq, hNeF, hNeG, native_ite] using hArg
           subst hfg
           subst hab
           rfl
@@ -399,7 +399,7 @@ private theorem vsm_apply_arg_nth_ne_notvalue_of_non_none_aux :
           have hRec := ih f hCountF hFNN j (by simpa [hCountF] using hjF)
           have hNe : j ≠ n := by omega
           simpa [__vsm_apply_arg_nth, hCountF, SmtEval.native_nateq, hLast,
-            hNe] using hRec
+            hNe, native_ite] using hRec
 
 private theorem vsm_apply_arg_nth_ne_notvalue_of_non_none
     (v : SmtValue)
@@ -1160,10 +1160,10 @@ private theorem tuple_eq_has_bool_type_components
   have hHeadTy :
       __smtx_typeof (__eo_to_smt a) = __smtx_typeof (__eo_to_smt b) := by
     have h := congrArg tuplePrependHeadTypeOfType hTyEq
-    simpa [tuplePrependHeadTypeOfType] using h
+    simpa [tuplePrependHeadTypeOfType, __smtx_tuple_datatype_decl] using h
   have hTailCons : c = c' := by
     have h := congrArg tuplePrependTailConsOfType hTyEq
-    simpa [tuplePrependTailConsOfType] using h
+    simpa [tuplePrependTailConsOfType, __smtx_tuple_datatype_decl] using h
   have hHeadNN : __smtx_typeof (__eo_to_smt a) ≠ SmtType.None :=
     TranslationProofs.smtx_tuple_prepend_head_non_none_of_tail_tuple_type
       (__eo_to_smt as) (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a))
@@ -1329,10 +1329,10 @@ private theorem tuple_prepend_eval_eq_and
   have hHeadTy :
       __smtx_typeof (__eo_to_smt a) = __smtx_typeof (__eo_to_smt b) := by
     have h := congrArg tuplePrependHeadTypeOfType hTyEq
-    simpa [tuplePrependHeadTypeOfType] using h
+    simpa [tuplePrependHeadTypeOfType, __smtx_tuple_datatype_decl] using h
   have hTailCons : c = c' := by
     have h := congrArg tuplePrependTailConsOfType hTyEq
-    simpa [tuplePrependTailConsOfType] using h
+    simpa [tuplePrependTailConsOfType, __smtx_tuple_datatype_decl] using h
   have hBsTyC :
       __smtx_typeof (__eo_to_smt bs) =
         SmtType.Datatype (native_string_lit "@Tuple")
@@ -4237,7 +4237,8 @@ private theorem mk_dt_cons_eq_same_ctor_spine
     exact ⟨root, CtorSpineRoot.app a hf, CtorSpineRoot.app b hg⟩
   · rename_i c c2
     have hReq' := h
-    simp_all [__mk_dt_cons_eq, __eo_requires, __eo_eq, __eo_ite, __eo_is_eq,
+    simp_all (maxSteps := 1000000)
+      [__mk_dt_cons_eq, __eo_requires, __eo_eq, __eo_ite, __eo_is_eq,
       __eo_is_ok, __eo_dt_selectors, __eo_dt_selectors_main, native_ite,
       native_teq, native_and, native_not, SmtEval.native_and,
       SmtEval.native_not]
@@ -4282,7 +4283,8 @@ private theorem mk_dt_cons_eq_ctor_spine_eq
     exact ⟨root, CtorSpineEq.app a b hfg⟩
   · rename_i c c2
     have hReq' := h
-    simp_all [__mk_dt_cons_eq, __eo_requires, __eo_eq, __eo_ite, __eo_is_eq,
+    simp_all (maxSteps := 1000000)
+      [__mk_dt_cons_eq, __eo_requires, __eo_eq, __eo_ite, __eo_is_eq,
       __eo_is_ok, __eo_dt_selectors, __eo_dt_selectors_main, native_ite,
       native_teq, native_and, native_not, SmtEval.native_and,
       SmtEval.native_not]
@@ -4479,7 +4481,7 @@ private theorem mk_dt_cons_eq_base_andList
           (Term.Boolean true) (Term.Boolean true))) := by
   intro hReq
   have hReq' := hReq
-  simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
+  simp [__eo_requires, native_ite, native_teq, native_not,
     SmtEval.native_not] at hReq'
   have hBaseTrue :
       __eo_requires (__eo_eq c c2) (Term.Boolean true)
@@ -4489,7 +4491,7 @@ private theorem mk_dt_cons_eq_base_andList
               (__eo_is_ok (__eo_dt_selectors c))))
           (Term.Boolean true) (Term.Boolean true)) = Term.Boolean true := by
     rcases hReq' with ⟨hEq, _hEqNe, hCons, hConsNe⟩
-    simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
+    simp [__eo_requires, native_ite, native_teq, native_not,
       SmtEval.native_not, hEq, hCons, hConsNe]
   rw [hBaseTrue]
   exact CnfSupport.AndList.true
@@ -4514,7 +4516,7 @@ private theorem mk_dt_cons_eq_base_eval_eq
         (__smtx_model_eval M (__eo_to_smt c2)) := by
   intro hReq
   have hReq' := hReq
-  simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
+  simp [__eo_requires, native_ite, native_teq, native_not,
     SmtEval.native_not] at hReq'
   rcases hReq' with ⟨hEq, _hEqNe, hCons, hConsNe⟩
   have hEq' : c2 = c := eo_eq_eq_of_true hEq
@@ -4525,7 +4527,7 @@ private theorem mk_dt_cons_eq_base_eval_eq
             (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple_unit)) (Term.Boolean true)
               (__eo_is_ok (__eo_dt_selectors c))))
           (Term.Boolean true) (Term.Boolean true)) = Term.Boolean true := by
-    simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
+    simp [__eo_requires, native_ite, native_teq, native_not,
       SmtEval.native_not, hEq, hCons, hConsNe]
   subst c2
   have hRefl :

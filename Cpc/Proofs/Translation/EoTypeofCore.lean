@@ -437,7 +437,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec_apply
       exact (eo_to_smt_type_eq_bool hU).symm
   | Term.USort i, U, _hValid, hEq => by
       have hU : __eo_to_smt_type U = SmtType.USort i := by
-        simpa using hEq.symm
+        simpa [__eo_to_smt_type] using hEq.symm
       exact (eo_to_smt_type_eq_usort hU).symm
   | Term.DatatypeType s d, U, hValid, hEq => by
       rcases hValid with ⟨hReserved, hD⟩
@@ -6306,7 +6306,8 @@ private theorem eo_to_smt_type_typeof_bv_same_width_ret_bv1
     (hW : w ≠ Term.Stuck) :
     __eo_to_smt_type (__eo_typeof_bvcomp (__eo_typeof y) (__eo_typeof x)) = SmtType.BitVec 1 := by
   rw [hy, hx]
-  simpa [__eo_typeof_bvcomp, __eo_to_smt_type, native_ite, native_zleq] using
+  simpa [__eo_typeof_bvcomp, __eo_to_smt_type, native_ite, native_zleq,
+    SmtEval.native_zleq, native_int_to_nat, SmtEval.native_int_to_nat] using
     congrArg __eo_to_smt_type
       (eo_requires_eo_eq_self_of_non_stuck w (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1)) hW)
 
