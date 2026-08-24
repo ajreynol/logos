@@ -1467,7 +1467,7 @@ private theorem dt_inst_tuple_unit_interprets
     (hXTy :
       __smtx_typeof (__eo_to_smt x) =
         SmtType.Datatype (native_string_lit "@Tuple")
-          (__smtx_tuple_datatype_decl
+          (__eo_to_smt_tuple_decl
             (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)))
     (hBool :
       RuleProofs.eo_has_bool_type
@@ -1485,7 +1485,7 @@ private theorem dt_inst_tuple_unit_interprets
   apply RuleProofs.eo_interprets_of_bool_eval M
   · exact hBool
   · let D :=
-      __smtx_tuple_datatype_decl
+      __eo_to_smt_tuple_decl
         (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
     let X := __eo_to_smt x
     have hTranslate :
@@ -1533,7 +1533,7 @@ private theorem dt_inst_tuple_unit_interprets
         have hCountSub :=
           vsm_num_apply_args_eq_dt_num_sels_of_datatype
             (v := __smtx_model_eval M X) hHead hEvalTy
-        simpa [D, __smtx_tuple_datatype_decl, __smtx_dd_lookup,
+        simpa [D, __eo_to_smt_tuple_decl, __smtx_dd_lookup,
           __smtx_dt_resolve, __smtx_dtc_resolve, __smtx_dt_num_sels,
           __smtx_dtc_num_sels, native_streq, native_ite] using hCountSub
       have hVal :
@@ -1743,7 +1743,7 @@ private theorem facts___eo_prog_dt_inst_impl
     have hEoXTy :
         __eo_to_smt_type (__eo_typeof x) =
           SmtType.Datatype (native_string_lit "@Tuple")
-            (__smtx_tuple_datatype_decl
+            (__eo_to_smt_tuple_decl
               (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) := by
       exact TranslationProofs.eo_to_smt_type_typeof_of_smt_type x hXTy (by simp)
     have hXTypeUnit :
@@ -1752,7 +1752,7 @@ private theorem facts___eo_prog_dt_inst_impl
         hUnit | hTuple
       · exact hUnit.1
       · rcases hTuple with ⟨y, z, cTuple, hType, _hTail, hD⟩
-        simp [__smtx_tuple_datatype_decl] at hD
+        simp [__eo_to_smt_tuple_decl] at hD
     have hMkUnit : t = Term.UOp UserOp.tuple_unit := by
       rw [hXTypeUnit] at hMk
       have hxNe : x ≠ Term.Stuck := by
@@ -1760,7 +1760,7 @@ private theorem facts___eo_prog_dt_inst_impl
         subst x
         change __smtx_typeof SmtTerm.None =
           SmtType.Datatype (native_string_lit "@Tuple")
-            (__smtx_tuple_datatype_decl
+            (__eo_to_smt_tuple_decl
               (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) at hXTy
         simp at hXTy
       cases x <;> simp [__mk_dt_inst] at hMk ⊢

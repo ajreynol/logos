@@ -238,17 +238,17 @@ private theorem eval_bvsize_num_local
   intro hNonneg hXSmt
   change __smtx_model_eval M
       (native_ite
-        (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+        (native_zleq 0 (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))))
         (SmtTerm._at_purify
           (SmtTerm.Numeral
-            (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+            (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)))))
         SmtTerm.None) = SmtValue.Numeral n
   have hWidth := native_nat_to_int_int_to_nat_of_nonneg_local n hNonneg
   have hNN :
       native_zleq 0 (native_nat_to_int (native_int_to_nat n)) = true := by
     simp [SmtEval.native_zleq, native_nat_to_int]
   have hSize :
-      __smtx_bv_sizeof_type (SmtType.BitVec (native_int_to_nat n)) =
+      __eo_to_smt_bv_size (SmtType.BitVec (native_int_to_nat n)) =
         native_nat_to_int (native_int_to_nat n) := rfl
   rw [hXSmt, hSize]
   simp [native_ite, hNN, hNonneg, hWidth, __smtx_model_eval,

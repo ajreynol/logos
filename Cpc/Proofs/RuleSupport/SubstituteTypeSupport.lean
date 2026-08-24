@@ -568,19 +568,19 @@ theorem substitute_typeof_apply_tuple_unit_head_eq_none
     __smtx_typeof
         (SmtTerm.Apply
           (SmtTerm.DtCons (native_string_lit "@Tuple")
-            (__smtx_tuple_datatype_decl
+            (__eo_to_smt_tuple_decl
               (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) x) =
       SmtType.None := by
   have hGeneric :
       generic_apply_type
         (SmtTerm.DtCons (native_string_lit "@Tuple")
-          (__smtx_tuple_datatype_decl
+          (__eo_to_smt_tuple_decl
             (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) x :=
     generic_apply_type_of_non_datatype_head
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
   rw [hGeneric]
-  simp [__smtx_tuple_datatype_decl,
+  simp [__eo_to_smt_tuple_decl,
     TranslationProofs.smtx_typeof_tuple_unit_translation]
   rfl
 
@@ -717,14 +717,14 @@ theorem eo_to_smt_uop_apply_ne_dt_sel (op : UserOp) (x : Term) :
     exact eo_to_smt_distinct_ne_dt_sel x s d i j h
   case _at_bvsize =>
     change
-      (let _v0 := __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))
+      (let _v0 := __eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))
        native_ite (native_zleq 0 _v0)
           (SmtTerm._at_purify (SmtTerm.Numeral _v0)) SmtTerm.None) =
         SmtTerm.DtSel s d i j at h
     simp only at h
     cases hSize :
       native_zleq 0
-        (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) <;>
+        (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) <;>
       simp [native_ite, hSize] at h
 
 theorem eo_to_smt_uop_apply_ne_dt_tester (op : UserOp) (x : Term) :
@@ -745,14 +745,14 @@ theorem eo_to_smt_uop_apply_ne_dt_tester (op : UserOp) (x : Term) :
     exact eo_to_smt_distinct_ne_dt_tester x s d i h
   case _at_bvsize =>
     change
-      (let _v0 := __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))
+      (let _v0 := __eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))
        native_ite (native_zleq 0 _v0)
           (SmtTerm._at_purify (SmtTerm.Numeral _v0)) SmtTerm.None) =
         SmtTerm.DtTester s d i at h
     simp only at h
     cases hSize :
       native_zleq 0
-        (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) <;>
+        (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) <;>
       simp [native_ite, hSize] at h
 
 theorem dtcons_reserved_false_of_apply_has_smt_translation

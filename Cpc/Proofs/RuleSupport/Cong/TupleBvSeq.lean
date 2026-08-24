@@ -1571,7 +1571,7 @@ theorem congTypeSpine_bv_pred_to_bv_eq_has_bool_type
     x₁ x₂ rhs
 
 private noncomputable def bvZeroTerm (a : SmtTerm) : SmtTerm :=
-  SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof a)) 0
+  SmtTerm.Binary (__eo_to_smt_bv_size (__smtx_typeof a)) 0
 
 private noncomputable def bvAllOnesTerm (a : SmtTerm) : SmtTerm :=
   SmtTerm.bvnot (bvZeroTerm a)

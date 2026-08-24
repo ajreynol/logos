@@ -1641,19 +1641,19 @@ private theorem typeof_apply_tuple_unit_head_eq_none
     __smtx_typeof
         (SmtTerm.Apply
           (SmtTerm.DtCons (native_string_lit "@Tuple")
-            (__smtx_tuple_datatype_decl
+            (__eo_to_smt_tuple_decl
               (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) x) =
       SmtType.None := by
   have hGeneric :
       generic_apply_type
         (SmtTerm.DtCons (native_string_lit "@Tuple")
-          (__smtx_tuple_datatype_decl
+          (__eo_to_smt_tuple_decl
             (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) x :=
     generic_apply_type_of_non_datatype_head
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
   rw [hGeneric]
-  simp only [__smtx_tuple_datatype_decl]
+  simp only [__eo_to_smt_tuple_decl]
   rw [TranslationProofs.smtx_typeof_tuple_unit_translation]
   rfl
 
@@ -2066,15 +2066,15 @@ private theorem uop_apply_typeof_none_of_arg_none
           __smtx_typeof
             (native_ite
               (native_zleq 0
-                (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+                (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))))
               (SmtTerm._at_purify
                 (SmtTerm.Numeral
-                  (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+                  (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)))))
               SmtTerm.None) =
             SmtType.None
         rw [hx]
         have hle :
-            native_zleq 0 (__smtx_bv_sizeof_type SmtType.None) = false := by
+            native_zleq 0 (__eo_to_smt_bv_size SmtType.None) = false := by
           rfl
         simp [hle, native_ite]
       case bvnot =>
@@ -2092,7 +2092,7 @@ private theorem uop_apply_typeof_none_of_arg_none
             (SmtTerm.bvcomp (__eo_to_smt x)
               (SmtTerm.bvnot
                 (SmtTerm.Binary
-                  (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))
+                  (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)))
                   0))) = SmtType.None
         simp [__smtx_typeof, hx, __smtx_typeof_bv_op_1,
           __smtx_typeof_bv_op_2_ret]
@@ -2102,7 +2102,7 @@ private theorem uop_apply_typeof_none_of_arg_none
             (SmtTerm.bvnot
               (SmtTerm.bvcomp (__eo_to_smt x)
                 (SmtTerm.Binary
-                  (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))
+                  (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)))
                   0))) = SmtType.None
         simp [__smtx_typeof, hx, __smtx_typeof_bv_op_1,
           __smtx_typeof_bv_op_2_ret]

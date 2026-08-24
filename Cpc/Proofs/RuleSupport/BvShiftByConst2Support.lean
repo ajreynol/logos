@@ -343,16 +343,16 @@ private theorem eval_bvsize_local
   intro hW0 hXTy
   have hRound := native_int_to_nat_roundtrip W hW0
   have hSize :
-      __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)) = W := by
+      __eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)) = W := by
     rw [hXTy]
     exact hRound
   change __smtx_model_eval M
       (native_ite
         (native_zleq 0
-          (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+          (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))))
         (SmtTerm._at_purify
           (SmtTerm.Numeral
-            (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+            (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)))))
         SmtTerm.None) = SmtValue.Numeral W
   rw [hSize]
   simp [native_ite, hW0, __smtx_model_eval,
