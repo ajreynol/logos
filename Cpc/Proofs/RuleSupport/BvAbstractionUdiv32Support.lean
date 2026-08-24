@@ -295,11 +295,11 @@ theorem udiv32 {w : Nat} (hw : 3 ≤ w) (x s : BitVec w) :
           (Nat.two_pow_pred_add_two_pow_pred (by omega : 0 < w)).symm
       have hqQuarter : 2 ^ (w - 2) < q.toNat := by
         have hquarterEq : 2 ^ (w - 1) = 2 * 2 ^ (w - 2) := by
-          simpa [Nat.two_mul] using
+          simpa [Nat.two_mul, show w - 1 - 1 = w - 2 by omega] using
             (Nat.two_pow_pred_add_two_pow_pred (by omega : 0 < w - 1)).symm
         omega
       have hquarterEq : 2 ^ (w - 1) = 2 * 2 ^ (w - 2) := by
-        simpa [Nat.two_mul] using
+        simpa [Nat.two_mul, show w - 1 - 1 = w - 2 by omega] using
           (Nat.two_pow_pred_add_two_pow_pred (by omega : 0 < w - 1)).symm
       have hsLtFour : s.toNat < 4 := by
         have hmul := hb.1

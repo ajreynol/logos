@@ -83,8 +83,7 @@ theorem eval_bvand_bvValue {w : Nat} (hw : 0 < w) (x y : BitVec w) :
     simp only [native_nat_to_int]
     simp only [native_zeq]
     simp [native_ite, native_piand]
-    rw [if_neg (Nat.ne_of_gt hw), BitVec.toInt_eq_toNat_bmod]
-    congr 2
+    omega
   rw [hraw, BitVec.ofInt_toInt]
 
 theorem eval_bvor_bvValue {w : Nat} (hw : 0 < w) (x y : BitVec w) :
@@ -100,8 +99,7 @@ theorem eval_bvor_bvValue {w : Nat} (hw : 0 < w) (x y : BitVec w) :
     simp only [native_nat_to_int]
     simp only [native_zeq]
     simp [native_ite, native_pior]
-    rw [if_neg (Nat.ne_of_gt hw), BitVec.toInt_eq_toNat_bmod]
-    congr 2
+    omega
   rw [hraw, BitVec.ofInt_toInt]
 
 theorem eval_bvxor_bvValue {w : Nat} (hw : 0 < w) (x y : BitVec w) :
@@ -117,8 +115,7 @@ theorem eval_bvxor_bvValue {w : Nat} (hw : 0 < w) (x y : BitVec w) :
     simp only [native_nat_to_int]
     simp only [native_zeq]
     simp [native_ite, native_pixor]
-    rw [if_neg (Nat.ne_of_gt hw), BitVec.toInt_eq_toNat_bmod]
-    congr 2
+    omega
   rw [hraw, BitVec.ofInt_toInt]
 
 theorem eval_bvudiv_bvValue {w : Nat} (hw : 0 < w) (x y : BitVec w) :

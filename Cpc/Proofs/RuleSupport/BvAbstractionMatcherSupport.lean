@@ -75,7 +75,7 @@ theorem validated_to_bin_literal {c : Term} {w : Nat} {k : Int}
   rw [hEoTy, hn] at hGenEq
   have hGenNe' : __eo_to_bin (Term.Numeral (native_nat_to_int w))
       (Term.Numeral k) ≠ Term.Stuck := by
-    simpa [hEoTy, hn, gen] using hGenNe
+    simpa [hEoTy, hn, gen, __bv_bitwidth] using hGenNe
   have hwLe : native_nat_to_int w ≤ 4294967296 := by
     by_cases hwLe : native_nat_to_int w ≤ 4294967296
     · exact hwLe
@@ -165,12 +165,15 @@ theorem validated_ones {c : Term} {w : Nat}
           (Term.Numeral (-1)))) = Term.Boolean true := by
     simpa [allOnesGenerator] using h
   have hType := validated_width_type hTy hRaw
+  have hwNonneg : ¬((w : Int) < 0) :=
+    Int.not_lt_of_ge (Int.natCast_nonneg w)
   have hLit : __eo_eq c
       (__eo_to_bin (__bv_bitwidth (__eo_typeof c))
         (Term.Numeral ((2 : Int) ^ w - 1))) = Term.Boolean true := by
     simpa [hType, __bv_bitwidth, __eo_is_z, __eo_is_z_internal,
       __eo_is_neg, __eo_pow, __eo_add, native_ite, native_teq, native_zlt,
-      native_zexp_total, native_zplus] using hRaw
+      native_and, native_not, native_zexp_total, native_zplus,
+      SmtEval.native_nat_to_int, hwNonneg, Int.sub_eq_add_neg] using hRaw
   have hResult := validated_to_bin_literal hTy hLit
   have hp : (0 : Int) < (2 : Int) ^ w := by
     exact_mod_cast Nat.two_pow_pos w
@@ -530,7 +533,7 @@ theorem Expr.literals_typed_of_type (e : Expr) (x s t : Term) (w : Nat)
       __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w := by
   induction e generalizing w with
   | x | s | t => simp [literals]
-  | lit c => simpa [literals] using hTy
+  | lit c => simpa [literals, term] using hTy
   | neg a ih =>
       have ha := bv_op1_arg_of_result (op := SmtTerm.bvneg) (a := __eo_to_smt (a.term x s t))
         (by rfl) hTy
@@ -2423,8 +2426,12 @@ theorem matcher_urem1_sound
       have hpw : p + (k + 1) = w := by
         rw [typeof_concat_eq, hzTy, hInnerTy] at hRhsTy
         simp [__smtx_typeof_concat, native_nat_plus] at hRhsTy
-        simpa [SmtEval.native_int_to_nat, SmtEval.native_nat_to_int,
-          native_zplus] using hRhsTy
+        simp only [SmtEval.native_int_to_nat, SmtEval.native_nat_to_int,
+          native_zplus] at hRhsTy
+        have hToNat :
+            Int.toNat (Int.ofNat p + Int.ofNat (k + 1)) = p + (k + 1) := rfl
+        rw [hToNat] at hRhsTy
+        exact hRhsTy
       have ez := validated_zero hzTy hZero
       subst z
       obtain ⟨cb, hc⟩ := eval_as_bvValue M hM c w hcTy
@@ -2436,7 +2443,7 @@ theorem matcher_urem1_sound
         apply (hEq ?_).symm
         simpa [__eo_add, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
           __eo_pow, native_ite, native_teq, native_zlt, native_zexp_total,
-          native_zplus, hkNonneg] using hPower
+          native_zplus, native_and, native_not, hkNonneg] using hPower
       have hcbInt : (cb.toNat : Int) = (2 : Int) ^ (k + 1) :=
         to_z_numeral_eval M c w cb ((2 : Int) ^ (k + 1)) hPower' hc
       have hcb : cb.toNat = 2 ^ (k + 1) := by exact_mod_cast hcbInt

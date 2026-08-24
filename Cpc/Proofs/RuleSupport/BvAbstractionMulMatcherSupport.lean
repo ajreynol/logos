@@ -775,7 +775,10 @@ theorem matcher_mul4_sound
       have hSides :=
         RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type et rhs hpBool
       have hetTy : __smtx_typeof (__eo_to_smt et) = SmtType.BitVec 1 := by
-        simpa [et] using typeof_extract00 (by omega) htTy
+        change __smtx_typeof
+          (SmtTerm.extract (SmtTerm.Numeral 0) (SmtTerm.Numeral 0)
+            (__eo_to_smt t)) = SmtType.BitVec 1
+        exact typeof_extract00 (by omega) htTy
       have hrhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.BitVec 1 := by
         rw [← hSides.1]
         exact hetTy
@@ -911,6 +914,8 @@ theorem matcher_mul2_sound
           rw [← hdi]
           exact Int.natCast_nonneg _
         have hini : ¬ i < 0 := Int.not_lt.mpr hi0
+        have hwNonneg : ¬((w : Int) < 0) :=
+          Int.not_lt_of_ge (Int.natCast_nonneg w)
         rw [hwidth, hdz] at hPower
         have hPower' : __eo_to_z c =
             Term.Numeral ((2 : Int) ^ w - (2 : Int) ^ i.toNat) := by
@@ -920,7 +925,8 @@ theorem matcher_mul2_sound
           simpa [__eo_is_z, __eo_is_z_internal, __eo_is_neg, __eo_pow,
             __eo_mk_apply, __eo_add, __eo_neg, native_ite, native_teq,
             native_zlt, native_and, native_not, hini, native_zexp_total,
-            native_zplus, native_zneg, SmtEval.native_nat_to_int] using hPower
+            native_zplus, native_zneg, SmtEval.native_nat_to_int, hwNonneg,
+            Int.sub_eq_add_neg] using hPower
         have hcNatInt : (cb.toNat : Int) =
             (2 : Int) ^ w - (2 : Int) ^ i.toNat :=
           to_z_numeral_eval M c w cb

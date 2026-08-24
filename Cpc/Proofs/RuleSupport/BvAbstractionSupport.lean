@@ -3,6 +3,7 @@ module
 public import Cpc.Proofs.RuleSupport.BvOverflowSupport
 import all Cpc.Proofs.RuleSupport.BvOverflowSupport
 import Std.Tactic.BVDecide
+public meta import Std.Tactic.BVDecide.Reflect
 import Lean.Elab.Tactic.Omega
 import Init.GrindInstances.Ring.BitVec
 
@@ -1074,7 +1075,7 @@ theorem urem11 {w : Nat} (hw : 3 ≤ w) (x s : BitVec w) :
         rw [BitVec.getElem_and hi, BitVec.getElem_or hi,
           BitVec.getElem_not hi]
         cases r[i] <;> simp
-      dsimp only at hh
+      try dsimp only at hh
       rw [hleft, hright] at hh
       exact hh.symm
     have hrAll : r = BitVec.allOnes w := by
@@ -1328,7 +1329,7 @@ theorem le_of_and_not_eq_zero {w : Nat} (s x : BitVec w)
   have hsx : s &&& x = s := by
     ext i hi
     have hb := congrArg (fun z : BitVec w => z[i]) h
-    dsimp only at hb
+    try dsimp only at hb
     rw [BitVec.getElem_and hi, BitVec.getElem_not hi] at hb
     have hsbit := s[i]
     have hxbit := x[i]
@@ -1471,7 +1472,7 @@ theorem udiv10 {w : Nat} (hw : 3 ≤ w) (x s : BitVec w) :
   change s ||| t = x &&& ~~~(1#w) at h
   have hwPos : 0 < w := by omega
   have hb := congrArg (fun z : BitVec w => z.getLsbD 0) h
-  dsimp only at hb
+  try dsimp only at hb
   rw [BitVec.getLsbD_or, BitVec.getLsbD_and,
     BitVec.getLsbD_not] at hb
   have honeBit : (1#w).getLsbD 0 = true := by
@@ -1563,7 +1564,7 @@ theorem udiv11 {w : Nat} (hw : 3 ≤ w) (x s : BitVec w) :
   change s ||| 1#w = x &&& ~~~t at h
   have hwPos : 0 < w := by omega
   have hb := congrArg (fun z : BitVec w => z.getLsbD 0) h
-  dsimp only at hb
+  try dsimp only at hb
   rw [BitVec.getLsbD_or, BitVec.getLsbD_and,
     BitVec.getLsbD_not] at hb
   have honeBit : (1#w).getLsbD 0 = true := by
