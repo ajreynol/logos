@@ -22,7 +22,6 @@ inductive UserOp : Type where
   | Char : UserOp
   | Seq : UserOp
   | not : UserOp
-  | or : UserOp
   | and : UserOp
   | imp : UserOp
   | eq : UserOp

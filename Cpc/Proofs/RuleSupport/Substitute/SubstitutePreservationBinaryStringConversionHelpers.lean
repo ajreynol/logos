@@ -164,10 +164,26 @@ theorem smt_strings_num_occur_typeof_congr
     (hX : __smtx_typeof X₁ = __smtx_typeof X₂)
     (hY : __smtx_typeof Y₁ = __smtx_typeof Y₂) :
     __smtx_typeof
-        (__eo_to_smt_strings_num_occur X₁ Y₁) =
+        (SmtTerm.neg
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_all X₁ Y₁
+              (SmtTerm.str_substr X₁ (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 1))))
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_all X₁ Y₁
+              (SmtTerm.str_substr X₁ (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 0))))) =
       __smtx_typeof
-        (__eo_to_smt_strings_num_occur X₂ Y₂) := by
-  simp [__eo_to_smt_strings_num_occur, typeof_neg_eq, typeof_str_len_eq,
+        (SmtTerm.neg
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_all X₂ Y₂
+              (SmtTerm.str_substr X₂ (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 1))))
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_all X₂ Y₂
+              (SmtTerm.str_substr X₂ (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 0))))) := by
+  simp [typeof_neg_eq, typeof_str_len_eq,
     typeof_str_replace_all_eq, typeof_str_substr_eq, hX, hY]
 
 theorem eo_typeof_strings_num_occur_re_arg_types_of_ne_stuck
@@ -224,10 +240,26 @@ theorem smt_strings_num_occur_re_typeof_congr
     (hX : __smtx_typeof X₁ = __smtx_typeof X₂)
     (hY : __smtx_typeof Y₁ = __smtx_typeof Y₂) :
     __smtx_typeof
-        (__eo_to_smt_strings_num_occur_re X₁ Y₁) =
+        (SmtTerm.neg
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_re_all X₁ Y₁
+              (SmtTerm.str_substr X₁ (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 1))))
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_re_all X₁ Y₁
+              (SmtTerm.str_substr X₁ (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 0))))) =
       __smtx_typeof
-        (__eo_to_smt_strings_num_occur_re X₂ Y₂) := by
-  simp [__eo_to_smt_strings_num_occur_re, typeof_neg_eq,
+        (SmtTerm.neg
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_re_all X₂ Y₂
+              (SmtTerm.str_substr X₂ (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 1))))
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_re_all X₂ Y₂
+              (SmtTerm.str_substr X₂ (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 0))))) := by
+  simp [typeof_neg_eq,
     typeof_str_len_eq, typeof_str_replace_re_all_eq, typeof_str_substr_eq,
     hX, hY]
 

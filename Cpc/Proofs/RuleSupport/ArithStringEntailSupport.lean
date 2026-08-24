@@ -787,7 +787,7 @@ private theorem str_to_int_eval_decomp
   refine ⟨ss, hSEval, ?_⟩
   rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_int) s) =
         SmtTerm.str_to_int (__eo_to_smt s) by rfl] at hEval
-  rw [__smtx_model_eval.eq_93, hSEval] at hEval
+  rw [__smtx_model_eval.eq_94, hSEval] at hEval
   simpa [__smtx_model_eval_str_to_int] using hEval.symm
 
 private theorem str_indexof_eval_decomp
@@ -830,7 +830,7 @@ private theorem str_indexof_eval_decomp
       __eo_to_smt
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) s) t) n) =
         SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt t) (__eo_to_smt n) by rfl] at hEval
-  rw [__smtx_model_eval.eq_82, hSEval, hTEval, hNEval] at hEval
+  rw [__smtx_model_eval.eq_83, hSEval, hTEval, hNEval] at hEval
   simpa [__smtx_model_eval_str_indexof] using hEval.symm
 
 private theorem str_substr_len_eval_decomp
@@ -881,7 +881,7 @@ private theorem str_substr_len_eval_decomp
     rw [show __eo_to_smt sub =
           SmtTerm.str_substr (__eo_to_smt s) (__eo_to_smt n1) (__eo_to_smt n2) by rfl]
         at hSubEval
-    rw [__smtx_model_eval.eq_79, hSEval, hN1Eval, hN2Eval] at hSubEval
+    rw [__smtx_model_eval.eq_80, hSEval, hN1Eval, hN2Eval] at hSubEval
     simpa [__smtx_model_eval_str_substr] using hSubEval
   have hLenEq :
       (native_unpack_seq subSeq).length =
@@ -944,7 +944,7 @@ private theorem str_replace_len_eval_decomp
     rw [show __eo_to_smt rep =
           SmtTerm.str_replace (__eo_to_smt s) (__eo_to_smt t) (__eo_to_smt r) by rfl]
         at hRepEval
-    rw [__smtx_model_eval.eq_81, hSEval, hTEval, hREval] at hRepEval
+    rw [__smtx_model_eval.eq_82, hSEval, hTEval, hREval] at hRepEval
     simpa [__smtx_model_eval_str_replace] using hRepEval
   have hLenEq :
       (native_unpack_seq repSeq).length =
@@ -991,7 +991,7 @@ private theorem str_from_int_len_eval_decomp
       native_pack_string (native_str_from_int zn) = seq := by
     rw [show __eo_to_smt fromInt = SmtTerm.str_from_int (__eo_to_smt n) by rfl]
         at hFromEval
-    rw [__smtx_model_eval.eq_94, hNEval] at hFromEval
+    rw [__smtx_model_eval.eq_95, hNEval] at hFromEval
     simpa [__smtx_model_eval_str_from_int] using hFromEval
   have hLenEq :
       (native_unpack_seq seq).length = (native_str_from_int zn).length := by

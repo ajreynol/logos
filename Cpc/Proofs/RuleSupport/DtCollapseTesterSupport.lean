@@ -389,7 +389,7 @@ private theorem ctorSpineRoot_tupleUnit_apply_type_none_aux
         __smtx_typeof
             (SmtTerm.Apply
               (SmtTerm.DtCons (native_string_lit "@Tuple")
-                (__smtx_tuple_datatype_decl
+                (__eo_to_smt_tuple_decl
                   (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                 native_nat_zero)
               (__eo_to_smt a)) =
@@ -397,7 +397,7 @@ private theorem ctorSpineRoot_tupleUnit_apply_type_none_aux
       have hGeneric :
           generic_apply_type
             (SmtTerm.DtCons (native_string_lit "@Tuple")
-              (__smtx_tuple_datatype_decl
+              (__eo_to_smt_tuple_decl
                 (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
               native_nat_zero)
             (__eo_to_smt a) :=
@@ -406,7 +406,7 @@ private theorem ctorSpineRoot_tupleUnit_apply_type_none_aux
           (by intro s d i h; cases h)
       unfold generic_apply_type at hGeneric
       rw [hGeneric]
-      simp only [__smtx_tuple_datatype_decl]
+      simp only [__eo_to_smt_tuple_decl]
       rw [TranslationProofs.smtx_typeof_tuple_unit_translation]
       rfl
   | dtCons s d i =>
@@ -463,7 +463,7 @@ private theorem ctorSpineRoot_tuple_typeof_tuple
     ∃ A c,
       __smtx_typeof (__eo_to_smt t) =
         SmtType.Datatype (native_string_lit "@Tuple")
-          (__smtx_tuple_datatype_decl
+          (__eo_to_smt_tuple_decl
             (SmtDatatype.sum (SmtDatatypeCons.cons A c) SmtDatatype.null)) := by
   cases hSp with
   | tuple =>
@@ -502,7 +502,7 @@ private theorem ctorSpineRoot_tupleUnit_typeof_unit
     (hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None) :
     __smtx_typeof (__eo_to_smt t) =
       SmtType.Datatype (native_string_lit "@Tuple")
-        (__smtx_tuple_datatype_decl
+        (__eo_to_smt_tuple_decl
           (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) := by
   cases hSp with
   | tupleUnit =>
@@ -1742,7 +1742,7 @@ private theorem dt_collapse_tester_sound
                 __eo_to_smt lhs =
                   SmtTerm.Apply
                     (SmtTerm.DtTester (native_string_lit "@Tuple")
-                      (__smtx_tuple_datatype_decl
+                      (__eo_to_smt_tuple_decl
                         (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                       native_nat_zero)
                     (__eo_to_smt t) := by
@@ -1753,7 +1753,7 @@ private theorem dt_collapse_tester_sound
                     (__eo_to_smt t) =
                   SmtTerm.Apply
                     (SmtTerm.DtTester (native_string_lit "@Tuple")
-                      (__smtx_tuple_datatype_decl
+                      (__eo_to_smt_tuple_decl
                         (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                       native_nat_zero)
                     (__eo_to_smt t)
@@ -1763,7 +1763,7 @@ private theorem dt_collapse_tester_sound
                 term_has_non_none_type
                   (SmtTerm.Apply
                     (SmtTerm.DtTester (native_string_lit "@Tuple")
-                      (__smtx_tuple_datatype_decl
+                      (__eo_to_smt_tuple_decl
                         (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                       native_nat_zero)
                     (__eo_to_smt t)) := by
@@ -1773,7 +1773,7 @@ private theorem dt_collapse_tester_sound
             have hTType :
                 __smtx_typeof (__eo_to_smt t) =
                   SmtType.Datatype (native_string_lit "@Tuple")
-                    (__smtx_tuple_datatype_decl
+                    (__eo_to_smt_tuple_decl
                       (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) :=
               dt_tester_arg_datatype_of_non_none hLeftNN
             have hTNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
@@ -1783,7 +1783,7 @@ private theorem dt_collapse_tester_sound
                 __smtx_typeof_value
                     (__smtx_model_eval M (__eo_to_smt t)) =
                   SmtType.Datatype (native_string_lit "@Tuple")
-                    (__smtx_tuple_datatype_decl
+                    (__eo_to_smt_tuple_decl
                       (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) := by
               simpa [hTType] using
                 Smtm.smt_model_eval_preserves_type_of_non_none
@@ -1792,7 +1792,7 @@ private theorem dt_collapse_tester_sound
                 __vsm_apply_head
                     (__smtx_model_eval M (__eo_to_smt t)) =
                   SmtValue.DtCons (native_string_lit "@Tuple")
-                    (__smtx_tuple_datatype_decl
+                    (__eo_to_smt_tuple_decl
                       (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                     native_nat_zero :=
               unit_tuple_value_head_zero_of_type hEvalTy
@@ -1816,7 +1816,7 @@ private theorem dt_collapse_tester_sound
                 __eo_to_smt lhs =
                   SmtTerm.Apply
                     (SmtTerm.DtTester (native_string_lit "@Tuple")
-                      (__smtx_tuple_datatype_decl
+                      (__eo_to_smt_tuple_decl
                         (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                       native_nat_zero)
                     (__eo_to_smt t) := by
@@ -1827,7 +1827,7 @@ private theorem dt_collapse_tester_sound
                     (__eo_to_smt t) =
                   SmtTerm.Apply
                     (SmtTerm.DtTester (native_string_lit "@Tuple")
-                      (__smtx_tuple_datatype_decl
+                      (__eo_to_smt_tuple_decl
                         (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                       native_nat_zero)
                     (__eo_to_smt t)
@@ -1837,7 +1837,7 @@ private theorem dt_collapse_tester_sound
                 term_has_non_none_type
                   (SmtTerm.Apply
                     (SmtTerm.DtTester (native_string_lit "@Tuple")
-                      (__smtx_tuple_datatype_decl
+                      (__eo_to_smt_tuple_decl
                         (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                       native_nat_zero)
                     (__eo_to_smt t)) := by
@@ -1847,7 +1847,7 @@ private theorem dt_collapse_tester_sound
             have hTType :
                 __smtx_typeof (__eo_to_smt t) =
                   SmtType.Datatype (native_string_lit "@Tuple")
-                    (__smtx_tuple_datatype_decl
+                    (__eo_to_smt_tuple_decl
                       (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) :=
               dt_tester_arg_datatype_of_non_none hLeftNN
             have hTNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
@@ -1857,7 +1857,7 @@ private theorem dt_collapse_tester_sound
                 __smtx_typeof_value
                     (__smtx_model_eval M (__eo_to_smt t)) =
                   SmtType.Datatype (native_string_lit "@Tuple")
-                    (__smtx_tuple_datatype_decl
+                    (__eo_to_smt_tuple_decl
                       (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) := by
               simpa [hTType] using
                 Smtm.smt_model_eval_preserves_type_of_non_none
@@ -1892,7 +1892,7 @@ private theorem dt_collapse_tester_sound
                     __vsm_apply_head
                         (__smtx_model_eval M (__eo_to_smt t)) =
                       SmtValue.DtCons (native_string_lit "@Tuple")
-                        (__smtx_tuple_datatype_decl
+                        (__eo_to_smt_tuple_decl
                           (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                         native_nat_zero :=
                   unit_tuple_value_head_zero_of_type hEvalTy

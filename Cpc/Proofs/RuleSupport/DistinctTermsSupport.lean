@@ -2354,11 +2354,11 @@ private theorem tuple_unit_model_eval
     (M : SmtModel) :
     __smtx_model_eval M (__eo_to_smt (Term.UOp UserOp.tuple_unit)) =
       SmtValue.DtCons (native_string_lit "@Tuple")
-        (__smtx_tuple_datatype_decl
+        (__eo_to_smt_tuple_decl
           (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
         native_nat_zero := by
   simp [TranslationProofs.eo_to_smt_term_tuple_unit, __smtx_model_eval,
-    __smtx_tuple_datatype_decl]
+    __eo_to_smt_tuple_decl]
 
 private theorem tuple_unit_dtcons_model_eval_eq_false
     (M : SmtModel) {s : native_String} {d : DatatypeDecl} {i : native_Nat} :

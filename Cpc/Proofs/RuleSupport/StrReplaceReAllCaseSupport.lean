@@ -258,11 +258,19 @@ private theorem eval_num_occur_re
       SmtValue.Seq (native_pack_string s))
     (hR : __smtx_model_eval M R = SmtValue.RegLan r)
     (hValid : native_string_valid s = true) :
-    __smtx_model_eval M (__eo_to_smt_strings_num_occur_re S R) =
+    __smtx_model_eval M
+        (SmtTerm.neg
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_re_all S R
+              (SmtTerm.str_substr S (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 1))))
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_re_all S R
+              (SmtTerm.str_substr S (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 0))))) =
       SmtValue.Numeral (Int.ofNat (reEnds r s).length) := by
   have hCount :=
     replace_all_take_one_length_diff_eq_reEnds s r hValid
-  simp only [__eo_to_smt_strings_num_occur_re]
   rw [eval_neg_term_eq, smtx_eval_str_len_term_eq,
     smtx_eval_str_len_term_eq, eval_str_replace_re_all_term_eq,
     eval_str_replace_re_all_term_eq,
@@ -664,7 +672,16 @@ theorem str_replace_re_all_reduction_pred_true
   let matchLen := SmtTerm.neg (oi iNext) startI
   let matchSeg := SmtTerm.str_substr tz startI matchLen
   let sourceLen := SmtTerm.str_len tz
-  let numOcc := __eo_to_smt_strings_num_occur_re tz ty
+  let numOcc :=
+    SmtTerm.neg
+      (SmtTerm.str_len
+        (SmtTerm.str_replace_re_all tz ty
+          (SmtTerm.str_substr tz (SmtTerm.Numeral 0)
+            (SmtTerm.Numeral 1))))
+      (SmtTerm.str_len
+        (SmtTerm.str_replace_re_all tz ty
+          (SmtTerm.str_substr tz (SmtTerm.Numeral 0)
+            (SmtTerm.Numeral 0))))
   let rarT : SmtTerm → SmtTerm := fun w =>
     SmtTerm.str_replace_re_all
       (SmtTerm.str_substr tz (oi w) sourceLen) ty tx
@@ -779,7 +796,7 @@ theorem str_replace_re_all_reduction_pred_true
     simp [sourceLen, typeof_str_len_eq, hzTy,
       __smtx_typeof_seq_op_1_ret]
   have hNumOccTy : __smtx_typeof numOcc = SmtType.Int := by
-    simp [numOcc, __eo_to_smt_strings_num_occur_re, typeof_neg_eq,
+    simp [numOcc, typeof_neg_eq,
       typeof_str_len_eq, typeof_str_replace_re_all_eq,
       typeof_str_substr_eq, hzTy, hyTy, hNumTy,
       __smtx_typeof_str_substr, __smtx_typeof_arith_overload_op_2,

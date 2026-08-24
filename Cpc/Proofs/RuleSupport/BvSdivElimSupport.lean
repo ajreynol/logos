@@ -510,17 +510,17 @@ private theorem eval_bv_sdiv_bvsize
   change __smtx_model_eval M
       (native_ite
         (native_zleq 0
-          (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+          (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))))
         (SmtTerm._at_purify
           (SmtTerm.Numeral
-            (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+            (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)))))
         SmtTerm.None) = SmtValue.Numeral w
   have hRound := native_int_to_nat_roundtrip w hw0
   have hNN :
       native_zleq 0 (native_nat_to_int (native_int_to_nat w)) = true := by
     simp [native_zleq, SmtEval.native_zleq, native_nat_to_int]
   rw [hXSmtTy]
-  simp [__smtx_bv_sizeof_type, native_ite, hw0, hNN, hRound,
+  simp [__eo_to_smt_bv_size, native_ite, hw0, hNN, hRound,
     __smtx_model_eval,
     __smtx_model_eval__at_purify]
 

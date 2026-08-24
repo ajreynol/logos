@@ -732,7 +732,7 @@ private def bvOpAnd : BvOpSpec where
   heval := eval_bvand
   htypeof := fun X Y => by
     rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) X) Y)
-          = SmtTerm.bvand (__eo_to_smt X) (__eo_to_smt Y) from rfl, __smtx_typeof.eq_37]
+          = SmtTerm.bvand (__eo_to_smt X) (__eo_to_smt Y) from rfl, __smtx_typeof.eq_38]
   hvalN := bvand_valN
   hnilterm := nil_term_bvand
   hnilbound := nil_bound_bvand
@@ -754,7 +754,7 @@ private def bvOpOr : BvOpSpec where
   heval := eval_bvor
   htypeof := fun X Y => by
     rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) X) Y)
-          = SmtTerm.bvor (__eo_to_smt X) (__eo_to_smt Y) from rfl, __smtx_typeof.eq_38]
+          = SmtTerm.bvor (__eo_to_smt X) (__eo_to_smt Y) from rfl, __smtx_typeof.eq_39]
   hvalN := bvor_valN
   hnilterm := nil_term_bvor
   hnilbound := nil_bound_bvor
@@ -776,7 +776,7 @@ private def bvOpXor : BvOpSpec where
   heval := eval_bvxor
   htypeof := fun X Y => by
     rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) X) Y)
-          = SmtTerm.bvxor (__eo_to_smt X) (__eo_to_smt Y) from rfl, __smtx_typeof.eq_41]
+          = SmtTerm.bvxor (__eo_to_smt X) (__eo_to_smt Y) from rfl, __smtx_typeof.eq_42]
   hvalN := bvxor_valN
   hnilterm := nil_term_bvxor
   hnilbound := nil_bound_bvxor

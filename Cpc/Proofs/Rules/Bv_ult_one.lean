@@ -295,12 +295,12 @@ private theorem eval_bvsize_eq (M : SmtModel) (x : Term) (n : native_Int)
       SmtValue.Numeral (native_nat_to_int (native_int_to_nat n)) := by
   change __smtx_model_eval M
       (native_ite
-        (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+        (native_zleq 0 (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))))
         (SmtTerm._at_purify
-          (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+          (SmtTerm.Numeral (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)))))
         SmtTerm.None) =
     SmtValue.Numeral (native_nat_to_int (native_int_to_nat n))
-  have hSize : __smtx_bv_sizeof_type (SmtType.BitVec (native_int_to_nat n)) =
+  have hSize : __eo_to_smt_bv_size (SmtType.BitVec (native_int_to_nat n)) =
       native_nat_to_int (native_int_to_nat n) := rfl
   have hNN :
       native_zleq 0 (native_nat_to_int (native_int_to_nat n)) = true := by
@@ -363,7 +363,7 @@ private theorem eo_has_bool_type_bvult_one_lhs
       (SmtTerm.bvult (__eo_to_smt x)
         (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral i)) (Term.Numeral 1)))) =
     SmtType.Bool
-  rw [__smtx_typeof.eq_53]
+  rw [__smtx_typeof.eq_54]
   simp [__smtx_typeof_bv_op_2_ret, hXSmtTy, hOneTy, native_nateq, native_ite]
 
 private theorem eo_has_bool_type_eq_bv_zero
@@ -492,7 +492,7 @@ private theorem eval_bvult_one_matches_eq_zero
     __smtx_model_eval M
       (SmtTerm.eq (__eo_to_smt x)
         (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral i)) (Term.Numeral 0))))
-  rw [__smtx_model_eval.eq_53, smtx_eval_eq_term_eq, hEvalX, hOneEval, hZeroEval]
+  rw [__smtx_model_eval.eq_54, smtx_eval_eq_term_eq, hEvalX, hOneEval, hZeroEval]
   by_cases hPayloadZero : payload = 0
   · subst payload
     simp [__smtx_model_eval_bvult, __smtx_model_eval_bvugt,

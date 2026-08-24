@@ -1095,19 +1095,40 @@ theorem substitute_simul_strings_num_occur_preserves_type_and_translation_of_typ
         unfold RuleProofs.eo_has_smt_translation
         change
           __smtx_typeof
-              (__eo_to_smt_strings_num_occur
-                (__eo_to_smt X) (__eo_to_smt Y)) ≠
+              (SmtTerm.neg
+                (SmtTerm.str_len
+                  (SmtTerm.str_replace_all (__eo_to_smt X) (__eo_to_smt Y)
+                    (SmtTerm.str_substr (__eo_to_smt X)
+                      (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
+                (SmtTerm.str_len
+                  (SmtTerm.str_replace_all (__eo_to_smt X) (__eo_to_smt Y)
+                    (SmtTerm.str_substr (__eo_to_smt X)
+                      (SmtTerm.Numeral 0) (SmtTerm.Numeral 0))))) ≠
             SmtType.None
         have hOrig :
             __smtx_typeof
-                (__eo_to_smt_strings_num_occur
-                  (__eo_to_smt x) (__eo_to_smt y)) ≠
+                (SmtTerm.neg
+                  (SmtTerm.str_len
+                    (SmtTerm.str_replace_all (__eo_to_smt x) (__eo_to_smt y)
+                      (SmtTerm.str_substr (__eo_to_smt x)
+                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
+                  (SmtTerm.str_len
+                    (SmtTerm.str_replace_all (__eo_to_smt x) (__eo_to_smt y)
+                      (SmtTerm.str_substr (__eo_to_smt x)
+                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 0))))) ≠
               SmtType.None := by
           unfold RuleProofs.eo_has_smt_translation at hFTrans
           change
             __smtx_typeof
-                (__eo_to_smt_strings_num_occur
-                  (__eo_to_smt x) (__eo_to_smt y)) ≠
+                (SmtTerm.neg
+                  (SmtTerm.str_len
+                    (SmtTerm.str_replace_all (__eo_to_smt x) (__eo_to_smt y)
+                      (SmtTerm.str_substr (__eo_to_smt x)
+                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
+                  (SmtTerm.str_len
+                    (SmtTerm.str_replace_all (__eo_to_smt x) (__eo_to_smt y)
+                      (SmtTerm.str_substr (__eo_to_smt x)
+                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 0))))) ≠
               SmtType.None at hFTrans
           exact hFTrans
         rw [smt_strings_num_occur_typeof_congr hXSmt hYSmt]
@@ -1228,19 +1249,40 @@ theorem substitute_simul_strings_num_occur_re_preserves_type_and_translation_of_
         unfold RuleProofs.eo_has_smt_translation
         change
           __smtx_typeof
-              (__eo_to_smt_strings_num_occur_re
-                (__eo_to_smt X) (__eo_to_smt Y)) ≠
+              (SmtTerm.neg
+                (SmtTerm.str_len
+                  (SmtTerm.str_replace_re_all (__eo_to_smt X) (__eo_to_smt Y)
+                    (SmtTerm.str_substr (__eo_to_smt X)
+                      (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
+                (SmtTerm.str_len
+                  (SmtTerm.str_replace_re_all (__eo_to_smt X) (__eo_to_smt Y)
+                    (SmtTerm.str_substr (__eo_to_smt X)
+                      (SmtTerm.Numeral 0) (SmtTerm.Numeral 0))))) ≠
             SmtType.None
         have hOrig :
             __smtx_typeof
-                (__eo_to_smt_strings_num_occur_re
-                  (__eo_to_smt x) (__eo_to_smt y)) ≠
+                (SmtTerm.neg
+                  (SmtTerm.str_len
+                    (SmtTerm.str_replace_re_all (__eo_to_smt x) (__eo_to_smt y)
+                      (SmtTerm.str_substr (__eo_to_smt x)
+                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
+                  (SmtTerm.str_len
+                    (SmtTerm.str_replace_re_all (__eo_to_smt x) (__eo_to_smt y)
+                      (SmtTerm.str_substr (__eo_to_smt x)
+                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 0))))) ≠
               SmtType.None := by
           unfold RuleProofs.eo_has_smt_translation at hFTrans
           change
             __smtx_typeof
-                (__eo_to_smt_strings_num_occur_re
-                  (__eo_to_smt x) (__eo_to_smt y)) ≠
+                (SmtTerm.neg
+                  (SmtTerm.str_len
+                    (SmtTerm.str_replace_re_all (__eo_to_smt x) (__eo_to_smt y)
+                      (SmtTerm.str_substr (__eo_to_smt x)
+                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 1))))
+                  (SmtTerm.str_len
+                    (SmtTerm.str_replace_re_all (__eo_to_smt x) (__eo_to_smt y)
+                      (SmtTerm.str_substr (__eo_to_smt x)
+                        (SmtTerm.Numeral 0) (SmtTerm.Numeral 0))))) ≠
               SmtType.None at hFTrans
           exact hFTrans
         rw [smt_strings_num_occur_re_typeof_congr hXSmt hYSmt]

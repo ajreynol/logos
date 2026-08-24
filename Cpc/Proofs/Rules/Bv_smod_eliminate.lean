@@ -825,12 +825,12 @@ private theorem eval_bvsize_eq (M : SmtModel) (x : Term) (n : native_Int)
       SmtValue.Numeral (native_nat_to_int (native_int_to_nat n)) := by
   change __smtx_model_eval M
       (native_ite
-        (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+        (native_zleq 0 (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))))
         (SmtTerm._at_purify
-          (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+          (SmtTerm.Numeral (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)))))
         SmtTerm.None) =
     SmtValue.Numeral (native_nat_to_int (native_int_to_nat n))
-  have hSize : __smtx_bv_sizeof_type (SmtType.BitVec (native_int_to_nat n)) =
+  have hSize : __eo_to_smt_bv_size (SmtType.BitVec (native_int_to_nat n)) =
       native_nat_to_int (native_int_to_nat n) := rfl
   have hNN :
       native_zleq 0 (native_nat_to_int (native_int_to_nat n)) = true := by

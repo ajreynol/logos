@@ -197,7 +197,6 @@ def __eo_prog_trans : Proof -> Term
 
 def __eo_nil : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.UOp UserOp.or), T => (Term.Boolean false)
   | (Term.UOp UserOp.and), T => (Term.Boolean true)
   | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
   | _, _ => Term.Stuck
@@ -206,7 +205,6 @@ def __eo_nil : Term -> Term -> Term
 def __eo_is_list_nil : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.UOp UserOp.or), (Term.Boolean false) => (Term.Boolean true)
   | (Term.UOp UserOp.and), (Term.Boolean true) => (Term.Boolean true)
   | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
   | f, nil => (Term.Boolean false)
@@ -274,7 +272,7 @@ def __eo_typeof_not : Term -> Term
   | _ => Term.Stuck
 
 
-def __eo_typeof_or : Term -> Term -> Term
+def __eo_typeof_and : Term -> Term -> Term
   | Term.Bool, Term.Bool => Term.Bool
   | _, _ => Term.Stuck
 
@@ -309,9 +307,8 @@ def __eo_typeof : Term -> Term
   | (Term.UOp UserOp.Char) => Term.Type
   | (Term.Apply (Term.UOp UserOp.Seq) __eo_x1) => (__eo_typeof_Seq (__eo_typeof __eo_x1))
   | (Term.Apply (Term.UOp UserOp.not) __eo_x1) => (__eo_typeof_not (__eo_typeof __eo_x1))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.or) __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) __eo_x1) __eo_x2) => (__eo_typeof_and (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) __eo_x1) __eo_x2) => (__eo_typeof_and (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
   | _ => Term.Stuck

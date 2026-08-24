@@ -1477,7 +1477,7 @@ private theorem eo_type_valid_of_tuple_select_eq_dtcapp_full
   | Datatype s d =>
       by_cases hs : s = (native_string_lit "@Tuple")
       · subst s
-        have hDecl : ∃ body, d = __smtx_tuple_datatype_decl body := by
+        have hDecl : ∃ body, d = __eo_to_smt_tuple_decl body := by
           cases d with
           | nil =>
               exfalso
@@ -1517,7 +1517,7 @@ private theorem eo_type_valid_of_tuple_select_eq_dtcapp_full
                   rw [hTupleTy]
                   cases __eo_to_smt y <;> simp [__eo_to_smt_tuple_select]
         rcases hDecl with ⟨body, rfl⟩
-        let tupleDD := __smtx_tuple_datatype_decl body
+        let tupleDD := __eo_to_smt_tuple_decl body
         cases hIdx : __eo_to_smt y with
         | Numeral n =>
             cases hNonneg : native_zleq 0 n
@@ -1530,7 +1530,7 @@ private theorem eo_type_valid_of_tuple_select_eq_dtcapp_full
                       (__eo_to_smt x)) =
                   SmtType.None
               rw [hTupleTy, hIdx]
-              simp [__eo_to_smt_tuple_select, __smtx_tuple_datatype_decl,
+              simp [__eo_to_smt_tuple_select, __eo_to_smt_tuple_decl,
                 hNonneg, native_streq,
                 native_and, native_ite]
             · have hTranslate :
@@ -1549,7 +1549,7 @@ private theorem eo_type_valid_of_tuple_select_eq_dtcapp_full
                         (native_int_to_nat n))
                       (__eo_to_smt x)
                 rw [hTupleTy, hIdx]
-                simp [__eo_to_smt_tuple_select, __smtx_tuple_datatype_decl,
+                simp [__eo_to_smt_tuple_select, __eo_to_smt_tuple_decl,
                   tupleDD, hNonneg, native_streq,
                   native_and, native_ite]
               have hApplyNN :
@@ -1576,7 +1576,7 @@ private theorem eo_type_valid_of_tuple_select_eq_dtcapp_full
               have hTyBody :
                   __eo_to_smt_type (__eo_typeof x) =
                     SmtType.Datatype (native_string_lit "@Tuple")
-                      (__smtx_tuple_datatype_decl body) := by
+                      (__eo_to_smt_tuple_decl body) := by
                 simpa [tupleDD] using hTyFromIH
               have hYN : y = Term.Numeral n :=
                 eo_to_smt_eq_numeral y n hIdx
@@ -1650,7 +1650,7 @@ private theorem eo_type_valid_of_tuple_select_eq_dtcapp_full
                         simpa [__smtx_ret_typeof_sel] using hRetNN)
                 have hLookup :
                     __smtx_dd_lookup (native_string_lit "@Tuple") tupleDD = body := by
-                  simp [tupleDD, __smtx_tuple_datatype_decl, __smtx_dd_lookup,
+                  simp [tupleDD, __eo_to_smt_tuple_decl, __smtx_dd_lookup,
                     native_streq, SmtEval.native_streq, native_ite]
                 have hResolve := smtx_dt_resolve_tuple_body_eq
                   (T := __eo_typeof x) (d := body) hTyBody tupleDD
@@ -3756,7 +3756,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                           rw [hYType, hz] at hNonNone
                           exact hNonNone
                         have hDecl :
-                            ∃ body, d = __smtx_tuple_datatype_decl body := by
+                            ∃ body, d = __eo_to_smt_tuple_decl body := by
                           cases d with
                           | nil =>
                               exfalso
@@ -3778,11 +3778,11 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                                   apply hTupleNN
                                   simp [__eo_to_smt_tuple_update]
                         rcases hDecl with ⟨body, rfl⟩
-                        let tupleDD := __smtx_tuple_datatype_decl body
+                        let tupleDD := __eo_to_smt_tuple_decl body
                         have hGe : native_zleq 0 n = true := by
                           cases hTest : native_zleq 0 n
                           · simp [__eo_to_smt_tuple_update,
-                              __smtx_tuple_datatype_decl, hTest,
+                              __eo_to_smt_tuple_decl, hTest,
                               native_streq, native_and, native_ite] at hTupleNN
                           · rfl
                         have hUpdaterNN :
@@ -3793,7 +3793,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                                   (__eo_to_smt y) (__eo_to_smt x)) ≠
                               SmtType.None := by
                           simpa [__eo_to_smt_tuple_update,
-                            __smtx_tuple_datatype_decl, tupleDD, hGe,
+                            __eo_to_smt_tuple_decl, tupleDD, hGe,
                             native_streq, native_and, native_ite] using
                             hTupleNN
                         have hIdx :

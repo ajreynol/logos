@@ -155,7 +155,6 @@ private theorem smtx_typeof_eq_operands_of_non_none
 private theorem eo_typeof_double_apply_generic
     (g y x : Term)
     (hFun : g ≠ Term.FunType)
-    (hOr : g ≠ Term.UOp UserOp.or)
     (hAnd : g ≠ Term.UOp UserOp.and)
     (hImp : g ≠ Term.UOp UserOp.imp)
     (hEq : g ≠ Term.UOp UserOp.eq) :
@@ -166,8 +165,6 @@ private theorem eo_typeof_double_apply_generic
       exact False.elim (hFun rfl)
   case UOp op =>
       cases op <;> try rfl
-      case or =>
-          exact False.elim (hOr rfl)
       case and =>
           exact False.elim (hAnd rfl)
       case imp =>
@@ -202,7 +199,6 @@ private theorem eo_typeof_single_apply_generic
 /-- Computes SMT translation for generic double EO applications. -/
 private theorem eo_to_smt_double_apply_generic
     (g y x : Term)
-    (hOr : g ≠ Term.UOp UserOp.or)
     (hAnd : g ≠ Term.UOp UserOp.and)
     (hImp : g ≠ Term.UOp UserOp.imp)
     (hEq : g ≠ Term.UOp UserOp.eq) :
@@ -211,8 +207,6 @@ private theorem eo_to_smt_double_apply_generic
   cases g <;> try rfl
   case UOp op =>
       cases op <;> try rfl
-      case or =>
-          exact False.elim (hOr rfl)
       case and =>
           exact False.elim (hAnd rfl)
       case imp =>
@@ -1213,40 +1207,8 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
           have hNN' := hNN
           rw [hTranslate, hHeadTranslate, hHeadNone] at hNN'
           simp [__smtx_typeof, __smtx_typeof_apply] at hNN'
-        · by_cases hOr : g = Term.UOp UserOp.or
-          · subst hOr
-            have hTranslate :
-                __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) =
-                  SmtTerm.or (__eo_to_smt y) (__eo_to_smt x) := by
-              rw [__eo_to_smt.eq_def]
-            have hApplyNN :
-                term_has_non_none_type
-                  (SmtTerm.or (__eo_to_smt y) (__eo_to_smt x)) := by
-              unfold term_has_non_none_type
-              simpa [hTranslate] using hNN
-            have hArgs := bool_binop_args_bool_of_non_none
-              (op := SmtTerm.or) (__smtx_typeof.eq_7 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
-            have h1NN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have h2NN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hIy := eo_to_smt_typeof_matches_translation_and_valid y h1NN
-            have hIx := eo_to_smt_typeof_matches_translation_and_valid x h2NN
-            have hTyY : __eo_typeof y = Term.Bool :=
-              eo_typeof_bool_of_smt_bool hIy.1 hArgs.1
-            have hTyX : __eo_typeof x = Term.Bool :=
-              eo_typeof_bool_of_smt_bool hIx.1 hArgs.2
-            have hTy :
-                __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) = Term.Bool := by
-              simp [__eo_typeof, __eo_typeof_or, hTyY, hTyX]
-            refine ⟨?_, ?_⟩
-            · rw [hTy]
-              exact TranslationProofs.smtx_typeof_translation_or_of_non_none y x hNN
-            · rw [hTy]
-              simp [TranslationProofs.eo_type_valid_rec]
-          · by_cases hAnd : g = Term.UOp UserOp.and
+        ·
+            by_cases hAnd : g = Term.UOp UserOp.and
             · subst hAnd
               have hTranslate :
                   __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) =
@@ -1258,7 +1220,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                 unfold term_has_non_none_type
                 simpa [hTranslate] using hNN
               have hArgs := bool_binop_args_bool_of_non_none
-                (op := SmtTerm.and) (__smtx_typeof.eq_8 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
+                (op := SmtTerm.and) (__smtx_typeof.eq_7 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
               have h1NN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
                 rw [hArgs.1]
                 simp
@@ -1273,7 +1235,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                 eo_typeof_bool_of_smt_bool hIx.1 hArgs.2
               have hTy :
                   __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) = Term.Bool := by
-                simp [__eo_typeof, __eo_typeof_or, hTyY, hTyX]
+                simp [__eo_typeof, __eo_typeof_and, hTyY, hTyX]
               refine ⟨?_, ?_⟩
               · rw [hTy]
                 exact TranslationProofs.smtx_typeof_translation_and_of_non_none y x hNN
@@ -1306,7 +1268,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                   eo_typeof_bool_of_smt_bool hIx.1 hArgs.2
                 have hTy :
                     __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.imp) y) x) = Term.Bool := by
-                  simp [__eo_typeof, __eo_typeof_or, hTyY, hTyX]
+                  simp [__eo_typeof, __eo_typeof_and, hTyY, hTyX]
                 refine ⟨?_, ?_⟩
                 · rw [hTy]
                   exact TranslationProofs.smtx_typeof_translation_imp_of_non_none y x hNN
@@ -1362,8 +1324,8 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                     (eo_to_smt_typeof_matches_translation_and_valid x)
                     (TranslationProofs.eo_to_smt_apply_generic_type (Term.Apply g y) x
                       (by intro s d i j h; cases h))
-                    (eo_to_smt_double_apply_generic g y x hOr hAnd hImp hEq)
-                    (eo_typeof_double_apply_generic g y x hFun hOr hAnd hImp hEq)
+                    (eo_to_smt_double_apply_generic g y x hAnd hImp hEq)
+                    (eo_typeof_double_apply_generic g y x hFun hAnd hImp hEq)
                     hNN
       · by_cases hBitVec : f = Term.UOp UserOp.BitVec
         · subst hBitVec

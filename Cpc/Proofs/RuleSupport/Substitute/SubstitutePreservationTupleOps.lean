@@ -137,11 +137,11 @@ private theorem substitute_tuple_prepend_type_congr
                         by_cases hs2 : s2 = native_string_lit "@Tuple"
                         · subst s2
                           let tailD := SmtDatatype.sum c SmtDatatype.null
-                          let tailDD := __smtx_tuple_datatype_decl tailD
+                          let tailDD := __eo_to_smt_tuple_decl tailD
                           let fullD :=
                             SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
                               SmtDatatype.null
-                          let fullDD := __smtx_tuple_datatype_decl fullD
+                          let fullDD := __eo_to_smt_tuple_decl fullD
                           let seed :=
                             SmtTerm.Apply
                               (SmtTerm.DtCons (native_string_lit "@Tuple") fullDD
@@ -155,14 +155,14 @@ private theorem substitute_tuple_prepend_type_congr
                                 (SmtType.Datatype
                                   (native_string_lit "@Tuple") fullDD)
                           · dsimp [fullDD, fullD,
-                              __smtx_tuple_datatype_decl] at hWf
+                              __eo_to_smt_tuple_decl] at hWf
                             simp [__eo_to_smt_tuple_prepend_of_type,
-                              __smtx_tuple_datatype_decl, native_ite,
+                              __eo_to_smt_tuple_decl, native_ite,
                               native_and, native_streq, hWf, fullD, fullDD]
                           · dsimp [fullDD, fullD,
-                              __smtx_tuple_datatype_decl] at hWf
+                              __eo_to_smt_tuple_decl] at hWf
                             simp [__eo_to_smt_tuple_prepend_of_type,
-                              __smtx_tuple_datatype_decl, native_ite,
+                              __eo_to_smt_tuple_decl, native_ite,
                               native_and, native_streq, hWf, fullD, fullDD]
                             exact
                               substitute_tuple_prepend_rec_type_congr
@@ -306,7 +306,7 @@ private theorem substitute_tuple_update_type_congr
                 · simp [native_ite, native_and, native_streq, hNonneg]
                   exact substitute_updater_type_congr
                     (SmtTerm.DtSel (native_string_lit "@Tuple")
-                      (__smtx_tuple_datatype_decl d) native_nat_zero
+                      (__eo_to_smt_tuple_decl d) native_nat_zero
                       (native_int_to_nat n))
                     t u t' u' ht hu
               · simp [__eo_to_smt_tuple_update, native_ite, native_and,

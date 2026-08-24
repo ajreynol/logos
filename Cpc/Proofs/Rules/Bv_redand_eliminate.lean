@@ -265,9 +265,9 @@ private theorem smt_eval_redand_rhs_eq_lhs
       (SmtTerm.bvcomp (__eo_to_smt x)
         (SmtTerm.bvnot
           (SmtTerm.Binary
-            (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0)))
+            (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) 0)))
   have hSize :
-      __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)) = n := by
+      __eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)) = n := by
     rw [hXSmtTy]
     exact native_nat_to_int_of_int_to_nat_of_nonneg n hNonneg
   have hMod0 :
@@ -289,7 +289,7 @@ private theorem smt_typeof_redand_lhs
       (SmtTerm.bvcomp (__eo_to_smt x)
         (SmtTerm.bvnot
           (SmtTerm.Binary
-            (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0))) =
+            (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) 0))) =
     SmtType.BitVec 1
   rw [hXSmtTy]
   change __smtx_typeof
@@ -297,16 +297,16 @@ private theorem smt_typeof_redand_lhs
         (SmtTerm.bvnot
           (SmtTerm.Binary (native_nat_to_int (native_int_to_nat n)) 0))) =
     SmtType.BitVec 1
-  rw [__smtx_typeof.eq_43]
+  rw [__smtx_typeof.eq_44]
   rw [hXSmtTy]
-  rw [__smtx_typeof.eq_36]
+  rw [__smtx_typeof.eq_37]
   change __smtx_typeof_bv_op_2_ret (SmtType.BitVec (native_int_to_nat n))
       (__smtx_typeof_bv_op_1
         (__smtx_typeof (SmtTerm.Binary (native_nat_to_int (native_int_to_nat n)) 0)))
       (SmtType.BitVec 1) =
     SmtType.BitVec 1
   rw [smt_typeof_binary_nat_to_int_zero_local]
-  simp [__smtx_bv_sizeof_type, __smtx_typeof_bv_op_1,
+  simp [__eo_to_smt_bv_size, __smtx_typeof_bv_op_1,
     __smtx_typeof_bv_op_2_ret, native_nateq, SmtEval.native_nateq,
     native_ite]
 

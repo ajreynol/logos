@@ -3324,16 +3324,16 @@ theorem split_backward
           qds_tuple_type_shape_of_wf T₁ T₂ hWfX
         let A := __eo_to_smt_type T₁
         let tailD := SmtDatatype.sum c SmtDatatype.null
-        let tailDD := __smtx_tuple_datatype_decl tailD
+        let tailDD := __eo_to_smt_tuple_decl tailD
         let fullD := SmtDatatype.sum (SmtDatatypeCons.cons A c) SmtDatatype.null
-        let fullDD := __smtx_tuple_datatype_decl fullD
+        let fullDD := __eo_to_smt_tuple_decl fullD
         have hLookupFull :
             __smtx_dd_lookup (native_string_lit "@Tuple") fullDD = fullD := by
-          simp [fullDD, fullD, __smtx_tuple_datatype_decl,
+          simp [fullDD, fullD, __eo_to_smt_tuple_decl,
             __smtx_dd_lookup, native_streq, native_ite]
         have hLookupTail :
             __smtx_dd_lookup (native_string_lit "@Tuple") tailDD = tailD := by
-          simp [tailDD, tailD, __smtx_tuple_datatype_decl,
+          simp [tailDD, tailD, __eo_to_smt_tuple_decl,
             __smtx_dd_lookup, native_streq, native_ite]
         have hResolveFull :
             __smtx_dt_resolve fullD fullDD = fullD := by
@@ -3569,21 +3569,21 @@ theorem split_backward
           rw [← conjFinal_eq_spine crel, hFull]
         let unitD :=
           SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null
-        let unitDD := __smtx_tuple_datatype_decl unitD
+        let unitDD := __eo_to_smt_tuple_decl unitD
         have hwTyUnit : __smtx_typeof_value w =
             SmtType.Datatype (native_string_lit "@Tuple") unitDD := by
-          simpa [unitDD, unitD, __smtx_tuple_datatype_decl,
+          simpa [unitDD, unitD, __eo_to_smt_tuple_decl,
             TranslationProofs.eo_to_smt_type_unit_tuple] using hwTy
         obtain ⟨ci, args, hW, hCiLt, hArgLen, hArgTypes⟩ :=
           datatype_value_spine hwTyUnit
         have hCi : ci = 0 := by
-          simpa [unitDD, unitD, __smtx_tuple_datatype_decl,
+          simpa [unitDD, unitD, __eo_to_smt_tuple_decl,
             __smtx_dd_lookup, smtDatatypeNumCtors, native_streq,
             native_ite] using hCiLt
         subst ci
         have hArgs : args = [] := by
           apply List.eq_nil_of_length_eq_zero
-          simpa [unitDD, unitD, __smtx_tuple_datatype_decl,
+          simpa [unitDD, unitD, __eo_to_smt_tuple_decl,
             __smtx_dd_lookup, __smtx_dt_resolve, __smtx_dtc_resolve,
             __smtx_dt_num_sels, __smtx_dtc_num_sels, native_streq,
             native_ite] using hArgLen
@@ -3592,7 +3592,7 @@ theorem split_backward
             (__eo_to_smt (conjFinal crel)) = w := by
           rw [hFull, TranslationProofs.eo_to_smt_term_tuple_unit]
           simpa [__smtx_model_eval, vsmMkSpine, unitDD, unitD,
-            __smtx_tuple_datatype_decl] using hW.symm
+            __eo_to_smt_tuple_decl] using hW.symm
         have hCI := ctorInst_of_no_absorbed crel N₀ w hAbs hEval
         have hBody := conj_backward_aux sx (Term.UOp UserOp.UnitTuple) F hWfX
           hFTrans crel (CS.head CH.tupleUnit) M hM hgEncTy hgEncTrue

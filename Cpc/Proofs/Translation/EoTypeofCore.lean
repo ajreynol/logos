@@ -2974,12 +2974,12 @@ private theorem eo_to_smt_apply_ne_numeral
       exact False.elim (eo_to_smt_distinct_ne_numeral x n h)
     case _at_bvsize =>
       change native_ite
-          (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+          (native_zleq 0 (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))))
           (SmtTerm._at_purify
-            (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+            (SmtTerm.Numeral (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)))))
           SmtTerm.None =
         SmtTerm.Numeral n at h
-      cases hw : native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) <;>
+      cases hw : native_zleq 0 (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) <;>
         simp [native_ite, hw] at h
   case UOp1 op idx =>
     cases op <;> try cases h

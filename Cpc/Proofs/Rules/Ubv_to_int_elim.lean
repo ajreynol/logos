@@ -378,7 +378,7 @@ private theorem ubvBitAddend_eval
         (SmtTerm.Numeral 0)) =
       SmtValue.Numeral (if n.toNat.testBit start then (2 ^ start : Int) else 0)
   rw [smtx_eval_ite_term_eq, smtx_eval_eq_term_eq,
-    __smtx_model_eval.eq_34, __smtx_model_eval.eq_2,
+    __smtx_model_eval.eq_35, __smtx_model_eval.eq_2,
     __smtx_model_eval.eq_2, hEvalB, __smtx_model_eval.eq_5,
     __smtx_model_eval.eq_2]
   have hWidth :

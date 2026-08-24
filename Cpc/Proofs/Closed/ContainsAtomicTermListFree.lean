@@ -1784,14 +1784,14 @@ by
                       (SmtTerm.Numeral n) t u =
                     __eo_to_smt_updater
                       (SmtTerm.DtSel (native_string_lit "@Tuple")
-                        (__smtx_tuple_datatype_decl d)
+                        (__eo_to_smt_tuple_decl d)
                         native_nat_zero (native_int_to_nat n)) t u := by
                 simp [__eo_to_smt_tuple_update, hGuard, native_ite]
               rw [hTuple]
               exact
                 smtx_model_eval_eo_to_smt_updater_eq_of_eval_eq hGlobals
                   (SmtTerm.DtSel (native_string_lit "@Tuple")
-                    (__smtx_tuple_datatype_decl d) native_nat_zero
+                    (__eo_to_smt_tuple_decl d) native_nat_zero
                     (native_int_to_nat n))
                   t u ht hu
           all_goals
@@ -2500,7 +2500,7 @@ by
           dsimp only [__eo_to_smt]
           cases h :
               native_zleq 0
-                (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) <;>
+                (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) <;>
             simp [native_ite, __smtx_model_eval])
         ih
   case bvnot =>
@@ -4573,13 +4573,13 @@ private theorem smt_model_eval_tuple_prepend_eq_of_eval_eq
                           let tailD :=
                             SmtDatatype.sum c SmtDatatype.null
                           let tailDD :=
-                            __smtx_tuple_datatype_decl tailD
+                            __eo_to_smt_tuple_decl tailD
                           let fullD :=
                             SmtDatatype.sum
                               (SmtDatatypeCons.cons headTy c)
                               SmtDatatype.null
                           let fullDD :=
-                            __smtx_tuple_datatype_decl fullD
+                            __eo_to_smt_tuple_decl fullD
                           let seed :=
                             SmtTerm.Apply
                               (SmtTerm.DtCons
@@ -4590,15 +4590,15 @@ private theorem smt_model_eval_tuple_prepend_eq_of_eval_eq
                                 (SmtType.Datatype
                                   (native_string_lit "@Tuple") fullDD)
                           · dsimp [fullDD, fullD,
-                              __smtx_tuple_datatype_decl] at hWf
+                              __eo_to_smt_tuple_decl] at hWf
                             simp [__eo_to_smt_tuple_prepend_of_type,
-                              __smtx_tuple_datatype_decl, native_ite,
+                              __eo_to_smt_tuple_decl, native_ite,
                               native_streq, native_and, hWf,
                               __smtx_model_eval]
                           · dsimp [fullDD, fullD,
-                              __smtx_tuple_datatype_decl] at hWf
+                              __eo_to_smt_tuple_decl] at hWf
                             simp [__eo_to_smt_tuple_prepend_of_type,
-                              __smtx_tuple_datatype_decl, native_ite,
+                              __eo_to_smt_tuple_decl, native_ite,
                               native_streq, native_and, hWf]
                             exact
                               smt_model_eval_tuple_prepend_rec_eq_of_eval_eq
@@ -5098,8 +5098,7 @@ by
                 smt_model_eval_tuple_prepend_eq_of_eval_eq hAgree.globals
                   (__eo_to_smt x) (__eo_to_smt y)
                   (__smtx_typeof (__eo_to_smt x)) hx hy
-            | simp [__smtx_model_eval, __eo_to_smt_strings_num_occur,
-              __eo_to_smt_strings_num_occur_re, hx, hy, hAgree.globals.1,
+            | simp [__smtx_model_eval, hx, hy, hAgree.globals.1,
               smtx_model_eval_apply_eq_of_globals hAgree.globals,
               smtx_seq_nth_eq_of_globals hAgree.globals])
           ih
@@ -5415,7 +5414,7 @@ by
                   exact
                     smtx_model_eval_dt_sel_eq_of_globals hAgree.globals
                       (native_string_lit "@Tuple")
-                      (__smtx_tuple_datatype_decl d) 0
+                      (__eo_to_smt_tuple_decl d) 0
                       (native_int_to_nat n)
                       (__smtx_model_eval N (__eo_to_smt x))
       all_goals

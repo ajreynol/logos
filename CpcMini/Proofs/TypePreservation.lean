@@ -108,22 +108,6 @@ private theorem mini_smt_term_result_components_wf_of_non_none
         smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
       simpa [__smtx_typeof, smtx_typeof_guard_wf_of_non_none T T hGuardNN] using
         mini_result_components_wf_of_type_wf hWf
-    case map_diff x y =>
-      rcases map_diff_args_of_non_none hxNN with hMap | hSet
-      · rcases hMap with ⟨A, B, hxMap, _hyMap, hTy⟩
-        have hxGood := go x (term_has_non_none_of_type_eq hxMap (by simp))
-        have hMapWf : __smtx_type_wf (SmtType.Map A B) = true := by
-          simpa [hxMap, mini_result_components_wf] using hxGood
-        rw [hTy]
-        exact mini_result_components_wf_of_type_wf
-          (map_type_wf_components_of_wf hMapWf).1
-      · rcases hSet with ⟨A, hxSet, _hySet, hTy⟩
-        have hxGood := go x (term_has_non_none_of_type_eq hxSet (by simp))
-        have hSetWf : __smtx_type_wf (SmtType.Set A) = true := by
-          simpa [hxSet, mini_result_components_wf] using hxGood
-        rw [hTy]
-        exact mini_result_components_wf_of_type_wf
-          (set_type_wf_component_of_wf hSetWf)
     case ite c x y =>
       rcases ite_args_of_non_none hxNN with ⟨T, hc, hxT, hyT, hTNN⟩
       have hxGood := go x (term_has_non_none_of_type_eq hxT hTNN)
@@ -221,13 +205,6 @@ private theorem mini_smt_term_result_components_wf_of_non_none
       rw [__smtx_typeof.eq_def]
       exact mini_result_components_wf_native_ite _
         (mini_result_components_wf_guard_wf_bool T) (by trivial)
-    case seq_diff t1 t2 =>
-      rw [__smtx_typeof.eq_def]
-      cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
-        simp [__smtx_typeof_seq_diff, mini_result_components_wf, h1, h2]
-      case Seq.Seq A B =>
-        cases hEq : native_Teq A B <;>
-          simp [mini_result_components_wf, native_ite]
     case not t =>
       rw [__smtx_typeof.eq_def]
       exact mini_result_components_wf_native_ite _ (by trivial) (by trivial)
@@ -247,22 +224,6 @@ private theorem mini_smt_term_result_components_wf_of_non_none
       simp [mini_result_components_wf, __smtx_typeof]
   exact go x hxNN
 
-private theorem mini_smt_map_wf_of_non_none_type
-    (x : SmtTerm) (A B : SmtType)
-    (hxTy : __smtx_typeof x = SmtType.Map A B) :
-    __smtx_type_wf (SmtType.Map A B) = true := by
-  have h := mini_smt_term_result_components_wf_of_non_none x
-    (term_has_non_none_of_type_eq hxTy (by simp))
-  simpa [hxTy, mini_result_components_wf] using h
-
-private theorem mini_smt_set_wf_of_non_none_type
-    (x : SmtTerm) (A : SmtType)
-    (hxTy : __smtx_typeof x = SmtType.Set A) :
-    __smtx_type_wf (SmtType.Set A) = true := by
-  have h := mini_smt_term_result_components_wf_of_non_none x
-    (term_has_non_none_of_type_eq hxTy (by simp))
-  simpa [hxTy, mini_result_components_wf] using h
-
 private theorem mini_smt_fun_wf_of_non_none_type
     (x : SmtTerm) (A B : SmtType)
     (hxTy : __smtx_typeof x = SmtType.FunType A B) :
@@ -270,51 +231,6 @@ private theorem mini_smt_fun_wf_of_non_none_type
   have h := mini_smt_term_result_components_wf_of_non_none x
     (term_has_non_none_of_type_eq hxTy (by simp))
   simpa [hxTy, mini_result_components_wf] using h
-
-private theorem type_default_typed_canonical_of_map_domain_wf
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.Map A B) = true) :
-    __smtx_typeof_value (__smtx_type_default A) = A ∧
-      __smtx_value_canonical (__smtx_type_default A) := by
-  have hAll :
-      native_inhabited_type (SmtType.Map A B) = true ∧
-        ((native_inhabited_type A = true ∧ __smtx_type_wf_rec A = true) ∧
-          (native_inhabited_type B = true ∧ __smtx_type_wf_rec B = true)) := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and] using h
-  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1.1 hAll.2.1.2
-
-private theorem type_default_typed_canonical_of_set_element_wf
-    {A : SmtType}
-    (h : __smtx_type_wf (SmtType.Set A) = true) :
-    __smtx_typeof_value (__smtx_type_default A) = A ∧
-      __smtx_value_canonical (__smtx_type_default A) := by
-  have hAll :
-      native_inhabited_type (SmtType.Set A) = true ∧
-        (native_inhabited_type A = true ∧ __smtx_type_wf_rec A = true) := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and] using h
-  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2
-
-private theorem map_diff_default_typed_canonical_of_non_none
-    {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.map_diff t1 t2)) :
-    ∀ {A : SmtType},
-      __smtx_typeof (SmtTerm.map_diff t1 t2) = A ->
-        __smtx_typeof_value (__smtx_type_default A) = A ∧
-          __smtx_value_canonical (__smtx_type_default A) := by
-  intro A hA
-  rcases map_diff_args_of_non_none ht with hMap | hSet
-  · rcases hMap with ⟨D, R, h1, h2, hRes⟩
-    have hMapWf := mini_smt_map_wf_of_non_none_type t1 D R h1
-    have hDA : D = A := hRes.symm.trans hA
-    rw [← hDA]
-    exact type_default_typed_canonical_of_map_domain_wf hMapWf
-  · rcases hSet with ⟨D, h1, h2, hRes⟩
-    have hSetWf := mini_smt_set_wf_of_non_none_type t1 D h1
-    have hDA : D = A := hRes.symm.trans hA
-    rw [← hDA]
-    exact type_default_typed_canonical_of_set_element_wf hSetWf
 
 /-! ### Value-level canonicality helpers for `canonical_of_supported`. -/
 
@@ -388,16 +304,6 @@ private theorem mini_model_eval_eq_canonical (v1 v2 : SmtValue) :
     __smtx_value_canonical (__smtx_model_eval_eq v1 v2) := by
   cases v1 <;> cases v2 <;>
     simp [__smtx_model_eval_eq, __smtx_value_canonical, __smtx_value_canonical_bool]
-
-/-- Value-level `seq_diff` always returns a canonical (`Numeral` / `NotValue`) value. -/
-private theorem mini_model_eval_seq_diff_canonical (v1 v2 : SmtValue) :
-    __smtx_value_canonical (__smtx_model_eval_seq_diff v1 v2) := by
-  cases v1 <;> cases v2 <;>
-    simp only [__smtx_model_eval_seq_diff, __smtx_value_canonical,
-      __smtx_value_canonical_bool] <;>
-    first
-      | rfl
-      | (split <;> rfl)
 
 /-- Choice evaluation always returns a canonical value. -/
 private theorem mini_native_eval_tchoice_canonical
@@ -649,15 +555,6 @@ private theorem supported_type_preservation
         model_total_typed_push hM s T (__smtx_model_eval M x1) hWf (hx1ty.trans hTx1) hx1canon
       exact typeof_value_model_eval_bind M s T x1 x2 ht
         (supported_type_preservation _ hM' x2 ht2 hs2)
-  | map_diff ht1 hs1 ht2 hs2 hDefault =>
-      exact typeof_value_model_eval_map_diff M _ _ ht
-        (fun {A} hA => (hDefault (A := A) hA).1)
-        (supported_type_preservation M hM _ ht1 hs1)
-        (supported_type_preservation M hM _ ht2 hs2)
-  | seq_diff ht1 hs1 ht2 hs2 =>
-      exact typeof_value_model_eval_seq_diff M _ _ ht
-        (supported_type_preservation M hM _ ht1 hs1)
-        (supported_type_preservation M hM _ ht2 hs2)
   | «not» ht1 hs1 =>
       exact typeof_value_model_eval_not M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
@@ -786,14 +683,6 @@ private theorem canonical_of_supported
           (forall_term_typeof_of_non_none ht))
   case choice s T body htc =>
       simpa [__smtx_model_eval] using mini_native_eval_tchoice_canonical M s T body
-  case map_diff ht1 hs1 ht2 hs2 hDefault =>
-      exact model_eval_map_diff_canonical M _ _ ht
-        (fun {A} hA => (hDefault (A := A) hA).2)
-        (supported_type_preservation M hM _ ht1 hs1)
-        (supported_type_preservation M hM _ ht2 hs2)
-  case seq_diff ht1 hs1 ht2 hs2 =>
-      simpa [__smtx_model_eval] using
-        mini_model_eval_seq_diff_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
   case «not» ht1 hs1 =>
       simpa [__smtx_model_eval] using mini_model_eval_not_canonical (__smtx_model_eval M _)
   case «or» ht1 hs1 ht2 hs2 =>
@@ -1205,44 +1094,6 @@ theorem supported_preservation_term_of_non_none :
         have ht1 : term_has_non_none_type x1 := bind_arg1_non_none_of_non_none ht
         have ht2 : term_has_non_none_type x2 := bind_arg2_non_none_of_non_none ht
         exact supported_preservation_term.bind s T x1 x2 ht (go x1 ht1) (go x2 ht2)
-    | SmtTerm.map_diff t1 t2 =>
-        rcases map_diff_args_of_non_none ht with hMap | hSet
-        · rcases hMap with ⟨A, B, h1, h2, hTy⟩
-          have ht1 : term_has_non_none_type t1 := by
-            unfold term_has_non_none_type
-            rw [h1]
-            simp
-          have ht2 : term_has_non_none_type t2 := by
-            unfold term_has_non_none_type
-            rw [h2]
-            simp
-          exact supported_preservation_term.map_diff
-            ht1 (go t1 ht1) ht2 (go t2 ht2)
-            (map_diff_default_typed_canonical_of_non_none ht)
-        · rcases hSet with ⟨A, h1, h2, hTy⟩
-          have ht1 : term_has_non_none_type t1 := by
-            unfold term_has_non_none_type
-            rw [h1]
-            simp
-          have ht2 : term_has_non_none_type t2 := by
-            unfold term_has_non_none_type
-            rw [h2]
-            simp
-          exact supported_preservation_term.map_diff
-            ht1 (go t1 ht1) ht2 (go t2 ht2)
-            (map_diff_default_typed_canonical_of_non_none ht)
-    | SmtTerm.seq_diff t1 t2 =>
-        rcases seq_diff_args_of_non_none ht with ⟨A, h1, h2, hTy⟩
-        have ht1 : term_has_non_none_type t1 := by
-          unfold term_has_non_none_type
-          rw [h1]
-          simp
-        have ht2 : term_has_non_none_type t2 := by
-          unfold term_has_non_none_type
-          rw [h2]
-          simp
-        exact supported_preservation_term.seq_diff
-          ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.DtCons s d i =>
         exact supported_preservation_term.dt_cons s d i
     | SmtTerm.DtSel s d i j =>
@@ -1341,22 +1192,6 @@ theorem supported_preservation_term_of_non_none :
             have hArgs := generic_apply_subterms_non_none hApp.1 ht
             exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
               (go (SmtTerm.bind s T x1 x2) hArgs.1)
-              (go x hArgs.2)
-        | map_diff t1 t2 =>
-            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.map_diff t1 t2) (x := x)
-              (by intro s' d i j hEq; cases hEq)
-              (by intro s' d i hEq; cases hEq)
-            have hArgs := generic_apply_subterms_non_none hApp.1 ht
-            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-              (go (SmtTerm.map_diff t1 t2) hArgs.1)
-              (go x hArgs.2)
-        | seq_diff t1 t2 =>
-            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.seq_diff t1 t2) (x := x)
-              (by intro s' d i j hEq; cases hEq)
-              (by intro s' d i hEq; cases hEq)
-            have hArgs := generic_apply_subterms_non_none hApp.1 ht
-            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-              (go (SmtTerm.seq_diff t1 t2) hArgs.1)
               (go x hArgs.2)
         | DtSel s d i j =>
             have htx : term_has_non_none_type x := by
