@@ -1455,7 +1455,7 @@ private theorem dt_updater_elim_update_rel
             term_has_non_none_type
               (SmtTerm.Apply
                 (SmtTerm.DtTester (native_string_lit "@Tuple")
-                  (__smtx_tuple_datatype_decl
+                  (__eo_to_smt_tuple_decl
                     (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
                   native_nat_zero)
                 (__eo_to_smt t)) := by

@@ -3980,7 +3980,7 @@ theorem smtx_model_eval_eo_to_smt_tuple_update_cross_eq_of_eval_eq
                 exact
                   smtx_model_eval_eo_to_smt_updater_cross_eq_of_eval_eq hGlobals
                     (SmtTerm.DtSel (native_string_lit "@Tuple")
-                      (__smtx_tuple_datatype_decl d) native_nat_zero
+                      (__eo_to_smt_tuple_decl d) native_nat_zero
                       (native_int_to_nat n))
                     t t' u u' ht hu
             all_goals exact hNone rfl rfl
@@ -4205,11 +4205,11 @@ theorem smtx_model_eval_eo_to_smt_tuple_prepend_cross_eq_of_eval_eq
                         by_cases hs2 : s2 = native_string_lit "@Tuple"
                         · subst s2
                           let tailD := SmtDatatype.sum c SmtDatatype.null
-                          let tailDD := __smtx_tuple_datatype_decl tailD
+                          let tailDD := __eo_to_smt_tuple_decl tailD
                           let fullD :=
                             SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
                               SmtDatatype.null
-                          let fullDD := __smtx_tuple_datatype_decl fullD
+                          let fullDD := __eo_to_smt_tuple_decl fullD
                           let seed :=
                             SmtTerm.Apply
                               (SmtTerm.DtCons (native_string_lit "@Tuple") fullDD
@@ -4223,15 +4223,15 @@ theorem smtx_model_eval_eo_to_smt_tuple_prepend_cross_eq_of_eval_eq
                                 (SmtType.Datatype
                                   (native_string_lit "@Tuple") fullDD)
                           · dsimp [fullDD, fullD,
-                              __smtx_tuple_datatype_decl] at hWf
+                              __eo_to_smt_tuple_decl] at hWf
                             simp [__eo_to_smt_tuple_prepend_of_type,
-                              __smtx_tuple_datatype_decl, native_ite,
+                              __eo_to_smt_tuple_decl, native_ite,
                               native_streq, native_and, hWf,
                               __smtx_model_eval]
                           · dsimp [fullDD, fullD,
-                              __smtx_tuple_datatype_decl] at hWf
+                              __eo_to_smt_tuple_decl] at hWf
                             simp [__eo_to_smt_tuple_prepend_of_type,
-                              __smtx_tuple_datatype_decl, native_ite,
+                              __eo_to_smt_tuple_decl, native_ite,
                               native_streq, native_and, hWf]
                             exact
                               smtx_model_eval_eo_to_smt_tuple_prepend_rec_cross_eq_of_eval_eq
@@ -6143,19 +6143,19 @@ theorem instantiate_typeof_apply_tuple_unit_head_eq_none
     __smtx_typeof
         (SmtTerm.Apply
           (SmtTerm.DtCons (native_string_lit "@Tuple")
-            (__smtx_tuple_datatype_decl
+            (__eo_to_smt_tuple_decl
               (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) x) =
       SmtType.None := by
   have hGeneric :
       generic_apply_type
         (SmtTerm.DtCons (native_string_lit "@Tuple")
-          (__smtx_tuple_datatype_decl
+          (__eo_to_smt_tuple_decl
             (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) x :=
     generic_apply_type_of_non_datatype_head
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
   rw [hGeneric]
-  simp [__smtx_tuple_datatype_decl,
+  simp [__eo_to_smt_tuple_decl,
     TranslationProofs.smtx_typeof_tuple_unit_translation]
   rfl
 
@@ -8739,26 +8739,26 @@ theorem substitute_simul_eval_nonbinder
                                                                               show __smtx_model_eval M
                                                                                   (native_ite
                                                                                     (native_zleq 0
-                                                                                      (__smtx_bv_sizeof_type
+                                                                                      (__eo_to_smt_bv_size
                                                                                         (__smtx_typeof (__eo_to_smt X))))
                                                                                     (SmtTerm._at_purify
                                                                                       (SmtTerm.Numeral
-                                                                                        (__smtx_bv_sizeof_type
+                                                                                        (__eo_to_smt_bv_size
                                                                                           (__smtx_typeof (__eo_to_smt X)))))
                                                                                     SmtTerm.None) =
                                                                                 __smtx_model_eval N
                                                                                   (native_ite
                                                                                     (native_zleq 0
-                                                                                      (__smtx_bv_sizeof_type
+                                                                                      (__eo_to_smt_bv_size
                                                                                         (__smtx_typeof (__eo_to_smt Y))))
                                                                                       (SmtTerm._at_purify
                                                                                         (SmtTerm.Numeral
-                                                                                          (__smtx_bv_sizeof_type
+                                                                                          (__eo_to_smt_bv_size
                                                                                             (__smtx_typeof (__eo_to_smt Y)))))
                                                                                         SmtTerm.None)
                                                                               rw [hTy]
                                                                               cases native_zleq 0
-                                                                                  (__smtx_bv_sizeof_type
+                                                                                  (__eo_to_smt_bv_size
                                                                                     (__smtx_typeof (__eo_to_smt Y))) <;>
                                                                                 simp [native_ite, __smtx_model_eval, __smtx_model_eval__at_purify])
                                                                             (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
@@ -8775,14 +8775,14 @@ theorem substitute_simul_eval_nonbinder
                                                                                     (SmtTerm.bvcomp (__eo_to_smt X)
                                                                                       (SmtTerm.bvnot
                                                                                         (SmtTerm.Binary
-                                                                                          (__smtx_bv_sizeof_type
+                                                                                          (__eo_to_smt_bv_size
                                                                                             (__smtx_typeof (__eo_to_smt X)))
                                                                                           0))) =
                                                                                   __smtx_model_eval N
                                                                                     (SmtTerm.bvcomp (__eo_to_smt Y)
                                                                                         (SmtTerm.bvnot
                                                                                           (SmtTerm.Binary
-                                                                                            (__smtx_bv_sizeof_type
+                                                                                            (__eo_to_smt_bv_size
                                                                                               (__smtx_typeof (__eo_to_smt Y)))
                                                                                                 0)))
                                                                                 rw [hTy]
@@ -8801,14 +8801,14 @@ theorem substitute_simul_eval_nonbinder
                                                                                       (SmtTerm.bvnot
                                                                                         (SmtTerm.bvcomp (__eo_to_smt X)
                                                                                           (SmtTerm.Binary
-                                                                                            (__smtx_bv_sizeof_type
+                                                                                            (__eo_to_smt_bv_size
                                                                                               (__smtx_typeof (__eo_to_smt X)))
                                                                                             0))) =
                                                                                     __smtx_model_eval N
                                                                                       (SmtTerm.bvnot
                                                                                           (SmtTerm.bvcomp (__eo_to_smt Y)
                                                                                             (SmtTerm.Binary
-                                                                                              (__smtx_bv_sizeof_type
+                                                                                              (__eo_to_smt_bv_size
                                                                                                 (__smtx_typeof (__eo_to_smt Y)))
                                                                                                   0)))
                                                                                   rw [hTy]

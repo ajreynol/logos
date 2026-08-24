@@ -1513,13 +1513,13 @@ by
   change SmtTermClosedIn vars
     (native_ite
       (native_zleq 0
-        (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+        (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))))
       (SmtTerm._at_purify
         (SmtTerm.Numeral
-          (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+          (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x)))))
       SmtTerm.None)
   cases native_zleq 0
-      (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) <;>
+      (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) <;>
     simp [native_ite, SmtTermClosedIn]
 
 theorem smtTermClosedIn_eo_to_smt_seq_empty
@@ -2026,7 +2026,7 @@ by
               (native_zleq 0 i))
             (SmtTerm.Apply
               (SmtTerm.DtSel (native_string_lit "@Tuple")
-                (__smtx_tuple_datatype_decl d) native_nat_zero
+                (__eo_to_smt_tuple_decl d) native_nat_zero
                 (native_int_to_nat i))
               t)
             SmtTerm.None)
@@ -2151,7 +2151,7 @@ by
               (native_zleq 0 i))
             (__eo_to_smt_updater
               (SmtTerm.DtSel (native_string_lit "@Tuple")
-                (__smtx_tuple_datatype_decl d)
+                (__eo_to_smt_tuple_decl d)
                 native_nat_zero (native_int_to_nat i))
               t u)
             SmtTerm.None)
@@ -2162,7 +2162,7 @@ by
         simpa [native_ite] using
           smtTermClosedIn_eo_to_smt_updater
             (sel := SmtTerm.DtSel (native_string_lit "@Tuple")
-              (__smtx_tuple_datatype_decl d)
+              (__eo_to_smt_tuple_decl d)
               native_nat_zero (native_int_to_nat i))
             ht hu
 
@@ -2216,17 +2216,17 @@ by
                 (native_streq s2 (native_string_lit "@Tuple")))
               (__smtx_type_wf
                 (SmtType.Datatype (native_string_lit "@Tuple")
-                  (__smtx_tuple_datatype_decl
+                  (__eo_to_smt_tuple_decl
                     (SmtDatatype.sum (SmtDatatypeCons.cons hT c)
                       SmtDatatype.null)))))
             (__eo_to_smt_tuple_prepend_rec
-              (__smtx_tuple_datatype_decl (SmtDatatype.sum c SmtDatatype.null))
+              (__eo_to_smt_tuple_decl (SmtDatatype.sum c SmtDatatype.null))
               (SmtDatatype.sum c SmtDatatype.null)
               tail (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
                 native_nat_zero)
               (SmtTerm.Apply
                 (SmtTerm.DtCons (native_string_lit "@Tuple")
-                  (__smtx_tuple_datatype_decl
+                  (__eo_to_smt_tuple_decl
                     (SmtDatatype.sum (SmtDatatypeCons.cons hT c)
                       SmtDatatype.null))
                   native_nat_zero)
@@ -2237,14 +2237,14 @@ by
               (native_streq s2 (native_string_lit "@Tuple")))
             (__smtx_type_wf
               (SmtType.Datatype (native_string_lit "@Tuple")
-                (__smtx_tuple_datatype_decl
+                (__eo_to_smt_tuple_decl
                   (SmtDatatype.sum (SmtDatatypeCons.cons hT c)
                     SmtDatatype.null)))) <;> try trivial
         exact smtTermClosedIn_eo_to_smt_tuple_prepend_rec
           (tail := tail)
           (acc := SmtTerm.Apply
             (SmtTerm.DtCons (native_string_lit "@Tuple")
-              (__smtx_tuple_datatype_decl
+              (__eo_to_smt_tuple_decl
                 (SmtDatatype.sum (SmtDatatypeCons.cons hT c) SmtDatatype.null))
               native_nat_zero)
             h)

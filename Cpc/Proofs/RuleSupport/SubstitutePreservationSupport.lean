@@ -5210,12 +5210,12 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                               __smtx_typeof
                                                                   (native_ite
                                                                     (native_zleq 0
-                                                                      (__smtx_bv_sizeof_type
+                                                                      (__eo_to_smt_bv_size
                                                                         (__smtx_typeof
                                                                           (__eo_to_smt X))))
                                                                     (SmtTerm._at_purify
                                                                       (SmtTerm.Numeral
-                                                                        (__smtx_bv_sizeof_type
+                                                                        (__eo_to_smt_bv_size
                                                                           (__smtx_typeof
                                                                             (__eo_to_smt X)))))
                                                                     SmtTerm.None) ≠
@@ -5233,7 +5233,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                   hXTrans hArgEo with
                                                               ⟨n, hSmtArg⟩
                                                             rw [hSmtArg]
-                                                            simp [__smtx_bv_sizeof_type,
+                                                            simp [__eo_to_smt_bv_size,
                                                               __smtx_typeof.eq_11,
                                                               __smtx_typeof.eq_2,
                                                               native_ite, native_zleq,
@@ -5289,7 +5289,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                       (__eo_to_smt X)
                                                                       (SmtTerm.bvnot
                                                                         (SmtTerm.Binary
-                                                                          (__smtx_bv_sizeof_type
+                                                                          (__eo_to_smt_bv_size
                                                                             (__smtx_typeof
                                                                               (__eo_to_smt X)))
                                                                           0))) ≠
@@ -5309,7 +5309,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                               rw [smt_typeof_bvcomp_eq,
                                                                 hSmtArg,
                                                                 smt_typeof_bvnot_eq]
-                                                              simp [__smtx_bv_sizeof_type,
+                                                              simp [__eo_to_smt_bv_size,
                                                                 smt_typeof_binary_nat_to_int_zero,
                                                                 __smtx_typeof_bv_op_1,
                                                                 __smtx_typeof_bv_op_2_ret,
@@ -5366,7 +5366,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                         (SmtTerm.bvcomp
                                                                           (__eo_to_smt X)
                                                                           (SmtTerm.Binary
-                                                                            (__smtx_bv_sizeof_type
+                                                                            (__eo_to_smt_bv_size
                                                                               (__smtx_typeof
                                                                                 (__eo_to_smt X)))
                                                                             0))) ≠
@@ -5387,7 +5387,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                   smt_typeof_bvcomp_eq,
                                                                   hSmtArg]
                                                                 simp [
-                                                                  __smtx_bv_sizeof_type,
+                                                                  __eo_to_smt_bv_size,
                                                                   smt_typeof_binary_nat_to_int_zero,
                                                                   __smtx_typeof_bv_op_1,
                                                                   __smtx_typeof_bv_op_2_ret,

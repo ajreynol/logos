@@ -585,18 +585,6 @@ def __smtx_typeof_map_value : SmtMap -> SmtType
   | (SmtMap.default T e) => (SmtType.Map T (__smtx_typeof_value e))
 
 
-def __smtx_index_typeof_map : SmtType -> SmtType
-  | (SmtType.Map T U) => T
-  | T => SmtType.None
-
-
-def __smtx_mss_op_internal (isInter : native_Bool) : SmtMap -> SmtMap -> SmtMap -> SmtMap
-  | (SmtMap.default T efalse), m2, acc => acc
-  | (SmtMap.cons e etrue m1), m2, acc => 
-    let _v0 := (SmtValue.Boolean true)
-    (__smtx_mss_op_internal isInter m1 m2 (native_ite (native_iff (native_veq (__smtx_msm_lookup m2 e) _v0) isInter) (__smtx_msm_update_aux (__smtx_msm_get_default acc) acc e _v0) acc))
-
-
 def __smtx_map_to_set_type : SmtType -> SmtType
   | (SmtType.Map T SmtType.Bool) => (SmtType.Set T)
   | T => SmtType.None
@@ -607,11 +595,6 @@ def __smtx_typeof_seq_value : SmtSeq -> SmtType
     let _v0 := (__smtx_typeof_seq_value vs)
     (native_ite (native_Teq (SmtType.Seq (__smtx_typeof_value v)) _v0) _v0 SmtType.None)
   | (SmtSeq.empty T) => (SmtType.Seq T)
-
-
-def __smtx_elem_typeof_seq_value : SmtSeq -> SmtType
-  | (SmtSeq.cons v vs) => (__smtx_elem_typeof_seq_value vs)
-  | (SmtSeq.empty T) => T
 
 
 def __smtx_dtc_num_sels : SmtDatatypeCons -> native_Nat
@@ -680,22 +663,6 @@ def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
 def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
   | v1, v2 => (SmtValue.Boolean (native_veq v1 v2))
-
-
-def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
-  | (SmtValue.Set m), i => (__smtx_msm_lookup m i)
-  | v, i => SmtValue.NotValue
-
-
-def __smtx_bv_sizeof_type : SmtType -> native_Int
-  | (SmtType.BitVec x1) => (native_nat_to_int x1)
-  | t1 => (native_zneg 1)
-
-
-def __smtx_bv_sizeof_value : SmtValue -> native_Int
-  | (SmtValue.Binary x1 x2) => x1
-  | t1 => (native_zneg 1)
 
 
 def __smtx_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
@@ -820,6 +787,12 @@ def __smtx_model_eval_mod_total : SmtValue -> SmtValue -> SmtValue
   | t1, t2 => SmtValue.NotValue
 
 
+def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
+  | (SmtValue.Set m), i => (__smtx_msm_lookup m i)
+  | v, i => SmtValue.NotValue
+
+
 def __smtx_model_eval_select (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   (__smtx_map_select x1 x2)
 
@@ -921,6 +894,11 @@ def __smtx_model_eval_bvurem : SmtValue -> SmtValue -> SmtValue
 
 def __smtx_model_eval_bvsub (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   (__smtx_model_eval_bvadd x1 (__smtx_model_eval_bvneg x2))
+
+def __smtx_bv_sizeof_value : SmtValue -> native_Int
+  | (SmtValue.Binary x1 x2) => x1
+  | t1 => (native_zneg 1)
+
 
 def __smtx_model_eval_bvsdiv (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   
@@ -1092,6 +1070,11 @@ def __smtx_model_eval_bvsdivo (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
 def __smtx_model_eval_str_len : SmtValue -> SmtValue
   | (SmtValue.Seq x1) => (SmtValue.Numeral (native_seq_len (native_unpack_seq x1)))
   | t1 => SmtValue.NotValue
+
+
+def __smtx_elem_typeof_seq_value : SmtSeq -> SmtType
+  | (SmtSeq.cons v vs) => (__smtx_elem_typeof_seq_value vs)
+  | (SmtSeq.empty T) => T
 
 
 def __smtx_model_eval_str_concat : SmtValue -> SmtValue -> SmtValue
@@ -1317,6 +1300,18 @@ def __smtx_model_eval__at_strings_occur_index_re : SmtValue -> SmtValue -> SmtVa
 def __smtx_model_eval_set_singleton (x1 : SmtValue) : SmtValue :=
   (SmtValue.Set (SmtMap.cons x1 (SmtValue.Boolean true) (SmtMap.default (__smtx_typeof_value x1) (SmtValue.Boolean false))))
 
+def __smtx_index_typeof_map : SmtType -> SmtType
+  | (SmtType.Map T U) => T
+  | T => SmtType.None
+
+
+def __smtx_mss_op_internal (isInter : native_Bool) : SmtMap -> SmtMap -> SmtMap -> SmtMap
+  | (SmtMap.default T efalse), m2, acc => acc
+  | (SmtMap.cons e etrue m1), m2, acc => 
+    let _v0 := (SmtValue.Boolean true)
+    (__smtx_mss_op_internal isInter m1 m2 (native_ite (native_iff (native_veq (__smtx_msm_lookup m2 e) _v0) isInter) (__smtx_msm_update_aux (__smtx_msm_get_default acc) acc e _v0) acc))
+
+
 def __smtx_set_union : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_mss_op_internal false m1 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)) m2))
   | v1, v2 => SmtValue.NotValue
@@ -1388,67 +1383,6 @@ def __smtx_typeof_apply : SmtType -> SmtType -> SmtType
   | T, U => SmtType.None
 
 
-def __smtx_typeof_bv_op_2 : SmtType -> SmtType -> SmtType
-  | (SmtType.BitVec n1), (SmtType.BitVec n2) => (native_ite (native_nateq n1 n2) (SmtType.BitVec n1) SmtType.None)
-  | T, U => SmtType.None
-
-
-def __smtx_typeof_bv_op_2_ret : SmtType -> SmtType -> SmtType -> SmtType
-  | (SmtType.BitVec n1), (SmtType.BitVec n2), U => (native_ite (native_nateq n1 n2) U SmtType.None)
-  | T, U, V => SmtType.None
-
-
-def __smtx_typeof_sets_op_2 : SmtType -> SmtType -> SmtType
-  | (SmtType.Set x1), (SmtType.Set x2) => (native_ite (native_Teq x1 x2) (SmtType.Set x1) SmtType.None)
-  | x1, x2 => SmtType.None
-
-
-def __smtx_typeof_sets_op_2_ret : SmtType -> SmtType -> SmtType -> SmtType
-  | (SmtType.Set x1), (SmtType.Set x2), T => (native_ite (native_Teq x1 x2) T SmtType.None)
-  | T, U, V => SmtType.None
-
-
-def __smtx_typeof_seq_op_1 : SmtType -> SmtType
-  | (SmtType.Seq x1) => (SmtType.Seq x1)
-  | x1 => SmtType.None
-
-
-def __smtx_typeof_seq_op_1_ret : SmtType -> SmtType -> SmtType
-  | (SmtType.Seq x1), x2 => x2
-  | x1, x2 => SmtType.None
-
-
-def __smtx_typeof_seq_op_2 : SmtType -> SmtType -> SmtType
-  | (SmtType.Seq x1), (SmtType.Seq x2) => (native_ite (native_Teq x1 x2) (SmtType.Seq x1) SmtType.None)
-  | x1, x2 => SmtType.None
-
-
-def __smtx_typeof_seq_op_2_ret : SmtType -> SmtType -> SmtType -> SmtType
-  | (SmtType.Seq x1), (SmtType.Seq x2), T => (native_ite (native_Teq x1 x2) T SmtType.None)
-  | T, U, V => SmtType.None
-
-
-def __smtx_typeof_seq_op_3 : SmtType -> SmtType -> SmtType -> SmtType
-  | (SmtType.Seq x1), (SmtType.Seq x2), (SmtType.Seq x3) => (native_ite (native_Teq x1 x2) (native_ite (native_Teq x2 x3) (SmtType.Seq x1) SmtType.None) SmtType.None)
-  | x1, x2, x3 => SmtType.None
-
-
-def __smtx_typeof_bv_op_1 : SmtType -> SmtType
-  | (SmtType.BitVec n) => (SmtType.BitVec n)
-  | T => SmtType.None
-
-
-def __smtx_typeof_bv_op_1_ret : SmtType -> SmtType -> SmtType
-  | (SmtType.BitVec n), T => T
-  | T, U => SmtType.None
-
-
-def __smtx_typeof_arith_overload_op_1 : SmtType -> SmtType
-  | SmtType.Int => SmtType.Int
-  | SmtType.Real => SmtType.Real
-  | T => SmtType.None
-
-
 def __smtx_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
   | SmtType.Int, SmtType.Int => SmtType.Int
   | SmtType.Real, SmtType.Real => SmtType.Real
@@ -1459,6 +1393,12 @@ def __smtx_typeof_arith_overload_op_2_ret : SmtType -> SmtType -> SmtType -> Smt
   | SmtType.Int, SmtType.Int, T => T
   | SmtType.Real, SmtType.Real, T => T
   | T, U, V => SmtType.None
+
+
+def __smtx_typeof_arith_overload_op_1 : SmtType -> SmtType
+  | SmtType.Int => SmtType.Int
+  | SmtType.Real => SmtType.Real
+  | T => SmtType.None
 
 
 def __smtx_typeof_select : SmtType -> SmtType -> SmtType
@@ -1494,6 +1434,21 @@ def __smtx_typeof_repeat : SmtTerm -> SmtType -> SmtType
   | x3, x4 => SmtType.None
 
 
+def __smtx_typeof_bv_op_1 : SmtType -> SmtType
+  | (SmtType.BitVec n) => (SmtType.BitVec n)
+  | T => SmtType.None
+
+
+def __smtx_typeof_bv_op_2 : SmtType -> SmtType -> SmtType
+  | (SmtType.BitVec n1), (SmtType.BitVec n2) => (native_ite (native_nateq n1 n2) (SmtType.BitVec n1) SmtType.None)
+  | T, U => SmtType.None
+
+
+def __smtx_typeof_bv_op_2_ret : SmtType -> SmtType -> SmtType -> SmtType
+  | (SmtType.BitVec n1), (SmtType.BitVec n2), U => (native_ite (native_nateq n1 n2) U SmtType.None)
+  | T, U, V => SmtType.None
+
+
 def __smtx_typeof_zero_extend : SmtTerm -> SmtType -> SmtType
   | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (native_ite (native_zleq 0 x1) (SmtType.BitVec (native_int_to_nat (native_zplus x1 (native_nat_to_int x2)))) SmtType.None)
   | x3, x4 => SmtType.None
@@ -1514,9 +1469,34 @@ def __smtx_typeof_rotate_right : SmtTerm -> SmtType -> SmtType
   | x3, x4 => SmtType.None
 
 
+def __smtx_typeof_bv_op_1_ret : SmtType -> SmtType -> SmtType
+  | (SmtType.BitVec n), T => T
+  | T, U => SmtType.None
+
+
+def __smtx_typeof_seq_op_1_ret : SmtType -> SmtType -> SmtType
+  | (SmtType.Seq x1), x2 => x2
+  | x1, x2 => SmtType.None
+
+
+def __smtx_typeof_seq_op_2 : SmtType -> SmtType -> SmtType
+  | (SmtType.Seq x1), (SmtType.Seq x2) => (native_ite (native_Teq x1 x2) (SmtType.Seq x1) SmtType.None)
+  | x1, x2 => SmtType.None
+
+
 def __smtx_typeof_str_substr : SmtType -> SmtType -> SmtType -> SmtType
   | (SmtType.Seq x1), SmtType.Int, SmtType.Int => (SmtType.Seq x1)
   | x2, x3, x4 => SmtType.None
+
+
+def __smtx_typeof_seq_op_2_ret : SmtType -> SmtType -> SmtType -> SmtType
+  | (SmtType.Seq x1), (SmtType.Seq x2), T => (native_ite (native_Teq x1 x2) T SmtType.None)
+  | T, U, V => SmtType.None
+
+
+def __smtx_typeof_seq_op_3 : SmtType -> SmtType -> SmtType -> SmtType
+  | (SmtType.Seq x1), (SmtType.Seq x2), (SmtType.Seq x3) => (native_ite (native_Teq x1 x2) (native_ite (native_Teq x2 x3) (SmtType.Seq x1) SmtType.None) SmtType.None)
+  | x1, x2, x3 => SmtType.None
 
 
 def __smtx_typeof_str_indexof : SmtType -> SmtType -> SmtType -> SmtType
@@ -1527,6 +1507,11 @@ def __smtx_typeof_str_indexof : SmtType -> SmtType -> SmtType -> SmtType
 def __smtx_typeof_str_at : SmtType -> SmtType -> SmtType
   | (SmtType.Seq x1), SmtType.Int => (SmtType.Seq x1)
   | x2, x3 => SmtType.None
+
+
+def __smtx_typeof_seq_op_1 : SmtType -> SmtType
+  | (SmtType.Seq x1) => (SmtType.Seq x1)
+  | x1 => SmtType.None
 
 
 def __smtx_typeof_str_update : SmtType -> SmtType -> SmtType -> SmtType
@@ -1554,9 +1539,19 @@ def __smtx_typeof_seq_diff : SmtType -> SmtType -> SmtType
   | T1, T2 => SmtType.None
 
 
+def __smtx_typeof_sets_op_2 : SmtType -> SmtType -> SmtType
+  | (SmtType.Set x1), (SmtType.Set x2) => (native_ite (native_Teq x1 x2) (SmtType.Set x1) SmtType.None)
+  | x1, x2 => SmtType.None
+
+
 def __smtx_typeof_set_member : SmtType -> SmtType -> SmtType
   | x1, (SmtType.Set x2) => (native_ite (native_Teq x1 x2) SmtType.Bool SmtType.None)
   | x3, x4 => SmtType.None
+
+
+def __smtx_typeof_sets_op_2_ret : SmtType -> SmtType -> SmtType -> SmtType
+  | (SmtType.Set x1), (SmtType.Set x2), T => (native_ite (native_Teq x1 x2) T SmtType.None)
+  | T, U, V => SmtType.None
 
 
 def __smtx_typeof_int_to_bv : SmtTerm -> SmtType -> SmtType
@@ -1742,9 +1737,6 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.UConst s T) => (__smtx_typeof_guard_wf T T)
   | x1 => SmtType.None
 
-
-def __smtx_tuple_datatype_decl (d : SmtDatatype) : SmtDatatypeDecl :=
-  (SmtDatatypeDecl.cons (native_string_lit "@Tuple") d SmtDatatypeDecl.nil)
 
 def __smtx_is_unit_type (T : SmtType) : native_Bool :=
   (__smtx_type_bounded true T)

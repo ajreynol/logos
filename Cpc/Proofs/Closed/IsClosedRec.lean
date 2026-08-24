@@ -98,7 +98,7 @@ by
       __eo_to_smt_sets_deq_diff, __eo_to_smt_set_insert,
       __eo_to_smt_tuple_prepend, __eo_to_smt_tuple_prepend_of_type,
       __eo_to_smt_set_elem_type, __eo_to_smt_typed_list_elem_type,
-      __smtx_bv_sizeof_type, __smtx_type_wf, __smtx_type_wf_component,
+      __eo_to_smt_bv_size, __smtx_type_wf, __smtx_type_wf_component,
       __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
       __smtx_typeof_dt_cons_rec, smtx_dt_cons_wf_rec_cons_none_eq_false,
       hNeg, native_ite, native_Teq, native_and]
@@ -154,7 +154,7 @@ by
                   cases dTail <;>
                     simp [hBody, smtx_typeof_unfolded_eo_list_cons_eq_none,
                       smtx_dt_cons_wf_rec_cons_none_eq_false, __smtx_typeof,
-                      __smtx_tuple_datatype_decl, __smtx_decl_wf_rec,
+                      __eo_to_smt_tuple_decl, __smtx_decl_wf_rec,
                       __smtx_dt_wf_rec, native_ite, native_Teq, native_and]
   case set_member =>
     cases hBody : __smtx_typeof (__eo_to_smt body)
@@ -1087,7 +1087,7 @@ theorem eo_type_valid_rec_tuple_args
       simp [R, hx, __eo_to_smt_type_tuple,
         TranslationProofs.noNoneTy, TranslationProofs.noNoneDecl,
         TranslationProofs.noNoneDt, TranslationProofs.noNoneDtc,
-        __smtx_tuple_datatype_decl, native_ite, native_streq,
+        __eo_to_smt_tuple_decl, native_ite, native_streq,
         native_and] at hRNoNone
     case Datatype s dd =>
       cases dd with
@@ -1131,7 +1131,7 @@ theorem eo_type_valid_rec_tuple_args
                                   true ∧
                                 TranslationProofs.noNoneDtc c = true := by
                             simpa [R, hx, __eo_to_smt_type_tuple,
-                              __smtx_tuple_datatype_decl,
+                              __eo_to_smt_tuple_decl,
                               TranslationProofs.noNoneTy,
                               TranslationProofs.noNoneDecl,
                               TranslationProofs.noNoneDt,
@@ -1149,7 +1149,7 @@ theorem eo_type_valid_rec_tuple_args
       simp [R, hx, __eo_to_smt_type_tuple,
         TranslationProofs.noNoneTy, TranslationProofs.noNoneDecl,
         TranslationProofs.noNoneDt, TranslationProofs.noNoneDtc,
-        __smtx_tuple_datatype_decl, native_ite, native_streq,
+        __eo_to_smt_tuple_decl, native_ite, native_streq,
         native_and] at hRNoNone ⊢
     case Datatype s dd =>
       cases dd with
@@ -1193,7 +1193,7 @@ theorem eo_type_valid_rec_tuple_args
                                   true ∧
                                 TranslationProofs.noNoneDtc c = true := by
                             simpa [R, hx, __eo_to_smt_type_tuple,
-                              __smtx_tuple_datatype_decl,
+                              __eo_to_smt_tuple_decl,
                               TranslationProofs.noNoneTy,
                               TranslationProofs.noNoneDecl,
                               TranslationProofs.noNoneDt,
@@ -3116,7 +3116,7 @@ by
   unfold eoHasSmtTranslation at hTrans
   change
       __smtx_typeof
-          (let _v0 := __smtx_bv_sizeof_type
+          (let _v0 := __eo_to_smt_bv_size
             (__smtx_typeof (__eo_to_smt x))
            native_ite (native_zleq 0 _v0)
              (SmtTerm._at_purify (SmtTerm.Numeral _v0))
@@ -4390,7 +4390,7 @@ by
         (SmtTerm.bvcomp (__eo_to_smt x)
           (SmtTerm.bvnot
             (SmtTerm.Binary
-              (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0))) at hNN
+              (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) 0))) at hNN
   rcases
       bv_binop_ret_args_of_non_none (op := SmtTerm.bvcomp)
         (ret := SmtType.BitVec 1)
@@ -4399,14 +4399,14 @@ by
               (SmtTerm.bvcomp (__eo_to_smt x)
                 (SmtTerm.bvnot
                   (SmtTerm.Binary
-                    (__smtx_bv_sizeof_type
+                    (__eo_to_smt_bv_size
                       (__smtx_typeof (__eo_to_smt x))) 0))) =
             __smtx_typeof_bv_op_2_ret
               (__smtx_typeof (__eo_to_smt x))
               (__smtx_typeof
                 (SmtTerm.bvnot
                   (SmtTerm.Binary
-                    (__smtx_bv_sizeof_type
+                    (__eo_to_smt_bv_size
                       (__smtx_typeof (__eo_to_smt x))) 0)))
               (SmtType.BitVec 1) by
           rw [__smtx_typeof.eq_def] <;> simp only)
@@ -4426,7 +4426,7 @@ by
         (SmtTerm.bvnot
           (SmtTerm.bvcomp (__eo_to_smt x)
             (SmtTerm.Binary
-              (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0))) at hNN
+              (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) 0))) at hNN
   rcases
       bv_unop_arg_of_non_none (op := SmtTerm.bvnot)
         (show
@@ -4434,13 +4434,13 @@ by
               (SmtTerm.bvnot
                 (SmtTerm.bvcomp (__eo_to_smt x)
                   (SmtTerm.Binary
-                    (__smtx_bv_sizeof_type
+                    (__eo_to_smt_bv_size
                       (__smtx_typeof (__eo_to_smt x))) 0))) =
             __smtx_typeof_bv_op_1
               (__smtx_typeof
                 (SmtTerm.bvcomp (__eo_to_smt x)
                   (SmtTerm.Binary
-                    (__smtx_bv_sizeof_type
+                    (__eo_to_smt_bv_size
                       (__smtx_typeof (__eo_to_smt x))) 0))) by
           rw [__smtx_typeof.eq_def] <;> simp only)
         hNN with
@@ -4449,7 +4449,7 @@ by
       term_has_non_none_type
         (SmtTerm.bvcomp (__eo_to_smt x)
           (SmtTerm.Binary
-            (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0)) :=
+            (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) 0)) :=
     term_has_non_none_type_of_type_eq_closed hCompTy (by simp)
   rcases
       bv_binop_ret_args_of_non_none (op := SmtTerm.bvcomp)
@@ -4458,12 +4458,12 @@ by
           __smtx_typeof
               (SmtTerm.bvcomp (__eo_to_smt x)
                 (SmtTerm.Binary
-                  (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0)) =
+                  (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) 0)) =
             __smtx_typeof_bv_op_2_ret
               (__smtx_typeof (__eo_to_smt x))
               (__smtx_typeof
                 (SmtTerm.Binary
-                  (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0))
+                  (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt x))) 0))
               (SmtType.BitVec 1) by
           rw [__smtx_typeof.eq_def] <;> simp only)
         hCompNN with
@@ -4894,7 +4894,7 @@ by
                 by_cases hTupleDecl :
                     s2 = native_string_lit "@Tuple"
                 · subst s2
-                  let tupleDecl := __smtx_tuple_datatype_decl d
+                  let tupleDecl := __eo_to_smt_tuple_decl d
                   cases hIdx : __eo_to_smt idx with
                   | Numeral n =>
                       cases hNonneg : native_zleq 0 n
@@ -8388,7 +8388,7 @@ by
     __smtx_typeof
         (SmtTerm.Apply
           (SmtTerm.DtCons (native_string_lit "@Tuple")
-            (__smtx_tuple_datatype_decl
+            (__eo_to_smt_tuple_decl
               (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
             0)
           (__eo_to_smt x)) ≠
@@ -8397,14 +8397,14 @@ by
   have hGeneric :
       generic_apply_type
         (SmtTerm.DtCons (native_string_lit "@Tuple")
-          (__smtx_tuple_datatype_decl
+          (__eo_to_smt_tuple_decl
             (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0)
         (__eo_to_smt x) :=
     generic_apply_type_of_non_special_head_closed _ _
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
   rw [hGeneric]
-  simp [__smtx_tuple_datatype_decl,
+  simp [__eo_to_smt_tuple_decl,
     TranslationProofs.smtx_typeof_tuple_unit_translation]
   rfl
 

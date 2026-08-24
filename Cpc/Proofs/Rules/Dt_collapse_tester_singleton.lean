@@ -321,7 +321,7 @@ private theorem dt_collapse_tester_singleton_sound
     have hHeadUnit :
         __vsm_apply_head (__smtx_model_eval M (__eo_to_smt t)) =
           SmtValue.DtCons (native_string_lit "@Tuple")
-            (__smtx_tuple_datatype_decl
+            (__eo_to_smt_tuple_decl
               (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
             native_nat_zero :=
       unit_tuple_value_head_zero_of_type hEvalTy

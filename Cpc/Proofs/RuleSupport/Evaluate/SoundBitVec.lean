@@ -1960,14 +1960,14 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_at_bvsize_core
   intro hATrans _hEvalTy
   have hTranslate :
       __eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) b) =
-        let _v0 := __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt b))
+        let _v0 := __eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt b))
         native_ite (native_zleq 0 _v0)
           (SmtTerm._at_purify (SmtTerm.Numeral _v0))
           SmtTerm.None := by
     rfl
   have hApplyNN :
       __smtx_typeof
-          (let _v0 := __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt b))
+          (let _v0 := __eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt b))
            native_ite (native_zleq 0 _v0)
              (SmtTerm._at_purify (SmtTerm.Numeral _v0))
              SmtTerm.None) ≠
@@ -1986,7 +1986,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_at_bvsize_core
           native_decide
         apply hApplyNN
         rw [hTy]
-        simp [__smtx_bv_sizeof_type, hNeg, native_ite]
+        simp [__eo_to_smt_bv_size, hNeg, native_ite]
   rcases hArgExists with ⟨w, hBTy⟩
   have hBTrans : RuleProofs.eo_has_smt_translation b := by
     unfold RuleProofs.eo_has_smt_translation
@@ -2016,9 +2016,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_at_bvsize_core
       SmtEval.native_nat_to_int]
   constructor
   · rw [hTranslate, hBTy]
-    simp [__smtx_bv_sizeof_type, __smtx_typeof, native_ite, hWNonneg]
+    simp [__eo_to_smt_bv_size, __smtx_typeof, native_ite, hWNonneg]
   · rw [hTranslate, hBTy]
-    simp [__smtx_bv_sizeof_type, __smtx_model_eval,
+    simp [__eo_to_smt_bv_size, __smtx_model_eval,
       __smtx_model_eval__at_purify, native_ite, hWNonneg]
     exact RuleProofs.smt_value_rel_refl _
 

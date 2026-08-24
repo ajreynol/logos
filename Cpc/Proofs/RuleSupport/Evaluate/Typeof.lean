@@ -673,7 +673,7 @@ theorem EvaluateProofInternal.run_evaluate_typeof_apply_uop
   | _at_bvsize =>
       have hBvsizeNN :
           term_has_non_none_type
-            (let _v0 := __smtx_bv_sizeof_type
+            (let _v0 := __eo_to_smt_bv_size
                 (__smtx_typeof (__eo_to_smt x))
              native_ite (native_zleq 0 _v0)
               (SmtTerm._at_purify (SmtTerm.Numeral _v0))

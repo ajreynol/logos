@@ -680,7 +680,7 @@ private theorem eval_bvsize_eq (M : SmtModel) (t : Term) (w : native_Int)
       SmtTerm._at_purify (SmtTerm.Numeral (native_nat_to_int (native_int_to_nat w))) ∧
     __smtx_model_eval M (__eo_to_smt (bvsizeTerm t)) =
       SmtValue.Numeral (native_nat_to_int (native_int_to_nat w)) := by
-  have hSize : __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt t)) =
+  have hSize : __eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt t)) =
       native_nat_to_int (native_int_to_nat w) := by
     rw [hTSmt]; rfl
   have hNN : native_zleq 0 (native_nat_to_int (native_int_to_nat w)) = true := by
@@ -688,9 +688,9 @@ private theorem eval_bvsize_eq (M : SmtModel) (t : Term) (w : native_Int)
   have hTrans : __eo_to_smt (bvsizeTerm t) =
       SmtTerm._at_purify (SmtTerm.Numeral (native_nat_to_int (native_int_to_nat w))) := by
     change (native_ite
-        (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt t))))
+        (native_zleq 0 (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt t))))
         (SmtTerm._at_purify
-          (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt t)))))
+          (SmtTerm.Numeral (__eo_to_smt_bv_size (__smtx_typeof (__eo_to_smt t)))))
         SmtTerm.None) = _
     rw [hSize]
     simp [native_ite, hNN]
