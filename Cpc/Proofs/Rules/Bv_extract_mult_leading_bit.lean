@@ -382,6 +382,7 @@ private theorem bvExtractMultLeadingMatchGuard_eqs
     support_eq_of_eo_eq_true low r22 e22⟩
 
 set_option maxHeartbeats 100000000 in
+set_option maxRecDepth 100000 in
 private theorem facts_bvExtractMultLeadingProgram
     (M : SmtModel) (hM : model_total_typed M)
     (result high low xi xin x yi yin y w P1 P2 P3 P4 P5 P6 P7 : Term) :
@@ -464,6 +465,7 @@ private theorem facts_bvExtractMultLeadingProgram
     exact hFactsRaw hMatchedTy hP2True hP3True hP4True hP5True hP6True
 
 set_option maxHeartbeats 100000000 in
+set_option maxRecDepth 100000 in
 private theorem typed_bvExtractMultLeadingProgram
     (result high low xi xin x yi yin y w P1 P2 P3 P4 P5 P6 P7 : Term) :
     RuleProofs.eo_has_smt_translation high ->
