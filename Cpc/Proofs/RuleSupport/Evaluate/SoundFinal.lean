@@ -67,7 +67,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_ite_core
   have hOrigIteNe :
       __eo_typeof_ite (__eo_typeof c) (__eo_typeof t) (__eo_typeof e) ≠
         Term.Stuck := by
-    simpa [whole] using hWholeTypeNe
+    have hsimpa := hWholeTypeNe
+    try simp [whole] at hsimpa ⊢
+    exact hsimpa
   rcases EvaluateProofInternal.eo_typeof_ite_args_of_ne_stuck
       (__eo_typeof c) (__eo_typeof t) (__eo_typeof e) hOrigIteNe with
     ⟨_hCType, hThenElseEoEq, hThenTypeNe⟩
@@ -246,7 +248,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_int_to_bv_core
       term_has_non_none_type
         (SmtTerm.int_to_bv (__eo_to_smt n) (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases int_to_bv_args_of_non_none hIntToBvNN with
     ⟨i, hnSmt, hxSmtTy, hi0⟩
   have hnTerm : n = Term.Numeral i :=
@@ -428,7 +432,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_extract_core
       term_has_non_none_type
         (SmtTerm.extract (__eo_to_smt hi) (__eo_to_smt lo) (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases extract_args_of_non_none hExtNN with
     ⟨i, j, w, hHiSmt, hLoSmt, hxSmtTy, hj0, hji, hiw⟩
   have hHiTerm : hi = Term.Numeral i :=

@@ -111,7 +111,7 @@ private theorem bitlist_syntax_of_get_nil (f a : Term)
     (h : __eo_get_nil_rec f a ≠ Term.Stuck) :
     BitListSyntax a := by
   fun_induction __eo_get_nil_rec f a <;>
-    simp_all [__eo_get_nil_rec]
+    simp_all
   case case3 f g x y ih =>
     have hfg := support_eo_requires_cond_eq_of_non_stuck h
     subst g
@@ -2125,8 +2125,8 @@ private theorem eval_ult_initial {M : SmtModel}
       SmtValue.Boolean (ultStep xb yb orEqual) := by
   cases orEqual with
   | false =>
-    simp only [__eo_ite, native_teq, native_ite, Bool.false_eq_true,
-      if_false]
+    simp only [__eo_ite, native_teq, native_ite,
+     ]
     change
       __smtx_model_eval_and
         (__smtx_model_eval_not
@@ -2138,7 +2138,7 @@ private theorem eval_ult_initial {M : SmtModel}
     rw [hx, hy]
     cases xb <;> cases yb <;> rfl
   | true =>
-    simp only [__eo_ite, native_teq, native_ite, if_true]
+    simp only [__eo_ite, native_teq, native_ite]
     change
       __smtx_model_eval_or
         (__smtx_model_eval_and
@@ -2248,9 +2248,10 @@ theorem ultBits_true_le {xs ys : List Bool}
   by_cases hlt : bitsValue xs < bitsValue ys
   · have hle : bitsValue xs ≤ bitsValue ys := Nat.le_of_lt hlt
     simp [hle]
+    exact Or.inl hlt
   · by_cases heq : bitsValue xs = bitsValue ys
     · have hle : bitsValue xs ≤ bitsValue ys := by omega
-      simp [hlt, heq, hle]
+      simp [heq]
     · have hnle : ¬ bitsValue xs ≤ bitsValue ys := by omega
       simp [hlt, heq, hnle]
 
@@ -2381,7 +2382,7 @@ theorem bvslt_bitvec_values {W : Nat} (x y : BitVec W) :
         (SmtValue.Binary (W : Int) (y.toNat : Int)) =
       SmtValue.Boolean (x.slt y) := by
   have hW0 : native_zleq 0 (W : Int) = true := by
-    simpa [SmtEval.native_zleq] using Int.natCast_nonneg W
+    simp [SmtEval.native_zleq]
   have hWCast : (W : Int) = native_nat_to_int W := by
     simp [native_nat_to_int, SmtEval.native_nat_to_int]
   have hXCanon : native_zeq (x.toNat : Int)
@@ -2394,7 +2395,7 @@ theorem bvslt_bitvec_values {W : Nat} (x y : BitVec W) :
         (by exact_mod_cast x.isLt)
     have hsimpa := hMod.symm
     try simp [SmtEval.native_zeq, SmtEval.native_mod_total] at hsimpa ⊢
-    exact hsimpa
+    exact decide_eq_true hsimpa
   have hYCanon : native_zeq (y.toNat : Int)
       (native_mod_total (y.toNat : Int)
         (native_int_pow2 (W : Int))) = true := by
@@ -2405,7 +2406,7 @@ theorem bvslt_bitvec_values {W : Nat} (x y : BitVec W) :
         (by exact_mod_cast y.isLt)
     have hsimpa := hMod.symm
     try simp [SmtEval.native_zeq, SmtEval.native_mod_total] at hsimpa ⊢
-    exact hsimpa
+    exact decide_eq_true hsimpa
   unfold __smtx_model_eval_bvslt
   rw [EvaluateProofInternal.smtx_model_eval_bvsgt_binary_eq_uts
     hW0 hYCanon hXCanon]
@@ -2696,7 +2697,7 @@ theorem bitblast_slt_impl_eval {M : SmtModel}
                   (Term.UOp UserOp._at_from_bools) y2) yt2)
             (by intro h; cases h)
             (by intro h; cases h)]
-          simp only [__eo_mk_apply, hultNe]
+          simp only [__eo_mk_apply]
           exact eval_signed_formula hx hy hult
 
 private def reifyBits (p i : Nat) : Nat → List Bool
@@ -3186,7 +3187,7 @@ theorem eval_step_bvule (M : SmtModel) (hM : model_total_typed M)
             simp [hlt, hle]
           · by_cases heq :
                 bitsValue (xb :: xbs) = bitsValue (yb :: ybs)
-            · simp [hlt, heq, htail]
+            · simp [heq, htail]
             · have hnle :
                   ¬ bitsValue (xb :: xbs) ≤ bitsValue (yb :: ybs) := by
                 omega
@@ -4041,7 +4042,7 @@ private theorem smt_typeof_bitsValue (xs : List Bool) :
             (BvBitblast.bitsValue xs : Int))) =
       SmtType.BitVec xs.length := by
   have hW0 : native_zleq 0 (xs.length : Int) = true := by
-    simpa [SmtEval.native_zleq] using Int.natCast_nonneg xs.length
+    simp [SmtEval.native_zleq]
   have hCanon :
       native_zeq (BvBitblast.bitsValue xs : Int)
           (native_mod_total (BvBitblast.bitsValue xs : Int)
@@ -4059,7 +4060,7 @@ private theorem smt_typeof_bitsValue (xs : List Bool) :
         (by exact_mod_cast BvBitblast.bitsValue_lt xs)
     have hsimpa := hMod.symm
     try simp [SmtEval.native_zeq, SmtEval.native_mod_total] at hsimpa ⊢
-    exact hsimpa
+    exact decide_eq_true hsimpa
   change
     __smtx_typeof
         (SmtTerm.Binary (xs.length : Int)
@@ -4626,7 +4627,7 @@ private theorem testBitsOr
             Term.Stuck := by
         simpa [heqFalse, __eo_ite, native_teq, native_ite] using hne
       have haccNe := hacc.ne_stuck
-      simp [__eo_l_1___bv_mk_bitblast_step_bitwise, haccNe] at hfallback
+      simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hfallback
       have hsame :=
         support_eo_requires_cond_eq_of_non_stuck hfallback
       have hrestEoTy :=
@@ -5025,7 +5026,7 @@ private theorem testBitsXor
             Term.Stuck := by
         simpa [heqFalse, __eo_ite, native_teq, native_ite] using hne
       have haccNe := hacc.ne_stuck
-      simp [__eo_l_1___bv_mk_bitblast_step_bitwise, haccNe] at hfallback
+      simp [__eo_l_1___bv_mk_bitblast_step_bitwise] at hfallback
       have hsame :=
         support_eo_requires_cond_eq_of_non_stuck hfallback
       have hrestEoTy :=
@@ -5298,7 +5299,7 @@ private theorem add_smt_typeof_bitsValue (xs : List Bool) :
             (BvBitblast.bitsValue xs : Int))) =
       SmtType.BitVec xs.length := by
   have hW0 : native_zleq 0 (xs.length : Int) = true := by
-    simpa [SmtEval.native_zleq] using Int.natCast_nonneg xs.length
+    simp [SmtEval.native_zleq]
   have hCanon :
       native_zeq (BvBitblast.bitsValue xs : Int)
           (native_mod_total (BvBitblast.bitsValue xs : Int)
@@ -5314,7 +5315,7 @@ private theorem add_smt_typeof_bitsValue (xs : List Bool) :
         (by exact_mod_cast BvBitblast.bitsValue_lt xs)
     have hsimpa := hMod.symm
     try simp [SmtEval.native_zeq, SmtEval.native_mod_total] at hsimpa ⊢
-    exact hsimpa
+    exact decide_eq_true hsimpa
   change
     __smtx_typeof
         (SmtTerm.Binary (xs.length : Int)
@@ -5640,11 +5641,11 @@ private theorem bitCons_type_info
     exact hsimpa
   have hwb : wb = 1 := by
     rw [typeof_ite_eq, hbTy] at hbitTy
-    simp [__smtx_typeof_ite, native_ite, hT] at hbitTy
+    simp [__smtx_typeof_ite, native_ite] at hbitTy
     exact SmtType.BitVec.inj hbitTy.symm
   have hW : W = wt + wb := by
     rw [typeof_concat_eq, htailTy, hbitTy] at hConcatTy
-    simp [__smtx_typeof_concat, native_ite,
+    simp [__smtx_typeof_concat,
       SmtEval.native_zplus, native_nat_to_int,
       SmtEval.native_nat_to_int, native_int_to_nat,
       SmtEval.native_int_to_nat] at hConcatTy
@@ -5758,7 +5759,7 @@ private theorem extractLsb'_concat_prefix
   apply BitVec.eq_of_getLsbD_eq
   intro i hi
   rw [BitVec.getLsbD_extractLsb', BitVec.getLsbD_concat]
-  simp only [hi, decide_true, true_and, Nat.zero_add]
+  simp only [hi, decide_true, Nat.zero_add]
   by_cases hi0 : i = 0
   · simp [hi0]
   · rw [BitVec.getLsbD_concat]
@@ -5774,10 +5775,10 @@ private theorem extractLsb'_concat_succ
   apply BitVec.eq_of_getLsbD_eq
   intro i hi
   rw [BitVec.getLsbD_extractLsb', BitVec.getLsbD_extractLsb']
-  simp only [hi, decide_true, true_and]
+  simp only [hi, decide_true]
   rw [BitVec.getLsbD_concat]
   have hne : l + 1 + i ≠ 0 := by omega
-  simp [hne]
+  simp
 
 private theorem prefix_eval_typed
     (M : SmtModel) (hM : model_total_typed M)
@@ -6007,7 +6008,7 @@ private theorem eval_step_extract
   have hwidth' : (0 : Int) < ui + 1 + -li := by
     have hsimpa := hwidth
     try simp [SmtEval.native_zlt, SmtEval.native_zplus, SmtEval.native_zneg] at hsimpa ⊢
-    exact hsimpa
+    exact of_decide_eq_true hsimpa
   have hliui : li ≤ ui := by
     apply Int.le_of_lt_add_one
     omega
@@ -6015,7 +6016,7 @@ private theorem eval_step_extract
   have huiW' : ui < (W : Int) := by
     have hsimpa := huiW
     try simp [SmtEval.native_zlt, native_nat_to_int, SmtEval.native_nat_to_int] at hsimpa ⊢
-    exact hsimpa
+    exact of_decide_eq_true hsimpa
   let L : Nat := li.toNat
   let U : Nat := ui.toNat
   have hL : (L : Int) = li := by
@@ -6074,7 +6075,7 @@ private theorem eval_step_extract
     calc
       (L : Int) + ((U - L : Nat) + (-(L : Int) + 1)) =
           ((L : Int) + -(L : Int)) + ((U - L : Nat) + 1) := by
-        simp [Int.add_assoc, Int.add_comm, Int.add_left_comm]
+        simp [Int.add_assoc, Int.add_left_comm]
       _ = (U - L : Nat) + 1 := by
         rw [show (L : Int) + -(L : Int) = 0 by
           simpa using Int.add_neg_cancel_left (L : Int) 0]
@@ -6106,7 +6107,7 @@ private theorem bitCons_type
     rw [typeof_ite_eq, hb]
     rfl
   rw [typeof_concat_eq, htail, hite]
-  simp [__smtx_typeof_concat, native_ite,
+  simp [__smtx_typeof_concat,
     SmtEval.native_zplus, native_nat_to_int,
     SmtEval.native_nat_to_int, native_int_to_nat,
     SmtEval.native_int_to_nat]
@@ -6283,8 +6284,9 @@ private theorem mk_step_concat_type_eval
         native_int_to_nat, SmtEval.native_int_to_nat]
       congr 1
     have hW : W = w1 + w2 := by
-      rw [hSourceTy] at hTy
-      exact (SmtType.BitVec.inj hTy).symm
+      -- `hTy` now carries the unfolded `__eo_to_smt` spine, so `rw [hSourceTy]`
+      -- no longer matches; the two sides are still defeq, so compose directly
+      exact (SmtType.BitVec.inj (hSourceTy.symm.trans hTy)).symm
     have hrecNe :
         __bv_mk_bitblast_step_concat a2 ≠ Term.Stuck := by
       exact bitblast_concat_left_ne hne
@@ -6778,13 +6780,13 @@ private theorem shift_add_multiplier_eval_bits
     simp [initBits, hYLen]
   have hrec :=
     shift_add_rec_eval 1 htail ha2 hinit
-      (by simpa [hYLen, hinitLen])
+      (by simp [hYLen, hinitLen])
       (by
         simp only [List.length_cons] at hAcLen
         omega)
   have houtLen :=
     shiftAddRecBits_length ys 1 xs initBits
-      (by simpa [hYLen, hinitLen])
+      (by simp [hYLen, hinitLen])
       (by
         simp only [List.length_cons] at hAcLen
         omega)
@@ -6795,7 +6797,7 @@ private theorem shift_add_multiplier_eval_bits
     exact bitsValue_map_and b ys
   have houtVal :=
     shiftAddRecBits_value ys 1 xs initBits
-      (by simpa [hYLen, hinitLen])
+      (by simp [hYLen, hinitLen])
       (by
         simp only [List.length_cons] at hAcLen
         omega)
@@ -6841,7 +6843,7 @@ private theorem shift_add_multiplier_eval_bits
     simp only [bitsValue, Nat.pow_one]
     rw [hinitLen]
     unfold native_mod_total
-    simp only [Int.natAbs_natCast]
+    simp only []
     congr 1
     rw [Nat.add_mul]
     ac_rfl
@@ -7630,7 +7632,7 @@ private theorem shl_rec_eval {M : SmtModel}
                   (Term.Numeral (s : Int)) = false by
               exact decide_eq_false hterm]]
           simp only [__eo_ite, native_teq, native_ite,
-            Bool.false_eq_true, if_false]
+           ]
           rw [__eo_l_1___bv_mk_bitblast_step_shl_rec.eq_4
             currentTerm (Term.Numeral (s : Int))
             (Term.Numeral ((s + (n + 1) : Nat) : Int)) bit tail
@@ -7647,7 +7649,7 @@ private theorem shl_rec_eval {M : SmtModel}
               Term.Numeral ((2 ^ s : Nat) : Int) by
             have hs : ¬ ((s : Int) < 0) := by omega
             simp [__eo_is_z, __eo_is_z_internal, __eo_is_neg, __eo_pow,
-              __eo_ite, native_teq, native_not, native_and, native_zeq,
+              __eo_ite, native_teq, native_not, native_and,
               native_zlt, native_ite, native_zexp_total, hs]]
           simp only [__eo_add, native_zplus]
           rw [show (s : Int) + 1 = ((s + 1 : Nat) : Int) by omega]
@@ -7736,7 +7738,7 @@ private theorem shr_rec_eval {M : SmtModel}
                   (Term.Numeral (s : Int)) = false by
               exact decide_eq_false hterm]]
           simp only [__eo_ite, native_teq, native_ite,
-            Bool.false_eq_true, if_false]
+           ]
           rw [__eo_l_1___bv_mk_bitblast_step_shr_rec.eq_5
             currentTerm (Term.Numeral (s : Int))
             (Term.Numeral ((s + (n + 1) : Nat) : Int)) signTerm bit tail
@@ -7754,7 +7756,7 @@ private theorem shr_rec_eval {M : SmtModel}
               Term.Numeral ((2 ^ s : Nat) : Int) by
             have hs : ¬ ((s : Int) < 0) := by omega
             simp [__eo_is_z, __eo_is_z_internal, __eo_is_neg, __eo_pow,
-              __eo_ite, native_teq, native_not, native_and, native_zeq,
+              __eo_ite, native_teq, native_not, native_and,
               native_zlt, native_ite, native_zexp_total, hs]]
           simp only [__eo_add, native_zplus]
           rw [show (s : Int) + 1 = ((s + 1 : Nat) : Int) by omega]
@@ -7974,23 +7976,23 @@ private theorem shrStepBits_complement
         k b false).map (!·) := by
   cases b <;>
     simp [shrStepBits, shrMergeBits, List.map_append,
-      List.map_drop, map_not_not, map_not_not_comp]
+      List.map_drop, map_not_not_comp]
 
 private theorem shrBarrelBits_complement
     (current controls : List Bool) (s n : Nat) :
     shrBarrelBits current s controls n true =
       (shrBarrelBits (current.map (!·)) s controls n false).map (!·) := by
   induction n generalizing current controls s with
-  | zero => simp [shrBarrelBits, map_not_not, map_not_not_comp]
+  | zero => simp [shrBarrelBits, map_not_not_comp]
   | succ n ih =>
       cases controls with
-      | nil => simp [shrBarrelBits, map_not_not, map_not_not_comp]
+      | nil => simp [shrBarrelBits, map_not_not_comp]
       | cons b bs =>
           simp only [shrBarrelBits]
           rw [ih
             (shrStepBits current current (2 ^ s) b true) bs (s + 1)]
           rw [shrStepBits_complement]
-          simp [map_not_not, map_not_not_comp]
+          simp [map_not_not_comp]
 
 private theorem bitblast_apply_ite_same_length
     (c a b : Term)
@@ -8638,8 +8640,8 @@ private theorem BitListEval.prefix {M : SmtModel}
   induction h generalizing n with
   | nil =>
       cases n <;>
-        simpa [__bv_bitblast_prefix] using
-          (BitListEval.nil (M := M))
+        simp [__bv_bitblast_prefix] <;>
+        exact BitListEval.nil (M := M)
   | cons bit tail b bs hbit htail ih =>
       cases n with
       | zero =>
@@ -8854,10 +8856,10 @@ private theorem addCarry_sub_eq {xs ys : List Bool}
       rw [Nat.add_assoc, hcomp] at hval
       omega
     | true =>
-      simp [hc, hle]
+      simp [hle]
   · cases hc : addCarry xs (ys.map (!·)) true with
     | false =>
-      simp [hc, hle]
+      simp [hle]
     | true =>
       rw [hc] at hval
       simp only [Bool.toNat_true, Nat.mul_one] at hval
@@ -9147,7 +9149,7 @@ private theorem div_mod_impl_input_syntax
         exact hzero
       · rw [eo_eq_false_of_ne haNe hzNe haz] at h
         simp only [__eo_ite, native_teq, native_ite,
-          Bool.false_eq_true, if_false] at h
+         ] at h
         rw [__eo_l_1___bv_div_mod_impl.eq_4 a divisor zero
           (Term.Numeral (start : Int)) tail haNe hbNe hzNe] at h
         have hparts := mk_pair_first_ne_components h
@@ -9207,7 +9209,7 @@ private theorem bvurem_binary_values
       (by exact_mod_cast bitsValue_lt xs)
   · have hyI : ¬(bitsValue ys : Int) = 0 := by
       exact_mod_cast hy
-    simp [native_zeq, hyI, native_ite, hy,
+    simp [native_zeq, native_ite, hy,
       native_int_pow2_nat]
     simp only [native_mod_total]
     have hinner :
@@ -9240,7 +9242,7 @@ private theorem bvudiv_binary_values
   by_cases hy : bitsValue ys = 0
   · have hyI : (bitsValue ys : Int) = 0 := by
       exact_mod_cast hy
-    simp [native_zeq, hyI, native_ite, hy]
+    simp [native_zeq, native_ite, hy]
     rw [native_int_pow2_nat]
     have hp : 1 ≤ 2 ^ xs.length := Nat.one_le_two_pow
     rw [show
@@ -9259,7 +9261,7 @@ private theorem bvudiv_binary_values
         2 ^ xs.length - 1 < 2 ^ xs.length))
   · have hyI : ¬(bitsValue ys : Int) = 0 := by
       exact_mod_cast hy
-    simp [native_zeq, hyI, native_ite, hy,
+    simp [native_zeq, native_ite, hy,
       native_int_pow2_nat]
     simp only [native_div_total, native_mod_total]
     have hinner :
@@ -9323,7 +9325,7 @@ private theorem div_mod_impl_eval {M : SmtModel}
       · subst a
         rw [eo_eq_self_nonstuck zero hz.ne_stuck]
         simp only [__eo_ite, native_teq, native_ite,
-          Bool.true_eq, if_true]
+         ]
         have hxeq :
             xs = List.replicate W false := ha.unique hz
         subst xs
@@ -9339,7 +9341,7 @@ private theorem div_mod_impl_eval {M : SmtModel}
           exact eo_eq_false_of_ne ha.ne_stuck hz.ne_stuck haz
         rw [heqFalse]
         simp only [__eo_ite, native_teq, native_ite,
-          Bool.false_eq_true, if_false]
+         ]
         cases xs with
         | nil =>
             have hWzero : W = 0 := by simpa using hxs.symm
@@ -10207,7 +10209,7 @@ private theorem const_bit_term_eq
   have hsem := extract_bit_binary_eval (W : Int) p i hp0
   have heq := congrArg
     (fun v => __smtx_model_eval_eq v (SmtValue.Binary 1 1)) hsem
-  dsimp only at heq
+  try dsimp only at heq
   rw [bv1_eq_one] at heq
   simp only [__smtx_model_eval_extract, native_zplus, native_zneg,
     native_nat_to_int] at heq
@@ -11005,7 +11007,7 @@ private theorem eval_step_bvshl
       (by
         intro j hj
         simpa using barrelWidth_pow_le W hW j hj)
-    simp [hy, htake] at hval
+    simp [htake] at hval
     have hselected :
         List.zipWith
             (fun x y =>
@@ -11407,7 +11409,8 @@ private theorem eval_step_bvlshr
         (shrBarrelBits xs 0 ys L false) := by
     rw [hlsz]
     have hsimpa :=
-      shr_rec_eval ha hamount rfl 0 L W hxW
+      shr_rec_eval ha hamount
+        (signTerm := Term.Boolean false) (sign := false) rfl 0 L W hxW
         (by rw [hyW]; exact barrelWidth_le W hW)
         (by
           intro j hj
@@ -11443,7 +11446,7 @@ private theorem eval_step_bvlshr
       (by
         intro j hj
         simpa using barrelWidth_pow_le W hW j hj)
-    simp [hy, htake] at hval
+    simp [htake] at hval
     have hselected :
         List.zipWith
             (fun x y =>
@@ -11788,7 +11791,7 @@ private theorem eval_step_bvashr
           (by
             intro j hj
             simpa using barrelWidth_pow_le W hW j hj)
-        simp [hy, htake] at hval
+        simp [htake] at hval
         have hselected :
             List.zipWith
                 (fun x y =>
@@ -11845,7 +11848,7 @@ private theorem eval_step_bvashr
             (by
               intro j hj
               simpa using barrelWidth_pow_le W hW j hj)
-        simp [hy, htake] at hvalZ
+        simp [htake] at hvalZ
         have hcomp :
             shrBarrelBits xs 0 ys L true = zs.map (!·) := by
           exact shrBarrelBits_complement xs ys 0 L

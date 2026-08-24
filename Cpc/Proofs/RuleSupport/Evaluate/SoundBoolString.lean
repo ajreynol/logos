@@ -927,7 +927,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_at_core
       term_has_non_none_type
         (SmtTerm.str_at (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases str_at_args_of_non_none hAtNN with ⟨T, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -1093,7 +1095,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_prefixof_core
       term_has_non_none_type
         (SmtTerm.str_prefixof (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_prefixof)
       (typeof_str_prefixof_eq (__eo_to_smt a) (__eo_to_smt b))
       hPrefixNN with
@@ -1337,7 +1341,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_suffixof_core
       term_has_non_none_type
         (SmtTerm.str_suffixof (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_suffixof)
       (typeof_str_suffixof_eq (__eo_to_smt a) (__eo_to_smt b))
       hSuffixNN with
@@ -1618,7 +1624,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_contains_core
       term_has_non_none_type
         (SmtTerm.str_contains (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_contains)
       (typeof_str_contains_eq (__eo_to_smt a) (__eo_to_smt b))
       hContainsNN with
@@ -1873,7 +1881,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_indexof_core
         (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
           (__eo_to_smt n)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation, whole] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation, whole] at hsimpa ⊢
+    exact hsimpa
   rcases str_indexof_args_of_non_none hIndexNN with
     ⟨T, hSTySeq, hPatTySeq, hNTy⟩
   have hSTrans : RuleProofs.eo_has_smt_translation s := by
@@ -2294,7 +2304,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_update_core
         (SmtTerm.str_update (__eo_to_smt s) (__eo_to_smt n)
           (__eo_to_smt repl)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation, whole] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation, whole] at hsimpa ⊢
+    exact hsimpa
   rcases str_update_args_of_non_none hUpdateNN with
     ⟨T, hSTySeq, hNTy, hReplTySeq⟩
   have hSTrans : RuleProofs.eo_has_smt_translation s := by
@@ -2684,7 +2696,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_leq_core
       term_has_non_none_type
         (SmtTerm.str_leq (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases seq_char_binop_args_of_non_none (op := SmtTerm.str_leq)
       (typeof_str_leq_eq (__eo_to_smt a) (__eo_to_smt b))
       hLeqNN with
@@ -2937,7 +2951,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_core
         (SmtTerm.str_replace (__eo_to_smt s) (__eo_to_smt pat)
           (__eo_to_smt repl)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation, whole] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation, whole] at hsimpa ⊢
+    exact hsimpa
   rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace)
       (typeof_str_replace_eq (__eo_to_smt s) (__eo_to_smt pat)
         (__eo_to_smt repl)) hReplaceNN with
@@ -3364,7 +3380,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_all_core
         (SmtTerm.str_replace_all (SmtTerm.String str)
           (SmtTerm.String patStr) (SmtTerm.String replStr)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation, whole] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation, whole] at hsimpa ⊢
+    exact hsimpa
   rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace_all)
       (typeof_str_replace_all_eq (SmtTerm.String str)
         (SmtTerm.String patStr) (SmtTerm.String replStr)) hReplaceNN with
@@ -3374,15 +3392,17 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_all_core
   subst T
   have hPatValid : native_string_valid patStr = true :=
     (EvaluateProofInternal.smtx_typeof_eo_string_seq_char_valid patStr SmtType.Char
-      (by simpa using hPatTySeq)).2
+      (by have hsimpa := hPatTySeq; (try simp at hsimpa ⊢); exact hsimpa)).2
   have hReplValid : native_string_valid replStr = true :=
     (EvaluateProofInternal.smtx_typeof_eo_string_seq_char_valid replStr SmtType.Char
-      (by simpa using hReplTySeq)).2
+      (by have hsimpa := hReplTySeq; (try simp at hsimpa ⊢); exact hsimpa)).2
   cases patStr with
   | nil =>
       have hRun : __run_evaluate whole = Term.String str := by
-        simpa [whole] using
+        have hsimpa :=
           EvaluateProofInternal.str_replace_all_result_strings_empty str replStr
+        try simp [whole] at hsimpa ⊢
+        exact hsimpa
       rw [hRun]
       constructor
       · change
@@ -3421,8 +3441,10 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_all_core
           __run_evaluate whole =
             Term.String
               (EvaluateProofInternal.native_str_replace_all_chain (p :: ps) replStr 0 str) := by
-        simpa [whole] using
+        have hsimpa :=
           EvaluateProofInternal.str_replace_all_result_strings_cons str replStr p ps
+        try simp [whole] at hsimpa ⊢
+        exact hsimpa
       rw [hRun]
       have hResultValid :
           native_string_valid
@@ -3496,7 +3518,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_substr_core
       term_has_non_none_type
         (SmtTerm.str_substr (__eo_to_smt s) (__eo_to_smt n) (__eo_to_smt m)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases str_substr_args_of_non_none hSubNN with
     ⟨T, hSTySeq, hNTy, hMTy⟩
   have hSTrans : RuleProofs.eo_has_smt_translation s := by
@@ -3724,7 +3748,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_len_core
   have hLenNN :
       term_has_non_none_type (SmtTerm.str_len (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases seq_arg_of_non_none_ret (op := SmtTerm.str_len)
       (typeof_str_len_eq (__eo_to_smt b)) hLenNN with
     ⟨T, hBTySeq⟩
@@ -3837,7 +3863,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_code_core
   have hCodeNN :
       term_has_non_none_type (SmtTerm.str_to_code (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hBTyChar :
       __smtx_typeof (__eo_to_smt b) = SmtType.Seq SmtType.Char :=
     seq_char_arg_of_non_none (op := SmtTerm.str_to_code)
@@ -3969,7 +3997,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
   have hIntNN :
       term_has_non_none_type (SmtTerm.str_to_int (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hBTyChar :
       __smtx_typeof (__eo_to_smt b) = SmtType.Seq SmtType.Char :=
     seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
@@ -4146,7 +4176,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_lower_core
   have hLowerNN :
       term_has_non_none_type (SmtTerm.str_to_lower (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hBTyChar :
       __smtx_typeof (__eo_to_smt b) = SmtType.Seq SmtType.Char :=
     seq_char_arg_of_non_none (op := SmtTerm.str_to_lower)
@@ -4364,7 +4396,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_upper_core
   have hUpperNN :
       term_has_non_none_type (SmtTerm.str_to_upper (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hBTyChar :
       __smtx_typeof (__eo_to_smt b) = SmtType.Seq SmtType.Char :=
     seq_char_arg_of_non_none (op := SmtTerm.str_to_upper)
@@ -4582,7 +4616,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_rev_core
   have hRevNN :
       term_has_non_none_type (SmtTerm.str_rev (__eo_to_smt b)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases seq_arg_of_non_none (op := SmtTerm.str_rev)
       (typeof_str_rev_eq (__eo_to_smt b)) hRevNN with
     ⟨T, hBTySeq⟩
@@ -4797,7 +4833,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_code_core
   have hFromNN :
       term_has_non_none_type (SmtTerm.str_from_code (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hxSmtTy : __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
     int_arg_of_non_none_ret (op := SmtTerm.str_from_code)
       (typeof_str_from_code_eq (__eo_to_smt x)) hFromNN
@@ -4921,7 +4959,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
   have hFromNN :
       term_has_non_none_type (SmtTerm.str_from_int (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   have hxSmtTy : __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
     int_arg_of_non_none_ret (op := SmtTerm.str_from_int)
       (typeof_str_from_int_eq (__eo_to_smt x)) hFromNN
@@ -5076,7 +5116,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core
       term_has_non_none_type
         (SmtTerm.ubv_to_int (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_unop_ret_arg_of_non_none
       (op := SmtTerm.ubv_to_int) (ret := SmtType.Int)
       (by rw [smtx_typeof_ubv_to_int_term_eq]) hUbvToIntNN with
@@ -5249,7 +5291,9 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_sbv_to_int_core
       term_has_non_none_type
         (SmtTerm.sbv_to_int (__eo_to_smt x)) := by
     unfold term_has_non_none_type
-    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+    have hsimpa := hATrans
+    try simp [RuleProofs.eo_has_smt_translation] at hsimpa ⊢
+    exact hsimpa
   rcases bv_unop_ret_arg_of_non_none
       (op := SmtTerm.sbv_to_int) (ret := SmtType.Int)
       (by rw [__smtx_typeof.eq_def] <;> simp only) hSbvToIntNN with
