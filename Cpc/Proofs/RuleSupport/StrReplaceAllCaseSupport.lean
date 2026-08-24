@@ -171,10 +171,17 @@ private theorem num_occur_eval
     (hT : __smtx_model_eval M' T = SmtValue.Seq (native_pack_seq E ts))
     (hTs : ts ≠ []) :
     __smtx_model_eval M'
-        (__eo_to_smt_strings_num_occur S T) =
+        (SmtTerm.neg
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_all S T
+              (SmtTerm.str_substr S (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 1))))
+          (SmtTerm.str_len
+            (SmtTerm.str_replace_all S T
+              (SmtTerm.str_substr S (SmtTerm.Numeral 0)
+                (SmtTerm.Numeral 0))))) =
       SmtValue.Numeral ((occEnds ts ss).length : Int) := by
   have hDiff := num_occur_int ts ss hTs
-  simp only [__eo_to_smt_strings_num_occur]
   rw [eval_neg_term_eq, smtx_eval_str_len_term_eq, smtx_eval_str_len_term_eq,
     eval_str_replace_all_term_eq, eval_str_replace_all_term_eq,
     StrSubstrContainsSupport.smtx_eval_str_substr_term_eq,
@@ -232,23 +239,29 @@ private theorem extract_zero_toNat (ss : List SmtValue) (m : Int) :
 /-- The choice body of the `@strings_occur_index` translation, with the
 count argument `w`. -/
 private def oiBody (S T w : SmtTerm) : SmtTerm :=
+  let index := SmtTerm.Var (native_string_lit "@x") SmtType.Int
+  let pref := SmtTerm.str_substr S (SmtTerm.Numeral 0) index
+  let previous := SmtTerm.str_substr S (SmtTerm.Numeral 0)
+    (SmtTerm.neg index (SmtTerm.Numeral 1))
+  let numOccur := fun source =>
+    SmtTerm.neg
+      (SmtTerm.str_len
+        (SmtTerm.str_replace_all source T
+          (SmtTerm.str_substr source (SmtTerm.Numeral 0)
+            (SmtTerm.Numeral 1))))
+      (SmtTerm.str_len
+        (SmtTerm.str_replace_all source T
+          (SmtTerm.str_substr source (SmtTerm.Numeral 0)
+            (SmtTerm.Numeral 0))))
   SmtTerm.and
-    (SmtTerm.geq (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-      (SmtTerm.Numeral 0))
+    (SmtTerm.geq index (SmtTerm.Numeral 0))
     (SmtTerm.and
       (SmtTerm.eq
-        (__eo_to_smt_strings_num_occur
-          (SmtTerm.str_substr S (SmtTerm.Numeral 0)
-            (SmtTerm.Var (native_string_lit "@x") SmtType.Int)) T) w)
+        (numOccur pref) w)
       (SmtTerm.or
-        (SmtTerm.eq (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-          (SmtTerm.Numeral 0))
+        (SmtTerm.eq index (SmtTerm.Numeral 0))
         (SmtTerm.lt
-          (__eo_to_smt_strings_num_occur
-            (SmtTerm.str_substr S (SmtTerm.Numeral 0)
-              (SmtTerm.neg
-                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                (SmtTerm.Numeral 1))) T) w)))
+          (numOccur previous) w)))
 
 private theorem find_nonempty_aux_str_to_re_cons_eq
     (p : SmtValue) (ps : List SmtValue) :
@@ -760,7 +773,16 @@ theorem str_replace_all_reduction_pred_true
   -- the SMT-side components of the translated predicate
   let idxName := native_string_lit "@var.str_index"
   let idx := SmtTerm.Var idxName SmtType.Int
-  let numOcc := __eo_to_smt_strings_num_occur tz ty
+  let numOcc :=
+    SmtTerm.neg
+      (SmtTerm.str_len
+        (SmtTerm.str_replace_all tz ty
+          (SmtTerm.str_substr tz (SmtTerm.Numeral 0)
+            (SmtTerm.Numeral 1))))
+      (SmtTerm.str_len
+        (SmtTerm.str_replace_all tz ty
+          (SmtTerm.str_substr tz (SmtTerm.Numeral 0)
+            (SmtTerm.Numeral 0))))
   let startI := SmtTerm.str_indexof tz ty
     (SmtTerm._at_strings_occur_index tz ty idx)
   let iNext := SmtTerm.plus idx
@@ -797,7 +819,6 @@ theorem str_replace_all_reduction_pred_true
     rw [__smtx_typeof.eq_def] <;> simp only
   have hNumOccTy : __smtx_typeof numOcc = SmtType.Int := by
     dsimp [numOcc]
-    simp only [__eo_to_smt_strings_num_occur]
     simp [typeof_neg_eq, typeof_str_len_eq, typeof_str_replace_all_eq,
       typeof_str_substr_eq, hNumTy, hzTy, hyTy,
       __smtx_typeof_str_substr, __smtx_typeof_seq_op_3,

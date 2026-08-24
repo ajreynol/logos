@@ -1224,9 +1224,9 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
         exact hTrans (by
           change
             __smtx_typeof
-              (__eo_to_smt_strings_num_occur_re (__eo_to_smt z)
-                (__eo_to_smt x)) = SmtType.None
-          simp only [__eo_to_smt_strings_num_occur_re]
+              (stringsNumOccurReTerm (__eo_to_smt z) (__eo_to_smt x)) =
+                SmtType.None
+          simp only [stringsNumOccurReTerm]
           rw [typeof_neg_eq, typeof_str_len_eq, typeof_str_len_eq,
             typeof_str_replace_re_all_eq, typeof_str_replace_re_all_eq, hx]
           cases hTeq : native_Teq (__smtx_typeof (__eo_to_smt z))

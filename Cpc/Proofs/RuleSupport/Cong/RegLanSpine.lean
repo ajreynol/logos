@@ -2885,11 +2885,8 @@ private theorem regl_choice_body_bool_of_non_none
 and an arithmetic (non-`RegLan`) result whenever it is typed at all. -/
 private theorem regl_num_occur_arg_types
     {S t : SmtTerm}
-    (h : __smtx_typeof (__eo_to_smt_strings_num_occur S t) ≠ SmtType.None) :
+    (h : __smtx_typeof (stringsNumOccurTerm S t) ≠ SmtType.None) :
     ∃ T, __smtx_typeof S = SmtType.Seq T ∧ __smtx_typeof t = SmtType.Seq T := by
-  have hEq : __eo_to_smt_strings_num_occur S t = stringsNumOccurTerm S t := by
-    simp only [__eo_to_smt_strings_num_occur, stringsNumOccurTerm]
-  rw [hEq] at h
   -- reuse the decomposition through `neg`/`str_len`/`str_replace_all`
   rcases arith_overload_binop_args_non_reg_of_non_none SmtTerm.neg
       (by intro x y; exact typeof_neg_eq x y)
@@ -2929,7 +2926,7 @@ private theorem regl_num_occur_arg_types
 pattern. -/
 private theorem regl_num_occur_re_arg_types
     {S t : SmtTerm}
-    (h : __smtx_typeof (__eo_to_smt_strings_num_occur_re S t) ≠
+    (h : __smtx_typeof (stringsNumOccurReTerm S t) ≠
       SmtType.None) :
     __smtx_typeof S = SmtType.Seq SmtType.Char ∧
       __smtx_typeof t = SmtType.RegLan := by
@@ -2941,7 +2938,7 @@ private theorem regl_num_occur_re_arg_types
       (SmtTerm.str_len
         (SmtTerm.str_replace_re_all S t
           (SmtTerm.str_substr S (SmtTerm.Numeral 0) (SmtTerm.Numeral 0))))
-      (by simpa [__eo_to_smt_strings_num_occur_re] using h) with
+      (by simpa [stringsNumOccurReTerm] using h) with
     ⟨_L, _R, hLeftLen, _hRightLen, hLNN, _hRNN, _hLReg, _hRReg⟩
   have hLeftLenNN :
       __smtx_typeof
@@ -3080,7 +3077,7 @@ theorem congTrueSpine_strings_num_occur_re_eq_true
         hEqBool
     have hLeftNN :
         __smtx_typeof
-            (__eo_to_smt_strings_num_occur_re (__eo_to_smt x₁)
+            (stringsNumOccurReTerm (__eo_to_smt x₁)
               (__eo_to_smt x₂)) ≠ SmtType.None :=
       hTypes.2
     rcases regl_num_occur_re_arg_types hLeftNN with ⟨hX₁Ty, hX₂Ty⟩
@@ -3136,12 +3133,12 @@ theorem congTrueSpine_strings_num_occur_re_eq_true
     change
       __smtx_model_eval_eq
         (__smtx_model_eval M
-          (__eo_to_smt_strings_num_occur_re (__eo_to_smt x₁)
+          (stringsNumOccurReTerm (__eo_to_smt x₁)
             (__eo_to_smt x₂)))
         (__smtx_model_eval M
-          (__eo_to_smt_strings_num_occur_re (__eo_to_smt y₁)
+          (stringsNumOccurReTerm (__eo_to_smt y₁)
             (__eo_to_smt y₂))) = SmtValue.Boolean true
-    simp only [__eo_to_smt_strings_num_occur_re]
+    simp only [stringsNumOccurReTerm]
     simp only [__smtx_model_eval]
     rw [hX₁Eval, hY₁Eval, hX₂Eval, hY₂Eval]
     simp [__smtx_model_eval_str_substr, __smtx_model_eval_str_replace_re_all,
