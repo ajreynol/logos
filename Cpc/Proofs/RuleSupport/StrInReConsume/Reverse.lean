@@ -3398,15 +3398,41 @@ def StrInReConsumeInternal.consume_wf_rev_comp_motive_local (c : Term) : Prop :=
   (StrInReConsumeInternal.consume_wf_union_tail_local c ->
     StrInReConsumeInternal.consume_wf_union_tail_local (__re_rev_comp c))
 
+/-- `__eo_mk_apply` only inspects whether its arguments are `Term.Stuck`, so a
+proof about `__eo_mk_apply op x` needs two cases, not one per `Term`
+constructor. -/
+private theorem StrInReConsumeInternal.mk_apply_unop_cases_local
+    {op x : Term} {P : Term -> Prop} (hop : op ≠ Term.Stuck)
+    (hStuck : P Term.Stuck) (hApply : P (Term.Apply op x)) :
+    P (__eo_mk_apply op x) := by
+  by_cases hx : x = Term.Stuck
+  · subst hx
+    rw [show __eo_mk_apply op Term.Stuck = Term.Stuck by cases op <;> rfl]
+    exact hStuck
+  · rw [show __eo_mk_apply op x = Term.Apply op x by
+      cases op <;> cases x <;> simp_all [__eo_mk_apply]]
+    exact hApply
+
+/-- The binary counterpart: three cases instead of 25 x 25. -/
+private theorem StrInReConsumeInternal.mk_apply_binop_cases_local
+    {op x y : Term} {P : Term -> Prop} (hop : op ≠ Term.Stuck)
+    (hStuck : P Term.Stuck)
+    (hApply : P (Term.Apply (Term.Apply op x) y)) :
+    P (__eo_mk_apply (__eo_mk_apply op x) y) := by
+  by_cases hx : x = Term.Stuck
+  · subst hx
+    rw [show __eo_mk_apply op Term.Stuck = Term.Stuck by cases op <;> rfl]
+    exact hStuck
+  · rw [show __eo_mk_apply op x = Term.Apply op x by
+      cases op <;> cases x <;> simp_all [__eo_mk_apply]]
+    exact StrInReConsumeInternal.mk_apply_unop_cases_local (by simp) hStuck hApply
+
 /--
 Well-formedness is preserved by `__re_rev_map_rev` / `__re_rev_comp`:
 the reversal only reorders chunks and recurses into combinator
 components, never creating raw `re_concat` chunks from well-formed
 inputs.
 -/
--- Three 25x25 `cases` splits over `Term`; under v4.33 the last one's
--- `simp_all` no longer fits in the file-wide 10^7 heartbeat budget.
-set_option maxHeartbeats 60000000 in
 theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
     (∀ t acc, StrInReConsumeInternal.consume_wf_rev_map_motive_local t acc) ∧
       (∀ c, StrInReConsumeInternal.consume_wf_rev_comp_motive_local c) := by
@@ -3485,27 +3511,23 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
         (__eo_mk_apply (Term.UOp UserOp.re_mult)
           (__re_rev_map_rev body
             (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))
-      cases hX : __re_rev_map_rev body
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        rw [hX] at hRev <;>
-        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_chunk_local,
-          StrInReConsumeInternal.consume_wf_chain_local, StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_unop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_chunk_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp only [StrInReConsumeInternal.consume_wf_local]; exact hRev)
     · show StrInReConsumeInternal.consume_wf_inter_tail_local
         (__eo_mk_apply (Term.UOp UserOp.re_mult)
           (__re_rev_map_rev body
             (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))
-      cases hX : __re_rev_map_rev body
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        simp [__eo_mk_apply, StrInReConsumeInternal.consume_wf_inter_tail_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_unop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_inter_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp [StrInReConsumeInternal.consume_wf_inter_tail_local, StrInReConsumeInternal.consume_wf_local])
     · show StrInReConsumeInternal.consume_wf_union_tail_local
         (__eo_mk_apply (Term.UOp UserOp.re_mult)
           (__re_rev_map_rev body
             (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))
-      cases hX : __re_rev_map_rev body
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        simp [__eo_mk_apply, StrInReConsumeInternal.consume_wf_union_tail_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_unop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_union_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp [StrInReConsumeInternal.consume_wf_union_tail_local, StrInReConsumeInternal.consume_wf_local])
   have case9 : ∀ c1 c2,
       StrInReConsumeInternal.consume_wf_rev_map_motive_local c1
         (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) ->
@@ -3533,13 +3555,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        rw [hX] at hLeft <;>
-        cases hY : __re_rev_comp c2 <;>
-        rw [hY] at hRight <;>
-        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_chunk_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_chunk_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp only [StrInReConsumeInternal.consume_wf_local]; exact ⟨hLeft, hRight⟩)
     · rcases hBoth (StrInReConsumeInternal.consume_wf_inter_tail_parts_local hTail).1
           (StrInReConsumeInternal.consume_wf_inter_tail_parts_local hTail).2 with
         ⟨hLeft, hRight⟩
@@ -3550,14 +3568,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        rw [hX] at hLeft <;>
-        cases hY : __re_rev_comp c2 <;>
-        rw [hY] at hRight <;>
-        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_inter_tail_local,
-          StrInReConsumeInternal.consume_wf_chain_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_inter_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp only [StrInReConsumeInternal.consume_wf_local]; exact ⟨hLeft, hRight⟩)
     · show StrInReConsumeInternal.consume_wf_union_tail_local
         (__eo_mk_apply
           (__eo_mk_apply (Term.UOp UserOp.re_inter)
@@ -3565,11 +3578,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        cases hY : __re_rev_comp c2 <;>
-        simp [__eo_mk_apply, StrInReConsumeInternal.consume_wf_union_tail_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_union_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp [StrInReConsumeInternal.consume_wf_union_tail_local, StrInReConsumeInternal.consume_wf_local])
   have case10 : ∀ c1 c2,
       StrInReConsumeInternal.consume_wf_rev_map_motive_local c1
         (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) ->
@@ -3597,13 +3608,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        rw [hX] at hLeft <;>
-        cases hY : __re_rev_comp c2 <;>
-        rw [hY] at hRight <;>
-        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_chunk_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_chunk_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp only [StrInReConsumeInternal.consume_wf_local]; exact ⟨hLeft, hRight⟩)
     · show StrInReConsumeInternal.consume_wf_inter_tail_local
         (__eo_mk_apply
           (__eo_mk_apply (Term.UOp UserOp.re_union)
@@ -3611,11 +3618,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        cases hY : __re_rev_comp c2 <;>
-        simp [__eo_mk_apply, StrInReConsumeInternal.consume_wf_inter_tail_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_inter_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp [StrInReConsumeInternal.consume_wf_inter_tail_local, StrInReConsumeInternal.consume_wf_local])
     · rcases hBoth (StrInReConsumeInternal.consume_wf_union_tail_parts_local hTail).1
           (StrInReConsumeInternal.consume_wf_union_tail_parts_local hTail).2 with
         ⟨hLeft, hRight⟩
@@ -3626,14 +3631,9 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String []))))
           (__re_rev_comp c2))
-      cases hX : __re_rev_map_rev c1
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) <;>
-        rw [hX] at hLeft <;>
-        cases hY : __re_rev_comp c2 <;>
-        rw [hY] at hRight <;>
-        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_union_tail_local,
-          StrInReConsumeInternal.consume_wf_chain_local,
-          StrInReConsumeInternal.consume_wf_local]
+      exact StrInReConsumeInternal.mk_apply_binop_cases_local (by simp)
+        (by simp [StrInReConsumeInternal.consume_wf_union_tail_local, StrInReConsumeInternal.consume_wf_local])
+        (by simp only [StrInReConsumeInternal.consume_wf_local]; exact ⟨hLeft, hRight⟩)
   have case11 : ∀ c, (c = Term.Stuck -> False) ->
       (c = Term.UOp UserOp.re_all -> False) ->
       (c = Term.UOp UserOp.re_none -> False) ->
