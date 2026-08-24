@@ -49,12 +49,6 @@ theorem imp_bool_of_args {a b : Term}
   rw [typeof_imp_eq]
   simp [ha, hb, native_ite, native_Teq]
 
-theorem imp_eq_symm_bool {a b l : Term}
-    (h : RuleProofs.eo_has_bool_type (impTerm (eqTerm a b) l)) :
-    RuleProofs.eo_has_bool_type (impTerm (eqTerm b a) l) := by
-  rcases imp_args_bool h with ⟨hEq, hl⟩
-  exact imp_bool_of_args (RuleProofs.eo_has_bool_type_eq_symm a b hEq) hl
-
 theorem mul_operand_types (x s t : Term)
     (hEq : RuleProofs.eo_has_bool_type
       (eqTerm (bvBinTerm UserOp.bvmul x s) t)) :
@@ -181,31 +175,6 @@ theorem width_guard_sound (x : Term) (w : Nat)
   have hw : 2 < w := by exact_mod_cast hGuard
   omega
 
-theorem imp_eq_symm_interprets_bv (M : SmtModel) (a b l : Term)
-    {w : Nat} (av bv : BitVec w)
-    (ha : __smtx_model_eval M (__eo_to_smt a) = bvValue av)
-    (hb : __smtx_model_eval M (__eo_to_smt b) = bvValue bv)
-    (hTargetBool : RuleProofs.eo_has_bool_type (impTerm (eqTerm b a) l))
-    (h : eo_interprets M (impTerm (eqTerm a b) l) true) :
-    eo_interprets M (impTerm (eqTerm b a) l) true := by
-  rw [RuleProofs.eo_interprets_iff_smt_interprets] at h ⊢
-  cases h with
-  | intro_true _ hEval =>
-      refine smt_interprets.intro_true M _ hTargetBool ?_
-      change __smtx_model_eval_imp
-        (__smtx_model_eval_eq
-          (__smtx_model_eval M (__eo_to_smt b))
-          (__smtx_model_eval M (__eo_to_smt a)))
-        (__smtx_model_eval M (__eo_to_smt l)) = SmtValue.Boolean true
-      change __smtx_model_eval_imp
-        (__smtx_model_eval_eq
-          (__smtx_model_eval M (__eo_to_smt a))
-          (__smtx_model_eval M (__eo_to_smt b)))
-        (__smtx_model_eval M (__eo_to_smt l)) = SmtValue.Boolean true at hEval
-      rw [ha, hb, eval_eq_bvValue] at hEval
-      rw [hb, ha, eval_eq_bvValue]
-      simpa [eq_comm] using hEval
-
 theorem nested_mul_interprets_of_simple (M : SmtModel)
     (x s ns t l : Term) {w : Nat} (xb sb tb : BitVec w)
     (hx : __smtx_model_eval M (__eo_to_smt x) = bvValue xb)
@@ -310,100 +279,6 @@ theorem sound_nested_mul_match (M : SmtModel) (hM : model_total_typed M)
   exact nested_mul_interprets_of_simple M x s (Dsl.constTerm w 1) t l
     xb sb tb hx hs (Dsl.eval_constTerm_one M w (by omega)) ht hBool hSimple
 
-theorem sound_udiv_match_reversed (M : SmtModel) (hM : model_total_typed M)
-    (x s t l : Term)
-    (hBool : RuleProofs.eo_has_bool_type
-      (impTerm (eqTerm t (bvBinTerm UserOp.bvudiv x s)) l))
-    (hGuard : __eo_gt (__bv_bitwidth (__eo_typeof x)) (Term.Numeral 2) =
-      Term.Boolean true)
-    (hMatch : __bv_abstraction_lemma_udiv x s t l = Term.Boolean true) :
-    eo_interprets M
-      (impTerm (eqTerm t (bvBinTerm UserOp.bvudiv x s)) l) true := by
-  have hNormBool := imp_eq_symm_bool hBool
-  have hNorm := sound_udiv_match M hM x s t l hNormBool hGuard hMatch
-  have hEq := (imp_args_bool hNormBool).1
-  rcases udiv_operand_types x s t hEq with ⟨w, hxTy, hsTy, htTy⟩
-  obtain ⟨xb, hx⟩ := eval_as_bvValue M hM x w hxTy
-  obtain ⟨sb, hs⟩ := eval_as_bvValue M hM s w hsTy
-  obtain ⟨tb, ht⟩ := eval_as_bvValue M hM t w htTy
-  have hw := width_guard_sound x w hxTy hGuard
-  have hop : __smtx_model_eval M
-      (__eo_to_smt (bvBinTerm UserOp.bvudiv x s)) =
-      bvValue (xb.smtUDiv sb) := by
-    change __smtx_model_eval_bvudiv
-      (__smtx_model_eval M (__eo_to_smt x))
-      (__smtx_model_eval M (__eo_to_smt s)) = _
-    rw [hx, hs, eval_bvudiv_bvValue (by omega)]
-  exact imp_eq_symm_interprets_bv M
-    (bvBinTerm UserOp.bvudiv x s) t l (xb.smtUDiv sb) tb
-    hop ht hBool hNorm
-
-theorem sound_urem_match_reversed (M : SmtModel) (hM : model_total_typed M)
-    (x s t l : Term)
-    (hBool : RuleProofs.eo_has_bool_type
-      (impTerm (eqTerm t (bvBinTerm UserOp.bvurem x s)) l))
-    (hGuard : __eo_gt (__bv_bitwidth (__eo_typeof x)) (Term.Numeral 2) =
-      Term.Boolean true)
-    (hMatch : __bv_abstraction_lemma_urem x s t l = Term.Boolean true) :
-    eo_interprets M
-      (impTerm (eqTerm t (bvBinTerm UserOp.bvurem x s)) l) true := by
-  have hNormBool := imp_eq_symm_bool hBool
-  have hNorm := sound_urem_match M hM x s t l hNormBool hGuard hMatch
-  have hEq := (imp_args_bool hNormBool).1
-  rcases urem_operand_types x s t hEq with ⟨w, hxTy, hsTy, htTy⟩
-  obtain ⟨xb, hx⟩ := eval_as_bvValue M hM x w hxTy
-  obtain ⟨sb, hs⟩ := eval_as_bvValue M hM s w hsTy
-  obtain ⟨tb, ht⟩ := eval_as_bvValue M hM t w htTy
-  have hw := width_guard_sound x w hxTy hGuard
-  have hop : __smtx_model_eval M
-      (__eo_to_smt (bvBinTerm UserOp.bvurem x s)) =
-      bvValue (xb % sb) := by
-    change __smtx_model_eval_bvurem
-      (__smtx_model_eval M (__eo_to_smt x))
-      (__smtx_model_eval M (__eo_to_smt s)) = _
-    rw [hx, hs, eval_bvurem_bvValue (by omega)]
-  exact imp_eq_symm_interprets_bv M
-    (bvBinTerm UserOp.bvurem x s) t l (xb % sb) tb
-    hop ht hBool hNorm
-
-theorem sound_nested_mul_match_reversed
-    (M : SmtModel) (hM : model_total_typed M)
-    (x s ns t l : Term)
-    (hBool : RuleProofs.eo_has_bool_type
-      (impTerm (eqTerm t (bvBinTerm UserOp.bvmul x
-        (bvBinTerm UserOp.bvmul s ns))) l))
-    (hGuard : __eo_gt (__bv_bitwidth (__eo_typeof x)) (Term.Numeral 2) =
-      Term.Boolean true)
-    (hOne : __eo_eq ns
-      (__eo_to_bin (__bv_bitwidth (__eo_typeof ns)) (Term.Numeral 1)) =
-      Term.Boolean true)
-    (hMatch : __bv_abstraction_lemma_mul x s t l = Term.Boolean true) :
-    eo_interprets M
-      (impTerm (eqTerm t (bvBinTerm UserOp.bvmul x
-        (bvBinTerm UserOp.bvmul s ns))) l) true := by
-  have hNormBool := imp_eq_symm_bool hBool
-  have hNorm := sound_nested_mul_match M hM x s ns t l hNormBool
-    hGuard hOne hMatch
-  have hEq := (imp_args_bool hNormBool).1
-  rcases nested_mul_operand_types x s ns t hEq with
-    ⟨w, hxTy, hsTy, hnsTy, htTy⟩
-  obtain ⟨xb, hx⟩ := eval_as_bvValue M hM x w hxTy
-  obtain ⟨sb, hs⟩ := eval_as_bvValue M hM s w hsTy
-  obtain ⟨nb, hn⟩ := eval_as_bvValue M hM ns w hnsTy
-  obtain ⟨tb, ht⟩ := eval_as_bvValue M hM t w htTy
-  have hop : __smtx_model_eval M
-      (__eo_to_smt (bvBinTerm UserOp.bvmul x
-        (bvBinTerm UserOp.bvmul s ns))) = bvValue (xb * (sb * nb)) := by
-    change __smtx_model_eval_bvmul
-      (__smtx_model_eval M (__eo_to_smt x))
-      (__smtx_model_eval_bvmul
-        (__smtx_model_eval M (__eo_to_smt s))
-        (__smtx_model_eval M (__eo_to_smt ns))) = _
-    rw [hx, hs, hn, eval_bvmul_bvValue, eval_bvmul_bvValue]
-  exact imp_eq_symm_interprets_bv M
-    (bvBinTerm UserOp.bvmul x (bvBinTerm UserOp.bvmul s ns)) t l
-    (xb * (sb * nb)) tb hop ht hBool hNorm
-
 theorem bv_abstraction_match_sound (M : SmtModel) (hM : model_total_typed M)
     (F : Term) (hBool : RuleProofs.eo_has_bool_type F)
     (hMatch : __bv_abstraction_lemma F = Term.Boolean true) :
@@ -415,24 +290,13 @@ theorem bv_abstraction_match_sound (M : SmtModel) (hM : model_total_typed M)
     rcases Matcher.eo_and_eq_true_args _ _ hMatch with ⟨hGuard, hRest⟩
     rcases Matcher.eo_and_eq_true_args _ _ hRest with ⟨hOne, hRule⟩
     exact sound_nested_mul_match M hM x s ns t l hBool hGuard hOne hRule
-  case case3 t x s ns l hNotMul =>
-    rcases Matcher.eo_and_eq_true_args _ _ hMatch with ⟨hGuard, hRest⟩
-    rcases Matcher.eo_and_eq_true_args _ _ hRest with ⟨hOne, hRule⟩
-    exact sound_nested_mul_match_reversed M hM x s ns t l hBool
-      hGuard hOne hRule
-  case case4 x s t l hNotMul =>
+  case case3 x s t l =>
     rcases Matcher.eo_and_eq_true_args _ _ hMatch with ⟨hGuard, hRule⟩
     exact sound_udiv_match M hM x s t l hBool hGuard hRule
-  case case5 t x s l hNotMul hNotUdiv =>
-    rcases Matcher.eo_and_eq_true_args _ _ hMatch with ⟨hGuard, hRule⟩
-    exact sound_udiv_match_reversed M hM x s t l hBool hGuard hRule
-  case case6 x s t l hNotMul hNotUdiv =>
+  case case4 x s t l =>
     rcases Matcher.eo_and_eq_true_args _ _ hMatch with ⟨hGuard, hRule⟩
     exact sound_urem_match M hM x s t l hBool hGuard hRule
-  case case7 t x s l hNotMul hNotUdiv hNotUrem =>
-    rcases Matcher.eo_and_eq_true_args _ _ hMatch with ⟨hGuard, hRule⟩
-    exact sound_urem_match_reversed M hM x s t l hBool hGuard hRule
-  case case8 => simp at hMatch
+  case case5 => simp at hMatch
 
 theorem match_eq_true_of_program_ne_stuck (F : Term)
     (h : __eo_prog_bv_abstraction F ≠ Term.Stuck) :
