@@ -1322,44 +1322,50 @@ private theorem str_indexof_re_eval_side_model_eval
         rw [hRTy]
         simp)
   rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
-  cases s <;> first
-  | case Binary w bv =>
+  cases s
+  case Binary w bv =>
       have hBad := hArgTypes.1
       change __smtx_typeof (SmtTerm.Binary w bv) = SmtType.Seq SmtType.Char at hBad
       cases hCond :
           native_and (native_zleq 0 w)
             (native_zeq bv (native_mod_total bv (native_int_pow2 w))) <;>
         simp [__smtx_typeof, native_ite, hCond] at hBad
-  | case String str =>
-      cases n <;> first
-      | case Numeral ni =>
-      have hConcreteSideNe : str_indexof_re_eval_side str r ni ≠ Term.Stuck := by
-        simpa [str_indexof_re_eval_side, str_indexof_re_eval_match_regex,
-          side, lenTerm, tail, matchTerm, idxTerm] using hSideNe
-      have hSideEval :=
-        str_indexof_re_eval_concrete_side_model_eval M hM str r ni rv
-          hArgTypes.1 hRTy hREval hConcreteSideNe
-      have hLhsEval :
-          __smtx_model_eval M
-              (__eo_to_smt
-                (Term.Apply
-                  (Term.Apply (Term.Apply Term.str_indexof_re (Term.String str)) r)
-                  (Term.Numeral ni))) =
-            SmtValue.Numeral (native_str_indexof_re str rv ni) := by
-        change __smtx_model_eval M
-            (SmtTerm.str_indexof_re (SmtTerm.String str) (__eo_to_smt r)
-              (SmtTerm.Numeral ni)) =
-          SmtValue.Numeral (native_str_indexof_re str rv ni)
-        simp [__smtx_model_eval, hREval, __smtx_model_eval_str_indexof_re,
-          ]
-      rw [← hSideEq, hLhsEval]
-      simpa [str_indexof_re_eval_side, str_indexof_re_eval_match_regex,
-        side, lenTerm, tail, matchTerm, idxTerm] using hSideEval.symm
-      | (change side ≠ Term.Stuck at hSideNe
+  case String str =>
+      cases n
+      case Numeral ni =>
+        have hConcreteSideNe : str_indexof_re_eval_side str r ni ≠ Term.Stuck := by
+          have hsimpa := hSideNe
+          try simp [str_indexof_re_eval_side, side, lenTerm, tail, matchTerm,
+            idxTerm] at hsimpa ⊢
+          exact hsimpa
+        have hSideEval :=
+          str_indexof_re_eval_concrete_side_model_eval M hM str r ni rv
+            hArgTypes.1 hRTy hREval hConcreteSideNe
+        have hLhsEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Apply
+                    (Term.Apply (Term.Apply Term.str_indexof_re (Term.String str)) r)
+                    (Term.Numeral ni))) =
+              SmtValue.Numeral (native_str_indexof_re str rv ni) := by
+          change __smtx_model_eval M
+              (SmtTerm.str_indexof_re (SmtTerm.String str) (__eo_to_smt r)
+                (SmtTerm.Numeral ni)) =
+            SmtValue.Numeral (native_str_indexof_re str rv ni)
+          simp [__smtx_model_eval, hREval, __smtx_model_eval_str_indexof_re,
+            ]
+        rw [← hSideEq, hLhsEval]
+        have hsimpa := hSideEval.symm
+        try simp [str_indexof_re_eval_side, side, lenTerm, tail, matchTerm,
+          idxTerm] at hsimpa ⊢
+        exact hsimpa
+      all_goals
+        (change side ≠ Term.Stuck at hSideNe
          simp [lenTerm, side, __eo_len,
            __eo_gt, __eo_is_neg, __eo_or, native_ite,
            native_teq] at hSideNe)
-  | (change side ≠ Term.Stuck at hSideNe
+  all_goals
+    (change side ≠ Term.Stuck at hSideNe
      simp [lenTerm, side, __eo_len,
        __eo_gt, __eo_is_neg, __eo_or, native_ite,
        native_teq] at hSideNe)

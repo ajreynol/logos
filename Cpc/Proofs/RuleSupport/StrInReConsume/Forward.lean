@@ -501,7 +501,9 @@ theorem StrInReConsumeInternal.str_flatten_singleton_intro_string_single_local
       Term.Apply
         (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
         (Term.String []) := by
-  simpa [__str_nary_intro] using str_flatten_nary_intro_cons c []
+  have hsimpa := str_flatten_nary_intro_cons c []
+  try simp [__str_nary_intro] at hsimpa ⊢
+  exact hsimpa
 
 theorem StrInReConsumeInternal.str_flattened_chunks_string_atom_chain_local :
     ∀ w : native_String,
@@ -1085,7 +1087,9 @@ theorem StrInReConsumeInternal.re_split_str_to_re_eval_rel_consume_local
                 unfold term_has_non_none_type
                 rw [hArgs.1]
                 simp)
-        simpa [hCEval] using hCEvalTy
+        have hsimpa := hCEvalTy
+        try simp [hCEval] at hsimpa ⊢
+        exact hsimpa
       have hRestSplitNe :
           __re_split_str_to_re rest tail ≠ Term.Stuck := by
         intro hBad
@@ -3248,7 +3252,7 @@ theorem StrInReConsumeInternal.re_flatten_true_str_to_re_eval_rel_consume_local
           (SmtTerm.str_to_re (SmtTerm.String [])) =
         SmtValue.RegLan (native_str_to_re [])
       simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-        native_unpack_string_pack_string]
+       ]
     refine ⟨native_str_to_re [], ?_, ?_, ?_⟩
     · simpa [__re_flatten, eps] using hEpsEval
     · simpa [__re_flatten, eps] using StrInReConsumeInternal.smt_typeof_re_empty_string_consume_local
@@ -3272,7 +3276,7 @@ theorem StrInReConsumeInternal.re_flatten_true_str_to_re_eval_rel_consume_local
           (SmtTerm.str_to_re (SmtTerm.String [])) =
         SmtValue.RegLan (native_str_to_re [])
       simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-        native_unpack_string_pack_string]
+       ]
     rcases StrInReConsumeInternal.re_split_str_to_re_eval_rel_consume_local M hM parts eps
         partsSs (native_str_to_re []) hPartsList hPartsTy
         (by simpa [parts] using hPartsEval)
@@ -3844,7 +3848,9 @@ theorem StrInReConsumeInternal.eo_get_nil_rec_re_concat_list_rev_rec_eq_consume_
             Term.Boolean true :=
         eo_is_list_cons_self_true_of_tail_list
           (Term.UOp UserOp.re_concat) x acc (by decide) hAccList
-      simpa [__eo_list_rev_rec] using ih hTailTailList hConsAccList
+      have hsimpa := ih hTailTailList hConsAccList
+      try simp [__eo_list_rev_rec] at hsimpa ⊢
+      exact hsimpa
   | case4 nil acc hNil hAcc hNot =>
       simp [__eo_list_rev_rec]
 
