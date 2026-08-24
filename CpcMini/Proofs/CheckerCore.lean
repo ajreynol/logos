@@ -168,9 +168,9 @@ by
           simp
         exact
           (bool_binop_args_bool_of_non_none
-            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_8 (__eo_to_smt A) (__eo_to_smt B)) hNN).1
+            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).1
       have hEvalA : __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean true := by
-        rw [Smtm.__smtx_model_eval.eq_8] at hEval
+        rw [Smtm.__smtx_model_eval.eq_7] at hEval
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
@@ -197,9 +197,9 @@ by
           simp
         exact
           (bool_binop_args_bool_of_non_none
-            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_8 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
+            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
       have hEvalB : __smtx_model_eval M (__eo_to_smt B) = SmtValue.Boolean true := by
-        rw [Smtm.__smtx_model_eval.eq_8] at hEval
+        rw [Smtm.__smtx_model_eval.eq_7] at hEval
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
@@ -222,8 +222,8 @@ by
       cases hB with
       | intro_true htyB hEvalB =>
           apply smt_interprets.intro_true
-          · simp [Smtm.__smtx_typeof.eq_8, htyA, htyB, native_Teq, native_ite]
-          · simp [Smtm.__smtx_model_eval.eq_8, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
+          · simp [Smtm.__smtx_typeof.eq_7, htyA, htyB, native_Teq, native_ite]
+          · simp [Smtm.__smtx_model_eval.eq_7, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
 
 /-- Elimination lemma for `eo_interprets_imp`. -/
 theorem eo_interprets_imp_elim (M : SmtModel) (A B : Term) :
@@ -372,7 +372,7 @@ by
           simp
         exact
           (bool_binop_args_bool_of_non_none
-            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_8 (__eo_to_smt A) (__eo_to_smt B)) hNN).1
+            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).1
       have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
         have hNN : term_has_non_none_type
             (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
@@ -381,9 +381,9 @@ by
           simp
         exact
           (bool_binop_args_bool_of_non_none
-            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_8 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
+            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
       have hEvalA : __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false := by
-        rw [Smtm.__smtx_model_eval.eq_8] at hEval
+        rw [Smtm.__smtx_model_eval.eq_7] at hEval
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
@@ -425,9 +425,9 @@ by
               simp
             exact
               (bool_binop_args_bool_of_non_none
-                (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_8 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
+                (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
           have hEvalB : __smtx_model_eval M (__eo_to_smt B) = SmtValue.Boolean true := by
-            rw [Smtm.__smtx_model_eval.eq_8] at hEvalAnd
+            rw [Smtm.__smtx_model_eval.eq_7] at hEvalAnd
             cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
               simp [hEvalA, hBeval, __smtx_model_eval_and] at hEvalAnd
             case Boolean b =>

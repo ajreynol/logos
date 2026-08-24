@@ -96,7 +96,6 @@ by
       __smtx_typeof_int_to_bv,
       __eo_to_smt_array_deq_diff,
       __eo_to_smt_sets_deq_diff, __eo_to_smt_set_insert,
-      __eo_to_smt_strings_num_occur, __eo_to_smt_strings_num_occur_re,
       __eo_to_smt_tuple_prepend, __eo_to_smt_tuple_prepend_of_type,
       __eo_to_smt_set_elem_type, __eo_to_smt_typed_list_elem_type,
       __smtx_bv_sizeof_type, __smtx_type_wf, __smtx_type_wf_component,
@@ -3012,7 +3011,7 @@ theorem typeof_bvnot_eq_closed
   __smtx_typeof (SmtTerm.bvnot t) =
     __smtx_typeof_bv_op_1 (__smtx_typeof t) :=
 by
-  rw [__smtx_typeof.eq_36]
+  rw [__smtx_typeof.eq_37]
 
 theorem bvnot_arg_has_smt_translation_of_has_smt_translation
     {x : Term}
@@ -3032,14 +3031,14 @@ theorem typeof_bvneg_eq_closed
   __smtx_typeof (SmtTerm.bvneg t) =
     __smtx_typeof_bv_op_1 (__smtx_typeof t) :=
 by
-  rw [__smtx_typeof.eq_44]
+  rw [__smtx_typeof.eq_45]
 
 theorem typeof_bvnego_eq_closed
     (t : SmtTerm) :
   __smtx_typeof (SmtTerm.bvnego t) =
     __smtx_typeof_bv_op_1_ret (__smtx_typeof t) SmtType.Bool :=
 by
-  rw [__smtx_typeof.eq_69]
+  rw [__smtx_typeof.eq_70]
 
 theorem bvneg_arg_has_smt_translation_of_has_smt_translation
     {x : Term}

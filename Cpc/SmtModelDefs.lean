@@ -54,8 +54,6 @@ inductive SmtTerm : Type where
   | forall : native_String -> SmtType -> SmtTerm -> SmtTerm
   | choice : native_String -> SmtType -> SmtTerm -> SmtTerm
   | bind : native_String -> SmtType -> SmtTerm -> SmtTerm -> SmtTerm
-  | map_diff : SmtTerm -> SmtTerm -> SmtTerm
-  | seq_diff : SmtTerm -> SmtTerm -> SmtTerm
   | DtCons : native_String -> SmtDatatypeDecl -> native_Nat -> SmtTerm
   | DtSel : native_String -> SmtDatatypeDecl -> native_Nat -> native_Nat -> SmtTerm
   | DtTester : native_String -> SmtDatatypeDecl -> native_Nat -> SmtTerm
@@ -87,6 +85,7 @@ inductive SmtTerm : Type where
   | mod_total : SmtTerm -> SmtTerm -> SmtTerm
   | select : SmtTerm -> SmtTerm -> SmtTerm
   | store : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | map_diff : SmtTerm -> SmtTerm -> SmtTerm
   | concat : SmtTerm -> SmtTerm -> SmtTerm
   | extract : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | repeat : SmtTerm -> SmtTerm -> SmtTerm
@@ -174,6 +173,7 @@ inductive SmtTerm : Type where
   | str_indexof_re_split : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | seq_unit : SmtTerm -> SmtTerm
   | seq_nth : SmtTerm -> SmtTerm -> SmtTerm
+  | seq_diff : SmtTerm -> SmtTerm -> SmtTerm
   | _at_strings_occur_index : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | _at_strings_occur_index_re : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | set_empty : SmtType -> SmtTerm

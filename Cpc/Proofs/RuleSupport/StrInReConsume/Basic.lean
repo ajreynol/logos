@@ -2568,7 +2568,7 @@ theorem str_re_consume_model_rel_of_re_none_result
     (Term.UOp UserOp.re_none) side hEqTrans hSideFalse
   intro ss rv _hSEval hREval
   change __smtx_model_eval M SmtTerm.re_none = SmtValue.RegLan rv at hREval
-  rw [__smtx_model_eval.eq_102] at hREval
+  rw [__smtx_model_eval.eq_103] at hREval
   cases hREval
   exact native_str_in_re_re_none (native_unpack_string ss)
 
@@ -2612,7 +2612,7 @@ theorem str_re_consume_model_rel_of_re_all_result
       native_string_valid (native_unpack_string ss) = true :=
     native_unpack_string_valid_of_typeof_seq_char hSeqTy
   change __smtx_model_eval M SmtTerm.re_all = SmtValue.RegLan rv at hREval
-  rw [__smtx_model_eval.eq_103] at hREval
+  rw [__smtx_model_eval.eq_104] at hREval
   cases hREval
   have hInputTrue :
       native_str_in_re (native_unpack_string ss) native_re_all = true :=
@@ -11119,7 +11119,7 @@ theorem str_re_consume_model_rel_of_str_concat_re_allchar_prefix
         SmtValue.RegLan native_re_allchar := by
     change __smtx_model_eval M SmtTerm.re_allchar =
       SmtValue.RegLan native_re_allchar
-    rw [__smtx_model_eval.eq_101]
+    rw [__smtx_model_eval.eq_102]
   have hRConcatEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -12815,7 +12815,7 @@ theorem str_re_consume_model_rel_of_re_inter_all_right
         SmtValue.RegLan native_re_all := by
     change __smtx_model_eval M SmtTerm.re_all =
       SmtValue.RegLan native_re_all
-    rw [__smtx_model_eval.eq_103]
+    rw [__smtx_model_eval.eq_104]
   have hInterEval :
       __smtx_model_eval M (__eo_to_smt inter) =
         SmtValue.RegLan (native_re_inter rv native_re_all) := by
@@ -12925,7 +12925,7 @@ theorem str_re_consume_model_rel_of_re_inter_all_left
         SmtValue.RegLan native_re_all := by
     change __smtx_model_eval M SmtTerm.re_all =
       SmtValue.RegLan native_re_all
-    rw [__smtx_model_eval.eq_103]
+    rw [__smtx_model_eval.eq_104]
   have hInterEval :
       __smtx_model_eval M (__eo_to_smt inter) =
         SmtValue.RegLan (native_re_inter native_re_all rv) := by
@@ -13033,7 +13033,7 @@ theorem str_re_consume_model_rel_of_re_union_none_right
         SmtValue.RegLan native_re_none := by
     change __smtx_model_eval M SmtTerm.re_none =
       SmtValue.RegLan native_re_none
-    rw [__smtx_model_eval.eq_102]
+    rw [__smtx_model_eval.eq_103]
   have hUnionEval :
       __smtx_model_eval M (__eo_to_smt union) =
         SmtValue.RegLan (native_re_union rv native_re_none) := by
@@ -13139,7 +13139,7 @@ theorem str_re_consume_model_rel_of_re_union_none_left
         SmtValue.RegLan native_re_none := by
     change __smtx_model_eval M SmtTerm.re_none =
       SmtValue.RegLan native_re_none
-    rw [__smtx_model_eval.eq_102]
+    rw [__smtx_model_eval.eq_103]
   have hUnionEval :
       __smtx_model_eval M (__eo_to_smt union) =
         SmtValue.RegLan (native_re_union native_re_none rv) := by

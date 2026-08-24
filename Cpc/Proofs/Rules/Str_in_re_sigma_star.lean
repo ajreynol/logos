@@ -444,7 +444,7 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
                     have hRv : rv = SmtRegLan.epsilon := by
                       change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String (native_string_lit ""))) =
                           SmtValue.RegLan rv at hREval
-                      rw [__smtx_model_eval.eq_104, __smtx_model_eval.eq_4] at hREval
+                      rw [__smtx_model_eval.eq_105, __smtx_model_eval.eq_4] at hREval
                       have hsimpa := hREval.symm
                       try simp [__smtx_model_eval_str_to_re, native_str_to_re, native_pack_string] at hsimpa ⊢
                       exact hsimpa
@@ -497,7 +497,7 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
                           change __smtx_model_eval M
                               (SmtTerm.re_concat SmtTerm.re_allchar (__eo_to_smt x)) =
                             SmtValue.RegLan rv at hREval
-                          rw [__smtx_model_eval.eq_111, __smtx_model_eval.eq_101] at hREval
+                          rw [__smtx_model_eval.eq_112, __smtx_model_eval.eq_102] at hREval
                           cases hTailEval : __smtx_model_eval M (__eo_to_smt x) with
                           | RegLan rvTail =>
                               have hRv : rv = native_re_concat native_re_allchar rvTail := by
@@ -679,7 +679,7 @@ private theorem smtx_model_eval_str_in_re_eq_sigma_star_side
       SmtValue.Boolean
         (decide ((((native_unpack_string ss).length : Int) %
           (Int.ofNat (0 + m))) = 0))
-  rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_105]
+  rw [__smtx_model_eval.eq_117, __smtx_model_eval.eq_106]
   rw [hSEval, hREval]
   subst rv
   have hm : m ≠ 0 := by
