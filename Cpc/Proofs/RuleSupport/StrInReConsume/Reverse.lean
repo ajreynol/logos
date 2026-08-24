@@ -3404,6 +3404,9 @@ the reversal only reorders chunks and recurses into combinator
 components, never creating raw `re_concat` chunks from well-formed
 inputs.
 -/
+-- Three 25x25 `cases` splits over `Term`; under v4.33 the last one's
+-- `simp_all` no longer fits in the file-wide 10^7 heartbeat budget.
+set_option maxHeartbeats 60000000 in
 theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
     (∀ t acc, StrInReConsumeInternal.consume_wf_rev_map_motive_local t acc) ∧
       (∀ c, StrInReConsumeInternal.consume_wf_rev_comp_motive_local c) := by
@@ -3628,7 +3631,7 @@ theorem StrInReConsumeInternal.consume_wf_rev_facts_local :
         rw [hX] at hLeft <;>
         cases hY : __re_rev_comp c2 <;>
         rw [hY] at hRight <;>
-        simp_all only [__eo_mk_apply, StrInReConsumeInternal.consume_wf_union_tail_local,
+        simp_all [__eo_mk_apply, StrInReConsumeInternal.consume_wf_union_tail_local,
           StrInReConsumeInternal.consume_wf_chain_local,
           StrInReConsumeInternal.consume_wf_local]
   have case11 : ∀ c, (c = Term.Stuck -> False) ->

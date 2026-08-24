@@ -1446,7 +1446,9 @@ theorem EvaluateProofInternal.eo_str_from_int_digit_term_nat (n : Nat) :
     native_zplus, native_mod_total, native_and, native_str_from_code]
   -- the guards are now the folded `Bool` forms, so bridge each with `decide`
   rw [if_pos ⟨decide_eq_true hCodeNonnegRaw, decide_eq_true hCodeLtRaw⟩]
-  rw [if_pos ⟨decide_eq_true hCodeNonnegRaw, hCodeValidRaw⟩]
+  -- the condition is the `Bool` conjunction `(_ && _) = true`, not an `And`;
+  -- rewriting both conjuncts to `true` avoids elaborating it as one
+  rw [if_pos (by rw [decide_eq_true hCodeNonnegRaw, hCodeValidRaw])]
   change
     Term.String [Int.toNat ((48 : Int) + (Int.ofNat n % (10 : Int)))] =
       Term.String [Char.toNat (Nat.digitChar (n % 10))]
@@ -13163,7 +13165,7 @@ theorem EvaluateProofInternal.eo_extract_typeof_bitvec_of_arg_bitvec_and_ne_stuc
     · have hDeltaNotLt : ¬ i + -j < 0 := by
         have hsimpa := hDeltaNeg
         try simp [native_zlt, SmtEval.native_zlt, native_zplus, SmtEval.native_zplus, native_zneg, SmtEval.native_zneg] at hsimpa ⊢
-        exact hsimpa
+        exact Int.not_lt.mp (of_decide_eq_false hsimpa)
       have hDeltaNonneg : 0 <= i + -j :=
         Int.le_of_not_gt hDeltaNotLt
       have hWidthNonneg :
