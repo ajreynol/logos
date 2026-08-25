@@ -6036,22 +6036,6 @@ by
           dsimp only [__eo_to_smt]
           simp [__smtx_model_eval, hc, hx, hy])
         ih
-  case str_indexof_re_split =>
-    exact
-      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
-        root hCLt hXLt hYLt hExcept hBound hTrans
-        (by
-          intro h
-          exact
-            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
-              (by rfl)
-              str_indexof_re_split_args_have_smt_translation_of_non_none h)
-        hNoFree hAgree
-        (by
-          intro hc hx hy
-          dsimp only [__eo_to_smt]
-          simp [__smtx_model_eval, hc, hx, hy])
-        ih
   case _at_strings_occur_index =>
     exact
       smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped

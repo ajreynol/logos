@@ -475,9 +475,6 @@ theorem congTrueSpine_eq_true
   | Term.Apply (Term.UOp UserOp.str_indexof_re) x =>
       exact congTrueSpine_uop_apply_none_head_eq_true
         M UserOp.str_indexof_re x rhs (by rfl) hEqBool
-  | Term.Apply (Term.UOp UserOp.str_indexof_re_split) x =>
-      exact congTrueSpine_uop_apply_none_head_eq_true
-        M UserOp.str_indexof_re_split x rhs (by rfl) hEqBool
   | Term.Apply (Term.UOp UserOp.seq_nth) x =>
       exact congTrueSpine_uop_apply_none_head_eq_true
         M UserOp.seq_nth x rhs (by rfl) hEqBool
@@ -595,12 +592,6 @@ theorem congTrueSpine_eq_true
         x₁ x₂ x₃ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) x₁) x₂) x₃ =>
       exact congTrueSpine_str_indexof_re_eq_true M hM
-        x₁ x₂ x₃ rhs hEqBool hSpine
-  | Term.Apply
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x₁) x₂)
-      x₃ =>
-      exact congTrueSpine_str_indexof_re_split_eq_true M hM
         x₁ x₂ x₃ rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.set_is_empty) x =>
       exact congTrueSpine_set_is_empty_eq_true M hM x rhs hEqBool hSpine
@@ -2573,10 +2564,6 @@ theorem congTrueSpine_eq_true
                         | Term.Apply (Term.UOp UserOp.str_indexof_re) s =>
                             exact congTrueSpine_str_indexof_re_eq_true M hM
                               s z x (Term.Apply g y) hEqBool hApp
-                        | Term.Apply (Term.UOp UserOp.str_indexof_re_split) s =>
-                            exact
-                              congTrueSpine_str_indexof_re_split_eq_true M hM
-                                s z x (Term.Apply g y) hEqBool hApp
                         | Term.UOp1 UserOp1.update i =>
                             exact
                               congTrueSpine_non_reg_indexed_binary_uop1_eq_true
@@ -2806,10 +2793,6 @@ theorem congTrueSpine_eq_true
                               case str_indexof_re =>
                                 exact congTrueSpine_str_indexof_re_eq_true M hM
                                   a z x (Term.Apply g y) hEqBool hApp
-                              case str_indexof_re_split =>
-                                exact
-                                  congTrueSpine_str_indexof_re_split_eq_true M hM
-                                    a z x (Term.Apply g y) hEqBool hApp
                               case _at_strings_occur_index =>
                                 exact
                                   congTrueSpine_strings_occur_index_eq_true M hM

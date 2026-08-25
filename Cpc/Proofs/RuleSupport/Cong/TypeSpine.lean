@@ -468,9 +468,6 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
   | Term.Apply (Term.UOp UserOp.str_indexof_re) x =>
       exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
         UserOp.str_indexof_re x rhs (by rfl) hTrans
-  | Term.Apply (Term.UOp UserOp.str_indexof_re_split) x =>
-      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
-        UserOp.str_indexof_re_split x rhs (by rfl) hTrans
   | Term.Apply (Term.UOp UserOp.seq_nth) x =>
       exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
         UserOp.seq_nth x rhs (by rfl) hTrans
@@ -605,18 +602,6 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
           intro a b c a' b' c' ha hb hc
           rw [typeof_str_indexof_re_eq, typeof_str_indexof_re_eq, ha, hb,
             hc])
-        x₁ x₂ x₃ rhs hTrans hSpine
-  | Term.Apply
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x₁) x₂)
-      x₃ =>
-      exact congTypeSpine_typecongr_ternop_eq_has_bool_type
-        UserOp.str_indexof_re_split SmtTerm.str_indexof_re_split
-        (by intro a b c; rfl)
-        (by
-          intro a b c a' b' c' ha hb hc
-          rw [typeof_str_indexof_re_split_eq, typeof_str_indexof_re_split_eq,
-            ha, hb, hc])
         x₁ x₂ x₃ rhs hTrans hSpine
   | Term.Apply (Term.UOp UserOp.seq_unit) x =>
       exact congTypeSpine_typecongr_unop_eq_has_bool_type UserOp.seq_unit
@@ -2411,18 +2396,6 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                   rw [typeof_str_indexof_re_eq,
                                     typeof_str_indexof_re_eq, ha, hb, hc])
                                 s z x (Term.Apply g y) hTrans hApp
-                        | Term.Apply (Term.UOp UserOp.str_indexof_re_split) s =>
-                            exact
-                              congTypeSpine_typecongr_ternop_eq_has_bool_type
-                                UserOp.str_indexof_re_split
-                                SmtTerm.str_indexof_re_split
-                                (by intro a b c; rfl)
-                                (by
-                                  intro a b c a' b' c' ha hb hc
-                                  rw [typeof_str_indexof_re_split_eq,
-                                    typeof_str_indexof_re_split_eq,
-                                    ha, hb, hc])
-                                s z x (Term.Apply g y) hTrans hApp
                         | Term.UOp1 UserOp1.update i =>
                             exact
                               congTypeSpine_typecongr_indexed_binary_uop1_eq_has_bool_type
@@ -2659,18 +2632,6 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                       intro a b c a' b' c' ha hb hc
                                       rw [typeof_str_indexof_re_eq,
                                         typeof_str_indexof_re_eq, ha, hb, hc])
-                                    a z x (Term.Apply g y) hTrans hApp
-                              case str_indexof_re_split =>
-                                exact
-                                  congTypeSpine_typecongr_ternop_eq_has_bool_type
-                                    UserOp.str_indexof_re_split
-                                    SmtTerm.str_indexof_re_split
-                                    (by intro a b c; rfl)
-                                    (by
-                                      intro a b c a' b' c' ha hb hc
-                                      rw [typeof_str_indexof_re_split_eq,
-                                        typeof_str_indexof_re_split_eq,
-                                        ha, hb, hc])
                                     a z x (Term.Apply g y) hTrans hApp
                             case Apply f1 b =>
                               cases f1 <;>

@@ -696,16 +696,6 @@ private theorem false_of_typeof_str_indexof_re_eq_dtcapp_full
   repeat (first | split at hTy)
   all_goals cases hTy
 
-private theorem false_of_typeof_str_indexof_re_split_eq_dtcapp_full
-    {z y x A B : Term}
-    (hTy :
-      __eo_typeof_str_indexof_re_split (__eo_typeof z) (__eo_typeof y) (__eo_typeof x) =
-        Term.DtcAppType A B) :
-    False := by
-  unfold __eo_typeof_str_indexof_re_split at hTy
-  repeat (first | split at hTy)
-  all_goals cases hTy
-
 private theorem false_of_typeof_strings_num_occur_re_eq_dtcapp_full
     {y x A B : Term}
     (hTy :
@@ -1884,7 +1874,6 @@ private theorem eo_to_smt_apply_apply_apply_uop_generic_full
     (hStrReplaceRe : op ≠ UserOp.str_replace_re)
     (hStrReplaceReAll : op ≠ UserOp.str_replace_re_all)
     (hStrIndexofRe : op ≠ UserOp.str_indexof_re)
-    (hStrIndexofReSplit : op ≠ UserOp.str_indexof_re_split)
     (hStringsOccurIndex : op ≠ UserOp._at_strings_occur_index)
     (hStringsOccurIndexRe : op ≠ UserOp._at_strings_occur_index_re) :
       __eo_to_smt
@@ -1906,7 +1895,6 @@ private theorem eo_to_smt_apply_apply_apply_uop_generic_full
       | exact False.elim (hStrReplaceRe rfl)
       | exact False.elim (hStrReplaceReAll rfl)
       | exact False.elim (hStrIndexofRe rfl)
-      | exact False.elim (hStrIndexofReSplit rfl)
       | exact False.elim (hStringsOccurIndex rfl)
       | exact False.elim (hStringsOccurIndexRe rfl)
 
@@ -1923,7 +1911,6 @@ private theorem eo_typeof_apply_apply_apply_uop_generic_full
     (hStrReplaceRe : op ≠ UserOp.str_replace_re)
     (hStrReplaceReAll : op ≠ UserOp.str_replace_re_all)
     (hStrIndexofRe : op ≠ UserOp.str_indexof_re)
-    (hStrIndexofReSplit : op ≠ UserOp.str_indexof_re_split)
     (hStringsOccurIndex : op ≠ UserOp._at_strings_occur_index)
     (hStringsOccurIndexRe : op ≠ UserOp._at_strings_occur_index_re) :
       __eo_typeof
@@ -1945,7 +1932,6 @@ private theorem eo_typeof_apply_apply_apply_uop_generic_full
       | exact False.elim (hStrReplaceRe rfl)
       | exact False.elim (hStrReplaceReAll rfl)
       | exact False.elim (hStrIndexofRe rfl)
-      | exact False.elim (hStrIndexofReSplit rfl)
       | exact False.elim (hStringsOccurIndex rfl)
       | exact False.elim (hStringsOccurIndexRe rfl)
 
@@ -4067,16 +4053,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                               (__eo_typeof y) (__eo_typeof x) =
                             Term.DtcAppType a b
                         exact hTy))
-                  by_cases hStrIndexofReSplit :
-                      op = UserOp.str_indexof_re_split
-                  · subst op
-                    exact False.elim
-                      (false_of_typeof_str_indexof_re_split_eq_dtcapp_full (by
-                        change
-                          __eo_typeof_str_indexof_re_split (__eo_typeof z)
-                              (__eo_typeof y) (__eo_typeof x) =
-                            Term.DtcAppType a b
-                        exact hTy))
                   by_cases hStringsOccurIndex :
                       op = UserOp._at_strings_occur_index
                   · subst op
@@ -4104,12 +4080,12 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     (eo_to_smt_apply_apply_apply_uop_generic_full op z y x
                       hIte hStore hBvite hStrSubstr hStrReplace hStrIndexof
                       hStrUpdate hStrReplaceAll hStrReplaceRe hStrReplaceReAll
-                      hStrIndexofRe hStrIndexofReSplit hStringsOccurIndex
+                      hStrIndexofRe hStringsOccurIndex
                       hStringsOccurIndexRe)
                     (eo_typeof_apply_apply_apply_uop_generic_full op z y x
                       hIte hStore hBvite hStrSubstr hStrReplace hStrIndexof
                       hStrUpdate hStrReplaceAll hStrReplaceRe hStrReplaceReAll
-                      hStrIndexofRe hStrIndexofReSplit hStringsOccurIndex
+                      hStrIndexofRe hStringsOccurIndex
                       hStringsOccurIndexRe)
                     hTermNN hTy
                 ·

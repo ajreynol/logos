@@ -4817,7 +4817,6 @@ theorem eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
     (hStrReplaceRe : op ≠ UserOp.str_replace_re)
     (hStrReplaceReAll : op ≠ UserOp.str_replace_re_all)
     (hStrIndexofRe : op ≠ UserOp.str_indexof_re)
-    (hStrIndexofReSplit : op ≠ UserOp.str_indexof_re_split)
     (hStringsOccurIndex : op ≠ UserOp._at_strings_occur_index)
     (hStringsOccurIndexRe : op ≠ UserOp._at_strings_occur_index_re) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) =
@@ -4836,7 +4835,6 @@ theorem eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
   case str_replace_re => exact False.elim (hStrReplaceRe rfl)
   case str_replace_re_all => exact False.elim (hStrReplaceReAll rfl)
   case str_indexof_re => exact False.elim (hStrIndexofRe rfl)
-  case str_indexof_re_split => exact False.elim (hStrIndexofReSplit rfl)
   case _at_strings_occur_index =>
     exact False.elim (hStringsOccurIndex rfl)
   case _at_strings_occur_index_re =>
@@ -10880,86 +10878,65 @@ theorem substitute_simul_eval_nonbinder
                                                                                                                           simp only [__smtx_model_eval]
                                                                                                                           rw [h1, h2, h3])
                                                                                                                         hRecArg
-                                                                                                                    · by_cases h_str_indexof_re_split : op = UserOp.str_indexof_re_split
+                                                                                                                    · by_cases h_strings_occur_index : op = UserOp._at_strings_occur_index
                                                                                                                       · subst op
-                                                                                                                        exact substFalse_eval_ternary_op UserOp.str_indexof_re_split x0 x1 a xs ss bvs
+                                                                                                                        exact substFalse_eval_ternary_op UserOp._at_strings_occur_index x0 x1 a xs ss bvs
                                                                                                                           hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
                                                                                                                           hFTrans hSubstTrans
-                                                                                                                          (substitute_simul_rec_uop_eq_self UserOp.str_indexof_re_split xs ss bvs
+                                                                                                                          (substitute_simul_rec_uop_eq_self UserOp._at_strings_occur_index xs ss bvs
                                                                                                                             hXsEnv hBvsEnv hSsTrans)
                                                                                                                           (fun {x y z} h =>
-                                                                                                                            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
-                                                                                                                              (eoOp := UserOp.str_indexof_re_split) (smtOp := SmtTerm.str_indexof_re_split)
-                                                                                                                              (by rfl) str_indexof_re_split_args_have_smt_translation_of_non_none h)
+                                                                                                                            strings_occur_index_args_have_smt_translation_of_has_smt_translation h)
                                                                                                                           (fun X1 Y1 X2 Y2 X3 Y3 h1 h2 h3 => by
                                                                                                                             show __smtx_model_eval M
-                                                                                                                                (SmtTerm.str_indexof_re_split (__eo_to_smt X1) (__eo_to_smt X2)
-                                                                                                                                  (__eo_to_smt X3)) =
+                                                                                                                                (SmtTerm._at_strings_occur_index
+                                                                                                                                  (__eo_to_smt X1) (__eo_to_smt X2) (__eo_to_smt X3)) =
                                                                                                                               __smtx_model_eval N
-                                                                                                                                (SmtTerm.str_indexof_re_split (__eo_to_smt Y1) (__eo_to_smt Y2)
-                                                                                                                                  (__eo_to_smt Y3))
+                                                                                                                                (SmtTerm._at_strings_occur_index
+                                                                                                                                  (__eo_to_smt Y1) (__eo_to_smt Y2) (__eo_to_smt Y3))
                                                                                                                             simp only [__smtx_model_eval]
                                                                                                                             rw [h1, h2, h3])
                                                                                                                           hRecArg
-                                                                                                                      · by_cases h_strings_occur_index : op = UserOp._at_strings_occur_index
+                                                                                                                      · by_cases h_strings_occur_index_re : op = UserOp._at_strings_occur_index_re
                                                                                                                         · subst op
-                                                                                                                          exact substFalse_eval_ternary_op UserOp._at_strings_occur_index x0 x1 a xs ss bvs
+                                                                                                                          exact substFalse_eval_ternary_op UserOp._at_strings_occur_index_re x0 x1 a xs ss bvs
                                                                                                                             hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
                                                                                                                             hFTrans hSubstTrans
-                                                                                                                            (substitute_simul_rec_uop_eq_self UserOp._at_strings_occur_index xs ss bvs
+                                                                                                                            (substitute_simul_rec_uop_eq_self UserOp._at_strings_occur_index_re xs ss bvs
                                                                                                                               hXsEnv hBvsEnv hSsTrans)
                                                                                                                             (fun {x y z} h =>
-                                                                                                                              strings_occur_index_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                              strings_occur_index_re_args_have_smt_translation_of_has_smt_translation h)
                                                                                                                             (fun X1 Y1 X2 Y2 X3 Y3 h1 h2 h3 => by
                                                                                                                               show __smtx_model_eval M
-                                                                                                                                  (SmtTerm._at_strings_occur_index
+                                                                                                                                  (SmtTerm._at_strings_occur_index_re
                                                                                                                                     (__eo_to_smt X1) (__eo_to_smt X2) (__eo_to_smt X3)) =
                                                                                                                                 __smtx_model_eval N
-                                                                                                                                  (SmtTerm._at_strings_occur_index
+                                                                                                                                  (SmtTerm._at_strings_occur_index_re
                                                                                                                                     (__eo_to_smt Y1) (__eo_to_smt Y2) (__eo_to_smt Y3))
                                                                                                                               simp only [__smtx_model_eval]
                                                                                                                               rw [h1, h2, h3])
                                                                                                                             hRecArg
-                                                                                                                        · by_cases h_strings_occur_index_re : op = UserOp._at_strings_occur_index_re
-                                                                                                                          · subst op
-                                                                                                                            exact substFalse_eval_ternary_op UserOp._at_strings_occur_index_re x0 x1 a xs ss bvs
-                                                                                                                              hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                                                                                              hFTrans hSubstTrans
-                                                                                                                              (substitute_simul_rec_uop_eq_self UserOp._at_strings_occur_index_re xs ss bvs
-                                                                                                                                hXsEnv hBvsEnv hSsTrans)
-                                                                                                                              (fun {x y z} h =>
-                                                                                                                                strings_occur_index_re_args_have_smt_translation_of_has_smt_translation h)
-                                                                                                                              (fun X1 Y1 X2 Y2 X3 Y3 h1 h2 h3 => by
-                                                                                                                                show __smtx_model_eval M
-                                                                                                                                    (SmtTerm._at_strings_occur_index_re
-                                                                                                                                      (__eo_to_smt X1) (__eo_to_smt X2) (__eo_to_smt X3)) =
-                                                                                                                                  __smtx_model_eval N
-                                                                                                                                    (SmtTerm._at_strings_occur_index_re
-                                                                                                                                      (__eo_to_smt Y1) (__eo_to_smt Y2) (__eo_to_smt Y3))
-                                                                                                                                simp only [__smtx_model_eval]
-                                                                                                                                rw [h1, h2, h3])
-                                                                                                                              hRecArg
-                                                                                                                          · exact substFalse_eval_ternary_uop_generic_apply op x0 x1 a xs ss bvs
-                                                                                                                              hisr hxs hss hbvs
-                                                                                                                              (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                                                                                              (eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
-                                                                                                                                h_ite h_store h_bvite h_str_substr h_str_indexof
-                                                                                                                                h_str_update h_str_replace h_str_replace_all
-                                                                                                                                h_str_replace_re h_str_replace_re_all h_str_indexof_re
-                                                                                                                                h_str_indexof_re_split h_strings_occur_index
-                                                                                                                                h_strings_occur_index_re)
-                                                                                                                              (eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
-                                                                                                                                h_ite h_store h_bvite h_str_substr h_str_indexof
-                                                                                                                                h_str_update h_str_replace h_str_replace_all
-                                                                                                                                h_str_replace_re h_str_replace_re_all h_str_indexof_re
-                                                                                                                                h_str_indexof_re_split h_strings_occur_index
-                                                                                                                                h_strings_occur_index_re)
-                                                                                                                              hFTrans hSubstTrans
-                                                                                                                              (substitute_simul_rec_uop_eq_self op xs ss bvs
-                                                                                                                                hXsEnv hBvsEnv hSsTrans)
-                                                                                                                              hGlobals
-                                                                                                                              (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                              (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
+                                                                                                                        · exact substFalse_eval_ternary_uop_generic_apply op x0 x1 a xs ss bvs
+                                                                                                                            hisr hxs hss hbvs
+                                                                                                                            (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                            (eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
+                                                                                                                              h_ite h_store h_bvite h_str_substr h_str_indexof
+                                                                                                                              h_str_update h_str_replace h_str_replace_all
+                                                                                                                              h_str_replace_re h_str_replace_re_all h_str_indexof_re
+                                                                                                                              h_strings_occur_index
+                                                                                                                              h_strings_occur_index_re)
+                                                                                                                            (eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
+                                                                                                                              h_ite h_store h_bvite h_str_substr h_str_indexof
+                                                                                                                              h_str_update h_str_replace h_str_replace_all
+                                                                                                                              h_str_replace_re h_str_replace_re_all h_str_indexof_re
+                                                                                                                              h_strings_occur_index
+                                                                                                                              h_strings_occur_index_re)
+                                                                                                                            hFTrans hSubstTrans
+                                                                                                                            (substitute_simul_rec_uop_eq_self op xs ss bvs
+                                                                                                                              hXsEnv hBvsEnv hSsTrans)
+                                                                                                                            hGlobals
+                                                                                                                            (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
+                                                                                                                            (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                             | Var name S =>
                                                                                                 exact
                                                                                                   substFalse_eval_ternary_var_head_generic_apply

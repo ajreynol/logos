@@ -12066,50 +12066,6 @@ by
       hEnv (by decide) (by decide) hTrans (by rfl)
       str_indexof_re_args_have_smt_translation_of_non_none ihX ihY ihZ
 
-theorem is_closed_rec_apply_apply_apply_str_indexof_re_split_eq_and_bool_of_has_smt_translation
-    {x y z env : Term} {vars : List SmtVarKey}
-    (hEnv : EoSmtVarEnv env vars)
-    (hTrans :
-      eoHasSmtTranslation
-        (Term.Apply
-          (Term.Apply
-            (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y) z))
-    (ihX :
-      eoHasSmtTranslation x ->
-        __is_closed_rec x env = __eo_is_closed_rec x env ∧
-          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
-    (ihY :
-      eoHasSmtTranslation y ->
-        __is_closed_rec y env = __eo_is_closed_rec y env ∧
-          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
-    (ihZ :
-      eoHasSmtTranslation z ->
-        __is_closed_rec z env = __eo_is_closed_rec z env ∧
-          ∃ b, __eo_is_closed_rec z env = Term.Boolean b) :
-  __is_closed_rec
-      (Term.Apply
-        (Term.Apply
-          (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y) z)
-      env =
-    __eo_is_closed_rec
-      (Term.Apply
-        (Term.Apply
-          (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y) z)
-      env ∧
-    ∃ b,
-      __eo_is_closed_rec
-        (Term.Apply
-          (Term.Apply
-            (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y) z)
-        env =
-        Term.Boolean b :=
-by
-  exact
-    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_triop_non_none
-      hEnv (by decide) (by decide) hTrans (by rfl)
-      str_indexof_re_split_args_have_smt_translation_of_non_none
-      ihX ihY ihZ
-
 theorem is_closed_rec_apply_apply_strings_deq_diff_eq_and_bool_of_has_smt_translation
     {x y env : Term} {vars : List SmtVarKey}
     (hEnv : EoSmtVarEnv env vars)
@@ -13953,13 +13909,6 @@ by
                 (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
             hNN)
         (by rfl) hTrans
-  case str_indexof_re_split =>
-    exact
-      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
-        (eoOp := UserOp.str_indexof_re_split)
-        (smtOp := SmtTerm.str_indexof_re_split)
-        (by rfl) str_indexof_re_split_args_have_smt_translation_of_non_none
-        hTrans
   case seq_nth =>
     exact
       false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
@@ -14271,13 +14220,6 @@ by
         (eoOp := UserOp.str_indexof_re)
         (smtOp := SmtTerm.str_indexof_re)
         (by rfl) str_indexof_re_args_have_smt_translation_of_non_none hTrans
-  case str_indexof_re_split =>
-    exact
-      false_of_apply_apply_apply_uop_smt_triop_last_raw_list
-        (eoOp := UserOp.str_indexof_re_split)
-        (smtOp := SmtTerm.str_indexof_re_split)
-        (by rfl) str_indexof_re_split_args_have_smt_translation_of_non_none
-        hTrans
   case _at_strings_occur_index =>
     exact False.elim
       (term_not_eo_list_cons_of_has_smt_translation
@@ -16307,11 +16249,6 @@ by
             (ret := SmtType.Bool)
             (typeof_str_in_re_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
         (by rfl) hTrans ih
-  case str_indexof_re_split =>
-    exact
-      is_closed_rec_apply_apply_apply_str_indexof_re_split_eq_and_bool_of_has_smt_translation
-        hEnv hTrans (fun hx => ih hXLt hEnv hx)
-        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
   case seq_nth =>
     exact
       is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation

@@ -141,7 +141,7 @@ private noncomputable def bv_mon_denote (M : SmtModel) : Term -> native_Int
   | _ => 0
 
 private noncomputable def bv_poly_denote (M : SmtModel) : Term -> native_Int
-  | Term.UOp UserOp._at__at_Polynomial => 0
+  | Term.UOp UserOp._at__at_poly_zero => 0
   | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) m) p =>
       bv_mon_denote M m + bv_poly_denote M p
   | _ => 0
@@ -161,7 +161,7 @@ private inductive bv_mon_int_wf : Term -> Prop where
           (Term.Rational (native_to_real c)))
 
 private inductive bv_poly_int_wf : Term -> Prop where
-  | zero : bv_poly_int_wf (Term.UOp UserOp._at__at_Polynomial)
+  | zero : bv_poly_int_wf (Term.UOp UserOp._at__at_poly_zero)
   | cons (m p : Term) :
       bv_mon_int_wf m ->
       bv_poly_int_wf p ->
@@ -195,7 +195,7 @@ private def bv_var_poly (t : Term) : Term :=
         (Term.Apply (Term.UOp UserOp._at__at_mon)
           (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil))
         (Term.Rational (native_mk_rational 1 1))))
-    (Term.UOp UserOp._at__at_Polynomial)
+    (Term.UOp UserOp._at__at_poly_zero)
 
 private theorem bv_poly_int_wf_var
     {t : Term}
@@ -207,7 +207,7 @@ private theorem bv_poly_int_wf_var
         (Term.Apply (Term.UOp UserOp._at__at_mon)
           (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil))
         (Term.Rational (native_to_real 1)))
-      (Term.UOp UserOp._at__at_Polynomial)
+      (Term.UOp UserOp._at__at_poly_zero)
       (bv_mon_int_wf.mk
         (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil)
         1 (bv_mvar_wf.cons t Term.__eo_List_nil hNotStuck bv_mvar_wf.nil))
@@ -864,11 +864,11 @@ private theorem bv_poly_int_wf_of_poly_mul_mon
           bv_poly_int_wf
             (__eo_mk_apply
               (__eo_mk_apply (Term.UOp UserOp._at__at_poly) (__mon_mul_mon m m2))
-              (Term.UOp UserOp._at__at_Polynomial)) := by
+              (Term.UOp UserOp._at__at_poly_zero)) := by
         simpa [__eo_mk_apply, hMulNe] using
           (bv_poly_int_wf.cons
             (__mon_mul_mon m m2)
-            (Term.UOp UserOp._at__at_Polynomial)
+            (Term.UOp UserOp._at__at_poly_zero)
             hMul
             bv_poly_int_wf.zero)
       simpa [__poly_mul_mon, hMNe] using bv_poly_int_wf_of_poly_add hHead ih
@@ -892,11 +892,11 @@ private theorem bv_poly_denote_of_poly_mul_mon
           bv_poly_int_wf
             (__eo_mk_apply
               (__eo_mk_apply (Term.UOp UserOp._at__at_poly) (__mon_mul_mon m m2))
-              (Term.UOp UserOp._at__at_Polynomial)) := by
+              (Term.UOp UserOp._at__at_poly_zero)) := by
         simpa [__eo_mk_apply, hMulNe] using
           (bv_poly_int_wf.cons
             (__mon_mul_mon m m2)
-            (Term.UOp UserOp._at__at_Polynomial)
+            (Term.UOp UserOp._at__at_poly_zero)
             hMul
             bv_poly_int_wf.zero)
       rw [show
@@ -905,7 +905,7 @@ private theorem bv_poly_denote_of_poly_mul_mon
           __poly_add
             (__eo_mk_apply
               (__eo_mk_apply (Term.UOp UserOp._at__at_poly) (__mon_mul_mon m m2))
-              (Term.UOp UserOp._at__at_Polynomial))
+              (Term.UOp UserOp._at__at_poly_zero))
             (__poly_mul_mon m p2) by
         simp [__poly_mul_mon]]
       rw [bv_poly_denote_of_poly_add M hHead
@@ -954,8 +954,8 @@ private theorem bv_poly_int_wf_of_poly_mod_coeffs
   induction hp with
   | zero =>
       rw [show
-        __poly_mod_coeffs (Term.UOp UserOp._at__at_Polynomial) (Term.Numeral m) =
-          Term.UOp UserOp._at__at_Polynomial by
+        __poly_mod_coeffs (Term.UOp UserOp._at__at_poly_zero) (Term.Numeral m) =
+          Term.UOp UserOp._at__at_poly_zero by
         simp [__poly_mod_coeffs]]
       exact bv_poly_int_wf.zero
   | cons mon p hm hp ih =>
@@ -1027,8 +1027,8 @@ private theorem bv_poly_mod_coeffs_mod_denote
   induction hp with
   | zero =>
       rw [show
-        __poly_mod_coeffs (Term.UOp UserOp._at__at_Polynomial) (Term.Numeral m) =
-          Term.UOp UserOp._at__at_Polynomial by
+        __poly_mod_coeffs (Term.UOp UserOp._at__at_poly_zero) (Term.Numeral m) =
+          Term.UOp UserOp._at__at_poly_zero by
         simp [__poly_mod_coeffs]]
   | cons mon p hm hp ih =>
       cases hm with
@@ -1419,7 +1419,7 @@ private theorem bv_poly_norm_rec_sound
         · subst n
           have hNorm :
               __get_bv_poly_norm_rec (Term.Binary bw 0) =
-                Term.UOp UserOp._at__at_Polynomial := by
+                Term.UOp UserOp._at__at_poly_zero := by
             simp [__get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin, __eo_is_bin_internal,
               __eo_is_eq, __eo_ite, native_ite, native_teq, SmtEval.native_and,
               SmtEval.native_not]
@@ -1442,7 +1442,7 @@ private theorem bv_poly_norm_rec_sound
               (Term.Apply (Term.UOp UserOp._at__at_poly)
                 (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) Term.__eo_List_nil)
                   (Term.Rational (native_to_real n))))
-              (Term.UOp UserOp._at__at_Polynomial)
+              (Term.UOp UserOp._at__at_poly_zero)
           have hNorm : __get_bv_poly_norm_rec (Term.Binary bw n) = p := by
             simp [__get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin, __eo_is_bin_internal,
               __eo_is_eq, __eo_ite, native_ite, native_teq, hZeroSym, SmtEval.native_and,
@@ -1452,7 +1452,7 @@ private theorem bv_poly_norm_rec_sound
             exact bv_poly_int_wf.cons
               (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) Term.__eo_List_nil)
                 (Term.Rational (native_to_real n)))
-              (Term.UOp UserOp._at__at_Polynomial)
+              (Term.UOp UserOp._at__at_poly_zero)
               (bv_mon_int_wf.mk Term.__eo_List_nil n bv_mvar_wf.nil)
               bv_poly_int_wf.zero
           · rw [hNorm]
