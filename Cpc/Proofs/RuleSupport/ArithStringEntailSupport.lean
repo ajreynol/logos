@@ -135,7 +135,7 @@ private theorem str_arith_entail_simple_rec_denote_nonneg
       cases p with
       | UOp op =>
           cases op with
-          | _at__at_Polynomial =>
+          | _at__at_poly_zero =>
               simp [arith_poly_denote_real] at hDen
               subst q
               simp [native_mk_rational_zero]

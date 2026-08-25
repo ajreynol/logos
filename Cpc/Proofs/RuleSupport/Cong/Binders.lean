@@ -1439,10 +1439,6 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
           case str_indexof_re =>
             exact hTrans (smt_str_indexof_re_type_none_of_third_arg_none
               (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x) hx)
-          case str_indexof_re_split =>
-            exact hTrans
-              (smt_str_indexof_re_split_type_none_of_third_arg_none
-                (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x) hx)
           case _at_strings_occur_index =>
             exact hTrans (by
               change

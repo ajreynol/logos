@@ -3480,19 +3480,6 @@ theorem smtTermClosedIn_eo_to_smt_str_indexof_re
 by
   exact ⟨hx, hy, hz⟩
 
-theorem smtTermClosedIn_eo_to_smt_str_indexof_re_split
-    {vars : List SmtVarKey} {x y z : Term}
-    (hx : SmtTermClosedIn vars (__eo_to_smt x))
-    (hy : SmtTermClosedIn vars (__eo_to_smt y))
-    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
-  SmtTermClosedIn vars
-    (__eo_to_smt
-      (Term.Apply
-        (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y)
-        z)) :=
-by
-  exact ⟨hx, hy, hz⟩
-
 theorem smtTermClosedIn_eo_to_smt_not_of_closed_rec_using
     {x env : Term} {vars : List SmtVarKey}
     (hEnv : EoSmtVarEnvPerm env vars)
@@ -5500,13 +5487,6 @@ by
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
-  case str_indexof_re_split =>
-    exact smtTermClosedIn_eo_to_smt_ternary_uop_of_closed_rec_using
-      (op := UserOp.str_indexof_re_split) (by decide) (by decide)
-      (fun hx hy hz => smtTermClosedIn_eo_to_smt_str_indexof_re_split hx hy hz)
-      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case _at_strings_occur_index =>
     exact smtTermClosedIn_eo_to_smt_ternary_uop_of_closed_rec_using
       (op := UserOp._at_strings_occur_index) (by decide) (by decide)
@@ -6872,13 +6852,6 @@ by
     exact smtTermClosedIn_eo_to_smt_ternary_uop_of_closed_rec_using
       (op := UserOp.str_indexof_re) (by decide) (by decide)
       (fun hx hy hz => smtTermClosedIn_eo_to_smt_str_indexof_re hx hy hz)
-      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hZLt hEnv' hClosed') hClosed
-  case str_indexof_re_split =>
-    exact smtTermClosedIn_eo_to_smt_ternary_uop_of_closed_rec_using
-      (op := UserOp.str_indexof_re_split) (by decide) (by decide)
-      (fun hx hy hz => smtTermClosedIn_eo_to_smt_str_indexof_re_split hx hy hz)
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hZLt hEnv' hClosed') hClosed

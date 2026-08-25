@@ -217,7 +217,7 @@ noncomputable def arith_mon_denote_real (M : SmtModel) : Term -> SmtValue
   | _ => SmtValue.NotValue
 
 noncomputable def arith_poly_denote_real (M : SmtModel) : Term -> SmtValue
-  | Term.UOp UserOp._at__at_Polynomial => SmtValue.Rational (native_mk_rational 0 1)
+  | Term.UOp UserOp._at__at_poly_zero => SmtValue.Rational (native_mk_rational 0 1)
   | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) m) p =>
       __smtx_model_eval_plus (arith_mon_denote_real M m) (arith_poly_denote_real M p)
   | _ => SmtValue.NotValue
@@ -234,7 +234,7 @@ private inductive arith_mon_wf : Term -> Prop where
       arith_mon_wf (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (Term.Rational c))
 
 private inductive arith_poly_wf : Term -> Prop where
-  | zero : arith_poly_wf (Term.UOp UserOp._at__at_Polynomial)
+  | zero : arith_poly_wf (Term.UOp UserOp._at__at_poly_zero)
   | cons (m p : Term) :
       arith_mon_wf m ->
       arith_poly_wf p ->
@@ -312,7 +312,7 @@ private inductive arith_mon_rational (M : SmtModel) : Term -> Prop where
         (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (Term.Rational c))
 
 private inductive arith_poly_rational (M : SmtModel) : Term -> Prop where
-  | zero : arith_poly_rational M (Term.UOp UserOp._at__at_Polynomial)
+  | zero : arith_poly_rational M (Term.UOp UserOp._at__at_poly_zero)
   | cons (m p : Term) :
       arith_mon_rational M m ->
       arith_poly_rational M p ->
@@ -472,12 +472,12 @@ private theorem poly_of_mon_mul_mon_const_left
       (__eo_mk_apply (Term.UOp UserOp._at__at_poly)
         (__mon_mul_mon (arith_const_mon q)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (Term.Rational c))))
-      (Term.UOp UserOp._at__at_Polynomial) =
+      (Term.UOp UserOp._at__at_poly_zero) =
     Term.Apply
       (Term.Apply (Term.UOp UserOp._at__at_poly)
         (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
           (Term.Rational (native_qmult q c))))
-      (Term.UOp UserOp._at__at_Polynomial) := by
+      (Term.UOp UserOp._at__at_poly_zero) := by
   rw [mon_mul_mon_of_const_left q c vars hVars]
   simp [__eo_mk_apply]
 
@@ -677,13 +677,13 @@ private theorem arith_poly_rational_of_poly_mul_mon_const
                   (Term.Apply (Term.UOp UserOp._at__at_poly)
                     (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
                       (Term.Rational (native_qmult q c))))
-                  (Term.UOp UserOp._at__at_Polynomial)) := by
+                  (Term.UOp UserOp._at__at_poly_zero)) := by
             exact arith_poly_rational.cons
               (M := M)
               (Term.Apply
                 (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
                 (Term.Rational (native_qmult q c)))
-              (Term.UOp UserOp._at__at_Polynomial)
+              (Term.UOp UserOp._at__at_poly_zero)
               (arith_mon_rational.mk (M := M) vars (native_qmult q c) hvars)
               (arith_poly_rational.zero (M := M))
           change arith_poly_rational M
@@ -693,7 +693,7 @@ private theorem arith_poly_rational_of_poly_mul_mon_const
                   (__mon_mul_mon (arith_const_mon q)
                     (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
                       (Term.Rational c))))
-                (Term.UOp UserOp._at__at_Polynomial))
+                (Term.UOp UserOp._at__at_poly_zero))
               (__poly_mul_mon (arith_const_mon q) p))
           rw [poly_of_mon_mul_mon_const_left q c vars hVars]
           exact arith_poly_rational_of_poly_add M hHead ih
@@ -810,12 +810,12 @@ private theorem arith_poly_rational_of_poly_mul_mon
           arith_poly_rational M
             (__eo_mk_apply
               (__eo_mk_apply (Term.UOp UserOp._at__at_poly) (__mon_mul_mon m m2))
-              (Term.UOp UserOp._at__at_Polynomial)) := by
+              (Term.UOp UserOp._at__at_poly_zero)) := by
         simpa [__eo_mk_apply, hMulNe] using
           (arith_poly_rational.cons
             (M := M)
             (__mon_mul_mon m m2)
-            (Term.UOp UserOp._at__at_Polynomial)
+            (Term.UOp UserOp._at__at_poly_zero)
             hMul
             (arith_poly_rational.zero (M := M)))
       simpa [__poly_mul_mon, hMNe] using arith_poly_rational_of_poly_add M hHead ih
@@ -908,7 +908,7 @@ private theorem arith_poly_denote_real_rational_or_notValue
   cases p with
   | UOp op =>
       cases op with
-      | _at__at_Polynomial =>
+      | _at__at_poly_zero =>
           exact Or.inl ⟨native_mk_rational 0 1, rfl⟩
       | _ =>
           exact Or.inr rfl
@@ -2003,12 +2003,12 @@ private theorem arith_poly_denote_real_of_poly_mul_mon_rational
           arith_poly_rational M
             (__eo_mk_apply
               (__eo_mk_apply (Term.UOp UserOp._at__at_poly) (__mon_mul_mon m m2))
-              (Term.UOp UserOp._at__at_Polynomial)) := by
+              (Term.UOp UserOp._at__at_poly_zero)) := by
         simpa [__eo_mk_apply, hMulNe] using
           (arith_poly_rational.cons
             (M := M)
             (__mon_mul_mon m m2)
-            (Term.UOp UserOp._at__at_Polynomial)
+            (Term.UOp UserOp._at__at_poly_zero)
             hMul
             (arith_poly_rational.zero (M := M)))
       have hMulTail : arith_poly_rational M (__poly_mul_mon m p2) :=
@@ -2021,7 +2021,7 @@ private theorem arith_poly_denote_real_of_poly_mul_mon_rational
           arith_poly_denote_real M
               (__eo_mk_apply
                 (__eo_mk_apply (Term.UOp UserOp._at__at_poly) (__mon_mul_mon m m2))
-                (Term.UOp UserOp._at__at_Polynomial)) =
+                (Term.UOp UserOp._at__at_poly_zero)) =
             __smtx_model_eval_mult (arith_mon_denote_real M m) (arith_mon_denote_real M m2) := by
         rcases hMon2Val with ⟨qm2, hMon2Eq⟩
         simp [arith_poly_denote_real, __eo_mk_apply, __smtx_model_eval_plus,
@@ -2038,7 +2038,7 @@ private theorem arith_poly_denote_real_of_poly_mul_mon_rational
               (arith_poly_denote_real M
                 (__eo_mk_apply
                   (__eo_mk_apply (Term.UOp UserOp._at__at_poly) (__mon_mul_mon m m2))
-                  (Term.UOp UserOp._at__at_Polynomial)))
+                  (Term.UOp UserOp._at__at_poly_zero)))
               (arith_poly_denote_real M (__poly_mul_mon m p2)) := by
         simpa [__poly_mul_mon, hMNe] using arith_poly_denote_real_of_poly_add_rational M hHead hMulTail
       rcases hMon2Val with ⟨qm2, hMon2Eq⟩
@@ -2107,13 +2107,13 @@ private theorem arith_poly_denote_real_of_poly_mul_mon_const_rational
                   (Term.Apply (Term.UOp UserOp._at__at_poly)
                     (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
                       (Term.Rational (native_qmult q c))))
-                  (Term.UOp UserOp._at__at_Polynomial)) := by
+                  (Term.UOp UserOp._at__at_poly_zero)) := by
             exact arith_poly_rational.cons
               (M := M)
               (Term.Apply
                 (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
                 (Term.Rational (native_qmult q c)))
-              (Term.UOp UserOp._at__at_Polynomial)
+              (Term.UOp UserOp._at__at_poly_zero)
               (arith_mon_rational.mk (M := M) vars (native_qmult q c) hvars)
               (arith_poly_rational.zero (M := M))
           have hMulTail :
@@ -2133,7 +2133,7 @@ private theorem arith_poly_denote_real_of_poly_mul_mon_const_rational
                     (Term.Apply (Term.UOp UserOp._at__at_poly)
                       (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
                         (Term.Rational (native_qmult q c))))
-                    (Term.UOp UserOp._at__at_Polynomial)) =
+                    (Term.UOp UserOp._at__at_poly_zero)) =
                 __smtx_model_eval_mult (SmtValue.Rational q) (arith_mon_denote_real M mon) := by
             rw [arith_poly_denote_real, arith_mon_denote_real_of_coeff_mul]
             rcases hMonVal with ⟨qm, hMonVal⟩
@@ -2149,14 +2149,14 @@ private theorem arith_poly_denote_real_of_poly_mul_mon_const_rational
                       (Term.Apply (Term.UOp UserOp._at__at_poly)
                         (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
                           (Term.Rational (native_qmult q c))))
-                      (Term.UOp UserOp._at__at_Polynomial)))
+                      (Term.UOp UserOp._at__at_poly_zero)))
                   (arith_poly_denote_real M (__poly_mul_mon (arith_const_mon q) p)) := by
             change arith_poly_denote_real M
               (__poly_add
                 (__eo_mk_apply
                   (__eo_mk_apply (Term.UOp UserOp._at__at_poly)
                     (__mon_mul_mon (arith_const_mon q) mon))
-                  (Term.UOp UserOp._at__at_Polynomial))
+                  (Term.UOp UserOp._at__at_poly_zero))
                 (__poly_mul_mon (arith_const_mon q) p)) =
               __smtx_model_eval_plus
                 (arith_poly_denote_real M
@@ -2164,17 +2164,17 @@ private theorem arith_poly_denote_real_of_poly_mul_mon_const_rational
                     (Term.Apply (Term.UOp UserOp._at__at_poly)
                       (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
                         (Term.Rational (native_qmult q c))))
-                    (Term.UOp UserOp._at__at_Polynomial)))
+                    (Term.UOp UserOp._at__at_poly_zero)))
                 (arith_poly_denote_real M (__poly_mul_mon (arith_const_mon q) p))
             rw [show __eo_mk_apply
                 (__eo_mk_apply (Term.UOp UserOp._at__at_poly)
                   (__mon_mul_mon (arith_const_mon q) mon))
-                (Term.UOp UserOp._at__at_Polynomial) =
+                (Term.UOp UserOp._at__at_poly_zero) =
                   Term.Apply
                     (Term.Apply (Term.UOp UserOp._at__at_poly)
                       (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
                         (Term.Rational (native_qmult q c))))
-                    (Term.UOp UserOp._at__at_Polynomial) by
+                    (Term.UOp UserOp._at__at_poly_zero) by
                   simpa [mon] using poly_of_mon_mul_mon_const_left q c vars hVars]
             exact arith_poly_denote_real_of_poly_add_rational M hHead hMulTail
           rw [hStep, hHeadEq, ih]
@@ -2193,7 +2193,7 @@ private theorem arith_poly_denote_real_of_rational
   · subst hZero
     have hGet :
         __get_arith_poly_norm (Term.Rational (native_mk_rational 0 1)) =
-          Term.UOp UserOp._at__at_Polynomial := by
+          Term.UOp UserOp._at__at_poly_zero := by
       native_decide
     rw [hGet]
     rfl
@@ -2207,7 +2207,7 @@ private theorem arith_poly_denote_real_of_rational
             (__eo_mk_apply (Term.UOp UserOp._at__at_poly)
               (__eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_mon) Term.__eo_List_nil)
                 (Term.Rational q)))
-            (Term.UOp UserOp._at__at_Polynomial) := by
+            (Term.UOp UserOp._at__at_poly_zero) := by
       simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
         __eo_ite, native_ite, native_teq, hDec, SmtEval.native_and, SmtEval.native_not]
     rw [hGet]
@@ -2228,7 +2228,7 @@ private theorem arith_poly_denote_real_of_numeral
   by_cases hZero : native_to_real n = native_mk_rational 0 1
   · have hGet :
         __get_arith_poly_norm (Term.Numeral n) =
-          Term.UOp UserOp._at__at_Polynomial := by
+          Term.UOp UserOp._at__at_poly_zero := by
       simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
         __eo_ite, native_ite, native_teq, hZero, SmtEval.native_and, SmtEval.native_not]
     rw [hGet, hZero]
@@ -2243,7 +2243,7 @@ private theorem arith_poly_denote_real_of_numeral
             (__eo_mk_apply (Term.UOp UserOp._at__at_poly)
               (__eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_mon) Term.__eo_List_nil)
                 (Term.Rational (native_to_real n))))
-            (Term.UOp UserOp._at__at_Polynomial) := by
+            (Term.UOp UserOp._at__at_poly_zero) := by
       simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
         __eo_ite, native_ite, native_teq, hDec, SmtEval.native_and, SmtEval.native_not]
     rw [hGet]
@@ -2580,7 +2580,7 @@ private def arith_atomic_poly (t : Term) : Term :=
         (Term.Apply (Term.UOp UserOp._at__at_mon)
           (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil))
         (Term.Rational (native_mk_rational 1 1))))
-    (Term.UOp UserOp._at__at_Polynomial)
+    (Term.UOp UserOp._at__at_poly_zero)
 
 private theorem arith_atomic_poly_injective
     {a b : Term} :
@@ -2606,7 +2606,7 @@ private theorem arith_poly_rational_of_arith_atomic_poly
       (Term.Apply (Term.UOp UserOp._at__at_mon)
         (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil))
       (Term.Rational (native_mk_rational 1 1)))
-    (Term.UOp UserOp._at__at_Polynomial)
+    (Term.UOp UserOp._at__at_poly_zero)
     (arith_mon_rational.mk
       (M := M)
       (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil)
@@ -2845,11 +2845,11 @@ private theorem arith_poly_rational_of_const_poly
     (M : SmtModel) (q : native_Rat) :
   arith_poly_rational M
     (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) (arith_const_mon q))
-      (Term.UOp UserOp._at__at_Polynomial)) := by
+      (Term.UOp UserOp._at__at_poly_zero)) := by
   exact arith_poly_rational.cons
     (M := M)
     (arith_const_mon q)
-    (Term.UOp UserOp._at__at_Polynomial)
+    (Term.UOp UserOp._at__at_poly_zero)
     (arith_mon_rational.mk
       (M := M)
       Term.__eo_List_nil
@@ -2864,7 +2864,7 @@ private theorem arith_poly_rational_of_get_arith_poly_norm_rational
   · subst q
     have hGet :
         __get_arith_poly_norm (Term.Rational (native_mk_rational 0 1)) =
-          Term.UOp UserOp._at__at_Polynomial := by
+          Term.UOp UserOp._at__at_poly_zero := by
       native_decide
     rw [hGet]
     exact arith_poly_rational.zero (M := M)
@@ -2875,7 +2875,7 @@ private theorem arith_poly_rational_of_get_arith_poly_norm_rational
     have hGet :
         __get_arith_poly_norm (Term.Rational q) =
           Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) (arith_const_mon q))
-            (Term.UOp UserOp._at__at_Polynomial) := by
+            (Term.UOp UserOp._at__at_poly_zero) := by
       simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
         __eo_ite, native_ite, native_teq, hDec, SmtEval.native_and, SmtEval.native_not,
         arith_const_mon, __eo_mk_apply]
@@ -2888,7 +2888,7 @@ private theorem arith_poly_rational_of_get_arith_poly_norm_numeral
   by_cases hZero : native_to_real n = native_mk_rational 0 1
   · have hGet :
         __get_arith_poly_norm (Term.Numeral n) =
-          Term.UOp UserOp._at__at_Polynomial := by
+          Term.UOp UserOp._at__at_poly_zero := by
       simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
         __eo_ite, native_ite, native_teq, hZero, SmtEval.native_and, SmtEval.native_not]
     rw [hGet]
@@ -2901,7 +2901,7 @@ private theorem arith_poly_rational_of_get_arith_poly_norm_numeral
         __get_arith_poly_norm (Term.Numeral n) =
           Term.Apply
             (Term.Apply (Term.UOp UserOp._at__at_poly) (arith_const_mon (native_to_real n)))
-            (Term.UOp UserOp._at__at_Polynomial) := by
+            (Term.UOp UserOp._at__at_poly_zero) := by
       simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
         __eo_ite, native_ite, native_teq, hDec, SmtEval.native_and, SmtEval.native_not,
         arith_const_mon, __eo_mk_apply]
