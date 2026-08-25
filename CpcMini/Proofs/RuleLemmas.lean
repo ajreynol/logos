@@ -64,6 +64,7 @@ by
         exact cmd_step_trans_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
 
+  -- Every rule unsupported by plain `step` reduces definitionally to `Stuck`.
   | _ =>
       exact False.elim (hProg rfl)
 
@@ -107,5 +108,6 @@ by
         cmd_step_pop_scope_properties A root args premises
           hATrans hATy hPremisesTrans hPremisesTy hResultTy
 
+  -- Every rule unsupported by `step_pop` reduces definitionally to `Stuck`.
   | _ =>
       exact False.elim (hProg rfl)
