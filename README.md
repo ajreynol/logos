@@ -12,10 +12,10 @@ However, Logos does not support arbitrary Eunoia signatures.
 Instead,
 the proof rules currently used by Logos are automatically generated from the current definition of the Cooperating Proof Calculus (CPC)
 (https://github.com/cvc5/cvc5/blob/main/proofs/eo/cpc/Cpc.eo).
-This compilation depends on plugins of the proof checker Ethos (https://github.com/cvc5/ethos),
-available on a development branch.
+This compilation depends on plugins of the proof checker Ethos (https://github.com/cvc5/ethos).
 The definition of Logos is intended to evolve and remain in sync with the definition of Cpc
 as further reasoning capabilities are added to cvc5.
+See [Regenerating the calculus](#regenerating-the-calculus) for how to rerun that compilation.
 
 ## Building the Logos checker
 
@@ -81,6 +81,30 @@ To remove Lake build artifacts, use either of these equivalent commands:
 scripts/clean-build.sh
 lake clean
 ```
+
+## Regenerating the calculus
+
+The `Cpc` package is compiled from the Eunoia definition of CPC rather than
+written by hand. Two scripts do that; see
+[`scripts/README.md`](scripts/README.md) for the full description.
+
+```bash
+scripts/get-eo-compiler.sh                                     # once: build the compiler
+scripts/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo # regenerate Cpc
+scripts/build.sh Cpc                                           # check the result
+```
+
+The first script sets up the compiler only, under `deps/`, which is ignored by
+git. The signature to compile against is named on each run, so any copy of
+`Cpc.eo` reachable on the machine can be used, including one being edited. What
+is consumed is the Eunoia source of the signature; no cvc5 *binary* or build is
+involved.
+
+Regeneration rewrites the signature-wide modules of the package but preserves
+the existing per-rule proofs under `Proofs/Rules/`. A rule newly added to CPC
+appears as a `sorry` stub, and a rule whose statement changed keeps its old
+proof and therefore fails to build — both are the intended signal that a proof
+needs attention.
 
 ## Using the Logos checker
 
