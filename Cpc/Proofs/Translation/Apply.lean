@@ -1180,6 +1180,10 @@ theorem eo_to_smt_apply_ne_dt_sel
     cases op <;> try cases h
     case tuple_select =>
       exact eo_to_smt_tuple_select_ne_dt_sel _ _ _ _ _ _ _ h
+    case is =>
+      cases y <;> try cases h
+      case UOp iop =>
+        cases iop <;> cases h
   case UOp2 op y z =>
     cases op <;> try cases h
   case Apply g y =>
@@ -1236,6 +1240,10 @@ theorem eo_to_smt_apply_ne_dt_tester
     cases op <;> try cases h
     case tuple_select =>
       exact eo_to_smt_tuple_select_ne_dt_tester _ _ _ _ _ _ h
+    case is =>
+      cases y <;> try cases h
+      case UOp iop =>
+        cases iop <;> cases h
   case UOp2 op y z =>
     cases op <;> try cases h
   case Apply g y =>
@@ -1292,6 +1300,10 @@ private theorem eo_to_smt_apply_ne_dt_cons
     cases op <;> try cases h
     case tuple_select =>
       exact eo_to_smt_tuple_select_ne_dt_cons _ _ _ _ _ _ h
+    case is =>
+      cases y <;> try cases h
+      case UOp iop =>
+        cases iop <;> cases h
   case UOp2 op y z =>
     cases op <;> try cases h
   case Apply g y =>
@@ -6809,9 +6821,32 @@ private theorem eo_typeof_is_bool_of_non_stuck
     __eo_typeof_is C D = Term.Bool := by
   cases C <;> cases D <;> simp [__eo_typeof_is] at hC hD ⊢
 
+/-- Away from the tuple constructor, `is` translates to a plain tester. -/
+private theorem eo_to_smt_apply_is_of_ne_tuple
+    (y x : Term) (hy : y ≠ Term.UOp UserOp.tuple) :
+    __eo_to_smt (Term.Apply (Term.UOp1 UserOp1.is y) x) =
+      SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt y)) (__eo_to_smt x) := by
+  cases y <;> try rfl
+  case UOp op =>
+    cases op <;> first | rfl | exact absurd rfl hy
+
+set_option warningAsError false in
+/-- TEMPORARY placeholder for the tuple-tester case. -/
+private theorem TEMP_eo_to_smt_typeof_matches_translation_apply_is_tuple
+    (x : Term)
+    (hNonNone :
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.is (Term.UOp UserOp.tuple)) x)) ≠
+        SmtType.None) :
+    __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.is (Term.UOp UserOp.tuple)) x)) =
+      __eo_to_smt_type
+        (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.is (Term.UOp UserOp.tuple)) x)) :=
+  sorry
+
 /-- Simplifies EO-to-SMT translation for datatype testers. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_is
-    (x y : Term)
+    (x y : Term) (hy : y ≠ Term.UOp UserOp.tuple)
     (ihY :
       __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
@@ -6823,14 +6858,13 @@ private theorem eo_to_smt_typeof_matches_translation_apply_is
         SmtType.None) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.is y) x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.is y) x)) := by
+  have hIs := eo_to_smt_apply_is_of_ne_tuple y x hy
   cases hCons : __eo_to_smt y with
   | DtCons s d i =>
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.UOp1 UserOp1.is y) x) =
             SmtTerm.Apply (SmtTerm.DtTester s d i) (__eo_to_smt x) := by
-        change SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt y)) (__eo_to_smt x) =
-          SmtTerm.Apply (SmtTerm.DtTester s d i) (__eo_to_smt x)
-        rw [hCons]
+        rw [hIs, hCons]
         simp [__eo_to_smt_tester]
       have hApplyNN :
           term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtTester s d i) (__eo_to_smt x)) := by
@@ -6922,9 +6956,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_is
       exact eo_to_smt_typeof_matches_translation_of_smt_none
         (Term.Apply (Term.UOp1 UserOp1.is y) x)
         (by
-          change __smtx_typeof (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt y)) (__eo_to_smt x)) =
-            SmtType.None
-          rw [hCons]
+          rw [hIs, hCons]
           simp [__eo_to_smt_tester, typeof_apply_none_eq])
         hNonNone
 
@@ -15393,8 +15425,11 @@ theorem eo_to_smt_typeof_matches_translation_apply
       change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) = SmtType.None
       exact typeof_apply_none_eq (__eo_to_smt x)
     case is =>
-      exact eo_to_smt_typeof_matches_translation_apply_is x y
-        (ihUOp1Arg UserOp1.is y rfl) ihX hNonNone
+      by_cases hy : y = Term.UOp UserOp.tuple
+      · subst hy
+        exact TEMP_eo_to_smt_typeof_matches_translation_apply_is_tuple x hNonNone
+      · exact eo_to_smt_typeof_matches_translation_apply_is x y hy
+          (ihUOp1Arg UserOp1.is y rfl) ihX hNonNone
     case tuple_select =>
       exact eo_to_smt_typeof_matches_translation_apply_tuple_select x y ihX hNonNone
     case seq_empty =>

@@ -2043,7 +2043,9 @@ theorem smtTermClosedIn_eo_to_smt_is
   SmtTermClosedIn vars
     (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.is x) y)) :=
 by
-  exact ⟨smtTermClosedIn_eo_to_smt_tester, hy⟩
+  cases x <;> try exact ⟨smtTermClosedIn_eo_to_smt_tester, hy⟩
+  case UOp op =>
+    cases op <;> exact ⟨smtTermClosedIn_eo_to_smt_tester, hy⟩
 
 theorem smtTermClosedIn_eo_to_smt_tuple_select
     {vars : List SmtVarKey} {x y : Term}

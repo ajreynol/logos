@@ -2986,6 +2986,10 @@ private theorem eo_to_smt_apply_ne_numeral
     case tuple_select =>
       exact False.elim (eo_to_smt_tuple_select_ne_numeral
       (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt idx) (__eo_to_smt x) n h)
+    case is =>
+      cases idx <;> try cases h
+      case UOp iop =>
+        cases iop <;> cases h
   case UOp2 op idx1 idx2 =>
     cases op <;> try cases h
   case Apply g y =>
