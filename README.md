@@ -7,7 +7,8 @@ It is an executable checker whose soundness is proven in Lean against a correctn
 specification, which depends on a complete definition of SMT-LIB semantics in Lean.
 See [Correctness](#correctness) below for what that proof establishes and what it still assumes.
 
-Logos has a fully functional CPC parser, meaning that it accepts the same syntax for proofs as Ethos.
+Logos has a fully functional CPC parser, meaning that it accepts the same syntax for proofs as Ethos
+(see [docs/parser.md](docs/parser.md)).
 However, Logos does not support arbitrary Eunoia signatures.
 Instead,
 the proof rules currently used by Logos are automatically generated from the current definition of the Cooperating Proof Calculus (CPC)
@@ -144,66 +145,17 @@ For example, a CPC proof may contain:
 (step @p3 :rule contra :premises (@p0 @p2))
 ```
 
-### Checking Lean-native proofs
-
-The `logos-native` executable checks proofs written directly as Lean evaluation scripts, as
-emitted by `cvc5 --dump-proofs --proof-format=cpc-logos`.  That format is described in
-[docs/lean-native-proofs.md](docs/lean-native-proofs.md).
+The parser accepts the same proof syntax as Ethos.  Its structure, the commands and term
+syntax it supports, and how it lexes literals are described in
+[docs/parser.md](docs/parser.md).
 
 Note that Logos has not (yet) been optimized for performance, so it is significantly slower
-that performant proof checkers for SMT.
+than performant proof checkers for SMT.
 
-This parser is split into two parts.
-`Logos/Parser.lean` is signature-independent: it reads the command and term grammar and
-resolves premise references, but knows nothing about any particular operator or proof rule.
-Everything signature-specific is a `Logos.Parser.Config`, and that is auto-generated from
-the calculus alongside `Cpc/Logos.lean` — `Cpc/Parser.lean` lists the 196 operator
-declarations and 591 proof rules of CPC.
-
-Because the configuration is generated, an operator's surface syntax comes from its Eunoia
-declaration metadata.  The generic `.argList` arity implements Eunoia's `:arg-list` attribute:
-the surface arguments are gathered with the declared n-ary helper and passed as the annotated
-operator's single argument.  `scripts/check-parser-tables.py` checks that the generated table
-covers every operator and proof rule.  Generic arity behavior is tested separately; it is not
-inferred from calculus-specific term types.  Both checks run in the `regressions` CI group.
-
-The parser supports the commands `declare-const`, `declare-fun`, `declare-sort`,
-`declare-type`, `declare-datatypes`, `define`, `assume`, `assume-push`, `step` and `step-pop`.
-`include` and `reference` commands are ignored: Logos has the signature built in and does not
-check the proof against the original input problem.
-A `declare-sort` of arity `n` (equivalently, a `declare-type` with `n` arguments) declares a
-symbol of type `(-> Type … Type)`, so that arity `0` declares an uninterpreted sort; the
-function type is built from the signature's own `->`, as it is for `declare-fun`.
-A `define` with parameters is a macro, since Eunoia has no lambda: its body is kept as an
-s-expression and read again wherever the defined symbol is applied, with the parameters bound
-to the arguments given there.  Consequently a parameter's declared type is not used, an error
-in the body is reported at the use site, and a recursive `define` is rejected.  A `define`
-without parameters is read where it is given, as before.
-An expression headed by `_` uses indexed-operator syntax when a matching indexed declaration
-exists (for example, `(_ extract 1 0)`); otherwise `_` is a higher-order application marker,
-so `(_ BitVec 4)` is equivalent to `(BitVec 4)`.
-Parameterized operators also accept Eunoia's flat application syntax, which is what cvc5 emits:
-for example, `(extract 1 0 x)` is equivalent to `((_ extract 1 0) x)`.  SMT-LIB type
-ascriptions such as `(as set.empty (Set Int))` supply the ascribed sort as the operator index.
-Term-level `let` uses parallel bindings whose names are scoped to its body.
-A name may be declared more than once, as SMT-LIB allows, and a proof's own symbol may
-carry the name of one of the signature's operators; every declaration of a name is kept,
-and a use of it means the reading the calculus gives a type to (`Config.wellTyped`, which
-`Cpc.Parser` decides with `__eo_typeof`).  A name with only one reading is never rejected
-this way, so a partially applied operator, which has no type, still parses.  A `let`
-binding and a macro parameter shadow instead of overloading.
-Datatypes may be mutually recursive; parametric datatypes (a non-zero arity, or a `par` body)
-are rejected, since Logos has no representation for them.
-The conclusion printed on a `step` is ignored, since Logos recomputes it from the rule.
-
-Literals are lexed by `Logos.Parser.Literal.ofString`, which a configuration only has to map
-into its own term language: integers (`12`, `-12`), rationals in both fractional and decimal
-form (`1/2`, `-1.25`), bit-vectors in binary and hexadecimal (`#b0110`, `#x1f`) and strings
-with the SMT-LIB `""` escape.  A string literal's `\u{d…}` and `\ud₃d₂d₁d₀` escapes are
-decoded as well, since they belong to the SMT-LIB theory of strings rather than to its
-syntax: `"\u{a}"` is one character, not six.  A malformed escape stands for its own
-characters, as in Ethos; a well-formed one naming a surrogate is rejected, since Lean has
-no `Char` for it.
+Logos also accepts proofs written directly as Lean evaluation scripts, as emitted by
+`cvc5 --dump-proofs --proof-format=cpc-logos`.  These are checked by the `logos-native`
+executable; that format is described in
+[docs/lean-native-proofs.md](docs/lean-native-proofs.md).
 
 ## Correctness
 
@@ -279,11 +231,7 @@ What is still outside the theorem: the s-expression reader and the parser
 (`Logos/Parser.lean`, `Cpc/Parser.lean`) are unverified, so the assumptions the
 theorem talks about are whatever they read out of the file, and Logos does not
 compare them against an original input problem (`include` and `reference` are
-ignored). The Lean-native front end is also not yet covered: `MainNative.lean`
-and the `#eval` scripts cvc5 emits for it go through the generated
-`Eo.logos_invoke_assume`, which pushes an input assumption without the
-Boolean-typed-and-closed guard that `__eo_invoke_assume_list` applies; the
-guarded push the theorem is stated against is `Eo.logos_invoke_input_assume`.
+ignored).
 
 The proof of the core checker is agnostic to the proof rules being used, i.e.
 the core definition of Logos and its correctness does not depend on the particular rules of the calculus.

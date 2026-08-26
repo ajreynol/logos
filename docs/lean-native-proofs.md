@@ -2,7 +2,8 @@
 
 Besides the s-expression (Eunoia) syntax read by `logos`, Logos accepts proofs written
 directly as Lean evaluation scripts.  These are read by `logos-native`.  See the
-[README](../README.md) for the s-expression format and for building the executables.
+[README](../README.md) for building the executables and [parser.md](parser.md) for the
+s-expression format.
 
 `logos-native` reads files containing Lean terms and an evaluation statement:
 
