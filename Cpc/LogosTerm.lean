@@ -287,8 +287,4 @@ deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 
-/- Term equality -/
-def native_teq : Term -> Term -> native_Bool
-  | x, y => decide (x = y)
-
 end Eo
