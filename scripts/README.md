@@ -116,6 +116,36 @@ rules — `Logos.lean` loses the `__eo_cmd_step` cases of every other rule,
 rather than refreshing one rule. Use `--rules` with `--package`/`--mini` to
 build a deliberately reduced package, and a full run for `Cpc`.
 
+### `--check` asks whether anything is out of date
+
+`--check` compiles the signature, works out exactly what an install would
+write, and installs nothing. It exits 0 only if the package already matches,
+and 1 if anything at all would change, listing what:
+
+```console
+$ scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --check
+  update  Cpc/Logos.lean
+  add     Cpc/Proofs/Rules/NewRule.lean
+
+==> Cpc is NOT up to date with ~/cvc5/proofs/eo/cpc/Cpc.eo: 2 file(s).
+Nothing was written. Rerun without --check to apply.
+```
+
+It works by performing the whole install into a throwaway copy of the package
+and comparing, so it reports what an install would actually do rather than a
+separate opinion about it. Every other option means the same thing under
+`--check` as without it, `--mini` and `--rules` included.
+
+Note what this does and does not treat as out of date, which follows from rule
+files being preserved:
+
+* an existing rule file is up to date whatever its *proof* says, since an
+  install would not touch it — a changed rule *statement* is caught by
+  building, not by this
+* a rule the calculus has that the package has no file for is out of date, as
+  an install would write the `sorry` stub for it
+* a `Parser.lean` that `--no-parser` would delete counts as out of date
+
 ### The `--mini` package
 
 `--mini` is the same install into `CpcMini` with `--no-parser`, the five rules

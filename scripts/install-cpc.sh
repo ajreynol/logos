@@ -49,6 +49,10 @@ Options:
   --no-partial         rewrite `partial def` to `def` in the installed package
   --overwrite-rules    replace existing files under Proofs/Rules/ instead of
                        preserving them
+  --check              do not install anything: compile, compare against the
+                       package, and exit 0 only if it is already up to date,
+                       1 if an install would change it. Every other option
+                       means the same under --check as without it
   --defs PATH          the signature of the input written in the deep
                        embedding, read by the model-smt stage
   --lean-config PATH   why each recursive program of the input terminates,
@@ -62,6 +66,7 @@ Options:
 
 Examples:
   scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
+  scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --check
   scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
   scripts/install-cpc.sh --signature ~/sig.eo --package Mine --no-parser \
     --rules symm refl trans
@@ -78,6 +83,7 @@ RULES_GIVEN=0
 NO_PARSER=0
 NO_PARTIAL=0
 OVERWRITE_RULES=0
+CHECK=0
 DEFS=""
 LEAN_CONFIG=""
 BUILD_DIR=""
@@ -105,6 +111,7 @@ while [ $# -gt 0 ]; do
     --no-parser) NO_PARSER=1; shift ;;
     --no-partial) NO_PARTIAL=1; shift ;;
     --overwrite-rules) OVERWRITE_RULES=1; shift ;;
+    --check) CHECK=1; shift ;;
     --defs) DEFS="${2:?--defs requires a value}"; shift 2 ;;
     --defs=*) DEFS="${1#*=}"; shift ;;
     --lean-config) LEAN_CONFIG="${2:?--lean-config requires a value}"; shift 2 ;;
@@ -183,6 +190,22 @@ LEAN_CONFIG="${LEAN_CONFIG:-${EOC_LEAN_CONFIG:-${ETHOS_DIR}/plugins/lean_meta/cp
 BUILD_DIR="${BUILD_DIR:-${EOC_BUILD_DIR:-${ETHOS_DIR}/build-eoc}}"
 OUT_DIR="${OUT_DIR:-${DEPS_DIR}/eoc-out}"
 DEST_DIR="${repo_root}/${PACKAGE}"
+PACKAGE_DIR="${DEST_DIR}"
+
+# --check performs the whole install into a throwaway copy of the package and
+# then compares, rather than reimplementing what an install would have done.
+# Every step below runs unchanged against that copy, so the check cannot drift
+# from the install it is checking: a file the install would not touch was
+# copied verbatim and compares equal, and whatever differs at the end is
+# exactly the set of changes an install would make.
+if [ "${CHECK}" = "1" ]; then
+  CHECK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/install-cpc-check.XXXXXX")"
+  trap 'rm -rf "${CHECK_DIR}"' EXIT INT TERM
+  DEST_DIR="${CHECK_DIR}/${PACKAGE}"
+  if [ -d "${PACKAGE_DIR}" ]; then
+    cp -R "${PACKAGE_DIR}" "${DEST_DIR}"
+  fi
+fi
 
 [ -f "${DEFS}" ] || { echo "error: --defs file ${DEFS} not found." >&2; exit 1; }
 [ -f "${LEAN_CONFIG}" ] || { echo "error: --lean-config file ${LEAN_CONFIG} not found." >&2; exit 1; }
@@ -248,7 +271,7 @@ calc_name_of() {
 
 echo "==> Compiling ${SIGNATURE}"
 echo "    ethos    ${ETHOS_DIR}"
-echo "    package  ${DEST_DIR}"
+echo "    package  ${PACKAGE_DIR}"
 
 driver_args=(lean --build-dir "${BUILD_DIR}" --final-out-dir "${OUT_DIR}"
              --defs "${DEFS}" --lean-config "${LEAN_CONFIG}")
@@ -275,7 +298,11 @@ python3 "${DRIVER}" "${driver_args[@]}"
 LEAN_DIR="${OUT_DIR}/lean"
 [ -d "${LEAN_DIR}" ] || { echo "error: the compiler published nothing in ${LEAN_DIR}." >&2; exit 1; }
 
-echo "==> Installing generated Lean files into ${DEST_DIR}"
+if [ "${CHECK}" = "1" ]; then
+  echo "==> Staging a copy of ${PACKAGE} to compare against"
+else
+  echo "==> Installing generated Lean files into ${DEST_DIR}"
+fi
 mkdir -p "${DEST_DIR}" "${DEST_DIR}/Proofs" "${DEST_DIR}/Proofs/Rules"
 for entry in "${LEAN_OUTPUTS[@]}"; do
   read -r src dest <<< "${entry}"
@@ -287,7 +314,7 @@ for entry in "${LEAN_OUTPUTS[@]}"; do
     echo "error: ${LEAN_DIR}/${src} was not generated." >&2
     exit 1
   fi
-  echo "    ${src} -> ${PACKAGE}/${dest}"
+  [ "${CHECK}" = "1" ] || echo "    ${src} -> ${PACKAGE}/${dest}"
   cp "${LEAN_DIR}/${src}" "${DEST_DIR}/${dest}"
 done
 
@@ -305,7 +332,8 @@ if [ -d "${LEAN_DIR}/Rules" ]; then
     copied=$((copied + 1))
   done
   shopt -u nullglob
-  echo "    Rules/*.lean -> ${PACKAGE}/Proofs/Rules/ (${copied} written, ${preserved} existing preserved)"
+  [ "${CHECK}" = "1" ] || \
+    echo "    Rules/*.lean -> ${PACKAGE}/Proofs/Rules/ (${copied} written, ${preserved} existing preserved)"
 fi
 
 # The generated files import each other under the name the compiler gave the
@@ -326,6 +354,45 @@ if [ "${NO_PARTIAL}" = "1" ]; then
   while IFS= read -r -d '' file; do
     sed_in_place 's/partial def /def /g' "${file}"
   done < <(find "${DEST_DIR}" -type f -name '*.lean' -print0)
+fi
+
+if [ "${CHECK}" = "1" ]; then
+  staged="${CHECK_DIR}/staged.txt"
+  current="${CHECK_DIR}/current.txt"
+  ( cd "${DEST_DIR}" && find . -type f | sed 's|^\./||' | LC_ALL=C sort ) > "${staged}"
+  if [ -d "${PACKAGE_DIR}" ]; then
+    ( cd "${PACKAGE_DIR}" && find . -type f | sed 's|^\./||' | LC_ALL=C sort ) > "${current}"
+  else
+    : > "${current}"
+  fi
+
+  echo
+  updates=0
+  while IFS= read -r rel; do
+    if [ ! -e "${PACKAGE_DIR}/${rel}" ]; then
+      echo "  add     ${PACKAGE}/${rel}"
+      updates=$((updates + 1))
+    elif ! cmp -s "${DEST_DIR}/${rel}" "${PACKAGE_DIR}/${rel}"; then
+      echo "  update  ${PACKAGE}/${rel}"
+      updates=$((updates + 1))
+    fi
+  done < "${staged}"
+  while IFS= read -r rel; do
+    if [ ! -e "${DEST_DIR}/${rel}" ]; then
+      echo "  remove  ${PACKAGE}/${rel}"
+      updates=$((updates + 1))
+    fi
+  done < "${current}"
+
+  if [ "${updates}" -eq 0 ]; then
+    echo "==> ${PACKAGE} is up to date with ${SIGNATURE}."
+    echo "Nothing was written."
+    exit 0
+  fi
+  echo
+  echo "==> ${PACKAGE} is NOT up to date with ${SIGNATURE}: ${updates} file(s)."
+  echo "Nothing was written. Rerun without --check to apply."
+  exit 1
 fi
 
 cat <<DONE
