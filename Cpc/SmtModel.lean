@@ -680,110 +680,110 @@ def __smtx_model_eval_dt_tester (s : native_String) (dd : SmtDatatypeDecl) (n : 
   (SmtValue.Boolean (native_veq (__vsm_apply_head v1) (SmtValue.DtCons s dd n)))
 
 def __smtx_model_eval_not : SmtValue -> SmtValue
-  | (SmtValue.Boolean x1) => (SmtValue.Boolean (native_not x1))
+  | (SmtValue.Boolean x) => (SmtValue.Boolean (native_not x))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_or : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Boolean x1), (SmtValue.Boolean x2) => (SmtValue.Boolean (native_or x1 x2))
+  | (SmtValue.Boolean x), (SmtValue.Boolean y) => (SmtValue.Boolean (native_or x y))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_and : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Boolean x1), (SmtValue.Boolean x2) => (SmtValue.Boolean (native_and x1 x2))
+  | (SmtValue.Boolean x), (SmtValue.Boolean y) => (SmtValue.Boolean (native_and x y))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_imp (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_or (__smtx_model_eval_not x1) x2)
+def __smtx_model_eval_imp (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_or (__smtx_model_eval_not x) y)
 
-def __smtx_model_eval_xor (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_not (__smtx_model_eval_eq x1 x2))
+def __smtx_model_eval_xor (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_not (__smtx_model_eval_eq x y))
 
-def __smtx_model_eval__at_purify (x1 : SmtValue) : SmtValue :=
-  x1
+def __smtx_model_eval__at_purify (x : SmtValue) : SmtValue :=
+  x
 
 def __smtx_model_eval_plus : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Numeral (native_zplus x1 x2))
-  | (SmtValue.Rational x3), (SmtValue.Rational x4) => (SmtValue.Rational (native_qplus x3 x4))
+  | (SmtValue.Numeral x), (SmtValue.Numeral y) => (SmtValue.Numeral (native_zplus x y))
+  | (SmtValue.Rational qx), (SmtValue.Rational qy) => (SmtValue.Rational (native_qplus qx qy))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval__ : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Numeral (native_zplus x1 (native_zneg x2)))
-  | (SmtValue.Rational x3), (SmtValue.Rational x4) => (SmtValue.Rational (native_qplus x3 (native_qneg x4)))
+  | (SmtValue.Numeral x), (SmtValue.Numeral y) => (SmtValue.Numeral (native_zplus x (native_zneg y)))
+  | (SmtValue.Rational qx), (SmtValue.Rational qy) => (SmtValue.Rational (native_qplus qx (native_qneg qy)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_mult : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Numeral (native_zmult x1 x2))
-  | (SmtValue.Rational x3), (SmtValue.Rational x4) => (SmtValue.Rational (native_qmult x3 x4))
+  | (SmtValue.Numeral x), (SmtValue.Numeral y) => (SmtValue.Numeral (native_zmult x y))
+  | (SmtValue.Rational qx), (SmtValue.Rational qy) => (SmtValue.Rational (native_qmult qx qy))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_lt : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Boolean (native_zlt x1 x2))
-  | (SmtValue.Rational x3), (SmtValue.Rational x4) => (SmtValue.Boolean (native_qlt x3 x4))
+  | (SmtValue.Numeral x), (SmtValue.Numeral y) => (SmtValue.Boolean (native_zlt x y))
+  | (SmtValue.Rational qx), (SmtValue.Rational qy) => (SmtValue.Boolean (native_qlt qx qy))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_leq : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Boolean (native_zleq x1 x2))
-  | (SmtValue.Rational x3), (SmtValue.Rational x4) => (SmtValue.Boolean (native_qleq x3 x4))
+  | (SmtValue.Numeral x), (SmtValue.Numeral y) => (SmtValue.Boolean (native_zleq x y))
+  | (SmtValue.Rational qx), (SmtValue.Rational qy) => (SmtValue.Boolean (native_qleq qx qy))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_gt (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_lt x2 x1)
+def __smtx_model_eval_gt (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_lt y x)
 
-def __smtx_model_eval_geq (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_leq x2 x1)
+def __smtx_model_eval_geq (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_leq y x)
 
 def __smtx_model_eval_to_real : SmtValue -> SmtValue
-  | (SmtValue.Numeral x1) => (SmtValue.Rational (native_to_real x1))
+  | (SmtValue.Numeral x) => (SmtValue.Rational (native_to_real x))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_to_int : SmtValue -> SmtValue
-  | (SmtValue.Rational x1) => (SmtValue.Numeral (native_to_int x1))
+  | (SmtValue.Rational x) => (SmtValue.Numeral (native_to_int x))
   | t1 => SmtValue.NotValue
 
 
-def __smtx_model_eval_is_int (x1 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_eq (__smtx_model_eval_to_real (__smtx_model_eval_to_int x1)) x1)
+def __smtx_model_eval_is_int (x : SmtValue) : SmtValue :=
+  (__smtx_model_eval_eq (__smtx_model_eval_to_real (__smtx_model_eval_to_int x)) x)
 
 def __smtx_model_eval_abs : SmtValue -> SmtValue
-  | (SmtValue.Numeral x1) => (SmtValue.Numeral (native_zabs x1))
-  | (SmtValue.Rational x2) => (SmtValue.Rational (native_qabs x2))
+  | (SmtValue.Numeral x) => (SmtValue.Numeral (native_zabs x))
+  | (SmtValue.Rational qx) => (SmtValue.Rational (native_qabs qx))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_uneg : SmtValue -> SmtValue
-  | (SmtValue.Numeral x1) => (SmtValue.Numeral (native_zneg x1))
-  | (SmtValue.Rational x2) => (SmtValue.Rational (native_qneg x2))
+  | (SmtValue.Numeral x) => (SmtValue.Numeral (native_zneg x))
+  | (SmtValue.Rational qx) => (SmtValue.Rational (native_qneg qx))
   | t1 => SmtValue.NotValue
 
 
-def __smtx_model_eval_divisible (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_eq (__smtx_model_eval_mod_total x2 x1) (SmtValue.Numeral 0))
+def __smtx_model_eval_divisible (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_eq (__smtx_model_eval_mod_total y x) (SmtValue.Numeral 0))
 
 def __smtx_model_eval_int_pow2 : SmtValue -> SmtValue
-  | (SmtValue.Numeral x1) => (SmtValue.Numeral (native_int_pow2 x1))
+  | (SmtValue.Numeral x) => (SmtValue.Numeral (native_int_pow2 x))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_int_log2 : SmtValue -> SmtValue
-  | (SmtValue.Numeral x1) => (SmtValue.Numeral (native_int_log2 x1))
+  | (SmtValue.Numeral x) => (SmtValue.Numeral (native_int_log2 x))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_div_total : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Numeral (native_div_total x1 x2))
+  | (SmtValue.Numeral x), (SmtValue.Numeral y) => (SmtValue.Numeral (native_div_total x y))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_mod_total : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Numeral (native_mod_total x1 x2))
+  | (SmtValue.Numeral x), (SmtValue.Numeral y) => (SmtValue.Numeral (native_mod_total x y))
   | t1, t2 => SmtValue.NotValue
 
 
@@ -793,8 +793,8 @@ def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
   | v, i => SmtValue.NotValue
 
 
-def __smtx_model_eval_select (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_map_select x1 x2)
+def __smtx_model_eval_select (a : SmtValue) (i : SmtValue) : SmtValue :=
+  (__smtx_map_select a i)
 
 def __smtx_map_store : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m), i, e => (SmtValue.Map (__smtx_msm_update_aux (__smtx_msm_get_default m) m i e))
@@ -802,26 +802,26 @@ def __smtx_map_store : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | v, i, e => SmtValue.NotValue
 
 
-def __smtx_model_eval_store (x1 : SmtValue) (x2 : SmtValue) (x3 : SmtValue) : SmtValue :=
-  (__smtx_map_store x1 x2 x3)
+def __smtx_model_eval_store (a : SmtValue) (i : SmtValue) (e : SmtValue) : SmtValue :=
+  (__smtx_map_store a i e)
 
 def __smtx_model_eval_map_diff : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m1), (SmtValue.Map m2) => (native_eval_map_diff_msm m1 m2)
   | (SmtValue.Set m1), (SmtValue.Set m2) => (native_eval_map_diff_msm m1 m2)
-  | v1, v2 => SmtValue.NotValue
+  | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_concat : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => 
-    let _v0 := (native_zplus x1 x3)
-    (SmtValue.Binary _v0 (native_mod_total (native_binary_concat x1 x2 x3 x4) (native_int_pow2 _v0)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => 
+    let _v0 := (native_zplus n m)
+    (SmtValue.Binary _v0 (native_mod_total (native_binary_concat n x m y) (native_int_pow2 _v0)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_extract : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2), (SmtValue.Binary x3 x4) => 
-    let _v0 := (native_zplus (native_zplus x1 1) (native_zneg x2))
-    (SmtValue.Binary _v0 (native_mod_total (native_binary_extract x3 x4 x1 x2) (native_int_pow2 _v0)))
+  | (SmtValue.Numeral i), (SmtValue.Numeral j), (SmtValue.Binary n x) => 
+    let _v0 := (native_zplus (native_zplus i 1) (native_zneg j))
+    (SmtValue.Binary _v0 (native_mod_total (native_binary_extract n x i j) (native_int_pow2 _v0)))
   | t1, t2, t3 => SmtValue.NotValue
 
 
@@ -831,169 +831,169 @@ def __smtx_model_eval_repeat_rec : native_Nat -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_repeat : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Binary x2 x3) => (__smtx_model_eval_repeat_rec (native_int_to_nat x1) (SmtValue.Binary x2 x3))
+  | (SmtValue.Numeral k), (SmtValue.Binary n x) => (__smtx_model_eval_repeat_rec (native_int_to_nat k) (SmtValue.Binary n x))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvnot : SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 (native_mod_total (native_binary_not x1 x2) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x) => (SmtValue.Binary n (native_mod_total (native_binary_not n x) (native_int_pow2 n)))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvand : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Binary x1 (native_mod_total (native_binary_and x1 x2 x4) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Binary n (native_mod_total (native_binary_and n x y) (native_int_pow2 n)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvor : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Binary x1 (native_mod_total (native_binary_or x1 x2 x4) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Binary n (native_mod_total (native_binary_or n x y) (native_int_pow2 n)))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_bvnand (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_bvnot (__smtx_model_eval_bvand x1 x2))
+def __smtx_model_eval_bvnand (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_bvnot (__smtx_model_eval_bvand x y))
 
-def __smtx_model_eval_bvnor (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_bvnot (__smtx_model_eval_bvor x1 x2))
+def __smtx_model_eval_bvnor (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_bvnot (__smtx_model_eval_bvor x y))
 
 def __smtx_model_eval_bvxor : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Binary x1 (native_mod_total (native_binary_xor x1 x2 x4) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Binary n (native_mod_total (native_binary_xor n x y) (native_int_pow2 n)))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_bvxnor (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_bvnot (__smtx_model_eval_bvxor x1 x2))
+def __smtx_model_eval_bvxnor (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_bvnot (__smtx_model_eval_bvxor x y))
 
-def __smtx_model_eval_bvcomp (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_ite (__smtx_model_eval_eq x1 x2) (SmtValue.Binary 1 1) (SmtValue.Binary 1 0))
+def __smtx_model_eval_bvcomp (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_ite (__smtx_model_eval_eq x y) (SmtValue.Binary 1 1) (SmtValue.Binary 1 0))
 
 def __smtx_model_eval_bvneg : SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 (native_mod_total (native_zneg x2) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x) => (SmtValue.Binary n (native_mod_total (native_zneg x) (native_int_pow2 n)))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvadd : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Binary x1 (native_mod_total (native_zplus x2 x4) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Binary n (native_mod_total (native_zplus x y) (native_int_pow2 n)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvmul : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Binary x1 (native_mod_total (native_zmult x2 x4) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Binary n (native_mod_total (native_zmult x y) (native_int_pow2 n)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvudiv : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Binary x1 (native_mod_total (native_ite (native_zeq x4 0) (native_binary_max x1) (native_div_total x2 x4)) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Binary n (native_mod_total (native_ite (native_zeq y 0) (native_binary_max n) (native_div_total x y)) (native_int_pow2 n)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvurem : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Binary x1 (native_mod_total (native_ite (native_zeq x4 0) x2 (native_mod_total x2 x4)) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Binary n (native_mod_total (native_ite (native_zeq y 0) x (native_mod_total x y)) (native_int_pow2 n)))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_bvsub (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_bvadd x1 (__smtx_model_eval_bvneg x2))
+def __smtx_model_eval_bvsub (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_bvadd x (__smtx_model_eval_bvneg y))
 
 def __smtx_bv_sizeof_value : SmtValue -> native_Int
   | (SmtValue.Binary x1 x2) => x1
   | t1 => (native_zneg 1)
 
 
-def __smtx_model_eval_bvsdiv (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
+def __smtx_model_eval_bvsdiv (x : SmtValue) (y : SmtValue) : SmtValue :=
   
-    let _v0 := (__smtx_model_eval_bvneg x2)
-    let _v1 := (__smtx_model_eval_bvneg x1)
+    let _v0 := (__smtx_model_eval_bvneg y)
+    let _v1 := (__smtx_model_eval_bvneg x)
     let _v3 := (SmtValue.Binary 1 1)
-    let _v4 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) (SmtValue.Numeral 1))
-    let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x2) _v3)
-    let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x1) _v3)
+    let _v4 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x)) (SmtValue.Numeral 1))
+    let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 y) _v3)
+    let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x) _v3)
     let _v7 := (__smtx_model_eval_not _v6)
     let _v8 := (__smtx_model_eval_not _v5)
-    (__smtx_model_eval_ite (__smtx_model_eval_and _v7 _v8) (__smtx_model_eval_bvudiv x1 x2) (__smtx_model_eval_ite (__smtx_model_eval_and _v6 _v8) (__smtx_model_eval_bvneg (__smtx_model_eval_bvudiv _v1 x2)) (__smtx_model_eval_ite (__smtx_model_eval_and _v7 _v5) (__smtx_model_eval_bvneg (__smtx_model_eval_bvudiv x1 _v0)) (__smtx_model_eval_bvudiv _v1 _v0))))
+    (__smtx_model_eval_ite (__smtx_model_eval_and _v7 _v8) (__smtx_model_eval_bvudiv x y) (__smtx_model_eval_ite (__smtx_model_eval_and _v6 _v8) (__smtx_model_eval_bvneg (__smtx_model_eval_bvudiv _v1 y)) (__smtx_model_eval_ite (__smtx_model_eval_and _v7 _v5) (__smtx_model_eval_bvneg (__smtx_model_eval_bvudiv x _v0)) (__smtx_model_eval_bvudiv _v1 _v0))))
 
-def __smtx_model_eval_bvsrem (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
+def __smtx_model_eval_bvsrem (x : SmtValue) (y : SmtValue) : SmtValue :=
   
-    let _v0 := (__smtx_model_eval_bvneg x2)
-    let _v1 := (__smtx_model_eval_bvneg x1)
+    let _v0 := (__smtx_model_eval_bvneg y)
+    let _v1 := (__smtx_model_eval_bvneg x)
     let _v3 := (SmtValue.Binary 1 1)
-    let _v4 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) (SmtValue.Numeral 1))
-    let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x2) _v3)
-    let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x1) _v3)
+    let _v4 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x)) (SmtValue.Numeral 1))
+    let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 y) _v3)
+    let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x) _v3)
     let _v7 := (__smtx_model_eval_not _v6)
     let _v8 := (__smtx_model_eval_not _v5)
-    (__smtx_model_eval_ite (__smtx_model_eval_and _v7 _v8) (__smtx_model_eval_bvurem x1 x2) (__smtx_model_eval_ite (__smtx_model_eval_and _v6 _v8) (__smtx_model_eval_bvneg (__smtx_model_eval_bvurem _v1 x2)) (__smtx_model_eval_ite (__smtx_model_eval_and _v7 _v5) (__smtx_model_eval_bvurem x1 _v0) (__smtx_model_eval_bvneg (__smtx_model_eval_bvurem _v1 _v0)))))
+    (__smtx_model_eval_ite (__smtx_model_eval_and _v7 _v8) (__smtx_model_eval_bvurem x y) (__smtx_model_eval_ite (__smtx_model_eval_and _v6 _v8) (__smtx_model_eval_bvneg (__smtx_model_eval_bvurem _v1 y)) (__smtx_model_eval_ite (__smtx_model_eval_and _v7 _v5) (__smtx_model_eval_bvurem x _v0) (__smtx_model_eval_bvneg (__smtx_model_eval_bvurem _v1 _v0)))))
 
-def __smtx_model_eval_bvsmod (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
+def __smtx_model_eval_bvsmod (x : SmtValue) (y : SmtValue) : SmtValue :=
   
     let _v1 := (SmtValue.Binary 1 1)
-    let _v2 := (__smtx_bv_sizeof_value x1)
+    let _v2 := (__smtx_bv_sizeof_value x)
     let _v3 := (__smtx_model_eval__ (SmtValue.Numeral _v2) (SmtValue.Numeral 1))
-    let _v4 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 x2) _v1)
-    let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 x1) _v1)
-    let _v6 := (__smtx_model_eval_bvurem (__smtx_model_eval_ite _v5 (__smtx_model_eval_bvneg x1) x1) (__smtx_model_eval_ite _v4 (__smtx_model_eval_bvneg x2) x2))
+    let _v4 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 y) _v1)
+    let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 x) _v1)
+    let _v6 := (__smtx_model_eval_bvurem (__smtx_model_eval_ite _v5 (__smtx_model_eval_bvneg x) x) (__smtx_model_eval_ite _v4 (__smtx_model_eval_bvneg y) y))
     let _v7 := (__smtx_model_eval_bvneg _v6)
     let _v8 := (__smtx_model_eval_not _v5)
     let _v9 := (__smtx_model_eval_not _v4)
-    (__smtx_model_eval_ite (__smtx_model_eval_eq _v6 (SmtValue.Binary _v2 0)) _v6 (__smtx_model_eval_ite (__smtx_model_eval_and _v8 _v9) _v6 (__smtx_model_eval_ite (__smtx_model_eval_and _v5 _v9) (__smtx_model_eval_bvadd _v7 x2) (__smtx_model_eval_ite (__smtx_model_eval_and _v8 _v4) (__smtx_model_eval_bvadd _v6 x2) _v7))))
+    (__smtx_model_eval_ite (__smtx_model_eval_eq _v6 (SmtValue.Binary _v2 0)) _v6 (__smtx_model_eval_ite (__smtx_model_eval_and _v8 _v9) _v6 (__smtx_model_eval_ite (__smtx_model_eval_and _v5 _v9) (__smtx_model_eval_bvadd _v7 y) (__smtx_model_eval_ite (__smtx_model_eval_and _v8 _v4) (__smtx_model_eval_bvadd _v6 y) _v7))))
 
-def __smtx_model_eval_bvult (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_bvugt x2 x1)
+def __smtx_model_eval_bvult (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_bvugt y x)
 
-def __smtx_model_eval_bvule (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_bvuge x2 x1)
+def __smtx_model_eval_bvule (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_bvuge y x)
 
 def __smtx_model_eval_bvugt : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Boolean (native_zlt x4 x2))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Boolean (native_zlt y x))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_bvuge (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_or (__smtx_model_eval_bvugt x1 x2) (__smtx_model_eval_eq x1 x2))
+def __smtx_model_eval_bvuge (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_or (__smtx_model_eval_bvugt x y) (__smtx_model_eval_eq x y))
 
-def __smtx_model_eval_bvslt (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_bvsgt x2 x1)
+def __smtx_model_eval_bvslt (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_bvsgt y x)
 
-def __smtx_model_eval_bvsle (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_bvsge x2 x1)
+def __smtx_model_eval_bvsle (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_bvsge y x)
 
-def __smtx_model_eval_bvsgt (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
+def __smtx_model_eval_bvsgt (x : SmtValue) (y : SmtValue) : SmtValue :=
   
     let _v1 := (SmtValue.Binary 1 1)
     let _v2 := (SmtValue.Numeral 1)
-    let _v3 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x2)) _v2)
-    let _v4 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 x2) _v1)
-    let _v5 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) _v2)
-    let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v5 _v5 x1) _v1)
-    (__smtx_model_eval_or (__smtx_model_eval_and (__smtx_model_eval_not _v6) _v4) (__smtx_model_eval_and (__smtx_model_eval_eq _v6 _v4) (__smtx_model_eval_bvugt x1 x2)))
+    let _v3 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value y)) _v2)
+    let _v4 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 y) _v1)
+    let _v5 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x)) _v2)
+    let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v5 _v5 x) _v1)
+    (__smtx_model_eval_or (__smtx_model_eval_and (__smtx_model_eval_not _v6) _v4) (__smtx_model_eval_and (__smtx_model_eval_eq _v6 _v4) (__smtx_model_eval_bvugt x y)))
 
-def __smtx_model_eval_bvsge (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_or (__smtx_model_eval_bvsgt x1 x2) (__smtx_model_eval_eq x1 x2))
+def __smtx_model_eval_bvsge (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_or (__smtx_model_eval_bvsgt x y) (__smtx_model_eval_eq x y))
 
 def __smtx_model_eval_bvshl : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Binary x1 (native_mod_total (native_zmult x2 (native_int_pow2 x4)) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Binary n (native_mod_total (native_zmult x (native_int_pow2 y)) (native_int_pow2 n)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvlshr : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Binary x1 (native_mod_total (native_div_total x2 (native_int_pow2 x4)) (native_int_pow2 x1)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Binary n (native_mod_total (native_div_total x (native_int_pow2 y)) (native_int_pow2 n)))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_bvashr (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
+def __smtx_model_eval_bvashr (x : SmtValue) (y : SmtValue) : SmtValue :=
   
-    let _v1 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) (SmtValue.Numeral 1))
-    (__smtx_model_eval_ite (__smtx_model_eval_eq (__smtx_model_eval_extract _v1 _v1 x1) (SmtValue.Binary 1 0)) (__smtx_model_eval_bvlshr x1 x2) (__smtx_model_eval_bvnot (__smtx_model_eval_bvlshr (__smtx_model_eval_bvnot x1) x2)))
+    let _v1 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x)) (SmtValue.Numeral 1))
+    (__smtx_model_eval_ite (__smtx_model_eval_eq (__smtx_model_eval_extract _v1 _v1 x) (SmtValue.Binary 1 0)) (__smtx_model_eval_bvlshr x y) (__smtx_model_eval_bvnot (__smtx_model_eval_bvlshr (__smtx_model_eval_bvnot x) y)))
 
 def __smtx_model_eval_zero_extend : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Binary x2 x3) => (SmtValue.Binary (native_zplus x1 x2) x3)
+  | (SmtValue.Numeral k), (SmtValue.Binary n x) => (SmtValue.Binary (native_zplus k n) x)
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_sign_extend : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Binary x2 x3) => 
-    let _v0 := (native_zplus x1 x2)
-    (SmtValue.Binary _v0 (native_mod_total (native_binary_uts x2 x3) (native_int_pow2 _v0)))
+  | (SmtValue.Numeral k), (SmtValue.Binary n x) => 
+    let _v0 := (native_zplus k n)
+    (SmtValue.Binary _v0 (native_mod_total (native_binary_uts n x) (native_int_pow2 _v0)))
   | t1, t2 => SmtValue.NotValue
 
 
@@ -1009,7 +1009,7 @@ def __smtx_model_eval_rotate_left_rec : native_Nat -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_rotate_left : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), x2 => (__smtx_model_eval_rotate_left_rec (native_int_to_nat x1) x2)
+  | (SmtValue.Numeral k), x => (__smtx_model_eval_rotate_left_rec (native_int_to_nat k) x)
   | t1, t2 => SmtValue.NotValue
 
 
@@ -1023,52 +1023,52 @@ def __smtx_model_eval_rotate_right_rec : native_Nat -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_rotate_right : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), x2 => (__smtx_model_eval_rotate_right_rec (native_int_to_nat x1) x2)
+  | (SmtValue.Numeral k), x => (__smtx_model_eval_rotate_right_rec (native_int_to_nat k) x)
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvuaddo : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Boolean (native_zleq (native_int_pow2 x1) (native_zplus x2 x4)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Boolean (native_zleq (native_int_pow2 n) (native_zplus x y)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvnego : SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2) => (SmtValue.Boolean (native_zeq x2 (native_int_pow2 (native_zplus x1 (native_zneg 1)))))
+  | (SmtValue.Binary n x) => (SmtValue.Boolean (native_zeq x (native_int_pow2 (native_zplus n (native_zneg 1)))))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvsaddo : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => 
-    let _v0 := (native_int_pow2 (native_zplus x1 (native_zneg 1)))
-    let _v1 := (native_zplus (native_binary_uts x1 x2) (native_binary_uts x3 x4))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => 
+    let _v0 := (native_int_pow2 (native_zplus n (native_zneg 1)))
+    let _v1 := (native_zplus (native_binary_uts n x) (native_binary_uts m y))
     (SmtValue.Boolean (native_or (native_zleq _v0 _v1) (native_zlt _v1 (native_zneg _v0))))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvumulo : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (SmtValue.Boolean (native_zleq (native_int_pow2 x1) (native_zmult x2 x4)))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => (SmtValue.Boolean (native_zleq (native_int_pow2 n) (native_zmult x y)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvsmulo : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => 
-    let _v0 := (native_int_pow2 (native_zplus x1 (native_zneg 1)))
-    let _v1 := (native_zmult (native_binary_uts x1 x2) (native_binary_uts x3 x4))
+  | (SmtValue.Binary n x), (SmtValue.Binary m y) => 
+    let _v0 := (native_int_pow2 (native_zplus n (native_zneg 1)))
+    let _v1 := (native_zmult (native_binary_uts n x) (native_binary_uts m y))
     (SmtValue.Boolean (native_or (native_zleq _v0 _v1) (native_zlt _v1 (native_zneg _v0))))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_bvusubo (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_bvult x1 x2)
+def __smtx_model_eval_bvusubo (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_bvult x y)
 
-def __smtx_model_eval_bvssubo (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_ite (__smtx_model_eval_bvnego x2) (__smtx_model_eval_bvsge x1 (SmtValue.Binary (__smtx_bv_sizeof_value x1) 0)) (__smtx_model_eval_bvsaddo x1 (__smtx_model_eval_bvneg x2)))
+def __smtx_model_eval_bvssubo (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_ite (__smtx_model_eval_bvnego y) (__smtx_model_eval_bvsge x (SmtValue.Binary (__smtx_bv_sizeof_value x) 0)) (__smtx_model_eval_bvsaddo x (__smtx_model_eval_bvneg y)))
 
-def __smtx_model_eval_bvsdivo (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_and (__smtx_model_eval_bvnego x1) (__smtx_model_eval_eq x2 (__smtx_model_eval_bvnot (SmtValue.Binary (__smtx_bv_sizeof_value x1) 0))))
+def __smtx_model_eval_bvsdivo (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_and (__smtx_model_eval_bvnego x) (__smtx_model_eval_eq y (__smtx_model_eval_bvnot (SmtValue.Binary (__smtx_bv_sizeof_value x) 0))))
 
 def __smtx_model_eval_str_len : SmtValue -> SmtValue
-  | (SmtValue.Seq x1) => (SmtValue.Numeral (native_seq_len (native_unpack_seq x1)))
+  | (SmtValue.Seq s) => (SmtValue.Numeral (native_seq_len (native_unpack_seq s)))
   | t1 => SmtValue.NotValue
 
 
@@ -1078,126 +1078,126 @@ def __smtx_elem_typeof_seq_value : SmtSeq -> SmtType
 
 
 def __smtx_model_eval_str_concat : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value x1) (native_seq_concat (native_unpack_seq x1) (native_unpack_seq x2))))
+  | (SmtValue.Seq s), (SmtValue.Seq t) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value s) (native_seq_concat (native_unpack_seq s) (native_unpack_seq t))))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_substr : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Numeral x2), (SmtValue.Numeral x3) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value x1) (native_seq_extract (native_unpack_seq x1) x2 x3)))
+  | (SmtValue.Seq s), (SmtValue.Numeral i), (SmtValue.Numeral n) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value s) (native_seq_extract (native_unpack_seq s) i n)))
   | t1, t2, t3 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_contains : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2) => (SmtValue.Boolean (native_seq_contains (native_unpack_seq x1) (native_unpack_seq x2)))
+  | (SmtValue.Seq s), (SmtValue.Seq t) => (SmtValue.Boolean (native_seq_contains (native_unpack_seq s) (native_unpack_seq t)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_replace : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2), (SmtValue.Seq x3) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value x1) (native_seq_replace (native_unpack_seq x1) (native_unpack_seq x2) (native_unpack_seq x3))))
+  | (SmtValue.Seq s), (SmtValue.Seq t), (SmtValue.Seq u) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value s) (native_seq_replace (native_unpack_seq s) (native_unpack_seq t) (native_unpack_seq u))))
   | t1, t2, t3 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_indexof : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2), (SmtValue.Numeral x3) => (SmtValue.Numeral (native_seq_indexof (native_unpack_seq x1) (native_unpack_seq x2) x3))
+  | (SmtValue.Seq s), (SmtValue.Seq t), (SmtValue.Numeral i) => (SmtValue.Numeral (native_seq_indexof (native_unpack_seq s) (native_unpack_seq t) i))
   | t1, t2, t3 => SmtValue.NotValue
 
 
-def __smtx_model_eval_str_at (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_str_substr x1 x2 (SmtValue.Numeral 1))
+def __smtx_model_eval_str_at (s : SmtValue) (i : SmtValue) : SmtValue :=
+  (__smtx_model_eval_str_substr s i (SmtValue.Numeral 1))
 
-def __smtx_model_eval_str_prefixof (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_eq x1 (__smtx_model_eval_str_substr x2 (SmtValue.Numeral 0) (__smtx_model_eval_str_len x1)))
+def __smtx_model_eval_str_prefixof (s : SmtValue) (t : SmtValue) : SmtValue :=
+  (__smtx_model_eval_eq s (__smtx_model_eval_str_substr t (SmtValue.Numeral 0) (__smtx_model_eval_str_len s)))
 
-def __smtx_model_eval_str_suffixof (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
+def __smtx_model_eval_str_suffixof (s : SmtValue) (t : SmtValue) : SmtValue :=
   
-    let _v0 := (__smtx_model_eval_str_len x1)
-    (__smtx_model_eval_eq x1 (__smtx_model_eval_str_substr x2 (__smtx_model_eval__ (__smtx_model_eval_str_len x2) _v0) _v0))
+    let _v0 := (__smtx_model_eval_str_len s)
+    (__smtx_model_eval_eq s (__smtx_model_eval_str_substr t (__smtx_model_eval__ (__smtx_model_eval_str_len t) _v0) _v0))
 
 def __smtx_model_eval_str_rev : SmtValue -> SmtValue
-  | (SmtValue.Seq x1) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value x1) (native_seq_rev (native_unpack_seq x1))))
+  | (SmtValue.Seq s) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value s) (native_seq_rev (native_unpack_seq s))))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_update : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Numeral x2), (SmtValue.Seq x3) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value x1) (native_seq_update (native_unpack_seq x1) x2 (native_unpack_seq x3))))
+  | (SmtValue.Seq s), (SmtValue.Numeral i), (SmtValue.Seq t) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value s) (native_seq_update (native_unpack_seq s) i (native_unpack_seq t))))
   | t1, t2, t3 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_to_lower : SmtValue -> SmtValue
-  | (SmtValue.Seq x1) => (SmtValue.Seq (native_pack_string (native_str_to_lower (native_unpack_string x1))))
+  | (SmtValue.Seq s) => (SmtValue.Seq (native_pack_string (native_str_to_lower (native_unpack_string s))))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_to_upper : SmtValue -> SmtValue
-  | (SmtValue.Seq x1) => (SmtValue.Seq (native_pack_string (native_str_to_upper (native_unpack_string x1))))
+  | (SmtValue.Seq s) => (SmtValue.Seq (native_pack_string (native_str_to_upper (native_unpack_string s))))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_to_code : SmtValue -> SmtValue
-  | (SmtValue.Seq x1) => (SmtValue.Numeral (native_str_to_code (native_unpack_string x1)))
+  | (SmtValue.Seq s) => (SmtValue.Numeral (native_str_to_code (native_unpack_string s)))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_from_code : SmtValue -> SmtValue
-  | (SmtValue.Numeral x1) => (SmtValue.Seq (native_pack_string (native_str_from_code x1)))
+  | (SmtValue.Numeral i) => (SmtValue.Seq (native_pack_string (native_str_from_code i)))
   | t1 => SmtValue.NotValue
 
 
-def __smtx_model_eval_str_is_digit (x1 : SmtValue) : SmtValue :=
+def __smtx_model_eval_str_is_digit (s : SmtValue) : SmtValue :=
   
-    let _v0 := (__smtx_model_eval_str_to_code x1)
+    let _v0 := (__smtx_model_eval_str_to_code s)
     (__smtx_model_eval_and (__smtx_model_eval_leq (SmtValue.Numeral 48) _v0) (__smtx_model_eval_leq _v0 (SmtValue.Numeral 57)))
 
 def __smtx_model_eval_str_to_int : SmtValue -> SmtValue
-  | (SmtValue.Seq x1) => (SmtValue.Numeral (native_str_to_int (native_unpack_string x1)))
+  | (SmtValue.Seq s) => (SmtValue.Numeral (native_str_to_int (native_unpack_string s)))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_from_int : SmtValue -> SmtValue
-  | (SmtValue.Numeral x1) => (SmtValue.Seq (native_pack_string (native_str_from_int x1)))
+  | (SmtValue.Numeral i) => (SmtValue.Seq (native_pack_string (native_str_from_int i)))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_lt : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2) => (SmtValue.Boolean (native_str_lt (native_unpack_string x1) (native_unpack_string x2)))
+  | (SmtValue.Seq s), (SmtValue.Seq t) => (SmtValue.Boolean (native_str_lt (native_unpack_string s) (native_unpack_string t)))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_str_leq (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_or (__smtx_model_eval_eq x1 x2) (__smtx_model_eval_str_lt x1 x2))
+def __smtx_model_eval_str_leq (s : SmtValue) (t : SmtValue) : SmtValue :=
+  (__smtx_model_eval_or (__smtx_model_eval_eq s t) (__smtx_model_eval_str_lt s t))
 
 def __smtx_model_eval_str_replace_all : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2), (SmtValue.Seq x3) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value x1) (native_seq_replace_all (native_unpack_seq x1) (native_unpack_seq x2) (native_unpack_seq x3))))
+  | (SmtValue.Seq s), (SmtValue.Seq t), (SmtValue.Seq u) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value s) (native_seq_replace_all (native_unpack_seq s) (native_unpack_seq t) (native_unpack_seq u))))
   | t1, t2, t3 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_replace_re : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.RegLan x2), (SmtValue.Seq x3) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value x1) (native_str_replace_re (native_unpack_seq x1) x2 (native_unpack_seq x3))))
+  | (SmtValue.Seq s), (SmtValue.RegLan r), (SmtValue.Seq t) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value s) (native_str_replace_re (native_unpack_seq s) r (native_unpack_seq t))))
   | t1, t2, t3 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_replace_re_all : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.RegLan x2), (SmtValue.Seq x3) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value x1) (native_str_replace_re_all (native_unpack_seq x1) x2 (native_unpack_seq x3))))
+  | (SmtValue.Seq s), (SmtValue.RegLan r), (SmtValue.Seq t) => (SmtValue.Seq (native_pack_seq (__smtx_elem_typeof_seq_value s) (native_str_replace_re_all (native_unpack_seq s) r (native_unpack_seq t))))
   | t1, t2, t3 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_indexof_re : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.RegLan x2), (SmtValue.Numeral x3) => (SmtValue.Numeral (native_str_indexof_re (native_unpack_seq x1) x2 x3))
+  | (SmtValue.Seq s), (SmtValue.RegLan r), (SmtValue.Numeral i) => (SmtValue.Numeral (native_str_indexof_re (native_unpack_seq s) r i))
   | t1, t2, t3 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_to_re : SmtValue -> SmtValue
-  | (SmtValue.Seq x1) => (SmtValue.RegLan (native_str_to_re (native_unpack_seq x1)))
+  | (SmtValue.Seq s) => (SmtValue.RegLan (native_str_to_re (native_unpack_seq s)))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_re_mult : SmtValue -> SmtValue
-  | (SmtValue.RegLan x1) => (SmtValue.RegLan (native_re_mult x1))
+  | (SmtValue.RegLan r) => (SmtValue.RegLan (native_re_mult r))
   | t1 => SmtValue.NotValue
 
 
-def __smtx_model_eval_re_plus (x1 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_re_concat x1 (__smtx_model_eval_re_mult x1))
+def __smtx_model_eval_re_plus (r : SmtValue) : SmtValue :=
+  (__smtx_model_eval_re_concat r (__smtx_model_eval_re_mult r))
 
 def __smtx_model_eval_re_exp_rec : native_Nat -> SmtValue -> SmtValue
   | native_nat_zero, x1 => (SmtValue.RegLan (native_str_to_re (native_unpack_seq (SmtSeq.empty SmtType.Char))))
@@ -1205,40 +1205,40 @@ def __smtx_model_eval_re_exp_rec : native_Nat -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_re_exp : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.RegLan x2) => (__smtx_model_eval_re_exp_rec (native_int_to_nat x1) (SmtValue.RegLan x2))
+  | (SmtValue.Numeral k), (SmtValue.RegLan r) => (__smtx_model_eval_re_exp_rec (native_int_to_nat k) (SmtValue.RegLan r))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_re_opt (x1 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_re_union x1 (SmtValue.RegLan (native_str_to_re (native_unpack_seq (SmtSeq.empty SmtType.Char)))))
+def __smtx_model_eval_re_opt (r : SmtValue) : SmtValue :=
+  (__smtx_model_eval_re_union r (SmtValue.RegLan (native_str_to_re (native_unpack_seq (SmtSeq.empty SmtType.Char)))))
 
 def __smtx_model_eval_re_comp : SmtValue -> SmtValue
-  | (SmtValue.RegLan x1) => (SmtValue.RegLan (native_re_comp x1))
+  | (SmtValue.RegLan r) => (SmtValue.RegLan (native_re_comp r))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_re_range : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2) => (SmtValue.RegLan (native_re_range (native_unpack_seq x1) (native_unpack_seq x2)))
+  | (SmtValue.Seq a), (SmtValue.Seq b) => (SmtValue.RegLan (native_re_range (native_unpack_seq a) (native_unpack_seq b)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_re_concat : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.RegLan x1), (SmtValue.RegLan x2) => (SmtValue.RegLan (native_re_concat x1 x2))
+  | (SmtValue.RegLan r), (SmtValue.RegLan q) => (SmtValue.RegLan (native_re_concat r q))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_re_inter : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.RegLan x1), (SmtValue.RegLan x2) => (SmtValue.RegLan (native_re_inter x1 x2))
+  | (SmtValue.RegLan r), (SmtValue.RegLan q) => (SmtValue.RegLan (native_re_inter r q))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_re_union : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.RegLan x1), (SmtValue.RegLan x2) => (SmtValue.RegLan (native_re_union x1 x2))
+  | (SmtValue.RegLan r), (SmtValue.RegLan q) => (SmtValue.RegLan (native_re_union r q))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_re_diff : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.RegLan x1), (SmtValue.RegLan x2) => (SmtValue.RegLan (native_re_diff x1 x2))
+  | (SmtValue.RegLan r), (SmtValue.RegLan q) => (SmtValue.RegLan (native_re_diff r q))
   | t1, t2 => SmtValue.NotValue
 
 
@@ -1249,15 +1249,15 @@ def __smtx_model_eval_re_loop_rec : native_Nat -> SmtValue -> SmtValue -> SmtVal
 
 
 def __smtx_model_eval_re_loop : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2), (SmtValue.RegLan x3) => 
-    let _v0 := (SmtValue.Numeral x2)
-    let _v1 := (SmtValue.Numeral x1)
-    (__smtx_model_eval_ite (__smtx_model_eval_gt _v1 _v0) (SmtValue.RegLan native_re_none) (__smtx_model_eval_re_loop_rec (native_int_to_nat (native_zplus x2 (native_zneg x1))) _v1 _v0 (SmtValue.RegLan x3)))
+  | (SmtValue.Numeral lo), (SmtValue.Numeral hi), (SmtValue.RegLan r) => 
+    let _v0 := (SmtValue.Numeral hi)
+    let _v1 := (SmtValue.Numeral lo)
+    (__smtx_model_eval_ite (__smtx_model_eval_gt _v1 _v0) (SmtValue.RegLan native_re_none) (__smtx_model_eval_re_loop_rec (native_int_to_nat (native_zplus hi (native_zneg lo))) _v1 _v0 (SmtValue.RegLan r)))
   | t1, t2, t3 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_in_re : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.RegLan x2) => (SmtValue.Boolean (native_str_in_re (native_unpack_seq x1) x2))
+  | (SmtValue.Seq s), (SmtValue.RegLan r) => (SmtValue.Boolean (native_str_in_re (native_unpack_seq s) r))
   | t1, t2 => SmtValue.NotValue
 
 
@@ -1278,27 +1278,27 @@ def __smtx_seq_nth (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_str_indexof_re_split : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.RegLan x2), (SmtValue.RegLan x3) => (SmtValue.Numeral (native_str_indexof_re_split (native_unpack_seq x1) x2 x3))
+  | (SmtValue.Seq s), (SmtValue.RegLan r), (SmtValue.RegLan q) => (SmtValue.Numeral (native_str_indexof_re_split (native_unpack_seq s) r q))
   | t1, t2, t3 => SmtValue.NotValue
 
 
 def __smtx_model_eval_seq_diff : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq s1), (SmtValue.Seq s2) => (native_eval_seq_diff_ssm s1 s2)
-  | v1, v2 => SmtValue.NotValue
+  | (SmtValue.Seq s), (SmtValue.Seq t) => (native_eval_seq_diff_ssm s t)
+  | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval__at_strings_occur_index : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2), (SmtValue.Numeral x3) => (SmtValue.Numeral (native_seq_occur_index (native_unpack_seq x1) (native_unpack_seq x2) x3))
+  | (SmtValue.Seq s), (SmtValue.Seq t), (SmtValue.Numeral i) => (SmtValue.Numeral (native_seq_occur_index (native_unpack_seq s) (native_unpack_seq t) i))
   | t1, t2, t3 => SmtValue.NotValue
 
 
 def __smtx_model_eval__at_strings_occur_index_re : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.RegLan x2), (SmtValue.Numeral x3) => (SmtValue.Numeral (native_str_occur_index_re (native_unpack_seq x1) x2 x3))
+  | (SmtValue.Seq s), (SmtValue.RegLan r), (SmtValue.Numeral i) => (SmtValue.Numeral (native_str_occur_index_re (native_unpack_seq s) r i))
   | t1, t2, t3 => SmtValue.NotValue
 
 
-def __smtx_model_eval_set_singleton (x1 : SmtValue) : SmtValue :=
-  (SmtValue.Set (SmtMap.cons x1 (SmtValue.Boolean true) (SmtMap.default (__smtx_typeof_value x1) (SmtValue.Boolean false))))
+def __smtx_model_eval_set_singleton (x : SmtValue) : SmtValue :=
+  (SmtValue.Set (SmtMap.cons x (SmtValue.Boolean true) (SmtMap.default (__smtx_typeof_value x) (SmtValue.Boolean false))))
 
 def __smtx_index_typeof_map : SmtType -> SmtType
   | (SmtType.Map T U) => T
@@ -1317,30 +1317,30 @@ def __smtx_set_union : SmtValue -> SmtValue -> SmtValue
   | v1, v2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_set_union (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_set_union x1 x2)
+def __smtx_model_eval_set_union (a : SmtValue) (b : SmtValue) : SmtValue :=
+  (__smtx_set_union a b)
 
 def __smtx_set_inter : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_mss_op_internal true m1 m2 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false))))
   | v1, v2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_set_inter (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_set_inter x1 x2)
+def __smtx_model_eval_set_inter (a : SmtValue) (b : SmtValue) : SmtValue :=
+  (__smtx_set_inter a b)
 
 def __smtx_set_minus : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_mss_op_internal false m1 m2 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false))))
   | v1, v2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_set_minus (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_set_minus x1 x2)
+def __smtx_model_eval_set_minus (a : SmtValue) (b : SmtValue) : SmtValue :=
+  (__smtx_set_minus a b)
 
-def __smtx_model_eval_set_member (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_map_select x2 x1)
+def __smtx_model_eval_set_member (x : SmtValue) (a : SmtValue) : SmtValue :=
+  (__smtx_map_select a x)
 
-def __smtx_model_eval_set_subset (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_eq (__smtx_model_eval_set_inter x1 x2) x1)
+def __smtx_model_eval_set_subset (a : SmtValue) (b : SmtValue) : SmtValue :=
+  (__smtx_model_eval_eq (__smtx_model_eval_set_inter a b) a)
 
 def __smtx_model_eval_to_real_coerce : SmtValue -> SmtValue
   | (SmtValue.Numeral x1) => (SmtValue.Rational (native_to_real x1))
@@ -1349,23 +1349,23 @@ def __smtx_model_eval_to_real_coerce : SmtValue -> SmtValue
 
 
 def __smtx_model_eval_qdiv_total : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Rational (native_mk_rational x1 x2))
-  | (SmtValue.Rational x3), (SmtValue.Rational x4) => (SmtValue.Rational (native_qdiv_total x3 x4))
+  | (SmtValue.Numeral x), (SmtValue.Numeral y) => (SmtValue.Rational (native_mk_rational x y))
+  | (SmtValue.Rational qx), (SmtValue.Rational qy) => (SmtValue.Rational (native_qdiv_total qx qy))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_int_to_bv : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Binary x1 (native_mod_total x2 (native_int_pow2 x1)))
+  | (SmtValue.Numeral k), (SmtValue.Numeral i) => (SmtValue.Binary k (native_mod_total i (native_int_pow2 k)))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_ubv_to_int : SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2) => (SmtValue.Numeral x2)
+  | (SmtValue.Binary n x) => (SmtValue.Numeral x)
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_sbv_to_int : SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2) => (SmtValue.Numeral (native_binary_uts x1 x2))
+  | (SmtValue.Binary n x) => (SmtValue.Numeral (native_binary_uts n x))
   | t1 => SmtValue.NotValue
 
 

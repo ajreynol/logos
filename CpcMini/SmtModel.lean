@@ -672,22 +672,22 @@ def __smtx_model_eval_dt_tester (s : native_String) (dd : SmtDatatypeDecl) (n : 
   (SmtValue.Boolean (native_veq (__vsm_apply_head v1) (SmtValue.DtCons s dd n)))
 
 def __smtx_model_eval_not : SmtValue -> SmtValue
-  | (SmtValue.Boolean x1) => (SmtValue.Boolean (native_not x1))
+  | (SmtValue.Boolean x) => (SmtValue.Boolean (native_not x))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_and : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Boolean x1), (SmtValue.Boolean x2) => (SmtValue.Boolean (native_and x1 x2))
+  | (SmtValue.Boolean x), (SmtValue.Boolean y) => (SmtValue.Boolean (native_and x y))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_or : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Boolean x1), (SmtValue.Boolean x2) => (SmtValue.Boolean (native_or x1 x2))
+  | (SmtValue.Boolean x), (SmtValue.Boolean y) => (SmtValue.Boolean (native_or x y))
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_imp (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_or (__smtx_model_eval_not x1) x2)
+def __smtx_model_eval_imp (x : SmtValue) (y : SmtValue) : SmtValue :=
+  (__smtx_model_eval_or (__smtx_model_eval_not x) y)
 
 def __smtx_typeof_ite : SmtType -> SmtType -> SmtType -> SmtType
   | SmtType.Bool, U, V => (native_ite (native_Teq U V) U SmtType.None)
