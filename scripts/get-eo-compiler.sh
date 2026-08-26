@@ -10,8 +10,9 @@ Download and build everything scripts/install-cpc.sh needs in order to
 regenerate the Lean sources of this repository from the Eunoia definition of a
 calculus:
 
-  * the ethos source tree, and ethos-eoc built from the standalone project in
-    its plugins/ directory
+  * the ethos source tree, pinned to the commit recorded in ETHOS_VERSION
+    below, and ethos-eoc built from the standalone project in its plugins/
+    directory
   * the Eunoia signature of CPC, taken from the cvc5 source tree
 
 Both are placed under deps/ (see --deps-dir) and the resulting paths and
@@ -25,8 +26,11 @@ it was built from, so that tree has to be fetched either way.
 Only the proofs/eo part of cvc5 is extracted: what the compiler consumes is the
 signature, which is Eunoia source, not a cvc5 binary.
 
+The ethos commit is not an option. It is pinned in this script, so that what
+the compiler emits changes only when someone moves the pin deliberately. Move
+it by editing ETHOS_VERSION and re-running the two scripts.
+
 Options:
-  --ethos-version REF  git ref of cvc5/ethos to build (default: main)
   --cvc5-version REF   git ref of cvc5/cvc5 to take the CPC signature from
                        (default: main)
   --deps-dir DIR       where to put everything (default: <repo>/deps)
@@ -40,11 +44,16 @@ macOS with Homebrew they are gmp.
 
 Examples:
   scripts/get-eo-compiler.sh
-  scripts/get-eo-compiler.sh --ethos-version b9fc583f --cvc5-version cvc5-1.2.0
+  scripts/get-eo-compiler.sh --cvc5-version cvc5-1.2.0
 USAGE
 }
 
-ETHOS_VERSION="main"
+# The pinned commit of cvc5/ethos this repository is regenerated against.
+# b9fc583f is "Add core Eunoia compiler infrastructure (#229)", the commit that
+# put tools/eoc/driver.py and the lean_meta templates on ethos main. Moving the
+# pin changes what the compiler emits, so move it on purpose and rebuild both
+# packages afterwards.
+ETHOS_VERSION="b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6"
 CVC5_VERSION="main"
 DEPS_DIR=""
 JOBS=""
@@ -52,8 +61,6 @@ KEEP_TMP=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --ethos-version) ETHOS_VERSION="${2:?--ethos-version requires a value}"; shift 2 ;;
-    --ethos-version=*) ETHOS_VERSION="${1#*=}"; shift ;;
     --cvc5-version) CVC5_VERSION="${2:?--cvc5-version requires a value}"; shift 2 ;;
     --cvc5-version=*) CVC5_VERSION="${1#*=}"; shift ;;
     --deps-dir) DEPS_DIR="${2:?--deps-dir requires a value}"; shift 2 ;;
@@ -129,8 +136,9 @@ extract "${TMP_DIR}/ethos.tgz" "${ETHOS_DIR}"
 DRIVER="${ETHOS_DIR}/tools/eoc/driver.py"
 if [ ! -f "${DRIVER}" ]; then
   echo "error: ${DRIVER} is missing from the ethos tree." >&2
-  echo "The Eunoia compiler driver was added to ethos in #229; a ref older" >&2
-  echo "than that cannot be used here. Pass a newer --ethos-version." >&2
+  echo "The Eunoia compiler driver was added to ethos in #229. ETHOS_VERSION" >&2
+  echo "in this script is pinned to ${ETHOS_VERSION}," >&2
+  echo "which should contain it; a pin moved to an older commit will not." >&2
   exit 1
 fi
 

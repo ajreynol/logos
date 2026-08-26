@@ -32,7 +32,9 @@ Options:
   --signature PATH     the Eunoia signature to compile
                        (default: the CPC signature recorded in deps/eoc-env.sh)
   --ethos PATH         an ethos source tree containing tools/eoc/driver.py
-                       (default: the one recorded in deps/eoc-env.sh)
+                       (default: the one recorded in deps/eoc-env.sh). Also
+                       redirects --build-dir, --defs and --lean-config to that
+                       tree, so a local checkout is never mixed with deps/
   --package NAME       the package under this repository to install into
                        (default: Cpc)
   --mini               shorthand for the reduced package: --package CpcMini
@@ -67,6 +69,7 @@ USAGE
 
 SIGNATURE=""
 ETHOS_DIR=""
+ETHOS_GIVEN=0
 PACKAGE=""
 MINI=0
 declare -a RULES=()
@@ -85,8 +88,8 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --signature) SIGNATURE="${2:?--signature requires a value}"; shift 2 ;;
     --signature=*) SIGNATURE="${1#*=}"; shift ;;
-    --ethos) ETHOS_DIR="${2:?--ethos requires a value}"; shift 2 ;;
-    --ethos=*) ETHOS_DIR="${1#*=}"; shift ;;
+    --ethos) ETHOS_DIR="${2:?--ethos requires a value}"; ETHOS_GIVEN=1; shift 2 ;;
+    --ethos=*) ETHOS_DIR="${1#*=}"; ETHOS_GIVEN=1; shift ;;
     --package) PACKAGE="${2:?--package requires a value}"; shift 2 ;;
     --package=*) PACKAGE="${1#*=}"; shift ;;
     --mini) MINI=1; shift ;;
@@ -128,6 +131,19 @@ ENV_FILE="${DEPS_DIR}/eoc-env.sh"
 if [ -f "${ENV_FILE}" ]; then
   # shellcheck source=/dev/null
   source "${ENV_FILE}"
+fi
+
+# --ethos names a tree that is not the one deps/eoc-env.sh describes, so the
+# recorded build directory, defs and lean config belong to a different ethos
+# and must not be used as defaults for it. Deriving them from the named tree
+# instead is what keeps a local-checkout run from silently mixing the two:
+# the binary under the recorded build dir resolves its templates against the
+# tree it was configured from, so a mixed run compiles with the wrong
+# templates and still exits 0.
+if [ "${ETHOS_GIVEN}" = "1" ]; then
+  EOC_BUILD_DIR=""
+  EOC_DEFS=""
+  EOC_LEAN_CONFIG=""
 fi
 
 ETHOS_DIR="${ETHOS_DIR:-${EOC_ETHOS_DIR:-}}"

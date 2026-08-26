@@ -13,9 +13,10 @@ Instead,
 the proof rules currently used by Logos are automatically generated from the current definition of the Cooperating Proof Calculus (CPC)
 (https://github.com/cvc5/cvc5/blob/main/proofs/eo/cpc/Cpc.eo).
 This compilation depends on plugins of the proof checker Ethos (https://github.com/cvc5/ethos),
-available on a development branch.
+which have been on Ethos `main` since [#229](https://github.com/cvc5/ethos/pull/229).
 The definition of Logos is intended to evolve and remain in sync with the definition of Cpc
 as further reasoning capabilities are added to cvc5.
+See [Regenerating the calculus](#regenerating-the-calculus) for how to rerun that compilation.
 
 ## Building the Logos checker
 
@@ -81,6 +82,31 @@ To remove Lake build artifacts, use either of these equivalent commands:
 scripts/clean-build.sh
 lake clean
 ```
+
+## Regenerating the calculus
+
+The `Cpc` and `CpcMini` packages are compiled from the Eunoia definition of CPC
+rather than written by hand. Two scripts do that; see
+[`scripts/README.md`](scripts/README.md) for the full description.
+
+```bash
+scripts/get-eo-compiler.sh          # once: fetch Ethos and the CPC signature, build ethos-eoc
+scripts/install-cpc.sh              # regenerate Cpc
+scripts/install-cpc.sh --mini       # regenerate CpcMini
+scripts/build.sh Cpc CpcMini        # check the result
+```
+
+Everything the first script downloads and builds lands in `deps/`, which is
+ignored by git. The Ethos commit is pinned inside `get-eo-compiler.sh`; the CPC
+signature defaults to cvc5 `main` and is selectable with `--cvc5-version`.
+Neither script needs a cvc5 *binary* — what is consumed is the Eunoia source of
+the signature.
+
+Regeneration rewrites the signature-wide modules of each package but preserves
+the existing per-rule proofs under `Proofs/Rules/`. A rule newly added to CPC
+appears as a `sorry` stub, and a rule whose statement changed keeps its old
+proof and therefore fails to build — both are the intended signal that a proof
+needs attention.
 
 ## Using the Logos checker
 

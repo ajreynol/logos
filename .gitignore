@@ -1,5 +1,9 @@
 /.lake
 
+# Downloaded and built by scripts/get-eo-compiler.sh: the ethos source tree,
+# ethos-eoc, the CPC signature from cvc5, and the compiler's staged output.
+/deps
+
 # LaTeX build artifacts (see docs/Makefile)
 docs/*.aux
 docs/*.log
