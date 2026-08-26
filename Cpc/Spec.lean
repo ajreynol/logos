@@ -91,6 +91,11 @@ def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTe
   | T, n, t, u => SmtTerm.None
 
 
+def __eo_to_smt_tuple_tester : SmtType -> SmtTerm
+  | (SmtType.Datatype s (SmtDatatypeDecl.cons s2 d SmtDatatypeDecl.nil)) => (native_ite (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (SmtTerm.Boolean true) SmtTerm.None)
+  | T => SmtTerm.None
+
+
 def __eo_to_smt_set_empty : SmtType -> SmtTerm
   | (SmtType.Set T) => (SmtTerm.set_empty T)
   | T => SmtTerm.None
@@ -403,6 +408,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.UOp3 UserOp3._at_witness_string_length x1 x2 x3) => 
     let _v0 := (__eo_to_smt_type x1)
     (native_ite (__eo_to_smt_nat_is_valid x2) (native_ite (__eo_to_smt_nat_is_valid x3) (SmtTerm.choice (native_string_lit "@x") _v0 (SmtTerm.eq (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") _v0)) (__eo_to_smt x2))) SmtTerm.None) SmtTerm.None)
+  | (Term.Apply (Term.UOp1 UserOp1.is (Term.UOp UserOp.tuple)) x2) => (__eo_to_smt_tuple_tester (__smtx_typeof (__eo_to_smt x2)))
   | (Term.Apply (Term.UOp1 UserOp1.is x1) x2) => (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp1 UserOp1.update x1) x2) x3) => (__eo_to_smt_updater (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.UOp UserOp.tuple_unit) => (SmtTerm.DtCons (native_string_lit "@Tuple") (SmtDatatypeDecl.cons (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) SmtDatatypeDecl.nil) native_nat_zero)
