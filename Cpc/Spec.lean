@@ -63,9 +63,13 @@ def __eo_to_smt_tester : SmtTerm -> SmtTerm
   | t => SmtTerm.None
 
 
-def __eo_to_smt_tuple_tester : SmtType -> SmtTerm -> SmtTerm
-  | (SmtType.Datatype s (SmtDatatypeDecl.cons s2 d SmtDatatypeDecl.nil)), t => (native_ite (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (SmtTerm.Apply (SmtTerm.DtTester (native_string_lit "@Tuple") (__eo_to_smt_tuple_decl d) native_nat_zero) t) SmtTerm.None)
-  | T, t => SmtTerm.None
+def __eo_to_smt_tuple_cons : SmtType -> SmtTerm
+  | (SmtType.Datatype s (SmtDatatypeDecl.cons s2 d SmtDatatypeDecl.nil)) => (native_ite (native_and (native_streq s (native_string_lit "@Tuple")) (native_streq s2 (native_string_lit "@Tuple"))) (SmtTerm.DtCons (native_string_lit "@Tuple") (__eo_to_smt_tuple_decl d) native_nat_zero) SmtTerm.None)
+  | T => SmtTerm.None
+
+
+def __eo_to_smt_tuple_tester (T : SmtType) (t : SmtTerm) : SmtTerm :=
+  (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt_tuple_cons T)) t)
 
 
 def __eo_to_smt_updater_rec : SmtTerm -> native_Nat -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
