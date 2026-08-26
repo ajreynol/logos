@@ -9499,9 +9499,9 @@ theorem EvaluateProofInternal.native_string_prefix_eq_length_le
           simp [hLe]
 
 theorem EvaluateProofInternal.native_str_indexof_rec_past_end_nonempty
-    (s pat : native_String) (i len fuel : Nat)
+    (s pat : native_String) (i fuel : Nat)
     (hLen : s.length ≤ i) (hPat : pat ≠ []) :
-    native_str_indexof_rec s pat i len fuel = -1 := by
+    native_str_indexof_rec s pat i fuel = -1 := by
   induction fuel generalizing i with
   | zero =>
       simp [native_str_indexof_rec]
@@ -9520,8 +9520,7 @@ theorem EvaluateProofInternal.native_seq_indexof_rec_map_char_prefix
     (pre cur pat : native_String) (fuel : Nat) :
     native_seq_indexof_rec (cur.map SmtValue.Char)
         (pat.map SmtValue.Char) pre.length fuel =
-      native_str_indexof_rec (pre ++ cur) pat pre.length pat.length
-        fuel := by
+      native_str_indexof_rec (pre ++ cur) pat pre.length fuel := by
   induction fuel generalizing pre cur with
   | zero =>
       simp [native_seq_indexof_rec, native_str_indexof_rec]
@@ -9539,7 +9538,7 @@ theorem EvaluateProofInternal.native_seq_indexof_rec_map_char_prefix
                 simp [native_string_prefix_eq] at hPrefix
             | cons p ps =>
                 simpa using (EvaluateProofInternal.native_str_indexof_rec_past_end_nonempty pre
-                  (p :: ps) (pre.length + 1) (p :: ps).length fuel
+                  (p :: ps) (pre.length + 1) fuel
                   (by simp) (by simp)).symm
         | cons c cs =>
             have hAppend : pre ++ c :: cs = (pre ++ [c]) ++ cs := by
@@ -9583,8 +9582,8 @@ theorem EvaluateProofInternal.native_seq_indexof_rec_offset_local
 
 theorem EvaluateProofInternal.native_str_indexof_rec_cons_offset
     (c : native_Char) (cs pat : native_String) (fuel : Nat) :
-    native_str_indexof_rec (c :: cs) pat 1 pat.length fuel =
-      (let r := native_str_indexof_rec cs pat 0 pat.length fuel
+    native_str_indexof_rec (c :: cs) pat 1 fuel =
+      (let r := native_str_indexof_rec cs pat 0 fuel
        if r = (-1 : native_Int) then (-1 : native_Int) else r + 1) := by
   have hHead :=
     EvaluateProofInternal.native_seq_indexof_rec_map_char_prefix ([c] : native_String) cs pat
@@ -9598,10 +9597,8 @@ theorem EvaluateProofInternal.native_str_indexof_rec_cons_offset
   rw [show ([c] : native_String).length = 1 by rfl] at hHead
   rw [show ([] : native_String).length = 0 by rfl] at hTail
   change
-    native_str_indexof_rec (([c] : native_String) ++ cs) pat 1 pat.length
-        fuel =
-      (let r := native_str_indexof_rec (([] : native_String) ++ cs) pat 0
-          pat.length fuel
+    native_str_indexof_rec (([c] : native_String) ++ cs) pat 1 fuel =
+      (let r := native_str_indexof_rec (([] : native_String) ++ cs) pat 0 fuel
        if r = (-1 : native_Int) then (-1 : native_Int) else r + 1)
   rw [← hHead, hOffset, hTail]
   simp
@@ -10031,7 +10028,7 @@ theorem EvaluateProofInternal.native_str_indexof_suffix_offset
     have hTail' :
         native_seq_indexof_rec ((s.drop start).map SmtValue.Char)
             (t.map SmtValue.Char) 0 fuel =
-          native_str_indexof_rec (s.drop start) t 0 t.length fuel := by
+          native_str_indexof_rec (s.drop start) t 0 fuel := by
       simpa using hTail
     have hOffset :=
       EvaluateProofInternal.native_seq_indexof_rec_offset_local
