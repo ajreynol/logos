@@ -13,8 +13,8 @@ The parser is split into two parts.
 `Logos/Parser.lean` is signature-independent: it reads the command and term grammar and
 resolves premise references, but knows nothing about any particular operator or proof rule.
 Everything signature-specific is a `Logos.Parser.Config`, and that is auto-generated from
-the calculus alongside `Cpc/Logos.lean` — `Cpc/Parser.lean` lists the 196 operator
-declarations and 591 proof rules of CPC.
+the calculus alongside `Cpc/Logos.lean` — `Cpc/Parser.lean` lists the operator
+declarations and proof rules of CPC.
 
 Because the configuration is generated, an operator's surface syntax comes from its Eunoia
 declaration metadata.  The generic `.argList` arity implements Eunoia's `:arg-list` attribute:

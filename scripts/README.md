@@ -8,9 +8,7 @@ scripts/get-eo-compiler.sh   fetch and build the compiler
 scripts/install-cpc.sh       compile a signature and install the Lean it emits
 ```
 
-They drive Ethos through its public interface, `tools/eoc/driver.py`, and
-replace the older `tools/eoc/cpc/install_logos` and `install_logos_mini`
-scripts that lived in the Ethos tree and reached back into this repository.
+They drive Ethos through its public interface, `tools/eoc/driver.py`.
 Nothing they use depends on an unreleased Ethos branch: `driver.py` and the
 `lean_meta` templates have been on Ethos `main` since
 [#229](https://github.com/cvc5/ethos/pull/229).
@@ -189,16 +187,6 @@ What the compiler consumes is Eunoia *source text*, not a solver: no cvc5
 binary and no cvc5 build is involved. Note that `Cpc.eo` includes the rest of
 `proofs/eo` by relative path, so `--signature` needs to name a file sitting in
 a complete copy of that subtree.
-
-On Ethos `main`, `tools/eoc/driver.py` does not mention cvc5 at all. The
-`--cvc5`/`--skip-cvc5` options that exist on Ethos development branches belong
-to the `vc`/`batch` subcommands, which generate SMT-LIB or SyGuS verification
-conditions and optionally solve them; the `lean` pipeline these scripts use
-never touches them.
-
-A cvc5 binary is needed only to regenerate `examples/`, which these scripts
-deliberately leave alone — that is the `cpc_gen_logos.sh` path and it is a
-separate concern.
 
 ## Pinning
 
