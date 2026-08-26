@@ -71,7 +71,6 @@ def __eo_to_smt_tuple_cons : SmtType -> SmtTerm
 def __eo_to_smt_tuple_tester (T : SmtType) (t : SmtTerm) : SmtTerm :=
   (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt_tuple_cons T)) t)
 
-
 def __eo_to_smt_updater_rec : SmtTerm -> native_Nat -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | (SmtTerm.DtSel s dd n m), native_nat_zero, t, u, acc => acc
   | (SmtTerm.DtSel s dd n m), (native_nat_succ k), t, u, acc => (SmtTerm.Apply (__eo_to_smt_updater_rec (SmtTerm.DtSel s dd n m) k t u acc) (native_ite (native_nateq m k) u (SmtTerm.Apply (SmtTerm.DtSel s dd n k) t)))
