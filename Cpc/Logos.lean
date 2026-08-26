@@ -48,10 +48,6 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
     else
       -1
 
-/- Term equality -/
-def native_teq : Term -> Term -> native_Bool
-  | x, y => decide (x = y)
-
 /- Term ITE -/
 abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
   (native_ite (native_teq x1 (Term.Boolean true))
@@ -9123,7 +9119,7 @@ def __eo_is_list_nil_bvmul : Term -> Term
 def __eo_is_list_nil_str_concat : Term -> Term
   | Term.Stuck  => Term.Stuck
   | (Term.UOp1 UserOp1.seq_empty T) => (Term.Boolean true)
-  | x1 => (__eo_eq x1 (Term.String []))
+  | t => (__eo_eq t (Term.String []))
 
 
 def __eo_prog_re_all_elim : Term := (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.UOp UserOp.re_all)) (Term.Apply (Term.UOp UserOp.re_mult) (Term.UOp UserOp.re_allchar)))
