@@ -10,14 +10,20 @@ a standalone Lean formalization of the meaning of SMT-LIB terms that does not de
 on the checker and can be used on its own.
 See [Correctness](#correctness) below for what that proof establishes and what it still assumes.
 
+The calculus Logos checks is compiled from a definition written in *Eunoia*,
+the logical framework of the proof checker Ethos
+(https://github.com/cvc5/ethos), in which proof calculi are defined as
+*signatures*. The Cooperating Proof Calculus (CPC) is one such signature — the
+calculus in which cvc5 emits proofs, maintained at
+https://github.com/cvc5/cvc5/blob/main/proofs/eo/cpc/Cpc.eo.
+
 Logos has a fully functional CPC parser, meaning that it accepts the same syntax for proofs as Ethos
 (see [docs/parser.md](docs/parser.md)).
 However, Logos does not support arbitrary Eunoia signatures.
 Instead,
-the proof rules currently used by Logos are automatically generated from the current definition of the Cooperating Proof Calculus (CPC)
-(https://github.com/cvc5/cvc5/blob/main/proofs/eo/cpc/Cpc.eo).
-This compilation depends on plugins of the proof checker Ethos (https://github.com/cvc5/ethos).
-The definition of Logos is intended to evolve and remain in sync with the definition of Cpc
+the proof rules currently used by Logos are automatically generated from the current definition of CPC.
+This compilation depends on plugins of Ethos.
+The definition of Logos is intended to evolve and remain in sync with the definition of CPC
 as further reasoning capabilities are added to cvc5.
 See [Regenerating the calculus](#regenerating-the-calculus) for how to rerun that compilation.
 
