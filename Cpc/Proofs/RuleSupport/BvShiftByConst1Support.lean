@@ -1974,13 +1974,13 @@ private theorem native_pow2_minus_one_mod_self_local1
 
 private theorem eval_repeat_rec_zero_bit_local1 :
     ∀ n : native_Nat,
-      __smtx_model_eval_repeat_rec n (SmtValue.Binary 1 0) =
+      __smtx_repeat_rec n (SmtValue.Binary 1 0) =
         SmtValue.Binary (native_nat_to_int n) 0
   | Nat.zero => by
-      simp [__smtx_model_eval_repeat_rec, native_nat_to_int,
+      simp [__smtx_repeat_rec, native_nat_to_int,
         SmtEval.native_nat_to_int]
   | Nat.succ n => by
-      rw [__smtx_model_eval_repeat_rec, eval_repeat_rec_zero_bit_local1 n]
+      rw [__smtx_repeat_rec, eval_repeat_rec_zero_bit_local1 n]
       have hWidth :
           native_zplus (1 : native_Int) (native_nat_to_int n) =
             native_nat_to_int (Nat.succ n) := by
@@ -1996,14 +1996,14 @@ private theorem eval_repeat_rec_zero_bit_local1 :
 
 private theorem eval_repeat_rec_one_bit_local1 :
     ∀ n : native_Nat,
-      __smtx_model_eval_repeat_rec n (SmtValue.Binary 1 1) =
+      __smtx_repeat_rec n (SmtValue.Binary 1 1) =
         SmtValue.Binary (native_nat_to_int n)
           (native_int_pow2 (native_nat_to_int n) - 1)
   | Nat.zero => by
-      simp [__smtx_model_eval_repeat_rec, native_nat_to_int,
+      simp [__smtx_repeat_rec, native_nat_to_int,
         SmtEval.native_nat_to_int, native_int_pow2, native_zexp_total]
   | Nat.succ n => by
-      rw [__smtx_model_eval_repeat_rec, eval_repeat_rec_one_bit_local1 n]
+      rw [__smtx_repeat_rec, eval_repeat_rec_one_bit_local1 n]
       have hPowSucc :
           native_int_pow2 (native_nat_to_int (Nat.succ n)) =
             2 * native_int_pow2 (native_nat_to_int n) := by

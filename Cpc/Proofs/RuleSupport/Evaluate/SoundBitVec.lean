@@ -2780,7 +2780,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_repeat_core
     cases hRunRepeatTerm
     rfl
   have hRepeatEvalRec' :
-      __smtx_model_eval_repeat_rec (native_int_to_nat i)
+      __smtx_repeat_rec (native_int_to_nat i)
           (SmtValue.Binary (native_nat_to_int w) runN) =
         SmtValue.Binary (native_zmult i (native_nat_to_int w)) repM := by
     rw [hRepeatEvalRec, hRepMEq]
@@ -2820,7 +2820,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_repeat_core
     rw [hXEval]
     change
       RuleProofs.smt_value_rel
-        (__smtx_model_eval_repeat_rec (native_int_to_nat i)
+        (__smtx_repeat_rec (native_int_to_nat i)
           (SmtValue.Binary (native_nat_to_int w) runN))
         (__smtx_model_eval M
           (SmtTerm.Binary (native_zmult i (native_nat_to_int w)) repM))

@@ -2681,7 +2681,7 @@ private def nativeReExpRec : native_Nat -> SmtRegLan -> SmtRegLan
 
 private theorem model_eval_re_exp_rec_reglan_eq :
     ∀ n r,
-      __smtx_model_eval_re_exp_rec n (SmtValue.RegLan r) =
+      __smtx_re_exp_rec n (SmtValue.RegLan r) =
         SmtValue.RegLan (nativeReExpRec n r) := by
   intro n
   induction n with
@@ -2690,7 +2690,7 @@ private theorem model_eval_re_exp_rec_reglan_eq :
       rfl
   | succ n ih =>
       intro r
-      simp [__smtx_model_eval_re_exp_rec, nativeReExpRec, ih,
+      simp [__smtx_re_exp_rec, nativeReExpRec, ih,
         __smtx_model_eval_re_concat]
 
 private theorem native_str_in_re_re_exp_rec_congr :
@@ -2755,18 +2755,18 @@ private def nativeReLoopRec :
 
 private theorem model_eval_re_loop_rec_reglan_eq :
     ∀ n lo hi r,
-      __smtx_model_eval_re_loop_rec n (SmtValue.Numeral lo)
+      __smtx_re_loop_rec n (SmtValue.Numeral lo)
           (SmtValue.Numeral hi) (SmtValue.RegLan r) =
         SmtValue.RegLan (nativeReLoopRec n lo hi r) := by
   intro n
   induction n with
   | zero =>
       intro lo hi r
-      simp [__smtx_model_eval_re_loop_rec, nativeReLoopRec,
+      simp [__smtx_re_loop_rec, nativeReLoopRec,
         model_eval_re_exp_rec_reglan_eq, __smtx_model_eval_re_exp]
   | succ n ih =>
       intro lo hi r
-      simp [__smtx_model_eval_re_loop_rec, nativeReLoopRec, ih,
+      simp [__smtx_re_loop_rec, nativeReLoopRec, ih,
         model_eval_re_exp_rec_reglan_eq, __smtx_model_eval_re_exp,
         __smtx_model_eval_re_union]
 

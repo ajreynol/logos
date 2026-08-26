@@ -1061,7 +1061,7 @@ private theorem eval_bv_rotate_decomp
             (SmtTerm.rotate_left (SmtTerm.Numeral i) (__eo_to_smt x)) = _
         rw [__smtx_model_eval.eq_def] <;> simp only
         rw [__smtx_model_eval.eq_2, hXEval']
-        change __smtx_model_eval_rotate_left_rec A
+        change __smtx_rotate_left_rec A
             (SmtValue.Binary (↑W : Int) p) = _
         rw [bv_rotate_left_rec_eval A W p hp0 hp1]
         congr 2
@@ -1202,7 +1202,7 @@ private theorem eval_bv_rotate_decomp
             (SmtTerm.rotate_right (SmtTerm.Numeral i) (__eo_to_smt x)) = _
         rw [__smtx_model_eval.eq_def] <;> simp only
         rw [__smtx_model_eval.eq_2, hXEval']
-        change __smtx_model_eval_rotate_right_rec A
+        change __smtx_rotate_right_rec A
             (SmtValue.Binary (↑W : Int) p) = _
         rw [bv_rotate_right_rec_eval A W p hp0 hp1]
         congr 2

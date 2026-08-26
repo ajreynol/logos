@@ -526,8 +526,8 @@ noncomputable abbrev smtEvalQdiv
     (M : SmtModel) (x₁ x₂ : SmtValue) : SmtValue :=
   let _v0 := x₂
   let _v1 := x₁
-  let _v0r := __smtx_model_eval_to_real_coerce _v0
-  let _v1r := __smtx_model_eval_to_real_coerce _v1
+  let _v0r := __smtx_to_real_coerce _v0
+  let _v1r := __smtx_to_real_coerce _v1
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0r
       (SmtValue.Rational (native_mk_rational 0 1)))
