@@ -21,16 +21,17 @@ with `sorry` for a body. A rule that has no file yet gets that stub, which is
 what makes a newly added rule of the calculus visible here as an obligation.
 Pass --overwrite-rules to replace them instead, which discards proofs.
 
-Where the compiler and the signature come from:
+The signature to compile is always named with --signature. It is not
+something scripts/get-eo-compiler.sh fetches, so any signature reachable on
+this machine -- a cvc5 checkout, or one being worked on locally -- can be
+compiled without downloading anything.
 
-  * with no --ethos or --signature, from deps/eoc-env.sh, written by
-    scripts/get-eo-compiler.sh -- run that first and this needs no arguments
-  * otherwise from whatever those options name, so that a signature being
-    worked on locally can be compiled without downloading anything
+The compiler comes from deps/eoc-env.sh, written by scripts/get-eo-compiler.sh,
+unless --ethos names another ethos tree.
 
 Options:
-  --signature PATH     the Eunoia signature to compile
-                       (default: the CPC signature recorded in deps/eoc-env.sh)
+  --signature PATH     the Eunoia signature to compile (required), e.g.
+                       <cvc5>/proofs/eo/cpc/Cpc.eo
   --ethos PATH         an ethos source tree containing tools/eoc/driver.py
                        (default: the one recorded in deps/eoc-env.sh). Also
                        redirects --build-dir, --defs and --lean-config to that
@@ -60,10 +61,10 @@ Options:
   -h, --help           show this message
 
 Examples:
-  scripts/install-cpc.sh
-  scripts/install-cpc.sh --mini
   scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
-  scripts/install-cpc.sh --package CpcMini --no-parser --rules symm refl trans
+  scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
+  scripts/install-cpc.sh --signature ~/sig.eo --package Mine --no-parser \
+    --rules symm refl trans
 USAGE
 }
 
@@ -147,12 +148,16 @@ if [ "${ETHOS_GIVEN}" = "1" ]; then
 fi
 
 ETHOS_DIR="${ETHOS_DIR:-${EOC_ETHOS_DIR:-}}"
-SIGNATURE="${SIGNATURE:-${EOC_SIGNATURE:-}}"
 
-if [ -z "${ETHOS_DIR}" ] || [ -z "${SIGNATURE}" ]; then
-  echo "error: no ethos tree or signature to work from." >&2
-  echo "Run scripts/get-eo-compiler.sh first, or name them with --ethos and" >&2
-  echo "--signature. See --help." >&2
+if [ -z "${SIGNATURE}" ]; then
+  echo "error: no signature to compile. Name one with --signature, e.g." >&2
+  echo "  scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo" >&2
+  exit 2
+fi
+
+if [ -z "${ETHOS_DIR}" ]; then
+  echo "error: no ethos tree to work from. Run scripts/get-eo-compiler.sh" >&2
+  echo "first, or name one with --ethos. See --help." >&2
   exit 1
 fi
 

@@ -4,7 +4,7 @@ The `Cpc` and `CpcMini` packages are compiled from the Eunoia definition of CPC,
 not written by hand. Two scripts do that compilation and install the result:
 
 ```text
-scripts/get-eo-compiler.sh   fetch and build the compiler and the signature
+scripts/get-eo-compiler.sh   fetch and build the compiler
 scripts/install-cpc.sh       compile a signature and install the Lean it emits
 ```
 
@@ -15,24 +15,30 @@ Nothing they use depends on an unreleased Ethos branch: `driver.py` and the
 `lean_meta` templates have been on Ethos `main` since
 [#229](https://github.com/cvc5/ethos/pull/229).
 
-The two are layered. `get-eo-compiler.sh` puts an Ethos tree, an `ethos-eoc`
-built from it, and the CPC signature under `deps/`, and records where each
-landed in `deps/eoc-env.sh`. `install-cpc.sh` reads that file, so once the first
-has run the second needs no arguments. The second is also usable on its own,
-against a signature and an Ethos checkout you already have.
+The two are layered, and split along one line: `get-eo-compiler.sh` sets up the
+*compiler*, `install-cpc.sh` compiles a *signature*.
+
+`get-eo-compiler.sh` puts an Ethos tree and an `ethos-eoc` built from it under
+`deps/`, and records where each landed in `deps/eoc-env.sh`. It fetches nothing
+else — in particular no signature, and nothing from cvc5. `install-cpc.sh`
+reads that file, so the signature is the only thing it has to be told. It is
+also usable against an Ethos checkout you already have, via `--ethos`.
 
 `deps/` is ignored by git.
 
 ## Usage
 
 ```bash
-scripts/get-eo-compiler.sh          # once, and again to pick up a new signature
-scripts/install-cpc.sh              # regenerate the Cpc package
-scripts/install-cpc.sh --mini       # regenerate the CpcMini package
-scripts/build.sh Cpc CpcMini        # check the result
+scripts/get-eo-compiler.sh                                  # once
+scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
+scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
+scripts/build.sh Cpc CpcMini                                # check the result
 ```
 
-Working against a signature you are editing, with no download:
+`--signature` is required and takes any Eunoia signature reachable on the
+machine, so one being edited is compiled the same way as one from a checkout.
+
+Working against an Ethos checkout you already have, with no download at all:
 
 ```bash
 scripts/install-cpc.sh \
@@ -142,20 +148,23 @@ If a prebuilt binary is ever wanted, the templates can be relocated with
 `ETHOS_PLUGIN_OUTPUT_DIR`; neither is needed for the layout these scripts set
 up.
 
-## What is taken from cvc5, and why no cvc5 binary is needed
+## The relationship to cvc5
 
-Only `proofs/eo` — 51 `.eo` files, about 640K — which is the Eunoia source of
-the calculus. `Cpc.eo` includes the rest of that subtree by relative path, so
-the subtree is extracted and nothing else in the cvc5 archive is.
+Neither script depends on cvc5. Nothing is downloaded from it and nothing is
+run from it.
 
-The compiler consumes that *source text*. It never runs cvc5, and none of these
-scripts needs a cvc5 binary or a cvc5 build. The dependency is on the cvc5
-repository purely because that is where CPC is maintained. On Ethos `main`,
-`tools/eoc/driver.py` does not mention cvc5 at all; the `--cvc5`/`--skip-cvc5`
-options that exist on Ethos development branches belong to the `vc`/`batch`
-subcommands, which generate SMT-LIB or SyGuS verification conditions and
-optionally solve them. The `lean` pipeline these scripts use never touches
-them.
+The CPC signature happens to be maintained in the cvc5 repository, at
+`proofs/eo/cpc/Cpc.eo`, so that is the usual thing to point `--signature` at.
+What the compiler consumes is Eunoia *source text*, not a solver: no cvc5
+binary and no cvc5 build is involved. Note that `Cpc.eo` includes the rest of
+`proofs/eo` by relative path, so `--signature` needs to name a file sitting in
+a complete copy of that subtree.
+
+On Ethos `main`, `tools/eoc/driver.py` does not mention cvc5 at all. The
+`--cvc5`/`--skip-cvc5` options that exist on Ethos development branches belong
+to the `vc`/`batch` subcommands, which generate SMT-LIB or SyGuS verification
+conditions and optionally solve them; the `lean` pipeline these scripts use
+never touches them.
 
 A cvc5 binary is needed only to regenerate `examples/`, which these scripts
 deliberately leave alone — that is the `cpc_gen_logos.sh` path and it is a
@@ -169,46 +178,6 @@ moves the pin deliberately. It is currently
 `b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6` — "Add core Eunoia compiler
 infrastructure (#229)". To move it, edit that line and re-run both scripts.
 
-The signature defaults to cvc5 `main` and is selectable:
-`get-eo-compiler.sh --cvc5-version REF` takes any git ref. Both refs are
-recorded in `deps/eoc-env.sh`.
-
-## Verified
-
-Against the pinned Ethos commit and the CPC signature of cvc5 `main`, on
-2026-08-25:
-
-* `get-eo-compiler.sh` completes from a clean `deps/`: it fetches Ethos,
-  extracts `proofs/eo` from the cvc5 archive, builds `ethos-eoc`, and writes
-  `deps/eoc-env.sh`.
-* `install-cpc.sh` with no arguments compiles the whole signature, installs the
-  nine signature-wide modules, and preserves all 591 existing rule files
-  (`0 written, 591 existing preserved`).
-* `install-cpc.sh --mini` installs `CpcMini`, preserves its 5 rule files, and
-  applies both rewrites.
-* Deleting one rule file and reinstalling restores exactly that file, as a
-  `sorry` stub.
-* Output is byte-identical to a build against the `ethosEoc3` development
-  branch, i.e. the pin loses nothing relative to the branch this repository was
-  last regenerated from.
-* A signature declaring a symbol the `--defs` file gives no model semantics for
-  fails loudly (`no model semantics found for <symbol>`) and installs nothing.
-
-### Current drift from the committed packages
-
-A full reinstall today does not reproduce the committed tree exactly. Four
-files differ, all of them benign — the committed tree predates some template
-changes on Ethos `main`:
-
-```text
-Cpc/Logos.lean             12 lines   native_str_indexof_rec drops an unused
-                                      `len` parameter; one comment expanded
-Cpc/Spec.lean              94 lines   the same 32 definitions, with one mutual
-                                      block emitted in a different position
-Cpc/SmtEval.lean            2 lines   comment added
-Cpc/Proofs/RuleLemmas.lean  2 lines   two comments added
-```
-
-`CpcMini` differs in the corresponding three files. Nothing is added or
-removed from either package; regenerating and committing the result is a
-mechanical update whenever someone wants the two back in step.
+The signature is not pinned here at all, since it is named on each run.
+Whatever version of it you point `--signature` at is what gets compiled;
+pinning it is a matter of which checkout you name.

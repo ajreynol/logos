@@ -6,36 +6,30 @@ usage() {
   cat <<'USAGE'
 Usage: scripts/get-eo-compiler.sh [OPTION]...
 
-Download and build everything scripts/install-cpc.sh needs in order to
-regenerate the Lean sources of this repository from the Eunoia definition of a
-calculus:
-
-  * the ethos source tree, pinned to the commit recorded in ETHOS_VERSION
-    below, and ethos-eoc built from the standalone project in its plugins/
-    directory
-  * the Eunoia signature of CPC, taken from the cvc5 source tree
+Download and build the Eunoia compiler that scripts/install-cpc.sh runs: the
+ethos source tree, pinned to the commit recorded in ETHOS_VERSION below, and
+ethos-eoc built from the standalone project in its plugins/ directory.
 
 Both are placed under deps/ (see --deps-dir) and the resulting paths and
-versions are recorded in deps/eoc-env.sh, which scripts/install-cpc.sh reads so
-that it can then be run with no arguments at all.
+version are recorded in deps/eoc-env.sh, which scripts/install-cpc.sh reads so
+that the signature is the only thing it has to be told.
+
+This sets up the compiler and nothing else. The Eunoia signature to compile is
+not fetched here and is not a concern of this script; name one with --signature
+when running scripts/install-cpc.sh.
 
 ethos-eoc is always compiled here rather than downloaded. No release of ethos
 publishes it, and it reads its Lean and Eunoia templates out of the source tree
 it was built from, so that tree has to be fetched either way.
 
-Only the proofs/eo part of cvc5 is extracted: what the compiler consumes is the
-signature, which is Eunoia source, not a cvc5 binary.
-
 The ethos commit is not an option. It is pinned in this script, so that what
 the compiler emits changes only when someone moves the pin deliberately. Move
-it by editing ETHOS_VERSION and re-running the two scripts.
+it by editing ETHOS_VERSION and re-running both scripts.
 
 Options:
-  --cvc5-version REF   git ref of cvc5/cvc5 to take the CPC signature from
-                       (default: main)
   --deps-dir DIR       where to put everything (default: <repo>/deps)
   --jobs N             parallel compile jobs (default: all processors)
-  --keep-tmp           keep the downloaded archives instead of deleting them
+  --keep-tmp           keep the downloaded archive instead of deleting it
   -h, --help           show this message
 
 Requires cmake >= 3.12, a C++17 compiler, the GMP development headers, tar, and
@@ -44,25 +38,22 @@ macOS with Homebrew they are gmp.
 
 Examples:
   scripts/get-eo-compiler.sh
-  scripts/get-eo-compiler.sh --cvc5-version cvc5-1.2.0
+  scripts/get-eo-compiler.sh --jobs 8
 USAGE
 }
 
 # The pinned commit of cvc5/ethos this repository is regenerated against.
 # b9fc583f is "Add core Eunoia compiler infrastructure (#229)", the commit that
 # put tools/eoc/driver.py and the lean_meta templates on ethos main. Moving the
-# pin changes what the compiler emits, so move it on purpose and rebuild both
-# packages afterwards.
+# pin changes what the compiler emits, so move it on purpose and rebuild the
+# generated packages afterwards.
 ETHOS_VERSION="b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6"
-CVC5_VERSION="main"
 DEPS_DIR=""
 JOBS=""
 KEEP_TMP=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --cvc5-version) CVC5_VERSION="${2:?--cvc5-version requires a value}"; shift 2 ;;
-    --cvc5-version=*) CVC5_VERSION="${1#*=}"; shift ;;
     --deps-dir) DEPS_DIR="${2:?--deps-dir requires a value}"; shift 2 ;;
     --deps-dir=*) DEPS_DIR="${1#*=}"; shift ;;
     --jobs) JOBS="${2:?--jobs requires a value}"; shift 2 ;;
@@ -87,7 +78,7 @@ if [ -z "${JOBS}" ]; then
   fi
 fi
 
-# Download $1 to $2, as contrib/get-ethos-checker does in cvc5.
+# Download $1 to $2.
 download() {
   if command -v wget >/dev/null 2>&1; then
     wget -c -O "$2" "$1"
@@ -96,21 +87,6 @@ download() {
   else
     echo "Neither wget nor curl is installed; cannot download $1." >&2
     exit 1
-  fi
-}
-
-# Extract the members of archive $1 matching pattern $3 into $2, dropping the
-# leading directory that a GitHub archive wraps everything in. BSD tar matches
-# a pattern given as an operand, GNU tar wants --wildcards for the same.
-extract() {
-  local archive="$1" dest="$2" pattern="${3:-}"
-  mkdir -p "${dest}"
-  if [ -z "${pattern}" ]; then
-    tar --strip-components 1 -xzf "${archive}" -C "${dest}"
-  elif tar --version 2>/dev/null | grep -qi 'gnu tar'; then
-    tar --strip-components 1 -xzf "${archive}" -C "${dest}" --wildcards "${pattern}"
-  else
-    tar --strip-components 1 -xzf "${archive}" -C "${dest}" "${pattern}"
   fi
 }
 
@@ -123,7 +99,6 @@ done
 
 TMP_DIR="${DEPS_DIR}/tmp"
 ETHOS_DIR="${DEPS_DIR}/ethos"
-CVC5_DIR="${DEPS_DIR}/cvc5"
 BUILD_DIR="${ETHOS_DIR}/build-eoc"
 mkdir -p "${TMP_DIR}"
 
@@ -131,7 +106,10 @@ echo "==> Downloading ethos ${ETHOS_VERSION}"
 download "https://github.com/cvc5/ethos/archive/${ETHOS_VERSION}.tar.gz" \
   "${TMP_DIR}/ethos.tgz"
 rm -rf "${ETHOS_DIR}"
-extract "${TMP_DIR}/ethos.tgz" "${ETHOS_DIR}"
+mkdir -p "${ETHOS_DIR}"
+# --strip-components drops the leading directory a GitHub archive wraps
+# everything in.
+tar --strip-components 1 -xzf "${TMP_DIR}/ethos.tgz" -C "${ETHOS_DIR}"
 
 DRIVER="${ETHOS_DIR}/tools/eoc/driver.py"
 if [ ! -f "${DRIVER}" ]; then
@@ -139,18 +117,6 @@ if [ ! -f "${DRIVER}" ]; then
   echo "The Eunoia compiler driver was added to ethos in #229. ETHOS_VERSION" >&2
   echo "in this script is pinned to ${ETHOS_VERSION}," >&2
   echo "which should contain it; a pin moved to an older commit will not." >&2
-  exit 1
-fi
-
-echo "==> Downloading the CPC signature from cvc5 ${CVC5_VERSION}"
-download "https://github.com/cvc5/cvc5/archive/${CVC5_VERSION}.tar.gz" \
-  "${TMP_DIR}/cvc5.tgz"
-rm -rf "${CVC5_DIR}"
-extract "${TMP_DIR}/cvc5.tgz" "${CVC5_DIR}" '*/proofs/eo/*'
-
-CPC_SIGNATURE="${CVC5_DIR}/proofs/eo/cpc/Cpc.eo"
-if [ ! -f "${CPC_SIGNATURE}" ]; then
-  echo "error: ${CPC_SIGNATURE} was not found in the cvc5 archive." >&2
   exit 1
 fi
 
@@ -177,18 +143,16 @@ fi
 echo "==> Recording what was installed in ${DEPS_DIR}/eoc-env.sh"
 cat > "${DEPS_DIR}/eoc-env.sh" <<ENV
 # Written by scripts/get-eo-compiler.sh. Read by scripts/install-cpc.sh so that
-# it can be run with no arguments. Edit by re-running get-eo-compiler.sh rather
-# than by hand.
+# it only has to be told which signature to compile. Edit by re-running
+# get-eo-compiler.sh rather than by hand.
 #
-# ethos ${ETHOS_VERSION}, cvc5 ${CVC5_VERSION}
+# ethos ${ETHOS_VERSION}
 EOC_ETHOS_DIR="${ETHOS_DIR}"
 EOC_ETHOS_EOC="${ETHOS_EOC}"
 EOC_BUILD_DIR="${BUILD_DIR}"
-EOC_SIGNATURE="${CPC_SIGNATURE}"
 EOC_DEFS="${ETHOS_DIR}/plugins/model_smt/cpc_defs.eo"
 EOC_LEAN_CONFIG="${ETHOS_DIR}/plugins/lean_meta/cpc_termination.lean"
 EOC_ETHOS_VERSION="${ETHOS_VERSION}"
-EOC_CVC5_VERSION="${CVC5_VERSION}"
 ENV
 
 if [ "${KEEP_TMP}" = "0" ]; then
@@ -201,13 +165,10 @@ cat <<DONE
 
   ethos      ${ETHOS_DIR} (${ETHOS_VERSION})
   ethos-eoc  ${ETHOS_EOC}
-  signature  ${CPC_SIGNATURE} (cvc5 ${CVC5_VERSION})
 
-Regenerate the Lean sources of this repository with:
+Compile a Eunoia signature with it by naming one, e.g.
 
-  scripts/install-cpc.sh              # the Cpc package
-  scripts/install-cpc.sh --mini       # the CpcMini package
+  scripts/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo
 
-Both read ${DEPS_DIR}/eoc-env.sh, so neither needs to be told where any of the
-above is. Add deps/ to .gitignore if it is not there already.
+which reads ${DEPS_DIR}/eoc-env.sh for everything else.
 DONE
