@@ -5,6 +5,9 @@
 Logos is a verified proof checker for SMT written in Lean.
 It is an executable checker whose soundness is proven in Lean against a correctness
 specification, which depends on a complete definition of SMT-LIB semantics in Lean.
+That definition, `Cpc/SmtModel.lean`, is an independent model semantics for SMT-LIB:
+a standalone Lean formalization of the meaning of SMT-LIB terms that does not depend
+on the checker and can be used on its own.
 See [Correctness](#correctness) below for what that proof establishes and what it still assumes.
 
 Logos has a fully functional CPC parser, meaning that it accepts the same syntax for proofs as Ethos
@@ -75,6 +78,25 @@ The script builds one rule target at a time by default to keep peak memory
 bounded. On machines with more RAM, `--batch-size 2` (or a larger value) trades
 memory for speed. `--all-at-once` enables the previous maximum-parallelism mode
 and may exhaust memory.
+
+**Be warned that building the entire proof development takes over two hours**, and
+it is *not* part of CI: CI compiles only a small representative set of proof
+targets (the `cpc-proofs` group of `scripts/run-ci.sh`). The current
+workarounds:
+
+- Build only what you are working on, one rule at a time:
+  `lake build Cpc.Proofs.Rules.<Rule>`.
+- `scripts/build-all-cpc-rules.sh` is resumable — Lake caches completed
+  targets, so an interrupted run picks up where it left off.
+- Run the same representative subset as CI locally with
+  `bash scripts/run-ci.sh cpc-proofs`.
+- `scripts/check-proof-hygiene.sh` (the `proof-hygiene` CI group) rejects
+  `sorry`, `admit` and `axiom` textually without building anything, so an
+  unproven rule cannot land silently even though CI does not build every proof.
+
+A full build is still the only way to catch a rule whose proof broke, e.g.
+because its statement changed after regenerating the calculus, so it should be
+run (for instance overnight) before a release or after a regeneration.
 
 To remove Lake build artifacts, use either of these equivalent commands:
 
@@ -166,8 +188,9 @@ The specification is in two parts. First, the file `./Cpc/SmtModel.lean` formali
 Second, the file `./Cpc/Spec.lean` defines a correspondence between Eunoia terms and SMT-LIB terms
 and a definition of satisfiability for Eunoia terms.
 
-The SMT-LIB formalization `./cpc/SmtModel.lean`
-includes several non-standard extensions of SMT-LIB (e.g. the theory of sets and the theory of sequences).
+The SMT-LIB formalization `./Cpc/SmtModel.lean` is self-contained: it defines the
+model semantics of SMT-LIB without reference to the checker.
+It includes several non-standard extensions of SMT-LIB (e.g. the theory of sets and the theory of sequences).
 It additionally contains operators that are helpful in defining the semantics of existing operators.
 This includes total versions of partial arithmetic operators.
 
