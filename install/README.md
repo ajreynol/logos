@@ -103,6 +103,10 @@ transformation into the deep embedding, and this repository is where it lives.
 `Spec.lean` and the `SmtModel` modules are what it compiles to, so changing
 what CPC means is changing that file and regenerating.
 
+The core SMT-LIB semantics it is written against live with the eoc compiler
+rather than here: `tools/eoc/semantics/smt.eos` in
+[cvc5/ethos](https://github.com/cvc5/ethos).
+
 ## install-sig.sh
 
 `install-cpc.sh` is `install-sig.sh` run twice, once plain and once `--mini`.
