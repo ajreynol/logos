@@ -132,6 +132,9 @@ run_regressions() {
   echo "Building the CPC executables..."
   lake build logos logos-native
 
+  echo "Checking the Lean-native API..."
+  lake env lean test/NativeApi.lean
+
   # Proofs in the Lean term syntax, checked by logos-native.
   run_examples logos-native test/regress '*.cpc.lean' true
   # The same proofs in s-expression syntax, checked by logos (Cpc.Parser).

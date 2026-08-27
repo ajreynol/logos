@@ -58,9 +58,13 @@ per-rule masks the rule proofs assume, with no second copy to keep in sync.
 The definitions here are deliberately *not* in `Cpc/Logos.lean`: that file is
 generated from the calculus, and its `logos_invoke_assume` pushes an input
 assumption without the well-formedness guard that `__eo_invoke_assume_list`
-applies (see `logos_invoke_input_assume` below).  The Lean-native front end
-(`MainNative.lean`, and the `#eval` scripts cvc5 emits for it) still goes
-through the generated API and so is not covered by `correct___logos_check_proof`.
+applies (see `logos_invoke_input_assume` below).
+
+`Cpc/ApiNative.lean` is this same pipeline for the Lean-native front end
+(`MainNative.lean`), whose input is a Lean script rather than a proof file.  It
+runs the three checks below on the assumptions and commands the script names,
+and reuses the definitions here to do it, so the two front ends accept the same
+proofs.
 -/
 
 open SmtEval
