@@ -116,18 +116,20 @@ written by hand. Two scripts do that; see
 [`install/README.md`](install/README.md) for the full description.
 
 ```bash
-install/get-eo-compiler.sh                            # once: build the compiler
-install/install-cpc.sh --signature <cvc5>/.../Cpc.eo  # regenerate Cpc
-scripts/build.sh Cpc                                  # check the result
+install/get-eo-compiler.sh                  # once: build the compiler
+install/install-cpc.sh <cvc5>/.../Cpc.eo    # regenerate Cpc and CpcMini
+scripts/build.sh Cpc CpcMini                # check the result
 ```
 
 The first script sets up the compiler only, under `install/deps/`, which is
-ignored by git. The signature to compile against is named on each run, so any copy of
+ignored by git. The second is `install/install-sig.sh` — which compiles one
+signature into one package, and has the options for saying which — run for
+each of the two packages generated here. The signature to compile against is named on each run, so any copy of
 `Cpc.eo` reachable on the machine can be used, including one being edited. What
 is consumed is the Eunoia source of the signature; no cvc5 *binary* or build is
 involved.
 
-`install/defs/Cpc.eo` is this repository's own copy of the signature the
+`install/defs/Cpc.cached.eo` is this repository's own copy of the signature the
 packages were compiled from, written as a single file with everything `Cpc.eo`
 includes spliced into it and its comments dropped, so that a diff of it is a
 diff of the calculus rather than of its prose. The install above rewrites that
@@ -136,12 +138,11 @@ it in place of naming a signature, so `Cpc` and `CpcMini` can be regenerated —
 and, in CI, checked — without a cvc5 checkout:
 
 ```bash
-install/install-cpc.sh --cached --check         # is Cpc still what it compiles to?
-install/install-cpc.sh --cached --mini --check  # and CpcMini?
+install/install-cpc.sh --cached --check  # are both still what it compiles to?
 ```
 
-That pair is the `regeneration` CI group, which is what makes a generated
-package that has drifted from its signature fail rather than sit there.
+That is the `regeneration` CI group, which is what makes a generated package
+that has drifted from its signature fail rather than sit there.
 
 Regeneration rewrites the signature-wide modules of the package but preserves
 the existing per-rule proofs under `Proofs/Rules/`. A rule newly added to CPC

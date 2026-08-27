@@ -4,9 +4,10 @@ The `Cpc` and `CpcMini` packages are compiled from the Eunoia definition of
 CPC, not written by hand. This directory is everything that compilation takes:
 
 ```text
-install/install-cpc.sh       compile a signature and install the Lean it emits
+install/install-cpc.sh       regenerate Cpc and CpcMini from a signature
+install/install-sig.sh       compile one signature into one package
 install/get-eo-compiler.sh   fetch and build the compiler
-install/defs/Cpc.eo          the signature they compile, kept in git
+install/defs/Cpc.cached.eo          the signature they compile, kept in git
 install/deps/                the Ethos tree and the compiler built from it
 ```
 
@@ -15,13 +16,18 @@ Nothing they use depends on an unreleased Ethos branch: `driver.py` and the
 `lean_meta` templates have been on Ethos `main` since
 [#229](https://github.com/cvc5/ethos/pull/229).
 
-The two are layered, and split along one line: `get-eo-compiler.sh` sets up the
-*compiler*, `install-cpc.sh` compiles a *signature*.
+They are layered, and split along two lines. `get-eo-compiler.sh` sets up the
+*compiler*; `install-sig.sh` compiles a *signature* into *a* package, and takes
+every option there is for saying which signature, which package and which
+rules; `install-cpc.sh` is the one to reach for day to day, and is
+`install-sig.sh` run twice, for the two packages this repository generates.
+Running it rather than the two runs by hand is what keeps `Cpc` and `CpcMini`
+descriptions of the same signature.
 
 `get-eo-compiler.sh` puts an Ethos tree and an `ethos-eoc` built from it under
 `install/deps/`, and records where each landed in `install/deps/eoc-env.sh`. It
 fetches nothing else — in particular no signature, and nothing from cvc5.
-`install-cpc.sh` reads that file, so the signature is the only thing it has to
+`install-sig.sh` reads that file, so the signature is the only thing it has to
 be told. It is also usable against an Ethos checkout you already have, via
 `--ethos`.
 
@@ -31,27 +37,33 @@ signature](#the-cached-signature).
 ## Usage
 
 ```bash
-install/get-eo-compiler.sh                                  # once
-install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
-install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
-install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
-scripts/build.sh Cpc CpcMini                                # check the result
+install/get-eo-compiler.sh                            # once
+install/install-cpc.sh ~/cvc5/proofs/eo/cpc/Cpc.eo    # both packages
+scripts/build.sh Cpc CpcMini                          # check the result
 ```
 
-`--signature` takes any Eunoia signature reachable on the machine, so one being
-edited is compiled the same way as one from a checkout. The alternative to
+The signature is any Eunoia signature reachable on the machine, so one being
+edited is compiled the same way as one from a checkout. A bare path ending in
+`.eo` is taken as the signature, which is what the runs above do; `--signature
+PATH` spells the same thing out, and is what to use after `--rules`, since that
+reads every following word as a rule name. The alternative to
 naming one is `--cached`, which compiles the copy this repository keeps of the
 signature the packages came from:
 
 ```bash
-install/install-cpc.sh --cached          # regenerate Cpc from that copy
-install/install-cpc.sh --cached --check  # ask whether Cpc still matches it
+install/install-cpc.sh --cached          # regenerate both from that copy
+install/install-cpc.sh --cached --check  # ask whether both still match it
 ```
+
+One package at a time, a reduced calculus, or a package of your own is what
+`install-sig.sh` is for; `install-cpc.sh` refuses `--mini` and `--package`
+rather than pass them on, since which packages get installed is the whole of
+what it decides.
 
 Working against an Ethos checkout you already have, with no download at all:
 
 ```bash
-install/install-cpc.sh \
+install/install-sig.sh \
   --ethos ~/ethos \
   --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
 ```
@@ -71,7 +83,7 @@ either `wget` or `curl`.
 
 ## What is generated and what is not
 
-`install-cpc.sh` writes the signature-wide modules of the package and one file
+`install-sig.sh` writes the signature-wide modules of the package and one file
 per proof rule:
 
 ```text
@@ -94,7 +106,7 @@ today, but they are not excluded by construction.
 `out/lean` as the compiler publishes it is the package with the leading
 `Proofs` component dropped, which is why `RuleLemmas.lean` is installed as
 `Proofs/RuleLemmas.lean` and `Rules/<Rule>.lean` as `Proofs/Rules/<Rule>.lean`.
-The `LEAN_OUTPUTS` table near the top of `install-cpc.sh` is that mapping; it
+The `LEAN_OUTPUTS` table near the top of `install-sig.sh` is that mapping; it
 has to cover everything `driver.py` publishes apart from `Rules/`, and a file
 added there but not here is silently left behind.
 
@@ -121,8 +133,8 @@ signature-wide modules it publishes describe a calculus containing just those
 rules — `Logos.lean` loses the `__eo_cmd_step` cases of every other rule,
 `Spec.lean` and `SmtModel.lean` shrink to match.
 
-`install-cpc.sh` installs those reduced modules over the full ones. Running
-`install/install-cpc.sh --rules symm` against `Cpc` therefore guts the package
+`install-sig.sh` installs those reduced modules over the full ones. Running
+`install/install-sig.sh --rules symm` against `Cpc` therefore guts the package
 rather than refreshing one rule. Use `--rules` with `--package`/`--mini` to
 build a deliberately reduced package, and a full run for `Cpc`.
 
@@ -133,7 +145,7 @@ write, and installs nothing. It exits 0 only if the package already matches,
 and 1 if anything at all would change, listing what:
 
 ```console
-$ install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --check
+$ install/install-sig.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --check
   update  Cpc/Logos.lean
   add     Cpc/Proofs/Rules/NewRule.lean
 
@@ -165,7 +177,7 @@ available on its own if the reduced package ever needs a different shape.
 
 ## The cached signature
 
-`install/defs/Cpc.eo` is a copy of the signature the packages here were
+`install/defs/Cpc.cached.eo` is a copy of the signature the packages here were
 compiled from, kept in this repository as a *single file*: every
 `(include "...")` of the original replaced by the text of the file it names,
 each file appearing once and in the order Ethos reads them, and the comments
@@ -198,7 +210,6 @@ group does:
 
 ```bash
 install/install-cpc.sh --cached --check
-install/install-cpc.sh --cached --mini --check
 ```
 
 The flattening follows the same rules the compiler does. A file is spliced in
@@ -221,10 +232,10 @@ What is here is the signature itself.
 An install rewrites it, so there is no second command to remember:
 
 ```bash
-install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
+install/install-cpc.sh ~/cvc5/proofs/eo/cpc/Cpc.eo
 ```
 
-regenerates `Cpc` *and* records the signature it compiled. What the packages
+regenerates both packages *and* records the signature it compiled. What the packages
 were generated from and what CI compiles are then the same thing by
 construction rather than by anyone's discipline.
 
@@ -279,7 +290,7 @@ The CPC signature happens to be maintained in the cvc5 repository, at
 What the compiler consumes is Eunoia *source text*, not a solver: no cvc5
 binary and no cvc5 build is involved. Note that `Cpc.eo` includes the rest of
 `proofs/eo` by relative path, so `--signature` needs to name a file sitting in
-a complete copy of that subtree. `install/defs/Cpc.eo` is that subtree written
+a complete copy of that subtree. `install/defs/Cpc.cached.eo` is that subtree written
 as one file, which is why `--cached` needs nothing outside this repository.
 
 ## Pinning
@@ -290,7 +301,7 @@ moves the pin deliberately. It is currently
 `b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6` — "Add core Eunoia compiler
 infrastructure (#229)". To move it, edit that line and re-run both scripts.
 
-The signature is pinned by copy rather than by version: `install/defs/Cpc.eo`
+The signature is pinned by copy rather than by version: `install/defs/Cpc.cached.eo`
 is the one the packages were compiled from, and `--cached` compiles exactly
 that. `--signature` is still whatever you point it at, so a run against a
 checkout compiles that checkout; what the copy fixes is the version everything

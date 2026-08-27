@@ -58,7 +58,7 @@ jobs:
             bash install/get-eo-compiler.sh
           fi
 
-      # Compiles install/defs/Cpc.eo, the copy of the signature this repository
+      # Compiles install/defs/Cpc.cached.eo, the copy of the signature this repository
       # keeps, and fails if Cpc or CpcMini is not what comes out. Nothing from
       # cvc5 is fetched: the copy is the whole signature, in one file.
       - name: Check the generated packages against the cached signature

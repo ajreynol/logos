@@ -76,33 +76,6 @@ run_proof_hygiene() {
   bash scripts/check-proof-hygiene.sh
 }
 
-# Compile the cached signature and require the package $1 to be exactly what
-# comes out. Remaining arguments select the package the way install-cpc.sh
-# does, so they are also what regenerating it takes.
-check_regeneration() {
-  local package="$1"
-  shift
-  if bash install/install-cpc.sh --cached --check "$@"; then
-    return 0
-  fi
-  cat >&2 <<MSG
-
-${package} is not what install/defs/Cpc.eo compiles to, so it no longer follows
-the signature it is generated from. Either it was edited by hand where it is
-generated, or it was regenerated from a signature that was never recorded.
-
-Regenerate it from the cached signature with
-
-  install/install-cpc.sh --cached${*:+ $*}
-
-or, if the signature has moved on and the packages should follow it, record
-the new one and regenerate from that:
-
-  install/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo --update-cache
-MSG
-  exit 1
-}
-
 # The generated packages against the signature they came from, which this
 # repository keeps a copy of. Needs the Eunoia compiler and nothing from cvc5;
 # pass "skip" to pass silently where the compiler has not been set up, which is
@@ -120,10 +93,27 @@ run_regeneration() {
     exit 1
   fi
 
-  echo "Checking that Cpc is what the cached signature compiles to..."
-  check_regeneration Cpc
-  echo "Checking that CpcMini is what the cached signature compiles to..."
-  check_regeneration CpcMini --mini
+  echo "Checking that Cpc and CpcMini are what install/defs/Cpc.cached.eo compiles to..."
+  if bash install/install-cpc.sh --cached --check; then
+    return 0
+  fi
+  cat >&2 <<MSG
+
+A generated package is not what install/defs/Cpc.cached.eo compiles to, so it no
+longer follows the signature it comes from. Either it was edited by hand where
+it is generated, or it was regenerated from a signature that was never
+recorded.
+
+Regenerate both packages from the cached signature with
+
+  install/install-cpc.sh --cached
+
+or, if the signature has moved on and the packages should follow it, compile
+that one instead, which records it as it goes:
+
+  install/install-cpc.sh <cvc5>/proofs/eo/cpc/Cpc.eo
+MSG
+  exit 1
 }
 
 run_regressions() {
