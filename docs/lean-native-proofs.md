@@ -5,6 +5,10 @@ described in [parser.md](parser.md).  This document describes a secondary path: 
 written directly as Lean evaluation scripts, read by the `logos-native` executable.  See
 the [README](../README.md) for building the executables.
 
+This path is a development convenience, not the verified entry point.  A `true` from
+`logos-native` is weaker than the `correct` that `logos` prints; see
+[What a `true` means](#what-a-true-means) below.
+
 `logos-native` reads files containing Lean terms and an evaluation statement:
 
 ```bash
@@ -46,3 +50,23 @@ for details see https://github.com/cvc5/ethos/blob/main/user_manual.md.
 
 The examples in `test/regress/*.cpc.lean` are in this format; CI runs each of them through
 `logos-native` and requires the output `true`.
+
+## What a `true` means
+
+`logos-native` elaborates the file as Lean and reports the value of its `#eval!`, so a
+`true` says that this script evaluates to `true`.  Nothing checks that the script has the
+shape described above — that is why the paragraph above says Logos *assumes* it.
+
+Even for a script that does have that shape, a `true` is not the conclusion of
+`correct___logos_check_proof`, which is stated about `logos` and the text of an
+s-expression proof file (see [Correctness](../README.md#correctness)).  Two things the
+`logos` path does are missing here:
+
+* `logos_state_is_refutation` is `__eo_state_is_refutation`, the checker run alone.  The
+  two translation side conditions of `correct___eo_is_refutation` are never evaluated, so
+  the `incomplete` verdict has no counterpart: a script mentioning terms the SMT-LIB
+  specification does not model still returns `true`.
+* `logos_invoke_assume` pushes an input assumption with no well-formedness guard, where
+  `logos` pushes one only if it is Boolean-typed and closed
+  (`logos_invoke_input_assume`, `Cpc/Api.lean`).  That guard is what the soundness proof
+  needs.
