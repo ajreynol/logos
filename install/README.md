@@ -7,6 +7,7 @@ written by hand. This directory is what does that:
 install/install-cpc.sh       regenerate Cpc and CpcMini from a signature
 install/install-sig.sh       compile one signature into one package
 install/get-eo-compiler.sh   fetch and build the compiler
+install/defs/Cpc.eos         what the symbols of CPC mean, kept in git
 install/defs/Cpc.cached.eo   the signature they compile, kept in git
 install/deps/                the Ethos tree and the compiler, ignored by git
 ```
@@ -94,8 +95,13 @@ The header of the file names the path the signature had, not the checkout or
 the commit; the scripts print the commit they read, for the message of the
 commit that updates the copy.
 
-`install/defs/` is not the `--defs` option, which names Ethos's `cpc_defs.eo`
-and arrives with the compiler under `install/deps/`.
+## The semantics
+
+`install/defs/Cpc.eos` says what each symbol of the signature means, as a
+transformation into the deep embedding, and this repository is where it lives.
+
+`Spec.lean` and the `SmtModel` modules are what it compiles to, so changing
+what CPC means is changing that file and regenerating.
 
 ## install-sig.sh
 
@@ -114,16 +120,17 @@ rather than refreshing one rule. Use it with `--package` or `--mini`.
 `symm contra refl scope trans`, no parser, imports rewritten to `CpcMini`, and
 `partial def` rewritten to `def`.
 
-`--ethos` redirects the whole tree and not just the driver: the build
-directory, the `--defs` file and the `--lean-config` file all come from the
-tree it names, in preference to what `install/deps/eoc-env.sh` recorded.
+`--ethos` redirects the build directory as well as the driver, in preference
+to what `install/deps/eoc-env.sh` recorded, so a local checkout is never mixed
+with `install/deps/`.
 
 ## Pinning
 
 The Ethos commit is not an option. It is hardcoded as `ETHOS_VERSION` in
-`get-eo-compiler.sh`, currently `b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6` —
-"Add core Eunoia compiler infrastructure (#229)". To move it, edit that line
-and re-run both scripts.
+`get-eo-compiler.sh`. To move it, edit that line, re-run that script, and
+regenerate.
 
-The signature is pinned by copy: `install/defs/Cpc.cached.eo` is the one the
-packages were compiled from, and `--cached` compiles exactly that.
+The Eunoia signature that Logos is compiled against is pinned by copy:
+`install/defs/Cpc.cached.eo` is the one the packages were compiled from, and
+`--cached` compiles exactly that. The `regeneration` CI group is what holds
+the generated Lean to it.
