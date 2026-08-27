@@ -20,9 +20,7 @@ Options:
   --cached             compile the recorded copy of the signature
   --check              install nothing; report whether either package is out
                        of date and exit 1 if either is. Both are checked
-  --update-cache       record the signature; install nothing
   --ethos PATH         an ethos source tree to compile with
-  --no-update-cache    leave the recorded copy as it is
   -h, --help           show this message
 
 Anything else is handed to install-sig.sh, which this runs once per package;
@@ -36,7 +34,6 @@ INSTALL_SIG="${script_dir}/install-sig.sh"
 [ -f "${INSTALL_SIG}" ] || { echo "error: ${INSTALL_SIG} not found." >&2; exit 1; }
 
 CHECK=0
-UPDATE_CACHE=0
 SIGNATURE=""
 want_signature=0
 for arg in "$@"; do
@@ -48,7 +45,6 @@ for arg in "$@"; do
   case "${arg}" in
     -h|--help) usage; exit 0 ;;
     --check) CHECK=1 ;;
-    --update-cache) UPDATE_CACHE=1 ;;
     --cached) SIGNATURE="the cached signature" ;;
     --signature) want_signature=1 ;;
     --signature=*) SIGNATURE="${arg#*=}" ;;
@@ -67,11 +63,6 @@ if [ -z "${SIGNATURE}" ]; then
   echo "  install/install-cpc.sh ~/cvc5/proofs/eo/cpc/Cpc.eo" >&2
   echo "or compile the copy kept in this repository with --cached." >&2
   exit 2
-fi
-
-# Recording the signature is one act, not one per package.
-if [ "${UPDATE_CACHE}" = "1" ]; then
-  exec bash "${INSTALL_SIG}" "$@"
 fi
 
 if [ "${CHECK}" = "1" ]; then

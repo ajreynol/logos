@@ -36,7 +36,6 @@ The options most often added to either of those:
 
 ```text
 --check              install nothing; exit 1 if either package is out of date
---update-cache       record the signature; install nothing, compile nothing
 --ethos PATH         compile with an Ethos checkout you already have
 --overwrite-rules    replace existing rule files instead of preserving them
 ```
@@ -85,11 +84,10 @@ the same Lean as the original tree, byte for byte, so `--cached` needs nothing
 outside this repository — which is what the `regeneration` CI group uses to
 check that the generated packages still match their signature.
 
-An install of `Cpc` and `CpcMini` records the signature it compiled, so the
-copy and the packages stay in step. `--update-cache` records one without
-installing anything, and needs no compiler. Two runs record nothing and say so:
-`--rules`, which compiles a reduced calculus, and `--package`, which installs
-something these two are not. `--no-update-cache` asks for that on any run.
+An install of `Cpc` and `CpcMini` records the signature it compiled, and is the
+only thing that writes the copy, so it and the packages stay in step. Two runs
+record nothing and say so: `--rules`, which compiles a reduced calculus, and
+`--package`, which installs something these two are not.
 
 The header of the file names the path the signature had, not the checkout or
 the commit; the scripts print the commit they read, for the message of the
