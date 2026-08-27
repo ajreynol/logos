@@ -1261,15 +1261,15 @@ def __smtx_model_eval_str_in_re : SmtValue -> SmtValue -> SmtValue
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_seq_nth_wrong (M : SmtModel) (s : SmtSeq) (n : native_Int) : SmtType -> SmtValue
-  | (SmtType.Seq T) => (__smtx_map_select (__smtx_map_select (native_model_lookup M native_oob_seq_nth_id (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T))) (SmtValue.Seq s)) (SmtValue.Numeral n))
-  | T => SmtValue.NotValue
-
-
 def __smtx_ssm_seq_nth : SmtSeq -> native_Int -> SmtValue -> SmtValue
   | (SmtSeq.empty T), n, d => d
   | (SmtSeq.cons v vs), 0, d => v
   | (SmtSeq.cons v vs), n, d => (__smtx_ssm_seq_nth vs (native_zplus n (native_zneg 1)) d)
+
+
+def __smtx_seq_nth_wrong (M : SmtModel) (s : SmtSeq) (n : native_Int) : SmtType -> SmtValue
+  | (SmtType.Seq T) => (__smtx_map_select (__smtx_map_select (native_model_lookup M native_oob_seq_nth_id (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T))) (SmtValue.Seq s)) (SmtValue.Numeral n))
+  | T => SmtValue.NotValue
 
 
 def __smtx_seq_nth (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
