@@ -16,10 +16,44 @@ open SmtEval
 
 /- Eunoia literal evaluation defined -/
 
+-- The part of the native layer that the Eunoia term embedding is what decides,
+-- and so cannot come out above this file. See LeanMetaReduce::placeNativeDefs.
+def native_xor : native_Bool -> native_Bool -> native_Bool
+  | x, y => Bool.xor x y
+
+-- Integer arithmetic
+
+-- Helper for native_int_log: repeatedly divides `remaining` by `base`, counting
+-- the steps until it drops below `base`. `fuel` bounds the recursion (the caller
+-- passes the value itself, which is always at least the number of steps when
+-- base >= 2).
+def native_int_log_rec (base : native_Nat) : native_Nat -> native_Nat -> native_Nat
+  | 0, _ => 0
+  | fuel + 1, remaining =>
+    if remaining < base then 0 else 1 + native_int_log_rec base fuel (remaining / base)
+
+-- The (rounded-down) integer logarithm of `v` in base `b`, i.e. the greatest
+-- m >= 0 such that b^m <= v, or 0 when b <= 1 or v <= 0. This aligns with Lean's
+-- `Nat.log` and is the integer inverse of native_zexp_total.
+def native_int_log (b : native_Int) (v : native_Int) : native_Int :=
+  let base := Int.toNat b
+  let value := Int.toNat v
+  if base <= 1 || value == 0 then 0 else Int.ofNat (native_int_log_rec base value value)
+
+def native_qeq : native_Rat -> native_Rat -> native_Bool
+  | x, y => decide (x = y)
+
+def native_qexp_total (x : native_Rat) (y : native_Int) : native_Rat :=
+  if y < 0 then (native_mk_rational 0 1) else (x ^ (Int.toNat y))
+
+-- Conversions
+
 def native_str_len : native_String -> native_Int
   | x => Int.ofNat x.length
+
 def native_str_concat : native_String -> native_String -> native_String
   | x, y => x ++ y
+
 def native_str_substr (s : native_String) (i n : native_Int) : native_String :=
   let len : Int := (native_str_len s)
   if i < 0 || n <= 0 || i >= len then
@@ -28,6 +62,7 @@ def native_str_substr (s : native_String) (i n : native_Int) : native_String :=
     let start : Nat := Int.toNat i
     let take  : Nat := Int.toNat (min n (len - i))
     (s.drop start).take take
+
 def native_str_indexof_rec (s t : native_String) (i fuel : Nat) : native_Int :=
   match fuel with
   | 0 => -1
@@ -36,6 +71,7 @@ def native_str_indexof_rec (s t : native_String) (i fuel : Nat) : native_Int :=
         Int.ofNat i
       else
         native_str_indexof_rec s t (i + 1) fuel
+
 def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
   if i < 0 then
     -1
@@ -48,17 +84,13 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
     else
       -1
 
+-- What the model needs of Lean alone: arithmetic and characters it computes
+-- with, the names it gives the values an ill-formed application takes, and
+-- the list of references a datatype declaration is checked against.
+
 /- Term equality -/
 def native_teq : Term -> Term -> native_Bool
   | x, y => decide (x = y)
-
-/- Term ITE -/
-abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
-  (native_ite (native_teq x1 (Term.Boolean true))
-    x2
-    (native_ite (native_teq x1 (Term.Boolean false))
-      x3
-      Term.Stuck))
 
 /- Term less than, based on arbitrary ordering -/
 def native_tcmp (a b : Term) : native_Bool :=
@@ -71,6 +103,15 @@ def native_tcmp (a b : Term) : native_Bool :=
    receiving distinct values in the executable Lean checker. -/
 def native_thash : Term -> native_Int
   | _ => 0
+
+
+/- Term ITE -/
+abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
+  (native_ite (native_teq x1 (Term.Boolean true))
+    x2
+    (native_ite (native_teq x1 (Term.Boolean false))
+      x3
+      Term.Stuck))
 
 /- Proofs -/
 inductive Proof : Type where
