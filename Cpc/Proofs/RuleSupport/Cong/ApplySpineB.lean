@@ -264,7 +264,7 @@ theorem congTrueSpine_or_eq_true
     __smtx_model_eval_or
     (by intro a b; rfl)
     smt_typeof_or_args_bool_of_non_none
-    (by intro a b; rw [__smtx_model_eval.eq_7])
+    (by intro a b; rw [__smtx_model_eval.eq_8])
     x₁ x₂ rhs
 
 theorem congTypeSpine_or_eq_has_bool_type
@@ -296,7 +296,7 @@ theorem congTrueSpine_imp_eq_true
     __smtx_model_eval_imp
     (by intro a b; rfl)
     smt_typeof_imp_args_bool_of_non_none
-    (by intro a b; rw [__smtx_model_eval.eq_9])
+    (by intro a b; rw [__smtx_model_eval.eq_10])
     x₁ x₂ rhs
 
 theorem congTypeSpine_imp_eq_has_bool_type
@@ -328,7 +328,7 @@ theorem congTrueSpine_xor_eq_true
     __smtx_model_eval_xor
     (by intro a b; rfl)
     smt_typeof_xor_args_bool_of_non_none
-    (by intro a b; rw [__smtx_model_eval.eq_10])
+    (by intro a b; rw [__smtx_model_eval.eq_11])
     x₁ x₂ rhs
 
 theorem congTypeSpine_xor_eq_has_bool_type
@@ -526,8 +526,8 @@ noncomputable abbrev smtEvalQdiv
     (M : SmtModel) (x₁ x₂ : SmtValue) : SmtValue :=
   let _v0 := x₂
   let _v1 := x₁
-  let _v0r := __smtx_model_eval_to_real_coerce _v0
-  let _v1r := __smtx_model_eval_to_real_coerce _v1
+  let _v0r := __smtx_to_real_coerce _v0
+  let _v1r := __smtx_to_real_coerce _v1
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0r
       (SmtValue.Rational (native_mk_rational 0 1)))

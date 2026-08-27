@@ -1040,7 +1040,7 @@ theorem congTrueSpine_and_eq_true
       (__smtx_model_eval M
         (SmtTerm.and (__eo_to_smt y₁) (__eo_to_smt y₂))) =
         SmtValue.Boolean true
-    rw [__smtx_model_eval.eq_8, __smtx_model_eval.eq_8]
+    rw [__smtx_model_eval.eq_9, __smtx_model_eval.eq_9]
     rw [hEval₁, hEval₂]
     exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
       (RuleProofs.smt_value_rel_refl _)

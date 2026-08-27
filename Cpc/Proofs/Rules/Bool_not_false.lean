@@ -96,7 +96,7 @@ private theorem eo_interprets_not_false_of_true (M : SmtModel) (t : Term) :
       refine smt_interprets.intro_false M (SmtTerm.not (__eo_to_smt t)) ?_ ?_
       · rw [typeof_not_eq]
         simp [hTy, native_Teq, native_ite]
-      · rw [__smtx_model_eval.eq_6]
+      · rw [__smtx_model_eval.eq_7]
         rw [hEval]
         simp [__smtx_model_eval_not, SmtEval.native_not]
 

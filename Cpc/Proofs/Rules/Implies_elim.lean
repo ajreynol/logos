@@ -75,7 +75,7 @@ private theorem eo_interprets_or_left_intro
         (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type, eo_to_smt_or_eq] using
           (eo_has_bool_type_or_of_bool_args A B hABool hBBool)
-      · rw [__smtx_model_eval.eq_7]
+      · rw [__smtx_model_eval.eq_8]
         rw [hEvalA, hEvalB]
         simp [__smtx_model_eval_or, SmtEval.native_or]
 
@@ -96,7 +96,7 @@ private theorem eo_interprets_or_right_intro
         (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type, eo_to_smt_or_eq] using
           (eo_has_bool_type_or_of_bool_args A B hABool hBBool)
-      · rw [__smtx_model_eval.eq_7]
+      · rw [__smtx_model_eval.eq_8]
         rw [hEvalA, hEvalB]
         cases a <;> simp [__smtx_model_eval_or, SmtEval.native_or]
 

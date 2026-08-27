@@ -377,8 +377,8 @@ private theorem facts___eo_prog_bool_and_de_morgan_impl
           (SmtTerm.Boolean false)) by
       rw [hRhsEq]
       rfl]
-    rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_8, __smtx_model_eval.eq_7,
-      __smtx_model_eval.eq_6, __smtx_model_eval.eq_7, __smtx_model_eval.eq_6,
+    rw [__smtx_model_eval.eq_7, __smtx_model_eval.eq_9, __smtx_model_eval.eq_8,
+      __smtx_model_eval.eq_7, __smtx_model_eval.eq_8, __smtx_model_eval.eq_7,
       __smtx_model_eval.eq_1, hEvalX, hEvalTail, hSingletonEval, hEvalTail]
     cases bx <;> cases bt <;>
       simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, __smtx_model_eval_and,

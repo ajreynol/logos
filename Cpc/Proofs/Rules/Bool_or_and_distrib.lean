@@ -493,8 +493,8 @@ private theorem facts___eo_prog_bool_or_and_distrib_impl
           (SmtTerm.Boolean true)) by
       rw [hRhsEq]
       rfl]
-    rw [__smtx_model_eval.eq_7, __smtx_model_eval.eq_8, __smtx_model_eval.eq_8,
-      __smtx_model_eval.eq_7, __smtx_model_eval.eq_8, __smtx_model_eval.eq_7,
+    rw [__smtx_model_eval.eq_8, __smtx_model_eval.eq_9, __smtx_model_eval.eq_9,
+      __smtx_model_eval.eq_8, __smtx_model_eval.eq_9, __smtx_model_eval.eq_8,
       __smtx_model_eval.eq_1, hEvalY1, hEvalTailAnd, hEvalTailOr, hSingletonEval,
       hEvalTailAnd]
     cases by1 <;> cases bt <;> cases bz <;>
