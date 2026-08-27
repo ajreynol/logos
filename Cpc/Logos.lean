@@ -9123,7 +9123,7 @@ def __eo_is_list_nil_bvmul : Term -> Term
 def __eo_is_list_nil_str_concat : Term -> Term
   | Term.Stuck  => Term.Stuck
   | (Term.UOp1 UserOp1.seq_empty T) => (Term.Boolean true)
-  | x1 => (__eo_eq x1 (Term.String []))
+  | t => (__eo_eq t (Term.String []))
 
 
 def __eo_prog_re_all_elim : Term := (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.UOp UserOp.re_all)) (Term.Apply (Term.UOp UserOp.re_mult) (Term.UOp UserOp.re_allchar)))
