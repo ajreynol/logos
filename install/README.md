@@ -175,9 +175,20 @@ original tree, byte for byte, so it is the signature and not a summary of one.
 Comments go because the upstream file is where the prose belongs, and a copy
 that carried it would turn every rewording upstream into a diff here. What is
 left is what the compiler acts on, so a diff of this file is a diff of the
-calculus. Two things are added rather than removed: a header saying where the
-copy was read from, and a `; ==== <file> ====` line at each splice, so the
-tree the copy was made of is still legible in it.
+calculus. Two things are added rather than removed: a header saying what the
+copy is, and a `; ==== <file> ====` line at each splice, so the tree the copy
+was made of is still legible in it.
+
+The header names the path the signature had — `proofs/eo/cpc/Cpc.eo` — and
+deliberately not the checkout or the commit. That keeps the file a function of
+the *signature* and of nothing else: flatten the same calculus from two cvc5
+checkouts sitting at different commits and you get the same bytes, so an
+install rewrites this file only when the calculus itself moved. Recording the
+commit instead would have every regeneration churn a line that says nothing
+about what the file compiles to, and would make two people's copies of the
+same calculus conflict. Both scripts print the commit they read, for the
+message of the commit that updates the copy — which is where a version that
+cannot go stale belongs.
 
 It exists because the signature otherwise lives in someone's cvc5 checkout,
 which makes "is the generated code still what the signature says?" a question
@@ -205,19 +216,33 @@ that one is Ethos's `cpc_defs.eo`, the deep-embedding definitions the
 model-smt stage reads, and it arrives with the compiler under `install/deps/`.
 What is here is the signature itself.
 
-Rewrite it whenever the packages are regenerated from a signature that has
-moved:
+### Keeping it current
+
+An install rewrites it, so there is no second command to remember:
 
 ```bash
-install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo   # install
-install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
+install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
 ```
 
-`--update-cache` reads nothing but the signature, so it needs no compiler and
-no `install/deps/`. An install from a signature that is not the cached one
-ends by saying so, since forgetting the second command is what makes CI
-compile a signature the packages were never generated from. The header of the
-file records where it was read from and the commit that checkout was at.
+regenerates `Cpc` *and* records the signature it compiled. What the packages
+were generated from and what CI compiles are then the same thing by
+construction rather than by anyone's discipline.
+
+Two runs deliberately do not record anything, because neither compiled the
+signature the packages follow:
+
+* `--rules` installed a *reduced* calculus, not the signature
+* `--package Mine` says nothing about `Cpc` or `CpcMini`
+
+Both end by saying the copy was left alone and what to run to record the
+signature anyway. `--no-update-cache` asks for that on a run that would
+otherwise record, and `--cached` compiled the copy itself, so it has nothing
+to record.
+
+`--update-cache` is the standalone form: it rewrites the copy and installs
+nothing. It reads only the signature, so it needs no compiler and no
+`install/deps/` — a machine that has never run `get-eo-compiler.sh` can still
+record one.
 
 ## Why the compiler is built rather than downloaded
 

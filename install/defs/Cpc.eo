@@ -12,7 +12,12 @@
 ;
 ; Read from:
 ;   proofs/eo/cpc/Cpc.eo
-;   at commit 16c4001e53bd32ae7c4e05a7649cdcd0aa9f23bd
+;
+; Which checkout that was, and at what commit, is deliberately not written
+; here: this file is then a function of the signature and of nothing else, so
+; regenerating from another copy of the same calculus leaves it alone rather
+; than rewriting a line that says nothing about what it compiles to. The
+; commit belongs in the message of whatever commit updates this file.
 ;
 ; scripts/run-ci.sh regeneration compiles it and fails if what comes out
 ; differs from what is committed under Cpc/ and CpcMini/, which is what makes

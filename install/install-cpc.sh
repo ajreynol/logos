@@ -30,9 +30,14 @@ A copy of the signature the packages here were last compiled from is kept in
 this repository as a single file, install/defs/Cpc.eo, with every (include ...)
 of the original spliced in and its comments dropped. --cached compiles that
 copy, which is how the packages can be regenerated, and checked, without a
-cvc5 checkout at all; it is what CI does. --update-cache rewrites the copy
-from --signature and needs no compiler. Run it with the install that used that
-signature, so that the copy stays the one the packages actually came from.
+cvc5 checkout at all; it is what CI does.
+
+An install of Cpc or CpcMini rewrites that copy itself, so the two cannot
+drift: what a full run compiled is what gets recorded. An install that selects
+rules with --rules compiles a reduced calculus, and one into another package
+says nothing about these two, so neither records anything and both say so.
+--no-update-cache leaves the copy alone whatever the run; --update-cache
+rewrites it without installing anything and needs no compiler.
 
 The compiler comes from install/deps/eoc-env.sh, which
 install/get-eo-compiler.sh writes, unless --ethos names another ethos tree.
@@ -52,6 +57,8 @@ Options:
                        named by --signature, splicing in every file it
                        includes and dropping every comment, and exit. No
                        compiler is needed for this
+  --no-update-cache    do not record the compiled signature in that copy,
+                       which a full install of Cpc or CpcMini otherwise does
   --cache PATH         where that copy lives
                        (default: <install>/defs/Cpc.eo)
   --package NAME       the package under this repository to install into
@@ -109,6 +116,7 @@ expand_tilde() {
 SIGNATURE=""
 CACHED=0
 UPDATE_CACHE=0
+NO_UPDATE_CACHE=0
 CACHE_FILE=""
 ETHOS_DIR=""
 ETHOS_GIVEN=0
@@ -133,6 +141,7 @@ while [ $# -gt 0 ]; do
     --signature=*) SIGNATURE="${1#*=}"; shift ;;
     --cached) CACHED=1; shift ;;
     --update-cache) UPDATE_CACHE=1; shift ;;
+    --no-update-cache) NO_UPDATE_CACHE=1; shift ;;
     --cache) CACHE_FILE="${2:?--cache requires a value}"; shift 2 ;;
     --cache=*) CACHE_FILE="${1#*=}"; shift ;;
     --ethos) ETHOS_DIR="${2:?--ethos requires a value}"; ETHOS_GIVEN=1; shift 2 ;;
@@ -168,6 +177,11 @@ while [ $# -gt 0 ]; do
     *) echo "unrecognized option $1" >&2; usage >&2; exit 2 ;;
   esac
 done
+
+# --mini selects rules of its own further down, so whether this run was asked
+# to compile a reduced calculus is a question about the command line and has to
+# be answered while that is still what RULES_GIVEN says.
+RULES_ASKED_FOR="${RULES_GIVEN}"
 
 # Every option above that takes a path, whether it arrived as --option VALUE or
 # as --option=VALUE.
@@ -208,25 +222,37 @@ fi
 
 ETHOS_DIR="${ETHOS_DIR:-${EOC_ETHOS_DIR:-}}"
 
-# One line saying where the signature $1 was read from, for the header of the
-# cached copy. What identifies a version of it is the commit of the checkout it
-# sits in, not the path it has on this machine, so record that when there is
-# one and say plainly that there is none when there is not.
-signature_provenance() {
-  local dir sig top rel sha
+# Where the signature $1 sits, for the header of the cached copy: the path it
+# has inside the checkout it came from, which is the same path in any copy of
+# that project, or its name when it is not in one. What is deliberately not
+# here is the commit -- see signature_version.
+signature_location() {
+  local dir sig top
   dir="$(cd "$(dirname "$1")" && pwd)"
   sig="${dir}/$(basename "$1")"
-  if ! top="$(git -C "${dir}" rev-parse --show-toplevel 2>/dev/null)"; then
-    printf '%s, from a directory that is not a git checkout,\n' \
-      "$(basename "${sig}")"
-    printf ';   so the version it came from is not recorded here\n'
-    return
+  if top="$(git -C "${dir}" rev-parse --show-toplevel 2>/dev/null)"; then
+    printf '%s\n' "${sig#"${top}"/}"
+  else
+    printf '%s\n' "$(basename "${sig}")"
   fi
-  rel="${sig#"${top}"/}"
-  sha="$(git -C "${dir}" rev-parse HEAD 2>/dev/null || echo "an unknown commit")"
-  printf '%s\n;   at commit %s\n' "${rel}" "${sha}"
+}
+
+# The version of the checkout the signature $1 came from, for the terminal and
+# not for the file. It is what identifies the signature to a person, but
+# writing it into the copy would make the copy depend on which checkout it was
+# made from rather than on the calculus: two people flattening the same
+# signature from two checkouts would then produce two different files, and an
+# install would rewrite a line that says nothing about what it compiles to.
+# Empty when there is no checkout to name.
+signature_version() {
+  local dir sha
+  dir="$(cd "$(dirname "$1")" && pwd)"
+  git -C "${dir}" rev-parse --show-toplevel >/dev/null 2>&1 || return 0
+  sha="$(git -C "${dir}" rev-parse HEAD 2>/dev/null)" || return 0
   if [ -n "$(git -C "${dir}" status --porcelain -- "${dir}" 2>/dev/null)" ]; then
-    printf ';   with uncommitted changes present under %s\n' "$(basename "${dir}")"
+    printf '%s, with uncommitted changes under %s\n' "${sha}" "$(basename "${dir}")"
+  else
+    printf '%s\n' "${sha}"
   fi
 }
 
@@ -240,7 +266,7 @@ signature_provenance() {
 # so the copy contains the files a compilation of the original would have read
 # and no others.
 flatten_signature() {
-  python3 - "$1" "$2" "$(signature_provenance "$1")" <<'PY'
+  python3 - "$1" "$2" "$(signature_location "$1")" <<'PY'
 import os
 import re
 import sys
@@ -266,6 +292,12 @@ HEADER = """\
 ;
 ; Read from:
 ;   %s
+;
+; Which checkout that was, and at what commit, is deliberately not written
+; here: this file is then a function of the signature and of nothing else, so
+; regenerating from another copy of the same calculus leaves it alone rather
+; than rewriting a line that says nothing about what it compiles to. The
+; commit belongs in the message of whatever commit updates this file.
 ;
 ; scripts/run-ci.sh regeneration compiles it and fails if what comes out
 ; differs from what is committed under Cpc/ and CpcMini/, which is what makes
@@ -326,7 +358,7 @@ def strip_comments(text):
     return lines
 
 
-source, dest, provenance = sys.argv[1], sys.argv[2], sys.argv[3]
+source, dest, location = sys.argv[1], sys.argv[2], sys.argv[3]
 root = os.path.realpath(source)
 base = os.path.dirname(root)
 seen = set()
@@ -361,7 +393,7 @@ def visit(path, named_by):
 
 visit(root, os.path.basename(root))
 with open(dest, "w") as handle:
-    handle.write(HEADER % provenance)
+    handle.write(HEADER % location)
     handle.write("".join(out))
 PY
 }
@@ -408,9 +440,21 @@ if [ "${UPDATE_CACHE}" = "1" ]; then
   mkdir -p "$(dirname "${CACHE_FILE}")"
   flatten_signature "${SIGNATURE}" "${CACHE_FILE}"
   echo "    $(grep -c '^; ==== ' "${CACHE_FILE}") file(s) spliced in, $(wc -l < "${CACHE_FILE}") lines"
+  version="$(signature_version "${SIGNATURE}")"
   cat <<DONE
 
 ==> Done. The cached signature is now ${SIGNATURE}.
+DONE
+  if [ -n "${version}" ]; then
+    cat <<DONE
+
+It was read at commit
+  ${version}
+which the copy does not record: put that in the message of the commit that
+updates it.
+DONE
+  fi
+  cat <<DONE
 
 Nothing was compiled and no package was installed. Check that the packages
 match what was just recorded with:
@@ -654,16 +698,32 @@ if [ "${CHECK}" = "1" ]; then
 fi
 
 # CI compiles the cached copy, not whatever signature happens to be on the
-# machine that ran the install, so an install from a signature that is not the
-# cached one leaves the two disagreeing: the package is current with what was
-# just compiled and stale with respect to what is checked. Say so here, where
-# the signature that was used is still at hand.
-cache_note=""
-if [ "${CACHED}" = "0" ] && [ -f "${CACHE_FILE}" ]; then
+# machine that ran the install, so the copy has to stay the signature the
+# packages were generated from. A full install of Cpc or CpcMini is the thing
+# that makes it so, and records it here rather than leaving that to be
+# remembered as a second command.
+#
+# The two runs that must not: --rules installed a reduced calculus rather than
+# the signature, and another package says nothing about these two. Recording
+# either would repoint what CI compiles at a signature nothing here was built
+# from. They report instead. --cached compiled the copy itself, so there is
+# nothing to record either way.
+cache_action=""
+if [ "${CACHED}" = "0" ]; then
   fresh_cache="$(mktemp "${TMPDIR:-/tmp}/install-cpc-cache.XXXXXX")"
   if flatten_signature "${SIGNATURE}" "${fresh_cache}" &&
      ! cmp -s "${fresh_cache}" "${CACHE_FILE}"; then
-    cache_note="yes"
+    if [ "${NO_UPDATE_CACHE}" = "1" ]; then
+      cache_action="skipped:--no-update-cache was given"
+    elif [ "${RULES_ASKED_FOR}" = "1" ]; then
+      cache_action="skipped:--rules compiled a reduced calculus"
+    elif [ "${PACKAGE}" != "Cpc" ] && [ "${PACKAGE}" != "CpcMini" ]; then
+      cache_action="skipped:${PACKAGE} is not a package the copy speaks for"
+    else
+      mkdir -p "$(dirname "${CACHE_FILE}")"
+      cp "${fresh_cache}" "${CACHE_FILE}"
+      cache_action="updated"
+    fi
   fi
   rm -f "${fresh_cache}"
 fi
@@ -681,15 +741,33 @@ build; a newly written one has \`sorry\` for a proof. Review with git diff
 before committing.
 DONE
 
-if [ -n "${cache_note}" ]; then
-  cat <<NOTE
+case "${cache_action}" in
+  updated)
+    cat <<NOTE
+
+==> ${CACHE_FILE#"${repo_root}/"} now records this signature.
+
+That copy is what CI compiles, so commit it along with ${PACKAGE}.
+NOTE
+    version="$(signature_version "${SIGNATURE}")"
+    [ -z "${version}" ] || cat <<NOTE
+
+It was read at commit
+  ${version}
+which the copy does not record: put that in the commit message.
+NOTE
+    echo
+    ;;
+  skipped:*)
+    cat <<NOTE
 
 ==> Note: the cached signature is not the one just compiled.
 
-${CACHE_FILE}
-is what CI compiles, so record this signature there as well with:
+${CACHE_FILE#"${repo_root}/"} was left as it was, since ${cache_action#skipped:}.
+It is what CI compiles. Record this signature there with:
 
   install/install-cpc.sh --signature ${SIGNATURE} --update-cache
 
 NOTE
-fi
+    ;;
+esac
