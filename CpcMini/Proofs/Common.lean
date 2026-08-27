@@ -502,7 +502,7 @@ theorem eo_eq_operands_same_smt_type_of_has_bool_type (x y : Term) :
   intro hTy
   unfold eo_has_bool_type at hTy
   rw [eo_to_smt_eq_eq x y] at hTy
-  rw [Smtm.__smtx_typeof.eq_11] at hTy
+  rw [Smtm.__smtx_typeof.eq_10] at hTy
   exact (smtx_typeof_eq_bool_iff (__smtx_typeof (__eo_to_smt x))
     (__smtx_typeof (__eo_to_smt y))).mp hTy
 
@@ -520,7 +520,7 @@ theorem eo_has_bool_type_eq_of_same_smt_type (x y : Term) :
       (__smtx_typeof (__eo_to_smt x))
       (__smtx_typeof (__eo_to_smt y))).mpr ⟨hTy, hNonNone⟩
   rw [eo_to_smt_eq_eq x y]
-  rw [Smtm.__smtx_typeof.eq_11]
+  rw [Smtm.__smtx_typeof.eq_10]
   exact hEqTy
 
 /-- Symmetry lemma for `eo_has_bool_type_eq`. -/
@@ -555,7 +555,7 @@ theorem eo_eq_operands_same_smt_type (M : SmtModel) (x y : Term) :
   rw [eo_to_smt_eq_eq x y] at hEq
   cases hEq with
   | intro_true hTy _ =>
-      rw [Smtm.__smtx_typeof.eq_11] at hTy
+      rw [Smtm.__smtx_typeof.eq_10] at hTy
       exact (smtx_typeof_eq_bool_iff (__smtx_typeof (__eo_to_smt x))
         (__smtx_typeof (__eo_to_smt y))).mp hTy
 
@@ -569,7 +569,7 @@ theorem eo_eq_operands_same_smt_type_of_false (M : SmtModel) (x y : Term) :
   rw [eo_to_smt_eq_eq x y] at hEq
   cases hEq with
   | intro_false hTy _ =>
-      rw [Smtm.__smtx_typeof.eq_11] at hTy
+      rw [Smtm.__smtx_typeof.eq_10] at hTy
       exact (smtx_typeof_eq_bool_iff (__smtx_typeof (__eo_to_smt x))
         (__smtx_typeof (__eo_to_smt y))).mp hTy
 
@@ -589,7 +589,7 @@ theorem eo_has_bool_type_eq_of_true_chain (M : SmtModel) (x y z : Term) :
     exact (smtx_typeof_eq_bool_iff
       (__smtx_typeof (__eo_to_smt x)) (__smtx_typeof (__eo_to_smt z))).mpr ⟨hTyXZ, hNonNone⟩
   rw [eo_to_smt_eq_eq x z]
-  rw [Smtm.__smtx_typeof.eq_11]
+  rw [Smtm.__smtx_typeof.eq_10]
   exact hEqTy
 
 /-- Derives `eo_has_bool_type_eq` from `true`. -/
@@ -604,7 +604,7 @@ theorem eo_has_bool_type_eq_of_true (M : SmtModel) (x y : Term) :
       (__smtx_typeof (__eo_to_smt x)) (__smtx_typeof (__eo_to_smt y))).mpr ⟨hTyXY, hNonNone⟩
   unfold eo_has_bool_type
   rw [eo_to_smt_eq_eq x y]
-  rw [Smtm.__smtx_typeof.eq_11]
+  rw [Smtm.__smtx_typeof.eq_10]
   exact hEqTy
 
 /-- Establishes an equality relating `eo_interprets` and `rel`. -/
@@ -618,7 +618,7 @@ theorem eo_interprets_eq_rel (M : SmtModel) (x y : Term) :
   rw [eo_to_smt_eq_eq x y] at hEq
   cases hEq with
   | intro_true _ hEval =>
-      rw [Smtm.__smtx_model_eval.eq_11] at hEval
+      rw [Smtm.__smtx_model_eval.eq_10] at hEval
       exact hEval
 
 /-- Derives `eo_interprets_eq` from `rel`. -/
@@ -638,7 +638,7 @@ theorem eo_interprets_eq_of_rel (M : SmtModel) (x y : Term) :
       (smt_value_rel_iff_model_eval_eq_true M
         (__smtx_model_eval M (__eo_to_smt x))
         (__smtx_model_eval M (__eo_to_smt y))).mp hRel
-    simpa [Smtm.__smtx_model_eval.eq_11] using hEvalEq
+    simpa [Smtm.__smtx_model_eval.eq_10] using hEvalEq
 
 /-- Transitivity lemma for `eo_interprets_eq`. -/
 theorem eo_interprets_eq_trans (M : SmtModel) (x y z : Term) :

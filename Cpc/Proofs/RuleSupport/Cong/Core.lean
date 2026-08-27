@@ -53,8 +53,8 @@ theorem smtx_typeof_exists_term_eq
 theorem smtx_model_eval_qdiv_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.qdiv x y) =
-      (let yr := __smtx_model_eval_to_real_coerce (__smtx_model_eval M y)
-       let xr := __smtx_model_eval_to_real_coerce (__smtx_model_eval M x)
+      (let yr := __smtx_to_real_coerce (__smtx_model_eval M y)
+       let xr := __smtx_to_real_coerce (__smtx_model_eval M x)
        __smtx_model_eval_ite
         (__smtx_model_eval_eq yr
           (SmtValue.Rational (native_mk_rational 0 1)))
@@ -1623,7 +1623,7 @@ theorem congTrueSpine_not_eq_true
       (__smtx_model_eval M (SmtTerm.not (__eo_to_smt x)))
       (__smtx_model_eval M (SmtTerm.not (__eo_to_smt y))) =
         SmtValue.Boolean true
-    rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_6]
+    rw [__smtx_model_eval.eq_7, __smtx_model_eval.eq_7]
     rw [hEvalXY]
     exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
       (RuleProofs.smt_value_rel_refl _)

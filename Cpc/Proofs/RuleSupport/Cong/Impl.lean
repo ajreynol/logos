@@ -1126,9 +1126,9 @@ private theorem distinct_pairs_rel_same_tail
           (SmtTerm.and
             (SmtTerm.not (SmtTerm.eq (__eo_to_smt y) (__eo_to_smt a)))
             (__eo_to_smt_distinct_pairs (__eo_to_smt y) tail)))
-      rw [__smtx_model_eval.eq_8, __smtx_model_eval.eq_8]
+      rw [__smtx_model_eval.eq_9, __smtx_model_eval.eq_9]
       apply smt_value_rel_model_eval_and_of_rel
-      · rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_6,
+      · rw [__smtx_model_eval.eq_7, __smtx_model_eval.eq_7,
           smtx_model_eval_eq_term_eq, smtx_model_eval_eq_term_eq]
         apply smt_value_rel_model_eval_not_of_rel
         exact smt_value_rel_model_eval_eq_congr
@@ -1165,9 +1165,9 @@ private theorem pairwiseListTrueSpine_distinct_pairs_rel
               (SmtTerm.and
                 (SmtTerm.not (SmtTerm.eq (__eo_to_smt y) (__eo_to_smt _)))
                 (__eo_to_smt_distinct_pairs (__eo_to_smt y) _)))
-          rw [__smtx_model_eval.eq_8, __smtx_model_eval.eq_8]
+          rw [__smtx_model_eval.eq_9, __smtx_model_eval.eq_9]
           apply smt_value_rel_model_eval_and_of_rel
-          · rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_6,
+          · rw [__smtx_model_eval.eq_7, __smtx_model_eval.eq_7,
               smtx_model_eval_eq_term_eq, smtx_model_eval_eq_term_eq]
             apply smt_value_rel_model_eval_not_of_rel
             exact smt_value_rel_model_eval_eq_congr
@@ -1200,7 +1200,7 @@ private theorem pairwiseListTrueSpine_distinct_rel
               (SmtTerm.and
                 (__eo_to_smt_distinct_pairs (__eo_to_smt _) _)
                 (__eo_to_smt_distinct _)))
-          rw [__smtx_model_eval.eq_8, __smtx_model_eval.eq_8]
+          rw [__smtx_model_eval.eq_9, __smtx_model_eval.eq_9]
           apply smt_value_rel_model_eval_and_of_rel
           · exact pairwiseListTrueSpine_distinct_pairs_rel M _ _
               hHead hTailShape hTail

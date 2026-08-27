@@ -95,7 +95,7 @@ private theorem facts___eo_prog_bool_xor_true_impl
       rfl]
     rw [show __eo_to_smt (Term.Apply Term.not x1) = SmtTerm.not (__eo_to_smt x1) by
       rfl]
-    rw [__smtx_model_eval.eq_10, __smtx_model_eval.eq_6, hEvalX1, hTrueEval]
+    rw [__smtx_model_eval.eq_11, __smtx_model_eval.eq_7, hEvalX1, hTrueEval]
     cases b <;> simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
       __smtx_model_eval_xor, __smtx_model_eval_not, native_veq,
       SmtEval.native_not]

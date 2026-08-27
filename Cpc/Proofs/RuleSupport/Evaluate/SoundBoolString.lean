@@ -900,7 +900,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_concat_core
           __smtx_model_eval_str_concat
             (__smtx_model_eval M (__eo_to_smt a))
             (__smtx_model_eval M (__eo_to_smt b)) by
-      rw [__smtx_model_eval.eq_79]]
+      rw [__smtx_model_eval.eq_81]]
     rw [hAEval, hBEval, hASeqEq, hBSeqEq]
     rw [show __eo_to_smt
           (__eo_concat (Term.String sx) (Term.String sy)) =
@@ -4105,7 +4105,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
           __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt b)) =
             __smtx_model_eval_str_to_int
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_94]
+        rw [__smtx_model_eval.eq_96]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
@@ -4149,7 +4149,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
           __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt b)) =
             __smtx_model_eval_str_to_int
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_94]
+        rw [__smtx_model_eval.eq_96]
       have hEvalIntRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -4160,7 +4160,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
           __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt runArg)) =
             __smtx_model_eval_str_to_int
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_94]
+        rw [__smtx_model_eval.eq_96]
       rw [hEvalIntB, hEvalIntRun]
       exact hRelInt
 
@@ -4317,7 +4317,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_lower_core
           __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt b)) =
             __smtx_model_eval_str_to_lower
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_89]
+        rw [__smtx_model_eval.eq_91]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
@@ -4369,7 +4369,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_lower_core
           __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt b)) =
             __smtx_model_eval_str_to_lower
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_89]
+        rw [__smtx_model_eval.eq_91]
       have hEvalLowerRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -4380,7 +4380,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_lower_core
           __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt runArg)) =
             __smtx_model_eval_str_to_lower
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_89]
+        rw [__smtx_model_eval.eq_91]
       rw [hEvalLowerB, hEvalLowerRun]
       exact hRelLower
 
@@ -4537,7 +4537,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_upper_core
           __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt b)) =
             __smtx_model_eval_str_to_upper
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_90]
+        rw [__smtx_model_eval.eq_92]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
@@ -4589,7 +4589,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_upper_core
           __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt b)) =
             __smtx_model_eval_str_to_upper
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_90]
+        rw [__smtx_model_eval.eq_92]
       have hEvalUpperRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -4600,7 +4600,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_upper_core
           __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt runArg)) =
             __smtx_model_eval_str_to_upper
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_90]
+        rw [__smtx_model_eval.eq_92]
       rw [hEvalUpperB, hEvalUpperRun]
       exact hRelUpper
 
@@ -4754,7 +4754,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_rev_core
           __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt b)) =
             __smtx_model_eval_str_rev
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_87]
+        rw [__smtx_model_eval.eq_89]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
@@ -4804,7 +4804,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_rev_core
           __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt b)) =
             __smtx_model_eval_str_rev
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_87]
+        rw [__smtx_model_eval.eq_89]
       have hEvalRevRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -4815,7 +4815,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_rev_core
           __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt runArg)) =
             __smtx_model_eval_str_rev
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_87]
+        rw [__smtx_model_eval.eq_89]
       rw [hEvalRevB, hEvalRevRun]
       exact hRelRev
 
@@ -4926,7 +4926,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_code_core
               (SmtTerm.str_from_code (__eo_to_smt x)) =
             __smtx_model_eval_str_from_code
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_92]]
+        rw [__smtx_model_eval.eq_94]]
       rw [show
           __eo_to_smt (Term.String (native_str_from_code runN)) =
             SmtTerm.String (native_str_from_code runN) by
@@ -5039,7 +5039,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
               (SmtTerm.str_from_int (__eo_to_smt x)) =
             __smtx_model_eval_str_from_int
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_95]]
+        rw [__smtx_model_eval.eq_97]]
       rw [show
           __eo_to_smt (Term.String (native_str_from_int runN)) =
             SmtTerm.String (native_str_from_int runN) by
@@ -5087,7 +5087,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
               (SmtTerm.str_from_int (__eo_to_smt x)) =
             __smtx_model_eval_str_from_int
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_95]]
+        rw [__smtx_model_eval.eq_97]]
       rw [show
           __smtx_model_eval M
               (__eo_to_smt
@@ -5100,7 +5100,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
               (SmtTerm.str_from_int (__eo_to_smt (__run_evaluate x))) =
             __smtx_model_eval_str_from_int
               (__smtx_model_eval M (__eo_to_smt (__run_evaluate x)))
-        rw [__smtx_model_eval.eq_95]]
+        rw [__smtx_model_eval.eq_97]]
       exact hRelFrom
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core

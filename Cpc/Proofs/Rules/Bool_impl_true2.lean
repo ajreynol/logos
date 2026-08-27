@@ -90,7 +90,7 @@ private theorem facts___eo_prog_bool_impl_true2_impl
     rw [show __eo_to_smt (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) t1) =
       SmtTerm.imp (__eo_to_smt (Term.Boolean true)) (__eo_to_smt t1) by
       rfl]
-    rw [__smtx_model_eval.eq_9, hTrueEval, hEvalT1]
+    rw [__smtx_model_eval.eq_10, hTrueEval, hEvalT1]
     cases b <;> simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
       __smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not,
       native_veq, SmtEval.native_or, SmtEval.native_not]

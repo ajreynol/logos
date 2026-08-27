@@ -146,15 +146,15 @@ private theorem facts_str_in_re_concat
                 (SmtTerm.str_concat (__eo_to_smt s) (__eo_to_smt accS))
                 (SmtTerm.re_concat (__eo_to_smt r) (__eo_to_smt accR))) =
             SmtValue.Boolean true
-          rw [__smtx_model_eval.eq_117, __smtx_model_eval.eq_79,
-            __smtx_model_eval.eq_112]
+          rw [__smtx_model_eval.eq_119, __smtx_model_eval.eq_81,
+            __smtx_model_eval.eq_114]
           change __smtx_model_eval M
               (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)) =
             SmtValue.Boolean true at hEvalSR
           change __smtx_model_eval M
               (SmtTerm.str_in_re (__eo_to_smt accS) (__eo_to_smt accR)) =
             SmtValue.Boolean true at hEvalAcc
-          rw [__smtx_model_eval.eq_117] at hEvalSR hEvalAcc
+          rw [__smtx_model_eval.eq_119] at hEvalSR hEvalAcc
           cases hs : __smtx_model_eval M (__eo_to_smt s) with
           | Seq ss =>
               cases hr : __smtx_model_eval M (__eo_to_smt r) with

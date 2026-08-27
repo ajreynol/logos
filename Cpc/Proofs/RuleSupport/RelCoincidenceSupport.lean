@@ -1664,8 +1664,8 @@ private theorem rel_re_opt_congr {b d : SmtValue}
 private theorem rel_re_exp_rec_congr :
     ∀ (n : native_Nat) {b d : SmtValue},
       RuleProofs.smt_value_rel b d ->
-      RuleProofs.smt_value_rel (__smtx_model_eval_re_exp_rec n b)
-        (__smtx_model_eval_re_exp_rec n d)
+      RuleProofs.smt_value_rel (__smtx_re_exp_rec n b)
+        (__smtx_re_exp_rec n d)
   | 0, b, d, h => RuleProofs.smt_value_rel_refl _
   | (n+1), b, d, h =>
       CongSupport.smt_value_rel_re_concat_congr
@@ -1684,8 +1684,8 @@ private theorem rel_re_exp_congr {v b d : SmtValue}
 private theorem rel_re_loop_rec_congr :
     ∀ (n : native_Nat) (v1 v2 : SmtValue) {b d : SmtValue},
       RuleProofs.smt_value_rel b d ->
-      RuleProofs.smt_value_rel (__smtx_model_eval_re_loop_rec n v1 v2 b)
-        (__smtx_model_eval_re_loop_rec n v1 v2 d)
+      RuleProofs.smt_value_rel (__smtx_re_loop_rec n v1 v2 b)
+        (__smtx_re_loop_rec n v1 v2 d)
   | 0, v1, v2, b, d, h => by
       cases v2 with
       | Numeral m => exact rel_re_exp_congr h

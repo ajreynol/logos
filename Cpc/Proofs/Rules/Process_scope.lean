@@ -96,7 +96,7 @@ private theorem eo_interprets_imp_true_of_left_false
       refine smt_interprets.intro_true M (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · rw [typeof_imp_eq]
         simpa [hATy, hBBool, RuleProofs.eo_has_bool_type, native_Teq, native_ite]
-      · rw [__smtx_model_eval.eq_9, hAEval, hBEval]
+      · rw [__smtx_model_eval.eq_10, hAEval, hBEval]
         cases b <;> simp [__smtx_model_eval_imp, __smtx_model_eval_or,
           __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not]
 
@@ -114,7 +114,7 @@ private theorem eo_interprets_imp_true_of_right_true
       refine smt_interprets.intro_true M (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · rw [typeof_imp_eq]
         simpa [hABool, hBTy, RuleProofs.eo_has_bool_type, native_Teq, native_ite]
-      · rw [__smtx_model_eval.eq_9, hAEval, hBEval]
+      · rw [__smtx_model_eval.eq_10, hAEval, hBEval]
         cases a <;> simp [__smtx_model_eval_imp, __smtx_model_eval_or,
           __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not]
 

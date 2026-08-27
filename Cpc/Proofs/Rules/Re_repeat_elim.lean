@@ -161,7 +161,7 @@ private theorem eval_re_loop_same_bounds
   cases __smtx_model_eval M (__eo_to_smt x1) <;>
   simp [__smtx_model_eval_re_loop, __smtx_model_eval_re_exp,
     __smtx_model_eval_gt, __smtx_model_eval_lt, __smtx_model_eval_ite,
-    __smtx_model_eval_re_loop_rec, SmtEval.native_zlt, SmtEval.native_zplus,
+    __smtx_re_loop_rec, SmtEval.native_zlt, SmtEval.native_zplus,
     SmtEval.native_zneg, native_int_to_nat, hDiffZero]
 
 private theorem facts___eo_prog_re_repeat_elim_impl
