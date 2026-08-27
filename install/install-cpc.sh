@@ -494,6 +494,12 @@ OUT_DIR="${OUT_DIR:-${DEPS_DIR}/eoc-out}"
 DEST_DIR="${repo_root}/${PACKAGE}"
 PACKAGE_DIR="${DEST_DIR}"
 
+# How much of the difference --check prints when it finds one: enough to see
+# what kind of difference it is, not so much that a wholesale regeneration
+# buries the message that follows it.
+DIFF_FILES=3
+DIFF_LINES=20
+
 # --check performs the whole install into a throwaway copy of the package and
 # then compares, rather than reimplementing what an install would have done.
 # Every step below runs unchanged against that copy, so the check cannot drift
@@ -670,12 +676,14 @@ if [ "${CHECK}" = "1" ]; then
 
   echo
   updates=0
+  declare -a differing=()
   while IFS= read -r rel; do
     if [ ! -e "${PACKAGE_DIR}/${rel}" ]; then
       echo "  add     ${PACKAGE}/${rel}"
       updates=$((updates + 1))
     elif ! cmp -s "${DEST_DIR}/${rel}" "${PACKAGE_DIR}/${rel}"; then
       echo "  update  ${PACKAGE}/${rel}"
+      differing+=("${rel}")
       updates=$((updates + 1))
     fi
   done < "${staged}"
@@ -693,6 +701,33 @@ if [ "${CHECK}" = "1" ]; then
   fi
   echo
   echo "==> ${PACKAGE} is NOT up to date with ${SIGNATURE}: ${updates} file(s)."
+
+  # What differs, and not only that something does. The file names alone do not
+  # say whether the calculus moved, whether someone edited generated code by
+  # hand, or whether the same compiler emitted the same calculus differently --
+  # and the last of those is exactly what a check running somewhere other than
+  # the machine that generated the package is in a position to discover.
+  if [ "${#differing[@]}" -gt 0 ]; then
+    shown=0
+    for rel in "${differing[@]}"; do
+      [ "${shown}" -lt "${DIFF_FILES}" ] || break
+      shown=$((shown + 1))
+      echo
+      { diff -u \
+          --label "${PACKAGE}/${rel} as committed" \
+          --label "${PACKAGE}/${rel} as compiled just now" \
+          "${PACKAGE_DIR}/${rel}" "${DEST_DIR}/${rel}" || true; } |
+        sed -n "1,${DIFF_LINES}p" | sed 's/^/  /'
+    done
+    if [ "${#differing[@]}" -gt "${DIFF_FILES}" ]; then
+      echo
+      echo "  ... and $(( ${#differing[@]} - DIFF_FILES )) more differing file(s)."
+    fi
+    echo
+    echo "(each diff cut off at ${DIFF_LINES} lines; run the check yourself for all of it)"
+  fi
+
+  echo
   echo "Nothing was written. Rerun without --check to apply."
   exit 1
 fi
