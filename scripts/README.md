@@ -164,9 +164,16 @@ available on its own if the reduced package ever needs a different shape.
 `signatures/Cpc.eo` is a copy of the signature the packages here were compiled
 from, kept in this repository as a *single file*: every `(include "...")` of
 the original replaced by the text of the file it names, each file appearing
-once and in the order Ethos reads them. Compiling it produces the same Lean as
-compiling the original tree, byte for byte, so it is the signature and not a
-summary of one.
+once and in the order Ethos reads them, and the comments of the original
+dropped. Compiling it produces the same Lean as compiling the original tree,
+byte for byte, so it is the signature and not a summary of one.
+
+Comments go because the upstream file is where the prose belongs, and a copy
+that carried it would turn every rewording upstream into a diff here. What is
+left is what the compiler acts on, so a diff of this file is a diff of the
+calculus. Two things are added rather than removed: a header saying where the
+copy was read from, and a `; ==== <file> ====` line at each splice, so the
+tree the copy was made of is still legible in it.
 
 It exists because the signature otherwise lives in someone's cvc5 checkout,
 which makes "is the generated code still what the signature says?" a question
@@ -184,7 +191,10 @@ the first time it is reached and afterwards left as a comment saying so, which
 is what Ethos does with a repeated `(include ...)` too (`markIncluded` in its
 `src/state.cpp`), and which lines count as an include is decided the way
 `driver.py` decides it. That is what keeps the copy equivalent to the tree
-rather than a redeclaration of everything the tree shares.
+rather than a redeclaration of everything the tree shares. Comment stripping
+knows what a comment is: a `;` inside a string literal or a `|quoted symbol|`
+is content, and a line that begins inside either is passed through as it
+stands.
 
 Rewrite it whenever the packages are regenerated from a signature that has
 moved:

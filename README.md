@@ -130,7 +130,8 @@ involved.
 
 `signatures/Cpc.eo` is this repository's own copy of the signature the packages
 were compiled from, written as a single file with everything `Cpc.eo` includes
-spliced into it. `--update-cache` rewrites that copy, and `--cached` compiles
+spliced into it and the comments of the original dropped, so that a diff of it
+is a diff of the calculus rather than of its prose. `--update-cache` rewrites that copy, and `--cached` compiles
 it in place of naming a signature, so `Cpc` and `CpcMini` can be regenerated —
 and, in CI, checked — without a cvc5 checkout:
 

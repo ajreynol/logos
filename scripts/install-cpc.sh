@@ -28,7 +28,7 @@ compiled without downloading anything.
 
 A copy of the signature the packages here were last compiled from is kept in
 this repository as a single file, signatures/Cpc.eo, with every (include ...)
-of the original spliced in. --cached compiles that copy, which is how the
+of the original spliced in and the comments of the original dropped. --cached compiles that copy, which is how the
 packages can be regenerated, and checked, without a cvc5 checkout at all; it
 is what CI does. --update-cache rewrites the copy from --signature and needs
 no compiler. Run it with the install that used that signature, so that the
@@ -49,7 +49,8 @@ Options:
                        repository instead of naming one with --signature
   --update-cache       do not install: rewrite that copy from the signature
                        named by --signature, splicing in every file it
-                       includes, and exit. No compiler is needed for this
+                       includes and dropping every comment, and exit. No
+                       compiler is needed for this
   --cache PATH         where that copy lives
                        (default: <repo>/signatures/Cpc.eo)
   --package NAME       the package under this repository to install into
@@ -203,13 +204,14 @@ signature_provenance() {
 }
 
 # Write the signature $1 to $2 as a single file: every (include "...") replaced
-# by the text of the file it names, depth first, and each file written only the
-# first time it is reached. That last part is what makes the result equivalent
-# to the original rather than a redeclaration of everything the tree shares:
-# ethos also reads a file only the first time it is named, see markIncluded in
-# its src/state.cpp. Which lines name a file is decided the way driver.py
-# decides it, see INCLUDE_RE and strip_comment there, so the copy contains the
-# files a compilation of the original would have read and no others.
+# by the text of the file it names, depth first, each file written only the
+# first time it is reached, and every comment dropped. Writing a file once is
+# what makes the result equivalent to the original rather than a redeclaration
+# of everything the tree shares: ethos also reads a file only the first time it
+# is named, see markIncluded in its src/state.cpp. Which lines name a file is
+# decided the way driver.py decides it, see INCLUDE_RE and strip_comment there,
+# so the copy contains the files a compilation of the original would have read
+# and no others.
 flatten_signature() {
   python3 - "$1" "$2" "$(signature_provenance "$1")" <<'PY'
 import os
@@ -229,9 +231,11 @@ HEADER = """\
 ; It is the Eunoia signature that the Cpc and CpcMini packages of this
 ; repository were compiled from, written as a single file: every
 ; (include "...") of the original replaced by the text of the file it names,
-; each file appearing once and in the order ethos reads them. Compiling this
-; produces the same Lean as compiling the original tree, so a regeneration
-; needs nothing but this repository.
+; each file appearing once and in the order ethos reads them, and the comments
+; of the original dropped. Compiling this produces the same Lean as compiling
+; the original tree, so a regeneration needs nothing but this repository. Read
+; the original for the prose; what is here is what the compiler acts on, which
+; is also what makes a diff of this file a diff of the calculus.
 ;
 ; Read from:
 ;   %s
@@ -240,6 +244,60 @@ HEADER = """\
 ; differs from what is committed under Cpc/ and CpcMini/, which is what makes
 ; a generated package that no longer matches the signature visible.
 """
+
+
+def strip_comments(text):
+    """The lines of `text` with every comment removed, and with the lines that
+    leaves empty dropped along with the ones that already were.
+
+    A `;` inside a string literal or a |quoted symbol| is content rather than
+    the start of a comment, and a line that begins inside either is passed
+    through untouched, since its blankness and its trailing spaces are content
+    too. `""` is how a string literal spells a quote, so it does not end one.
+    """
+    lines = []
+    line = []
+    quote = ""
+    quoted_at_start = False
+    index = 0
+    length = len(text)
+
+    def end_line():
+        joined = "".join(line)
+        if quoted_at_start or quote:
+            lines.append(joined)
+        elif joined.strip():
+            lines.append(joined.rstrip())
+
+    while index < length:
+        char = text[index]
+        if char == "\n":
+            end_line()
+            del line[:]
+            quoted_at_start = bool(quote)
+            index += 1
+            continue
+        if not quote:
+            if char == ";":
+                newline = text.find("\n", index)
+                index = length if newline < 0 else newline
+                continue
+            if char in '"|':
+                quote = char
+        elif char == quote:
+            if char == '"' and text[index + 1 : index + 2] == '"':
+                line.append(char)
+                index += 1
+                char = text[index]
+            else:
+                quote = ""
+        line.append(char)
+        index += 1
+    end_line()
+    if quote:
+        sys.exit("error: a %s left open at the end of the file." % quote)
+    return lines
+
 
 source, dest, provenance = sys.argv[1], sys.argv[2], sys.argv[3]
 root = os.path.realpath(source)
@@ -263,17 +321,15 @@ def visit(path, named_by):
     out.append("\n; ==== %s ====\n" % name_of(real))
     with open(real) as handle:
         text = handle.read()
-    for line in text.splitlines(True):
-        command = line.split(";", 1)[0].strip()
+    for line in strip_comments(text):
+        command = line.strip()
         match = INCLUDE_RE.match(command)
         if match:
             visit(os.path.join(os.path.dirname(real), match.group(1)), name_of(real))
             continue
         if UNSPLICEABLE_RE.match(command):
             sys.exit("error: %s: cannot splice `%s` into one file." % (name_of(real), command))
-        out.append(line)
-    if not out[-1].endswith("\n"):
-        out.append("\n")
+        out.append(line + "\n")
 
 
 visit(root, os.path.basename(root))
