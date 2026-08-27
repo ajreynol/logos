@@ -55,12 +55,10 @@ predicates of `Cpc/Proofs/Assumptions.lean`, decided by the `Decidable`
 instances that file derives from them, so that the executable checks the same
 per-rule masks the rule proofs assume, with no second copy to keep in sync.
 
-The definitions here are deliberately *not* in `Cpc/Logos.lean`: that file is
-generated from the calculus, and its `logos_invoke_assume` pushes an input
-assumption without the well-formedness guard that `__eo_invoke_assume_list`
-applies (see `logos_invoke_input_assume` below).  The Lean-native front end
-(`MainNative.lean`, and the `#eval` scripts cvc5 emits for it) still goes
-through the generated API and so is not covered by `correct___logos_check_proof`.
+`Cpc/Native.lean` is the same pipeline for the Lean-native front end
+(`MainNative.lean`, and the `#eval` scripts cvc5 emits for it), whose input
+names its assumptions and commands directly instead of parsing them.  It runs
+the three checks below on what a script names, reusing the definitions here.
 -/
 
 open SmtEval
@@ -101,12 +99,21 @@ def logos_assumption_term (assums : List Term) : Term :=
   assums.foldl logos_assumption_chain_step (Term.Boolean true)
 
 /--
+The checker state a run starts in: nothing assumed, nothing proven.
+
+An alias for `CState.nil`, so that the statements below and the theorems
+`Cpc/ApiChecks.lean` proves about them do not have to name a constructor of the
+checker's internal state.  `Eo.logos_init_state` (`Cpc/Native.lean`) is the
+front-end state a Lean-native script starts from, whose checker state this is.
+-/
+def logos_checker_init_state : CState := CState.nil
+
+/--
 Push one input assumption, applying the well-formedness guard that
 `__eo_invoke_assume_list` applies to each element of the `and`-chain: the
 assumption must be Boolean-typed and closed, or the state goes `Stuck`.
 
-This is deliberately *not* `logos_invoke_assume` (`Cpc/Logos.lean`), which
-pushes an input assumption with no guard at all.  The guard is not cosmetic:
+The guard is not cosmetic:
 `__eo_typeof A = Term.Bool` for `assume` entries is what `checkerTypeInvariant`
 requires (`Cpc/Proofs/CheckerCore.lean`), and closedness is what yields
 `StableAssumptionList`, so dropping it puts the run outside the reach of the
@@ -138,7 +145,7 @@ assumption.
 -/
 def logos_check_refutation (assums : List Term) (cmds : CCmdList) : Bool :=
   __eo_state_is_refutation
-    (__eo_invoke_cmd_list (assums.foldl logos_invoke_input_assume logos_init_state) cmds)
+    (__eo_invoke_cmd_list (assums.foldl logos_invoke_input_assume logos_checker_init_state) cmds)
 
 /--
 Every assumption has an SMT-LIB translation.  `translatableAssumptionList_of_check`
