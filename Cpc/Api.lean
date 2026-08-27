@@ -99,6 +99,16 @@ def logos_assumption_term (assums : List Term) : Term :=
   assums.foldl logos_assumption_chain_step (Term.Boolean true)
 
 /--
+The checker state a run starts in: nothing assumed, nothing proven.
+
+An alias for `CState.nil`, so that the statements below and the theorems
+`Cpc/ApiChecks.lean` proves about them do not have to name a constructor of the
+checker's internal state.  `Eo.logos_init_state` (`Cpc/Native.lean`) is the
+front-end state a Lean-native script starts from, whose checker state this is.
+-/
+def logos_checker_init_state : CState := CState.nil
+
+/--
 Push one input assumption, applying the well-formedness guard that
 `__eo_invoke_assume_list` applies to each element of the `and`-chain: the
 assumption must be Boolean-typed and closed, or the state goes `Stuck`.
@@ -135,7 +145,7 @@ assumption.
 -/
 def logos_check_refutation (assums : List Term) (cmds : CCmdList) : Bool :=
   __eo_state_is_refutation
-    (__eo_invoke_cmd_list (assums.foldl logos_invoke_input_assume CState.nil) cmds)
+    (__eo_invoke_cmd_list (assums.foldl logos_invoke_input_assume logos_checker_init_state) cmds)
 
 /--
 Every assumption has an SMT-LIB translation.  `translatableAssumptionList_of_check`

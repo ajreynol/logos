@@ -19,7 +19,7 @@ inductive CheckerFailure where
 
 /-- Run assumptions until the first one makes the checker state stuck. -/
 private def runAssumptions (assums : List Term) : Except (Nat × Term) CState :=
-  go 0 CState.nil assums
+  go 0 logos_checker_init_state assums
 where
   go (i : Nat) (state : CState) : List Term → Except (Nat × Term) CState
     | [] => .ok state

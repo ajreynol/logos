@@ -61,16 +61,18 @@ Folding the guarded push over the parser's assumptions builds exactly the state
 `__eo_invoke_assume_list` builds from the corresponding `and`-chain.
 -/
 theorem invoke_assume_list_eq_fold (assums : List Term) :
-    __eo_invoke_assume_list CState.nil (logos_assumption_term assums)
-      = assums.foldl logos_invoke_input_assume CState.nil := by
-  simpa [logos_assumption_term, __eo_invoke_assume_list]
-    using invoke_assume_list_foldl assums (Term.Boolean true) CState.nil
+    __eo_invoke_assume_list logos_checker_init_state (logos_assumption_term assums)
+      = assums.foldl logos_invoke_input_assume logos_checker_init_state := by
+  simpa [logos_assumption_term, logos_checker_init_state, __eo_invoke_assume_list]
+    using invoke_assume_list_foldl assums (Term.Boolean true) logos_checker_init_state
 
 /-- The executable's refutation check is the generated `__eo_checker_is_refutation`. -/
 theorem logos_check_refutation_eq_checker (assums : List Term) (cmds : CCmdList) :
     logos_check_refutation assums cmds
       = __eo_checker_is_refutation (logos_assumption_term assums) cmds := by
-  simp [logos_check_refutation, __eo_checker_is_refutation, invoke_assume_list_eq_fold]
+  unfold logos_check_refutation __eo_checker_is_refutation
+  rw [← invoke_assume_list_eq_fold]
+  rfl
 
 /-- `logos_check_refutation` returning `true` is `eo_is_refutation` on the same data. -/
 theorem eo_is_refutation_of_check (assums : List Term) (cmds : CCmdList)
