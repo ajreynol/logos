@@ -247,14 +247,6 @@ assumptions the theorem talks about are whatever they read out of the file, and 
 compare them against an original input problem (`include` and `reference` are
 ignored).
 
-The second executable, `logos-native`, has the same guarantee stated the same way.
-`Cpc/ApiNative.lean` runs the three checks above on the assumptions and commands a
-Lean-native script names, using the same definitions, and
-`correct___logos_native_verdict` (`Cpc/ApiCorrect.lean`) concludes the same
-unsatisfiability from a script's `true` that `correct___logos_check_proof` concludes from a
-`correct`. What takes the place of the unverified parser there is the shape of the script,
-which nothing checks; see [docs/lean-native-proofs.md](docs/lean-native-proofs.md).
-
 The proof of the core checker is agnostic to the proof rules being used, i.e.
 the core definition of Logos and its correctness does not depend on the particular rules of the calculus.
 The proofs of correctness of each proof rule are contained in `Cpc/Proofs/Rules/`.

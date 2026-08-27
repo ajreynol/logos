@@ -62,8 +62,8 @@ Folding the guarded push over the parser's assumptions builds exactly the state
 -/
 theorem invoke_assume_list_eq_fold (assums : List Term) :
     __eo_invoke_assume_list CState.nil (logos_assumption_term assums)
-      = assums.foldl logos_invoke_input_assume logos_init_state := by
-  simpa [logos_assumption_term, logos_init_state, __eo_invoke_assume_list]
+      = assums.foldl logos_invoke_input_assume CState.nil := by
+  simpa [logos_assumption_term, __eo_invoke_assume_list]
     using invoke_assume_list_foldl assums (Term.Boolean true) CState.nil
 
 /-- The executable's refutation check is the generated `__eo_checker_is_refutation`. -/

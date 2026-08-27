@@ -75,8 +75,7 @@ PROOF_BUCKETS = [
     ("e", "closedness/evaluation invariance",  ["Cpc.Proofs.Closed.Support"], []),
     ("g", "top-level checker correctness",     [],
                                                ["Cpc.Proofs.Checker", "Cpc.Proofs.RuleLemmas",
-                                                "Cpc.Api", "Cpc.ApiChecks", "Cpc.ApiNative",
-                                                "Cpc.ApiCorrect"]),
+                                                "Cpc.Api", "Cpc.ApiChecks", "Cpc.ApiCorrect"]),
     ("f", "proofs of proof rule correctness",  ["Cpc.Proofs.Checker"], []),  # catch-all
 ]
 
