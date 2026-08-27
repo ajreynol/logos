@@ -43,10 +43,11 @@ USAGE
 }
 
 # The pinned commit of cvc5/ethos this repository is regenerated against.
-# b9fc583f is "Add core Eunoia compiler infrastructure (#229)", the commit that
-# put tools/eoc/driver.py and the lean_meta templates on ethos main. Moving the
-# pin changes what the compiler emits, so move it on purpose and rebuild the
-# generated packages afterwards.
+# 1ef8fe31 is the head of ethosEoc3, which is where the model semantics are
+# compiled from a configuration -- install/defs/Cpc.eos here -- rather than
+# read from a file in the ethos tree. Moving the pin changes what the compiler
+# emits, so move it on purpose and rebuild the generated packages afterwards.
+#
 # A leading ~ in --option=VALUE is not the shell's to expand: it does that at
 # the start of a word, and there the word starts with --option. So the tilde
 # arrives here as a character, and every option that takes a path expands it
@@ -60,7 +61,11 @@ expand_tilde() {
   esac
 }
 
-ETHOS_VERSION="b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6"
+# TODO: this is a workaround. ethosEoc3 is a development branch, and the pin
+# belongs on a commit of ethos main; move it back once what this needs is
+# there. It is pinned to a commit of the branch rather than to the branch
+# itself, so that what the compiler emits still changes only on purpose.
+ETHOS_VERSION="1ef8fe318774851da3339377daefa4f8c69bb429"
 DEPS_DIR=""
 JOBS=""
 KEEP_TMP=0
@@ -128,9 +133,8 @@ tar --strip-components 1 -xzf "${TMP_DIR}/ethos.tgz" -C "${ETHOS_DIR}"
 DRIVER="${ETHOS_DIR}/tools/eoc/driver.py"
 if [ ! -f "${DRIVER}" ]; then
   echo "error: ${DRIVER} is missing from the ethos tree." >&2
-  echo "The Eunoia compiler driver was added to ethos in #229. ETHOS_VERSION" >&2
-  echo "in this script is pinned to ${ETHOS_VERSION}," >&2
-  echo "which should contain it; a pin moved to an older commit will not." >&2
+  echo "ETHOS_VERSION in this script is pinned to ${ETHOS_VERSION}," >&2
+  echo "which should contain it; a pin moved to an older commit may not." >&2
   exit 1
 fi
 
@@ -164,8 +168,6 @@ cat > "${DEPS_DIR}/eoc-env.sh" <<ENV
 EOC_ETHOS_DIR="${ETHOS_DIR}"
 EOC_ETHOS_EOC="${ETHOS_EOC}"
 EOC_BUILD_DIR="${BUILD_DIR}"
-EOC_DEFS="${ETHOS_DIR}/plugins/model_smt/cpc_defs.eo"
-EOC_LEAN_CONFIG="${ETHOS_DIR}/plugins/lean_meta/cpc_termination.lean"
 EOC_ETHOS_VERSION="${ETHOS_VERSION}"
 ENV
 

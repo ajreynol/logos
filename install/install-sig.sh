@@ -54,7 +54,7 @@ Options:
                        kept here instead
   --ethos PATH         an ethos source tree containing tools/eoc/driver.py
                        (default: the one install/deps/eoc-env.sh records).
-                       Also redirects --build-dir, --defs and --lean-config to
+                       Also redirects --build-dir and --lean-config to
                        that tree, so a local checkout is never mixed with
                        install/deps/
   --cached             compile the copy of the signature kept in this
@@ -76,10 +76,12 @@ Options:
                        package, and exit 0 only if it is already up to date,
                        1 if an install would change it. Every other option
                        means the same under --check as without it
-  --defs PATH          the signature of the input written in the deep
-                       embedding, read by the model-smt stage
+  --semantics PATH     what the symbols of the signature mean, as a
+                       configuration the compiler compiles before it runs
+                       (default: <install>/defs/Cpc.eos)
   --lean-config PATH   why each recursive program of the input terminates,
-                       read by the lean-meta stage
+                       read by the lean-meta stage. Compiled from --semantics
+                       beside it, so naming one is rarely wanted
   --build-dir DIR      the ethos-eoc build tree
   --out-dir DIR        where to stage what the compiler publishes before it is
                        installed (default: <deps>/eoc-out)
@@ -121,7 +123,7 @@ RULES_GIVEN=0
 NO_PARSER=0
 NO_PARTIAL=0
 CHECK=0
-DEFS=""
+SEMANTICS=""
 LEAN_CONFIG=""
 BUILD_DIR=""
 OUT_DIR=""
@@ -149,8 +151,8 @@ while [ $# -gt 0 ]; do
       done
       ;;
     --check) CHECK=1; shift ;;
-    --defs) DEFS="${2:?--defs requires a value}"; shift 2 ;;
-    --defs=*) DEFS="${1#*=}"; shift ;;
+    --semantics) SEMANTICS="${2:?--semantics requires a value}"; shift 2 ;;
+    --semantics=*) SEMANTICS="${1#*=}"; shift ;;
     --lean-config) LEAN_CONFIG="${2:?--lean-config requires a value}"; shift 2 ;;
     --lean-config=*) LEAN_CONFIG="${1#*=}"; shift ;;
     --build-dir) BUILD_DIR="${2:?--build-dir requires a value}"; shift 2 ;;
@@ -190,7 +192,7 @@ RULES_ASKED_FOR="${RULES_GIVEN}"
 SIGNATURE="$(expand_tilde "${SIGNATURE}")"
 CACHE_FILE="$(expand_tilde "${CACHE_FILE}")"
 ETHOS_DIR="$(expand_tilde "${ETHOS_DIR}")"
-DEFS="$(expand_tilde "${DEFS}")"
+SEMANTICS="$(expand_tilde "${SEMANTICS}")"
 LEAN_CONFIG="$(expand_tilde "${LEAN_CONFIG}")"
 BUILD_DIR="$(expand_tilde "${BUILD_DIR}")"
 OUT_DIR="$(expand_tilde "${OUT_DIR}")"
@@ -218,8 +220,6 @@ fi
 # templates and still exits 0.
 if [ "${ETHOS_GIVEN}" = "1" ]; then
   EOC_BUILD_DIR=""
-  EOC_DEFS=""
-  EOC_LEAN_CONFIG=""
 fi
 
 ETHOS_DIR="${ETHOS_DIR:-${EOC_ETHOS_DIR:-}}"
@@ -445,8 +445,12 @@ if [ "${MINI}" = "1" ]; then
 fi
 PACKAGE="${PACKAGE:-Cpc}"
 
-DEFS="${DEFS:-${EOC_DEFS:-${ETHOS_DIR}/plugins/model_smt/cpc_defs.eo}}"
-LEAN_CONFIG="${LEAN_CONFIG:-${EOC_LEAN_CONFIG:-${ETHOS_DIR}/plugins/lean_meta/cpc_termination.lean}}"
+# The semantics are this repository's, not the compiler's: the compiler reads
+# the configuration and compiles it, beside itself, into the two files the
+# model-smt and lean-meta stages read. Only the second of those is named here;
+# the first the compiler works out for itself from what it compiled.
+SEMANTICS="${SEMANTICS:-${script_dir}/defs/Cpc.eos}"
+LEAN_CONFIG="${LEAN_CONFIG:-$(dirname "${SEMANTICS}")/user_termination.lean}"
 BUILD_DIR="${BUILD_DIR:-${EOC_BUILD_DIR:-${ETHOS_DIR}/build-eoc}}"
 OUT_DIR="${OUT_DIR:-${DEPS_DIR}/eoc-out}"
 DEST_DIR="${repo_root}/${PACKAGE}"
@@ -473,8 +477,13 @@ if [ "${CHECK}" = "1" ]; then
   fi
 fi
 
-[ -f "${DEFS}" ] || { echo "error: --defs file ${DEFS} not found." >&2; exit 1; }
-[ -f "${LEAN_CONFIG}" ] || { echo "error: --lean-config file ${LEAN_CONFIG} not found." >&2; exit 1; }
+[ -f "${SEMANTICS}" ] || {
+  echo "error: --semantics file ${SEMANTICS} not found." >&2
+  exit 1
+}
+# --lean-config is deliberately not checked here: it is compiled from
+# --semantics by the run itself, so on a fresh checkout it does not exist yet.
+# driver.py checks it after it has written it.
 
 # The signature-wide files the lean subcommand of driver.py publishes, in
 # module dependency order, as "<name under out/lean> <destination relative to
@@ -540,7 +549,8 @@ echo "    ethos    ${ETHOS_DIR}"
 echo "    package  ${PACKAGE_DIR}"
 
 driver_args=(lean --build-dir "${BUILD_DIR}" --final-out-dir "${OUT_DIR}"
-             --defs "${DEFS}" --lean-config "${LEAN_CONFIG}")
+             --signature "${SEMANTICS}" --lean-config "${LEAN_CONFIG}"
+             --skip-cvc5)
 if [ -x "${BUILD_DIR}/ethos-eoc" ]; then
   driver_args+=(--no-build)
 else
