@@ -23,7 +23,7 @@ However, Logos does not support arbitrary Eunoia signatures.
 Instead,
 the proof rules currently used by Logos are automatically generated from the current definition of CPC.
 This compilation depends on plugins of Ethos.
-The definition of Logos is intended to evolve and remain in sync with the definition of CPC
+The definition of Logos evolves and remains in sync with the definition of CPC
 as further reasoning capabilities are added to cvc5.
 See [Regenerating the calculus](#regenerating-the-calculus) for how to rerun that compilation.
 
@@ -42,8 +42,8 @@ is not enough.
 
 The checker executable is `logos`; it checks CPC proofs in s-expression syntax.
 The first build of a CPC executable takes roughly 3.5 minutes currently. A
-second executable, `logos-native`, reads a different and unverified input
-format; see [docs/lean-native-proofs.md](docs/lean-native-proofs.md).
+second executable, `logos-native`, reads an internal input format; see
+[docs/lean-native-proofs.md](docs/lean-native-proofs.md).
 
 `CpcMini` is a cut-down calculus used to develop and test the proofs; it has no
 parser and no executable of its own.
