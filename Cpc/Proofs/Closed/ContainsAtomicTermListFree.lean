@@ -5155,7 +5155,7 @@ by
   subst idx
   change __smtx_model_eval M (SmtTerm.Numeral i) =
     __smtx_model_eval N (SmtTerm.Numeral i)
-  rw [__smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_Numeral, __smtx_model_eval.eq_Numeral]
 
 theorem smt_model_eval_eq_of_eo_to_smt_eq_dt_sel
     {idx : Term} {M N : SmtModel}

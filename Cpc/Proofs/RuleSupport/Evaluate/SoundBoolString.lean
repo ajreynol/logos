@@ -137,7 +137,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_and_core
       simpa [RuleProofs.eo_has_bool_type] using hABool
     have hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.Bool := by
       simpa [RuleProofs.eo_has_bool_type] using hBBool
-    rw [typeof_and_eq, hATy, hBTy, __smtx_typeof.eq_1]
+    rw [typeof_and_eq, hATy, hBTy, __smtx_typeof.eq_Boolean]
     simp [native_ite, native_Teq]
   · have hARelBool :
         RuleProofs.smt_value_rel
@@ -282,7 +282,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_or_core
       simpa [RuleProofs.eo_has_bool_type] using hABool
     have hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.Bool := by
       simpa [RuleProofs.eo_has_bool_type] using hBBool
-    rw [typeof_or_eq, hATy, hBTy, __smtx_typeof.eq_1]
+    rw [typeof_or_eq, hATy, hBTy, __smtx_typeof.eq_Boolean]
     simp [native_ite, native_Teq]
   · have hARelBool :
         RuleProofs.smt_value_rel
@@ -427,7 +427,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_xor_core
       simpa [RuleProofs.eo_has_bool_type] using hABool
     have hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.Bool := by
       simpa [RuleProofs.eo_has_bool_type] using hBBool
-    rw [typeof_xor_eq, hATy, hBTy, __smtx_typeof.eq_1]
+    rw [typeof_xor_eq, hATy, hBTy, __smtx_typeof.eq_Boolean]
     simp [native_ite, native_Teq]
   · have hARelBool :
         RuleProofs.smt_value_rel
@@ -617,7 +617,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_imp_core
       simpa [RuleProofs.eo_has_bool_type] using hABool
     have hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.Bool := by
       simpa [RuleProofs.eo_has_bool_type] using hBBool
-    rw [typeof_imp_eq, hATy, hBTy, __smtx_typeof.eq_1]
+    rw [typeof_imp_eq, hATy, hBTy, __smtx_typeof.eq_Boolean]
     simp [native_ite, native_Teq]
   · have hARelBool :
         RuleProofs.smt_value_rel
@@ -857,12 +857,12 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_concat_core
         __smtx_model_eval M (__eo_to_smt (Term.String sx)) =
           SmtValue.Seq (native_pack_string sx) := by
       rw [show __eo_to_smt (Term.String sx) = SmtTerm.String sx by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hSyEval :
         __smtx_model_eval M (__eo_to_smt (Term.String sy)) =
           SmtValue.Seq (native_pack_string sy) := by
       rw [show __eo_to_smt (Term.String sy) = SmtTerm.String sy by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hARelString :
         RuleProofs.smt_value_rel
           (__smtx_model_eval M (__eo_to_smt a))
@@ -900,13 +900,13 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_concat_core
           __smtx_model_eval_str_concat
             (__smtx_model_eval M (__eo_to_smt a))
             (__smtx_model_eval M (__eo_to_smt b)) by
-      rw [__smtx_model_eval.eq_79]]
+      rw [__smtx_model_eval.eq_str_concat]]
     rw [hAEval, hBEval, hASeqEq, hBSeqEq]
     rw [show __eo_to_smt
           (__eo_concat (Term.String sx) (Term.String sy)) =
         SmtTerm.String (native_str_concat sx sy) by
       rfl]
-    rw [__smtx_model_eval.eq_4]
+    rw [__smtx_model_eval.eq_String]
     simp [__smtx_model_eval_str_concat, native_seq_concat,
       native_pack_string, native_str_concat, EvaluateProofInternal.native_unpack_pack_seq_local,
       EvaluateProofInternal.elem_typeof_pack_seq_local, List.map_append,
@@ -1010,12 +1010,12 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_at_core
         __smtx_model_eval M (__eo_to_smt (Term.String str)) =
           SmtValue.Seq (native_pack_string str) := by
       rw [show __eo_to_smt (Term.String str) = SmtTerm.String str by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hIdxEval :
         __smtx_model_eval M (__eo_to_smt (Term.Numeral i)) =
           SmtValue.Numeral i := by
       rw [show __eo_to_smt (Term.Numeral i) = SmtTerm.Numeral i by rfl]
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
     have hARelRun :
         RuleProofs.smt_value_rel
           (__smtx_model_eval M (__eo_to_smt a))
@@ -1062,7 +1062,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_at_core
           __eo_to_smt (Term.String (native_str_substr str i 1)) =
             SmtTerm.String (native_str_substr str i 1) by
         rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     unfold RuleProofs.smt_value_rel
     rw [show
         __smtx_model_eval M
@@ -1219,12 +1219,12 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_prefixof_core
         __smtx_model_eval M (__eo_to_smt (Term.String sx)) =
           SmtValue.Seq (native_pack_string sx) := by
       rw [show __eo_to_smt (Term.String sx) = SmtTerm.String sx by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hSyEval :
         __smtx_model_eval M (__eo_to_smt (Term.String sy)) =
           SmtValue.Seq (native_pack_string sy) := by
       rw [show __eo_to_smt (Term.String sy) = SmtTerm.String sy by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hARelRun :
         RuleProofs.smt_value_rel
           (__smtx_model_eval M (__eo_to_smt a))
@@ -1296,7 +1296,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_prefixof_core
                 (Term.String (native_str_substr sy 0 (native_str_len sx)))
                 (Term.String sx)) by
         rfl]
-      rw [__smtx_model_eval.eq_1]]
+      rw [__smtx_model_eval.eq_Boolean]]
     simp only [__smtx_model_eval_str_prefixof, __smtx_model_eval_str_len,
       __smtx_model_eval_str_substr]
     rw [show
@@ -1476,12 +1476,12 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_suffixof_core
         __smtx_model_eval M (__eo_to_smt (Term.String sx)) =
           SmtValue.Seq (native_pack_string sx) := by
       rw [show __eo_to_smt (Term.String sx) = SmtTerm.String sx by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hSyEval :
         __smtx_model_eval M (__eo_to_smt (Term.String sy)) =
           SmtValue.Seq (native_pack_string sy) := by
       rw [show __eo_to_smt (Term.String sy) = SmtTerm.String sy by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hARelRun :
         RuleProofs.smt_value_rel
           (__smtx_model_eval M (__eo_to_smt a))
@@ -1565,7 +1565,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_suffixof_core
                     (native_str_len sx)))
                 (Term.String sx)) by
         rfl]
-      rw [__smtx_model_eval.eq_1]]
+      rw [__smtx_model_eval.eq_Boolean]]
     simp only [__smtx_model_eval_str_suffixof, __smtx_model_eval_str_len,
       __smtx_model_eval_str_substr, __smtx_model_eval__]
     rw [show
@@ -1717,12 +1717,12 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_contains_core
         __smtx_model_eval M (__eo_to_smt (Term.String sx)) =
           SmtValue.Seq (native_pack_string sx) := by
       rw [show __eo_to_smt (Term.String sx) = SmtTerm.String sx by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hSyEval :
         __smtx_model_eval M (__eo_to_smt (Term.String sy)) =
           SmtValue.Seq (native_pack_string sy) := by
       rw [show __eo_to_smt (Term.String sy) = SmtTerm.String sy by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hARelRun :
         RuleProofs.smt_value_rel
           (__smtx_model_eval M (__eo_to_smt a))
@@ -1786,7 +1786,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_contains_core
             SmtTerm.Boolean
               (native_not (native_zlt (native_str_indexof sx sy 0) 0)) by
         rfl]
-      rw [__smtx_model_eval.eq_1]]
+      rw [__smtx_model_eval.eq_Boolean]]
     simp only [__smtx_model_eval_str_contains]
     rw [EvaluateProofInternal.native_seq_contains_pack_string]
     exact RuleProofs.smtx_model_eval_eq_refl _
@@ -1797,7 +1797,7 @@ theorem EvaluateProofInternal.smt_model_eval_eo_to_smt_numeral_term
       SmtValue.Numeral i := by
   change __smtx_model_eval M (SmtTerm.Numeral i) =
     SmtValue.Numeral i
-  rw [__smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_Numeral]
 
 theorem EvaluateProofInternal.smt_typeof_str_indexof_eq_typeof_numeral_of_arg_types
     (s pat n : Term) (T : SmtType) (i : native_Int)
@@ -1954,7 +1954,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_indexof_core
     rw [hRunN]
     change __smtx_model_eval M (SmtTerm.Numeral i) =
       SmtValue.Numeral i
-    rw [__smtx_model_eval.eq_2]
+    rw [__smtx_model_eval.eq_Numeral]
   have hNRelRun :
       RuleProofs.smt_value_rel
         (__smtx_model_eval M (__eo_to_smt n))
@@ -2089,7 +2089,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_indexof_core
           rw [hRunS]
           change __smtx_model_eval M (SmtTerm.String str) =
             SmtValue.Seq (native_pack_string str)
-          rw [__smtx_model_eval.eq_4]
+          rw [__smtx_model_eval.eq_String]
         rcases EvaluateProofInternal.smt_model_eval_seq_of_type_local M hM (__eo_to_smt pat)
             SmtType.Char (by simpa using hPatTySeq) with
           ⟨patSeq, hPatEval⟩
@@ -2250,14 +2250,14 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_indexof_core
           rw [hRunS]
           change __smtx_model_eval M (SmtTerm.String str) =
             SmtValue.Seq (native_pack_string str)
-          rw [__smtx_model_eval.eq_4]
+          rw [__smtx_model_eval.eq_String]
         have hRunPatEval :
             __smtx_model_eval M (__eo_to_smt runPat) =
               SmtValue.Seq (native_pack_string patStr) := by
           rw [hRunPat]
           change __smtx_model_eval M (SmtTerm.String patStr) =
             SmtValue.Seq (native_pack_string patStr)
-          rw [__smtx_model_eval.eq_4]
+          rw [__smtx_model_eval.eq_String]
         have hEvalRunIndex :
             __smtx_model_eval_str_indexof
                 (__smtx_model_eval M (__eo_to_smt runS))
@@ -2395,7 +2395,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_update_core
   rcases EvaluateProofInternal.eo_gt_int_args_numeral_of_nonstuck (Term.Numeral 0) runN
       (by
         change __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int
-        rw [__smtx_typeof.eq_2])
+        rw [__smtx_typeof.eq_Numeral])
       hRunNTy hNegGtNe with
     ⟨zero, i, hZero, hRunN⟩
   cases hZero
@@ -2404,7 +2404,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_update_core
     rw [hRunN]
     change __smtx_model_eval M (SmtTerm.Numeral i) =
       SmtValue.Numeral i
-    rw [__smtx_model_eval.eq_2]
+    rw [__smtx_model_eval.eq_Numeral]
   have hGtLenNe : __eo_gt runN runLen ≠ Term.Stuck := by
     intro hStuck
     rw [hStuck] at hGtLenBool
@@ -2429,7 +2429,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_update_core
     rw [hRunS]
     change __smtx_model_eval M (SmtTerm.String str) =
       SmtValue.Seq (native_pack_string str)
-    rw [__smtx_model_eval.eq_4]
+    rw [__smtx_model_eval.eq_String]
   have hSRelRun :
       RuleProofs.smt_value_rel
         (__smtx_model_eval M (__eo_to_smt s))
@@ -2491,7 +2491,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_update_core
             SmtValue.Seq (native_pack_string str) by
         change __smtx_model_eval M (SmtTerm.String str) =
           SmtValue.Seq (native_pack_string str)
-        rw [__smtx_model_eval.eq_4]]
+        rw [__smtx_model_eval.eq_String]]
       exact
         EvaluateProofInternal.smt_value_rel_model_eval_str_update_to_string_of_runs
           M s n repl runS runN repl str
@@ -2550,7 +2550,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_update_core
               SmtValue.Seq (native_pack_string str) by
           change __smtx_model_eval M (SmtTerm.String str) =
             SmtValue.Seq (native_pack_string str)
-          rw [__smtx_model_eval.eq_4]]
+          rw [__smtx_model_eval.eq_String]]
         exact
           EvaluateProofInternal.smt_value_rel_model_eval_str_update_to_string_of_runs
             M s n repl runS runN repl str
@@ -2629,7 +2629,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_update_core
         rw [hRunRepl]
         change __smtx_model_eval M (SmtTerm.String replStr) =
           SmtValue.Seq (native_pack_string replStr)
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hRunUpdateEq :
           runUpdate =
             Term.String (EvaluateProofInternal.native_seq_update_string_result str i replStr) := by
@@ -2674,7 +2674,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_update_core
               SmtValue.Seq
                 (native_pack_string
                   (EvaluateProofInternal.native_seq_update_string_result str i replStr))
-          rw [__smtx_model_eval.eq_4]]
+          rw [__smtx_model_eval.eq_String]]
         exact
           EvaluateProofInternal.smt_value_rel_model_eval_str_update_to_string_of_runs
             M s n repl runS runN runRepl
@@ -2825,12 +2825,12 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_leq_core
           __smtx_model_eval M (__eo_to_smt (Term.String sx)) =
             SmtValue.Seq (native_pack_string sx) := by
         rw [show __eo_to_smt (Term.String sx) = SmtTerm.String sx by rfl]
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hSyEval :
           __smtx_model_eval M (__eo_to_smt (Term.String sy)) =
             SmtValue.Seq (native_pack_string sy) := by
         rw [show __eo_to_smt (Term.String sy) = SmtTerm.String sy by rfl]
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hARelString :
           RuleProofs.smt_value_rel
             (__smtx_model_eval M (__eo_to_smt a))
@@ -2876,7 +2876,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_leq_core
         rw [show __eo_to_smt (Term.Boolean leqBool) =
           SmtTerm.Boolean leqBool by
           rfl]
-        rw [__smtx_model_eval.eq_1]]
+        rw [__smtx_model_eval.eq_Boolean]]
       dsimp [leqBool]
       rw [EvaluateProofInternal.smtx_model_eval_str_leq_pack_string sx sy]
       exact RuleProofs.smtx_model_eval_eq_refl _
@@ -3090,14 +3090,14 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_core
         rw [hRunS]
         change __smtx_model_eval M (SmtTerm.String str) =
           SmtValue.Seq (native_pack_string str)
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hRunPatEval :
           __smtx_model_eval M (__eo_to_smt runPat) =
             SmtValue.Seq (native_pack_string patStr) := by
         rw [hRunPat]
         change __smtx_model_eval M (SmtTerm.String patStr) =
           SmtValue.Seq (native_pack_string patStr)
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       rcases EvaluateProofInternal.smt_model_eval_seq_of_type_local M hM (__eo_to_smt repl)
           SmtType.Char (by simpa using hReplTySeq) with
         ⟨replSeq, hReplEval⟩
@@ -3114,7 +3114,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_core
               (SmtValue.Seq (native_pack_string patStr))
               (SmtValue.Seq replSeq) =
             __smtx_model_eval M (SmtTerm.String str)
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
         cases patStr with
         | nil =>
             simp [native_str_indexof, native_str_indexof_rec,
@@ -3272,21 +3272,21 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_core
         rw [hRunS]
         change __smtx_model_eval M (SmtTerm.String str) =
           SmtValue.Seq (native_pack_string str)
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hRunPatEval :
           __smtx_model_eval M (__eo_to_smt runPat) =
             SmtValue.Seq (native_pack_string patStr) := by
         rw [hRunPat]
         change __smtx_model_eval M (SmtTerm.String patStr) =
           SmtValue.Seq (native_pack_string patStr)
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hRunReplEval :
           __smtx_model_eval M (__eo_to_smt runRepl) =
             SmtValue.Seq (native_pack_string replStr) := by
         rw [hRunRepl]
         change __smtx_model_eval M (SmtTerm.String replStr) =
           SmtValue.Seq (native_pack_string replStr)
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hEvalRunReplace :
           __smtx_model_eval_str_replace
               (__smtx_model_eval M (__eo_to_smt runS))
@@ -3305,7 +3305,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_core
             __smtx_model_eval M
               (SmtTerm.String
                 (EvaluateProofInternal.native_str_replace_eval_result str patStr replStr))
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
         simp only [__smtx_model_eval_str_replace]
         rw [show
             __smtx_elem_typeof_seq_value (native_pack_string str) =
@@ -3433,7 +3433,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_all_core
               SmtValue.Seq (native_pack_string str) by
           change __smtx_model_eval M (SmtTerm.String str) =
             SmtValue.Seq (native_pack_string str)
-          rw [__smtx_model_eval.eq_4]]
+          rw [__smtx_model_eval.eq_String]]
         rw [EvaluateProofInternal.smtx_model_eval_str_replace_all_pack_string_nil]
         exact RuleProofs.smt_value_rel_refl _
   | cons p ps =>
@@ -3493,7 +3493,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_all_core
               SmtValue.Seq
                 (native_pack_string
                   (EvaluateProofInternal.native_str_replace_all_chain (p :: ps) replStr 0 str))
-          rw [__smtx_model_eval.eq_4]]
+          rw [__smtx_model_eval.eq_String]]
         rw [EvaluateProofInternal.smtx_model_eval_str_replace_all_pack_string]
         rw [EvaluateProofInternal.native_str_replace_all_eval_result_cons_eq_chain]
         exact RuleProofs.smt_value_rel_refl _
@@ -3638,19 +3638,19 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_substr_core
         __smtx_model_eval M (__eo_to_smt (Term.String str)) =
           SmtValue.Seq (native_pack_string str) := by
       rw [show __eo_to_smt (Term.String str) = SmtTerm.String str by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hStartEvalTerm :
         __smtx_model_eval M (__eo_to_smt (Term.Numeral start)) =
           SmtValue.Numeral start := by
       rw [show __eo_to_smt (Term.Numeral start) =
           SmtTerm.Numeral start by rfl]
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
     have hLenEvalTerm :
         __smtx_model_eval M (__eo_to_smt (Term.Numeral len)) =
           SmtValue.Numeral len := by
       rw [show __eo_to_smt (Term.Numeral len) =
           SmtTerm.Numeral len by rfl]
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
     have hSRelRun :
         RuleProofs.smt_value_rel
           (__smtx_model_eval M (__eo_to_smt s))
@@ -3717,7 +3717,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_substr_core
           __eo_to_smt (Term.String (native_str_substr str start len)) =
             SmtTerm.String (native_str_substr str start len) by
         rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     unfold RuleProofs.smt_value_rel
     rw [show
         __smtx_model_eval M
@@ -3808,7 +3808,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_len_core
       __smtx_typeof (SmtTerm.str_len (__eo_to_smt b)) =
         __smtx_typeof (SmtTerm.Numeral (native_str_len str))
     rw [typeof_str_len_eq]
-    rw [__smtx_typeof.eq_2]
+    rw [__smtx_typeof.eq_Numeral]
     simp [__smtx_typeof_seq_op_1_ret, hBTySeq]
   · have hRelRun :
         RuleProofs.smt_value_rel
@@ -3835,7 +3835,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_len_core
         __smtx_model_eval M (__eo_to_smt (Term.String str)) =
           SmtValue.Seq (native_pack_string str) := by
       rw [show __eo_to_smt (Term.String str) = SmtTerm.String str by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hEvalLenString :
         __smtx_model_eval M
             (__eo_to_smt (Term.Numeral (native_str_len str))) =
@@ -3845,7 +3845,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_len_core
       change
         __smtx_model_eval M (SmtTerm.Numeral (native_str_len str)) =
           __smtx_model_eval_str_len (SmtValue.Seq (native_pack_string str))
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
       simp [__smtx_model_eval_str_len, native_pack_string,
         EvaluateProofInternal.native_unpack_pack_seq_local, native_seq_len, native_str_len]
     rw [hEvalLenB, hEvalLenString]
@@ -3942,7 +3942,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_code_core
       __smtx_typeof (SmtTerm.str_to_code (__eo_to_smt b)) =
         __smtx_typeof (SmtTerm.Numeral (native_str_to_code str))
     rw [typeof_str_to_code_eq]
-    rw [__smtx_typeof.eq_2]
+    rw [__smtx_typeof.eq_Numeral]
     simp [hBTyChar, native_Teq, native_ite]
   · have hRelRun :
         RuleProofs.smt_value_rel
@@ -3969,7 +3969,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_code_core
         __smtx_model_eval M (__eo_to_smt (Term.String str)) =
           SmtValue.Seq (native_pack_string str) := by
       rw [show __eo_to_smt (Term.String str) = SmtTerm.String str by rfl]
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hEvalCodeString :
         __smtx_model_eval M
             (__eo_to_smt (Term.Numeral (native_str_to_code str))) =
@@ -3979,7 +3979,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_code_core
       change
         __smtx_model_eval M (SmtTerm.Numeral (native_str_to_code str)) =
           __smtx_model_eval_str_to_code (SmtValue.Seq (native_pack_string str))
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
       simp [__smtx_model_eval_str_to_code,
         RuleProofs.native_unpack_string_pack_string]
     rw [hEvalCodeB, hEvalCodeString]
@@ -4088,7 +4088,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
         __smtx_typeof (SmtTerm.str_to_int (__eo_to_smt b)) =
           __smtx_typeof (SmtTerm.Numeral (native_str_to_int s))
       rw [typeof_str_to_int_eq]
-      rw [__smtx_typeof.eq_2]
+      rw [__smtx_typeof.eq_Numeral]
       simp [hBTyChar, native_Teq, native_ite]
     · have hRelString :
           RuleProofs.smt_value_rel
@@ -4105,12 +4105,12 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
           __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt b)) =
             __smtx_model_eval_str_to_int
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_94]
+        rw [__smtx_model_eval.eq_str_to_int]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
         rw [show __eo_to_smt (Term.String s) = SmtTerm.String s by rfl]
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hEvalIntString :
           __smtx_model_eval M
               (__eo_to_smt (Term.Numeral (native_str_to_int s))) =
@@ -4121,7 +4121,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
           __smtx_model_eval M (SmtTerm.Numeral (native_str_to_int s)) =
             __smtx_model_eval_str_to_int
               (SmtValue.Seq (native_pack_string s))
-        rw [__smtx_model_eval.eq_2]
+        rw [__smtx_model_eval.eq_Numeral]
         simp [__smtx_model_eval_str_to_int,
           RuleProofs.native_unpack_string_pack_string]
       rw [hEvalIntB, hEvalIntString]
@@ -4149,7 +4149,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
           __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt b)) =
             __smtx_model_eval_str_to_int
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_94]
+        rw [__smtx_model_eval.eq_str_to_int]
       have hEvalIntRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -4160,7 +4160,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
           __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt runArg)) =
             __smtx_model_eval_str_to_int
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_94]
+        rw [__smtx_model_eval.eq_str_to_int]
       rw [hEvalIntB, hEvalIntRun]
       exact hRelInt
 
@@ -4317,12 +4317,12 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_lower_core
           __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt b)) =
             __smtx_model_eval_str_to_lower
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_89]
+        rw [__smtx_model_eval.eq_str_to_lower]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
         rw [show __eo_to_smt (Term.String s) = SmtTerm.String s by rfl]
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hEvalLowerString :
           __smtx_model_eval M
               (__eo_to_smt (Term.String (native_str_to_lower s))) =
@@ -4331,7 +4331,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_lower_core
         rw [hEvalString]
         rw [show __eo_to_smt (Term.String (native_str_to_lower s)) =
           SmtTerm.String (native_str_to_lower s) by rfl]
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
         simp [__smtx_model_eval_str_to_lower,
           RuleProofs.native_unpack_string_pack_string]
       rw [hEvalLowerB, hEvalLowerString]
@@ -4369,7 +4369,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_lower_core
           __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt b)) =
             __smtx_model_eval_str_to_lower
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_89]
+        rw [__smtx_model_eval.eq_str_to_lower]
       have hEvalLowerRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -4380,7 +4380,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_lower_core
           __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt runArg)) =
             __smtx_model_eval_str_to_lower
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_89]
+        rw [__smtx_model_eval.eq_str_to_lower]
       rw [hEvalLowerB, hEvalLowerRun]
       exact hRelLower
 
@@ -4537,12 +4537,12 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_upper_core
           __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt b)) =
             __smtx_model_eval_str_to_upper
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_90]
+        rw [__smtx_model_eval.eq_str_to_upper]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
         rw [show __eo_to_smt (Term.String s) = SmtTerm.String s by rfl]
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hEvalUpperString :
           __smtx_model_eval M
               (__eo_to_smt (Term.String (native_str_to_upper s))) =
@@ -4551,7 +4551,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_upper_core
         rw [hEvalString]
         rw [show __eo_to_smt (Term.String (native_str_to_upper s)) =
           SmtTerm.String (native_str_to_upper s) by rfl]
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
         simp [__smtx_model_eval_str_to_upper,
           RuleProofs.native_unpack_string_pack_string]
       rw [hEvalUpperB, hEvalUpperString]
@@ -4589,7 +4589,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_upper_core
           __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt b)) =
             __smtx_model_eval_str_to_upper
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_90]
+        rw [__smtx_model_eval.eq_str_to_upper]
       have hEvalUpperRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -4600,7 +4600,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_upper_core
           __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt runArg)) =
             __smtx_model_eval_str_to_upper
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_90]
+        rw [__smtx_model_eval.eq_str_to_upper]
       rw [hEvalUpperB, hEvalUpperRun]
       exact hRelUpper
 
@@ -4754,12 +4754,12 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_rev_core
           __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt b)) =
             __smtx_model_eval_str_rev
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_87]
+        rw [__smtx_model_eval.eq_str_rev]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
         rw [show __eo_to_smt (Term.String s) = SmtTerm.String s by rfl]
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       have hEvalRevString :
           __smtx_model_eval M (__eo_to_smt (Term.String s.reverse)) =
             __smtx_model_eval_str_rev
@@ -4767,7 +4767,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_rev_core
         rw [hEvalString]
         rw [show __eo_to_smt (Term.String s.reverse) =
           SmtTerm.String s.reverse by rfl]
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
         simp [__smtx_model_eval_str_rev, native_pack_string,
           EvaluateProofInternal.native_unpack_pack_seq_local, EvaluateProofInternal.elem_typeof_pack_seq_local,
           native_seq_rev]
@@ -4804,7 +4804,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_rev_core
           __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt b)) =
             __smtx_model_eval_str_rev
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_87]
+        rw [__smtx_model_eval.eq_str_rev]
       have hEvalRevRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -4815,7 +4815,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_rev_core
           __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt runArg)) =
             __smtx_model_eval_str_rev
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_87]
+        rw [__smtx_model_eval.eq_str_rev]
       rw [hEvalRevB, hEvalRevRun]
       exact hRelRev
 
@@ -4914,7 +4914,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_code_core
         rw [show __eo_to_smt (Term.Numeral runN) =
             SmtTerm.Numeral runN by
           rfl] at hXRel
-        rw [__smtx_model_eval.eq_2] at hXRel
+        rw [__smtx_model_eval.eq_Numeral] at hXRel
         exact hXRel
       have hXEval :
           __smtx_model_eval M (__eo_to_smt x) =
@@ -4926,7 +4926,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_code_core
               (SmtTerm.str_from_code (__eo_to_smt x)) =
             __smtx_model_eval_str_from_code
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_92]]
+        rw [__smtx_model_eval.eq_str_from_code]]
       rw [show
           __eo_to_smt (Term.String (native_str_from_code runN)) =
             SmtTerm.String (native_str_from_code runN) by
@@ -4937,7 +4937,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_code_core
           (SmtValue.Seq (native_pack_string (native_str_from_code runN)))
           (__smtx_model_eval M
             (SmtTerm.String (native_str_from_code runN)))
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
       exact RuleProofs.smt_value_rel_refl _
   all_goals
     exfalso
@@ -5027,7 +5027,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
         rw [show __eo_to_smt (Term.Numeral runN) =
             SmtTerm.Numeral runN by
           rfl] at hXRel
-        rw [__smtx_model_eval.eq_2] at hXRel
+        rw [__smtx_model_eval.eq_Numeral] at hXRel
         exact hXRel
       have hXEval :
           __smtx_model_eval M (__eo_to_smt x) =
@@ -5039,7 +5039,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
               (SmtTerm.str_from_int (__eo_to_smt x)) =
             __smtx_model_eval_str_from_int
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_95]]
+        rw [__smtx_model_eval.eq_str_from_int]]
       rw [show
           __eo_to_smt (Term.String (native_str_from_int runN)) =
             SmtTerm.String (native_str_from_int runN) by
@@ -5050,7 +5050,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
           (SmtValue.Seq (native_pack_string (native_str_from_int runN)))
           (__smtx_model_eval M
             (SmtTerm.String (native_str_from_int runN)))
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
       exact RuleProofs.smt_value_rel_refl _
   all_goals
     have hRunXNe : __run_evaluate x ≠ Term.Stuck := by
@@ -5087,7 +5087,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
               (SmtTerm.str_from_int (__eo_to_smt x)) =
             __smtx_model_eval_str_from_int
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_95]]
+        rw [__smtx_model_eval.eq_str_from_int]]
       rw [show
           __smtx_model_eval M
               (__eo_to_smt
@@ -5100,7 +5100,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
               (SmtTerm.str_from_int (__eo_to_smt (__run_evaluate x))) =
             __smtx_model_eval_str_from_int
               (__smtx_model_eval M (__eo_to_smt (__run_evaluate x)))
-        rw [__smtx_model_eval.eq_95]]
+        rw [__smtx_model_eval.eq_str_from_int]]
       exact hRelFrom
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core
@@ -5222,7 +5222,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core
               (__smtx_typeof (__eo_to_smt x)) SmtType.Int by
         rw [smtx_typeof_ubv_to_int_term_eq]]
       rw [hxSmtTy]
-      rw [__smtx_typeof.eq_2]
+      rw [__smtx_typeof.eq_Numeral]
       simp [__smtx_typeof_bv_op_1_ret]
     · have hXRelValue :
           RuleProofs.smt_value_rel
@@ -5232,7 +5232,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core
         rw [show __eo_to_smt (Term.Binary runW runN) =
             SmtTerm.Binary runW runN by
           rfl] at hXRel
-        rw [__smtx_model_eval.eq_5] at hXRel
+        rw [__smtx_model_eval.eq_Binary] at hXRel
         exact hXRel
       have hXEval :
           __smtx_model_eval M (__eo_to_smt x) =
@@ -5250,25 +5250,25 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core
         RuleProofs.smt_value_rel
           (SmtValue.Numeral runN)
           (__smtx_model_eval M (SmtTerm.Numeral runN))
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
       exact RuleProofs.smt_value_rel_refl _
   case Numeral runN =>
     rw [hRunX] at hRunXSmtTy
     change __smtx_typeof (SmtTerm.Numeral runN) =
       SmtType.BitVec w at hRunXSmtTy
-    rw [__smtx_typeof.eq_2] at hRunXSmtTy
+    rw [__smtx_typeof.eq_Numeral] at hRunXSmtTy
     cases hRunXSmtTy
   case Rational runQ =>
     rw [hRunX] at hRunXSmtTy
     change __smtx_typeof (SmtTerm.Rational runQ) =
       SmtType.BitVec w at hRunXSmtTy
-    rw [__smtx_typeof.eq_3] at hRunXSmtTy
+    rw [__smtx_typeof.eq_Rational] at hRunXSmtTy
     cases hRunXSmtTy
   case String runS =>
     rw [hRunX] at hRunXSmtTy
     change __smtx_typeof (SmtTerm.String runS) =
       SmtType.BitVec w at hRunXSmtTy
-    rw [__smtx_typeof.eq_4] at hRunXSmtTy
+    rw [__smtx_typeof.eq_String] at hRunXSmtTy
     cases hValid : native_string_valid runS <;>
       simp [native_ite, hValid] at hRunXSmtTy
   all_goals
@@ -5447,7 +5447,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_sbv_to_int_core
               (__smtx_typeof (__eo_to_smt x)) SmtType.Int by
         rw [__smtx_typeof.eq_def] <;> simp only]
       rw [hxSmtTy]
-      rw [__smtx_typeof.eq_2]
+      rw [__smtx_typeof.eq_Numeral]
       simp [__smtx_typeof_bv_op_1_ret]
     · rw [show
           __smtx_model_eval M
@@ -5459,7 +5459,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_sbv_to_int_core
       change
         RuleProofs.smt_value_rel (SmtValue.Numeral 0)
           (__smtx_model_eval M (SmtTerm.Numeral 0))
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
       exact RuleProofs.smt_value_rel_refl _
   · have hwNatPos : 0 < w := Nat.pos_of_ne_zero hwZero
     have hwIntPos : 0 < native_nat_to_int w := by
@@ -5507,7 +5507,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_sbv_to_int_core
               (__smtx_typeof (SmtTerm.Binary runW runN)) SmtType.Int by
         rw [__smtx_typeof.eq_def] <;> simp only]
       rw [hxSmtTy]
-      rw [__smtx_typeof.eq_2]
+      rw [__smtx_typeof.eq_Numeral]
       simp [__smtx_typeof_bv_op_1_ret]
     · rw [show
           __smtx_model_eval M
@@ -5515,11 +5515,11 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_sbv_to_int_core
             __smtx_model_eval_sbv_to_int
               (__smtx_model_eval M (SmtTerm.Binary runW runN)) by
         rw [__smtx_model_eval.eq_def] <;> simp only]
-      rw [__smtx_model_eval.eq_5]
+      rw [__smtx_model_eval.eq_Binary]
       change
         RuleProofs.smt_value_rel
           (SmtValue.Numeral (native_binary_uts runW runN))
           (__smtx_model_eval M
             (SmtTerm.Numeral (native_binary_uts runW runN)))
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
       exact RuleProofs.smt_value_rel_refl _

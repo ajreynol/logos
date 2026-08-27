@@ -191,7 +191,7 @@ theorem AddListEval.type_int
   induction h with
   | nil =>
       change __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int
-      rw [__smtx_typeof.eq_2]
+      rw [__smtx_typeof.eq_Numeral]
   | cons hxTy _ _ ih =>
       change __smtx_typeof (SmtTerm.plus _ _) = SmtType.Int
       rw [typeof_plus_eq]
@@ -204,7 +204,7 @@ theorem MulListEval.type_int
   induction h with
   | nil =>
       change __smtx_typeof (SmtTerm.Numeral 1) = SmtType.Int
-      rw [__smtx_typeof.eq_2]
+      rw [__smtx_typeof.eq_Numeral]
   | cons hxTy _ _ ih =>
       change __smtx_typeof (SmtTerm.mult _ _) = SmtType.Int
       rw [typeof_mult_eq]
@@ -217,7 +217,7 @@ theorem AddListEval.eval
   induction h with
   | nil =>
       change __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
   | cons _ hxEval _ ih =>
       change __smtx_model_eval M (SmtTerm.plus _ _) = _
       rw [smtx_eval_plus_term_eq, hxEval, ih]
@@ -230,7 +230,7 @@ theorem MulListEval.eval
   induction h with
   | nil =>
       change __smtx_model_eval M (SmtTerm.Numeral 1) = SmtValue.Numeral 1
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
   | cons _ hxEval _ ih =>
       change __smtx_model_eval M (SmtTerm.mult _ _) = _
       rw [smtx_eval_mult_term_eq, hxEval, ih]
@@ -306,7 +306,7 @@ theorem AddListEval.of_type_and_list
             native_teq, native_not, SmtEval.native_not, native_and] at hList
   | Rational q =>
       change __smtx_typeof (SmtTerm.Rational q) = SmtType.Int at hTy
-      rw [__smtx_typeof.eq_3] at hTy
+      rw [__smtx_typeof.eq_Rational] at hTy
       simp at hTy
   | _ =>
       simp [plusOp, __eo_is_list, __eo_get_nil_rec, __eo_requires,
@@ -358,7 +358,7 @@ theorem MulListEval.of_type_and_list
             native_teq, native_not, SmtEval.native_not, native_and] at hList
   | Rational q =>
       change __smtx_typeof (SmtTerm.Rational q) = SmtType.Int at hTy
-      rw [__smtx_typeof.eq_3] at hTy
+      rw [__smtx_typeof.eq_Rational] at hTy
       simp at hTy
   | _ =>
       simp [multOp, __eo_is_list, __eo_get_nil_rec, __eo_requires,
@@ -498,9 +498,9 @@ theorem AddListEval.singleton_elim_eval
       rw [plus_singleton_elim_nil]
       constructor
       · change __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int
-        rw [__smtx_typeof.eq_2]
+        rw [__smtx_typeof.eq_Numeral]
       · change __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0
-        rw [__smtx_model_eval.eq_2]
+        rw [__smtx_model_eval.eq_Numeral]
   | cons hxTy hxEval hTail ih =>
       cases hTail with
       | nil =>
@@ -526,9 +526,9 @@ theorem MulListEval.singleton_elim_eval
       rw [mult_singleton_elim_nil]
       constructor
       · change __smtx_typeof (SmtTerm.Numeral 1) = SmtType.Int
-        rw [__smtx_typeof.eq_2]
+        rw [__smtx_typeof.eq_Numeral]
       · change __smtx_model_eval M (SmtTerm.Numeral 1) = SmtValue.Numeral 1
-        rw [__smtx_model_eval.eq_2]
+        rw [__smtx_model_eval.eq_Numeral]
   | cons hxTy hxEval hTail ih =>
       cases hTail with
       | nil =>

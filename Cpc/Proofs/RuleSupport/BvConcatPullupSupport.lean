@@ -952,7 +952,7 @@ private theorem pullup_list_type_or_nil_of_concat_type
                   (__eo_to_smt xs)) =
                 __smtx_typeof_bv_op_2 (__smtx_typeof (__eo_to_smt x))
                   (__smtx_typeof (__eo_to_smt xs)) by
-                rw [__smtx_typeof.eq_42]) hOrigNN with
+                rw [__smtx_typeof.eq_bvxor]) hOrigNN with
             ⟨actual, hXActual, hXsActual⟩
           have hw : actual = w := by rw [hXTy] at hXActual; cases hXActual; rfl
           subst actual
@@ -1137,7 +1137,7 @@ private theorem pullup_list_concat_rec_right_smt_non_none
                     (__eo_to_smt (__eo_list_concat_rec xs z))) =
                   __smtx_typeof_bv_op_2 (__smtx_typeof (__eo_to_smt x))
                     (__smtx_typeof (__eo_to_smt (__eo_list_concat_rec xs z))) by
-                rw [__smtx_typeof.eq_42]) hResult with
+                rw [__smtx_typeof.eq_bvxor]) hResult with
               ⟨actual, _hX, hTail⟩
             rw [hTail]
             simp
@@ -1204,7 +1204,7 @@ private theorem pullup_list_concat_rec_result_smt_type
                     (__eo_to_smt (__eo_list_concat_rec xs z))) =
                   __smtx_typeof_bv_op_2 (__smtx_typeof (__eo_to_smt x))
                     (__smtx_typeof (__eo_to_smt (__eo_list_concat_rec xs z))) by
-                rw [__smtx_typeof.eq_42]) hResult
+                rw [__smtx_typeof.eq_bvxor]) hResult
       rcases hArgs with ⟨actual, hXTy, hTailActual⟩
       have hTailNN :
           __smtx_typeof (__eo_to_smt (__eo_list_concat_rec xs z)) ≠
@@ -1491,7 +1491,7 @@ private theorem pullup_list_type_or_nil_of_concat_eo_type
                     (__eo_to_smt xs)) =
                   __smtx_typeof_bv_op_2 (__smtx_typeof (__eo_to_smt x))
                     (__smtx_typeof (__eo_to_smt xs)) by
-                rw [__smtx_typeof.eq_42]) hNN with
+                rw [__smtx_typeof.eq_bvxor]) hNN with
             ⟨actual, hXActual, hXsActual⟩
           have hXMatch := TranslationProofs.eo_to_smt_typeof_matches_translation
             x (by rw [hXActual]; simp)
@@ -6928,7 +6928,7 @@ theorem bvConcatPullup1BaseContext
                 (__eo_to_smt ws)) =
               __smtx_typeof_bv_op_2 (__smtx_typeof (__eo_to_smt full))
                 (__smtx_typeof (__eo_to_smt ws)) by
-            rw [__smtx_typeof.eq_42]) hTailNN
+            rw [__smtx_typeof.eq_bvxor]) hTailNN
   rcases hTailArgs with ⟨w, hFullTy, hWsTy⟩
   have hRecTy := pullup_list_concat_rec_result_smt_type op xs tail w
     hXsList (op.binarySmtType full ws w hFullTy hWsTy) hRecNN

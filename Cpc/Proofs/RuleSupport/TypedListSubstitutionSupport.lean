@@ -995,7 +995,7 @@ theorem smtx_typeof_distinct_pairs_of_elem_type :
           cases op
           case _at__at_TypedList_nil =>
             change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
-            rw [__smtx_typeof.eq_1]
+            rw [__smtx_typeof.eq_Boolean]
           all_goals
             exact False.elim
               (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
@@ -1061,7 +1061,7 @@ theorem smtx_typeof_distinct_of_elem_type_non_none :
           cases op
           case _at__at_TypedList_nil =>
             change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
-            rw [__smtx_typeof.eq_1]
+            rw [__smtx_typeof.eq_Boolean]
           all_goals
             exact False.elim
               (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))

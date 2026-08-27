@@ -729,7 +729,7 @@ private theorem qforall_concat_step
     rw [eo_to_smt_forall_eq
       (__eo_list_concat Term.__eo_List_cons acc xs) F hConcatNonNil]
     rw [eo_to_smt_forall_eq xs F hXsNonNil]
-    rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_6]
+    rw [__smtx_model_eval.eq_not, __smtx_model_eval.eq_not]
     have hDouble :
         __smtx_model_eval M
             (__eo_to_smt_exists acc

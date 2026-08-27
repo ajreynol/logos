@@ -19,7 +19,7 @@ private theorem eo_has_bool_type_false :
   RuleProofs.eo_has_bool_type (Term.Boolean false) := by
   unfold RuleProofs.eo_has_bool_type
   rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by rfl]
-  rw [__smtx_typeof.eq_1]
+  rw [__smtx_typeof.eq_Boolean]
 
 private theorem eo_has_bool_type_or_of_bool_args (A B : Term) :
   RuleProofs.eo_has_bool_type A ->
@@ -75,7 +75,7 @@ private theorem eo_interprets_or_left_intro
         (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type, eo_to_smt_or_eq] using
           (eo_has_bool_type_or_of_bool_args A B hABool hBBool)
-      · rw [__smtx_model_eval.eq_7]
+      · rw [__smtx_model_eval.eq_or]
         rw [hEvalA, hEvalB]
         simp [__smtx_model_eval_or, SmtEval.native_or]
 
@@ -96,7 +96,7 @@ private theorem eo_interprets_or_right_intro
         (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type, eo_to_smt_or_eq] using
           (eo_has_bool_type_or_of_bool_args A B hABool hBBool)
-      · rw [__smtx_model_eval.eq_7]
+      · rw [__smtx_model_eval.eq_or]
         rw [hEvalA, hEvalB]
         cases a <;> simp [__smtx_model_eval_or, SmtEval.native_or]
 

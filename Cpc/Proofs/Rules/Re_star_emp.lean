@@ -24,13 +24,13 @@ private theorem typed___eo_prog_re_star_emp :
       change __smtx_typeof
           (SmtTerm.re_mult (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))) =
         __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))
-      rw [typeof_re_mult_eq, typeof_str_to_re_eq, __smtx_typeof.eq_4]
+      rw [typeof_re_mult_eq, typeof_str_to_re_eq, __smtx_typeof.eq_String]
       native_decide)
     (by
       change __smtx_typeof
           (SmtTerm.re_mult (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))) ≠
         SmtType.None
-      rw [typeof_re_mult_eq, typeof_str_to_re_eq, __smtx_typeof.eq_4]
+      rw [typeof_re_mult_eq, typeof_str_to_re_eq, __smtx_typeof.eq_String]
       native_decide)
 
 private theorem facts___eo_prog_re_star_emp (M : SmtModel) :
@@ -50,7 +50,7 @@ private theorem facts___eo_prog_re_star_emp (M : SmtModel) :
       change __smtx_model_eval M
           (SmtTerm.re_mult (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))) =
         __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))
-      rw [__smtx_model_eval.eq_106, __smtx_model_eval.eq_105, __smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_re_mult, __smtx_model_eval.eq_str_to_re, __smtx_model_eval.eq_String]
       rfl
     rw [hEvalEq]
     exact RuleProofs.smt_value_rel_refl

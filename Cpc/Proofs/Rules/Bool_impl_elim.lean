@@ -128,8 +128,8 @@ private theorem facts___eo_prog_bool_impl_elim_impl
         (Term.Apply (Term.Apply Term.or s1) (Term.Boolean false))) =
       SmtTerm.or (SmtTerm.not (__eo_to_smt t1))
         (SmtTerm.or (__eo_to_smt s1) (SmtTerm.Boolean false)) by rfl]
-    simp only [__smtx_model_eval.eq_1, __smtx_model_eval.eq_6,
-      __smtx_model_eval.eq_7, __smtx_model_eval.eq_9, hEvalT1, hEvalS1]
+    simp only [__smtx_model_eval.eq_Boolean, __smtx_model_eval.eq_not,
+      __smtx_model_eval.eq_or, __smtx_model_eval.eq_imp, hEvalT1, hEvalS1]
     cases bt <;> cases bs <;>
       simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
         __smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not, native_veq,

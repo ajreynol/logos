@@ -100,7 +100,7 @@ private theorem typed___eo_prog_str_eq_repl_tgt_eq_len_impl
         (SmtTerm.or (__eo_to_smt eqXRepl) (SmtTerm.Boolean false)) =
       SmtType.Bool
     rw [typeof_or_eq]
-    simp [hEqXReplTy, __smtx_typeof.eq_1, native_ite, native_Teq]
+    simp [hEqXReplTy, __smtx_typeof.eq_Boolean, native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.Bool := by
     change __smtx_typeof
         (SmtTerm.or (__eo_to_smt eqXPat) (__eo_to_smt innerOr)) =

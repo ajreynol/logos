@@ -107,13 +107,13 @@ private theorem typed___eo_prog_str_is_digit_elim_impl
       (SmtTerm.leq (SmtTerm.Numeral 48)
         (SmtTerm.str_to_code (__eo_to_smt s))) = SmtType.Bool
     rw [typeof_leq_eq]
-    simp [hRawCodeTy, __smtx_typeof.eq_2, __smtx_typeof_arith_overload_op_2_ret]
+    simp [hRawCodeTy, __smtx_typeof.eq_Numeral, __smtx_typeof_arith_overload_op_2_ret]
   have hUpperTy : __smtx_typeof (__eo_to_smt (isDigitUpper s)) = SmtType.Bool := by
     change __smtx_typeof
       (SmtTerm.leq (SmtTerm.str_to_code (__eo_to_smt s))
         (SmtTerm.Numeral 57)) = SmtType.Bool
     rw [typeof_leq_eq]
-    simp [hRawCodeTy, __smtx_typeof.eq_2, __smtx_typeof_arith_overload_op_2_ret]
+    simp [hRawCodeTy, __smtx_typeof.eq_Numeral, __smtx_typeof_arith_overload_op_2_ret]
   have hRawUpperTy :
       __smtx_typeof
         (SmtTerm.leq (SmtTerm.str_to_code (__eo_to_smt s))

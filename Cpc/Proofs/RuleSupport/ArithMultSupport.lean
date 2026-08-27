@@ -818,7 +818,7 @@ private theorem scale_smt_type_of_eo_type
     have hOne : __smtx_typeof (__eo_to_smt (arithOne m)) = SmtType.Int := by
       rw [show arithOne m = Term.Numeral 1 by
         simp [arithOne, __eo_nil, __eo_nil_mult, __arith_mk_one, hM]]
-      rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_2]
+      rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_Numeral]
     have hxSmtInt : __smtx_typeof (__eo_to_smt x) = SmtType.Int := by
       rw [hxSmt, hmSmtInt]
     have hInner :
@@ -841,7 +841,7 @@ private theorem scale_smt_type_of_eo_type
     have hOne : __smtx_typeof (__eo_to_smt (arithOne m)) = SmtType.Real := by
       rw [show arithOne m = Term.Rational (native_mk_rational 1 1) by
         simp [arithOne, __eo_nil, __eo_nil_mult, __arith_mk_one, hM]]
-      rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3]
+      rw [eo_to_smt_rational_eq, __smtx_typeof.eq_Rational]
     have hxSmtReal : __smtx_typeof (__eo_to_smt x) = SmtType.Real := by
       rw [hxSmt, hmSmtReal]
     have hInner :
@@ -1012,7 +1012,7 @@ private theorem eval_lt_of_denotes
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.lt) a b) =
         SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b) by rfl]
-    rw [__smtx_model_eval.eq_15, hEvalA, hEvalB]
+    rw [__smtx_model_eval.eq_lt, hEvalA, hEvalB]
     simp [__smtx_model_eval_lt, hqa, hqb, native_to_real_lt_eq]
   · rcases smt_eval_real_of_type M hM a hTy.1 with ⟨ra, hEvalA⟩
     rcases smt_eval_real_of_type M hM b hTy.2 with ⟨rb, hEvalB⟩
@@ -1032,7 +1032,7 @@ private theorem eval_lt_of_denotes
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.lt) a b) =
         SmtTerm.lt (__eo_to_smt a) (__eo_to_smt b) by rfl]
-    rw [__smtx_model_eval.eq_15, hEvalA, hEvalB]
+    rw [__smtx_model_eval.eq_lt, hEvalA, hEvalB]
     simp [__smtx_model_eval_lt, hqa, hqb]
 
 private theorem eval_leq_of_denotes
@@ -1066,7 +1066,7 @@ private theorem eval_leq_of_denotes
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.leq) a b) =
         SmtTerm.leq (__eo_to_smt a) (__eo_to_smt b) by rfl]
-    rw [__smtx_model_eval.eq_16, hEvalA, hEvalB]
+    rw [__smtx_model_eval.eq_leq, hEvalA, hEvalB]
     simp [__smtx_model_eval_leq, hqa, hqb, native_to_real_leq_eq]
   · rcases smt_eval_real_of_type M hM a hTy.1 with ⟨ra, hEvalA⟩
     rcases smt_eval_real_of_type M hM b hTy.2 with ⟨rb, hEvalB⟩
@@ -1086,7 +1086,7 @@ private theorem eval_leq_of_denotes
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.leq) a b) =
         SmtTerm.leq (__eo_to_smt a) (__eo_to_smt b) by rfl]
-    rw [__smtx_model_eval.eq_16, hEvalA, hEvalB]
+    rw [__smtx_model_eval.eq_leq, hEvalA, hEvalB]
     simp [__smtx_model_eval_leq, hqa, hqb]
 
 private theorem eval_eq_of_denotes
@@ -1175,7 +1175,7 @@ private theorem eval_gt_of_denotes
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.gt) a b) =
         SmtTerm.gt (__eo_to_smt a) (__eo_to_smt b) by rfl]
-    rw [__smtx_model_eval.eq_17, hEvalA, hEvalB]
+    rw [__smtx_model_eval.eq_gt, hEvalA, hEvalB]
     simp [__smtx_model_eval_gt, __smtx_model_eval_lt, hqa, hqb,
       native_to_real_lt_eq]
   · rcases smt_eval_real_of_type M hM a hTy.1 with ⟨ra, hEvalA⟩
@@ -1196,7 +1196,7 @@ private theorem eval_gt_of_denotes
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.gt) a b) =
         SmtTerm.gt (__eo_to_smt a) (__eo_to_smt b) by rfl]
-    rw [__smtx_model_eval.eq_17, hEvalA, hEvalB]
+    rw [__smtx_model_eval.eq_gt, hEvalA, hEvalB]
     simp [__smtx_model_eval_gt, __smtx_model_eval_lt, hqa, hqb]
 
 private theorem eval_geq_of_denotes
@@ -1230,7 +1230,7 @@ private theorem eval_geq_of_denotes
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.geq) a b) =
         SmtTerm.geq (__eo_to_smt a) (__eo_to_smt b) by rfl]
-    rw [__smtx_model_eval.eq_18, hEvalA, hEvalB]
+    rw [__smtx_model_eval.eq_geq, hEvalA, hEvalB]
     simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hqa, hqb,
       native_to_real_leq_eq]
   · rcases smt_eval_real_of_type M hM a hTy.1 with ⟨ra, hEvalA⟩
@@ -1251,7 +1251,7 @@ private theorem eval_geq_of_denotes
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.geq) a b) =
         SmtTerm.geq (__eo_to_smt a) (__eo_to_smt b) by rfl]
-    rw [__smtx_model_eval.eq_18, hEvalA, hEvalB]
+    rw [__smtx_model_eval.eq_geq, hEvalA, hEvalB]
     simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hqa, hqb]
 
 private theorem rel_bool_of_pair_type
@@ -1313,13 +1313,13 @@ private theorem sign_pair_smt_type
     · exact smt_type_of_eo_int m hmTrans hMInt
     · rw [show arithZero m = Term.Numeral 0 by
         simp [arithZero, __arith_mk_zero, hMInt]]
-      rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_2]
+      rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_Numeral]
   · right
     constructor
     · exact smt_type_of_eo_real m hmTrans hMReal
     · rw [show arithZero m = Term.Rational (native_mk_rational 0 1) by
         simp [arithZero, __arith_mk_zero, hMReal]]
-      rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3]
+      rw [eo_to_smt_rational_eq, __smtx_typeof.eq_Rational]
 
 private theorem neg_conclusion_bool_of_pair_type
     (r m a b : Term) :
@@ -2146,7 +2146,7 @@ private theorem MultListEval.type_int
     __smtx_typeof (__eo_to_smt xs) = SmtType.Int := by
   induction h with
   | nil =>
-      rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_2]
+      rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_Numeral]
   | cons hxTy _ _ ih =>
       change __smtx_typeof (SmtTerm.mult _ _) = SmtType.Int
       rw [typeof_mult_eq]
@@ -2158,10 +2158,10 @@ private theorem MultListEval.eval
     __smtx_model_eval M (__eo_to_smt xs) = SmtValue.Numeral n := by
   induction h with
   | nil =>
-      rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_2]
+      rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_Numeral]
   | cons _ hxEval _ ih =>
       change __smtx_model_eval M (SmtTerm.mult _ _) = _
-      rw [__smtx_model_eval.eq_14, hxEval, ih]
+      rw [__smtx_model_eval.eq_mult, hxEval, ih]
       simp [__smtx_model_eval_mult, native_zmult]
 
 private theorem get_nil_ne_of_is_list_true (f xs : Term) :
@@ -2267,7 +2267,7 @@ private theorem model_eval_abs_int
     __smtx_model_eval M (__eo_to_smt (absTerm x)) =
       SmtValue.Numeral (intAbs n) := by
   rw [show __eo_to_smt (absTerm x) = SmtTerm.abs (__eo_to_smt x) by rfl]
-  rw [__smtx_model_eval.eq_22, hx]
+  rw [__smtx_model_eval.eq_abs, hx]
   unfold __smtx_model_eval_abs
   by_cases hneg : n < 0
   · have hNat := intAbs_neg_case n hneg
@@ -2380,7 +2380,7 @@ private theorem abs_gt_factor
     rw [show __eo_to_smt
         (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) =
         SmtTerm.gt (__eo_to_smt (absTerm t)) (__eo_to_smt (absTerm u)) by rfl]
-    rw [__smtx_model_eval.eq_17, htAbs, huAbs]
+    rw [__smtx_model_eval.eq_gt, htAbs, huAbs]
     simp [__smtx_model_eval_gt, __smtx_model_eval_lt]
   have hLtBool := bool_of_true_eval hTrue hRelEval
   exact ⟨nt, nu, MultListEval.singleton M t nt hTy.1 htEval,
@@ -2434,10 +2434,10 @@ private theorem eval_zero_of_to_q_zero_and_smt_int
   case Numeral n =>
     have hn : n = 0 := numeral_zero_of_to_real_zero hToQ
     subst n
-    rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_2]
+    rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_Numeral]
   case Rational q =>
     subst q
-    rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3] at hTy
+    rw [eo_to_smt_rational_eq, __smtx_typeof.eq_Rational] at hTy
     simp at hTy
 
 private theorem eq_rhs_smt_int_of_bool_left_int (t z : Term)
@@ -2543,8 +2543,8 @@ private theorem MultListProduct.smt_type
     (h : MultListProduct M xs v) :
     __smtx_typeof (__eo_to_smt xs) = v.smtType := by
   induction h with
-  | nilInt => rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_2]
-  | nilReal => rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3]
+  | nilInt => rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_Numeral]
+  | nilReal => rw [eo_to_smt_rational_eq, __smtx_typeof.eq_Rational]
   | cons hxTy _ _ ih =>
       change __smtx_typeof (SmtTerm.mult _ _) = _
       rw [typeof_mult_eq, hxTy, ih, ArithProduct.smtType_mul]
@@ -2554,11 +2554,11 @@ private theorem MultListProduct.eval
     (h : MultListProduct M xs v) :
     __smtx_model_eval M (__eo_to_smt xs) = v.smtValue := by
   induction h with
-  | nilInt => rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_2]
-  | nilReal => rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_3]
+  | nilInt => rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_Numeral]
+  | nilReal => rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_Rational]
   | cons _ hxEval _ ih =>
       change __smtx_model_eval M (SmtTerm.mult _ _) = _
-      rw [__smtx_model_eval.eq_14, hxEval, ih]
+      rw [__smtx_model_eval.eq_mult, hxEval, ih]
       exact ArithProduct.modelEval_mul _ _
 
 private theorem MultListProduct.is_list
@@ -2642,7 +2642,7 @@ private theorem model_eval_abs_arith
     (hx : __smtx_model_eval M (__eo_to_smt x) = v.smtValue) :
     __smtx_model_eval M (__eo_to_smt (absTerm x)) = v.abs.smtValue := by
   rw [show __eo_to_smt (absTerm x) = SmtTerm.abs (__eo_to_smt x) by rfl]
-  rw [__smtx_model_eval.eq_22, hx]
+  rw [__smtx_model_eval.eq_abs, hx]
   cases v <;> simp [__smtx_model_eval_abs, ArithValue.abs,
     ArithValue.smtValue]
 
@@ -2710,7 +2710,7 @@ private theorem eval_gt_abs_values (M : SmtModel) (t u : Term)
   rw [show __eo_to_smt
       (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) =
       SmtTerm.gt (__eo_to_smt (absTerm t)) (__eo_to_smt (absTerm u)) by rfl]
-  rw [__smtx_model_eval.eq_17, ht, hu]
+  rw [__smtx_model_eval.eq_gt, ht, hu]
   cases vt <;> cases vu <;>
     simp [__smtx_model_eval_gt, __smtx_model_eval_lt, ArithValue.abs,
       ArithValue.smtValue, ArithValue.ltBool, ArithValue.kind] at hKind ⊢
@@ -2815,7 +2815,7 @@ private theorem eval_zero_of_to_q_zero_and_smt_arith
       cases z <;> simp [__eo_to_q] at hToQ
       case Rational r =>
         subst r
-        rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_3]
+        rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_Rational]
         simp [ArithValue.zero, ArithValue.kind, ArithValue.smtValue,
           native_mk_rational]
 
@@ -2997,10 +2997,10 @@ private theorem MultListFactors.smt_type_of_all_kind
     __smtx_typeof (__eo_to_smt xs) = (ArithValue.one k).smtType := by
   induction h with
   | nilInt =>
-      rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_2]
+      rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_Numeral]
       rfl
   | nilReal =>
-      rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3]
+      rw [eo_to_smt_rational_eq, __smtx_typeof.eq_Rational]
       rfl
   | @cons x xs k vx vxs hxTy _ _ ih =>
       rcases hAll with ⟨hv, hvs⟩
@@ -3016,16 +3016,16 @@ private theorem MultListFactors.eval_of_all_kind
     __smtx_model_eval M (__eo_to_smt xs) = (factorProduct k vs).smtValue := by
   induction h with
   | nilInt =>
-      rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_2]
+      rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_Numeral]
       rfl
   | nilReal =>
-      rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_3]
+      rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_Rational]
       simp [factorProduct, ArithValue.one, ArithValue.smtValue,
         native_mk_rational_one]
   | @cons x xs k vx vxs _ hxEval _ ih =>
       rcases hAll with ⟨hv, hvs⟩
       change __smtx_model_eval M (SmtTerm.mult _ _) = _
-      rw [__smtx_model_eval.eq_14, hxEval, ih hvs]
+      rw [__smtx_model_eval.eq_mult, hxEval, ih hvs]
       simpa [factorProduct] using
         ArithValue.modelEval_mul_of_same_kind
           (hv.trans (factorProduct_kind hvs).symm)
@@ -3097,7 +3097,7 @@ private theorem model_eval_abs_arith
     (hx : __smtx_model_eval M (__eo_to_smt x) = v.smtValue) :
     __smtx_model_eval M (__eo_to_smt (absTerm x)) = v.abs.smtValue := by
   rw [show __eo_to_smt (absTerm x) = SmtTerm.abs (__eo_to_smt x) by rfl]
-  rw [__smtx_model_eval.eq_22, hx]
+  rw [__smtx_model_eval.eq_abs, hx]
   cases v <;> simp [__smtx_model_eval_abs, ArithValue.abs,
     ArithValue.smtValue]
 
@@ -3169,7 +3169,7 @@ private theorem eval_gt_abs_values (M : SmtModel) (t u : Term)
   rw [show __eo_to_smt
       (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) =
       SmtTerm.gt (__eo_to_smt (absTerm t)) (__eo_to_smt (absTerm u)) by rfl]
-  rw [__smtx_model_eval.eq_17, ht, hu]
+  rw [__smtx_model_eval.eq_gt, ht, hu]
   cases vt <;> cases vu <;>
     simp [__smtx_model_eval_gt, __smtx_model_eval_lt, ArithValue.abs,
       ArithValue.smtValue, ArithValue.ltBool, ArithValue.kind] at hKind ⊢
@@ -3288,20 +3288,20 @@ private theorem eval_zero_of_to_q_zero_and_smt_arith
       case Numeral m =>
         have hm : m = 0 := numeral_zero_of_to_real_zero hToQ
         subst m
-        rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_2]
+        rw [eo_to_smt_numeral_eq, __smtx_model_eval.eq_Numeral]
         simp [ArithValue.zero, ArithValue.kind, ArithValue.smtValue]
       case Rational q =>
         subst q
-        rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3] at hTy
+        rw [eo_to_smt_rational_eq, __smtx_typeof.eq_Rational] at hTy
         simp [ArithValue.smtType] at hTy
   | real q =>
       cases z <;> simp [__eo_to_q] at hToQ
       case Numeral n =>
-        rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_2] at hTy
+        rw [eo_to_smt_numeral_eq, __smtx_typeof.eq_Numeral] at hTy
         simp [ArithValue.smtType] at hTy
       case Rational r =>
         subst r
-        rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_3]
+        rw [eo_to_smt_rational_eq, __smtx_model_eval.eq_Rational]
         have hz : native_mk_rational 0 1 = (0 : native_Rat) := by native_decide
         simp [ArithValue.zero, ArithValue.kind, ArithValue.smtValue, hz]
 
@@ -3389,7 +3389,7 @@ private theorem AbsCmpAcc.final_true
         rw [show __eo_to_smt
             (relTerm (Term.UOp UserOp.gt) (absTerm a) (absTerm b)) =
             SmtTerm.gt (__eo_to_smt (absTerm a)) (__eo_to_smt (absTerm b)) by rfl]
-        rw [__smtx_model_eval.eq_17, hAbsA, hAbsB]
+        rw [__smtx_model_eval.eq_gt, hAbsA, hAbsB]
         simp [__smtx_model_eval_gt, __smtx_model_eval_lt,
           (native_zlt_intAbs_true_iff nb na).mpr hLt])
   | eq a b na nb ha hb hEq =>

@@ -221,7 +221,7 @@ private theorem smt_ite_bool (c t e : Term)
 private theorem zero_smt_real :
     __smtx_typeof (__eo_to_smt zeroTerm) = SmtType.Real := by
   change __smtx_typeof (SmtTerm.Rational (native_mk_rational 0 1)) = SmtType.Real
-  rw [__smtx_typeof.eq_3]
+  rw [__smtx_typeof.eq_Rational]
 
 /-- Type-preservation: the result has SMT Bool type. -/
 private theorem typed_result (x1 y1 : Term)
@@ -297,7 +297,7 @@ private theorem eval_rel (M : SmtModel) (hM : model_total_typed M) (x1 y1 : Term
             (__eo_to_smt (gtTerm (negTerm x1) (negTerm y1)))) by rfl]
     have hEvalZero : __smtx_model_eval M (__eo_to_smt zeroTerm) = SmtValue.Rational (native_mk_rational 0 1) := by
       change __smtx_model_eval M (SmtTerm.Rational (native_mk_rational 0 1)) = SmtValue.Rational (native_mk_rational 0 1)
-      rw [__smtx_model_eval.eq_3]
+      rw [__smtx_model_eval.eq_Rational]
     have hGeqX :
         __smtx_model_eval M (__eo_to_smt (geqTerm x1 zeroTerm)) =
           SmtValue.Boolean (native_qleq 0 a) := by

@@ -123,7 +123,7 @@ theorem facts___eo_prog_eq_resolve_impl
                           __smtx_typeof (__eo_to_smt (Term.Boolean true)) := by
                       have hTrueTy : __smtx_typeof (__eo_to_smt (Term.Boolean true)) = SmtType.Bool := by
                         change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
-                        rw [__smtx_typeof.eq_1]
+                        rw [__smtx_typeof.eq_Boolean]
                       exact hBBool.trans hTrueTy.symm
                     exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
                       B (Term.Boolean true) hTyEq hBTrans
@@ -132,7 +132,7 @@ theorem facts___eo_prog_eq_resolve_impl
                         (__smtx_model_eval M (__eo_to_smt (Term.Boolean true))) := by
                     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
                       rfl]
-                    rw [__smtx_model_eval.eq_1]
+                    rw [__smtx_model_eval.eq_Boolean]
                     exact RuleProofs.smt_value_rel_symm _ _ hRel
                   have hEqBTrue :
                       eo_interprets M

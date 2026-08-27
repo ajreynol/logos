@@ -71,7 +71,7 @@ private theorem smt_type_ite_false_same_as_else
       rfl]
   change __smtx_typeof (SmtTerm.ite (SmtTerm.Boolean false) (__eo_to_smt x1)
     (__eo_to_smt y1)) = __smtx_typeof (__eo_to_smt y1)
-  rw [typeof_ite_eq, __smtx_typeof.eq_1]
+  rw [typeof_ite_eq, __smtx_typeof.eq_Boolean]
   simp [__smtx_typeof_ite, hX1SmtTy, hY1SmtTy, hTypes, native_Teq,
     native_ite]
 
@@ -122,7 +122,7 @@ private theorem facts___eo_prog_ite_false_cond_impl
         __smtx_model_eval M (__eo_to_smt (Term.Boolean false)) =
           SmtValue.Boolean false := by
       change __smtx_model_eval M (SmtTerm.Boolean false) = SmtValue.Boolean false
-      rw [__smtx_model_eval.eq_1]
+      rw [__smtx_model_eval.eq_Boolean]
     rw [show __eo_to_smt
         (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Boolean false)) x1) y1) =
         SmtTerm.ite (__eo_to_smt (Term.Boolean false)) (__eo_to_smt x1)

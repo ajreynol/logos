@@ -361,7 +361,7 @@ private theorem facts___eo_prog_eq_cond_deq_impl
             (SmtTerm.not (SmtTerm.eq (__eo_to_smt t) (__eo_to_smt r)))
             (SmtTerm.Boolean true)) by rfl]
     simp [smtx_eval_eq_term_eq, smtx_eval_and_term_eq,
-      smtx_eval_not_term_eq, __smtx_model_eval.eq_1]
+      smtx_eval_not_term_eq, __smtx_model_eval.eq_Boolean]
     exact smt_value_rel_eq_cond_deq
       (__smtx_model_eval M (__eo_to_smt t))
       (__smtx_model_eval M (__eo_to_smt s))

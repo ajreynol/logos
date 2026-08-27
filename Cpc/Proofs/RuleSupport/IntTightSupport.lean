@@ -194,7 +194,7 @@ private theorem leq_numeral_has_bool_type
       (Term.Apply (Term.Apply (Term.UOp UserOp.leq) a) (Term.Numeral n)) := by
   unfold RuleProofs.eo_has_bool_type
   rw [eo_to_smt_leq_eq a (Term.Numeral n), typeof_leq_eq]
-  rw [eo_to_smt_numeral_eq n, __smtx_typeof.eq_2]
+  rw [eo_to_smt_numeral_eq n, __smtx_typeof.eq_Numeral]
   simp [__smtx_typeof_arith_overload_op_2_ret, hA]
 
 private theorem geq_numeral_has_bool_type
@@ -204,7 +204,7 @@ private theorem geq_numeral_has_bool_type
       (Term.Apply (Term.Apply (Term.UOp UserOp.geq) a) (Term.Numeral n)) := by
   unfold RuleProofs.eo_has_bool_type
   rw [eo_to_smt_geq_eq a (Term.Numeral n), typeof_geq_eq]
-  rw [eo_to_smt_numeral_eq n, __smtx_typeof.eq_2]
+  rw [eo_to_smt_numeral_eq n, __smtx_typeof.eq_Numeral]
   simp [__smtx_typeof_arith_overload_op_2_ret, hA]
 
 theorem int_tight_ub_interprets_numeral
@@ -242,8 +242,8 @@ theorem int_tight_ub_interprets_numeral
     rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_lt_eq] at hPremTrue
     cases hPremTrue with
     | intro_true _ hEval =>
-        rw [__smtx_model_eval.eq_15, hEvalA, eo_to_smt_numeral_eq n,
-          __smtx_model_eval.eq_2] at hEval
+        rw [__smtx_model_eval.eq_lt, hEvalA, eo_to_smt_numeral_eq n,
+          __smtx_model_eval.eq_Numeral] at hEval
         simp [__smtx_model_eval_lt] at hEval
         exact hEval
   have hLt : m < n := by
@@ -271,8 +271,8 @@ theorem int_tight_ub_interprets_numeral
         __eo_ite, __eo_mk_apply, native_ite, native_teq,
         native_to_real, SmtEval.native_to_real, native_mk_rational,
         SmtEval.native_mk_rational]
-    rw [hTight, eo_to_smt_leq_eq, eo_to_smt_numeral_eq, __smtx_model_eval.eq_16,
-      hEvalA, __smtx_model_eval.eq_2]
+    rw [hTight, eo_to_smt_leq_eq, eo_to_smt_numeral_eq, __smtx_model_eval.eq_leq,
+      hEvalA, __smtx_model_eval.eq_Numeral]
     simp [__smtx_model_eval_leq, native_zleq, SmtEval.native_zleq, hLe]
 
 theorem int_tight_ub_has_smt_translation_numeral
@@ -342,8 +342,8 @@ theorem int_tight_lb_interprets_numeral
     rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_gt_eq] at hPremTrue
     cases hPremTrue with
     | intro_true _ hEval =>
-        rw [__smtx_model_eval.eq_17, hEvalA, eo_to_smt_numeral_eq n,
-          __smtx_model_eval.eq_2] at hEval
+        rw [__smtx_model_eval.eq_gt, hEvalA, eo_to_smt_numeral_eq n,
+          __smtx_model_eval.eq_Numeral] at hEval
         simp [__smtx_model_eval_gt, __smtx_model_eval_lt] at hEval
         exact hEval
   have hLt : n < m := by
@@ -365,8 +365,8 @@ theorem int_tight_lb_interprets_numeral
           Term.Apply (Term.Apply (Term.UOp UserOp.geq) a)
             (Term.Numeral (native_zplus (1 : native_Int) n)) := by
       simp [__least_int_gt, __eo_to_z, __eo_add, __eo_mk_apply]
-    rw [hTight, eo_to_smt_geq_eq, eo_to_smt_numeral_eq, __smtx_model_eval.eq_18,
-      hEvalA, __smtx_model_eval.eq_2]
+    rw [hTight, eo_to_smt_geq_eq, eo_to_smt_numeral_eq, __smtx_model_eval.eq_geq,
+      hEvalA, __smtx_model_eval.eq_Numeral]
     simp [__smtx_model_eval_geq, __smtx_model_eval_leq, native_zleq,
       SmtEval.native_zleq, hLe]
 
@@ -433,7 +433,7 @@ private theorem false_of_rational_lt_tight_ub
     have hBInt :
         __smtx_typeof (__eo_to_smt (Term.Rational q)) = SmtType.Int :=
       smt_right_int_of_left_int hAInt hArgs
-    rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3] at hBInt
+    rw [eo_to_smt_rational_eq, __smtx_typeof.eq_Rational] at hBInt
     cases hBInt
   · have hResultTy' :
         __eo_typeof
@@ -448,7 +448,7 @@ private theorem false_of_rational_lt_tight_ub
     have hBInt :
         __smtx_typeof (__eo_to_smt (Term.Rational q)) = SmtType.Int :=
       smt_right_int_of_left_int hAInt hArgs
-    rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3] at hBInt
+    rw [eo_to_smt_rational_eq, __smtx_typeof.eq_Rational] at hBInt
     cases hBInt
 
 private theorem false_of_rational_gt_tight_lb
@@ -476,7 +476,7 @@ private theorem false_of_rational_gt_tight_lb
   have hBInt :
       __smtx_typeof (__eo_to_smt (Term.Rational q)) = SmtType.Int :=
     smt_right_int_of_left_int hAInt hArgs
-  rw [eo_to_smt_rational_eq, __smtx_typeof.eq_3] at hBInt
+  rw [eo_to_smt_rational_eq, __smtx_typeof.eq_Rational] at hBInt
   cases hBInt
 
 private theorem false_of_string_gt_tight_lb
@@ -506,7 +506,7 @@ private theorem false_of_string_gt_tight_lb
     have hBInt :
         __smtx_typeof (__eo_to_smt (Term.String str)) = SmtType.Int :=
       smt_right_int_of_left_int hAInt hArgs
-    rw [eo_to_smt_string_eq, __smtx_typeof.eq_4] at hBInt
+    rw [eo_to_smt_string_eq, __smtx_typeof.eq_String] at hBInt
     cases hValid : native_string_valid str <;>
       simp [native_ite, hValid] at hBInt
   · have hStuck :
@@ -540,7 +540,7 @@ private theorem false_of_binary_gt_tight_lb
   have hBInt :
       __smtx_typeof (__eo_to_smt (Term.Binary w n)) = SmtType.Int :=
     smt_right_int_of_left_int hAInt hArgs
-  rw [eo_to_smt_binary_eq, __smtx_typeof.eq_5] at hBInt
+  rw [eo_to_smt_binary_eq, __smtx_typeof.eq_Binary] at hBInt
   cases hBinTy :
       native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
     simp [native_ite, hBinTy] at hBInt

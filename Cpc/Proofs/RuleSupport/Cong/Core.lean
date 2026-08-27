@@ -1623,7 +1623,7 @@ theorem congTrueSpine_not_eq_true
       (__smtx_model_eval M (SmtTerm.not (__eo_to_smt x)))
       (__smtx_model_eval M (SmtTerm.not (__eo_to_smt y))) =
         SmtValue.Boolean true
-    rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_6]
+    rw [__smtx_model_eval.eq_not, __smtx_model_eval.eq_not]
     rw [hEvalXY]
     exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
       (RuleProofs.smt_value_rel_refl _)

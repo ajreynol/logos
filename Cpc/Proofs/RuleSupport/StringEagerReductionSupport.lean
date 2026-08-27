@@ -128,7 +128,7 @@ private theorem smt_typeof_seq_empty_typeof_of_smt_type_seq
         Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
   · rw [hSpecial]
     change __smtx_typeof (SmtTerm.String (native_string_lit "")) = SmtType.Seq T
-    rw [__smtx_typeof.eq_4]
+    rw [__smtx_typeof.eq_String]
     rw [hSpecial] at hA
     simp [TranslationProofs.eo_to_smt_type_seq,
       TranslationProofs.eo_to_smt_type_char] at hA
@@ -1374,7 +1374,7 @@ theorem string_eager_reduction_has_bool_type
                 (SmtTerm.geq (SmtTerm.str_to_int (__eo_to_smt x))
                   (SmtTerm.Numeral (-1 : native_Int))) ≠ SmtType.None
           rw [typeof_geq_eq, typeof_str_to_int_eq]
-          rw [__smtx_typeof.eq_2]
+          rw [__smtx_typeof.eq_Numeral]
           simp [hsTy, __smtx_typeof_arith_overload_op_2_ret, native_ite,
             native_Teq]
         · simpa [__eo_prog_string_eager_reduction, __mk_str_eager_reduction] using hTy
@@ -1688,7 +1688,7 @@ theorem string_eager_reduction_true
             hInt | hReal
           · exact hInt.1
           · have hNumTy : __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
-              rw [__smtx_typeof.eq_2]
+              rw [__smtx_typeof.eq_Numeral]
             rw [hNumTy] at hReal
             cases hReal.2
         have hCodeNN : term_has_non_none_type code := by
@@ -1788,7 +1788,7 @@ theorem string_eager_reduction_true
             hInt | hReal
           · exact hInt.2
           · have hNumTy : __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
-              rw [__smtx_typeof.eq_2]
+              rw [__smtx_typeof.eq_Numeral]
             rw [hNumTy] at hReal
             cases hReal.1
         rcases int_eval_of_int_type M hM x (by simpa [tx] using hxTy) with
@@ -1853,7 +1853,7 @@ theorem string_eager_reduction_true
           · exact hInt.1
           · have hNumTy :
                 __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int := by
-              rw [__smtx_typeof.eq_2]
+              rw [__smtx_typeof.eq_Numeral]
             rw [hNumTy] at hReal
             cases hReal.2
         have hStrToIntNN :

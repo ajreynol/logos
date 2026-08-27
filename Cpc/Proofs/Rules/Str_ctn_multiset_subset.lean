@@ -90,7 +90,7 @@ by
                   rw [hContainsFalse]
                   rw [show __eo_to_smt (Term.Boolean false) =
                       SmtTerm.Boolean false by rfl,
-                    __smtx_model_eval.eq_1]
+                    __smtx_model_eval.eq_Boolean]
                   exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean false)
                 · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hEqBool
               all_goals exact absurd rfl hProg

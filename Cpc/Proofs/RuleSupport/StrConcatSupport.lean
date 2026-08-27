@@ -404,7 +404,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
       cases hA : __eo_to_smt_type A <;>
         simp [__eo_to_smt_seq_empty, hA] at hNilEval ⊢
       case Seq U =>
-        rw [__smtx_model_eval.eq_77] at hNilEval ⊢
+        rw [__smtx_model_eval.eq_seq_empty] at hNilEval ⊢
         simp [__smtx_model_eval_str_concat, native_seq_concat]
         rw [native_unpack_seq, List.append_nil]
         change RuleProofs.smt_seq_rel
@@ -424,7 +424,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
       (__smtx_model_eval_str_concat (SmtValue.Seq sx)
         (__smtx_model_eval M (SmtTerm.String (native_string_lit "")))) (SmtValue.Seq sx) =
       SmtValue.Boolean true
-    rw [__smtx_model_eval.eq_4]
+    rw [__smtx_model_eval.eq_String]
     simp [native_pack_string,
       __smtx_model_eval_str_concat, native_pack_seq, native_unpack_seq,
       native_seq_concat, native_string_lit, List.append_nil]

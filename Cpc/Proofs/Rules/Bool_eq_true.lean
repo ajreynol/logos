@@ -89,7 +89,7 @@ private theorem facts___eo_prog_bool_eq_true_impl
         __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) =
           SmtValue.Boolean true := by
       change __smtx_model_eval M (SmtTerm.Boolean true) = SmtValue.Boolean true
-      rw [__smtx_model_eval.eq_1]
+      rw [__smtx_model_eval.eq_Boolean]
     rw [show __eo_to_smt (Term.Apply (Term.Apply Term.eq t1) (Term.Boolean true)) =
       SmtTerm.eq (__eo_to_smt t1) (__eo_to_smt (Term.Boolean true)) by
       rfl]

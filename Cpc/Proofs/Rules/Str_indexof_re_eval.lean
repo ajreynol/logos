@@ -201,7 +201,7 @@ private theorem str_indexof_re_eval_match_regex_typeof
         (SmtTerm.re_concat SmtTerm.re_all
           (SmtTerm.str_to_re (SmtTerm.String [])))) = SmtType.RegLan
   rw [typeof_re_concat_eq, typeof_re_concat_eq, typeof_str_to_re_eq]
-  rw [__smtx_typeof.eq_104, __smtx_typeof.eq_4]
+  rw [__smtx_typeof.eq_re_all, __smtx_typeof.eq_String]
   simp [hRTy, native_ite, native_Teq]
   rfl
 
@@ -279,7 +279,7 @@ private theorem str_indexof_re_eval_match_test_eq_of_bool
       change __smtx_model_eval M (SmtTerm.Boolean true) =
           SmtValue.Boolean (native_str_in_re tail (native_re_concat rv native_re_all))
         at hTestEval
-      rw [__smtx_model_eval.eq_1] at hTestEval
+      rw [__smtx_model_eval.eq_Boolean] at hTestEval
       injection hTestEval with hNative
       rw [← hPrefix] at hNative
       rw [hTrue]
@@ -291,7 +291,7 @@ private theorem str_indexof_re_eval_match_test_eq_of_bool
       change __smtx_model_eval M (SmtTerm.Boolean false) =
           SmtValue.Boolean (native_str_in_re tail (native_re_concat rv native_re_all))
         at hTestEval
-      rw [__smtx_model_eval.eq_1] at hTestEval
+      rw [__smtx_model_eval.eq_Boolean] at hTestEval
       injection hTestEval with hNative
       rw [← hPrefix] at hNative
       rw [hFalse]
@@ -1057,7 +1057,7 @@ private theorem str_indexof_re_eval_tail_search_side_aux_model_eval
         hIdxEq, hFind, __eo_eq, __eo_ite, native_ite, native_teq]
       change __smtx_model_eval M (SmtTerm.Numeral (-1)) =
         SmtValue.Numeral (-1)
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
   | some p =>
       cases p with
       | mk idx len =>
@@ -1071,7 +1071,7 @@ private theorem str_indexof_re_eval_tail_search_side_aux_model_eval
           change __smtx_model_eval M
               (SmtTerm.Numeral (offset + Int.ofNat idx)) =
             SmtValue.Numeral (offset + Int.ofNat idx)
-          rw [__smtx_model_eval.eq_2]
+          rw [__smtx_model_eval.eq_Numeral]
 
 private theorem str_indexof_re_eval_tail_search_side_model_eval_of_aux
     (M : SmtModel) (hM : model_total_typed M)
@@ -1224,7 +1224,7 @@ private theorem str_indexof_re_eval_concrete_side_model_eval
       __eo_len, __eo_gt, __eo_is_neg, __eo_or, __eo_ite,
       native_ite, native_teq, native_or, hNegBool, native_str_indexof_re, hNeg]
     change __smtx_model_eval M (SmtTerm.Numeral (-1)) = SmtValue.Numeral (-1)
-    rw [__smtx_model_eval.eq_2]
+    rw [__smtx_model_eval.eq_Numeral]
   · by_cases hPastEnd : Int.ofNat str.length < ni
     · have hGtBool : native_zlt (native_str_len str) ni = true := by
         have hsimpa := hPastEnd
@@ -1250,7 +1250,7 @@ private theorem str_indexof_re_eval_concrete_side_model_eval
         native_ite, native_teq, native_or, hGtBool, hNegBool,
         native_str_indexof_re, hNeg, hStartNotLeValues]
       change __smtx_model_eval M (SmtTerm.Numeral (-1)) = SmtValue.Numeral (-1)
-      rw [__smtx_model_eval.eq_2]
+      rw [__smtx_model_eval.eq_Numeral]
     · have hNiNonneg : 0 <= ni := Int.not_lt.mp hNeg
       have hNiLeLen : ni <= Int.ofNat str.length := Int.not_lt.mp hPastEnd
       have hStartLe : Int.toNat ni <= str.length := by

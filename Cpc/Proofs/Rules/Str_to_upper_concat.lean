@@ -241,7 +241,7 @@ private theorem smt_typeof_empty_string :
     __smtx_typeof (__eo_to_smt (Term.String [])) = SmtType.Seq SmtType.Char := by
   change __smtx_typeof (SmtTerm.String (native_string_lit "")) =
     SmtType.Seq SmtType.Char
-  rw [__smtx_typeof.eq_4]
+  rw [__smtx_typeof.eq_String]
   simp [native_string_lit, native_string_valid, native_ite]
 
 /-- The empty string literal is list-nil for str_concat. -/

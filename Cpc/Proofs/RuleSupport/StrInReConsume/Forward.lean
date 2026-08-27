@@ -142,7 +142,7 @@ theorem StrInReConsumeInternal.smt_typeof_eo_requires_of_result_local
 theorem StrInReConsumeInternal.smt_typeof_boolean_false_local :
     __smtx_typeof (__eo_to_smt (Term.Boolean false)) = SmtType.Bool := by
   change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
-  rw [__smtx_typeof.eq_1]
+  rw [__smtx_typeof.eq_Boolean]
 
 theorem StrInReConsumeInternal.smt_typeof_str_in_re_of_types_local
     (s r : Term)
@@ -3239,7 +3239,7 @@ theorem StrInReConsumeInternal.re_flatten_true_str_to_re_eval_rel_consume_local
             SmtValue.Seq (native_pack_string []) := by
         change __smtx_model_eval M (SmtTerm.String []) =
           SmtValue.Seq (native_pack_string [])
-        rw [__smtx_model_eval.eq_4]
+        rw [__smtx_model_eval.eq_String]
       rw [hEval] at hSEval
       cases hSEval
       rfl

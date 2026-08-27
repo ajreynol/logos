@@ -1175,10 +1175,10 @@ theorem typeof_value_model_eval_string
       __smtx_typeof (SmtTerm.String s) := by
   cases hValid : native_string_valid s
   · have hPack := typeof_pack_string_invalid s hValid
-    rw [__smtx_model_eval.eq_4, __smtx_typeof.eq_4]
+    rw [__smtx_model_eval.eq_String, __smtx_typeof.eq_String]
     simp [__smtx_typeof_value, SmtEval.native_ite, hValid, hPack]
   · have hPack := typeof_pack_string s hValid
-    rw [__smtx_model_eval.eq_4, __smtx_typeof.eq_4]
+    rw [__smtx_model_eval.eq_String, __smtx_typeof.eq_String]
     simp [__smtx_typeof_value, SmtEval.native_ite, hValid, hPack]
 
 /-- Lemma about `map_lookup_typed`. -/

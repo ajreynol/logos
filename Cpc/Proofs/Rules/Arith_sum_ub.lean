@@ -351,7 +351,7 @@ private theorem int_lt_eval_of_lt_true
   rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_lt_eq] at h
   cases h with
   | intro_true _ hEval =>
-      rw [__smtx_model_eval.eq_15, ha, hb] at hEval
+      rw [__smtx_model_eval.eq_lt, ha, hb] at hEval
       simp [__smtx_model_eval_lt] at hEval
       exact ⟨n, m, ha, hb, hEval⟩
 
@@ -370,7 +370,7 @@ private theorem int_le_eval_of_leq_true
   rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_leq_eq] at h
   cases h with
   | intro_true _ hEval =>
-      rw [__smtx_model_eval.eq_16, ha, hb] at hEval
+      rw [__smtx_model_eval.eq_leq, ha, hb] at hEval
       simp [__smtx_model_eval_leq] at hEval
       exact ⟨n, m, ha, hb, hEval⟩
 
@@ -409,7 +409,7 @@ private theorem real_lt_eval_of_lt_true
   rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_lt_eq] at h
   cases h with
   | intro_true _ hEval =>
-      rw [__smtx_model_eval.eq_15, ha, hb] at hEval
+      rw [__smtx_model_eval.eq_lt, ha, hb] at hEval
       simp [__smtx_model_eval_lt] at hEval
       exact ⟨q, r, ha, hb, hEval⟩
 
@@ -428,7 +428,7 @@ private theorem real_le_eval_of_leq_true
   rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_leq_eq] at h
   cases h with
   | intro_true _ hEval =>
-      rw [__smtx_model_eval.eq_16, ha, hb] at hEval
+      rw [__smtx_model_eval.eq_leq, ha, hb] at hEval
       simp [__smtx_model_eval_leq] at hEval
       exact ⟨q, r, ha, hb, hEval⟩
 
@@ -474,7 +474,7 @@ private theorem sum_lt_true_of_int_eval
   apply RuleProofs.eo_interprets_of_bool_eval M
   · exact hBool
   · rw [eo_to_smt_lt_eq, eo_to_smt_plus_eq, eo_to_smt_plus_eq,
-      __smtx_model_eval.eq_15, __smtx_model_eval.eq_12, __smtx_model_eval.eq_12,
+      __smtx_model_eval.eq_lt, __smtx_model_eval.eq_plus, __smtx_model_eval.eq_plus,
       ha1, ha2, hb1, hb2]
     simpa [__smtx_model_eval_plus, __smtx_model_eval_lt] using
       native_zlt_add_of_zlt_of_zle hLt hLe
@@ -501,7 +501,7 @@ private theorem sum_lt_true_of_real_eval
   apply RuleProofs.eo_interprets_of_bool_eval M
   · exact hBool
   · rw [eo_to_smt_lt_eq, eo_to_smt_plus_eq, eo_to_smt_plus_eq,
-      __smtx_model_eval.eq_15, __smtx_model_eval.eq_12, __smtx_model_eval.eq_12,
+      __smtx_model_eval.eq_lt, __smtx_model_eval.eq_plus, __smtx_model_eval.eq_plus,
       ha1, ha2, hb1, hb2]
     simpa [__smtx_model_eval_plus, __smtx_model_eval_lt] using
       native_qlt_add_of_qlt_of_qle hLt hLe
@@ -528,7 +528,7 @@ private theorem sum_lt_true_of_int_eval_right
   apply RuleProofs.eo_interprets_of_bool_eval M
   · exact hBool
   · rw [eo_to_smt_lt_eq, eo_to_smt_plus_eq, eo_to_smt_plus_eq,
-      __smtx_model_eval.eq_15, __smtx_model_eval.eq_12, __smtx_model_eval.eq_12,
+      __smtx_model_eval.eq_lt, __smtx_model_eval.eq_plus, __smtx_model_eval.eq_plus,
       ha1, ha2, hb1, hb2]
     simpa [__smtx_model_eval_plus, __smtx_model_eval_lt] using
       native_zlt_add_of_zle_of_zlt hLe hLt
@@ -555,7 +555,7 @@ private theorem sum_lt_true_of_real_eval_right
   apply RuleProofs.eo_interprets_of_bool_eval M
   · exact hBool
   · rw [eo_to_smt_lt_eq, eo_to_smt_plus_eq, eo_to_smt_plus_eq,
-      __smtx_model_eval.eq_15, __smtx_model_eval.eq_12, __smtx_model_eval.eq_12,
+      __smtx_model_eval.eq_lt, __smtx_model_eval.eq_plus, __smtx_model_eval.eq_plus,
       ha1, ha2, hb1, hb2]
     simpa [__smtx_model_eval_plus, __smtx_model_eval_lt] using
       native_qlt_add_of_qle_of_qlt hLe hLt
@@ -582,7 +582,7 @@ private theorem sum_leq_true_of_int_eval
   apply RuleProofs.eo_interprets_of_bool_eval M
   · exact hBool
   · rw [eo_to_smt_leq_eq, eo_to_smt_plus_eq, eo_to_smt_plus_eq,
-      __smtx_model_eval.eq_16, __smtx_model_eval.eq_12, __smtx_model_eval.eq_12,
+      __smtx_model_eval.eq_leq, __smtx_model_eval.eq_plus, __smtx_model_eval.eq_plus,
       ha1, ha2, hb1, hb2]
     simpa [__smtx_model_eval_plus, __smtx_model_eval_leq] using
       native_zleq_add_of_zle_of_zle hLe1 hLe2
@@ -609,7 +609,7 @@ private theorem sum_leq_true_of_real_eval
   apply RuleProofs.eo_interprets_of_bool_eval M
   · exact hBool
   · rw [eo_to_smt_leq_eq, eo_to_smt_plus_eq, eo_to_smt_plus_eq,
-      __smtx_model_eval.eq_16, __smtx_model_eval.eq_12, __smtx_model_eval.eq_12,
+      __smtx_model_eval.eq_leq, __smtx_model_eval.eq_plus, __smtx_model_eval.eq_plus,
       ha1, ha2, hb1, hb2]
     simpa [__smtx_model_eval_plus, __smtx_model_eval_leq] using
       native_qleq_add_of_qle_of_qle hLe1 hLe2

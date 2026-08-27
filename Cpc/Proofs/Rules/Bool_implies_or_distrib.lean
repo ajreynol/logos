@@ -442,9 +442,9 @@ private theorem facts___eo_prog_bool_implies_or_distrib_impl
           (SmtTerm.Boolean true)) by
       rw [hRhsEq]
       rfl]
-    rw [__smtx_model_eval.eq_9, __smtx_model_eval.eq_7, __smtx_model_eval.eq_8,
-      __smtx_model_eval.eq_9, __smtx_model_eval.eq_8, __smtx_model_eval.eq_9,
-      __smtx_model_eval.eq_1, hEvalY1, hEvalTail, hEvalZ, hSingletonEval, hEvalTail]
+    rw [__smtx_model_eval.eq_imp, __smtx_model_eval.eq_or, __smtx_model_eval.eq_and,
+      __smtx_model_eval.eq_imp, __smtx_model_eval.eq_and, __smtx_model_eval.eq_imp,
+      __smtx_model_eval.eq_Boolean, hEvalY1, hEvalTail, hEvalZ, hSingletonEval, hEvalTail]
     cases by1 <;> cases bt <;> cases bz <;>
       simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, __smtx_model_eval_and,
         __smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not,

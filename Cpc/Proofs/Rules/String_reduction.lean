@@ -1509,7 +1509,7 @@ private theorem sr_str_value_len_one_eval_length
   rcases RuleProofs.value_len_numeral_cases x 1 hLen with
       ⟨w, rfl⟩ | ⟨e, ss, rfl⟩ | ⟨U, rfl⟩ | ⟨e, rfl⟩
   · change __smtx_model_eval M (SmtTerm.String w) = SmtValue.Seq sx at hxEval
-    rw [__smtx_model_eval.eq_4] at hxEval
+    rw [__smtx_model_eval.eq_String] at hxEval
     injection hxEval with hsx
     rw [← hsx, RuleProofs.unpack_pack_string_map, List.length_map]
     simp [__str_value_len, __eo_is_str, __eo_is_str_internal, __eo_ite,

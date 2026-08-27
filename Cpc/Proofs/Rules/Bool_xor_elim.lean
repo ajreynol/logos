@@ -119,8 +119,8 @@ private theorem facts___eo_prog_bool_xor_elim_impl
       (Term.Apply (Term.Apply Term.eq (Term.Apply Term.not x1)) y1) =
       SmtTerm.eq (SmtTerm.not (__eo_to_smt x1)) (__eo_to_smt y1) by
       rfl]
-    rw [__smtx_model_eval.eq_10, smtx_eval_eq_term_eq,
-      __smtx_model_eval.eq_6, hEvalX1, hEvalY1]
+    rw [__smtx_model_eval.eq_xor, smtx_eval_eq_term_eq,
+      __smtx_model_eval.eq_not, hEvalX1, hEvalY1]
     cases bx <;> cases bY <;> simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
       __smtx_model_eval_xor, __smtx_model_eval_not, native_veq,
       SmtEval.native_not]

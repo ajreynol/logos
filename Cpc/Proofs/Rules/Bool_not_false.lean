@@ -15,7 +15,7 @@ private theorem eo_has_bool_type_false :
   change __smtx_typeof (__eo_to_smt (Term.Boolean false)) = SmtType.Bool
   rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
     rfl]
-  rw [__smtx_typeof.eq_1]
+  rw [__smtx_typeof.eq_Boolean]
 
 private theorem eo_has_bool_type_eq_left (A B : Term) :
   RuleProofs.eo_has_bool_type B ->
@@ -81,7 +81,7 @@ private theorem eo_interprets_eq_false_of_false (M : SmtModel) (t : Term) :
             __smtx_model_eval M (__eo_to_smt (Term.Boolean false)) =
               SmtValue.Boolean false := by
           change __smtx_model_eval M (SmtTerm.Boolean false) = SmtValue.Boolean false
-          rw [__smtx_model_eval.eq_1]
+          rw [__smtx_model_eval.eq_Boolean]
         rw [hEval, hFalseEval]
         exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean false)
 
@@ -96,7 +96,7 @@ private theorem eo_interprets_not_false_of_true (M : SmtModel) (t : Term) :
       refine smt_interprets.intro_false M (SmtTerm.not (__eo_to_smt t)) ?_ ?_
       · rw [typeof_not_eq]
         simp [hTy, native_Teq, native_ite]
-      · rw [__smtx_model_eval.eq_6]
+      · rw [__smtx_model_eval.eq_not]
         rw [hEval]
         simp [__smtx_model_eval_not, SmtEval.native_not]
 
@@ -120,7 +120,7 @@ private theorem eo_interprets_eq_true_implies_true
     have hRel' := RuleProofs.eo_interprets_eq_rel M t (Term.Boolean true) hEqTrue
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
       rfl] at hRel'
-    rw [__smtx_model_eval.eq_1] at hRel'
+    rw [__smtx_model_eval.eq_Boolean] at hRel'
     exact hRel'
   cases bv with
   | false =>

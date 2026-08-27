@@ -33,8 +33,8 @@ theorem eo_interprets_false (M : SmtModel) :
   rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
     rfl]
   refine smt_interprets.intro_false M (SmtTerm.Boolean false) ?_ ?_
-  · rw [__smtx_typeof.eq_1]
-  · rw [__smtx_model_eval.eq_1]
+  · rw [__smtx_typeof.eq_Boolean]
+  · rw [__smtx_model_eval.eq_Boolean]
 
 /-- Splits a Boolean EO term into the `true` and `false` cases. -/
 theorem eo_interprets_bool_cases
@@ -362,7 +362,7 @@ theorem eo_interprets_not_false_of_true (M : SmtModel) (t : Term) :
       refine smt_interprets.intro_false M (SmtTerm.not (__eo_to_smt t)) ?_ ?_
       · rw [typeof_not_eq]
         simp [hTy, native_Teq, native_ite]
-      · rw [__smtx_model_eval.eq_6, hEval]
+      · rw [__smtx_model_eval.eq_not, hEval]
         simp [__smtx_model_eval_not, SmtEval.native_not]
 
 /-- A false antecedent makes an implication true. -/
@@ -381,7 +381,7 @@ theorem eo_interprets_imp_true_of_left_false
       refine smt_interprets.intro_true M (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · rw [typeof_imp_eq]
         simpa [hATy, hBBool, RuleProofs.eo_has_bool_type, native_Teq, native_ite]
-      · rw [__smtx_model_eval.eq_9, hAEval, hBEval]
+      · rw [__smtx_model_eval.eq_imp, hAEval, hBEval]
         cases b <;> simp [__smtx_model_eval_imp, __smtx_model_eval_or,
           __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not]
 
@@ -401,7 +401,7 @@ theorem eo_interprets_imp_true_of_right_true
       refine smt_interprets.intro_true M (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · rw [typeof_imp_eq]
         simpa [hABool, hBTy, RuleProofs.eo_has_bool_type, native_Teq, native_ite]
-      · rw [__smtx_model_eval.eq_9, hAEval, hBEval]
+      · rw [__smtx_model_eval.eq_imp, hAEval, hBEval]
         cases a <;> simp [__smtx_model_eval_imp, __smtx_model_eval_or,
           __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not]
 
@@ -501,7 +501,7 @@ theorem eo_interprets_xor_true_of_true_false (M : SmtModel) (A B : Term) :
           refine smt_interprets.intro_true M (SmtTerm.xor (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
           · rw [typeof_xor_eq]
             simp [hATy, hBTy, native_Teq, native_ite]
-          · rw [__smtx_model_eval.eq_10, hAEval, hBEval]
+          · rw [__smtx_model_eval.eq_xor, hAEval, hBEval]
             simp [__smtx_model_eval_xor, __smtx_model_eval_not, __smtx_model_eval_eq,
               native_veq, SmtEval.native_not]
 
@@ -521,7 +521,7 @@ theorem eo_interprets_xor_true_of_false_true (M : SmtModel) (A B : Term) :
           refine smt_interprets.intro_true M (SmtTerm.xor (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
           · rw [typeof_xor_eq]
             simp [hATy, hBTy, native_Teq, native_ite]
-          · rw [__smtx_model_eval.eq_10, hAEval, hBEval]
+          · rw [__smtx_model_eval.eq_xor, hAEval, hBEval]
             simp [__smtx_model_eval_xor, __smtx_model_eval_not, __smtx_model_eval_eq,
               native_veq, SmtEval.native_not]
 
@@ -541,7 +541,7 @@ theorem eo_interprets_xor_false_of_true_true (M : SmtModel) (A B : Term) :
           refine smt_interprets.intro_false M (SmtTerm.xor (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
           · rw [typeof_xor_eq]
             simp [hATy, hBTy, native_Teq, native_ite]
-          · rw [__smtx_model_eval.eq_10, hAEval, hBEval]
+          · rw [__smtx_model_eval.eq_xor, hAEval, hBEval]
             simp [__smtx_model_eval_xor, __smtx_model_eval_not, __smtx_model_eval_eq,
               native_veq, SmtEval.native_not]
 
@@ -561,7 +561,7 @@ theorem eo_interprets_xor_false_of_false_false (M : SmtModel) (A B : Term) :
           refine smt_interprets.intro_false M (SmtTerm.xor (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
           · rw [typeof_xor_eq]
             simp [hATy, hBTy, native_Teq, native_ite]
-          · rw [__smtx_model_eval.eq_10, hAEval, hBEval]
+          · rw [__smtx_model_eval.eq_xor, hAEval, hBEval]
             simp [__smtx_model_eval_xor, __smtx_model_eval_not, __smtx_model_eval_eq,
               native_veq, SmtEval.native_not]
 
@@ -1825,7 +1825,7 @@ theorem eo_interprets_and_false_of_left_false
         have hBTy : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
           simpa [RuleProofs.eo_has_bool_type] using hBBool
         simp [hATy, hBTy, native_Teq, native_ite]
-      · rw [__smtx_model_eval.eq_8, hAEval, hBEval]
+      · rw [__smtx_model_eval.eq_and, hAEval, hBEval]
         cases b <;> simp [__smtx_model_eval_and, SmtEval.native_and]
 
 /-- A false right side makes an EO conjunction false. -/
@@ -1848,7 +1848,7 @@ theorem eo_interprets_and_false_of_right_false
         have hATy : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
           simpa [RuleProofs.eo_has_bool_type] using hABool
         simp [hATy, hBTy, native_Teq, native_ite]
-      · rw [__smtx_model_eval.eq_8, hAEval, hBEval]
+      · rw [__smtx_model_eval.eq_and, hAEval, hBEval]
         cases a <;> simp [__smtx_model_eval_and, SmtEval.native_and]
 
 private theorem andList_concat_rec_false_of_right_false
@@ -2121,9 +2121,9 @@ theorem orList_singleton_elim_true_iff
                       refine smt_interprets.intro_false M
                         (SmtTerm.or (__eo_to_smt x) (SmtTerm.Boolean false)) ?_ ?_
                       · rw [typeof_or_eq]
-                        rw [__smtx_typeof.eq_1]
+                        rw [__smtx_typeof.eq_Boolean]
                         simp [hTy, native_Teq, native_ite]
-                      · rw [__smtx_model_eval.eq_7, hEval, __smtx_model_eval.eq_1]
+                      · rw [__smtx_model_eval.eq_or, hEval, __smtx_model_eval.eq_Boolean]
                         simp [__smtx_model_eval_or, SmtEval.native_or]
                 exact False.elim
                   ((RuleProofs.eo_interprets_true_not_false M _ hOrTrue) hOrFalse)

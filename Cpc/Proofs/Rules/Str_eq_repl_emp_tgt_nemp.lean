@@ -122,7 +122,7 @@ private theorem typed___eo_prog_str_eq_repl_emp_tgt_nemp_impl
         (SmtTerm.and (__eo_to_smt notEqYEmp) (SmtTerm.Boolean true)) =
       SmtType.Bool
     rw [typeof_and_eq]
-    simp [hNotEqYEmpTy, __smtx_typeof.eq_1, native_ite, native_Teq]
+    simp [hNotEqYEmpTy, __smtx_typeof.eq_Boolean, native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.Bool := by
     change __smtx_typeof
         (SmtTerm.and (__eo_to_smt eqXEmp) (__eo_to_smt innerAnd)) =

@@ -623,7 +623,7 @@ theorem EvaluateProofInternal.run_evaluate_apply_eq_smt_type_bool
         __eo_is_str_internal, __eo_is_bool, __eo_is_bool_internal,
         __eo_mk_apply, native_ite, native_and, native_not,
         native_teq] using hApply
-    | rw [__smtx_typeof.eq_1]
+    | rw [__smtx_typeof.eq_Boolean]
     | contradiction
 
 theorem EvaluateProofInternal.eo_eq_typeof_bool_of_ne_stuck_early
@@ -737,9 +737,9 @@ theorem EvaluateProofInternal.run_evaluate_apply_eq_value_rel
         __eo_mk_apply, RuleProofs.smt_value_rel, __smtx_model_eval_eq,
         eo_to_smt_numeral_eq, eo_to_smt_rational_eq,
         EvaluateProofInternal.eo_to_smt_string_eq_early, EvaluateProofInternal.eo_to_smt_binary_eq_early,
-        __smtx_model_eval.eq_1, __smtx_model_eval.eq_2,
-        __smtx_model_eval.eq_3, __smtx_model_eval.eq_4,
-        __smtx_model_eval.eq_5, native_ite, native_and, native_not,
+        __smtx_model_eval.eq_Boolean, __smtx_model_eval.eq_Numeral,
+        __smtx_model_eval.eq_Rational, __smtx_model_eval.eq_String,
+        __smtx_model_eval.eq_Binary, native_ite, native_and, native_not,
         native_teq, native_veq, EvaluateProofInternal.native_pack_string_eq_iff_early]
   all_goals
     first
@@ -752,9 +752,9 @@ theorem EvaluateProofInternal.run_evaluate_apply_eq_value_rel
     | simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
         eo_to_smt_numeral_eq, eo_to_smt_rational_eq,
         EvaluateProofInternal.eo_to_smt_string_eq_early, EvaluateProofInternal.eo_to_smt_binary_eq_early,
-        __smtx_model_eval.eq_1, __smtx_model_eval.eq_2,
-        __smtx_model_eval.eq_3, __smtx_model_eval.eq_4,
-        __smtx_model_eval.eq_5, native_teq, native_veq,
+        __smtx_model_eval.eq_Boolean, __smtx_model_eval.eq_Numeral,
+        __smtx_model_eval.eq_Rational, __smtx_model_eval.eq_String,
+        __smtx_model_eval.eq_Binary, native_teq, native_veq,
         EvaluateProofInternal.native_pack_string_eq_iff_early]
     | constructor <;> intro h <;> exact h.symm
     | exact EvaluateProofInternal.decide_and_eq_symm _ _ _ _
@@ -3397,7 +3397,7 @@ theorem EvaluateProofInternal.smt_typeof_int_ispow2_formula_eq_bool
       SmtType.Bool := by
   intro hTy
   rw [typeof_and_eq, typeof_geq_eq, typeof_eq_eq,
-    typeof_int_pow2_eq, typeof_int_log2_eq, hTy, __smtx_typeof.eq_2]
+    typeof_int_pow2_eq, typeof_int_log2_eq, hTy, __smtx_typeof.eq_Numeral]
   simp [__smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_eq,
     __smtx_typeof_guard, native_ite, native_Teq]
 
@@ -4352,11 +4352,11 @@ theorem EvaluateProofInternal.eo_add_int_args_numeral_of_nonstuck
     exact ⟨nx, ny, rfl, rfl⟩
   case Rational.Rational rx _ry =>
     change __smtx_typeof (SmtTerm.Rational rx) = SmtType.Int at hxTy
-    rw [__smtx_typeof.eq_3] at hxTy
+    rw [__smtx_typeof.eq_Rational] at hxTy
     cases hxTy
   case Binary.Binary wx nx _wy _ny =>
     change __smtx_typeof (SmtTerm.Binary wx nx) = SmtType.Int at hxTy
-    rw [__smtx_typeof.eq_5] at hxTy
+    rw [__smtx_typeof.eq_Binary] at hxTy
     cases hValid :
         native_and (native_zleq 0 wx)
           (native_zeq nx (native_mod_total nx (native_int_pow2 wx))) <;>
@@ -4799,7 +4799,7 @@ theorem EvaluateProofInternal.eo_is_neg_int_arg_numeral_of_nonstuck
   · exact ⟨n, hn⟩
   · subst x
     change __smtx_typeof (SmtTerm.Rational q) = SmtType.Int at hxTy
-    rw [__smtx_typeof.eq_3] at hxTy
+    rw [__smtx_typeof.eq_Rational] at hxTy
     cases hxTy
 
 theorem EvaluateProofInternal.eo_gt_int_args_numeral_of_nonstuck
@@ -4814,11 +4814,11 @@ theorem EvaluateProofInternal.eo_gt_int_args_numeral_of_nonstuck
     exact ⟨nx, ny, rfl, rfl⟩
   case Rational.Rational qx qy =>
     change __smtx_typeof (SmtTerm.Rational qx) = SmtType.Int at hxTy
-    rw [__smtx_typeof.eq_3] at hxTy
+    rw [__smtx_typeof.eq_Rational] at hxTy
     cases hxTy
   case Binary.Binary wx nx wy ny =>
     change __smtx_typeof (SmtTerm.Binary wx nx) = SmtType.Int at hxTy
-    rw [__smtx_typeof.eq_5] at hxTy
+    rw [__smtx_typeof.eq_Binary] at hxTy
     cases hValid :
         native_and (native_zleq 0 wx)
           (native_zeq nx (native_mod_total nx (native_int_pow2 wx))) <;>
@@ -4971,7 +4971,7 @@ theorem EvaluateProofInternal.eo_to_q_int_arg_of_nonstuck
     exact ⟨n, rfl⟩
   case Rational q =>
     change __smtx_typeof (SmtTerm.Rational q) = SmtType.Int at hxTy
-    rw [__smtx_typeof.eq_3] at hxTy
+    rw [__smtx_typeof.eq_Rational] at hxTy
     cases hxTy
 
 theorem EvaluateProofInternal.eo_to_q_real_arg_of_nonstuck
@@ -4982,7 +4982,7 @@ theorem EvaluateProofInternal.eo_to_q_real_arg_of_nonstuck
   cases x <;> try simp [__eo_to_q] at hNe
   case Numeral n =>
     change __smtx_typeof (SmtTerm.Numeral n) = SmtType.Real at hxTy
-    rw [__smtx_typeof.eq_2] at hxTy
+    rw [__smtx_typeof.eq_Numeral] at hxTy
     cases hxTy
   case Rational q =>
     exact ⟨q, rfl⟩
@@ -4995,18 +4995,18 @@ theorem EvaluateProofInternal.eo_to_z_real_arg_of_nonstuck
   cases x <;> try simp [__eo_to_z] at hNe
   case Numeral n =>
     change __smtx_typeof (SmtTerm.Numeral n) = SmtType.Real at hxTy
-    rw [__smtx_typeof.eq_2] at hxTy
+    rw [__smtx_typeof.eq_Numeral] at hxTy
     cases hxTy
   case Rational q =>
     exact ⟨q, rfl⟩
   case String s =>
     change __smtx_typeof (SmtTerm.String s) = SmtType.Real at hxTy
-    rw [__smtx_typeof.eq_4] at hxTy
+    rw [__smtx_typeof.eq_String] at hxTy
     cases hValid : native_string_valid s <;>
       simp [native_ite, hValid] at hxTy
   case Binary w n =>
     change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Real at hxTy
-    rw [__smtx_typeof.eq_5] at hxTy
+    rw [__smtx_typeof.eq_Binary] at hxTy
     cases hValid :
         native_and (native_zleq 0 w)
           (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
@@ -5025,7 +5025,7 @@ theorem EvaluateProofInternal.eo_is_int_result_rel
       __smtx_model_eval_to_int, __smtx_model_eval_to_real,
       __smtx_model_eval_eq, native_veq, __eo_to_z, __eo_to_q,
       __eo_eq, native_teq, hWhole]
-    rw [__smtx_model_eval.eq_1]
+    rw [__smtx_model_eval.eq_Boolean]
   · have hWhole' : q ≠ native_to_real (native_to_int q) := by
       intro h
       exact hWhole h.symm
@@ -5033,7 +5033,7 @@ theorem EvaluateProofInternal.eo_is_int_result_rel
       __smtx_model_eval_to_int, __smtx_model_eval_to_real,
       __smtx_model_eval_eq, native_veq, __eo_to_z, __eo_to_q,
       __eo_eq, native_teq, hWhole, hWhole']
-    rw [__smtx_model_eval.eq_1]
+    rw [__smtx_model_eval.eq_Boolean]
 
 theorem EvaluateProofInternal.eo_lt_int_run_args_of_nonstuck
     (x y : Term)
@@ -5072,7 +5072,7 @@ theorem EvaluateProofInternal.eo_lt_int_run_args_of_nonstuck
       ⟨qx, _qNegY, hx, _hNegY⟩
     rw [hx] at hxTy
     change __smtx_typeof (SmtTerm.Rational qx) = SmtType.Int at hxTy
-    rw [__smtx_typeof.eq_3] at hxTy
+    rw [__smtx_typeof.eq_Rational] at hxTy
     cases hxTy
 
 theorem EvaluateProofInternal.eo_lt_real_run_args_of_nonstuck
@@ -5096,7 +5096,7 @@ theorem EvaluateProofInternal.eo_lt_real_run_args_of_nonstuck
       ⟨nx, _nNegY, hx, _hNegY⟩
     rw [hx] at hxTy
     change __smtx_typeof (SmtTerm.Numeral nx) = SmtType.Real at hxTy
-    rw [__smtx_typeof.eq_2] at hxTy
+    rw [__smtx_typeof.eq_Numeral] at hxTy
     cases hxTy
   · rcases hInnerReal with ⟨q, hInner⟩
     have hInnerTy :
@@ -8044,7 +8044,7 @@ theorem EvaluateProofInternal.bv_eval_concat_list_repeat_binary_eval
           (native_zmult (native_nat_to_int (native_int_to_nat i)) w) m) =
       SmtValue.Binary
         (native_zmult (native_nat_to_int (native_int_to_nat i)) w) m
-  rw [__smtx_model_eval.eq_5]
+  rw [__smtx_model_eval.eq_Binary]
 
 theorem EvaluateProofInternal.bv_eval_concat_list_repeat_rec_binary_stuck_of_neg
     (w n : native_Int)
@@ -8659,7 +8659,7 @@ theorem EvaluateProofInternal.smt_string_seq_type_inv
       SmtType.Seq T) :
     native_string_valid str = true ∧ T = SmtType.Char := by
   change __smtx_typeof (SmtTerm.String str) = SmtType.Seq T at hTy
-  rw [__smtx_typeof.eq_4] at hTy
+  rw [__smtx_typeof.eq_String] at hTy
   cases hValid : native_string_valid str
   · simp [native_ite, hValid] at hTy
   · simp [native_ite, hValid] at hTy
@@ -8681,7 +8681,7 @@ theorem EvaluateProofInternal.eo_len_seq_arg_of_nonstuck
     exact ⟨str, rfl, hValid, hT⟩
   case Binary w n =>
     change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Seq T at hTy
-    rw [__smtx_typeof.eq_5] at hTy
+    rw [__smtx_typeof.eq_Binary] at hTy
     cases hValid :
         native_and (native_zleq 0 w)
           (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
@@ -8703,7 +8703,7 @@ theorem EvaluateProofInternal.eo_extract_same_seq_int_args_of_nonstuck
       exact ⟨str, i, rfl, rfl, hValid, hT⟩
   case Binary w nval =>
     change __smtx_typeof (SmtTerm.Binary w nval) = SmtType.Seq T at hxTy
-    rw [__smtx_typeof.eq_5] at hxTy
+    rw [__smtx_typeof.eq_Binary] at hxTy
     cases hValid :
         native_and (native_zleq 0 w)
           (native_zeq nval (native_mod_total nval (native_int_pow2 w))) <;>
@@ -8729,7 +8729,7 @@ theorem EvaluateProofInternal.eo_extract_seq_args_of_nonstuck
         exact ⟨str, start, stop, rfl, rfl, rfl, hValid, hT⟩
   case Binary w nval =>
     change __smtx_typeof (SmtTerm.Binary w nval) = SmtType.Seq T at hxTy
-    rw [__smtx_typeof.eq_5] at hxTy
+    rw [__smtx_typeof.eq_Binary] at hxTy
     cases hValid :
         native_and (native_zleq 0 w)
           (native_zeq nval (native_mod_total nval (native_int_pow2 w))) <;>
@@ -8749,7 +8749,7 @@ theorem EvaluateProofInternal.eo_extract_seq_char_numeral_args_of_nonstuck
   case Binary w nval =>
     change __smtx_typeof (SmtTerm.Binary w nval) =
       SmtType.Seq SmtType.Char at hxTy
-    rw [__smtx_typeof.eq_5] at hxTy
+    rw [__smtx_typeof.eq_Binary] at hxTy
     cases hValid :
         native_and (native_zleq 0 w)
           (native_zeq nval (native_mod_total nval (native_int_pow2 w))) <;>
@@ -8792,11 +8792,11 @@ theorem EvaluateProofInternal.eo_find_to_str_seq_args_of_nonstuck
         EvaluateProofInternal.native_string_valid_of_string_type hyTy, rfl⟩
     case Numeral n =>
       change __smtx_typeof (SmtTerm.Numeral n) = SmtType.Seq T at hyTy
-      rw [__smtx_typeof.eq_2] at hyTy
+      rw [__smtx_typeof.eq_Numeral] at hyTy
       cases hyTy
   case Numeral n =>
     change __smtx_typeof (SmtTerm.Numeral n) = SmtType.Seq T at hxTy
-    rw [__smtx_typeof.eq_2] at hxTy
+    rw [__smtx_typeof.eq_Numeral] at hxTy
     cases hxTy
 
 theorem EvaluateProofInternal.str_replace_run_repl_string_of_nonneg
@@ -10833,7 +10833,7 @@ theorem EvaluateProofInternal.smt_value_rel_model_eval_str_update_to_string_of_r
           (__smtx_model_eval M (__eo_to_smt s))
           (__smtx_model_eval M (__eo_to_smt n))
           (__smtx_model_eval M (__eo_to_smt repl)) by
-    rw [__smtx_model_eval.eq_88]]
+    rw [__smtx_model_eval.eq_str_update]]
   rw [hRunEval] at hRel
   exact hRel
 
@@ -11099,7 +11099,7 @@ theorem EvaluateProofInternal.str_update_run_repl_string_of_body_nonstuck
     exfalso
     change __smtx_typeof (SmtTerm.Binary w n) =
       SmtType.Seq SmtType.Char at hRunReplTy
-    rw [__smtx_typeof.eq_5] at hRunReplTy
+    rw [__smtx_typeof.eq_Binary] at hRunReplTy
     cases hValid :
         native_and (native_zleq 0 w)
           (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
@@ -12209,12 +12209,12 @@ theorem EvaluateProofInternal.int_ispow2_numeral_to_smt_type_bool
   by_cases hNeg : n < 0
   · simp [__eo_is_z, __eo_is_z_internal, __eo_is_neg, __eo_ite,
       native_ite, native_teq, native_and, native_not, native_zlt, hNeg]
-    rw [__smtx_typeof.eq_1]
+    rw [__smtx_typeof.eq_Boolean]
   · simp [__eo_is_z, __eo_is_z_internal, __eo_is_neg, __eo_ite,
       __eo_eq, __eo_pow, __eo_log, native_ite, native_teq, native_and,
       native_not, native_zlt, hNeg, EvaluateProofInternal.native_int_log_two_eq_log2,
       eq_comm]
-    rw [__smtx_typeof.eq_1]
+    rw [__smtx_typeof.eq_Boolean]
 
 theorem EvaluateProofInternal.int_ispow2_numeral_eval_rel
     (M : SmtModel) (n : native_Int) :

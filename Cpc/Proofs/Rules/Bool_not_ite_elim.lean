@@ -219,7 +219,7 @@ private theorem facts___eo_prog_bool_not_ite_elim_impl
         SmtTerm.ite (__eo_to_smt c1) (SmtTerm.not (__eo_to_smt x1))
           (SmtTerm.not (__eo_to_smt y1)) by
         rfl]
-    simp only [__smtx_model_eval.eq_6, smtx_eval_ite_term_eq, hEvalC1, hEvalX1,
+    simp only [__smtx_model_eval.eq_not, smtx_eval_ite_term_eq, hEvalC1, hEvalX1,
       hEvalY1]
     cases bc <;> cases bx <;> cases bY <;>
       simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, __smtx_model_eval_ite,

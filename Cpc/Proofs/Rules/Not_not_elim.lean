@@ -22,7 +22,7 @@ private theorem eo_interprets_of_not_false (M : SmtModel) (F : Term) :
   change smt_interprets M (SmtTerm.not (__eo_to_smt F)) false at hNotFalse
   cases hNotFalse with
   | intro_false _ hEvalNot =>
-      rw [__smtx_model_eval.eq_6] at hEvalNot
+      rw [__smtx_model_eval.eq_not] at hEvalNot
       cases hEvalF : __smtx_model_eval M (__eo_to_smt F) with
       | NotValue =>
           exfalso

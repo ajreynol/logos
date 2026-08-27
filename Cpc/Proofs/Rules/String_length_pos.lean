@@ -136,12 +136,12 @@ private theorem eval_eo_str_len_of_seq
 private theorem typeof_eo_zero :
     __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
   change __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int
-  rw [__smtx_typeof.eq_2]
+  rw [__smtx_typeof.eq_Numeral]
 
 private theorem eval_eo_zero (M : SmtModel) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral 0)) = SmtValue.Numeral 0 := by
   change __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0
-  rw [__smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_Numeral]
 
 private theorem eo_has_bool_type_gt_of_int_args (x y : Term)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int)

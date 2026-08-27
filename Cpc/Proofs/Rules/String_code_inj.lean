@@ -177,7 +177,7 @@ private theorem sciFormula_has_bool_type
       (by
         rw [hCodeT]
         change SmtType.Int = __smtx_typeof (SmtTerm.Numeral (-1 : native_Int))
-        rw [__smtx_typeof.eq_2])
+        rw [__smtx_typeof.eq_Numeral])
       (by rw [hCodeT]; simp)
   have hCodeEq :
       RuleProofs.eo_has_bool_type (sciCodeEq t s) := by
@@ -327,9 +327,9 @@ private theorem facts_sciFormula
           (SmtTerm.or (SmtTerm.eq (__eo_to_smt t) (__eo_to_smt s))
             (SmtTerm.Boolean false)))) = SmtValue.Boolean true
   by_cases hNeg : native_str_to_code (native_unpack_string ts) = (-1 : native_Int)
-  · simp [__smtx_model_eval.eq_7, __smtx_model_eval.eq_6,
+  · simp [__smtx_model_eval.eq_or, __smtx_model_eval.eq_not,
       smtx_eval_eq_term_eq, smtx_eval_str_to_code_term_eq,
-      __smtx_model_eval.eq_2, __smtx_model_eval.eq_1,
+      __smtx_model_eval.eq_Numeral, __smtx_model_eval.eq_Boolean,
       hEvalT, hEvalS, hNeg, __smtx_model_eval_str_to_code,
       __smtx_model_eval_eq, __smtx_model_eval_or, __smtx_model_eval_not,
       native_veq, SmtEval.native_or, SmtEval.native_not]
@@ -342,15 +342,15 @@ private theorem facts_sciFormula
       have hSeq : ts = ss := by
         rw [← native_pack_string_unpack_string_of_typeof_seq_char ts hTsTy,
           ← native_pack_string_unpack_string_of_typeof_seq_char ss hSsTy, hString]
-      simp [__smtx_model_eval.eq_7, __smtx_model_eval.eq_6,
+      simp [__smtx_model_eval.eq_or, __smtx_model_eval.eq_not,
         smtx_eval_eq_term_eq, smtx_eval_str_to_code_term_eq,
-        __smtx_model_eval.eq_2, __smtx_model_eval.eq_1,
+        __smtx_model_eval.eq_Numeral, __smtx_model_eval.eq_Boolean,
         hEvalT, hEvalS,hSeq, __smtx_model_eval_str_to_code,
         __smtx_model_eval_eq, __smtx_model_eval_or, __smtx_model_eval_not,
         native_veq, SmtEval.native_or, SmtEval.native_not]
-    · simp [__smtx_model_eval.eq_7, __smtx_model_eval.eq_6,
+    · simp [__smtx_model_eval.eq_or, __smtx_model_eval.eq_not,
         smtx_eval_eq_term_eq, smtx_eval_str_to_code_term_eq,
-        __smtx_model_eval.eq_2, __smtx_model_eval.eq_1,
+        __smtx_model_eval.eq_Numeral, __smtx_model_eval.eq_Boolean,
         hEvalT, hEvalS, hNeg, hCodes, __smtx_model_eval_str_to_code,
         __smtx_model_eval_eq, __smtx_model_eval_or, __smtx_model_eval_not,
         native_veq, SmtEval.native_or, SmtEval.native_not]

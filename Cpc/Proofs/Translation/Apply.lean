@@ -1470,9 +1470,9 @@ private theorem typeof_apply_boolean_head_eq_none
     (generic_apply_type_of_non_special_head _ _
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h))
-    (by intro A B h; rw [__smtx_typeof.eq_1] at h; cases h)
-    (by intro A B h; rw [__smtx_typeof.eq_1] at h; cases h)
-    (by intro A B h; rw [__smtx_typeof.eq_1] at h; cases h)
+    (by intro A B h; rw [__smtx_typeof.eq_Boolean] at h; cases h)
+    (by intro A B h; rw [__smtx_typeof.eq_Boolean] at h; cases h)
+    (by intro A B h; rw [__smtx_typeof.eq_Boolean] at h; cases h)
 
 /-- Computes the type of applying an integer literal as a head. -/
 private theorem typeof_apply_numeral_head_eq_none
@@ -1482,9 +1482,9 @@ private theorem typeof_apply_numeral_head_eq_none
     (generic_apply_type_of_non_special_head _ _
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h))
-    (by intro A B h; rw [__smtx_typeof.eq_2] at h; cases h)
-    (by intro A B h; rw [__smtx_typeof.eq_2] at h; cases h)
-    (by intro A B h; rw [__smtx_typeof.eq_2] at h; cases h)
+    (by intro A B h; rw [__smtx_typeof.eq_Numeral] at h; cases h)
+    (by intro A B h; rw [__smtx_typeof.eq_Numeral] at h; cases h)
+    (by intro A B h; rw [__smtx_typeof.eq_Numeral] at h; cases h)
 
 /-- Computes the type of applying a rational literal as a head. -/
 private theorem typeof_apply_rational_head_eq_none
@@ -1494,9 +1494,9 @@ private theorem typeof_apply_rational_head_eq_none
     (generic_apply_type_of_non_special_head _ _
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h))
-    (by intro A B h; rw [__smtx_typeof.eq_3] at h; cases h)
-    (by intro A B h; rw [__smtx_typeof.eq_3] at h; cases h)
-    (by intro A B h; rw [__smtx_typeof.eq_3] at h; cases h)
+    (by intro A B h; rw [__smtx_typeof.eq_Rational] at h; cases h)
+    (by intro A B h; rw [__smtx_typeof.eq_Rational] at h; cases h)
+    (by intro A B h; rw [__smtx_typeof.eq_Rational] at h; cases h)
 
 /-- Computes the type of applying a string literal as a head. -/
 private theorem typeof_apply_string_head_eq_none
@@ -1508,17 +1508,17 @@ private theorem typeof_apply_string_head_eq_none
       (by intro s' d i h; cases h))
     (by
       intro A B h
-      rw [__smtx_typeof.eq_4] at h
+      rw [__smtx_typeof.eq_String] at h
       cases hValid : native_string_valid s <;>
         simp [native_ite, hValid] at h)
     (by
       intro A B h
-      rw [__smtx_typeof.eq_4] at h
+      rw [__smtx_typeof.eq_String] at h
       cases hValid : native_string_valid s <;>
         simp [native_ite, hValid] at h)
     (by
       intro A B h
-      rw [__smtx_typeof.eq_4] at h
+      rw [__smtx_typeof.eq_String] at h
       cases hValid : native_string_valid s <;>
         simp [native_ite, hValid] at h)
 
@@ -1532,19 +1532,19 @@ private theorem typeof_apply_binary_head_eq_none
       (by intro s d i h; cases h))
     (by
       intro A B h
-      rw [__smtx_typeof.eq_5] at h
+      rw [__smtx_typeof.eq_Binary] at h
       cases hCond :
           native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
         simp [native_ite, hCond] at h)
     (by
       intro A B h
-      rw [__smtx_typeof.eq_5] at h
+      rw [__smtx_typeof.eq_Binary] at h
       cases hCond :
           native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
         simp [native_ite, hCond] at h)
     (by
       intro A B h
-      rw [__smtx_typeof.eq_5] at h
+      rw [__smtx_typeof.eq_Binary] at h
       cases hCond :
           native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
         simp [native_ite, hCond] at h)
@@ -1554,7 +1554,7 @@ private theorem typeof_uneg_eq
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.uneg t) =
       __smtx_typeof_arith_overload_op_1 (__smtx_typeof t) := by
-  rw [__smtx_typeof.eq_23]
+  rw [__smtx_typeof.eq_uneg]
 
 /-- Computes the type of applying a regular-language constant as a head. -/
 private theorem typeof_apply_reglan_head_eq_none
@@ -8384,7 +8384,7 @@ private theorem smtx_typeof_eo_to_smt_distinct_bool_or_none
       | _at__at_TypedList_nil =>
           left
           change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
-          rw [__smtx_typeof.eq_1]
+          rw [__smtx_typeof.eq_Boolean]
       | _ =>
           right
           change __smtx_typeof SmtTerm.None = SmtType.None
@@ -15929,7 +15929,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         rcases hGeqArgs with hInt | hReal
         · exact hInt.1
         · have hZeroReal := hReal.2
-          rw [__smtx_typeof.eq_2] at hZeroReal
+          rw [__smtx_typeof.eq_Numeral] at hZeroReal
           simp at hZeroReal
       have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
         rw [hArg]

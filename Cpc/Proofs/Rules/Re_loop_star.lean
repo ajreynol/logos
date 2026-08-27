@@ -93,7 +93,7 @@ theorem eo_and_eq_true {x y : Term}
 theorem eval_numeral (M : SmtModel) (n : Int) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral n)) = SmtValue.Numeral n := by
   change __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n
-  rw [__smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_Numeral]
 
 /-! ## Structural extraction of the program result -/
 
@@ -143,7 +143,7 @@ theorem one_le_of_zleq_one {b : Int} (h : native_zleq 1 b = true) : 1 ≤ b :=
 
 theorem eval_smt_numeral (M : SmtModel) (n : Int) :
     __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n := by
-  rw [__smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_Numeral]
 
 /-- Typing constraints imposed by the `re.loop` head in the conclusion. -/
 theorem loop_star_types (a1 a2 a3 : Term)
@@ -213,7 +213,7 @@ theorem zleq_of_geq_premise (M : SmtModel) (x y : Term) (a b : Int)
   have hEvalTrue :
       __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) = SmtValue.Boolean true := by
     change __smtx_model_eval M (SmtTerm.Boolean true) = _
-    rw [__smtx_model_eval.eq_1]
+    rw [__smtx_model_eval.eq_Boolean]
   rw [hEvalGeq, hEvalTrue] at hRel
   have hEq :
       SmtValue.Boolean (native_zleq b a) = SmtValue.Boolean true :=

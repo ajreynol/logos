@@ -227,7 +227,7 @@ private theorem geq_left_int_type_of_has_bool_type
   · have hZeroInt :
         __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
       rw [show __eo_to_smt (Term.Numeral 0) = SmtTerm.Numeral 0 by rfl]
-      rw [__smtx_typeof.eq_2]
+      rw [__smtx_typeof.eq_Numeral]
     rw [hZeroInt] at hReal
     cases hReal.2
 
@@ -263,12 +263,12 @@ private theorem geq_zero_eval_true_of_int_denote_nonneg
       __eo_to_smt
           (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)) =
         SmtTerm.geq (__eo_to_smt n) (SmtTerm.Numeral 0) by rfl]
-  rw [__smtx_model_eval.eq_18, hEval]
+  rw [__smtx_model_eval.eq_geq, hEval]
   have hZle : native_zleq 0 z = true := by
     simpa [native_zleq, SmtEval.native_zleq] using hzNonneg
   have hZeroEval :
       __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0 := by
-    rw [__smtx_model_eval.eq_2]
+    rw [__smtx_model_eval.eq_Numeral]
   rw [hZeroEval]
   simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hZle]
 
@@ -318,7 +318,7 @@ private theorem geq_eval_true_of_diff_denote_nonneg
           __smtx_to_real_coerce
               (__smtx_model_eval M (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m))) =
             SmtValue.Rational q at hDen
-        rw [__smtx_model_eval.eq_13, hEvalN, hEvalM] at hDen
+        rw [__smtx_model_eval.eq_neg, hEvalN, hEvalM] at hDen
         simpa [__smtx_to_real_coerce, __smtx_model_eval__, native_to_real_sub] using hDen
       simpa using h
     have hSubNonneg : (0 : Int) ≤ native_zplus zn (native_zneg zm) := by
@@ -337,7 +337,7 @@ private theorem geq_eval_true_of_diff_denote_nonneg
     rw [show
         __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) =
           SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m) by rfl]
-    rw [__smtx_model_eval.eq_18, hEvalN, hEvalM]
+    rw [__smtx_model_eval.eq_geq, hEvalN, hEvalM]
     simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hZle]
   · have hEvalNTy :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt n)) =
@@ -361,7 +361,7 @@ private theorem geq_eval_true_of_diff_denote_nonneg
           __smtx_to_real_coerce
               (__smtx_model_eval M (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m))) =
             SmtValue.Rational q at hDen
-        rw [__smtx_model_eval.eq_13, hEvalN, hEvalM] at hDen
+        rw [__smtx_model_eval.eq_neg, hEvalN, hEvalM] at hDen
         simpa [__smtx_to_real_coerce, __smtx_model_eval__] using hDen
       simpa using h
     have hLe : qm ≤ qn := by
@@ -375,7 +375,7 @@ private theorem geq_eval_true_of_diff_denote_nonneg
     rw [show
         __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) =
           SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m) by rfl]
-    rw [__smtx_model_eval.eq_18, hEvalN, hEvalM]
+    rw [__smtx_model_eval.eq_geq, hEvalN, hEvalM]
     simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hQle]
 
 theorem arith_string_pred_simple_geq_true
@@ -547,7 +547,7 @@ private theorem int_le_of_simple_geq_true
     | intro_true _ hEval => exact hEval
   rw [show __eo_to_smt geqTerm =
         SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m) by rfl] at hEval
-  rw [__smtx_model_eval.eq_18, hNEval, hMEval] at hEval
+  rw [__smtx_model_eval.eq_geq, hNEval, hMEval] at hEval
   simpa [__smtx_model_eval_geq, __smtx_model_eval_leq, native_zleq,
     SmtEval.native_zleq] using hEval
 
@@ -688,7 +688,7 @@ private theorem plus_int_eval_decomp
   rw [show
       __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) n) m) =
         SmtTerm.plus (__eo_to_smt n) (__eo_to_smt m) by rfl] at hEval
-  rw [__smtx_model_eval.eq_12, hNEval, hMEval] at hEval
+  rw [__smtx_model_eval.eq_plus, hNEval, hMEval] at hEval
   simpa [__smtx_model_eval_plus, native_zplus] using hEval.symm
 
 private theorem mult_int_eval_decomp
@@ -714,7 +714,7 @@ private theorem mult_int_eval_decomp
   rw [show
       __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) n) m) =
         SmtTerm.mult (__eo_to_smt n) (__eo_to_smt m) by rfl] at hEval
-  rw [__smtx_model_eval.eq_14, hNEval, hMEval] at hEval
+  rw [__smtx_model_eval.eq_mult, hNEval, hMEval] at hEval
   simpa [__smtx_model_eval_mult, native_zmult] using hEval.symm
 
 private theorem seq_eval_of_seq_type
@@ -787,7 +787,7 @@ private theorem str_to_int_eval_decomp
   refine ⟨ss, hSEval, ?_⟩
   rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_int) s) =
         SmtTerm.str_to_int (__eo_to_smt s) by rfl] at hEval
-  rw [__smtx_model_eval.eq_94, hSEval] at hEval
+  rw [__smtx_model_eval.eq_str_to_int, hSEval] at hEval
   simpa [__smtx_model_eval_str_to_int] using hEval.symm
 
 private theorem str_indexof_eval_decomp
@@ -830,7 +830,7 @@ private theorem str_indexof_eval_decomp
       __eo_to_smt
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) s) t) n) =
         SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt t) (__eo_to_smt n) by rfl] at hEval
-  rw [__smtx_model_eval.eq_83, hSEval, hTEval, hNEval] at hEval
+  rw [__smtx_model_eval.eq_str_indexof, hSEval, hTEval, hNEval] at hEval
   simpa [__smtx_model_eval_str_indexof] using hEval.symm
 
 private theorem str_substr_len_eval_decomp
@@ -881,7 +881,7 @@ private theorem str_substr_len_eval_decomp
     rw [show __eo_to_smt sub =
           SmtTerm.str_substr (__eo_to_smt s) (__eo_to_smt n1) (__eo_to_smt n2) by rfl]
         at hSubEval
-    rw [__smtx_model_eval.eq_80, hSEval, hN1Eval, hN2Eval] at hSubEval
+    rw [__smtx_model_eval.eq_str_substr, hSEval, hN1Eval, hN2Eval] at hSubEval
     simpa [__smtx_model_eval_str_substr] using hSubEval
   have hLenEq :
       (native_unpack_seq subSeq).length =
@@ -944,7 +944,7 @@ private theorem str_replace_len_eval_decomp
     rw [show __eo_to_smt rep =
           SmtTerm.str_replace (__eo_to_smt s) (__eo_to_smt t) (__eo_to_smt r) by rfl]
         at hRepEval
-    rw [__smtx_model_eval.eq_82, hSEval, hTEval, hREval] at hRepEval
+    rw [__smtx_model_eval.eq_str_replace, hSEval, hTEval, hREval] at hRepEval
     simpa [__smtx_model_eval_str_replace] using hRepEval
   have hLenEq :
       (native_unpack_seq repSeq).length =
@@ -991,7 +991,7 @@ private theorem str_from_int_len_eval_decomp
       native_pack_string (native_str_from_int zn) = seq := by
     rw [show __eo_to_smt fromInt = SmtTerm.str_from_int (__eo_to_smt n) by rfl]
         at hFromEval
-    rw [__smtx_model_eval.eq_95, hNEval] at hFromEval
+    rw [__smtx_model_eval.eq_str_from_int, hNEval] at hFromEval
     simpa [__smtx_model_eval_str_from_int] using hFromEval
   have hLenEq :
       (native_unpack_seq seq).length = (native_str_from_int zn).length := by
@@ -1045,7 +1045,7 @@ private theorem int_pos_of_simple_gt_zero_true
         (SmtTerm.plus (SmtTerm.Numeral 0)
           (SmtTerm.plus (SmtTerm.Numeral 1) (SmtTerm.Numeral 0))) = SmtType.Int
     rw [typeof_plus_eq, typeof_plus_eq]
-    simp [__smtx_typeof.eq_2, __smtx_typeof_arith_overload_op_2]
+    simp [__smtx_typeof.eq_Numeral, __smtx_typeof_arith_overload_op_2]
   have hOneEval :
       __smtx_model_eval M (__eo_to_smt oneTerm) = SmtValue.Numeral 1 := by
     change
@@ -1053,8 +1053,8 @@ private theorem int_pos_of_simple_gt_zero_true
           (SmtTerm.plus (SmtTerm.Numeral 0)
             (SmtTerm.plus (SmtTerm.Numeral 1) (SmtTerm.Numeral 0))) =
         SmtValue.Numeral 1
-    rw [__smtx_model_eval.eq_12, __smtx_model_eval.eq_12]
-    simp [__smtx_model_eval.eq_2, __smtx_model_eval_plus, native_zplus]
+    rw [__smtx_model_eval.eq_plus, __smtx_model_eval.eq_plus]
+    simp [__smtx_model_eval.eq_Numeral, __smtx_model_eval_plus, native_zplus]
   have hSimpleGeq :
       __str_arith_entail_simple_pred
           (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) oneTerm) =
@@ -1069,7 +1069,7 @@ private theorem int_pos_of_simple_gt_zero_true
 private theorem numeral_int_eval (M : SmtModel) (z : native_Int) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral z)) = SmtValue.Numeral z := by
   change __smtx_model_eval M (SmtTerm.Numeral z) = SmtValue.Numeral z
-  rw [__smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_Numeral]
 
 private theorem numeral_eval_value_eq (M : SmtModel) {z w : native_Int} :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral z)) = SmtValue.Numeral w ->
@@ -1094,7 +1094,7 @@ private theorem plus_trailing_zero_int_type (n m : Term) :
       (SmtTerm.plus (__eo_to_smt n)
         (SmtTerm.plus (__eo_to_smt m) (SmtTerm.Numeral 0))) = SmtType.Int
   rw [typeof_plus_eq, typeof_plus_eq]
-  simp [__smtx_typeof.eq_2, __smtx_typeof_arith_overload_op_2, hNInt, hMInt]
+  simp [__smtx_typeof.eq_Numeral, __smtx_typeof_arith_overload_op_2, hNInt, hMInt]
 
 private theorem plus_trailing_zero_int_eval
     (M : SmtModel) (n m : Term) (zn zm : native_Int) :
@@ -1111,8 +1111,8 @@ private theorem plus_trailing_zero_int_eval
       (SmtTerm.plus (__eo_to_smt n)
         (SmtTerm.plus (__eo_to_smt m) (SmtTerm.Numeral 0))) =
       SmtValue.Numeral (zn + zm)
-  rw [__smtx_model_eval.eq_12, __smtx_model_eval.eq_12, hNEval, hMEval,
-    __smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_plus, __smtx_model_eval.eq_plus, hNEval, hMEval,
+    __smtx_model_eval.eq_Numeral]
   simp [__smtx_model_eval_plus, native_zplus]
 
 private theorem neg_int_eval_of_args
@@ -1125,7 +1125,7 @@ private theorem neg_int_eval_of_args
   intro hNEval hMEval
   change __smtx_model_eval M (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m)) =
     SmtValue.Numeral (zn - zm)
-  rw [__smtx_model_eval.eq_13, hNEval, hMEval]
+  rw [__smtx_model_eval.eq_neg, hNEval, hMEval]
   simp [__smtx_model_eval__, native_zplus, native_zneg, Int.sub_eq_add_neg]
 
 private theorem str_len_int_type_of_seq_type (s : Term) (T : SmtType) :
@@ -1187,7 +1187,7 @@ private theorem int_eval_lt_zero_of_eo_is_neg_true
     simpa [native_zlt, SmtEval.native_zlt] using hNeg
   case Rational q =>
     change __smtx_typeof (SmtTerm.Rational q) = SmtType.Int at hNInt
-    rw [__smtx_typeof.eq_3] at hNInt
+    rw [__smtx_typeof.eq_Rational] at hNInt
     cases hNInt
 
 private theorem int_eval_nonneg_of_eo_is_neg_false
@@ -1211,7 +1211,7 @@ private theorem int_eval_nonneg_of_eo_is_neg_false
     exact Int.le_of_not_gt hNotLt
   case Rational q =>
     change __smtx_typeof (SmtTerm.Rational q) = SmtType.Int at hNInt
-    rw [__smtx_typeof.eq_3] at hNInt
+    rw [__smtx_typeof.eq_Rational] at hNInt
     cases hNInt
 
 private theorem arith_string_eo_ite_true
@@ -4453,12 +4453,12 @@ private theorem arith_string_pred_safe_approx_left_true
     have hZle : native_zleq 0 zm = true := by
       have hZeroEval :
           __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0 := by
-        rw [__smtx_model_eval.eq_2]
+        rw [__smtx_model_eval.eq_Numeral]
       rw [show
           __eo_to_smt
               (Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0)) =
             SmtTerm.geq (__eo_to_smt m) (SmtTerm.Numeral 0) by rfl] at hMEval
-      rw [__smtx_model_eval.eq_18, hEvalM, hZeroEval] at hMEval
+      rw [__smtx_model_eval.eq_geq, hEvalM, hZeroEval] at hMEval
       simpa [__smtx_model_eval_geq, __smtx_model_eval_leq] using hMEval
     have hzmNonneg : (0 : Int) ≤ zm := by
       simpa [native_zleq, SmtEval.native_zleq] using hZle
@@ -4503,7 +4503,7 @@ theorem arith_string_pred_entail_formula_true
     unfold RuleProofs.eo_has_bool_type
     rw [hTy]
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
-    rw [__smtx_typeof.eq_1]
+    rw [__smtx_typeof.eq_Boolean]
   have hNInt : __smtx_typeof (__eo_to_smt n) = SmtType.Int :=
     geq_left_int_type_of_has_bool_type n hGeqBool
   have hDenote :
@@ -4530,7 +4530,7 @@ theorem arith_string_pred_entail_formula_true
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   rw [hGeqEval]
   rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
-  rw [__smtx_model_eval.eq_1]
+  rw [__smtx_model_eval.eq_Boolean]
   simp [__smtx_model_eval_eq, native_veq]
 
 theorem arith_string_pred_safe_approx_formula_true

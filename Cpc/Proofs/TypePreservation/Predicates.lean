@@ -2,6 +2,8 @@ module
 
 public import Cpc.SmtModel
 import all Cpc.SmtModel
+public import Cpc.Proofs.SmtEquations
+import all Cpc.Proofs.SmtEquations
 
 public section
 

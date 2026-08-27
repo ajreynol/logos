@@ -126,7 +126,7 @@ private theorem typed___eo_prog_sets_inter_member_impl
   simp [typeof_eq_eq, typeof_set_member_eq, typeof_set_inter_eq,
     typeof_and_eq, __smtx_typeof_set_member, __smtx_typeof_sets_op_2,
     __smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq,
-    __smtx_typeof.eq_1, hxSmtTy, hySmtTy, hzSmtTy]
+    __smtx_typeof.eq_Boolean, hxSmtTy, hySmtTy, hzSmtTy]
 
 private theorem mss_inter_lookup_acc :
     ∀ {m1 m2 acc : SmtMap} {A : SmtType} {i : SmtValue},

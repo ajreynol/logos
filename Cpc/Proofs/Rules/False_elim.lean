@@ -15,7 +15,7 @@ private theorem eo_has_bool_type_false :
   change __smtx_typeof (__eo_to_smt (Term.Boolean false)) = SmtType.Bool
   rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
     rfl]
-  rw [__smtx_typeof.eq_1]
+  rw [__smtx_typeof.eq_Boolean]
 
 private theorem eo_has_bool_type_eq_left (A B : Term) :
   RuleProofs.eo_has_bool_type B ->
@@ -96,7 +96,7 @@ theorem facts___eo_prog_false_elim_impl
                               RuleProofs.eo_interprets_eq_rel M b (Term.Boolean false) hX1True
                             rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
                               rfl] at hRel'
-                            rw [__smtx_model_eval.eq_1] at hRel'
+                            rw [__smtx_model_eval.eq_Boolean] at hRel'
                             exact hRel'
                           cases bv with
                           | false =>

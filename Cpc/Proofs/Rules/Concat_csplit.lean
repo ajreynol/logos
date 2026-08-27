@@ -207,7 +207,7 @@ private theorem sc_string_length_one_of_seq_type
     exact_mod_cast hInt
   case Binary w n =>
     change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Seq T at hTy
-    rw [__smtx_typeof.eq_5] at hTy
+    rw [__smtx_typeof.eq_Binary] at hTy
     cases hCond :
         native_and (native_zleq 0 w)
           (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
@@ -225,7 +225,7 @@ private theorem sc_eval_length_one_of_seq_type
   refine ⟨native_pack_string str, ?_, ?_⟩
   · change __smtx_model_eval M (SmtTerm.String str) =
       SmtValue.Seq (native_pack_string str)
-    rw [__smtx_model_eval.eq_4]
+    rw [__smtx_model_eval.eq_String]
   · simp [native_pack_string, _root_.native_unpack_pack_seq, hLen]
 
 private theorem length_ne_zero_of_not_len_eq_eval

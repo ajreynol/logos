@@ -43,7 +43,7 @@ private theorem eo_interprets_eq_true_of_true (M : SmtModel) (t : Term) :
             __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) =
               SmtValue.Boolean true := by
           change __smtx_model_eval M (SmtTerm.Boolean true) = SmtValue.Boolean true
-          rw [__smtx_model_eval.eq_1]
+          rw [__smtx_model_eval.eq_Boolean]
         rw [hEval, hTrueEval]
         exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean true)
 

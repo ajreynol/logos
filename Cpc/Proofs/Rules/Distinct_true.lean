@@ -108,7 +108,7 @@ private theorem distinct_pairs_eval_true_of_guard_rec
           | _at__at_TypedList_nil =>
               change __smtx_model_eval M (SmtTerm.Boolean true) =
                 SmtValue.Boolean true
-              rw [__smtx_model_eval.eq_1]
+              rw [__smtx_model_eval.eq_Boolean]
           | _ =>
               simp [__eo_to_smt_typed_list_elem_type] at hElemNN
       | Apply g x =>
@@ -150,7 +150,7 @@ private theorem distinct_pairs_eval_true_of_guard_rec
                           (SmtTerm.not
                             (SmtTerm.eq (__eo_to_smt t) (__eo_to_smt x))) =
                         SmtValue.Boolean true := by
-                    rw [__smtx_model_eval.eq_6, smtx_eval_eq_term_eq,
+                    rw [__smtx_model_eval.eq_not, smtx_eval_eq_term_eq,
                       hEvalEqFalse]
                     simp [__smtx_model_eval_not, SmtEval.native_not]
                   have hTailEval :
@@ -166,7 +166,7 @@ private theorem distinct_pairs_eval_true_of_guard_rec
                             (SmtTerm.eq (__eo_to_smt t) (__eo_to_smt x)))
                           (__eo_to_smt_distinct_pairs (__eo_to_smt t) a)) =
                       SmtValue.Boolean true
-                  rw [__smtx_model_eval.eq_8, hHeadEval, hTailEval]
+                  rw [__smtx_model_eval.eq_and, hHeadEval, hTailEval]
                   simp [__smtx_model_eval_and, SmtEval.native_and]
               | _ =>
                   simp [__eo_to_smt_typed_list_elem_type] at hElemNN
@@ -237,7 +237,7 @@ private theorem distinct_eval_true_of_guard_list
           | _at__at_TypedList_nil =>
               change __smtx_model_eval M (SmtTerm.Boolean true) =
                 SmtValue.Boolean true
-              rw [__smtx_model_eval.eq_1]
+              rw [__smtx_model_eval.eq_Boolean]
           | _ =>
               simp [__eo_to_smt_typed_list_elem_type] at hElemNN
       | Apply g x =>
@@ -274,7 +274,7 @@ private theorem distinct_eval_true_of_guard_list
                           (__eo_to_smt_distinct_pairs (__eo_to_smt x) a)
                           (__eo_to_smt_distinct a)) =
                       SmtValue.Boolean true
-                  rw [__smtx_model_eval.eq_8, hPairsEval, hTailEval]
+                  rw [__smtx_model_eval.eq_and, hPairsEval, hTailEval]
                   simp [__smtx_model_eval_and, SmtEval.native_and]
               | _ =>
                   simp [__eo_to_smt_typed_list_elem_type] at hElemNN
@@ -488,7 +488,7 @@ private theorem distinct_true_sound
   · exact hFormulaBool
   · rw [hDistinctSmt, hDistinctEval]
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl,
-      __smtx_model_eval.eq_1]
+      __smtx_model_eval.eq_Boolean]
     change RuleProofs.smt_value_rel (SmtValue.Boolean true)
       (SmtValue.Boolean true)
     exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean true)

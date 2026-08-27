@@ -4667,7 +4667,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                   (SmtTerm._at_purify
                                                     (__eo_to_smt X)) ≠
                                                 SmtType.None
-                                            rw [__smtx_typeof.eq_11]
+                                            rw [__smtx_typeof.eq__at_purify]
                                             simpa [RuleProofs.eo_has_smt_translation]
                                               using hXTrans)
                                           (fun hATrans hATy =>
@@ -4739,7 +4739,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                               rw [typeof_and_eq, typeof_geq_eq,
                                                 typeof_eq_eq, typeof_int_pow2_eq,
                                                 typeof_int_log2_eq, hSmtArg,
-                                                __smtx_typeof.eq_2]
+                                                __smtx_typeof.eq_Numeral]
                                               simp [
                                                 __smtx_typeof_arith_overload_op_2_ret,
                                                 __smtx_typeof_eq,
@@ -4808,7 +4808,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                       SmtType.Int := by
                                                   rw [hXMatch, hArgInt]
                                                   rfl
-                                                simp [hSmtArg, __smtx_typeof.eq_2,
+                                                simp [hSmtArg, __smtx_typeof.eq_Numeral,
                                                   native_ite, native_Teq])
                                               (fun hATrans hATy =>
                                                 hRec
@@ -4874,7 +4874,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                     rw [hXMatch, hArgInt]
                                                     rfl
                                                   simp [hSmtArg,
-                                                    __smtx_typeof.eq_2,
+                                                    __smtx_typeof.eq_Numeral,
                                                     native_ite, native_Teq])
                                                 (fun hATrans hATy =>
                                                   hRec
@@ -5208,8 +5208,8 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                               ⟨n, hSmtArg⟩
                                                             rw [hSmtArg]
                                                             simp [__eo_to_smt_bv_size,
-                                                              __smtx_typeof.eq_11,
-                                                              __smtx_typeof.eq_2,
+                                                              __smtx_typeof.eq__at_purify,
+                                                              __smtx_typeof.eq_Numeral,
                                                               native_ite, native_zleq,
                                                               SmtEval.native_zleq,
                                                               SmtEval.native_nat_to_int])
@@ -6633,7 +6633,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                         SmtType.Seq
                                                                                                           SmtType.Char := by
                                                                                                     rw [
-                                                                                                      __smtx_typeof.eq_4]
+                                                                                                      __smtx_typeof.eq_String]
                                                                                                     simp [
                                                                                                       native_string_lit,
                                                                                                       native_string_valid,
@@ -6647,7 +6647,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                         SmtType.Seq
                                                                                                           SmtType.Char := by
                                                                                                     rw [
-                                                                                                      __smtx_typeof.eq_4]
+                                                                                                      __smtx_typeof.eq_String]
                                                                                                     simp [
                                                                                                       native_string_lit,
                                                                                                       native_string_valid,
@@ -6660,7 +6660,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                     hSmtArg,
                                                                                                     hZeroCharTy,
                                                                                                     hNineCharTy,
-                                                                                                    __smtx_typeof.eq_2]
+                                                                                                    __smtx_typeof.eq_Numeral]
                                                                                                   simp [
                                                                                                     native_ite,
                                                                                                     native_Teq])

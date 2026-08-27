@@ -2398,7 +2398,7 @@ theorem scratch_string_seq_type_char (w : native_String) (T : SmtType)
     (hTy : __smtx_typeof (__eo_to_smt (Term.String w)) = SmtType.Seq T) :
     T = SmtType.Char := by
   rw [show __eo_to_smt (Term.String w) = SmtTerm.String w from rfl] at hTy
-  rw [__smtx_typeof.eq_4] at hTy
+  rw [__smtx_typeof.eq_String] at hTy
   cases hvalid : native_string_valid w
   · simp [hvalid, native_ite] at hTy
   · simp [hvalid, native_ite] at hTy
@@ -2408,7 +2408,7 @@ theorem scratch_empty_string_type :
     __smtx_typeof (__eo_to_smt (Term.String [])) =
       SmtType.Seq SmtType.Char := by
   change __smtx_typeof (SmtTerm.String []) = SmtType.Seq SmtType.Char
-  rw [__smtx_typeof.eq_4]
+  rw [__smtx_typeof.eq_String]
   simp [native_string_valid, native_ite]
 
 theorem scratch_atomChainTerm_smt_type (T : SmtType) (ex : Term)

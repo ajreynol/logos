@@ -155,7 +155,7 @@ private theorem smt_typeof_str_value_len_of_ne_stuck (x : Term)
   rcases str_value_len_numeral_of_ne_stuck x h with ⟨n, hLen⟩
   rw [hLen]
   change __smtx_typeof (SmtTerm.Numeral n) = SmtType.Int
-  rw [__smtx_typeof.eq_2]
+  rw [__smtx_typeof.eq_Numeral]
 
 private theorem seq_eval_of_seq_type
     (M : SmtModel) (hM : model_total_typed M) (t : Term) (T : SmtType) :
@@ -179,7 +179,7 @@ private theorem int_arg_numeral_of_eo_is_neg_bool (n : Term)
     exact ⟨i, rfl, by simpa using hNeg⟩
   case Rational r =>
     change __smtx_typeof (SmtTerm.Rational r) = SmtType.Int at hnTy
-    rw [__smtx_typeof.eq_3] at hnTy
+    rw [__smtx_typeof.eq_Rational] at hnTy
     cases hnTy
 
 private theorem int_args_numerals_of_eo_gt_bool (n m : Term)
@@ -194,7 +194,7 @@ private theorem int_args_numerals_of_eo_gt_bool (n m : Term)
     exact ⟨i, j, rfl, rfl, by simpa using hGt⟩
   case Rational.Rational r q =>
     change __smtx_typeof (SmtTerm.Rational r) = SmtType.Int at hnTy
-    rw [__smtx_typeof.eq_3] at hnTy
+    rw [__smtx_typeof.eq_Rational] at hnTy
     cases hnTy
   case Binary.Binary w1 n1 w2 n2 =>
     change __smtx_typeof (SmtTerm.Binary w1 n1) = SmtType.Int at hnTy
@@ -421,7 +421,7 @@ private theorem smtx_model_eval_str_substr_term_eq
         (__smtx_model_eval M (__eo_to_smt s))
         (__smtx_model_eval M (__eo_to_smt i))
         (__smtx_model_eval M (__eo_to_smt n))
-  rw [__smtx_model_eval.eq_80]
+  rw [__smtx_model_eval.eq_str_substr]
 
 private theorem smtx_model_eval_str_at_term_eq
     (M : SmtModel) (s i : Term) :
@@ -484,7 +484,7 @@ private theorem smtx_model_eval_raw_seq_empty_typeof
   rw [hA]
   change __smtx_model_eval M (SmtTerm.seq_empty T) =
     SmtValue.Seq (SmtSeq.empty T)
-  rw [__smtx_model_eval.eq_77]
+  rw [__smtx_model_eval.eq_seq_empty]
 
 private theorem smtx_model_eval_seq_empty_term_of_type
     (M : SmtModel) (A : Term) (T : SmtType)
@@ -803,11 +803,11 @@ private theorem eo_add_int_args_numerals_of_ne_stuck
     simp [__eo_add] at hAddNe ⊢
   case Rational.Rational r _ =>
     change __smtx_typeof (SmtTerm.Rational r) = SmtType.Int at hnTy
-    rw [__smtx_typeof.eq_3] at hnTy
+    rw [__smtx_typeof.eq_Rational] at hnTy
     cases hnTy
   case Binary.Binary w n _ _ =>
     change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Int at hnTy
-    rw [__smtx_typeof.eq_5] at hnTy
+    rw [__smtx_typeof.eq_Binary] at hnTy
     cases hValid :
         (native_and (native_zleq 0 w)
           (native_zeq n (native_mod_total n (native_int_pow2 w)))) <;>
@@ -924,7 +924,7 @@ private theorem smt_typeof_l1_seq_find_of_seq :
           s n _hNe
       rw [l1_seq_find_empty_eq_of_args_ne_stuck s n U hRightNe hIndexNe]
       change __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int
-      rw [__smtx_typeof.eq_2]
+      rw [__smtx_typeof.eq_Numeral]
   | Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts,
       s, n', T, ha, hb, hn, hNe => by
     let whole := mkConcat t ts
@@ -963,7 +963,7 @@ private theorem smt_typeof_l1_seq_find_of_seq :
           __smtx_typeof (__eo_to_smt (Term.Numeral 1)) = SmtType.Int := by
         change __smtx_typeof (SmtTerm.Numeral (1 : native_Int)) =
           SmtType.Int
-        rw [__smtx_typeof.eq_2]
+        rw [__smtx_typeof.eq_Numeral]
       rcases eo_add_int_args_numerals_of_ne_stuck n' (Term.Numeral 1)
           hn hOneTy hAddNe with ⟨i, j, hnEq, hOneEq, hAddEq⟩
       have hAddTy :
@@ -972,7 +972,7 @@ private theorem smt_typeof_l1_seq_find_of_seq :
         rw [hAddEq]
         change __smtx_typeof (SmtTerm.Numeral (native_zplus i j)) =
           SmtType.Int
-        rw [__smtx_typeof.eq_2]
+        rw [__smtx_typeof.eq_Numeral]
       obtain ⟨_hHeadTy, hTailTy⟩ :=
         strConcat_args_of_seq_type t ts T (by simpa [whole, mkConcat] using ha)
       rw [hCond, eo_ite_false]
@@ -987,7 +987,7 @@ private theorem smt_typeof_l1_seq_find_of_seq :
         rw [l1_seq_find_empty_eq_of_args_ne_stuck b n U hRightNe hIndexNe]
         change __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) =
           SmtType.Int
-        rw [__smtx_typeof.eq_2]
+        rw [__smtx_typeof.eq_Numeral]
       · rename_i _ _ _ t ts hRightNe hIndexNe
         let whole := mkConcat t ts
         let next := __seq_find ts b (__eo_add n (Term.Numeral 1))
@@ -1015,7 +1015,7 @@ private theorem smt_typeof_l1_seq_find_of_seq :
               __smtx_typeof (__eo_to_smt (Term.Numeral 1)) = SmtType.Int := by
             change __smtx_typeof (SmtTerm.Numeral (1 : native_Int)) =
               SmtType.Int
-            rw [__smtx_typeof.eq_2]
+            rw [__smtx_typeof.eq_Numeral]
           rcases eo_add_int_args_numerals_of_ne_stuck n (Term.Numeral 1)
               hn hOneTy hAddNe with ⟨i, j, hnEq, hOneEq, hAddEq⟩
           have hAddTy :
@@ -1024,7 +1024,7 @@ private theorem smt_typeof_l1_seq_find_of_seq :
             rw [hAddEq]
             change __smtx_typeof (SmtTerm.Numeral (native_zplus i j)) =
               SmtType.Int
-            rw [__smtx_typeof.eq_2]
+            rw [__smtx_typeof.eq_Numeral]
           obtain ⟨_hHeadTy, hTailTy⟩ :=
             strConcat_args_of_seq_type t ts T
               (by simpa [whole, mkConcat] using ha)
@@ -1479,7 +1479,7 @@ private theorem smt_typeof_seq_eval_replace_all_rec_of_seq :
               SmtType.Int := by
           change __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) =
             SmtType.Int
-          rw [__smtx_typeof.eq_2]
+          rw [__smtx_typeof.eq_Numeral]
         have hAddNe :
             __eo_add lent (Term.Numeral (-1 : native_Int)) ≠
               Term.Stuck :=
@@ -1497,7 +1497,7 @@ private theorem smt_typeof_seq_eval_replace_all_rec_of_seq :
           rw [hAddEq]
           change __smtx_typeof (SmtTerm.Numeral (native_zplus i j)) =
             SmtType.Int
-          rw [__smtx_typeof.eq_2]
+          rw [__smtx_typeof.eq_Numeral]
         have hNextTy :
             __smtx_typeof (__eo_to_smt nextMatch) = SmtType.Seq T := by
           simpa [nextMatch] using
@@ -1538,7 +1538,7 @@ private theorem smt_typeof_seq_eval_replace_all_rec_of_seq :
             __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
           change __smtx_typeof (SmtTerm.Numeral (0 : native_Int)) =
             SmtType.Int
-          rw [__smtx_typeof.eq_2]
+          rw [__smtx_typeof.eq_Numeral]
         have hNextTy :
             __smtx_typeof (__eo_to_smt nextNo) = SmtType.Seq T := by
           simpa [nextNo] using
@@ -1572,7 +1572,7 @@ private theorem smt_typeof_seq_eval_replace_all_rec_of_seq :
             SmtType.Int := by
         change __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) =
           SmtType.Int
-        rw [__smtx_typeof.eq_2]
+        rw [__smtx_typeof.eq_Numeral]
       have hAddNe :
           __eo_add skip (Term.Numeral (-1 : native_Int)) ≠ Term.Stuck :=
         seq_eval_replace_all_rec_skip_ne_stuck_of_ne_stuck s2 b u
@@ -1589,7 +1589,7 @@ private theorem smt_typeof_seq_eval_replace_all_rec_of_seq :
         rw [hAddEq]
         change __smtx_typeof (SmtTerm.Numeral (native_zplus i j)) =
           SmtType.Int
-        rw [__smtx_typeof.eq_2]
+        rw [__smtx_typeof.eq_Numeral]
       simpa [__seq_eval_replace_all_rec, next] using
         ih T hTailTy hBTy hUTy hAddTy hLentTy
           (by simpa [next] using hNextNe)
@@ -2369,7 +2369,7 @@ private theorem smt_value_rel_list_nth_rec_ssm_of_value_len
         exact hEvalA.symm
       change __smtx_model_eval M (SmtTerm.Numeral 0) =
         SmtValue.Numeral i at hEvalN
-      rw [__smtx_model_eval.eq_2] at hEvalN
+      rw [__smtx_model_eval.eq_Numeral] at hEvalN
       injection hEvalN with hi
       subst i
       rw [hsx]
@@ -2449,7 +2449,7 @@ private theorem smt_value_rel_list_nth_rec_ssm_of_value_len
       case Numeral j =>
         change __smtx_model_eval M (SmtTerm.Numeral j) =
           SmtValue.Numeral i at hEvalN
-        rw [__smtx_model_eval.eq_2] at hEvalN
+        rw [__smtx_model_eval.eq_Numeral] at hEvalN
         injection hEvalN with hji
         subst i
         have hj0 : j ≠ 0 := by
@@ -2465,7 +2465,7 @@ private theorem smt_value_rel_list_nth_rec_ssm_of_value_len
           change __smtx_model_eval M
               (SmtTerm.Numeral (native_zplus j (-1 : native_Int))) =
             SmtValue.Numeral (native_zplus j (native_zneg 1))
-          rw [__smtx_model_eval.eq_2]
+          rw [__smtx_model_eval.eq_Numeral]
           rfl
         have hTailRel :=
           ih e T sy (native_zplus j (native_zneg 1)) d hTailList hTailTy
@@ -4069,7 +4069,7 @@ private theorem seq_eval_replace_all_rec_unpack_eq_chain
                   SmtType.Int := by
               change __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) =
                 SmtType.Int
-              rw [__smtx_typeof.eq_2]
+              rw [__smtx_typeof.eq_Numeral]
             have hAddNe :
                 __eo_add lent (Term.Numeral (-1 : native_Int)) ≠
                   Term.Stuck :=
@@ -4083,7 +4083,7 @@ private theorem seq_eval_replace_all_rec_unpack_eq_chain
                   (SmtTerm.Numeral
                     (Int.ofNat (native_unpack_seq sb).length)) =
                 SmtType.Int
-              rw [__smtx_typeof.eq_2]
+              rw [__smtx_typeof.eq_Numeral]
             have hAddTy :
                 __smtx_typeof
                     (__eo_to_smt
@@ -4096,7 +4096,7 @@ private theorem seq_eval_replace_all_rec_unpack_eq_chain
               rw [hAddEq]
               change __smtx_typeof (SmtTerm.Numeral (native_zplus i j)) =
                 SmtType.Int
-              rw [__smtx_typeof.eq_2]
+              rw [__smtx_typeof.eq_Numeral]
             have hNextTy :
                 __smtx_typeof (__eo_to_smt nextMatch) = SmtType.Seq T := by
               simpa [nextMatch] using
@@ -4200,7 +4200,7 @@ private theorem seq_eval_replace_all_rec_unpack_eq_chain
                   SmtType.Int := by
               change __smtx_typeof (SmtTerm.Numeral (0 : native_Int)) =
                 SmtType.Int
-              rw [__smtx_typeof.eq_2]
+              rw [__smtx_typeof.eq_Numeral]
             have hLentTy :
                 __smtx_typeof (__eo_to_smt lent) = SmtType.Int := by
               rw [hLent]
@@ -4208,7 +4208,7 @@ private theorem seq_eval_replace_all_rec_unpack_eq_chain
                   (SmtTerm.Numeral
                     (Int.ofNat (native_unpack_seq sb).length)) =
                 SmtType.Int
-              rw [__smtx_typeof.eq_2]
+              rw [__smtx_typeof.eq_Numeral]
             have hNextTy :
                 __smtx_typeof (__eo_to_smt nextNo) = SmtType.Seq T := by
               simpa [nextNo] using
@@ -4934,7 +4934,7 @@ private theorem seq_find_empty_string_tail_contra
           SmtType.Seq SmtType.Char := by
       change __smtx_typeof (SmtTerm.String []) =
         SmtType.Seq SmtType.Char
-      rw [__smtx_typeof.eq_4]
+      rw [__smtx_typeof.eq_String]
       simp [native_string_valid, native_ite]
     rw [hStringTy] at hTailTy
     injection hTailTy with hT
@@ -4944,7 +4944,7 @@ private theorem seq_find_empty_string_tail_contra
           SmtValue.Seq (native_pack_string []) := by
       change __smtx_model_eval M (SmtTerm.String []) =
         SmtValue.Seq (native_pack_string [])
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     have hSyNil : native_unpack_seq sy = [] := by
       rw [hBString, hStringEval] at hBEval
       injection hBEval with hSy
@@ -5252,7 +5252,7 @@ private theorem str_value_len_eval_seq_length
     refine ⟨native_pack_string w, Int.ofNat w.length, ?_, ?_, ?_⟩
     · change __smtx_model_eval M (SmtTerm.String w) =
         SmtValue.Seq (native_pack_string w)
-      rw [__smtx_model_eval.eq_4]
+      rw [__smtx_model_eval.eq_String]
     · exact RuleProofs.str_value_len_string w
     · rw [RuleProofs.unpack_pack_string_map]
       simp
@@ -5414,7 +5414,7 @@ private theorem smt_value_rel_str_rev_seq_unit_snoc
     (__smtx_model_eval M
       (SmtTerm.str_rev (__eo_to_smt (mkConcat head tail)))) =
       SmtValue.Boolean true
-  rw [__smtx_model_eval.eq_87, __smtx_model_eval.eq_87]
+  rw [__smtx_model_eval.eq_str_rev, __smtx_model_eval.eq_str_rev]
   rw [smtx_model_eval_str_concat_term_eq, hTailEval, hHeadEval]
   simp [__smtx_model_eval_str_rev, __smtx_model_eval_str_concat,
     native_seq_rev, native_seq_concat, hTailElem, hHeadElem, hHeadUnp,
@@ -5458,7 +5458,7 @@ private theorem smt_value_rel_str_rev_list_nil_empty_term
   change RuleProofs.smt_value_rel
     (__smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt nil)))
     (SmtValue.Seq (SmtSeq.empty T))
-  rw [__smtx_model_eval.eq_87]
+  rw [__smtx_model_eval.eq_str_rev]
   exact smt_value_rel_str_rev_list_nil_empty M nil T hNil hNilTy
 
 private theorem smt_value_rel_seq_nil_to_str_rev
@@ -5509,7 +5509,7 @@ private theorem smt_value_rel_seq_unit_to_str_rev
     (__smtx_model_eval M (__eo_to_smt head))
     (__smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt head))) =
       SmtValue.Boolean true
-  rw [__smtx_model_eval.eq_87, hHeadEval]
+  rw [__smtx_model_eval.eq_str_rev, hHeadEval]
   simp only [__smtx_model_eval_str_rev, native_seq_rev, hHeadElem]
   rw [hHeadUnp]
   simp [List.reverse_cons, List.reverse_nil]
@@ -6209,7 +6209,7 @@ private theorem seq_eval_smt_type_and_value_rel
                       = SmtValue.Numeral i := by
                     rw [show __eo_to_smt (Term.Numeral i) =
                       SmtTerm.Numeral i by rfl]
-                    exact __smtx_model_eval.eq_2 M i
+                    exact __smtx_model_eval.eq_Numeral M i
                   _ = SmtValue.Numeral 0 := congrArg SmtValue.Numeral hi
               rw [← hHeadEq]
               rw [smtx_model_eval_seq_unit_term]
@@ -6258,7 +6258,7 @@ private theorem seq_eval_smt_type_and_value_rel
         change __smtx_typeof (SmtTerm.Numeral n) =
           __smtx_typeof (SmtTerm.str_len (__eo_to_smt t))
         have hNumTy : __smtx_typeof (SmtTerm.Numeral n) = SmtType.Int := by
-          rw [__smtx_typeof.eq_2]
+          rw [__smtx_typeof.eq_Numeral]
         rw [hNumTy]
         rw [typeof_str_len_eq]
         simp [__smtx_typeof_seq_op_1_ret, htTy]
@@ -6304,7 +6304,7 @@ private theorem seq_eval_smt_type_and_value_rel
                 SmtValue.Numeral nIntro := by
             change __smtx_model_eval M (SmtTerm.Numeral nIntro) =
               SmtValue.Numeral nIntro
-            rw [__smtx_model_eval.eq_2]
+            rw [__smtx_model_eval.eq_Numeral]
           rw [hNumEval]
           change RuleProofs.smt_value_rel
             (SmtValue.Numeral nIntro)
@@ -6623,7 +6623,7 @@ private theorem seq_eval_smt_type_and_value_rel
                   (__smtx_model_eval M (__eo_to_smt a))
                   (__smtx_model_eval M (SmtTerm.Numeral i))
                   (__smtx_model_eval M (SmtTerm.Numeral j)))
-              rw [__smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
+              rw [__smtx_model_eval.eq_Numeral, __smtx_model_eval.eq_Numeral]
               exact
                 smt_value_rel_raw_empty_str_substr_of_end_neg
                   M hM a T i j hATy hEnd
@@ -6668,7 +6668,7 @@ private theorem seq_eval_smt_type_and_value_rel
                   (__smtx_model_eval M (SmtTerm.Numeral i))
                   (__smtx_model_eval M (SmtTerm.Numeral j))
                 )
-              rw [__smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
+              rw [__smtx_model_eval.eq_Numeral, __smtx_model_eval.eq_Numeral]
               simpa [hLenEq] using
                 smt_value_rel_seq_subsequence_rec_str_substr_of_numerals
                   M hM (Term.Numeral i) (Term.Numeral (native_zplus i j))
@@ -6837,7 +6837,7 @@ private theorem seq_eval_smt_type_and_value_rel
         change __smtx_typeof (SmtTerm.Boolean q) =
           __smtx_typeof
             (SmtTerm.str_contains (__eo_to_smt t) (__eo_to_smt s))
-        rw [__smtx_typeof.eq_1, typeof_str_contains_eq]
+        rw [__smtx_typeof.eq_Boolean, typeof_str_contains_eq]
         simp [__smtx_typeof_seq_op_2_ret, htTy, hsTy, native_Teq,
           native_ite]
       · have hContainsEval :
@@ -7566,7 +7566,7 @@ private theorem seq_eval_smt_type_and_value_rel
                 SmtType.Int := by
             change __smtx_typeof (SmtTerm.Numeral (0 : native_Int)) =
               SmtType.Int
-            rw [__smtx_typeof.eq_2]
+            rw [__smtx_typeof.eq_Numeral]
           have hLentNe : lent ≠ Term.Stuck :=
             seq_eval_replace_all_rec_lent_ne_stuck_of_ne_stuck a b repl
               (Term.Numeral 0) lent (by simpa [replaced] using hRecNe)
@@ -7698,7 +7698,7 @@ private theorem seq_eval_smt_type_and_value_rel
                 SmtType.Int := by
             change __smtx_typeof (SmtTerm.Numeral (0 : native_Int)) =
               SmtType.Int
-            rw [__smtx_typeof.eq_2]
+            rw [__smtx_typeof.eq_Numeral]
           have hLentNe : lent ≠ Term.Stuck :=
             seq_eval_replace_all_rec_lent_ne_stuck_of_ne_stuck a b repl
               (Term.Numeral 0) lent (by simpa [replaced] using hRecNe)
@@ -7914,7 +7914,7 @@ private theorem seq_eval_smt_type_and_value_rel
         rcases eo_ite_cases_of_ne_stuck (__eo_is_neg n)
             (Term.Numeral (-1 : native_Int)) inRange hBodyNe with
           hNeg | hNeg
-        · have hsimpa := (show __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int by rw [__smtx_typeof.eq_2]); (try simp [body, hNeg, eo_ite_true] at hsimpa ⊢); exact hsimpa
+        · have hsimpa := (show __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int by rw [__smtx_typeof.eq_Numeral]); (try simp [body, hNeg, eo_ite_true] at hsimpa ⊢); exact hsimpa
         · have hInRangeNe : inRange ≠ Term.Stuck := by
             simpa [body, hNeg, eo_ite_false] using hBodyNe
           have hInRangeTy :
@@ -7922,7 +7922,7 @@ private theorem seq_eval_smt_type_and_value_rel
             rcases eo_ite_cases_of_ne_stuck (__eo_gt n len)
                 (Term.Numeral (-1 : native_Int)) find hInRangeNe with
               hGt | hGt
-            · have hsimpa := (show __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int by rw [__smtx_typeof.eq_2]); (try simp [inRange, hGt, eo_ite_true] at hsimpa ⊢); exact hsimpa
+            · have hsimpa := (show __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int by rw [__smtx_typeof.eq_Numeral]); (try simp [inRange, hGt, eo_ite_true] at hsimpa ⊢); exact hsimpa
             · have hFindNe : find ≠ Term.Stuck := by
                 simpa [inRange, hGt, eo_ite_false] using hInRangeNe
               have hSubstrNe : substr ≠ Term.Stuck := by
@@ -7991,7 +7991,7 @@ private theorem seq_eval_smt_type_and_value_rel
             rw [hnEq]
             change __smtx_model_eval M (SmtTerm.Numeral i) =
               SmtValue.Numeral i
-            rw [__smtx_model_eval.eq_2]
+            rw [__smtx_model_eval.eq_Numeral]
           have hOrig :
               __smtx_model_eval M
                   (__eo_to_smt
@@ -8018,7 +8018,7 @@ private theorem seq_eval_smt_type_and_value_rel
           change RuleProofs.smt_value_rel
             (__smtx_model_eval M (SmtTerm.Numeral (-1 : native_Int)))
             (SmtValue.Numeral (-1 : native_Int))
-          rw [__smtx_model_eval.eq_2]
+          rw [__smtx_model_eval.eq_Numeral]
           exact RuleProofs.smt_value_rel_refl _
         · have hInRangeNe : inRange ≠ Term.Stuck := by
             simpa [body, hNeg, eo_ite_false] using hBodyNe
@@ -8081,7 +8081,7 @@ private theorem seq_eval_smt_type_and_value_rel
               rw [hnEq]
               change __smtx_model_eval M (SmtTerm.Numeral i) =
                 SmtValue.Numeral i
-              rw [__smtx_model_eval.eq_2]
+              rw [__smtx_model_eval.eq_Numeral]
             have hOrig :
                 __smtx_model_eval M
                     (__eo_to_smt
@@ -8109,7 +8109,7 @@ private theorem seq_eval_smt_type_and_value_rel
             change RuleProofs.smt_value_rel
               (__smtx_model_eval M (SmtTerm.Numeral (-1 : native_Int)))
               (SmtValue.Numeral (-1 : native_Int))
-            rw [__smtx_model_eval.eq_2]
+            rw [__smtx_model_eval.eq_Numeral]
             exact RuleProofs.smt_value_rel_refl _
           · have hFindNe : find ≠ Term.Stuck := by
               simpa [inRange, hGt, eo_ite_false] using hInRangeNe
@@ -8282,7 +8282,7 @@ private theorem seq_eval_smt_type_and_value_rel
               rw [hnEq]
               change __smtx_model_eval M (SmtTerm.Numeral i) =
                 SmtValue.Numeral i
-              rw [__smtx_model_eval.eq_2]
+              rw [__smtx_model_eval.eq_Numeral]
             have hOrig :
                 __smtx_model_eval M
                     (__eo_to_smt
@@ -8317,7 +8317,7 @@ private theorem seq_eval_smt_type_and_value_rel
               (SmtValue.Numeral
                 (native_seq_indexof (native_unpack_seq st)
                   (native_unpack_seq ss) i))
-            rw [__smtx_model_eval.eq_2]
+            rw [__smtx_model_eval.eq_Numeral]
             exact RuleProofs.smt_value_rel_refl _
   | case10 t s =>
       let a := __str_nary_intro t
@@ -8395,7 +8395,7 @@ private theorem seq_eval_smt_type_and_value_rel
                 (native_unpack_seq sy))) =
           __smtx_typeof
             (SmtTerm.str_prefixof (__eo_to_smt t) (__eo_to_smt s))
-        rw [__smtx_typeof.eq_1, typeof_str_prefixof_eq]
+        rw [__smtx_typeof.eq_Boolean, typeof_str_prefixof_eq]
         simp [__smtx_typeof_seq_op_2_ret, htTy, hsTy, native_Teq, native_ite]
       · have hSxTy :
             __smtx_typeof_seq_value sx = SmtType.Seq T :=
@@ -8460,7 +8460,7 @@ private theorem seq_eval_smt_type_and_value_rel
                 __smtx_model_eval_str_prefixof
                   (__smtx_model_eval M (__eo_to_smt t))
                   (__smtx_model_eval M (__eo_to_smt s)) by
-              rw [__smtx_model_eval.eq_85])
+              rw [__smtx_model_eval.eq_str_prefixof])
           try simp at hsimpa ⊢
           exact hsimpa
         rw [hEvalEq]
@@ -8487,7 +8487,7 @@ private theorem seq_eval_smt_type_and_value_rel
             SmtValue.Boolean
               (native_seq_prefix_eq (native_unpack_seq sx)
                 (native_unpack_seq sy))
-          rw [__smtx_model_eval.eq_1]
+          rw [__smtx_model_eval.eq_Boolean]
         rw [hBoolEval]
         change RuleProofs.smt_value_rel
           (SmtValue.Boolean
@@ -8684,7 +8684,7 @@ private theorem seq_eval_smt_type_and_value_rel
                 (native_unpack_seq sy))) =
           __smtx_typeof
             (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s))
-        rw [__smtx_typeof.eq_1, typeof_str_suffixof_eq]
+        rw [__smtx_typeof.eq_Boolean, typeof_str_suffixof_eq]
         simp [__smtx_typeof_seq_op_2_ret, htTy, hsTy, native_Teq, native_ite]
       · rcases seq_eval_of_seq_type M hM t T htTy with
           ⟨st, hTEval⟩
@@ -8723,7 +8723,7 @@ private theorem seq_eval_smt_type_and_value_rel
                 __smtx_model_eval_str_suffixof
                   (__smtx_model_eval M (__eo_to_smt t))
                   (__smtx_model_eval M (__eo_to_smt s)) by
-              rw [__smtx_model_eval.eq_86])
+              rw [__smtx_model_eval.eq_str_suffixof])
           try simp at hsimpa ⊢
           exact hsimpa
         rw [hEvalEq]
@@ -8750,7 +8750,7 @@ private theorem seq_eval_smt_type_and_value_rel
             SmtValue.Boolean
               (native_seq_prefix_eq (native_unpack_seq sx)
                 (native_unpack_seq sy))
-          rw [__smtx_model_eval.eq_1]
+          rw [__smtx_model_eval.eq_Boolean]
         rw [hBoolEval, hSuffixEval]
         have hNativeSuffix :
             native_seq_prefix_eq (native_unpack_seq sx) (native_unpack_seq sy) =
@@ -8799,7 +8799,7 @@ private theorem seq_eval_smt_type_and_value_rel
               SmtValue.Seq
                 (native_pack_seq (__smtx_elem_typeof_seq_value st)
                   (native_seq_rev (native_unpack_seq st)))
-            rw [__smtx_model_eval.eq_87, hTEval]
+            rw [__smtx_model_eval.eq_str_rev, hTEval]
             rfl
           have hRevSEval :
               __smtx_model_eval M
@@ -8811,7 +8811,7 @@ private theorem seq_eval_smt_type_and_value_rel
               SmtValue.Seq
                 (native_pack_seq (__smtx_elem_typeof_seq_value ss)
                   (native_seq_rev (native_unpack_seq ss)))
-            rw [__smtx_model_eval.eq_87, hSEval]
+            rw [__smtx_model_eval.eq_str_rev, hSEval]
             rfl
           have hRTUnpack :
               native_unpack_seq sx =
@@ -8949,7 +8949,7 @@ private theorem seq_eval_smt_type_and_value_rel
                   SmtType.Int := by
               change __smtx_typeof (SmtTerm.Numeral (1 : native_Int)) =
                 SmtType.Int
-              rw [__smtx_typeof.eq_2]
+              rw [__smtx_typeof.eq_Numeral]
             rcases eo_add_int_args_numerals_of_ne_stuck n
                 (Term.Numeral (1 : native_Int)) hnTy hOneTy
                 (by simpa [u] using hAddNe) with
@@ -8975,7 +8975,7 @@ private theorem seq_eval_smt_type_and_value_rel
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (SmtTerm.Numeral i))
                 (SmtValue.Numeral 1))
-            rw [__smtx_model_eval.eq_2]
+            rw [__smtx_model_eval.eq_Numeral]
             exact
               smt_value_rel_raw_empty_str_substr_of_end_neg
                 M hM a T i 1 hATy hEnd
@@ -8989,7 +8989,7 @@ private theorem seq_eval_smt_type_and_value_rel
                   SmtType.Int := by
               change __smtx_typeof (SmtTerm.Numeral (1 : native_Int)) =
                 SmtType.Int
-              rw [__smtx_typeof.eq_2]
+              rw [__smtx_typeof.eq_Numeral]
             rcases eo_add_int_args_numerals_of_ne_stuck n
                 (Term.Numeral (1 : native_Int)) hnTy hOneTy
                 (by simpa [u] using hAddNe) with
@@ -9028,7 +9028,7 @@ private theorem seq_eval_smt_type_and_value_rel
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (SmtTerm.Numeral i))
                 (SmtValue.Numeral 1))
-            rw [__smtx_model_eval.eq_2]
+            rw [__smtx_model_eval.eq_Numeral]
             simpa [hLenEq] using
               smt_value_rel_seq_subsequence_rec_str_substr_of_numerals
                 M hM (Term.Numeral i) (Term.Numeral (native_zplus i 1))

@@ -184,15 +184,15 @@ private theorem model_eval_eq_false_of_literal_ne
     | ⟨x, y, rfl, rfl⟩
   · change __smtx_model_eval_eq (__smtx_model_eval M (SmtTerm.Numeral m))
         (__smtx_model_eval M (SmtTerm.Numeral n)) = SmtValue.Boolean false
-    rw [__smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
+    rw [__smtx_model_eval.eq_Numeral, __smtx_model_eval.eq_Numeral]
     simpa [__smtx_model_eval_eq, native_veq] using ha
   · change __smtx_model_eval_eq (__smtx_model_eval M (SmtTerm.Rational q))
         (__smtx_model_eval M (SmtTerm.Rational r)) = SmtValue.Boolean false
-    rw [__smtx_model_eval.eq_3, __smtx_model_eval.eq_3]
+    rw [__smtx_model_eval.eq_Rational, __smtx_model_eval.eq_Rational]
     simpa [__smtx_model_eval_eq, native_veq] using ha
   · change __smtx_model_eval_eq (__smtx_model_eval M (SmtTerm.String s))
         (__smtx_model_eval M (SmtTerm.String t)) = SmtValue.Boolean false
-    rw [__smtx_model_eval.eq_4, __smtx_model_eval.eq_4]
+    rw [__smtx_model_eval.eq_String, __smtx_model_eval.eq_String]
     simp [__smtx_model_eval_eq, native_veq]
     intro hPack
     apply ha
@@ -201,11 +201,11 @@ private theorem model_eval_eq_false_of_literal_ne
       map_native_ssm_char_char] using hUnpack
   · change __smtx_model_eval_eq (__smtx_model_eval M (SmtTerm.Binary w n))
         (__smtx_model_eval M (SmtTerm.Binary w' n')) = SmtValue.Boolean false
-    rw [__smtx_model_eval.eq_5, __smtx_model_eval.eq_5]
+    rw [__smtx_model_eval.eq_Binary, __smtx_model_eval.eq_Binary]
     simpa [__smtx_model_eval_eq, native_veq] using ha
   · change __smtx_model_eval_eq (__smtx_model_eval M (SmtTerm.Boolean x))
         (__smtx_model_eval M (SmtTerm.Boolean y)) = SmtValue.Boolean false
-    rw [__smtx_model_eval.eq_1, __smtx_model_eval.eq_1]
+    rw [__smtx_model_eval.eq_Boolean, __smtx_model_eval.eq_Boolean]
     simpa [__smtx_model_eval_eq, native_veq] using ha
 
 private theorem are_distinct_terms_type_primitive_model_eval_eq_false

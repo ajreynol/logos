@@ -73,7 +73,7 @@ theorem nullable_of_premise (M : SmtModel) (r1 : Term) (r1v : SmtRegLan)
   have hTrue :
       __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) = SmtValue.Boolean true := by
     change __smtx_model_eval M (SmtTerm.Boolean true) = _
-    rw [__smtx_model_eval.eq_1]
+    rw [__smtx_model_eval.eq_Boolean]
   rw [hEval, hTrue] at hRel
   have hEq : SmtValue.Boolean (native_str_in_re ([] : native_String) r1v) =
       SmtValue.Boolean true :=

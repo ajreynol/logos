@@ -830,7 +830,7 @@ private theorem smtx_typeof_re_empty_string :
       SmtType.RegLan := by
   change __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String [])) =
     SmtType.RegLan
-  rw [typeof_str_to_re_eq, __smtx_typeof.eq_4]
+  rw [typeof_str_to_re_eq, __smtx_typeof.eq_String]
   simp [native_string_valid, native_ite, native_Teq]
 
 theorem smt_model_eval_reglan_of_type
@@ -1067,19 +1067,19 @@ private theorem seq_char_term_to_z_singleton
       have hTo :
           __eo_to_smt (Term.Numeral n) = SmtTerm.Numeral n := rfl
       rw [hTo] at hTy
-      rw [__smtx_typeof.eq_2] at hTy
+      rw [__smtx_typeof.eq_Numeral] at hTy
       cases hTy
   | Rational q =>
       have hTo :
           __eo_to_smt (Term.Rational q) = SmtTerm.Rational q := rfl
       rw [hTo] at hTy
-      rw [__smtx_typeof.eq_3] at hTy
+      rw [__smtx_typeof.eq_Rational] at hTy
       cases hTy
   | Binary w n =>
       have hTo :
           __eo_to_smt (Term.Binary w n) = SmtTerm.Binary w n := rfl
       rw [hTo] at hTy
-      rw [__smtx_typeof.eq_5] at hTy
+      rw [__smtx_typeof.eq_Binary] at hTy
       cases hOk :
           native_and (native_zleq 0 w)
             (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
@@ -1358,7 +1358,7 @@ private theorem re_unbound_allchar_prefix_closed
         SmtValue.RegLan native_re_allchar := by
     change __smtx_model_eval M SmtTerm.re_allchar =
       SmtValue.RegLan native_re_allchar
-    rw [__smtx_model_eval.eq_102]
+    rw [__smtx_model_eval.eq_re_allchar]
   have hFullEval :
       __smtx_model_eval M
           (__eo_to_smt
@@ -2234,7 +2234,7 @@ private theorem smt_typeof_string_seq_char_of_valid
     __smtx_typeof (__eo_to_smt (Term.String s)) =
       SmtType.Seq SmtType.Char := by
   change __smtx_typeof (SmtTerm.String s) = SmtType.Seq SmtType.Char
-  rw [__smtx_typeof.eq_4]
+  rw [__smtx_typeof.eq_String]
   simp [hValid, native_ite]
 
 private theorem string_seq_type_char
@@ -2243,7 +2243,7 @@ private theorem string_seq_type_char
       SmtType.Seq T) :
     T = SmtType.Char := by
   change __smtx_typeof (SmtTerm.String w) = SmtType.Seq T at hTy
-  rw [__smtx_typeof.eq_4] at hTy
+  rw [__smtx_typeof.eq_String] at hTy
   cases hvalid : native_string_valid w
   · simp [hvalid, native_ite] at hTy
   · simp [hvalid, native_ite] at hTy

@@ -720,7 +720,7 @@ private theorem eo_has_bool_type_false_local :
     RuleProofs.eo_has_bool_type (Term.Boolean false) := by
   unfold RuleProofs.eo_has_bool_type
   change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
-  rw [__smtx_typeof.eq_1]
+  rw [__smtx_typeof.eq_Boolean]
 
 private theorem eo_has_bool_type_or_of_bool_args_local (A B : Term) :
     RuleProofs.eo_has_bool_type A ->
@@ -793,7 +793,7 @@ private theorem eo_interprets_or_left_intro_local
       refine smt_interprets.intro_true M _ ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type] using
           eo_has_bool_type_or_of_bool_args_local A B hABool hBBool
-      · rw [__smtx_model_eval.eq_7]
+      · rw [__smtx_model_eval.eq_or]
         rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM B hBBool with
           ⟨b, hEvalB⟩
         rw [hEvalA, hEvalB]
@@ -815,7 +815,7 @@ private theorem eo_interprets_or_right_intro_local
       refine smt_interprets.intro_true M _ ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type] using
           eo_has_bool_type_or_of_bool_args_local A B hABool hBBool
-      · rw [__smtx_model_eval.eq_7]
+      · rw [__smtx_model_eval.eq_or]
         rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM A hABool with
           ⟨a, hEvalA⟩
         rw [hEvalA, hEvalB]
@@ -826,8 +826,8 @@ private theorem eo_interprets_false_local (M : SmtModel) :
   rw [RuleProofs.eo_interprets_iff_smt_interprets]
   change smt_interprets M (SmtTerm.Boolean false) false
   refine smt_interprets.intro_false M (SmtTerm.Boolean false) ?_ ?_
-  · rw [__smtx_typeof.eq_1]
-  · rw [__smtx_model_eval.eq_1]
+  · rw [__smtx_typeof.eq_Boolean]
+  · rw [__smtx_model_eval.eq_Boolean]
 
 private theorem eo_interprets_or_right_of_left_false_local
     (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
@@ -848,7 +848,7 @@ private theorem eo_interprets_or_right_of_left_false_local
             __smtx_model_eval M
                 (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) =
               SmtValue.Boolean true at hEvalOr
-          rw [__smtx_model_eval.eq_7] at hEvalOr
+          rw [__smtx_model_eval.eq_or] at hEvalOr
           rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM B hBBool with
             ⟨b, hEvalB⟩
           rw [hEvalA, hEvalB, __smtx_model_eval_or, SmtEval.native_or] at hEvalOr
@@ -875,7 +875,7 @@ private theorem eo_interprets_or_false_intro_local
           refine smt_interprets.intro_false M _ ?_ ?_
           · simpa [RuleProofs.eo_has_bool_type] using
               eo_has_bool_type_or_of_bool_args_local A B hABool hBBool
-          · rw [__smtx_model_eval.eq_7, hEvalA, hEvalB]
+          · rw [__smtx_model_eval.eq_or, hEvalA, hEvalB]
             simp [__smtx_model_eval_or, SmtEval.native_or]
 
 private theorem eo_interprets_or_false_left_local
@@ -3476,7 +3476,7 @@ private theorem eo_interprets_or_false_iff
                 __smtx_model_eval M
                   (SmtTerm.or (__eo_to_smt a) (SmtTerm.Boolean false)) =
                     SmtValue.Boolean true at hEvalOr
-              rw [__smtx_model_eval.eq_7, hEvalA, __smtx_model_eval.eq_1] at hEvalOr
+              rw [__smtx_model_eval.eq_or, hEvalA, __smtx_model_eval.eq_Boolean] at hEvalOr
               simp [__smtx_model_eval_or, SmtEval.native_or] at hEvalOr
   · intro hATrue
     exact eo_interprets_or_left_intro_local M hM a (Term.Boolean false)
@@ -4905,7 +4905,7 @@ private theorem bvand_args_of_has_smt_translation (y x : Term) :
         __smtx_typeof_bv_op_2
           (__smtx_typeof (__eo_to_smt y))
           (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_38]) hNN
+        rw [__smtx_typeof.eq_bvand]) hNN
 
 private theorem bvAnd_args_of_bitvec_type (y x : Term) (w : native_Nat) :
     __smtx_typeof (__eo_to_smt (mkBvAnd y x)) = SmtType.BitVec w ->
@@ -4929,7 +4929,7 @@ private theorem bvAnd_args_of_bitvec_type (y x : Term) (w : native_Nat) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_38]) hNN with
+        rw [__smtx_typeof.eq_bvand]) hNN with
     ⟨w', hyTy, hxTy⟩
   have hWidth : w' = w := by
     have hResult :
@@ -4939,7 +4939,7 @@ private theorem bvAnd_args_of_bitvec_type (y x : Term) (w : native_Nat) :
             __smtx_typeof_bv_op_2
               (__smtx_typeof (__eo_to_smt y))
               (__smtx_typeof (__eo_to_smt x)) by
-          rw [__smtx_typeof.eq_38]] at hTy'
+          rw [__smtx_typeof.eq_bvand]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
         SmtEval.native_nateq] using hTy'
     cases hResult
@@ -4965,7 +4965,7 @@ private theorem bvor_args_of_has_smt_translation (y x : Term) :
         __smtx_typeof_bv_op_2
           (__smtx_typeof (__eo_to_smt y))
           (__smtx_typeof (__eo_to_smt x)) by
-      rw [__smtx_typeof.eq_39]) hNN
+      rw [__smtx_typeof.eq_bvor]) hNN
 
 private theorem bvOr_args_of_bitvec_type (y x : Term) (w : native_Nat) :
     __smtx_typeof (__eo_to_smt (mkBvOr y x)) = SmtType.BitVec w ->
@@ -4989,7 +4989,7 @@ private theorem bvOr_args_of_bitvec_type (y x : Term) (w : native_Nat) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_39]) hNN with
+        rw [__smtx_typeof.eq_bvor]) hNN with
     ⟨w', hyTy, hxTy⟩
   have hWidth : w' = w := by
     have hResult :
@@ -4999,7 +4999,7 @@ private theorem bvOr_args_of_bitvec_type (y x : Term) (w : native_Nat) :
             __smtx_typeof_bv_op_2
               (__smtx_typeof (__eo_to_smt y))
               (__smtx_typeof (__eo_to_smt x)) by
-          rw [__smtx_typeof.eq_39]] at hTy'
+          rw [__smtx_typeof.eq_bvor]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
         SmtEval.native_nateq] using hTy'
     cases hResult
@@ -5025,7 +5025,7 @@ private theorem bvxor_args_of_has_smt_translation (y x : Term) :
         __smtx_typeof_bv_op_2
           (__smtx_typeof (__eo_to_smt y))
           (__smtx_typeof (__eo_to_smt x)) by
-      rw [__smtx_typeof.eq_42]) hNN
+      rw [__smtx_typeof.eq_bvxor]) hNN
 
 private theorem bvXor_args_of_bitvec_type (y x : Term) (w : native_Nat) :
     __smtx_typeof (__eo_to_smt (mkBvXor y x)) = SmtType.BitVec w ->
@@ -5049,7 +5049,7 @@ private theorem bvXor_args_of_bitvec_type (y x : Term) (w : native_Nat) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_42]) hNN with
+        rw [__smtx_typeof.eq_bvxor]) hNN with
     ⟨w', hyTy, hxTy⟩
   have hWidth : w' = w := by
     have hResult :
@@ -5059,7 +5059,7 @@ private theorem bvXor_args_of_bitvec_type (y x : Term) (w : native_Nat) :
             __smtx_typeof_bv_op_2
               (__smtx_typeof (__eo_to_smt y))
               (__smtx_typeof (__eo_to_smt x)) by
-          rw [__smtx_typeof.eq_42]] at hTy'
+          rw [__smtx_typeof.eq_bvxor]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
         SmtEval.native_nateq] using hTy'
     cases hResult
@@ -5078,7 +5078,7 @@ private theorem bvand_result_type_of_has_smt_translation (y x : Term) :
   change __smtx_typeof
       (SmtTerm.bvand (__eo_to_smt y) (__eo_to_smt x)) =
     SmtType.BitVec w
-  rw [__smtx_typeof.eq_38]
+  rw [__smtx_typeof.eq_bvand]
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
     SmtEval.native_nateq]
 
@@ -5093,7 +5093,7 @@ private theorem bvor_result_type_of_has_smt_translation (y x : Term) :
   change __smtx_typeof
       (SmtTerm.bvor (__eo_to_smt y) (__eo_to_smt x)) =
     SmtType.BitVec w
-  rw [__smtx_typeof.eq_39]
+  rw [__smtx_typeof.eq_bvor]
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
     SmtEval.native_nateq]
 
@@ -5154,7 +5154,7 @@ private theorem bvxor_result_type_of_has_smt_translation (y x : Term) :
   change __smtx_typeof
       (SmtTerm.bvxor (__eo_to_smt y) (__eo_to_smt x)) =
     SmtType.BitVec w
-  rw [__smtx_typeof.eq_42]
+  rw [__smtx_typeof.eq_bvxor]
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
     SmtEval.native_nateq]
 
@@ -10623,7 +10623,7 @@ private theorem bvXor_get_a_norm_eval_canonical
     dsimp [t, mkBvXor]
     change __smtx_typeof (SmtTerm.bvxor (__eo_to_smt y) (__eo_to_smt x)) =
       SmtType.BitVec w
-    rw [__smtx_typeof.eq_42]
+    rw [__smtx_typeof.eq_bvxor]
     simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
       SmtEval.native_nateq]
   have hTypeMatch :=
@@ -10691,7 +10691,7 @@ private theorem smt_value_rel_get_a_norm_bvxor
     dsimp [t, mkBvXor]
     change __smtx_typeof (SmtTerm.bvxor (__eo_to_smt y) (__eo_to_smt x)) =
       SmtType.BitVec w
-    rw [__smtx_typeof.eq_42]
+    rw [__smtx_typeof.eq_bvxor]
     simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
       SmtEval.native_nateq]
   have hTypeMatch :=
@@ -12944,7 +12944,7 @@ private theorem smt_value_rel_get_ai_norm_bvor
     dsimp [t, mkBvOr]
     change __smtx_typeof (SmtTerm.bvor (__eo_to_smt y) (__eo_to_smt x)) =
       SmtType.BitVec w
-    rw [__smtx_typeof.eq_39]
+    rw [__smtx_typeof.eq_bvor]
     simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
       SmtEval.native_nateq]
   have hTypeMatch :=
@@ -13128,7 +13128,7 @@ private theorem smt_value_rel_get_ai_norm_bvand
     dsimp [t, mkBvAnd]
     change __smtx_typeof (SmtTerm.bvand (__eo_to_smt y) (__eo_to_smt x)) =
       SmtType.BitVec w
-    rw [__smtx_typeof.eq_38]
+    rw [__smtx_typeof.eq_bvand]
     simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
       SmtEval.native_nateq]
   have hTypeMatch :=
@@ -16097,7 +16097,7 @@ private theorem reUnion_nil_eval_none_of_is_list_nil_true
   cases nil <;> simp [__eo_is_list_nil] at hNilTrue ⊢
   case UOp op =>
     cases op <;> simp  at hNilTrue ⊢
-    rw [__smtx_model_eval.eq_103]
+    rw [__smtx_model_eval.eq_re_none]
 
 private theorem reUnion_list_concat_rec_rel_eval
     (M : SmtModel) :
@@ -17820,7 +17820,7 @@ private theorem reInter_nil_eval_all_of_is_list_nil_true
   cases nil <;> simp [__eo_is_list_nil] at hNilTrue ⊢
   case UOp op =>
     cases op <;> simp  at hNilTrue ⊢
-    rw [__smtx_model_eval.eq_104]
+    rw [__smtx_model_eval.eq_re_all]
 
 private theorem reInter_list_concat_rec_rel_eval
     (M : SmtModel) :

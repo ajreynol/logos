@@ -138,7 +138,7 @@ private theorem smtx_typeof_eo_to_smt_distinct_bool_or_none_full
       | _at__at_TypedList_nil =>
           left
           change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
-          rw [__smtx_typeof.eq_1]
+          rw [__smtx_typeof.eq_Boolean]
       | _ =>
           right
           change __smtx_typeof SmtTerm.None = SmtType.None

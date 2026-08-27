@@ -380,7 +380,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_int_to_bv_core
         rw [show __eo_to_smt (Term.Numeral runN) =
             SmtTerm.Numeral runN by
           rfl] at hXRel
-        rw [__smtx_model_eval.eq_2] at hXRel
+        rw [__smtx_model_eval.eq_Numeral] at hXRel
         exact hXRel
       have hXEval :
           __smtx_model_eval M (__eo_to_smt x) =
@@ -393,7 +393,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_int_to_bv_core
             __smtx_model_eval_int_to_bv
               (SmtValue.Numeral i)
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [smtx_eval_int_to_bv_term_eq, __smtx_model_eval.eq_2]]
+        rw [smtx_eval_int_to_bv_term_eq, __smtx_model_eval.eq_Numeral]]
       rw [hXEval]
       change
         RuleProofs.smt_value_rel
@@ -402,7 +402,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_int_to_bv_core
           (__smtx_model_eval M
             (SmtTerm.Binary i
               (native_mod_total runN (native_int_pow2 i))))
-      rw [__smtx_model_eval.eq_5]
+      rw [__smtx_model_eval.eq_Binary]
       exact RuleProofs.smt_value_rel_refl _
   case Binary runW runN =>
     rw [hRunX] at hRunXSmtTy
@@ -588,7 +588,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_extract_core
     rw [show __eo_to_smt (Term.Binary runW runN) =
         SmtTerm.Binary runW runN by
       rfl] at hXRel
-    rw [__smtx_model_eval.eq_5] at hXRel
+    rw [__smtx_model_eval.eq_Binary] at hXRel
     exact hXRel
   have hXEval :
       __smtx_model_eval M (__eo_to_smt x) =
@@ -638,8 +638,8 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_extract_core
           __smtx_model_eval_extract
             (SmtValue.Numeral i) (SmtValue.Numeral j)
             (__smtx_model_eval M (__eo_to_smt x)) by
-      rw [__smtx_model_eval.eq_35, __smtx_model_eval.eq_2,
-        __smtx_model_eval.eq_2]]
+      rw [__smtx_model_eval.eq_extract, __smtx_model_eval.eq_Numeral,
+        __smtx_model_eval.eq_Numeral]]
     rw [hXEval]
     change
       RuleProofs.smt_value_rel
@@ -654,7 +654,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_extract_core
             (native_mod_total (native_binary_extract runW runN i j)
               (native_int_pow2
                 (native_zplus (native_zplus i (native_zneg j)) 1)))))
-    rw [__smtx_model_eval.eq_5]
+    rw [__smtx_model_eval.eq_Binary]
     rw [hWidthAssoc]
     exact RuleProofs.smt_value_rel_refl _
 

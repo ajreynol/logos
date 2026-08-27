@@ -744,18 +744,18 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
   | Term.Apply (Term.UOp UserOp.bvnot) x =>
       exact congTypeSpine_bv_unop_eq_has_bool_type UserOp.bvnot SmtTerm.bvnot
         (by intro a; rfl)
-        (by intro a; rw [__smtx_typeof.eq_37])
+        (by intro a; rw [__smtx_typeof.eq_bvnot])
         x rhs hTrans hSpine
   | Term.Apply (Term.UOp UserOp.bvneg) x =>
       exact congTypeSpine_bv_unop_eq_has_bool_type UserOp.bvneg SmtTerm.bvneg
         (by intro a; rfl)
-        (by intro a; rw [__smtx_typeof.eq_45])
+        (by intro a; rw [__smtx_typeof.eq_bvneg])
         x rhs hTrans hSpine
   | Term.Apply (Term.UOp UserOp.bvnego) x =>
       exact congTypeSpine_bv_unop_ret_eq_has_bool_type UserOp.bvnego
         SmtTerm.bvnego SmtType.Bool
         (by intro a; rfl)
-        (by intro a; rw [__smtx_typeof.eq_70])
+        (by intro a; rw [__smtx_typeof.eq_bvnego])
         x rhs hTrans hSpine
   | Term.Apply (Term.UOp UserOp.ubv_to_int) x =>
       exact congTypeSpine_bv_unop_ret_eq_has_bool_type UserOp.ubv_to_int
@@ -772,141 +772,141 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvand SmtTerm.bvand
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_38])
+        (by intro a b; rw [__smtx_typeof.eq_bvand])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvor) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvor SmtTerm.bvor
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_39])
+        (by intro a b; rw [__smtx_typeof.eq_bvor])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvnand) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvnand SmtTerm.bvnand
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_40])
+        (by intro a b; rw [__smtx_typeof.eq_bvnand])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvnor) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvnor SmtTerm.bvnor
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_41])
+        (by intro a b; rw [__smtx_typeof.eq_bvnor])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvxor SmtTerm.bvxor
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_42])
+        (by intro a b; rw [__smtx_typeof.eq_bvxor])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvxnor) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvxnor SmtTerm.bvxnor
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_43])
+        (by intro a b; rw [__smtx_typeof.eq_bvxnor])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvcomp
         SmtTerm.bvcomp (SmtType.BitVec 1)
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_44])
+        (by intro a b; rw [__smtx_typeof.eq_bvcomp])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvadd SmtTerm.bvadd
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_46])
+        (by intro a b; rw [__smtx_typeof.eq_bvadd])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvmul SmtTerm.bvmul
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_47])
+        (by intro a b; rw [__smtx_typeof.eq_bvmul])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvudiv SmtTerm.bvudiv
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_48])
+        (by intro a b; rw [__smtx_typeof.eq_bvudiv])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvurem SmtTerm.bvurem
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_49])
+        (by intro a b; rw [__smtx_typeof.eq_bvurem])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsub) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvsub SmtTerm.bvsub
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_50])
+        (by intro a b; rw [__smtx_typeof.eq_bvsub])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsdiv) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvsdiv SmtTerm.bvsdiv
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_51])
+        (by intro a b; rw [__smtx_typeof.eq_bvsdiv])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsrem) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvsrem SmtTerm.bvsrem
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_52])
+        (by intro a b; rw [__smtx_typeof.eq_bvsrem])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsmod) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvsmod SmtTerm.bvsmod
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_53])
+        (by intro a b; rw [__smtx_typeof.eq_bvsmod])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvult) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvult
         SmtTerm.bvult SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_54])
+        (by intro a b; rw [__smtx_typeof.eq_bvult])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvule) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvule
         SmtTerm.bvule SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_55])
+        (by intro a b; rw [__smtx_typeof.eq_bvule])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvugt
         SmtTerm.bvugt SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_56])
+        (by intro a b; rw [__smtx_typeof.eq_bvugt])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvuge) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvuge
         SmtTerm.bvuge SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_57])
+        (by intro a b; rw [__smtx_typeof.eq_bvuge])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvslt) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvslt
         SmtTerm.bvslt SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_58])
+        (by intro a b; rw [__smtx_typeof.eq_bvslt])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsle) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvsle
         SmtTerm.bvsle SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_59])
+        (by intro a b; rw [__smtx_typeof.eq_bvsle])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsgt) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvsgt
         SmtTerm.bvsgt SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_60])
+        (by intro a b; rw [__smtx_typeof.eq_bvsgt])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsge) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvsge
         SmtTerm.bvsge SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_61])
+        (by intro a b; rw [__smtx_typeof.eq_bvsge])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvshl) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvshl SmtTerm.bvshl
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_62])
+        (by intro a b; rw [__smtx_typeof.eq_bvshl])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvlshr) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvlshr SmtTerm.bvlshr
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_63])
+        (by intro a b; rw [__smtx_typeof.eq_bvlshr])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) x₁) x₂ =>
       exact congTypeSpine_bv_binop_eq_has_bool_type UserOp.bvashr SmtTerm.bvashr
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_64])
+        (by intro a b; rw [__smtx_typeof.eq_bvashr])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.UOp1 UserOp1.zero_extend i) x =>
       exact congTypeSpine_typecongr_indexed_unop_eq_has_bool_type
@@ -948,55 +948,55 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvuaddo
         SmtTerm.bvuaddo SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_69])
+        (by intro a b; rw [__smtx_typeof.eq_bvuaddo])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsaddo) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvsaddo
         SmtTerm.bvsaddo SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_71])
+        (by intro a b; rw [__smtx_typeof.eq_bvsaddo])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvumulo) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvumulo
         SmtTerm.bvumulo SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_72])
+        (by intro a b; rw [__smtx_typeof.eq_bvumulo])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsmulo) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvsmulo
         SmtTerm.bvsmulo SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_73])
+        (by intro a b; rw [__smtx_typeof.eq_bvsmulo])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvusubo) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvusubo
         SmtTerm.bvusubo SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_74])
+        (by intro a b; rw [__smtx_typeof.eq_bvusubo])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvssubo) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvssubo
         SmtTerm.bvssubo SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_75])
+        (by intro a b; rw [__smtx_typeof.eq_bvssubo])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsdivo) x₁) x₂ =>
       exact congTypeSpine_bv_binop_ret_eq_has_bool_type UserOp.bvsdivo
         SmtTerm.bvsdivo SmtType.Bool
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_76])
+        (by intro a b; rw [__smtx_typeof.eq_bvsdivo])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvultbv) x₁) x₂ =>
       exact congTypeSpine_bv_pred_to_bv_eq_has_bool_type UserOp.bvultbv
         SmtTerm.bvult
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_54])
+        (by intro a b; rw [__smtx_typeof.eq_bvult])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.bvsltbv) x₁) x₂ =>
       exact congTypeSpine_bv_pred_to_bv_eq_has_bool_type UserOp.bvsltbv
         SmtTerm.bvslt
         (by intro a b; rfl)
-        (by intro a b; rw [__smtx_typeof.eq_58])
+        (by intro a b; rw [__smtx_typeof.eq_bvslt])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.UOp1 UserOp1._at_bit i) x =>
       exact congTypeSpine_typecongr_indexed_unop_eq_has_bool_type
@@ -1340,19 +1340,19 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                         exact congTypeSpine_bv_unop_eq_has_bool_type
                           UserOp.bvnot SmtTerm.bvnot
                           (by intro a; rfl)
-                          (by intro a; rw [__smtx_typeof.eq_37])
+                          (by intro a; rw [__smtx_typeof.eq_bvnot])
                           x (Term.Apply g y) hTrans hApp
                       case bvneg =>
                         exact congTypeSpine_bv_unop_eq_has_bool_type
                           UserOp.bvneg SmtTerm.bvneg
                           (by intro a; rfl)
-                          (by intro a; rw [__smtx_typeof.eq_45])
+                          (by intro a; rw [__smtx_typeof.eq_bvneg])
                           x (Term.Apply g y) hTrans hApp
                       case bvnego =>
                         exact congTypeSpine_bv_unop_ret_eq_has_bool_type
                           UserOp.bvnego SmtTerm.bvnego SmtType.Bool
                           (by intro a; rfl)
-                          (by intro a; rw [__smtx_typeof.eq_70])
+                          (by intro a; rw [__smtx_typeof.eq_bvnego])
                           x (Term.Apply g y) hTrans hApp
                       case ubv_to_int =>
                         exact congTypeSpine_bv_unop_ret_eq_has_bool_type
@@ -2080,212 +2080,212 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvand SmtTerm.bvand
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_38])
+                                (by intro a b; rw [__smtx_typeof.eq_bvand])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvor =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvor SmtTerm.bvor
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_39])
+                                (by intro a b; rw [__smtx_typeof.eq_bvor])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvnand =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvnand SmtTerm.bvnand
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_40])
+                                (by intro a b; rw [__smtx_typeof.eq_bvnand])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvnor =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvnor SmtTerm.bvnor
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_41])
+                                (by intro a b; rw [__smtx_typeof.eq_bvnor])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvxor =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvxor SmtTerm.bvxor
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_42])
+                                (by intro a b; rw [__smtx_typeof.eq_bvxor])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvxnor =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvxnor SmtTerm.bvxnor
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_43])
+                                (by intro a b; rw [__smtx_typeof.eq_bvxnor])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvcomp =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvcomp SmtTerm.bvcomp
                                 (SmtType.BitVec 1)
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_44])
+                                (by intro a b; rw [__smtx_typeof.eq_bvcomp])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvadd =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvadd SmtTerm.bvadd
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_46])
+                                (by intro a b; rw [__smtx_typeof.eq_bvadd])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvmul =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvmul SmtTerm.bvmul
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_47])
+                                (by intro a b; rw [__smtx_typeof.eq_bvmul])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvudiv =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvudiv SmtTerm.bvudiv
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_48])
+                                (by intro a b; rw [__smtx_typeof.eq_bvudiv])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvurem =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvurem SmtTerm.bvurem
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_49])
+                                (by intro a b; rw [__smtx_typeof.eq_bvurem])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsub =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvsub SmtTerm.bvsub
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_50])
+                                (by intro a b; rw [__smtx_typeof.eq_bvsub])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsdiv =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvsdiv SmtTerm.bvsdiv
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_51])
+                                (by intro a b; rw [__smtx_typeof.eq_bvsdiv])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsrem =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvsrem SmtTerm.bvsrem
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_52])
+                                (by intro a b; rw [__smtx_typeof.eq_bvsrem])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsmod =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvsmod SmtTerm.bvsmod
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_53])
+                                (by intro a b; rw [__smtx_typeof.eq_bvsmod])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvult =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvult SmtTerm.bvult SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_54])
+                                (by intro a b; rw [__smtx_typeof.eq_bvult])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvule =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvule SmtTerm.bvule SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_55])
+                                (by intro a b; rw [__smtx_typeof.eq_bvule])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvugt =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvugt SmtTerm.bvugt SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_56])
+                                (by intro a b; rw [__smtx_typeof.eq_bvugt])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvuge =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvuge SmtTerm.bvuge SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_57])
+                                (by intro a b; rw [__smtx_typeof.eq_bvuge])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvslt =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvslt SmtTerm.bvslt SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_58])
+                                (by intro a b; rw [__smtx_typeof.eq_bvslt])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsle =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvsle SmtTerm.bvsle SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_59])
+                                (by intro a b; rw [__smtx_typeof.eq_bvsle])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsgt =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvsgt SmtTerm.bvsgt SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_60])
+                                (by intro a b; rw [__smtx_typeof.eq_bvsgt])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsge =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvsge SmtTerm.bvsge SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_61])
+                                (by intro a b; rw [__smtx_typeof.eq_bvsge])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvshl =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvshl SmtTerm.bvshl
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_62])
+                                (by intro a b; rw [__smtx_typeof.eq_bvshl])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvlshr =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvlshr SmtTerm.bvlshr
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_63])
+                                (by intro a b; rw [__smtx_typeof.eq_bvlshr])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvashr =>
                               exact congTypeSpine_bv_binop_eq_has_bool_type
                                 UserOp.bvashr SmtTerm.bvashr
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_64])
+                                (by intro a b; rw [__smtx_typeof.eq_bvashr])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvuaddo =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvuaddo SmtTerm.bvuaddo SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_69])
+                                (by intro a b; rw [__smtx_typeof.eq_bvuaddo])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsaddo =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvsaddo SmtTerm.bvsaddo SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_71])
+                                (by intro a b; rw [__smtx_typeof.eq_bvsaddo])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvumulo =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvumulo SmtTerm.bvumulo SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_72])
+                                (by intro a b; rw [__smtx_typeof.eq_bvumulo])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsmulo =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvsmulo SmtTerm.bvsmulo SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_73])
+                                (by intro a b; rw [__smtx_typeof.eq_bvsmulo])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvusubo =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvusubo SmtTerm.bvusubo SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_74])
+                                (by intro a b; rw [__smtx_typeof.eq_bvusubo])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvssubo =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvssubo SmtTerm.bvssubo SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_75])
+                                (by intro a b; rw [__smtx_typeof.eq_bvssubo])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsdivo =>
                               exact congTypeSpine_bv_binop_ret_eq_has_bool_type
                                 UserOp.bvsdivo SmtTerm.bvsdivo SmtType.Bool
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_76])
+                                (by intro a b; rw [__smtx_typeof.eq_bvsdivo])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvultbv =>
                               exact congTypeSpine_bv_pred_to_bv_eq_has_bool_type
                                 UserOp.bvultbv SmtTerm.bvult
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_54])
+                                (by intro a b; rw [__smtx_typeof.eq_bvult])
                                 z x (Term.Apply g y) hTrans hApp
                             case bvsltbv =>
                               exact congTypeSpine_bv_pred_to_bv_eq_has_bool_type
                                 UserOp.bvsltbv SmtTerm.bvslt
                                 (by intro a b; rfl)
-                                (by intro a b; rw [__smtx_typeof.eq_58])
+                                (by intro a b; rw [__smtx_typeof.eq_bvslt])
                                 z x (Term.Apply g y) hTrans hApp
                             case tuple =>
                               exact congTypeSpine_tuple_eq_has_bool_type

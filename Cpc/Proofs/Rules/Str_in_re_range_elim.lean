@@ -318,7 +318,7 @@ private theorem typed_concl
           (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.leq) codeS) codeC2))
           (SmtTerm.Boolean true)) = SmtType.Bool
     rw [typeof_and_eq]
-    simp [hLe2Ty, __smtx_typeof.eq_1, native_ite, native_Teq]
+    simp [hLe2Ty, __smtx_typeof.eq_Boolean, native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt (rhs s c1 c2)) = SmtType.Bool := by
     change __smtx_typeof
         (SmtTerm.and

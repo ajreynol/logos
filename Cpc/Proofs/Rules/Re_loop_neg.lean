@@ -74,7 +74,7 @@ private theorem eo_and_eq_true {x y : Term}
 
 private theorem eval_smt_numeral (M : SmtModel) (n : Int) :
     __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n := by
-  rw [__smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_Numeral]
 
 private theorem prog_form (n m r P : Term)
     (hNe : __eo_prog_re_loop_neg n m r (Proof.pf P) ≠ Term.Stuck) :
@@ -196,7 +196,7 @@ private theorem zlt_of_gt_premise
       __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) =
         SmtValue.Boolean true := by
     change __smtx_model_eval M (SmtTerm.Boolean true) = SmtValue.Boolean true
-    rw [__smtx_model_eval.eq_1]
+    rw [__smtx_model_eval.eq_Boolean]
   rw [hGtEval, hTrueEval] at hRel
   have hEq :
       SmtValue.Boolean (native_zlt hi lo) = SmtValue.Boolean true :=

@@ -752,7 +752,7 @@ theorem typed_set_member_eq_false
       native_Teq, hTNonNone]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (mkSetMember x y) (Term.Boolean false)
-    (by rw [hMemberTy, RuleProofs.eo_to_smt_false_eq, __smtx_typeof.eq_1])
+    (by rw [hMemberTy, RuleProofs.eo_to_smt_false_eq, __smtx_typeof.eq_Boolean])
     (by rw [hMemberTy]; simp)
 
 theorem set_member_empty_rel_of_premise_bool
@@ -936,7 +936,7 @@ theorem typed_set_eq_singleton_emp
     typed_set_eq_singleton x y hxTrans hyTrans hInnerTy
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (mkEq x (mkSetSingleton y)) (Term.Boolean false)
-    (by rw [hInnerBool, RuleProofs.eo_to_smt_false_eq, __smtx_typeof.eq_1])
+    (by rw [hInnerBool, RuleProofs.eo_to_smt_false_eq, __smtx_typeof.eq_Boolean])
     (by rw [hInnerBool]; simp)
 
 theorem set_eq_singleton_emp_rel_of_premise_bool
@@ -991,7 +991,7 @@ theorem set_eq_singleton_emp_rel_of_premise_bool
         (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt (mkSetSingleton y))))
       (__smtx_model_eval M (SmtTerm.Boolean false)) =
         SmtValue.Boolean true
-  rw [smtx_eval_eq_term_eq, __smtx_model_eval.eq_1, hInnerFalse]
+  rw [smtx_eval_eq_term_eq, __smtx_model_eval.eq_Boolean, hInnerFalse]
   exact RuleProofs.smtx_model_eval_eq_refl (SmtValue.Boolean false)
 
 theorem facts_set_eq_singleton_emp_false

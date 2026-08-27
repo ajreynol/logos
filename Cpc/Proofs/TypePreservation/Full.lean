@@ -1569,7 +1569,7 @@ private theorem canonical_of_supported
       simpa [__smtx_model_eval] using value_canonical_rational q
   case string s =>
       have hsValid : native_string_valid s = true := by
-        rw [term_has_non_none_type, __smtx_typeof.eq_4] at ht
+        rw [term_has_non_none_type, __smtx_typeof.eq_String] at ht
         cases hValid : native_string_valid s <;>
           simp [native_ite, hValid] at ht ⊢
       simpa [__smtx_model_eval] using model_eval_string_value_canonical s hsValid

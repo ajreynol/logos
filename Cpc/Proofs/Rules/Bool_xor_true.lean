@@ -89,13 +89,13 @@ private theorem facts___eo_prog_bool_xor_true_impl
         __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) =
           SmtValue.Boolean true := by
       change __smtx_model_eval M (SmtTerm.Boolean true) = SmtValue.Boolean true
-      rw [__smtx_model_eval.eq_1]
+      rw [__smtx_model_eval.eq_Boolean]
     rw [show __eo_to_smt (Term.Apply (Term.Apply Term.xor x1) (Term.Boolean true)) =
       SmtTerm.xor (__eo_to_smt x1) (__eo_to_smt (Term.Boolean true)) by
       rfl]
     rw [show __eo_to_smt (Term.Apply Term.not x1) = SmtTerm.not (__eo_to_smt x1) by
       rfl]
-    rw [__smtx_model_eval.eq_10, __smtx_model_eval.eq_6, hEvalX1, hTrueEval]
+    rw [__smtx_model_eval.eq_xor, __smtx_model_eval.eq_not, hEvalX1, hTrueEval]
     cases b <;> simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
       __smtx_model_eval_xor, __smtx_model_eval_not, native_veq,
       SmtEval.native_not]

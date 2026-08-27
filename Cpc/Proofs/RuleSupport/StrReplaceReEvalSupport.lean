@@ -870,7 +870,7 @@ private theorem str_eval_replace_re_no_match_eval
         (by simp) hRNe hTNe]
   change __smtx_model_eval M (SmtTerm.String str) =
     SmtValue.Seq (native_pack_string str)
-  exact __smtx_model_eval.eq_4 M str
+  exact __smtx_model_eval.eq_String M str
 
 private theorem str_eval_replace_re_pair_eval
     (M : SmtModel) (str : native_String) (r t : Term)
@@ -1140,7 +1140,7 @@ private theorem str_replace_re_eval_valid_properties
         (native_pack_seq SmtType.Char
           (native_str_replace_re (native_string_to_values str) rv
             (native_unpack_seq repl)))
-    rw [__smtx_model_eval.eq_99, __smtx_model_eval.eq_4, hREval, hTEval]
+    rw [__smtx_model_eval.eq_str_replace_re, __smtx_model_eval.eq_String, hREval, hTEval]
     simp [__smtx_model_eval_str_replace_re,
       native_pack_string, native_string_to_values,
       Smtm.native_unpack_pack_seq, elem_typeof_pack_seq]

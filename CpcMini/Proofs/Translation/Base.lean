@@ -4,6 +4,8 @@ public import CpcMini.Spec
 import all CpcMini.Spec
 public import CpcMini.Logos
 import all CpcMini.Logos
+public import CpcMini.Proofs.SmtEquations
+import all CpcMini.Proofs.SmtEquations
 
 public section
 
@@ -180,7 +182,7 @@ theorem smtx_binary_well_formed_of_non_none
     · exact h'
     · exfalso
       apply h
-      rw [__smtx_typeof.eq_5]
+      rw [__smtx_typeof.eq_Binary]
       cases hg : g with
       | false =>
           simpa [native_ite, hg]
@@ -202,7 +204,7 @@ theorem smtx_typeof_binary_of_non_none
     __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (native_int_to_nat w) := by
   intro h
   obtain ⟨hWidth, hMod⟩ := smtx_binary_well_formed_of_non_none w n h
-  rw [__smtx_typeof.eq_5]
+  rw [__smtx_typeof.eq_Binary]
   simp [native_ite, SmtEval.native_and, hWidth, hMod]
 
 end TranslationProofs

@@ -219,7 +219,7 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                     have hRv : rv = SmtRegLan.epsilon := by
                       change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String (native_string_lit ""))) =
                           SmtValue.RegLan rv at hREval
-                      rw [__smtx_model_eval.eq_105, __smtx_model_eval.eq_4] at hREval
+                      rw [__smtx_model_eval.eq_str_to_re, __smtx_model_eval.eq_String] at hREval
                       have hsimpa := hREval.symm
                       try simp [__smtx_model_eval_str_to_re, native_str_to_re, native_pack_string] at hsimpa ⊢
                       exact hsimpa
@@ -233,8 +233,8 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                           SmtValue.Boolean
                             (nativeListInRe (native_unpack_string ss)
                               (nativeSigmaState n false SmtRegLan.epsilon))
-                      rw [__smtx_model_eval.eq_18, smtx_eval_str_len_term_eq,
-                        __smtx_model_eval.eq_2, hSEval]
+                      rw [__smtx_model_eval.eq_geq, smtx_eval_str_len_term_eq,
+                        __smtx_model_eval.eq_Numeral, hSEval]
                       simp [__smtx_model_eval_geq, __smtx_model_eval_leq,
                         __smtx_model_eval_str_len, native_seq_len, native_zleq,
                         nativeListInRe_sigmaState_empty_atLeast, hSSValid,
@@ -248,7 +248,7 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                             (nativeListInRe (native_unpack_string ss)
                               (nativeSigmaState n true SmtRegLan.epsilon))
                       rw [smtx_eval_eq_term_eq, smtx_eval_str_len_term_eq,
-                        __smtx_model_eval.eq_2, hSEval]
+                        __smtx_model_eval.eq_Numeral, hSEval]
                       simp [__smtx_model_eval_eq, __smtx_model_eval_str_len,
                         native_veq, native_seq_len,
                         nativeListInRe_sigmaState_empty_exact, hSSValid,
@@ -277,7 +277,7 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                           change __smtx_model_eval M
                               (SmtTerm.re_concat SmtTerm.re_allchar (__eo_to_smt x)) =
                             SmtValue.RegLan rv at hREval
-                          rw [__smtx_model_eval.eq_112, __smtx_model_eval.eq_102] at hREval
+                          rw [__smtx_model_eval.eq_re_concat, __smtx_model_eval.eq_re_allchar] at hREval
                           cases hTailEval : __smtx_model_eval M (__eo_to_smt x) with
                           | RegLan rvTail =>
                               have hRv : rv = native_re_concat native_re_allchar rvTail := by
@@ -316,8 +316,8 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                                             (SmtTerm.re_mult SmtTerm.re_allchar)
                                             (__eo_to_smt x)) =
                                         SmtValue.RegLan rv at hREval
-                                      rw [__smtx_model_eval.eq_112, __smtx_model_eval.eq_106,
-                                        __smtx_model_eval.eq_102] at hREval
+                                      rw [__smtx_model_eval.eq_re_concat, __smtx_model_eval.eq_re_mult,
+                                        __smtx_model_eval.eq_re_allchar] at hREval
                                       cases hTailEval :
                                           __smtx_model_eval M (__eo_to_smt x) with
                                       | RegLan rvTail =>
@@ -502,7 +502,7 @@ private theorem smtx_model_eval_str_in_re_eq_sigma_side
       SmtValue.Boolean
         (nativeListInRe (native_unpack_string ss)
           (nativeSigmaState 0 true rv))
-  rw [__smtx_model_eval.eq_117]
+  rw [__smtx_model_eval.eq_str_in_re]
   have hState : nativeSigmaState 0 true rv = rv := by
     cases rv <;>
       simp [nativeSigmaState, nativeSigmaExact, native_re_mk_concat,

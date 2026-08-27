@@ -191,7 +191,7 @@ private theorem smt_or_bool (a b : Term)
 private theorem false_smt_bool :
     __smtx_typeof (__eo_to_smt (Term.Boolean false)) = SmtType.Bool := by
   change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
-  rw [__smtx_typeof.eq_1]
+  rw [__smtx_typeof.eq_Boolean]
 
 private theorem eq_bool_of_same_type (a b : Term) (ty : SmtType)
     (ha : __smtx_typeof (__eo_to_smt a) = ty)
@@ -310,7 +310,7 @@ private theorem eval_false (M : SmtModel) :
     __smtx_model_eval M (__eo_to_smt (Term.Boolean false)) =
       SmtValue.Boolean false := by
   change __smtx_model_eval M (SmtTerm.Boolean false) = SmtValue.Boolean false
-  rw [__smtx_model_eval.eq_1]
+  rw [__smtx_model_eval.eq_Boolean]
 
 private theorem int_abs_eq_bool (x y : native_Int) :
     native_zeq (if x < 0 then native_zneg x else x)

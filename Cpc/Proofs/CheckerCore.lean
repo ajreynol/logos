@@ -75,7 +75,7 @@ private theorem eo_to_smt_and_eq (A B : Term) :
 /-- Lemma about `eo_has_smt_translation_true`. -/
 private theorem eo_has_smt_translation_true :
     RuleProofs.eo_has_smt_translation (Term.Boolean true) := by
-  rw [RuleProofs.eo_has_smt_translation, eo_to_smt_true_eq, __smtx_typeof.eq_1]
+  rw [RuleProofs.eo_has_smt_translation, eo_to_smt_true_eq, __smtx_typeof.eq_Boolean]
   decide
 
 /-- Characterizes EO interpretation in terms of the translated SMT interpretation. -/
@@ -215,7 +215,7 @@ by
         exact (bool_binop_args_bool_of_non_none (op := SmtTerm.and)
           (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
       have hEvalA : __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false := by
-        rw [__smtx_model_eval.eq_8] at hEval
+        rw [__smtx_model_eval.eq_and] at hEval
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
@@ -258,7 +258,7 @@ by
             exact (bool_binop_args_bool_of_non_none (op := SmtTerm.and)
               (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
           have hEvalB : __smtx_model_eval M (__eo_to_smt B) = SmtValue.Boolean true := by
-            rw [__smtx_model_eval.eq_8] at hEvalAnd
+            rw [__smtx_model_eval.eq_and] at hEvalAnd
             cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
               simp [hEvalA, hBeval, __smtx_model_eval_and] at hEvalAnd
             case Boolean b =>

@@ -358,7 +358,7 @@ private theorem facts___eo_prog_arith_int_geq_tighten_impl
     rw [smtx_eval_plus_term_eq, smtx_eval_to_int_term_eq,
       smtx_eval_plus_term_eq, hCEval]
     simp [__smtx_model_eval_to_int, __smtx_model_eval_plus,
-      __smtx_model_eval.eq_2, native_zplus]
+      __smtx_model_eval.eq_Numeral, native_zplus]
   have hRelCc := RuleProofs.eo_interprets_eq_rel M cc (ccRhs c) hPremCc
   have hCcEq : cci = native_to_int cq + 1 := by
     unfold RuleProofs.smt_value_rel at hRelCc
