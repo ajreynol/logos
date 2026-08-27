@@ -37,7 +37,6 @@ The options most often added to either of those:
 ```text
 --check              install nothing; exit 1 if either package is out of date
 --ethos PATH         compile with an Ethos checkout you already have
---overwrite-rules    replace existing rule files instead of preserving them
 ```
 
 Both scripts take `--help` for the rest.
@@ -69,7 +68,9 @@ file is kept and only a rule with no file yet gets the stub:
 * a rule whose *statement* changed keeps its old file and fails to build, which
   is how a proof needing attention shows up — build after an install to find
   them
-* a reinstall over an up-to-date tree changes nothing
+* a reinstall over an up-to-date tree changes nothing; to see what the
+  compiler emits for a rule that already has a file, delete it and install
+  again
 
 `--check` reports what an install would write and writes nothing, exiting 1 if
 anything at all would change. It performs the install into a throwaway copy and
@@ -109,9 +110,9 @@ describe a calculus containing just those. Running
 `install/install-sig.sh --rules symm` against `Cpc` therefore guts the package
 rather than refreshing one rule. Use it with `--package` or `--mini`.
 
-`--mini` is the same install into `CpcMini` with `--no-parser`, the five rules
-`symm contra refl scope trans`, imports rewritten to `CpcMini`, and
-`partial def` rewritten to `def`. Each of those is available on its own.
+`--mini` is the same install into `CpcMini` with the five rules
+`symm contra refl scope trans`, no parser, imports rewritten to `CpcMini`, and
+`partial def` rewritten to `def`.
 
 `--ethos` redirects the whole tree and not just the driver: the build
 directory, the `--defs` file and the `--lean-config` file all come from the

@@ -19,7 +19,8 @@ Existing files under Proofs/Rules/ are preserved, since those are where the
 proofs of this repository live and the compiler only ever emits a statement
 with `sorry` for a body. A rule that has no file yet gets that stub, which is
 what makes a newly added rule of the calculus visible here as an obligation.
-Pass --overwrite-rules to replace them instead, which discards proofs.
+To see what the compiler emits for a rule that has one, delete its file and
+install again.
 
 The signature to compile is named with --signature, or as a bare path ending
 in .eo, which is the same thing:
@@ -65,17 +66,12 @@ Options:
                        (default: <install>/defs/Cpc.cached.eo)
   --package NAME       the package under this repository to install into
                        (default: Cpc)
-  --mini               shorthand for the reduced package: --package CpcMini
-                       --no-parser --no-partial and the five rules below,
-                       unless those are given explicitly
+  --mini               the reduced package: --package CpcMini, the five rules
+                       below unless --rules gives others, no parser, and
+                       `partial def` rewritten to `def`
   --rules RULE...      compile only these rules; everything up to the next
                        option is taken as a rule name
                        (default: the whole signature)
-  --no-parser          do not generate or install Parser.lean, and delete a
-                       stale one from the package
-  --no-partial         rewrite `partial def` to `def` in the installed package
-  --overwrite-rules    replace existing files under Proofs/Rules/ instead of
-                       preserving them
   --check              do not install anything: compile, compare against the
                        package, and exit 0 only if it is already up to date,
                        1 if an install would change it. Every other option
@@ -88,7 +84,6 @@ Options:
   --out-dir DIR        where to stage what the compiler publishes before it is
                        installed (default: <deps>/eoc-out)
   --deps-dir DIR       where eoc-env.sh is (default: <install>/deps)
-  --jobs N             parallel compile jobs if ethos-eoc has to be built
   -h, --help           show this message
 
 Examples:
@@ -96,8 +91,7 @@ Examples:
   install/install-sig.sh --cached
   install/install-sig.sh --cached --check
   install/install-sig.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
-  install/install-sig.sh --signature ~/sig.eo --package Mine --no-parser \
-    --rules symm refl trans
+  install/install-sig.sh ~/sig.eo --package Mine --rules symm refl trans
 USAGE
 }
 
@@ -126,14 +120,12 @@ declare -a RULES=()
 RULES_GIVEN=0
 NO_PARSER=0
 NO_PARTIAL=0
-OVERWRITE_RULES=0
 CHECK=0
 DEFS=""
 LEAN_CONFIG=""
 BUILD_DIR=""
 OUT_DIR=""
 DEPS_DIR=""
-JOBS=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -156,9 +148,6 @@ while [ $# -gt 0 ]; do
         shift
       done
       ;;
-    --no-parser) NO_PARSER=1; shift ;;
-    --no-partial) NO_PARTIAL=1; shift ;;
-    --overwrite-rules) OVERWRITE_RULES=1; shift ;;
     --check) CHECK=1; shift ;;
     --defs) DEFS="${2:?--defs requires a value}"; shift 2 ;;
     --defs=*) DEFS="${1#*=}"; shift ;;
@@ -170,8 +159,6 @@ while [ $# -gt 0 ]; do
     --out-dir=*) OUT_DIR="${1#*=}"; shift ;;
     --deps-dir) DEPS_DIR="${2:?--deps-dir requires a value}"; shift 2 ;;
     --deps-dir=*) DEPS_DIR="${1#*=}"; shift ;;
-    --jobs) JOBS="${2:?--jobs requires a value}"; shift 2 ;;
-    --jobs=*) JOBS="${1#*=}"; shift ;;
     -h|--help) usage; exit 0 ;;
     -*) echo "unrecognized option $1" >&2; usage >&2; exit 2 ;;
     # A bare path ending in .eo is the signature. Anything else that is not an
@@ -446,7 +433,7 @@ DRIVER="${ETHOS_DIR}/tools/eoc/driver.py"
 [ -f "${DRIVER}" ] || { echo "error: ${DRIVER} not found." >&2; exit 1; }
 
 # The mini package is the same install with a different name, no parser, no
-# `partial`, and a handful of rules. Each is still settable on its own.
+# `partial`, and a handful of rules.
 if [ "${MINI}" = "1" ]; then
   PACKAGE="${PACKAGE:-CpcMini}"
   NO_PARSER=1
@@ -558,7 +545,6 @@ if [ -x "${BUILD_DIR}/ethos-eoc" ]; then
   driver_args+=(--no-build)
 else
   echo "    ethos-eoc is not built yet; building it into ${BUILD_DIR}"
-  [ -n "${JOBS}" ] && driver_args+=(--jobs "${JOBS}")
 fi
 [ "${NO_PARSER}" = "1" ] && driver_args+=(--no-parser)
 if [ "${RULES_GIVEN}" = "1" ]; then
@@ -603,7 +589,7 @@ if [ -d "${LEAN_DIR}/Rules" ]; then
   shopt -s nullglob
   for file in "${LEAN_DIR}"/Rules/*.lean; do
     rule_dest="${DEST_DIR}/Proofs/Rules/$(basename "${file}")"
-    if [ "${OVERWRITE_RULES}" = "0" ] && [ -e "${rule_dest}" ]; then
+    if [ -e "${rule_dest}" ]; then
       preserved=$((preserved + 1))
       continue
     fi
