@@ -76,6 +76,56 @@ run_proof_hygiene() {
   bash scripts/check-proof-hygiene.sh
 }
 
+# Compile the cached signature and require the package $1 to be exactly what
+# comes out. Remaining arguments select the package the way install-cpc.sh
+# does, so they are also what regenerating it takes.
+check_regeneration() {
+  local package="$1"
+  shift
+  if bash scripts/install-cpc.sh --cached --check "$@"; then
+    return 0
+  fi
+  cat >&2 <<MSG
+
+${package} is not what signatures/Cpc.eo compiles to, so it no longer follows
+the signature it is generated from. Either it was edited by hand where it is
+generated, or it was regenerated from a signature that was never recorded.
+
+Regenerate it from the cached signature with
+
+  scripts/install-cpc.sh --cached${*:+ $*}
+
+or, if the signature has moved on and the packages should follow it, record
+the new one and regenerate from that:
+
+  scripts/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo --update-cache
+MSG
+  exit 1
+}
+
+# The generated packages against the signature they came from, which this
+# repository keeps a copy of. Needs the Eunoia compiler and nothing from cvc5;
+# pass "skip" to pass silently where the compiler has not been set up, which is
+# what running every group locally wants.
+run_regeneration() {
+  if [ ! -f deps/eoc-env.sh ]; then
+    if [ "${1:-}" = "skip" ]; then
+      echo "Skipping the regeneration check: deps/eoc-env.sh is not there, so"
+      echo "the Eunoia compiler has not been set up. Run"
+      echo "scripts/get-eo-compiler.sh once to include this check."
+      return 0
+    fi
+    echo "The Eunoia compiler has not been set up: deps/eoc-env.sh is not" >&2
+    echo "there. Run scripts/get-eo-compiler.sh first." >&2
+    exit 1
+  fi
+
+  echo "Checking that Cpc is what the cached signature compiles to..."
+  check_regeneration Cpc
+  echo "Checking that CpcMini is what the cached signature compiles to..."
+  check_regeneration CpcMini --mini
+}
+
 run_regressions() {
   echo "Checking the generated parser tables against the signature..."
   python3 scripts/check-parser-tables.py
@@ -144,15 +194,19 @@ case "${group}" in
   proof-hygiene)
     run_proof_hygiene
     ;;
+  regeneration)
+    run_regeneration
+    ;;
   all)
     run_proof_hygiene
+    run_regeneration skip
     configure_lean_toolchain
     run_regressions
     run_cpc_proofs
     run_cpcmini
     ;;
   *)
-    echo "Usage: $0 [all|regressions|cpc-proofs|cpcmini|proof-hygiene]" >&2
+    echo "Usage: $0 [all|regressions|cpc-proofs|cpcmini|proof-hygiene|regeneration]" >&2
     exit 2
     ;;
 esac

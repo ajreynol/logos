@@ -30,11 +30,19 @@ also usable against an Ethos checkout you already have, via `--ethos`.
 scripts/get-eo-compiler.sh                                  # once
 scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
 scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
+scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
 scripts/build.sh Cpc CpcMini                                # check the result
 ```
 
-`--signature` is required and takes any Eunoia signature reachable on the
-machine, so one being edited is compiled the same way as one from a checkout.
+`--signature` takes any Eunoia signature reachable on the machine, so one being
+edited is compiled the same way as one from a checkout. The alternative to
+naming one is `--cached`, which compiles the copy this repository keeps of the
+signature the packages came from:
+
+```bash
+scripts/install-cpc.sh --cached          # regenerate Cpc from that copy
+scripts/install-cpc.sh --cached --check  # ask whether Cpc still matches it
+```
 
 Working against an Ethos checkout you already have, with no download at all:
 
@@ -151,6 +159,47 @@ files being preserved:
 calculus name to `CpcMini`, and `partial def` to `def`. Each of those is
 available on its own if the reduced package ever needs a different shape.
 
+## The cached signature
+
+`signatures/Cpc.eo` is a copy of the signature the packages here were compiled
+from, kept in this repository as a *single file*: every `(include "...")` of
+the original replaced by the text of the file it names, each file appearing
+once and in the order Ethos reads them. Compiling it produces the same Lean as
+compiling the original tree, byte for byte, so it is the signature and not a
+summary of one.
+
+It exists because the signature otherwise lives in someone's cvc5 checkout,
+which makes "is the generated code still what the signature says?" a question
+nobody can answer from this repository alone. With the copy here, `--check`
+answers it with no cvc5 anywhere in sight, which is what the `regeneration` CI
+group does:
+
+```bash
+scripts/install-cpc.sh --cached --check
+scripts/install-cpc.sh --cached --mini --check
+```
+
+The flattening follows the same rules the compiler does. A file is spliced in
+the first time it is reached and afterwards left as a comment saying so, which
+is what Ethos does with a repeated `(include ...)` too (`markIncluded` in its
+`src/state.cpp`), and which lines count as an include is decided the way
+`driver.py` decides it. That is what keeps the copy equivalent to the tree
+rather than a redeclaration of everything the tree shares.
+
+Rewrite it whenever the packages are regenerated from a signature that has
+moved:
+
+```bash
+scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo             # install
+scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
+```
+
+`--update-cache` reads nothing but the signature, so it needs no compiler and
+no `deps/`. An install from a signature that is not the cached one ends by
+saying so, since forgetting the second command is what makes CI compile a
+signature the packages were never generated from. The header of the file
+records where it was read from and the commit that checkout was at.
+
 ## Why the compiler is built rather than downloaded
 
 `ethos-eoc` is not published by any Ethos release — the CI upload step ships
@@ -186,7 +235,8 @@ The CPC signature happens to be maintained in the cvc5 repository, at
 What the compiler consumes is Eunoia *source text*, not a solver: no cvc5
 binary and no cvc5 build is involved. Note that `Cpc.eo` includes the rest of
 `proofs/eo` by relative path, so `--signature` needs to name a file sitting in
-a complete copy of that subtree.
+a complete copy of that subtree. `signatures/Cpc.eo` is that subtree written as
+one file, which is why `--cached` needs nothing outside this repository.
 
 ## Pinning
 
@@ -196,6 +246,9 @@ moves the pin deliberately. It is currently
 `b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6` — "Add core Eunoia compiler
 infrastructure (#229)". To move it, edit that line and re-run both scripts.
 
-The signature is not pinned here at all, since it is named on each run.
-Whatever version of it you point `--signature` at is what gets compiled;
-pinning it is a matter of which checkout you name.
+The signature is pinned by copy rather than by version: `signatures/Cpc.eo` is
+the one the packages were compiled from, and `--cached` compiles exactly that.
+`--signature` is still whatever you point it at, so a run against a checkout
+compiles that checkout; what the copy fixes is the version everything is
+*checked* against, which is why moving to a newer signature means running
+`--update-cache` as well.

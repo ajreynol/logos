@@ -26,16 +26,32 @@ something scripts/get-eo-compiler.sh fetches, so any signature reachable on
 this machine -- a cvc5 checkout, or one being worked on locally -- can be
 compiled without downloading anything.
 
+A copy of the signature the packages here were last compiled from is kept in
+this repository as a single file, signatures/Cpc.eo, with every (include ...)
+of the original spliced in. --cached compiles that copy, which is how the
+packages can be regenerated, and checked, without a cvc5 checkout at all; it
+is what CI does. --update-cache rewrites the copy from --signature and needs
+no compiler. Run it with the install that used that signature, so that the
+copy stays the one the packages actually came from.
+
 The compiler comes from deps/eoc-env.sh, written by scripts/get-eo-compiler.sh,
 unless --ethos names another ethos tree.
 
 Options:
-  --signature PATH     the Eunoia signature to compile (required), e.g.
-                       <cvc5>/proofs/eo/cpc/Cpc.eo
+  --signature PATH     the Eunoia signature to compile, e.g.
+                       <cvc5>/proofs/eo/cpc/Cpc.eo. Required unless --cached
+                       names the copy kept here instead
   --ethos PATH         an ethos source tree containing tools/eoc/driver.py
                        (default: the one recorded in deps/eoc-env.sh). Also
                        redirects --build-dir, --defs and --lean-config to that
                        tree, so a local checkout is never mixed with deps/
+  --cached             compile the copy of the signature kept in this
+                       repository instead of naming one with --signature
+  --update-cache       do not install: rewrite that copy from the signature
+                       named by --signature, splicing in every file it
+                       includes, and exit. No compiler is needed for this
+  --cache PATH         where that copy lives
+                       (default: <repo>/signatures/Cpc.eo)
   --package NAME       the package under this repository to install into
                        (default: Cpc)
   --mini               shorthand for the reduced package: --package CpcMini
@@ -66,7 +82,9 @@ Options:
 
 Examples:
   scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
-  scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --check
+  scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
+  scripts/install-cpc.sh --cached
+  scripts/install-cpc.sh --cached --check
   scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
   scripts/install-cpc.sh --signature ~/sig.eo --package Mine --no-parser \
     --rules symm refl trans
@@ -74,6 +92,9 @@ USAGE
 }
 
 SIGNATURE=""
+CACHED=0
+UPDATE_CACHE=0
+CACHE_FILE=""
 ETHOS_DIR=""
 ETHOS_GIVEN=0
 PACKAGE=""
@@ -95,6 +116,10 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --signature) SIGNATURE="${2:?--signature requires a value}"; shift 2 ;;
     --signature=*) SIGNATURE="${1#*=}"; shift ;;
+    --cached) CACHED=1; shift ;;
+    --update-cache) UPDATE_CACHE=1; shift ;;
+    --cache) CACHE_FILE="${2:?--cache requires a value}"; shift 2 ;;
+    --cache=*) CACHE_FILE="${1#*=}"; shift ;;
     --ethos) ETHOS_DIR="${2:?--ethos requires a value}"; ETHOS_GIVEN=1; shift 2 ;;
     --ethos=*) ETHOS_DIR="${1#*=}"; ETHOS_GIVEN=1; shift ;;
     --package) PACKAGE="${2:?--package requires a value}"; shift 2 ;;
@@ -132,6 +157,7 @@ done
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 DEPS_DIR="${DEPS_DIR:-${repo_root}/deps}"
+CACHE_FILE="${CACHE_FILE:-${repo_root}/signatures/Cpc.eo}"
 
 # What get-eo-compiler.sh installed, if it has been run. Anything named on the
 # command line wins over it.
@@ -156,10 +182,160 @@ fi
 
 ETHOS_DIR="${ETHOS_DIR:-${EOC_ETHOS_DIR:-}}"
 
+# One line saying where the signature $1 was read from, for the header of the
+# cached copy. What identifies a version of it is the commit of the checkout it
+# sits in, not the path it has on this machine, so record that when there is
+# one and say plainly that there is none when there is not.
+signature_provenance() {
+  local dir sig top rel sha
+  dir="$(cd "$(dirname "$1")" && pwd)"
+  sig="${dir}/$(basename "$1")"
+  if ! top="$(git -C "${dir}" rev-parse --show-toplevel 2>/dev/null)"; then
+    printf '%s, from a directory that is not a git checkout, so the version\n;   it came from is not recorded here\n' "$(basename "${sig}")"
+    return
+  fi
+  rel="${sig#"${top}"/}"
+  sha="$(git -C "${dir}" rev-parse HEAD 2>/dev/null || echo "an unknown commit")"
+  printf '%s\n;   at commit %s\n' "${rel}" "${sha}"
+  if [ -n "$(git -C "${dir}" status --porcelain -- "${dir}" 2>/dev/null)" ]; then
+    printf ';   with uncommitted changes present under %s\n' "$(basename "${dir}")"
+  fi
+}
+
+# Write the signature $1 to $2 as a single file: every (include "...") replaced
+# by the text of the file it names, depth first, and each file written only the
+# first time it is reached. That last part is what makes the result equivalent
+# to the original rather than a redeclaration of everything the tree shares:
+# ethos also reads a file only the first time it is named, see markIncluded in
+# its src/state.cpp. Which lines name a file is decided the way driver.py
+# decides it, see INCLUDE_RE and strip_comment there, so the copy contains the
+# files a compilation of the original would have read and no others.
+flatten_signature() {
+  python3 - "$1" "$2" "$(signature_provenance "$1")" <<'PY'
+import os
+import re
+import sys
+
+INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
+# Anything else that names another file. Splicing cannot represent it, and
+# leaving it in place would resolve it against the copy's own directory, so
+# stop instead of writing a file that quietly means something else.
+UNSPLICEABLE_RE = re.compile(r"^\((include|reference)\b")
+
+HEADER = """\
+; This file is generated by scripts/install-cpc.sh --update-cache. Do not edit
+; it, and do not read it as the upstream signature: it is a copy of one.
+;
+; It is the Eunoia signature that the Cpc and CpcMini packages of this
+; repository were compiled from, written as a single file: every
+; (include "...") of the original replaced by the text of the file it names,
+; each file appearing once and in the order ethos reads them. Compiling this
+; produces the same Lean as compiling the original tree, so a regeneration
+; needs nothing but this repository.
+;
+; Read from:
+;   %s
+;
+; scripts/run-ci.sh regeneration compiles it and fails if what comes out
+; differs from what is committed under Cpc/ and CpcMini/, which is what makes
+; a generated package that no longer matches the signature visible.
+"""
+
+source, dest, provenance = sys.argv[1], sys.argv[2], sys.argv[3]
+root = os.path.realpath(source)
+base = os.path.dirname(root)
+seen = set()
+out = []
+
+
+def name_of(path):
+    return os.path.relpath(path, base)
+
+
+def visit(path, named_by):
+    real = os.path.realpath(path)
+    if not os.path.isfile(real):
+        sys.exit("error: %s includes %s, which is not there." % (named_by, path))
+    if real in seen:
+        out.append("; (%s is included above)\n" % name_of(real))
+        return
+    seen.add(real)
+    out.append("\n; ==== %s ====\n" % name_of(real))
+    with open(real) as handle:
+        text = handle.read()
+    for line in text.splitlines(True):
+        command = line.split(";", 1)[0].strip()
+        match = INCLUDE_RE.match(command)
+        if match:
+            visit(os.path.join(os.path.dirname(real), match.group(1)), name_of(real))
+            continue
+        if UNSPLICEABLE_RE.match(command):
+            sys.exit("error: %s: cannot splice `%s` into one file." % (name_of(real), command))
+        out.append(line)
+    if not out[-1].endswith("\n"):
+        out.append("\n")
+
+
+visit(root, os.path.basename(root))
+with open(dest, "w") as handle:
+    handle.write(HEADER % provenance)
+    handle.write("".join(out))
+PY
+}
+
+if [ "${CACHED}" = "1" ] && [ "${UPDATE_CACHE}" = "1" ]; then
+  echo "error: --update-cache writes the cached signature from the one named" >&2
+  echo "by --signature, so there is nothing for --cached to say to it." >&2
+  exit 2
+fi
+if [ "${UPDATE_CACHE}" = "1" ] && [ "${CHECK}" = "1" ]; then
+  echo "error: --update-cache writes the cached signature and --check writes" >&2
+  echo "nothing at all. Give one or the other." >&2
+  exit 2
+fi
+
+# --cached is --signature with the one path this repository keeps filled in.
+if [ "${CACHED}" = "1" ]; then
+  if [ -n "${SIGNATURE}" ]; then
+    echo "error: --cached and --signature name two different signatures." >&2
+    echo "Give one or the other." >&2
+    exit 2
+  fi
+  if [ ! -f "${CACHE_FILE}" ]; then
+    echo "error: there is no cached signature at ${CACHE_FILE}." >&2
+    echo "Write one with --signature <path> --update-cache." >&2
+    exit 1
+  fi
+  SIGNATURE="${CACHE_FILE}"
+fi
+
 if [ -z "${SIGNATURE}" ]; then
   echo "error: no signature to compile. Name one with --signature, e.g." >&2
   echo "  scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo" >&2
+  echo "or compile the copy kept in this repository with --cached." >&2
   exit 2
+fi
+[ -f "${SIGNATURE}" ] || { echo "error: signature ${SIGNATURE} not found." >&2; exit 1; }
+
+# Nothing below this is needed to record a signature: the copy is made out of
+# the signature alone, so --update-cache works on a machine that has never run
+# get-eo-compiler.sh.
+if [ "${UPDATE_CACHE}" = "1" ]; then
+  echo "==> Writing ${SIGNATURE} to ${CACHE_FILE} as a single file"
+  mkdir -p "$(dirname "${CACHE_FILE}")"
+  flatten_signature "${SIGNATURE}" "${CACHE_FILE}"
+  echo "    $(grep -c '^; ==== ' "${CACHE_FILE}") file(s) spliced in, $(wc -l < "${CACHE_FILE}") lines"
+  cat <<DONE
+
+==> Done. The cached signature is now ${SIGNATURE}.
+
+Nothing was compiled and no package was installed. Check that the packages
+match what was just recorded with:
+
+  scripts/install-cpc.sh --cached --check
+  scripts/install-cpc.sh --cached --mini --check
+DONE
+  exit 0
 fi
 
 if [ -z "${ETHOS_DIR}" ]; then
@@ -170,7 +346,6 @@ fi
 
 DRIVER="${ETHOS_DIR}/tools/eoc/driver.py"
 [ -f "${DRIVER}" ] || { echo "error: ${DRIVER} not found." >&2; exit 1; }
-[ -f "${SIGNATURE}" ] || { echo "error: signature ${SIGNATURE} not found." >&2; exit 1; }
 
 # The mini package is the same install with a different name, no parser, no
 # `partial`, and a handful of rules. Each is still settable on its own.
@@ -395,6 +570,21 @@ if [ "${CHECK}" = "1" ]; then
   exit 1
 fi
 
+# CI compiles the cached copy, not whatever signature happens to be on the
+# machine that ran the install, so an install from a signature that is not the
+# cached one leaves the two disagreeing: the package is current with what was
+# just compiled and stale with respect to what is checked. Say so here, where
+# the signature that was used is still at hand.
+cache_note=""
+if [ "${CACHED}" = "0" ] && [ -f "${CACHE_FILE}" ]; then
+  fresh_cache="$(mktemp "${TMPDIR:-/tmp}/install-cpc-cache.XXXXXX")"
+  if flatten_signature "${SIGNATURE}" "${fresh_cache}" &&
+     ! cmp -s "${fresh_cache}" "${CACHE_FILE}"; then
+    cache_note="yes"
+  fi
+  rm -f "${fresh_cache}"
+fi
+
 cat <<DONE
 
 ==> Done. ${PACKAGE} regenerated from ${SIGNATURE}.
@@ -407,3 +597,16 @@ A preserved rule file whose statement the calculus has changed will fail to
 build; a newly written one has \`sorry\` for a proof. Review with git diff
 before committing.
 DONE
+
+if [ -n "${cache_note}" ]; then
+  cat <<NOTE
+
+==> Note: the cached signature is not the one just compiled.
+
+${CACHE_FILE}
+is what CI compiles, so record this signature there as well with:
+
+  scripts/install-cpc.sh --signature ${SIGNATURE} --update-cache
+
+NOTE
+fi

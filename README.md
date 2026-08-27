@@ -68,6 +68,10 @@ To run the same checks as CI locally, use:
 bash scripts/run-ci.sh
 ```
 
+One of them, the `regeneration` group, recompiles the calculus and needs the
+Eunoia compiler; it is skipped with a note until `scripts/get-eo-compiler.sh`
+has been run once. See [Regenerating the calculus](#regenerating-the-calculus).
+
 To build every CPC proof rule, use:
 
 ```bash
@@ -114,6 +118,7 @@ written by hand. Two scripts do that; see
 ```bash
 scripts/get-eo-compiler.sh                                     # once: build the compiler
 scripts/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo # regenerate Cpc
+scripts/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo --update-cache
 scripts/build.sh Cpc                                           # check the result
 ```
 
@@ -122,6 +127,20 @@ git. The signature to compile against is named on each run, so any copy of
 `Cpc.eo` reachable on the machine can be used, including one being edited. What
 is consumed is the Eunoia source of the signature; no cvc5 *binary* or build is
 involved.
+
+`signatures/Cpc.eo` is this repository's own copy of the signature the packages
+were compiled from, written as a single file with everything `Cpc.eo` includes
+spliced into it. `--update-cache` rewrites that copy, and `--cached` compiles
+it in place of naming a signature, so `Cpc` and `CpcMini` can be regenerated —
+and, in CI, checked — without a cvc5 checkout:
+
+```bash
+scripts/install-cpc.sh --cached --check         # is Cpc still what it compiles to?
+scripts/install-cpc.sh --cached --mini --check  # and CpcMini?
+```
+
+That pair is the `regeneration` CI group, which is what makes a generated
+package that has drifted from its signature fail rather than sit there.
 
 Regeneration rewrites the signature-wide modules of the package but preserves
 the existing per-rule proofs under `Proofs/Rules/`. A rule newly added to CPC
