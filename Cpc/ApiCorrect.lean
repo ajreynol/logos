@@ -25,9 +25,9 @@ one thing beyond it: that `Cpc/Parser.lean` read the intended assumptions out of
 the file.  That is what stays unverified -- the s-expression reader and parser
 have no correctness proof, and `logos` does not compare a proof's assumptions
 against an original input problem (`include` and `reference` commands are
-ignored).  The Lean-native front end (`MainNative.lean`) is not covered either:
-it runs `#eval` scripts that call the generated, unguarded
-`Eo.logos_invoke_assume`.
+ignored).  `Cpc/Native/Correct.lean` states the same theorem for the experimental
+Lean-native front end (`MainNative.lean`), where what takes the place of the
+parser is the shape of the script.
 -/
 
 open Eo

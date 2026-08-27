@@ -58,8 +58,8 @@ Cpc/SmtEval.lean
 ```
 
 Everything else is hand-written and is left alone: `Cpc/Api*.lean`,
-`Cpc/Diagnostics.lean`, and everything under `Cpc/Proofs/` other than
-`RuleLemmas.lean` and `Rules/`.
+`Cpc/Diagnostics.lean`, `Cpc/Native.lean` and `Cpc/Native/`, and everything under
+`Cpc/Proofs/` other than `RuleLemmas.lean` and `Rules/`.
 
 Rule files are preserved. The compiler emits each rule as its statement with
 `sorry` for a proof, and the proofs live in those same files, so an existing
