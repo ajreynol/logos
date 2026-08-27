@@ -46,12 +46,7 @@ lake build logos
 If a direct build fails with errors such as `GLIBC_2.27 not found` or
 `GLIBC_2.29 not found` from the toolchain's `bin/clang`, use the build script.
 It performs the equivalent of selecting the host tools with `LEAN_CC` and
-`LEAN_AR`, and also preserves the link-library paths from the Lean toolchain:
-
-```bash
-scripts/build.sh logos
-```
-
+`LEAN_AR`, and also preserves the link-library paths from the Lean toolchain.
 This requires a working host C toolchain (GCC or Clang plus `ar`). Do not replace
 the system `libm.so.6` or glibc in place; use a newer container or build the
 pinned Lean toolchain locally if the host compiler fallback is unavailable.
@@ -184,9 +179,8 @@ For example, a CPC proof may contain:
 (step @p3 :rule contra :premises (@p0 @p2))
 ```
 
-The parser accepts the same proof syntax as Ethos.  Its structure, the commands and term
-syntax it supports, and how it lexes literals are described in
-[docs/parser.md](docs/parser.md).
+The structure of the parser, the commands and term syntax it supports, and how it lexes
+literals are described in [docs/parser.md](docs/parser.md).
 
 Note that Logos has not (yet) been optimized for performance, so it is significantly slower
 than performant proof checkers for SMT.
@@ -226,8 +220,8 @@ about it:
 
 - `Cpc/Api.lean` is everything `logos` does with a proof file, as one function
   `Eo.logos_check_proof : String -> Except String Verdict`: parse the text, then
-  run the three checks that compute the theorem's components — the assumption
-  term `F`, the refutation check, and the two side conditions.
+  run the three checks that stand for the theorem's hypotheses — the refutation
+  check and the two side conditions.
 - `Cpc/ApiChecks.lean` proves that each check gives the component it stands for.
   In particular it proves that folding the guarded assumption push over the
   parser's list builds the same state as `__eo_invoke_assume_list` on the
@@ -263,8 +257,8 @@ one, since it declares a sort of arity 1 and the specification has no
 counterpart for a sort constructor applied to a sort.
 
 What is still outside the theorem: the s-expression reader and the parser
-(`Logos/Parser.lean`, `Cpc/Parser.lean`) are unverified, so the assumptions the
-theorem talks about are whatever they read out of the file, and Logos does not
+(`Logos/Sexp.lean`, `Logos/Parser.lean`, `Cpc/Parser.lean`) are unverified, so the
+assumptions the theorem talks about are whatever they read out of the file, and Logos does not
 compare them against an original input problem (`include` and `reference` are
 ignored).
 
