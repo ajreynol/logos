@@ -39,7 +39,7 @@ The options most often added to either of those:
 --ethos PATH         compile with an Ethos checkout you already have
 ```
 
-Both scripts take `--help` for the rest.
+Both scripts take `--help` for the rest of their options.
 
 Requirements: `cmake` >= 3.12, a C++17 compiler, the GMP development headers
 (`libgmp-dev` on Debian and Ubuntu, `gmp` on Homebrew), `python3`, `tar`, and

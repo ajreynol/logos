@@ -111,13 +111,13 @@ lake clean
 
 ## Regenerating the calculus
 
-The `Cpc` and `CpcMini` packages are compiled from the Eunoia definition of CPC
-rather than written by hand:
+The `Cpc` package is compiled from the Eunoia definition of CPC rather than
+written by hand:
 
 ```bash
 install/get-eo-compiler.sh                  # once: build the compiler
-install/install-cpc.sh <cvc5>/.../Cpc.eo    # regenerate Cpc and CpcMini
-scripts/build.sh Cpc CpcMini                # check the result
+install/install-cpc.sh <cvc5>/.../Cpc.eo    # regenerate from a signature
+scripts/build.sh Cpc                        # check the result
 ```
 
 Any copy of `Cpc.eo` reachable on the machine can be passed, including one
@@ -125,12 +125,12 @@ being edited; no cvc5 *binary* or build is involved. Regenerating from the
 version last compiled needs no cvc5 checkout at all:
 
 ```bash
-install/install-cpc.sh --cached          # regenerate both from that version
-install/install-cpc.sh --cached --check  # ask whether both still match it
+install/install-cpc.sh --cached          # regenerate from that version
+install/install-cpc.sh --cached --check  # ask whether it still matches
 ```
 
-The second is the `regeneration` CI group, which fails when a generated package
-has drifted from the signature it came from.
+The second is the `regeneration` CI group, which fails when generated code has
+drifted from the signature it came from.
 
 Regeneration rewrites the signature-wide modules of the package but preserves
 the existing per-rule proofs under `Proofs/Rules/`. A rule newly added to CPC
@@ -138,7 +138,7 @@ appears as a `sorry` stub, and a rule whose statement changed keeps its old
 proof and therefore fails to build — both are the intended signal that a proof
 needs attention.
 
-See [`install/README.md`](install/README.md) for the rest.
+See [`install/README.md`](install/README.md) for more details.
 
 ## Using the Logos checker
 
