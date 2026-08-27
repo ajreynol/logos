@@ -9,7 +9,7 @@ the [README](../README.md) for building the executables.
 
 ```bash
 lake build logos-native
-lake exe logos-native examples/test-simple.cpc.lean
+lake exe logos-native test/regress/test-simple.cpc.lean
 ```
 
 The input is a file containing an evaluation statement to be read by the Lean parser.
@@ -44,5 +44,5 @@ all assumptions introduced via `assume_push` commands are closed by correspondin
 The semantics of these commands mimics the Eunoia logical framework;
 for details see https://github.com/cvc5/ethos/blob/main/user_manual.md.
 
-The examples in `examples/*.cpc.lean` are in this format; CI runs each of them through
+The examples in `test/regress/*.cpc.lean` are in this format; CI runs each of them through
 `logos-native` and requires the output `true`.

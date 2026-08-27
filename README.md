@@ -147,13 +147,13 @@ The `logos` executable reads the s-expression (Eunoia) syntax emitted by
 `cvc5 --dump-proofs --proof-format=cpc`:
 
 ```bash
-lake exe logos examples/sexp/test-simple.cpc
+lake exe logos test/regress/sexp/test-simple.cpc
 ```
 
 After building, it can be run directly without invoking Lake:
 
 ```bash
-./.lake/build/bin/logos examples/sexp/test-simple.cpc
+./.lake/build/bin/logos test/regress/sexp/test-simple.cpc
 ```
 
 The executable accepts exactly one proof path and reports one of three outcomes:
@@ -252,7 +252,7 @@ the specification's `__eo_to_smt`, so the executable links the specification
 layer, even though the checker itself never consults it (the proof rules remain
 untyped syntactic manipulations, and the semantics is not used as an oracle).
 A proof that Logos accepts but whose side conditions fail is reported as
-`incomplete` rather than `correct` — `examples/sexp/test-declare-sort.cpc` is
+`incomplete` rather than `correct` — `test/regress/sexp/test-declare-sort.cpc` is
 one, since it declares a sort of arity 1 and the specification has no
 counterpart for a sort constructor applied to a sort.
 

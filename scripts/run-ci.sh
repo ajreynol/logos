@@ -18,11 +18,11 @@ configure_lean_toolchain() {
 # executable reports `incomplete` and exits 2 for these; see the Correctness
 # section of README.md.
 #
-#   examples/sexp/test-declare-sort.cpc  declares a sort of arity 1, and the
+#   test/regress/sexp/test-declare-sort.cpc  declares a sort of arity 1, and the
 #   specification has no counterpart for a sort constructor applied to a sort.
 incomplete_example() {
   case "$1" in
-    examples/sexp/test-declare-sort.cpc) return 0 ;;
+    test/regress/sexp/test-declare-sort.cpc) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -133,9 +133,9 @@ run_regressions() {
   lake build logos logos-native
 
   # Proofs in the Lean term syntax, checked by logos-native.
-  run_examples logos-native examples '*.cpc.lean' true
+  run_examples logos-native test/regress '*.cpc.lean' true
   # The same proofs in s-expression syntax, checked by logos (Cpc.Parser).
-  run_examples logos examples/sexp '*.cpc' correct
+  run_examples logos test/regress/sexp '*.cpc' correct
 }
 
 run_cpc_proofs() {
