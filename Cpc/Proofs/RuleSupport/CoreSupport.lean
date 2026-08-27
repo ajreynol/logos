@@ -209,7 +209,7 @@ theorem model_eval_eq_false_of_eq_false_eq_true
       have hFalseEval :
           __smtx_model_eval M (SmtTerm.Boolean false) =
             SmtValue.Boolean false := by
-        rw [__smtx_model_eval.eq_Boolean]
+        rw [__smtx_model_eval.eq_1]
       rw [hEqEval, hFalseEval] at hEval
       rcases model_eval_eq_is_boolean
           (__smtx_model_eval M (__eo_to_smt x))

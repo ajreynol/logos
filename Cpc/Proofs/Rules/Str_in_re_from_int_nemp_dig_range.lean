@@ -267,7 +267,7 @@ theorem native_str_in_re_from_int_nonempty_digit_range_star
 
 theorem smtx_typeof_empty_string :
     __smtx_typeof (SmtTerm.String []) = SmtType.Seq SmtType.Char := by
-  rw [__smtx_typeof.eq_String]
+  rw [__smtx_typeof.eq_4]
   simp [native_string_valid, native_ite]
 
 theorem smtx_typeof_empty_str_to_re :

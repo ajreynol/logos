@@ -668,7 +668,7 @@ private theorem eval_lhs_extend
   rw [smtx_eval_int_to_bv_term_eq, smtx_eval_ubv_to_int_term_eq, hEvalT]
   have hEvalW :
       __smtx_model_eval M (SmtTerm.Numeral wi) = SmtValue.Numeral wi := by
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
   rw [hEvalW]
   simp [__smtx_model_eval_ubv_to_int, __smtx_model_eval_int_to_bv, hPayloadMod]
 
@@ -745,7 +745,7 @@ private theorem eval_rhs_extend
     rw [hEvalT]
     have hBin0Eval :
         __smtx_model_eval M (SmtTerm.Binary 0 0) = SmtValue.Binary 0 0 := by
-      rw [__smtx_model_eval.eq_Binary]
+      rw [__smtx_model_eval.eq_5]
     rw [hBin0Eval]
     change
       SmtValue.Binary (native_zplus ti 0)

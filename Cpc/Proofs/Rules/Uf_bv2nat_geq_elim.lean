@@ -679,7 +679,7 @@ private theorem eval_lhs_matches_rhs
   rw [smtx_eval_ite_term_eq, smtx_eval_geq_term_eq, smtx_eval_int_pow2_term_eq,
     hEvalN]
   have hPow : __smtx_model_eval M (SmtTerm.Numeral k) = SmtValue.Numeral k := by
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
   rw [hPow]
   simp only [__smtx_model_eval_int_pow2]
   have hGuard1 :
@@ -713,7 +713,7 @@ private theorem eval_lhs_matches_rhs
     -- evaluate inner guard2 = lt n 0
     rw [smtx_eval_ite_term_eq, smtx_eval_lt_term_eq, hEvalN]
     have hZero : __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0 := by
-      rw [__smtx_model_eval.eq_Numeral]
+      rw [__smtx_model_eval.eq_2]
     rw [hZero]
     have hGuard2 :
         __smtx_model_eval_lt (SmtValue.Numeral nv) (SmtValue.Numeral 0) =
@@ -825,9 +825,9 @@ private theorem facts_conclusion_impl
       smtx_typeof_int_to_bv_term_eq]
     rw [hnSmtTy, hxSmtTy]
     have hNumTy : __smtx_typeof (SmtTerm.Numeral k) = SmtType.Int := by
-      rw [__smtx_typeof.eq_Numeral]
+      rw [__smtx_typeof.eq_2]
     have hNum0Ty : __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
-      rw [__smtx_typeof.eq_Numeral]
+      rw [__smtx_typeof.eq_2]
     rw [hNumTy, hNum0Ty]
     have hBoolFalseTy : __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool := by
       rw [__smtx_typeof.eq_def] <;> simp only

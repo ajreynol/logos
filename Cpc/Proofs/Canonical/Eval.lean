@@ -501,7 +501,7 @@ theorem model_eval_canonical_of_supported
       exact model_eval_rational_canonical M q
   case string s =>
       have hsValid : native_string_valid s = true := by
-        rw [term_has_non_none_type, __smtx_typeof.eq_String] at hTy
+        rw [term_has_non_none_type, __smtx_typeof.eq_4] at hTy
         cases hValid : native_string_valid s <;>
           simp [native_ite, hValid] at hTy ⊢
       exact model_eval_string_canonical M s hsValid

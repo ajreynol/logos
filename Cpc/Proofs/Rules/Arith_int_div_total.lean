@@ -48,14 +48,14 @@ private theorem smtx_eval_div_term_eq
              (SmtType.FunType SmtType.Int SmtType.Int))
            xv)
          (__smtx_model_eval_div_total xv yv)) := by
-  rw [__smtx_model_eval.eq_div]
+  rw [__smtx_model_eval.eq_26]
 
 private theorem smtx_eval_div_total_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.div_total x y) =
       __smtx_model_eval_div_total
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
-  rw [__smtx_model_eval.eq_div_total]
+  rw [__smtx_model_eval.eq_31]
 
 private theorem smtx_typeof_of_eo_int
     (a : Term)
@@ -197,7 +197,7 @@ private theorem facts___eo_prog_arith_int_div_total_impl
             SmtValue.Numeral 0 := by
         change __smtx_model_eval M (SmtTerm.Numeral 0) =
           SmtValue.Numeral 0
-        rw [__smtx_model_eval.eq_Numeral]
+        rw [__smtx_model_eval.eq_2]
       have h :=
         RuleProofs.model_eval_eq_false_of_eq_false_eq_true M s
           (Term.Numeral 0) hPrem

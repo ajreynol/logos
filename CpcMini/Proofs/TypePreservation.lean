@@ -640,12 +640,12 @@ private theorem canonical_of_supported
           apply ht
           have hVF : native_string_valid s = false := by
             cases h : native_string_valid s <;> simp [h] at hV ⊢
-          rw [__smtx_typeof.eq_String]
+          rw [__smtx_typeof.eq_4]
           simp [SmtEval.native_ite, hVF]
       have hCan : __smtx_value_canonical (SmtValue.Seq (native_pack_string s)) := by
         simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using
           mini_seq_canonical_pack_string s hsValid
-      rw [__smtx_model_eval.eq_String]
+      rw [__smtx_model_eval.eq_4]
       exact hCan
   case binary w n =>
       cases hw : native_zleq 0 w <;>

@@ -78,7 +78,7 @@ theorem smt_strings_stoi_result_non_none_of_eo_typeof_ne_stuck
     exact hMatch
   have hZero :
       __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
-    rw [__smtx_typeof.eq_Numeral]
+    rw [__smtx_typeof.eq_2]
   have hSubTy :
       __smtx_typeof
           (SmtTerm.str_substr (__eo_to_smt X) (SmtTerm.Numeral 0)
@@ -126,7 +126,7 @@ theorem smt_strings_itos_result_non_none_of_eo_typeof_ne_stuck
     smt_typeof_eo_to_smt_int_of_typeof_int hYTrans hArgTy.2
   have hZero :
       __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
-    rw [__smtx_typeof.eq_Numeral]
+    rw [__smtx_typeof.eq_2]
   have hFromInt :
       __smtx_typeof
           (SmtTerm.str_from_int (__eo_to_smt X)) =

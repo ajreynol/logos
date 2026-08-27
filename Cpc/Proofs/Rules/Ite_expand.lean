@@ -239,7 +239,7 @@ private theorem facts___eo_prog_ite_expand_impl
     cases bc <;> cases bx <;> cases bY <;>
       simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, __smtx_model_eval_ite,
         __smtx_model_eval_and, __smtx_model_eval_or, __smtx_model_eval_not,
-        __smtx_model_eval.eq_Boolean, native_veq, SmtEval.native_and, SmtEval.native_or,
+        __smtx_model_eval.eq_1, native_veq, SmtEval.native_and, SmtEval.native_or,
         SmtEval.native_not]
 
 public theorem cmd_step_ite_expand_properties

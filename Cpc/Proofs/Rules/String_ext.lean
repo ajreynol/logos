@@ -369,7 +369,7 @@ private theorem eo_has_bool_type_lt_of_int_args
 private theorem numeral_smt_typeof_int (n : native_Int) :
     __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int := by
   change __smtx_typeof (SmtTerm.Numeral n) = SmtType.Int
-  rw [__smtx_typeof.eq_Numeral]
+  rw [__smtx_typeof.eq_2]
 
 /-- SMT typeof of `str_substr a k 1` is `Seq As` when `a : Seq As`. -/
 private theorem str_substr_smt_typeof

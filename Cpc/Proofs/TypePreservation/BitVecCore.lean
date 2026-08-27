@@ -78,7 +78,7 @@ theorem typeof_value_model_eval_extract
         (__smtx_model_eval M t3)) =
     SmtType.BitVec (native_int_to_nat (native_zplus (native_zplus i 1) (native_zneg j)))
   rw [h1, h2]
-  rw [__smtx_model_eval.eq_Numeral, __smtx_model_eval.eq_Numeral]
+  rw [__smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h3] using hpres3) with ⟨n, hv⟩
   rw [hv]
   have hWidthNonneg :

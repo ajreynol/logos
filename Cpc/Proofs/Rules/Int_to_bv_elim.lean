@@ -330,10 +330,10 @@ private theorem intToBvBit_eval
           (SmtTerm.mod_total (__eo_to_smt n) (SmtTerm.Numeral p))
           (SmtTerm.Numeral half))
         (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0) by rfl]
-  rw [smtx_eval_ite_term_eq, __smtx_model_eval.eq_geq,
-    __smtx_model_eval.eq_mod_total, __smtx_model_eval.eq_Numeral,
-    __smtx_model_eval.eq_Numeral, __smtx_model_eval.eq_Binary,
-    __smtx_model_eval.eq_Binary]
+  rw [smtx_eval_ite_term_eq, __smtx_model_eval.eq_20,
+    __smtx_model_eval.eq_32, __smtx_model_eval.eq_2,
+    __smtx_model_eval.eq_2, __smtx_model_eval.eq_5,
+    __smtx_model_eval.eq_5]
   rw [hnEval]
   cases hCond : native_zleq half (native_mod_total z p) <;>
     simp [__smtx_model_eval_mod_total, __smtx_model_eval_geq,
@@ -352,7 +352,7 @@ private theorem intToBvAbconv_eval
   | zero =>
       rw [intToBvAbconv_zero_eq n hn]
       rw [show __eo_to_smt (Term.Binary 0 0) = SmtTerm.Binary 0 0 by rfl,
-        __smtx_model_eval.eq_Binary]
+        __smtx_model_eval.eq_5]
       simp [native_nat_to_int, native_int_pow2, native_zexp_total,
         native_mod_total]
   | succ k ih =>
@@ -371,7 +371,7 @@ private theorem intToBvAbconv_eval
                 (native_int_pow2 (native_nat_to_int (k + 1)))
                 (native_int_pow2 (native_nat_to_int k))))
             (__eo_to_smt (intToBvAbconv n k)) by rfl]
-      rw [__smtx_model_eval.eq_concat]
+      rw [__smtx_model_eval.eq_36]
       rw [intToBvBit_eval M n z
         (native_int_pow2 (native_nat_to_int (k + 1)))
         (native_int_pow2 (native_nat_to_int k)) hnEval, ih]
@@ -449,7 +449,7 @@ private theorem intToBvExpanded_eval
         native_nat_to_int, native_int_pow2, native_zexp_total,
         native_mod_total]
       rw [show __eo_to_smt (Term.Binary 0 0) = SmtTerm.Binary 0 0 by rfl,
-        __smtx_model_eval.eq_Binary]
+        __smtx_model_eval.eq_5]
   | succ k =>
       cases k with
       | zero =>
@@ -512,7 +512,7 @@ private theorem intToBvExpanded_eval
           simp [__eo_list_singleton_elim, hList, __eo_requires,
             __eo_list_singleton_elim_2, hTailNotNil, __eo_ite, native_ite,
             native_teq, native_not, SmtEval.native_not] at hBit ⊢
-          rw [__smtx_model_eval.eq_concat]
+          rw [__smtx_model_eval.eq_36]
           rw [hBit, intToBvAbconv_eval M n z hn hnEval (k + 1)]
           simp [__smtx_model_eval_concat, native_binary_concat]
           have hWidth :
@@ -637,7 +637,7 @@ private theorem intToBvExpanded_eval_rel
       __eo_to_smt
           (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral i)) n) =
         SmtTerm.int_to_bv (SmtTerm.Numeral i) (__eo_to_smt n) by rfl]
-    rw [smtx_eval_int_to_bv_term_eq, __smtx_model_eval.eq_Numeral]
+    rw [smtx_eval_int_to_bv_term_eq, __smtx_model_eval.eq_2]
     rw [hnEval]
     rfl
   rw [hExpandedEval, hIntToBvEval]

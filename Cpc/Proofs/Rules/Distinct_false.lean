@@ -74,9 +74,9 @@ private theorem distinct_pairs_true_not_mem
                           (SmtTerm.not (SmtTerm.eq s (__eo_to_smt x)))
                           (__eo_to_smt_distinct_pairs s a)) =
                       SmtValue.Boolean true at h
-                  rw [__smtx_model_eval.eq_and] at h
+                  rw [__smtx_model_eval.eq_9] at h
                   rcases smt_eval_and_eq_true h with ⟨hHead, hTail⟩
-                  rw [__smtx_model_eval.eq_not, smtx_eval_eq_term_eq] at hHead
+                  rw [__smtx_model_eval.eq_7, smtx_eval_eq_term_eq] at hHead
                   have hEqFalse :
                       __smtx_model_eval_eq
                           (__smtx_model_eval M s)
@@ -209,7 +209,7 @@ private theorem distinct_true_nodup
                           (__eo_to_smt_distinct_pairs (__eo_to_smt x) a)
                           (__eo_to_smt_distinct a)) =
                       SmtValue.Boolean true at h
-                  rw [__smtx_model_eval.eq_and] at h
+                  rw [__smtx_model_eval.eq_9] at h
                   rcases smt_eval_and_eq_true h with ⟨hPairs, hTail⟩
                   have hNotMem :
                       __smtx_model_eval M (__eo_to_smt x) ∉
@@ -732,7 +732,7 @@ private theorem distinct_false_sound
     unfold RuleProofs.eo_has_bool_type
     rw [hTyEq]
     change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
-    rw [__smtx_typeof.eq_Boolean]
+    rw [__smtx_typeof.eq_1]
   have hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None := by
     rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
         distinctTerm (Term.Boolean false) hFormulaBool with
@@ -761,7 +761,7 @@ private theorem distinct_false_sound
       · exact hFormulaBool
       · rw [hDistinctEval]
         rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by rfl,
-          __smtx_model_eval.eq_Boolean]
+          __smtx_model_eval.eq_1]
         exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean false)
   | true =>
       have hDistinctEvalTrue :

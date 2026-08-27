@@ -85,7 +85,7 @@ private theorem facts___eo_prog_bool_double_not_elim_impl
     rw [show __eo_to_smt (Term.Apply Term.not (Term.Apply Term.not t1)) =
       SmtTerm.not (SmtTerm.not (__eo_to_smt t1)) by
       rfl]
-    rw [__smtx_model_eval.eq_not, __smtx_model_eval.eq_not, hEvalT1]
+    rw [__smtx_model_eval.eq_7, __smtx_model_eval.eq_7, hEvalT1]
     cases b <;> simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
       __smtx_model_eval_not, native_veq, SmtEval.native_not]
 

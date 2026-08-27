@@ -151,7 +151,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_plus_core
         __smtx_typeof (SmtTerm.plus (__eo_to_smt a) (__eo_to_smt b)) =
           __smtx_typeof (SmtTerm.Numeral (native_zplus runA runB))
       rw [typeof_plus_eq, hATyInt, hBTyInt]
-      rw [__smtx_typeof.eq_Numeral]
+      rw [__smtx_typeof.eq_2]
       simp [__smtx_typeof_arith_overload_op_2]
     · have hARelValue :
           RuleProofs.smt_value_rel
@@ -161,7 +161,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_plus_core
         rw [show __eo_to_smt (Term.Numeral runA) =
             SmtTerm.Numeral runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Numeral] at hARel
+        rw [__smtx_model_eval.eq_2] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -171,7 +171,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_plus_core
         rw [show __eo_to_smt (Term.Numeral runB) =
             SmtTerm.Numeral runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Numeral] at hBRel
+        rw [__smtx_model_eval.eq_2] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -189,14 +189,14 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_plus_core
             __smtx_model_eval_plus
               (__smtx_model_eval M (__eo_to_smt a))
               (__smtx_model_eval M (__eo_to_smt b)) by
-        rw [__smtx_model_eval.eq_plus]]
+        rw [__smtx_model_eval.eq_14]]
       rw [hAEval, hBEval]
       change
         RuleProofs.smt_value_rel
           (SmtValue.Numeral (native_zplus runA runB))
           (__smtx_model_eval M
             (SmtTerm.Numeral (native_zplus runA runB)))
-      rw [__smtx_model_eval.eq_Numeral]
+      rw [__smtx_model_eval.eq_2]
       exact RuleProofs.smt_value_rel_refl _
   · rcases hArgsReal with ⟨hATyReal, hBTyReal⟩
     have hATransA : RuleProofs.eo_has_smt_translation a := by
@@ -315,7 +315,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_plus_core
         __smtx_typeof (SmtTerm.plus (__eo_to_smt a) (__eo_to_smt b)) =
           __smtx_typeof (SmtTerm.Rational (native_qplus runA runB))
       rw [typeof_plus_eq, hATyReal, hBTyReal]
-      rw [__smtx_typeof.eq_Rational]
+      rw [__smtx_typeof.eq_3]
       simp [__smtx_typeof_arith_overload_op_2]
     · have hARelValue :
           RuleProofs.smt_value_rel
@@ -325,7 +325,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_plus_core
         rw [show __eo_to_smt (Term.Rational runA) =
             SmtTerm.Rational runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Rational] at hARel
+        rw [__smtx_model_eval.eq_3] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -335,7 +335,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_plus_core
         rw [show __eo_to_smt (Term.Rational runB) =
             SmtTerm.Rational runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Rational] at hBRel
+        rw [__smtx_model_eval.eq_3] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -353,14 +353,14 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_plus_core
             __smtx_model_eval_plus
               (__smtx_model_eval M (__eo_to_smt a))
               (__smtx_model_eval M (__eo_to_smt b)) by
-        rw [__smtx_model_eval.eq_plus]]
+        rw [__smtx_model_eval.eq_14]]
       rw [hAEval, hBEval]
       change
         RuleProofs.smt_value_rel
           (SmtValue.Rational (native_qplus runA runB))
           (__smtx_model_eval M
             (SmtTerm.Rational (native_qplus runA runB)))
-      rw [__smtx_model_eval.eq_Rational]
+      rw [__smtx_model_eval.eq_3]
       exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_mult_core
@@ -502,7 +502,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mult_core
         __smtx_typeof (SmtTerm.mult (__eo_to_smt a) (__eo_to_smt b)) =
           __smtx_typeof (SmtTerm.Numeral (native_zmult runA runB))
       rw [typeof_mult_eq, hATyInt, hBTyInt]
-      rw [__smtx_typeof.eq_Numeral]
+      rw [__smtx_typeof.eq_2]
       simp [__smtx_typeof_arith_overload_op_2]
     · have hARelValue :
           RuleProofs.smt_value_rel
@@ -512,7 +512,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mult_core
         rw [show __eo_to_smt (Term.Numeral runA) =
             SmtTerm.Numeral runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Numeral] at hARel
+        rw [__smtx_model_eval.eq_2] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -522,7 +522,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mult_core
         rw [show __eo_to_smt (Term.Numeral runB) =
             SmtTerm.Numeral runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Numeral] at hBRel
+        rw [__smtx_model_eval.eq_2] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -540,14 +540,14 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mult_core
             __smtx_model_eval_mult
               (__smtx_model_eval M (__eo_to_smt a))
               (__smtx_model_eval M (__eo_to_smt b)) by
-        rw [__smtx_model_eval.eq_mult]]
+        rw [__smtx_model_eval.eq_16]]
       rw [hAEval, hBEval]
       change
         RuleProofs.smt_value_rel
           (SmtValue.Numeral (native_zmult runA runB))
           (__smtx_model_eval M
             (SmtTerm.Numeral (native_zmult runA runB)))
-      rw [__smtx_model_eval.eq_Numeral]
+      rw [__smtx_model_eval.eq_2]
       exact RuleProofs.smt_value_rel_refl _
   · rcases hArgsReal with ⟨hATyReal, hBTyReal⟩
     have hATransA : RuleProofs.eo_has_smt_translation a := by
@@ -666,7 +666,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mult_core
         __smtx_typeof (SmtTerm.mult (__eo_to_smt a) (__eo_to_smt b)) =
           __smtx_typeof (SmtTerm.Rational (native_qmult runA runB))
       rw [typeof_mult_eq, hATyReal, hBTyReal]
-      rw [__smtx_typeof.eq_Rational]
+      rw [__smtx_typeof.eq_3]
       simp [__smtx_typeof_arith_overload_op_2]
     · have hARelValue :
           RuleProofs.smt_value_rel
@@ -676,7 +676,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mult_core
         rw [show __eo_to_smt (Term.Rational runA) =
             SmtTerm.Rational runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Rational] at hARel
+        rw [__smtx_model_eval.eq_3] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -686,7 +686,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mult_core
         rw [show __eo_to_smt (Term.Rational runB) =
             SmtTerm.Rational runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Rational] at hBRel
+        rw [__smtx_model_eval.eq_3] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -704,14 +704,14 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mult_core
             __smtx_model_eval_mult
               (__smtx_model_eval M (__eo_to_smt a))
               (__smtx_model_eval M (__eo_to_smt b)) by
-        rw [__smtx_model_eval.eq_mult]]
+        rw [__smtx_model_eval.eq_16]]
       rw [hAEval, hBEval]
       change
         RuleProofs.smt_value_rel
           (SmtValue.Rational (native_qmult runA runB))
           (__smtx_model_eval M
             (SmtTerm.Rational (native_qmult runA runB)))
-      rw [__smtx_model_eval.eq_Rational]
+      rw [__smtx_model_eval.eq_3]
       exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_neg_core
@@ -875,7 +875,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_neg_core
           __smtx_typeof
             (SmtTerm.Numeral (native_zplus runA (native_zneg runB)))
       rw [typeof_neg_eq, hATyInt, hBTyInt]
-      rw [__smtx_typeof.eq_Numeral]
+      rw [__smtx_typeof.eq_2]
       simp [__smtx_typeof_arith_overload_op_2]
     · have hARelValue :
           RuleProofs.smt_value_rel
@@ -885,7 +885,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_neg_core
         rw [show __eo_to_smt (Term.Numeral runA) =
             SmtTerm.Numeral runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Numeral] at hARel
+        rw [__smtx_model_eval.eq_2] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -895,7 +895,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_neg_core
         rw [show __eo_to_smt (Term.Numeral runB) =
             SmtTerm.Numeral runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Numeral] at hBRel
+        rw [__smtx_model_eval.eq_2] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -913,14 +913,14 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_neg_core
             __smtx_model_eval__
               (__smtx_model_eval M (__eo_to_smt a))
               (__smtx_model_eval M (__eo_to_smt b)) by
-        rw [__smtx_model_eval.eq_neg]]
+        rw [__smtx_model_eval.eq_15]]
       rw [hAEval, hBEval]
       change
         RuleProofs.smt_value_rel
           (SmtValue.Numeral (native_zplus runA (native_zneg runB)))
           (__smtx_model_eval M
             (SmtTerm.Numeral (native_zplus runA (native_zneg runB))))
-      rw [__smtx_model_eval.eq_Numeral]
+      rw [__smtx_model_eval.eq_2]
       exact RuleProofs.smt_value_rel_refl _
   · rcases hArgsReal with ⟨hATyReal, hBTyReal⟩
     have hATransA : RuleProofs.eo_has_smt_translation a := by
@@ -1062,7 +1062,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_neg_core
           __smtx_typeof
             (SmtTerm.Rational (native_qplus runA (native_qneg runB)))
       rw [typeof_neg_eq, hATyReal, hBTyReal]
-      rw [__smtx_typeof.eq_Rational]
+      rw [__smtx_typeof.eq_3]
       simp [__smtx_typeof_arith_overload_op_2]
     · have hARelValue :
           RuleProofs.smt_value_rel
@@ -1072,7 +1072,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_neg_core
         rw [show __eo_to_smt (Term.Rational runA) =
             SmtTerm.Rational runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Rational] at hARel
+        rw [__smtx_model_eval.eq_3] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -1082,7 +1082,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_neg_core
         rw [show __eo_to_smt (Term.Rational runB) =
             SmtTerm.Rational runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Rational] at hBRel
+        rw [__smtx_model_eval.eq_3] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -1100,14 +1100,14 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_neg_core
             __smtx_model_eval__
               (__smtx_model_eval M (__eo_to_smt a))
               (__smtx_model_eval M (__eo_to_smt b)) by
-        rw [__smtx_model_eval.eq_neg]]
+        rw [__smtx_model_eval.eq_15]]
       rw [hAEval, hBEval]
       change
         RuleProofs.smt_value_rel
           (SmtValue.Rational (native_qplus runA (native_qneg runB)))
           (__smtx_model_eval M
             (SmtTerm.Rational (native_qplus runA (native_qneg runB))))
-      rw [__smtx_model_eval.eq_Rational]
+      rw [__smtx_model_eval.eq_3]
       exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_lt_core
@@ -1214,7 +1214,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_lt_core
         rw [show __eo_to_smt (Term.Numeral runA) =
             SmtTerm.Numeral runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Numeral] at hARel
+        rw [__smtx_model_eval.eq_2] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -1224,7 +1224,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_lt_core
         rw [show __eo_to_smt (Term.Numeral runB) =
             SmtTerm.Numeral runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Numeral] at hBRel
+        rw [__smtx_model_eval.eq_2] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -1250,7 +1250,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_lt_core
           (__smtx_model_eval M
             (SmtTerm.Boolean
               (native_zlt (native_zplus runA (native_zneg runB)) 0)))
-      rw [EvaluateProofInternal.native_zsub_lt_zero_eq_eval, __smtx_model_eval.eq_Boolean]
+      rw [EvaluateProofInternal.native_zsub_lt_zero_eq_eval, __smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl _
   · rcases hArgsReal with ⟨hATyReal, hBTyReal⟩
     have hATransA : RuleProofs.eo_has_smt_translation a := by
@@ -1310,7 +1310,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_lt_core
         rw [show __eo_to_smt (Term.Rational runA) =
             SmtTerm.Rational runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Rational] at hARel
+        rw [__smtx_model_eval.eq_3] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -1320,7 +1320,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_lt_core
         rw [show __eo_to_smt (Term.Rational runB) =
             SmtTerm.Rational runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Rational] at hBRel
+        rw [__smtx_model_eval.eq_3] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -1347,7 +1347,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_lt_core
             (SmtTerm.Boolean
               (native_qlt (native_qplus runA (native_qneg runB))
                 (native_mk_rational 0 1))))
-      rw [EvaluateProofInternal.native_qsub_lt_zero_eq_eval, __smtx_model_eval.eq_Boolean]
+      rw [EvaluateProofInternal.native_qsub_lt_zero_eq_eval, __smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_leq_core
@@ -1462,7 +1462,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_leq_core
         rw [show __eo_to_smt (Term.Numeral runA) =
             SmtTerm.Numeral runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Numeral] at hARel
+        rw [__smtx_model_eval.eq_2] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -1472,7 +1472,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_leq_core
         rw [show __eo_to_smt (Term.Numeral runB) =
             SmtTerm.Numeral runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Numeral] at hBRel
+        rw [__smtx_model_eval.eq_2] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -1497,7 +1497,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_leq_core
           (SmtValue.Boolean (native_zleq runA runB))
           (__smtx_model_eval M
             (SmtTerm.Boolean (native_zleq runA runB)))
-      rw [__smtx_model_eval.eq_Boolean]
+      rw [__smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl _
   · rcases hArgsReal with ⟨hATyReal, hBTyReal⟩
     have hATransA : RuleProofs.eo_has_smt_translation a := by
@@ -1553,7 +1553,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_leq_core
         rw [show __eo_to_smt (Term.Rational runA) =
             SmtTerm.Rational runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Rational] at hARel
+        rw [__smtx_model_eval.eq_3] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -1563,7 +1563,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_leq_core
         rw [show __eo_to_smt (Term.Rational runB) =
             SmtTerm.Rational runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Rational] at hBRel
+        rw [__smtx_model_eval.eq_3] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -1588,7 +1588,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_leq_core
           (SmtValue.Boolean (native_qleq runA runB))
           (__smtx_model_eval M
             (SmtTerm.Boolean (native_qleq runA runB)))
-      rw [__smtx_model_eval.eq_Boolean]
+      rw [__smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_gt_core
@@ -1695,7 +1695,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_gt_core
         rw [show __eo_to_smt (Term.Numeral runA) =
             SmtTerm.Numeral runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Numeral] at hARel
+        rw [__smtx_model_eval.eq_2] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -1705,7 +1705,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_gt_core
         rw [show __eo_to_smt (Term.Numeral runB) =
             SmtTerm.Numeral runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Numeral] at hBRel
+        rw [__smtx_model_eval.eq_2] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -1731,7 +1731,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_gt_core
           (__smtx_model_eval M
             (SmtTerm.Boolean
               (native_zlt (native_zplus runB (native_zneg runA)) 0)))
-      rw [EvaluateProofInternal.native_zsub_lt_zero_eq_eval, __smtx_model_eval.eq_Boolean]
+      rw [EvaluateProofInternal.native_zsub_lt_zero_eq_eval, __smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl _
   · rcases hArgsReal with ⟨hATyReal, hBTyReal⟩
     have hATransA : RuleProofs.eo_has_smt_translation a := by
@@ -1791,7 +1791,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_gt_core
         rw [show __eo_to_smt (Term.Rational runA) =
             SmtTerm.Rational runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Rational] at hARel
+        rw [__smtx_model_eval.eq_3] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -1801,7 +1801,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_gt_core
         rw [show __eo_to_smt (Term.Rational runB) =
             SmtTerm.Rational runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Rational] at hBRel
+        rw [__smtx_model_eval.eq_3] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -1828,7 +1828,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_gt_core
             (SmtTerm.Boolean
               (native_qlt (native_qplus runB (native_qneg runA))
                 (native_mk_rational 0 1))))
-      rw [EvaluateProofInternal.native_qsub_lt_zero_eq_eval, __smtx_model_eval.eq_Boolean]
+      rw [EvaluateProofInternal.native_qsub_lt_zero_eq_eval, __smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_geq_core
@@ -1943,7 +1943,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_geq_core
         rw [show __eo_to_smt (Term.Numeral runA) =
             SmtTerm.Numeral runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Numeral] at hARel
+        rw [__smtx_model_eval.eq_2] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -1953,7 +1953,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_geq_core
         rw [show __eo_to_smt (Term.Numeral runB) =
             SmtTerm.Numeral runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Numeral] at hBRel
+        rw [__smtx_model_eval.eq_2] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -1978,7 +1978,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_geq_core
           (SmtValue.Boolean (native_zleq runB runA))
           (__smtx_model_eval M
             (SmtTerm.Boolean (native_zleq runB runA)))
-      rw [__smtx_model_eval.eq_Boolean]
+      rw [__smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl _
   · rcases hArgsReal with ⟨hATyReal, hBTyReal⟩
     have hATransA : RuleProofs.eo_has_smt_translation a := by
@@ -2034,7 +2034,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_geq_core
         rw [show __eo_to_smt (Term.Rational runA) =
             SmtTerm.Rational runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Rational] at hARel
+        rw [__smtx_model_eval.eq_3] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -2044,7 +2044,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_geq_core
         rw [show __eo_to_smt (Term.Rational runB) =
             SmtTerm.Rational runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Rational] at hBRel
+        rw [__smtx_model_eval.eq_3] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -2069,7 +2069,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_geq_core
           (SmtValue.Boolean (native_qleq runB runA))
           (__smtx_model_eval M
             (SmtTerm.Boolean (native_qleq runB runA)))
-      rw [__smtx_model_eval.eq_Boolean]
+      rw [__smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_div_core
@@ -2220,7 +2220,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_core
       __smtx_typeof (SmtTerm.div (__eo_to_smt a) (__eo_to_smt b)) =
         __smtx_typeof (SmtTerm.Numeral (native_div_total runA runB))
     rw [typeof_div_eq, hATyInt, hBTyInt]
-    rw [__smtx_typeof.eq_Numeral]
+    rw [__smtx_typeof.eq_2]
     simp [native_ite, native_Teq]
   · have hARelValue :
         RuleProofs.smt_value_rel
@@ -2230,7 +2230,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_core
       rw [show __eo_to_smt (Term.Numeral runA) =
           SmtTerm.Numeral runA by
         rfl] at hARel
-      rw [__smtx_model_eval.eq_Numeral] at hARel
+      rw [__smtx_model_eval.eq_2] at hARel
       exact hARel
     have hBRelValue :
         RuleProofs.smt_value_rel
@@ -2240,7 +2240,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_core
       rw [show __eo_to_smt (Term.Numeral runB) =
           SmtTerm.Numeral runB by
         rfl] at hBRel
-      rw [__smtx_model_eval.eq_Numeral] at hBRel
+      rw [__smtx_model_eval.eq_2] at hBRel
       exact hBRel
     have hAEval :
         __smtx_model_eval M (__eo_to_smt a) =
@@ -2276,7 +2276,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_core
             (__smtx_model_eval_div_total
               (__smtx_model_eval M (__eo_to_smt a))
               (__smtx_model_eval M (__eo_to_smt b))) by
-      rw [__smtx_model_eval.eq_div]]
+      rw [__smtx_model_eval.eq_26]]
     rw [hAEval, hBEval, hDivByZeroFalse]
     rw [show
         __eo_to_smt
@@ -2289,7 +2289,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_core
         (SmtValue.Numeral (native_div_total runA runB))
         (__smtx_model_eval M
           (SmtTerm.Numeral (native_div_total runA runB)))
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
     exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_core
@@ -2440,7 +2440,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_core
       __smtx_typeof (SmtTerm.mod (__eo_to_smt a) (__eo_to_smt b)) =
         __smtx_typeof (SmtTerm.Numeral (native_mod_total runA runB))
     rw [typeof_mod_eq, hATyInt, hBTyInt]
-    rw [__smtx_typeof.eq_Numeral]
+    rw [__smtx_typeof.eq_2]
     simp [native_ite, native_Teq]
   · have hARelValue :
         RuleProofs.smt_value_rel
@@ -2450,7 +2450,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_core
       rw [show __eo_to_smt (Term.Numeral runA) =
           SmtTerm.Numeral runA by
         rfl] at hARel
-      rw [__smtx_model_eval.eq_Numeral] at hARel
+      rw [__smtx_model_eval.eq_2] at hARel
       exact hARel
     have hBRelValue :
         RuleProofs.smt_value_rel
@@ -2460,7 +2460,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_core
       rw [show __eo_to_smt (Term.Numeral runB) =
           SmtTerm.Numeral runB by
         rfl] at hBRel
-      rw [__smtx_model_eval.eq_Numeral] at hBRel
+      rw [__smtx_model_eval.eq_2] at hBRel
       exact hBRel
     have hAEval :
         __smtx_model_eval M (__eo_to_smt a) =
@@ -2496,7 +2496,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_core
             (__smtx_model_eval_mod_total
               (__smtx_model_eval M (__eo_to_smt a))
               (__smtx_model_eval M (__eo_to_smt b))) by
-      rw [__smtx_model_eval.eq_mod]]
+      rw [__smtx_model_eval.eq_27]]
     rw [hAEval, hBEval, hModByZeroFalse]
     rw [show
         __eo_to_smt
@@ -2509,7 +2509,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_core
         (SmtValue.Numeral (native_mod_total runA runB))
         (__smtx_model_eval M
           (SmtTerm.Numeral (native_mod_total runA runB)))
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
     exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
@@ -2646,7 +2646,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
         __smtx_typeof (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) =
           __smtx_typeof (SmtTerm.Rational (native_mk_rational runA runB))
       rw [typeof_qdiv_eq, hATyInt, hBTyInt]
-      rw [__smtx_typeof.eq_Rational]
+      rw [__smtx_typeof.eq_3]
       simp [__smtx_typeof_arith_overload_op_2_ret]
     · have hARelValue :
           RuleProofs.smt_value_rel
@@ -2656,7 +2656,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
         rw [show __eo_to_smt (Term.Numeral runA) =
             SmtTerm.Numeral runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Numeral] at hARel
+        rw [__smtx_model_eval.eq_2] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -2666,7 +2666,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
         rw [show __eo_to_smt (Term.Numeral runB) =
             SmtTerm.Numeral runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Numeral] at hBRel
+        rw [__smtx_model_eval.eq_2] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -2702,7 +2702,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
         simp [__eo_to_q, __eo_qdiv, native_ite, hNZ,
           EvaluateProofInternal.native_to_real_qdiv_total_eval]
         rfl]
-      rw [__smtx_model_eval.eq_Rational]
+      rw [__smtx_model_eval.eq_3]
       simp [__smtx_to_real_coerce, __smtx_model_eval_eq,
         __smtx_model_eval_ite, __smtx_model_eval_qdiv_total, native_veq,
         hRunBZeroNe, EvaluateProofInternal.native_to_real_qdiv_total_eval]
@@ -2787,7 +2787,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
         __smtx_typeof (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) =
           __smtx_typeof (SmtTerm.Rational (native_qdiv_total runA runB))
       rw [typeof_qdiv_eq, hATyReal, hBTyReal]
-      rw [__smtx_typeof.eq_Rational]
+      rw [__smtx_typeof.eq_3]
       simp [__smtx_typeof_arith_overload_op_2_ret]
     · have hARelValue :
           RuleProofs.smt_value_rel
@@ -2797,7 +2797,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
         rw [show __eo_to_smt (Term.Rational runA) =
             SmtTerm.Rational runA by
           rfl] at hARel
-        rw [__smtx_model_eval.eq_Rational] at hARel
+        rw [__smtx_model_eval.eq_3] at hARel
         exact hARel
       have hBRelValue :
           RuleProofs.smt_value_rel
@@ -2807,7 +2807,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
         rw [show __eo_to_smt (Term.Rational runB) =
             SmtTerm.Rational runB by
           rfl] at hBRel
-        rw [__smtx_model_eval.eq_Rational] at hBRel
+        rw [__smtx_model_eval.eq_3] at hBRel
         exact hBRel
       have hAEval :
           __smtx_model_eval M (__eo_to_smt a) =
@@ -2842,7 +2842,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_core
             SmtTerm.Rational (native_qdiv_total runA runB) by
         simp [__eo_to_q, __eo_qdiv, native_ite, hNZ]
         rfl]
-      rw [__smtx_model_eval.eq_Rational]
+      rw [__smtx_model_eval.eq_3]
       simp [__smtx_to_real_coerce, __smtx_model_eval_eq,
         __smtx_model_eval_ite, __smtx_model_eval_qdiv_total, native_veq,
         hRunBZeroNe]
@@ -2975,7 +2975,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
       rw [show __eo_to_smt (Term.Numeral runB) =
           SmtTerm.Numeral runB by
         rfl] at hBRel
-      rw [__smtx_model_eval.eq_Numeral] at hBRel
+      rw [__smtx_model_eval.eq_2] at hBRel
       exact hBRel
     have hBEval :
         __smtx_model_eval M (__eo_to_smt b) =
@@ -3032,7 +3032,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
                 (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
               __smtx_typeof (SmtTerm.Rational (native_mk_rational 0 1))
           rw [typeof_qdiv_total_eq, hATyInt, hBTyInt]
-          rw [__smtx_typeof.eq_Rational]
+          rw [__smtx_typeof.eq_3]
           simp [__smtx_typeof_arith_overload_op_2_ret]
         · have hAEvalValueTy :
               __smtx_typeof_value
@@ -3071,7 +3071,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
               (SmtValue.Rational (native_mk_rational evalA 0))
               (__smtx_model_eval M
                 (SmtTerm.Rational (native_mk_rational 0 1)))
-          rw [EvaluateProofInternal.native_mk_rational_zero_den, __smtx_model_eval.eq_Rational]
+          rw [EvaluateProofInternal.native_mk_rational_zero_den, __smtx_model_eval.eq_3]
           exact RuleProofs.smt_value_rel_refl _
     | inr hDenNonzero =>
         rcases hDenNonzero with ⟨qNum, hRunAToQ, hNZ⟩
@@ -3129,7 +3129,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
                 (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
               __smtx_typeof (SmtTerm.Rational (native_mk_rational runA runB))
           rw [typeof_qdiv_total_eq, hATyInt, hBTyInt]
-          rw [__smtx_typeof.eq_Rational]
+          rw [__smtx_typeof.eq_3]
           simp [__smtx_typeof_arith_overload_op_2_ret]
         · have hARelValue :
               RuleProofs.smt_value_rel
@@ -3139,7 +3139,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
             rw [show __eo_to_smt (Term.Numeral runA) =
                 SmtTerm.Numeral runA by
               rfl] at hARel
-            rw [__smtx_model_eval.eq_Numeral] at hARel
+            rw [__smtx_model_eval.eq_2] at hARel
             exact hARel
           have hAEval :
               __smtx_model_eval M (__eo_to_smt a) =
@@ -3171,7 +3171,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
               (SmtValue.Rational (native_mk_rational runA runB))
               (__smtx_model_eval M
                 (SmtTerm.Rational (native_mk_rational runA runB)))
-          rw [__smtx_model_eval.eq_Rational]
+          rw [__smtx_model_eval.eq_3]
           exact RuleProofs.smt_value_rel_refl _
   · rcases hArgsReal with ⟨hATyReal, hBTyReal⟩
     have hATransA : RuleProofs.eo_has_smt_translation a := by
@@ -3237,7 +3237,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
       rw [show __eo_to_smt (Term.Rational runB) =
           SmtTerm.Rational runB by
         rfl] at hBRel
-      rw [__smtx_model_eval.eq_Rational] at hBRel
+      rw [__smtx_model_eval.eq_3] at hBRel
       exact hBRel
     have hBEval :
         __smtx_model_eval M (__eo_to_smt b) =
@@ -3293,7 +3293,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
                 (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
               __smtx_typeof (SmtTerm.Rational (native_mk_rational 0 1))
           rw [typeof_qdiv_total_eq, hATyReal, hBTyReal]
-          rw [__smtx_typeof.eq_Rational]
+          rw [__smtx_typeof.eq_3]
           simp [__smtx_typeof_arith_overload_op_2_ret]
         · have hAEvalValueTy :
               __smtx_typeof_value
@@ -3334,7 +3334,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
                 (native_qdiv_total evalA (native_mk_rational 0 1)))
               (__smtx_model_eval M
                 (SmtTerm.Rational (native_mk_rational 0 1)))
-          rw [EvaluateProofInternal.native_qdiv_total_zero, __smtx_model_eval.eq_Rational]
+          rw [EvaluateProofInternal.native_qdiv_total_zero, __smtx_model_eval.eq_3]
           exact RuleProofs.smt_value_rel_refl _
     | inr hDenNonzero =>
         rcases hDenNonzero with ⟨qNum, hRunAToQ, hNZ⟩
@@ -3392,7 +3392,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
                 (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
               __smtx_typeof (SmtTerm.Rational (native_qdiv_total runA runB))
           rw [typeof_qdiv_total_eq, hATyReal, hBTyReal]
-          rw [__smtx_typeof.eq_Rational]
+          rw [__smtx_typeof.eq_3]
           simp [__smtx_typeof_arith_overload_op_2_ret]
         · have hARelValue :
               RuleProofs.smt_value_rel
@@ -3402,7 +3402,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
             rw [show __eo_to_smt (Term.Rational runA) =
                 SmtTerm.Rational runA by
               rfl] at hARel
-            rw [__smtx_model_eval.eq_Rational] at hARel
+            rw [__smtx_model_eval.eq_3] at hARel
             exact hARel
           have hAEval :
               __smtx_model_eval M (__eo_to_smt a) =
@@ -3434,7 +3434,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_qdiv_total_core
               (SmtValue.Rational (native_qdiv_total runA runB))
               (__smtx_model_eval M
                 (SmtTerm.Rational (native_qdiv_total runA runB)))
-          rw [__smtx_model_eval.eq_Rational]
+          rw [__smtx_model_eval.eq_3]
           exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_div_total_core
@@ -3561,7 +3561,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_total_core
     rw [show __eo_to_smt (Term.Numeral runB) =
         SmtTerm.Numeral runB by
       rfl] at hBRel
-    rw [__smtx_model_eval.eq_Numeral] at hBRel
+    rw [__smtx_model_eval.eq_2] at hBRel
     exact hBRel
   have hBEval :
       __smtx_model_eval M (__eo_to_smt b) =
@@ -3603,7 +3603,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_total_core
               (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)) =
             __smtx_typeof (SmtTerm.Numeral 0)
         rw [typeof_div_total_eq, hATyInt, hBTyInt]
-        rw [__smtx_typeof.eq_Numeral]
+        rw [__smtx_typeof.eq_2]
         simp [native_ite, native_Teq]
       · have hAEvalValueTy :
             __smtx_typeof_value
@@ -3623,7 +3623,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_total_core
               __smtx_model_eval_div_total
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_div_total]]
+          rw [__smtx_model_eval.eq_31]]
         rw [hAEval, hBEval]
         rw [show
             __eo_to_smt
@@ -3637,7 +3637,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_total_core
           RuleProofs.smt_value_rel
             (SmtValue.Numeral (native_div_total evalA 0))
             (__smtx_model_eval M (SmtTerm.Numeral 0))
-        rw [__smtx_model_eval.eq_Numeral]
+        rw [__smtx_model_eval.eq_2]
         simp [native_div_total]
         exact RuleProofs.smt_value_rel_refl _
   | inr hRunBNonzero =>
@@ -3677,7 +3677,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_total_core
               (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)) =
             __smtx_typeof (SmtTerm.Numeral (native_div_total runA runB))
         rw [typeof_div_total_eq, hATyInt, hBTyInt]
-        rw [__smtx_typeof.eq_Numeral]
+        rw [__smtx_typeof.eq_2]
         simp [native_ite, native_Teq]
       · have hARelValue :
             RuleProofs.smt_value_rel
@@ -3687,7 +3687,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_total_core
           rw [show __eo_to_smt (Term.Numeral runA) =
               SmtTerm.Numeral runA by
             rfl] at hARel
-          rw [__smtx_model_eval.eq_Numeral] at hARel
+          rw [__smtx_model_eval.eq_2] at hARel
           exact hARel
         have hAEval :
             __smtx_model_eval M (__eo_to_smt a) =
@@ -3700,7 +3700,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_total_core
               __smtx_model_eval_div_total
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_div_total]]
+          rw [__smtx_model_eval.eq_31]]
         rw [hAEval, hBEval]
         rw [show
             __eo_to_smt
@@ -3716,7 +3716,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_div_total_core
             (SmtValue.Numeral (native_div_total runA runB))
             (__smtx_model_eval M
               (SmtTerm.Numeral (native_div_total runA runB)))
-        rw [__smtx_model_eval.eq_Numeral]
+        rw [__smtx_model_eval.eq_2]
         exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_total_core
@@ -3844,7 +3844,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_total_core
     rw [show __eo_to_smt (Term.Numeral runB) =
         SmtTerm.Numeral runB by
       rfl] at hBRel
-    rw [__smtx_model_eval.eq_Numeral] at hBRel
+    rw [__smtx_model_eval.eq_2] at hBRel
     exact hBRel
   have hBEval :
       __smtx_model_eval M (__eo_to_smt b) =
@@ -3920,7 +3920,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_total_core
               __smtx_model_eval_mod_total
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_mod_total]]
+          rw [__smtx_model_eval.eq_32]]
         rw [hAEval, hBEval]
         rw [show
             __eo_to_smt
@@ -3977,7 +3977,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_total_core
               (SmtTerm.mod_total (__eo_to_smt a) (__eo_to_smt b)) =
             __smtx_typeof (SmtTerm.Numeral (native_mod_total runA runB))
         rw [typeof_mod_total_eq, hATyInt, hBTyInt]
-        rw [__smtx_typeof.eq_Numeral]
+        rw [__smtx_typeof.eq_2]
         simp [native_ite, native_Teq]
       · have hARelValue :
             RuleProofs.smt_value_rel
@@ -3987,7 +3987,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_total_core
           rw [show __eo_to_smt (Term.Numeral runA) =
               SmtTerm.Numeral runA by
             rfl] at hARel
-          rw [__smtx_model_eval.eq_Numeral] at hARel
+          rw [__smtx_model_eval.eq_2] at hARel
           exact hARel
         have hAEval :
             __smtx_model_eval M (__eo_to_smt a) =
@@ -4000,7 +4000,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_total_core
               __smtx_model_eval_mod_total
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_mod_total]]
+          rw [__smtx_model_eval.eq_32]]
         rw [hAEval, hBEval]
         rw [show
             __eo_to_smt
@@ -4016,5 +4016,5 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_mod_total_core
             (SmtValue.Numeral (native_mod_total runA runB))
             (__smtx_model_eval M
               (SmtTerm.Numeral (native_mod_total runA runB)))
-        rw [__smtx_model_eval.eq_Numeral]
+        rw [__smtx_model_eval.eq_2]
         exact RuleProofs.smt_value_rel_refl _

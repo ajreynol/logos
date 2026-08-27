@@ -146,15 +146,15 @@ private theorem facts_str_in_re_concat
                 (SmtTerm.str_concat (__eo_to_smt s) (__eo_to_smt accS))
                 (SmtTerm.re_concat (__eo_to_smt r) (__eo_to_smt accR))) =
             SmtValue.Boolean true
-          rw [__smtx_model_eval.eq_str_in_re, __smtx_model_eval.eq_str_concat,
-            __smtx_model_eval.eq_re_concat]
+          rw [__smtx_model_eval.eq_119, __smtx_model_eval.eq_81,
+            __smtx_model_eval.eq_114]
           change __smtx_model_eval M
               (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)) =
             SmtValue.Boolean true at hEvalSR
           change __smtx_model_eval M
               (SmtTerm.str_in_re (__eo_to_smt accS) (__eo_to_smt accR)) =
             SmtValue.Boolean true at hEvalAcc
-          rw [__smtx_model_eval.eq_str_in_re] at hEvalSR hEvalAcc
+          rw [__smtx_model_eval.eq_119] at hEvalSR hEvalAcc
           cases hs : __smtx_model_eval M (__eo_to_smt s) with
           | Seq ss =>
               cases hr : __smtx_model_eval M (__eo_to_smt r) with
@@ -189,7 +189,7 @@ private theorem empty_str_in_re_has_bool_type :
       (SmtTerm.str_in_re (SmtTerm.String (native_string_lit ""))
         (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))) = SmtType.Bool
   rw [typeof_str_in_re_eq, typeof_str_to_re_eq]
-  simp [__smtx_typeof.eq_String, native_ite, native_Teq, native_string_valid,
+  simp [__smtx_typeof.eq_4, native_ite, native_Teq, native_string_valid,
     native_string_lit]
 
 private theorem empty_str_in_re_true (M : SmtModel) :

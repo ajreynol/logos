@@ -137,7 +137,7 @@ private theorem typed___eo_prog_sets_minus_member_impl
   simp [typeof_eq_eq, typeof_set_member_eq, typeof_set_minus_eq,
     typeof_and_eq, typeof_not_eq, __smtx_typeof_set_member,
     __smtx_typeof_sets_op_2, __smtx_typeof_eq, __smtx_typeof_guard,
-    native_ite, native_Teq, __smtx_typeof.eq_Boolean, hxSmtTy, hySmtTy, hzSmtTy]
+    native_ite, native_Teq, __smtx_typeof.eq_1, hxSmtTy, hySmtTy, hzSmtTy]
 
 private theorem facts___eo_prog_sets_minus_member_impl
     (M : SmtModel) (hM : model_total_typed M)

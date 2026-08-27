@@ -198,7 +198,7 @@ private theorem typed___eo_prog_str_len_concat_rec_impl
         (SmtTerm.plus (SmtTerm.str_len (__eo_to_smt (__str_nary_elim tail)))
           (SmtTerm.Numeral 0)) = SmtType.Int
     rw [typeof_plus_eq]
-    simp [hRawLenElimTy, __smtx_typeof.eq_Numeral, __smtx_typeof_arith_overload_op_2]
+    simp [hRawLenElimTy, __smtx_typeof.eq_2, __smtx_typeof_arith_overload_op_2]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.Int := by
     have hRawLenS1Ty :
         __smtx_typeof (SmtTerm.str_len (__eo_to_smt s1)) = SmtType.Int := by

@@ -138,8 +138,8 @@ private theorem facts___eo_prog_bool_implies_de_morgan_impl
           (Term.Boolean true))) =
       SmtTerm.and (__eo_to_smt x1)
         (SmtTerm.and (SmtTerm.not (__eo_to_smt y1)) (SmtTerm.Boolean true)) by rfl]
-    simp only [__smtx_model_eval.eq_Boolean, __smtx_model_eval.eq_not,
-      __smtx_model_eval.eq_and, __smtx_model_eval.eq_imp, hEvalX1, hEvalY1]
+    simp only [__smtx_model_eval.eq_1, __smtx_model_eval.eq_7,
+      __smtx_model_eval.eq_9, __smtx_model_eval.eq_10, hEvalX1, hEvalY1]
     cases bx <;> cases bY <;>
       simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, __smtx_model_eval_and,
         __smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not, native_veq,

@@ -15,7 +15,7 @@ private theorem eo_has_bool_type_false :
   change __smtx_typeof (__eo_to_smt (Term.Boolean false)) = SmtType.Bool
   rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
     rfl]
-  rw [__smtx_typeof.eq_Boolean]
+  rw [__smtx_typeof.eq_1]
 
 private theorem prog_bool_eq_nrefl_eq_of_ne_stuck (x1 : Term) :
     x1 ≠ Term.Stuck ->
@@ -99,7 +99,7 @@ private theorem facts___eo_prog_bool_eq_nrefl_impl
         __smtx_model_eval M (__eo_to_smt (Term.Boolean false)) =
           SmtValue.Boolean false := by
       change __smtx_model_eval M (SmtTerm.Boolean false) = SmtValue.Boolean false
-      rw [__smtx_model_eval.eq_Boolean]
+      rw [__smtx_model_eval.eq_1]
     rw [show __eo_to_smt (Term.Apply (Term.Apply Term.eq x1) (Term.Apply Term.not x1)) =
       SmtTerm.eq (__eo_to_smt x1) (SmtTerm.not (__eo_to_smt x1)) by
       rfl]

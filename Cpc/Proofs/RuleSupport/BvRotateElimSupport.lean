@@ -688,14 +688,14 @@ private theorem bv_rotate_elim_prem_mod_eq_zero
     change __smtx_model_eval M
         (SmtTerm.mod (SmtTerm.Numeral i)
           (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))) = _
-    rw [__smtx_model_eval.eq_mod, hSizeEval]
+    rw [__smtx_model_eval.eq_27, hSizeEval]
     simp [__smtx_model_eval, __smtx_model_eval_eq, __smtx_model_eval_ite,
       __smtx_model_eval_mod_total, native_veq, hwNe]
   have hZeroEval :
       __smtx_model_eval M (__eo_to_smt (Term.Numeral 0)) =
         SmtValue.Numeral 0 := by
     change __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
   rw [hModEval, hZeroEval] at hEq
   have hModInt : i % w = 0 := by
     simpa [__smtx_model_eval_eq, native_veq, native_mod_total] using hEq
@@ -760,7 +760,7 @@ private theorem eval_bv_rotate_elim_lhs_eq
           (SmtTerm.rotate_left (SmtTerm.Numeral i) (__eo_to_smt x)) =
         __smtx_model_eval M (__eo_to_smt x)
       rw [__smtx_model_eval.eq_def] <;> simp only
-      rw [__smtx_model_eval.eq_Numeral, hXEval']
+      rw [__smtx_model_eval.eq_2, hXEval']
       change __smtx_rotate_left_rec A (SmtValue.Binary (↑W) p) =
         SmtValue.Binary (↑W) p
       rw [rotateLeftRec_eq A W p hp0 hp1]
@@ -772,7 +772,7 @@ private theorem eval_bv_rotate_elim_lhs_eq
           (SmtTerm.rotate_right (SmtTerm.Numeral i) (__eo_to_smt x)) =
         __smtx_model_eval M (__eo_to_smt x)
       rw [__smtx_model_eval.eq_def] <;> simp only
-      rw [__smtx_model_eval.eq_Numeral, hXEval']
+      rw [__smtx_model_eval.eq_2, hXEval']
       change __smtx_rotate_right_rec A (SmtValue.Binary (↑W) p) =
         SmtValue.Binary (↑W) p
       rw [rotateRightRec_eq A W p hp0 hp1]

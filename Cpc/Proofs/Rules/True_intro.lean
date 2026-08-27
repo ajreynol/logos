@@ -24,7 +24,7 @@ theorem typed___eo_prog_true_intro_impl (x1 : Term) :
         __smtx_typeof (__eo_to_smt (Term.Boolean true)) := by
     have hTrueTy : __smtx_typeof (__eo_to_smt (Term.Boolean true)) = SmtType.Bool := by
       change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
-      rw [__smtx_typeof.eq_Boolean]
+      rw [__smtx_typeof.eq_1]
     exact hTyX1.trans hTrueTy.symm
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type x1 (Term.Boolean true) hTyEq hX1Trans
 
@@ -44,7 +44,7 @@ theorem facts___eo_prog_true_intro_impl (M : SmtModel) (x1 : Term) :
     | intro_true _ hEvalX1 =>
         have hTrueEval : __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) = SmtValue.Boolean true := by
           change __smtx_model_eval M (SmtTerm.Boolean true) = SmtValue.Boolean true
-          rw [__smtx_model_eval.eq_Boolean]
+          rw [__smtx_model_eval.eq_1]
         rw [hEvalX1, hTrueEval]
         exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean true)
 

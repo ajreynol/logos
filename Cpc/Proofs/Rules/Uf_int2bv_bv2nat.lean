@@ -205,7 +205,7 @@ private theorem smt_typeof_mod_pow2_term_eq
       (SmtTerm.mod_total (__eo_to_smt t) (SmtTerm.int_pow2 (SmtTerm.Numeral n))) =
     SmtType.Int
   rw [typeof_mod_total_eq, typeof_int_pow2_eq]
-  rw [__smtx_typeof.eq_Numeral]
+  rw [__smtx_typeof.eq_2]
   simp [native_ite, native_Teq, hTSmtTy]
 
 private theorem typed___eo_prog_uf_int2bv_bv2nat_impl
@@ -255,7 +255,7 @@ private theorem eval_ubv_int_to_bv_matches_mod_pow2
   rcases int_value_canonical hEvalTTy with ⟨ti, hEvalT⟩
   have hEvalN :
       __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n := by
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
   change __smtx_model_eval M
       (SmtTerm.ubv_to_int (SmtTerm.int_to_bv (SmtTerm.Numeral n) (__eo_to_smt t))) =
     __smtx_model_eval M

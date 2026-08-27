@@ -174,11 +174,11 @@ private theorem smtValuePos_of_one_term
   rcases term_one_shape_of_to_q_one one hOne with h | h
   · subst one
     change smtValuePos (__smtx_model_eval M (SmtTerm.Numeral 1))
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
     simp [smtValuePos]
   · subst one
     change smtValuePos (__smtx_model_eval M (SmtTerm.Rational (native_mk_rational 1 1)))
-    rw [__smtx_model_eval.eq_Rational]
+    rw [__smtx_model_eval.eq_3]
     simp [smtValuePos, native_mk_rational_one]
     native_decide
 
@@ -205,7 +205,7 @@ private theorem smtValuePos_of_gt_zero
     change smt_interprets M (SmtTerm.gt (__eo_to_smt t) (SmtTerm.Numeral 0)) true at hGt
     cases hGt with
     | intro_true _ hEval =>
-        rw [__smtx_model_eval.eq_gt, __smtx_model_eval.eq_Numeral] at hEval
+        rw [__smtx_model_eval.eq_19, __smtx_model_eval.eq_2] at hEval
         cases hv : __smtx_model_eval M (__eo_to_smt t) <;>
           simp [smtValuePos, hv, __smtx_model_eval_gt, __smtx_model_eval_lt,
             native_zlt, SmtEval.native_zlt] at hEval ⊢
@@ -216,7 +216,7 @@ private theorem smtValuePos_of_gt_zero
       (SmtTerm.gt (__eo_to_smt t) (SmtTerm.Rational (native_mk_rational 0 1))) true at hGt
     cases hGt with
     | intro_true _ hEval =>
-        rw [__smtx_model_eval.eq_gt, __smtx_model_eval.eq_Rational] at hEval
+        rw [__smtx_model_eval.eq_19, __smtx_model_eval.eq_3] at hEval
         cases hv : __smtx_model_eval M (__eo_to_smt t) <;>
           simp [smtValuePos, hv, __smtx_model_eval_gt, __smtx_model_eval_lt,
             native_qlt, SmtEval.native_qlt, native_mk_rational_zero] at hEval ⊢
@@ -233,7 +233,7 @@ private theorem smtValueNeg_of_lt_zero
     change smt_interprets M (SmtTerm.lt (__eo_to_smt t) (SmtTerm.Numeral 0)) true at hLt
     cases hLt with
     | intro_true _ hEval =>
-        rw [__smtx_model_eval.eq_lt, __smtx_model_eval.eq_Numeral] at hEval
+        rw [__smtx_model_eval.eq_17, __smtx_model_eval.eq_2] at hEval
         cases hv : __smtx_model_eval M (__eo_to_smt t) <;>
           simp [smtValueNeg, hv, __smtx_model_eval_lt,
             native_zlt, SmtEval.native_zlt] at hEval ⊢
@@ -244,7 +244,7 @@ private theorem smtValueNeg_of_lt_zero
       (SmtTerm.lt (__eo_to_smt t) (SmtTerm.Rational (native_mk_rational 0 1))) true at hLt
     cases hLt with
     | intro_true _ hEval =>
-        rw [__smtx_model_eval.eq_lt, __smtx_model_eval.eq_Rational] at hEval
+        rw [__smtx_model_eval.eq_17, __smtx_model_eval.eq_3] at hEval
         cases hv : __smtx_model_eval M (__eo_to_smt t) <;>
           simp [smtValueNeg, hv, __smtx_model_eval_lt,
             native_qlt, SmtEval.native_qlt, native_mk_rational_zero] at hEval ⊢
@@ -286,7 +286,7 @@ private theorem smtValueNonzero_of_not_eq_zero
             (__eo_to_smt t) (by simp [term_has_non_none_type, hTType])
         rcases int_value_canonical hEvalTy with ⟨n, hn⟩
         rw [hn]
-        rw [__smtx_model_eval.eq_not, smtx_eval_eq_term_eq, __smtx_model_eval.eq_Numeral,
+        rw [__smtx_model_eval.eq_7, smtx_eval_eq_term_eq, __smtx_model_eval.eq_2,
           hn] at hEval
         simp [smtValueNonzero, __smtx_model_eval_not, __smtx_model_eval_eq,
           native_veq, SmtEval.native_not] at hEval ⊢
@@ -323,7 +323,7 @@ private theorem smtValueNonzero_of_not_eq_zero
             (__eo_to_smt t) (by simp [term_has_non_none_type, hTType])
         rcases real_value_canonical hEvalTy with ⟨q, hqv⟩
         rw [hqv]
-        rw [__smtx_model_eval.eq_not, smtx_eval_eq_term_eq, __smtx_model_eval.eq_Rational,
+        rw [__smtx_model_eval.eq_7, smtx_eval_eq_term_eq, __smtx_model_eval.eq_3,
           hqv] at hEval
         simp [smtValueNonzero, __smtx_model_eval_not, __smtx_model_eval_eq,
           native_veq, SmtEval.native_not, native_mk_rational_zero] at hEval ⊢
@@ -386,7 +386,7 @@ private theorem eval_mult_pos_pos
     smtValuePos
       (__smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) x) y))) := by
   rcases mult_operands_non_none_and_eval_type_eq M hM x y hNN with ⟨_, _, hTy⟩
-  rw [eo_to_smt_mult_eq, __smtx_model_eval.eq_mult]
+  rw [eo_to_smt_mult_eq, __smtx_model_eval.eq_16]
   exact smtValuePos_mult_pos_pos hx hy hTy
 
 private theorem eval_mult_pos_neg
@@ -398,7 +398,7 @@ private theorem eval_mult_pos_neg
     smtValueNeg
       (__smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) x) y))) := by
   rcases mult_operands_non_none_and_eval_type_eq M hM x y hNN with ⟨_, _, hTy⟩
-  rw [eo_to_smt_mult_eq, __smtx_model_eval.eq_mult]
+  rw [eo_to_smt_mult_eq, __smtx_model_eval.eq_16]
   exact smtValueNeg_mult_pos_neg hx hy hTy
 
 private theorem eval_mult_neg_pos
@@ -410,7 +410,7 @@ private theorem eval_mult_neg_pos
     smtValueNeg
       (__smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) x) y))) := by
   rcases mult_operands_non_none_and_eval_type_eq M hM x y hNN with ⟨_, _, hTy⟩
-  rw [eo_to_smt_mult_eq, __smtx_model_eval.eq_mult]
+  rw [eo_to_smt_mult_eq, __smtx_model_eval.eq_16]
   exact smtValueNeg_mult_neg_pos hx hy hTy
 
 private theorem eval_mult_neg_neg
@@ -422,7 +422,7 @@ private theorem eval_mult_neg_neg
     smtValuePos
       (__smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) x) y))) := by
   rcases mult_operands_non_none_and_eval_type_eq M hM x y hNN with ⟨_, _, hTy⟩
-  rw [eo_to_smt_mult_eq, __smtx_model_eval.eq_mult]
+  rw [eo_to_smt_mult_eq, __smtx_model_eval.eq_16]
   exact smtValuePos_mult_neg_neg hx hy hTy
 
 private def signMatches (M : SmtModel) (acc out : Bool) (m : Term) : Prop :=
@@ -1134,12 +1134,12 @@ private theorem eo_interprets_gt_zero_of_smtValuePos
         rw [hTy]
         change __smtx_typeof_arith_overload_op_2_ret SmtType.Int
           (__smtx_typeof (SmtTerm.Numeral 0)) SmtType.Bool = SmtType.Bool
-        rw [__smtx_typeof.eq_Numeral]
+        rw [__smtx_typeof.eq_2]
         rfl
-      · rw [hEoTy, __smtx_model_eval.eq_gt]
+      · rw [hEoTy, __smtx_model_eval.eq_19]
         change __smtx_model_eval_gt (__smtx_model_eval M (__eo_to_smt m))
           (__smtx_model_eval M (SmtTerm.Numeral 0)) = SmtValue.Boolean true
-        rw [__smtx_model_eval.eq_Numeral, hEval]
+        rw [__smtx_model_eval.eq_2, hEval]
         simpa [__smtx_model_eval_gt, __smtx_model_eval_lt, native_zlt,
           SmtEval.native_zlt] using hPos
   | Rational q =>
@@ -1164,13 +1164,13 @@ private theorem eo_interprets_gt_zero_of_smtValuePos
         change __smtx_typeof_arith_overload_op_2_ret SmtType.Real
           (__smtx_typeof (SmtTerm.Rational (native_mk_rational 0 1))) SmtType.Bool =
             SmtType.Bool
-        rw [__smtx_typeof.eq_Rational]
+        rw [__smtx_typeof.eq_3]
         rfl
-      · rw [hEoTy, __smtx_model_eval.eq_gt]
+      · rw [hEoTy, __smtx_model_eval.eq_19]
         change __smtx_model_eval_gt (__smtx_model_eval M (__eo_to_smt m))
           (__smtx_model_eval M (SmtTerm.Rational (native_mk_rational 0 1))) =
             SmtValue.Boolean true
-        rw [__smtx_model_eval.eq_Rational, hEval]
+        rw [__smtx_model_eval.eq_3, hEval]
         simpa [__smtx_model_eval_gt, __smtx_model_eval_lt, native_qlt,
           SmtEval.native_qlt, native_mk_rational_zero] using hPos
   | _ =>
@@ -1206,12 +1206,12 @@ private theorem eo_interprets_lt_zero_of_smtValueNeg
         rw [hTy]
         change __smtx_typeof_arith_overload_op_2_ret SmtType.Int
           (__smtx_typeof (SmtTerm.Numeral 0)) SmtType.Bool = SmtType.Bool
-        rw [__smtx_typeof.eq_Numeral]
+        rw [__smtx_typeof.eq_2]
         rfl
-      · rw [hEoTy, __smtx_model_eval.eq_lt]
+      · rw [hEoTy, __smtx_model_eval.eq_17]
         change __smtx_model_eval_lt (__smtx_model_eval M (__eo_to_smt m))
           (__smtx_model_eval M (SmtTerm.Numeral 0)) = SmtValue.Boolean true
-        rw [__smtx_model_eval.eq_Numeral, hEval]
+        rw [__smtx_model_eval.eq_2, hEval]
         simpa [__smtx_model_eval_lt, native_zlt, SmtEval.native_zlt] using hNeg
   | Rational q =>
       rw [hEval] at hNeg
@@ -1235,13 +1235,13 @@ private theorem eo_interprets_lt_zero_of_smtValueNeg
         change __smtx_typeof_arith_overload_op_2_ret SmtType.Real
           (__smtx_typeof (SmtTerm.Rational (native_mk_rational 0 1))) SmtType.Bool =
             SmtType.Bool
-        rw [__smtx_typeof.eq_Rational]
+        rw [__smtx_typeof.eq_3]
         rfl
-      · rw [hEoTy, __smtx_model_eval.eq_lt]
+      · rw [hEoTy, __smtx_model_eval.eq_17]
         change __smtx_model_eval_lt (__smtx_model_eval M (__eo_to_smt m))
           (__smtx_model_eval M (SmtTerm.Rational (native_mk_rational 0 1))) =
             SmtValue.Boolean true
-        rw [__smtx_model_eval.eq_Rational, hEval]
+        rw [__smtx_model_eval.eq_3, hEval]
         simpa [__smtx_model_eval_lt, native_qlt, SmtEval.native_qlt,
           native_mk_rational_zero] using hNeg
   | _ =>
@@ -1325,7 +1325,7 @@ private theorem gt_zero_has_bool_type_of_typeof_bool
     rw [hmTy]
     change __smtx_typeof_arith_overload_op_2_ret SmtType.Int
       (__smtx_typeof (SmtTerm.Numeral 0)) SmtType.Bool = SmtType.Bool
-    rw [__smtx_typeof.eq_Numeral]
+    rw [__smtx_typeof.eq_2]
     rfl
   · have hmTy : __smtx_typeof (__eo_to_smt m) = SmtType.Real := by
       simpa [hReal] using TranslationProofs.eo_to_smt_typeof_matches_translation m hMTrans
@@ -1335,7 +1335,7 @@ private theorem gt_zero_has_bool_type_of_typeof_bool
     change __smtx_typeof_arith_overload_op_2_ret SmtType.Real
       (__smtx_typeof (SmtTerm.Rational (native_mk_rational 0 1))) SmtType.Bool =
         SmtType.Bool
-    rw [__smtx_typeof.eq_Rational]
+    rw [__smtx_typeof.eq_3]
     rfl
 
 private theorem lt_zero_has_bool_type_of_typeof_bool
@@ -1361,7 +1361,7 @@ private theorem lt_zero_has_bool_type_of_typeof_bool
     rw [hmTy]
     change __smtx_typeof_arith_overload_op_2_ret SmtType.Int
       (__smtx_typeof (SmtTerm.Numeral 0)) SmtType.Bool = SmtType.Bool
-    rw [__smtx_typeof.eq_Numeral]
+    rw [__smtx_typeof.eq_2]
     rfl
   · have hmTy : __smtx_typeof (__eo_to_smt m) = SmtType.Real := by
       simpa [hReal] using TranslationProofs.eo_to_smt_typeof_matches_translation m hMTrans
@@ -1371,7 +1371,7 @@ private theorem lt_zero_has_bool_type_of_typeof_bool
     change __smtx_typeof_arith_overload_op_2_ret SmtType.Real
       (__smtx_typeof (SmtTerm.Rational (native_mk_rational 0 1))) SmtType.Bool =
         SmtType.Bool
-    rw [__smtx_typeof.eq_Rational]
+    rw [__smtx_typeof.eq_3]
     rfl
 public theorem cmd_step_arith_mult_sign_properties
     (M : SmtModel) (hM : model_total_typed M)

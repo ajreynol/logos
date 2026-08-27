@@ -74,9 +74,9 @@ private theorem distinct_pairs_true_not_mem
                           (SmtTerm.not (SmtTerm.eq s (__eo_to_smt x)))
                           (__eo_to_smt_distinct_pairs s a)) =
                       SmtValue.Boolean true at h
-                  rw [__smtx_model_eval.eq_and] at h
+                  rw [__smtx_model_eval.eq_9] at h
                   rcases smt_eval_and_eq_true h with ⟨hHead, hTail⟩
-                  rw [__smtx_model_eval.eq_not, smtx_eval_eq_term_eq] at hHead
+                  rw [__smtx_model_eval.eq_7, smtx_eval_eq_term_eq] at hHead
                   have hEqFalse :
                       __smtx_model_eval_eq
                           (__smtx_model_eval M s)
@@ -209,7 +209,7 @@ private theorem distinct_true_nodup
                           (__eo_to_smt_distinct_pairs (__eo_to_smt x) a)
                           (__eo_to_smt_distinct a)) =
                       SmtValue.Boolean true at h
-                  rw [__smtx_model_eval.eq_and] at h
+                  rw [__smtx_model_eval.eq_9] at h
                   rcases smt_eval_and_eq_true h with ⟨hPairs, hTail⟩
                   have hNotMem :
                       __smtx_model_eval M (__eo_to_smt x) ∉
@@ -1060,7 +1060,7 @@ private theorem distinct_card_conflict_cardinality_sound
     ⟨hDistinctTyEq, _hDistinctNN⟩
   have hFalseTy :
       __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool := by
-    rw [__smtx_typeof.eq_Boolean]
+    rw [__smtx_typeof.eq_1]
   have hDistinctTy :
       __smtx_typeof (__eo_to_smt distinctTerm) = SmtType.Bool := by
     simpa [hFalseTy] using hDistinctTyEq
@@ -1094,7 +1094,7 @@ private theorem distinct_card_conflict_cardinality_sound
         change __smtx_model_eval M
           (SmtTerm.eq (__eo_to_smt distinctTerm) (SmtTerm.Boolean false)) =
             SmtValue.Boolean true
-        rw [smtx_eval_eq_term_eq, hDistinctEval, __smtx_model_eval.eq_Boolean]
+        rw [smtx_eval_eq_term_eq, hDistinctEval, __smtx_model_eval.eq_1]
         exact RuleProofs.smtx_model_eval_eq_refl (SmtValue.Boolean false)
       exact RuleProofs.eo_interprets_of_bool_eval M
         (Term.Apply

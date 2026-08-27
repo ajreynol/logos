@@ -193,7 +193,7 @@ private theorem facts___eo_prog_ite_not_cond_impl
         (Term.Apply (Term.Apply (Term.Apply Term.ite c1) y1) x1) =
         SmtTerm.ite (__eo_to_smt c1) (__eo_to_smt y1) (__eo_to_smt x1) by
         rfl]
-    simp only [__smtx_model_eval.eq_not, smtx_eval_ite_term_eq, hEvalC1]
+    simp only [__smtx_model_eval.eq_7, smtx_eval_ite_term_eq, hEvalC1]
     cases bc
     · simpa [__smtx_model_eval_ite, __smtx_model_eval_not, SmtEval.native_not]
         using RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt x1))

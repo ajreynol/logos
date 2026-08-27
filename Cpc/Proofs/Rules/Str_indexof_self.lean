@@ -131,7 +131,7 @@ private theorem smt_typeof_seq_empty_of_wf_type
   · subst A
     change __smtx_typeof (SmtTerm.String (native_string_lit "")) ≠
       SmtType.None
-    rw [__smtx_typeof.eq_String]
+    rw [__smtx_typeof.eq_4]
     simp [native_string_lit, native_string_valid, native_ite]
   · by_cases hStuck : A = Term.Stuck
     · subst A

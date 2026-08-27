@@ -3,8 +3,6 @@ module
 import Lean
 public import CpcMini.Proofs.TypePreservation.Model
 import all CpcMini.Proofs.TypePreservation.Model
-public import CpcMini.Proofs.SmtEquations
-import all CpcMini.Proofs.SmtEquations
 
 public section
 

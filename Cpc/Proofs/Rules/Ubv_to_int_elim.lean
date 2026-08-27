@@ -378,9 +378,9 @@ private theorem ubvBitAddend_eval
         (SmtTerm.Numeral 0)) =
       SmtValue.Numeral (if n.toNat.testBit start then (2 ^ start : Int) else 0)
   rw [smtx_eval_ite_term_eq, smtx_eval_eq_term_eq,
-    __smtx_model_eval.eq_extract, __smtx_model_eval.eq_Numeral,
-    __smtx_model_eval.eq_Numeral, hEvalB, __smtx_model_eval.eq_Binary,
-    __smtx_model_eval.eq_Numeral]
+    __smtx_model_eval.eq_37, __smtx_model_eval.eq_2,
+    __smtx_model_eval.eq_2, hEvalB, __smtx_model_eval.eq_5,
+    __smtx_model_eval.eq_2]
   have hWidth :
       native_zplus (native_zplus (native_nat_to_int start) 1)
         (native_zneg (native_nat_to_int start)) = 1 := by
@@ -403,14 +403,14 @@ private theorem ubvRawExpansion_eval (M : SmtModel) (b : Term) (w n : Int)
   induction len generalizing start with
   | zero =>
       change __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0
-      rw [__smtx_model_eval.eq_Numeral]
+      rw [__smtx_model_eval.eq_2]
   | succ len ih =>
       rw [ubvRawExpansion]
       change __smtx_model_eval M
           (SmtTerm.plus (__eo_to_smt (ubvBitAddend b start))
             (__eo_to_smt (ubvRawExpansion b (start + 1) len))) =
         SmtValue.Numeral ((natScaledBitSum n.toNat start (len + 1) : Nat) : Int)
-      rw [__smtx_model_eval.eq_plus,
+      rw [__smtx_model_eval.eq_14,
         ubvBitAddend_eval M b w n start hEvalB hn, ih (start + 1)]
       cases h : n.toNat.testBit start <;>
         simp [natScaledBitSum, h, __smtx_model_eval_plus, native_zplus]
@@ -496,7 +496,7 @@ private theorem ubvRawExpansion_singleton_eval (M : SmtModel)
         __eo_list_singleton_elim_2, native_teq, native_not,
         SmtEval.native_not, native_ite]
       change __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0
-      rw [__smtx_model_eval.eq_Numeral]
+      rw [__smtx_model_eval.eq_2]
   | succ len =>
       cases len with
       | zero =>

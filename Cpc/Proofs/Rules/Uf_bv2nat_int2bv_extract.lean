@@ -578,13 +578,13 @@ private theorem eval_extract_low_zero_matches_int_to_bv
       (SmtTerm.extract (SmtTerm.Numeral wmv) (SmtTerm.Numeral 0) (__eo_to_smt t))
   have hEvalWi :
       __smtx_model_eval M (SmtTerm.Numeral wi) = SmtValue.Numeral wi := by
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
   have hEvalWm :
       __smtx_model_eval M (SmtTerm.Numeral wmv) = SmtValue.Numeral wmv := by
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
   have hEvalZero :
       __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0 := by
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
   rw [smtx_eval_int_to_bv_term_eq, smtx_eval_ubv_to_int_term_eq,
     smtx_eval_extract_term_eq, hEvalT, hEvalWi, hEvalWm, hEvalZero]
   simp [__smtx_model_eval_ubv_to_int, __smtx_model_eval_int_to_bv,

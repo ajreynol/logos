@@ -373,7 +373,7 @@ private theorem eo_interprets_or_left_of_right_false
         | intro_false _ hEvalB =>
             cases hOrTrue with
             | intro_true _ hEvalOr =>
-                rw [__smtx_model_eval.eq_or, hEvalA, hEvalB] at hEvalOr
+                rw [__smtx_model_eval.eq_8, hEvalA, hEvalB] at hEvalOr
                 simp [__smtx_model_eval_or, SmtEval.native_or] at hEvalOr
 
 private theorem list_singleton_elim_or_singleton (x : Term) :

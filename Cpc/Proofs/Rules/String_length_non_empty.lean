@@ -49,7 +49,7 @@ private theorem typeof_eo_str_len_of_seq
 private theorem typeof_eo_zero :
     __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
   change __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int
-  rw [__smtx_typeof.eq_Numeral]
+  rw [__smtx_typeof.eq_2]
 
 /-- Evaluates EO `str.len` once the translated argument has been evaluated to a sequence. -/
 private theorem eval_eo_str_len_of_seq
@@ -66,7 +66,7 @@ private theorem eval_eo_str_len_of_seq
 private theorem eval_eo_zero (M : SmtModel) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral 0)) = SmtValue.Numeral 0 := by
   change __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0
-  rw [__smtx_model_eval.eq_Numeral]
+  rw [__smtx_model_eval.eq_2]
 
 /-- Characterizes the SMT type and evaluation of syntactically empty string terms. -/
 private theorem empty_term_smt_info
@@ -82,12 +82,12 @@ private theorem empty_term_smt_info
       · subst s
         refine ⟨SmtType.Char, ?_, ?_⟩
         · change __smtx_typeof (SmtTerm.String (native_string_lit "")) = SmtType.Seq SmtType.Char
-          rw [__smtx_typeof.eq_String]
+          rw [__smtx_typeof.eq_4]
           simp [native_string_lit, native_string_valid, native_ite]
         · intro M
           change __smtx_model_eval M (SmtTerm.String (native_string_lit "")) =
             SmtValue.Seq (SmtSeq.empty SmtType.Char)
-          rw [__smtx_model_eval.eq_String]
+          rw [__smtx_model_eval.eq_4]
           simp [native_pack_string, native_pack_seq, native_string_lit]
       · cases s with
         | nil =>
@@ -180,7 +180,7 @@ private theorem empty_term_smt_info
                           rw [hSeqTy]
                           change __smtx_model_eval M (SmtTerm.seq_empty (__eo_to_smt_type U)) =
                             SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U))
-                          rw [__smtx_model_eval.eq_seq_empty]
+                          rw [__smtx_model_eval.eq_79]
                   | _ =>
                       simp [__str_is_empty] at hEmpty
               | _ =>

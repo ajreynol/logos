@@ -1494,7 +1494,7 @@ theorem char_valid_of_charAtom_seq_type (ch : native_Char) (T : SmtType)
     (hTy : __smtx_typeof (__eo_to_smt (Term.String [ch])) = SmtType.Seq T) :
     native_char_valid ch = true := by
   rw [show __eo_to_smt (Term.String [ch]) = SmtTerm.String [ch] from rfl] at hTy
-  rw [__smtx_typeof.eq_String] at hTy
+  rw [__smtx_typeof.eq_4] at hTy
   cases hvalid : native_char_valid ch
   · simp [native_string_valid, hvalid, native_ite] at hTy
   · rfl
@@ -1626,7 +1626,7 @@ theorem charAtoms_type (w : native_String) (T : SmtType)
       __smtx_typeof (__eo_to_smt a) = SmtType.Seq T := by
   have hT : T = SmtType.Char := by
     rw [show __eo_to_smt (Term.String w) = SmtTerm.String w from rfl] at hTy
-    rw [__smtx_typeof.eq_String] at hTy
+    rw [__smtx_typeof.eq_4] at hTy
     cases hvalid : native_string_valid w
     · simp [hvalid, native_ite] at hTy
     · simp [hvalid, native_ite] at hTy
@@ -1635,11 +1635,11 @@ theorem charAtoms_type (w : native_String) (T : SmtType)
   rw [hT]
   rcases List.mem_map.1 ha with ⟨ch, _hch, rfl⟩
   rw [show __eo_to_smt (Term.String [ch]) = SmtTerm.String [ch] from rfl]
-  rw [__smtx_typeof.eq_String]
+  rw [__smtx_typeof.eq_4]
   have hvalid : native_char_valid ch = true := by
     have hwvalid : native_string_valid w = true := by
       rw [show __eo_to_smt (Term.String w) = SmtTerm.String w from rfl] at hTy
-      rw [__smtx_typeof.eq_String] at hTy
+      rw [__smtx_typeof.eq_4] at hTy
       cases hv : native_string_valid w
       · simp [hv, native_ite] at hTy
       · rfl

@@ -168,7 +168,7 @@ private theorem smt_typeof_eo_add_one_of_ne_stuck (x : Term)
   cases x <;> simp [__eo_add] at h ⊢
   case Numeral n =>
     change __smtx_typeof (SmtTerm.Numeral (native_zplus 1 n)) = SmtType.Int
-    rw [__smtx_typeof.eq_Numeral]
+    rw [__smtx_typeof.eq_2]
 
 private theorem cprop_eo_add_one_arg_ne_stuck (x : Term)
     (h : __eo_add (Term.Numeral 1) x ≠ Term.Stuck) :
@@ -547,7 +547,7 @@ private theorem cprop_false_head_string_of_tailword_ne
       exact ⟨cs, rfl⟩
   | Binary w n =>
       change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Seq T at hhTy
-      rw [__smtx_typeof.eq_Binary] at hhTy
+      rw [__smtx_typeof.eq_5] at hhTy
       cases hCond :
           native_and (native_zleq 0 w)
             (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
@@ -593,7 +593,7 @@ private theorem cprop_true_head_string_of_tailword_ne
       exact ⟨cs, rfl⟩
   | Binary w n =>
       change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Seq T at hhTy
-      rw [__smtx_typeof.eq_Binary] at hhTy
+      rw [__smtx_typeof.eq_5] at hhTy
       cases hCond :
           native_and (native_zleq 0 w)
             (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
@@ -1887,7 +1887,7 @@ private theorem string_eval_unpack_eq
         SmtValue.Seq ss) :
     native_unpack_seq ss = s.map SmtValue.Char := by
   change __smtx_model_eval M (SmtTerm.String s) = SmtValue.Seq ss at hEval
-  rw [__smtx_model_eval.eq_String] at hEval
+  rw [__smtx_model_eval.eq_4] at hEval
   injection hEval with hSeq
   rw [← hSeq]
   simp [native_pack_string, _root_.native_unpack_pack_seq]
@@ -4560,7 +4560,7 @@ private theorem cprop_prefix_false_seq_type
       __smtx_typeof (__eo_to_smt k) = SmtType.Int := by
     simpa [k] using cprop_overlap_len_false_int_of_prog t s tc hProg
   have hZeroTy : __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
-    rw [__smtx_typeof.eq_Numeral]
+    rw [__smtx_typeof.eq_2]
   have hPrefixEq :
       concatCPropPrefix (Term.Boolean false) t s =
         Term.Apply
@@ -5595,7 +5595,7 @@ private theorem cprop_reverse_suffix_true_seq_type
           (Term.Apply (Term.UOp UserOp.str_len) endPart)))
       (by simp) (by simp)
   have hZeroTy : __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
-    rw [__smtx_typeof.eq_Numeral]
+    rw [__smtx_typeof.eq_2]
   have hLenTcTy :
       __smtx_typeof (SmtTerm.str_len (__eo_to_smt tc)) = SmtType.Int :=
     smtx_typeof_str_len_seq (__eo_to_smt tc) T htcTy

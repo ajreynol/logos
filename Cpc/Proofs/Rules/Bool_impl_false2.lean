@@ -87,16 +87,16 @@ private theorem facts___eo_prog_bool_impl_false2_impl
         __smtx_model_eval M (__eo_to_smt (Term.Boolean false)) =
           SmtValue.Boolean false := by
       change __smtx_model_eval M (SmtTerm.Boolean false) = SmtValue.Boolean false
-      rw [__smtx_model_eval.eq_Boolean]
+      rw [__smtx_model_eval.eq_1]
     have hTrueEval :
         __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) =
           SmtValue.Boolean true := by
       change __smtx_model_eval M (SmtTerm.Boolean true) = SmtValue.Boolean true
-      rw [__smtx_model_eval.eq_Boolean]
+      rw [__smtx_model_eval.eq_1]
     rw [show __eo_to_smt (Term.Apply (Term.Apply Term.imp (Term.Boolean false)) t1) =
       SmtTerm.imp (__eo_to_smt (Term.Boolean false)) (__eo_to_smt t1) by
       rfl]
-    rw [__smtx_model_eval.eq_imp, hFalseEval, hEvalT1, hTrueEval]
+    rw [__smtx_model_eval.eq_10, hFalseEval, hEvalT1, hTrueEval]
     cases b <;> simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
       __smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not,
       native_veq, SmtEval.native_or, SmtEval.native_not]

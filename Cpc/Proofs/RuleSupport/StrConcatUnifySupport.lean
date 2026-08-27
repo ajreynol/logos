@@ -385,7 +385,7 @@ theorem smt_typeof_seq_empty_of_eo_type_wf
     cases hA
     change __smtx_typeof (SmtTerm.String (native_string_lit "")) =
       SmtType.Seq SmtType.Char
-    rw [__smtx_typeof.eq_String]
+    rw [__smtx_typeof.eq_4]
     simp [native_string_lit, native_string_valid, native_ite]
   · have hDefault :
         strConcatUnifyBaseEmpty A =

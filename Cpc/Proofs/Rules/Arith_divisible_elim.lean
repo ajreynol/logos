@@ -44,14 +44,14 @@ private theorem smtx_eval_divisible_term_eq
     __smtx_model_eval M (SmtTerm.divisible n t) =
       __smtx_model_eval_divisible
         (__smtx_model_eval M n) (__smtx_model_eval M t) := by
-  rw [__smtx_model_eval.eq_divisible]
+  rw [__smtx_model_eval.eq_28]
 
 private theorem smtx_eval_mod_total_term_eq
     (M : SmtModel) (t n : SmtTerm) :
     __smtx_model_eval M (SmtTerm.mod_total t n) =
       __smtx_model_eval_mod_total
         (__smtx_model_eval M t) (__smtx_model_eval M n) := by
-  rw [__smtx_model_eval.eq_mod_total]
+  rw [__smtx_model_eval.eq_32]
 
 private theorem smtx_typeof_of_eo_int
     (a : Term)
@@ -158,7 +158,7 @@ private theorem typed___eo_prog_arith_divisible_elim_impl
       (by
         rw [hModTotalTy]
         change SmtType.Int = __smtx_typeof (SmtTerm.Numeral 0)
-        rw [__smtx_typeof.eq_Numeral])
+        rw [__smtx_typeof.eq_2])
       (by
         rw [hModTotalTy]
         decide)
@@ -222,7 +222,7 @@ private theorem facts___eo_prog_arith_divisible_elim_impl
         __smtx_model_eval M (__eo_to_smt (Term.Numeral 0)) =
           SmtValue.Numeral 0 := by
       change __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0
-      rw [__smtx_model_eval.eq_Numeral]
+      rw [__smtx_model_eval.eq_2]
     rw [RuleProofs.eo_to_smt_eq_eq, eo_to_smt_mod_total_eq,
       smtx_eval_eq_term_eq, smtx_eval_mod_total_term_eq]
     rw [hTEval, hNEval, hEvalZero]

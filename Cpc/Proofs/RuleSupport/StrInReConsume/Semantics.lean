@@ -2850,7 +2850,7 @@ theorem str_re_consume_rec_native_false_of_ih_false
   change RuleProofs.smt_value_rel
       (SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv))
       (__smtx_model_eval M (SmtTerm.Boolean false)) at hRel
-  rw [__smtx_model_eval.eq_Boolean] at hRel
+  rw [__smtx_model_eval.eq_1] at hRel
   exact smt_value_rel_boolean_eq_consume_local hRel
 
 theorem str_re_consume_rec_native_eq_of_ih_residual
@@ -3231,7 +3231,7 @@ theorem str_re_consume_union_model_rel_from_ih
         __smtx_typeof (__eo_to_smt left) = SmtType.Bool := by
       rw [hLeftEqFalse]
       change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
-      rw [__smtx_typeof.eq_Boolean]
+      rw [__smtx_typeof.eq_1]
     have hRightTy :
         __smtx_typeof (__eo_to_smt right) = SmtType.Bool := by
       simpa [hSideRight] using hSideTy
@@ -3278,7 +3278,7 @@ theorem str_re_consume_union_model_rel_from_ih
       rw [hLeftEqFalse]
       change __smtx_model_eval M (SmtTerm.Boolean false) =
         SmtValue.Boolean false
-      rw [__smtx_model_eval.eq_Boolean]
+      rw [__smtx_model_eval.eq_1]
     exact str_re_consume_model_rel_of_re_union_left_false M hM s c1 c2
       left side (by simpa [union] using hEqTrans) hLeftRel hLeftEval
       hRightRel
@@ -3308,7 +3308,7 @@ theorem str_re_consume_union_model_rel_from_ih
             __smtx_typeof (__eo_to_smt right) = SmtType.Bool := by
           rw [hRightEqFalse]
           change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
-          rw [__smtx_typeof.eq_Boolean]
+          rw [__smtx_typeof.eq_1]
         have hLeftTrans :
             RuleProofs.eo_has_smt_translation
               (Term.Apply
@@ -3355,7 +3355,7 @@ theorem str_re_consume_union_model_rel_from_ih
           rw [hRightEqFalse]
           change __smtx_model_eval M (SmtTerm.Boolean false) =
             SmtValue.Boolean false
-          rw [__smtx_model_eval.eq_Boolean]
+          rw [__smtx_model_eval.eq_1]
         exact str_re_consume_model_rel_of_re_union_right_false M hM s c1
           c2 right side (by simpa [union] using hEqTrans) hLeftRel
           hRightRel hRightEval
@@ -3600,7 +3600,7 @@ theorem str_re_consume_inter_model_rel_from_ih
         __smtx_typeof (__eo_to_smt left) = SmtType.Bool := by
       rw [hLeftEqFalse]
       change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
-      rw [__smtx_typeof.eq_Boolean]
+      rw [__smtx_typeof.eq_1]
     have hLeftTrans :
         RuleProofs.eo_has_smt_translation
           (Term.Apply
@@ -3624,7 +3624,7 @@ theorem str_re_consume_inter_model_rel_from_ih
       rw [hLeftEqFalse]
       change __smtx_model_eval M (SmtTerm.Boolean false) =
         SmtValue.Boolean false
-      rw [__smtx_model_eval.eq_Boolean]
+      rw [__smtx_model_eval.eq_1]
     exact str_re_consume_model_rel_of_re_inter_left_false M hM s c1 c2
       left side (by simpa [inter] using hEqTrans) hLeftRel hLeftEval
       hSideFalse
@@ -3652,7 +3652,7 @@ theorem str_re_consume_inter_model_rel_from_ih
             __smtx_typeof (__eo_to_smt right) = SmtType.Bool := by
           rw [hRightEqFalse]
           change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
-          rw [__smtx_typeof.eq_Boolean]
+          rw [__smtx_typeof.eq_1]
         have hRightTrans :
             RuleProofs.eo_has_smt_translation
               (Term.Apply
@@ -3678,7 +3678,7 @@ theorem str_re_consume_inter_model_rel_from_ih
           rw [hRightEqFalse]
           change __smtx_model_eval M (SmtTerm.Boolean false) =
             SmtValue.Boolean false
-          rw [__smtx_model_eval.eq_Boolean]
+          rw [__smtx_model_eval.eq_1]
         exact str_re_consume_model_rel_of_re_inter_right_false M hM s c1
           c2 right side (by simpa [inter] using hEqTrans) hRightRel
           hRightEval hSideFalse
@@ -3772,7 +3772,7 @@ theorem str_re_consume_inter_model_rel_from_ih
             __smtx_typeof (__eo_to_smt right) = SmtType.Bool := by
           rw [hRightEqFalse]
           change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
-          rw [__smtx_typeof.eq_Boolean]
+          rw [__smtx_typeof.eq_1]
         have hRightTrans :
             RuleProofs.eo_has_smt_translation
               (Term.Apply
@@ -3798,7 +3798,7 @@ theorem str_re_consume_inter_model_rel_from_ih
           rw [hRightEqFalse]
           change __smtx_model_eval M (SmtTerm.Boolean false) =
             SmtValue.Boolean false
-          rw [__smtx_model_eval.eq_Boolean]
+          rw [__smtx_model_eval.eq_1]
         exact str_re_consume_model_rel_of_re_inter_right_false M hM s c1
           c2 right side (by simpa [inter] using hEqTrans) hRightRel
           hRightEval hSideFalse

@@ -175,7 +175,7 @@ private theorem typed___eo_prog_arith_int_eq_conflict_impl
     (by
       rw [hInnerTy]
       change SmtType.Bool = __smtx_typeof (SmtTerm.Boolean false)
-      rw [__smtx_typeof.eq_Boolean]) hInnerTrans
+      rw [__smtx_typeof.eq_1]) hInnerTrans
 
 private theorem facts___eo_prog_arith_int_eq_conflict_impl
     (M : SmtModel) (hM : model_total_typed M) (t c P : Term) :
@@ -253,7 +253,7 @@ private theorem facts___eo_prog_arith_int_eq_conflict_impl
   exact RuleProofs.eo_interprets_eq_of_rel M
     (eqTerm (toRealTerm t) c) (Term.Boolean false) hProgBool' <| by
       rw [hEvalInner]
-      rw [RuleProofs.eo_to_smt_false_eq, __smtx_model_eval.eq_Boolean]
+      rw [RuleProofs.eo_to_smt_false_eq, __smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean false)
 
 end ArithIntEqConflict

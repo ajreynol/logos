@@ -205,8 +205,8 @@ private theorem eo_interprets_false (M : SmtModel) :
   rw [RuleProofs.eo_interprets_iff_smt_interprets]
   rw [eo_to_smt_false_eq]
   refine smt_interprets.intro_false M (SmtTerm.Boolean false) ?_ ?_
-  · rw [__smtx_typeof.eq_Boolean]
-  · rw [__smtx_model_eval.eq_Boolean]
+  · rw [__smtx_typeof.eq_1]
+  · rw [__smtx_model_eval.eq_1]
 
 private theorem eo_interprets_or_right_of_left_false
     (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
@@ -226,7 +226,7 @@ private theorem eo_interprets_or_right_of_left_false
             RuleProofs.eo_has_bool_type_or_right A B
               (by simpa [RuleProofs.eo_has_bool_type, RuleProofs.eo_to_smt_or_eq] using hTyOr)
           refine smt_interprets.intro_true M (__eo_to_smt B) hBBool ?_
-          rw [__smtx_model_eval.eq_or] at hEvalOr
+          rw [__smtx_model_eval.eq_8] at hEvalOr
           rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM B hBBool with ⟨b, hEvalB⟩
           rw [hEvalA, hEvalB, __smtx_model_eval_or, SmtEval.native_or] at hEvalOr
           cases b <;> simp at hEvalOr
@@ -250,7 +250,7 @@ private theorem eo_interprets_or_left_of_right_false
             RuleProofs.eo_has_bool_type_or_left A B
               (by simpa [RuleProofs.eo_has_bool_type, RuleProofs.eo_to_smt_or_eq] using hTyOr)
           refine smt_interprets.intro_true M (__eo_to_smt A) hABool ?_
-          rw [__smtx_model_eval.eq_or] at hEvalOr
+          rw [__smtx_model_eval.eq_8] at hEvalOr
           rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM A hABool with ⟨a, hEvalA⟩
           rw [hEvalA, hEvalB, __smtx_model_eval_or, SmtEval.native_or] at hEvalOr
           cases a <;> simp at hEvalOr
@@ -269,7 +269,7 @@ private theorem eo_interprets_not_false_of_true (M : SmtModel) (t : Term) :
       refine smt_interprets.intro_false M (SmtTerm.not (__eo_to_smt t)) ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type, eo_to_smt_not_eq]
           using RuleProofs.eo_has_bool_type_not_of_bool_arg t hTy
-      · rw [__smtx_model_eval.eq_not]
+      · rw [__smtx_model_eval.eq_7]
         rw [hEval]
         simp [__smtx_model_eval_not, SmtEval.native_not]
 

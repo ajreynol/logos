@@ -89,7 +89,7 @@ private theorem typed___eo_prog_re_opt_elim_impl
     exact hTyRaw
   have hEpsTy : __smtx_typeof (__eo_to_smt eps) = SmtType.RegLan := by
     change __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String [])) = SmtType.RegLan
-    rw [typeof_str_to_re_eq, __smtx_typeof.eq_String]
+    rw [typeof_str_to_re_eq, __smtx_typeof.eq_4]
     native_decide
   have hInnerTy :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.re_union a1) Term.re_none)) =
@@ -97,7 +97,7 @@ private theorem typed___eo_prog_re_opt_elim_impl
     change __smtx_typeof (SmtTerm.re_union (__eo_to_smt a1) SmtTerm.re_none) =
       SmtType.RegLan
     rw [typeof_re_union_eq]
-    simp [hA1SmtTy, __smtx_typeof.eq_re_none, native_ite, native_Teq]
+    simp [hA1SmtTy, __smtx_typeof.eq_105, native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.RegLan := by
     change __smtx_typeof
         (SmtTerm.re_union (__eo_to_smt eps)

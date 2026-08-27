@@ -85,7 +85,7 @@ private theorem eo_has_bool_type_bvule_self
   rcases smt_bitvec_type_of_eo_bitvec_type x1 w hX1Trans hX1Type with ⟨n, hSmtTy⟩
   unfold RuleProofs.eo_has_bool_type
   change __smtx_typeof (SmtTerm.bvule (__eo_to_smt x1) (__eo_to_smt x1)) = SmtType.Bool
-  rw [__smtx_typeof.eq_bvule]
+  rw [__smtx_typeof.eq_57]
   simp [__smtx_typeof_bv_op_2_ret, hSmtTy, native_nateq, native_ite]
 
 private theorem typed___eo_prog_bv_ule_self_impl (x1 : Term) :
@@ -124,7 +124,7 @@ private theorem eval_bvule_self_true
   rcases bitvec_value_canonical hEvalTy with ⟨k, hEvalX1⟩
   change __smtx_model_eval M (SmtTerm.bvule (__eo_to_smt x1) (__eo_to_smt x1)) =
     SmtValue.Boolean true
-  rw [__smtx_model_eval.eq_bvule, hEvalX1]
+  rw [__smtx_model_eval.eq_57, hEvalX1]
   simp [__smtx_model_eval_bvule, __smtx_model_eval_bvuge,
     __smtx_model_eval_bvugt, __smtx_model_eval_eq, __smtx_model_eval_or,
     native_zlt, native_veq, native_or]
@@ -146,7 +146,7 @@ private theorem facts___eo_prog_bv_ule_self_impl
         __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) =
           SmtValue.Boolean true := by
       change __smtx_model_eval M (SmtTerm.Boolean true) = SmtValue.Boolean true
-      rw [__smtx_model_eval.eq_Boolean]
+      rw [__smtx_model_eval.eq_1]
     change RuleProofs.smt_value_rel
       (__smtx_model_eval M
         (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) x1) x1)))

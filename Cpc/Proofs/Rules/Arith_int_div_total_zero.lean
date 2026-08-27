@@ -51,7 +51,7 @@ private theorem typeof_arg_of_prog_arith_int_div_total_zero_bool
 private theorem eval_numeral (M : SmtModel) (n : Int) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral n)) = SmtValue.Numeral n := by
   change __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n
-  rw [__smtx_model_eval.eq_Numeral]
+  rw [__smtx_model_eval.eq_2]
 
 private theorem typed___eo_prog_arith_int_div_total_zero_impl
     (t1 : Term) :
@@ -72,7 +72,7 @@ private theorem typed___eo_prog_arith_int_div_total_zero_impl
         SmtType.Int := by
     have hNumTy : __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
       change __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int
-      rw [__smtx_typeof.eq_Numeral]
+      rw [__smtx_typeof.eq_2]
     rw [eo_to_smt_div_total_eq]
     rw [typeof_div_total_eq]
     simp [native_ite, native_Teq, hSmtT1, hNumTy]
@@ -86,7 +86,7 @@ private theorem typed___eo_prog_arith_int_div_total_zero_impl
     (by
       rw [hLhsTy]
       change SmtType.Int = __smtx_typeof (SmtTerm.Numeral 0)
-      rw [__smtx_typeof.eq_Numeral]) hLhsTrans
+      rw [__smtx_typeof.eq_2]) hLhsTrans
 
 private theorem facts___eo_prog_arith_int_div_total_zero_impl
     (M : SmtModel) (hM : model_total_typed M) (t1 : Term) :
@@ -124,7 +124,7 @@ private theorem facts___eo_prog_arith_int_div_total_zero_impl
           (__eo_to_smt (Term.Apply (Term.Apply Term.div_total t1) (Term.Numeral 0))) =
         SmtValue.Numeral 0 := by
     rw [eo_to_smt_div_total_eq]
-    rw [__smtx_model_eval.eq_div_total]
+    rw [__smtx_model_eval.eq_31]
     rw [hEvalT1, hEval0]
     simp [__smtx_model_eval_div_total]
     simp [SmtEval.native_div_total]

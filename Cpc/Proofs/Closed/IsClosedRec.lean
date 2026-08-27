@@ -3011,7 +3011,7 @@ theorem typeof_bvnot_eq_closed
   __smtx_typeof (SmtTerm.bvnot t) =
     __smtx_typeof_bv_op_1 (__smtx_typeof t) :=
 by
-  rw [__smtx_typeof.eq_bvnot]
+  rw [__smtx_typeof.eq_39]
 
 theorem bvnot_arg_has_smt_translation_of_has_smt_translation
     {x : Term}
@@ -3031,14 +3031,14 @@ theorem typeof_bvneg_eq_closed
   __smtx_typeof (SmtTerm.bvneg t) =
     __smtx_typeof_bv_op_1 (__smtx_typeof t) :=
 by
-  rw [__smtx_typeof.eq_bvneg]
+  rw [__smtx_typeof.eq_47]
 
 theorem typeof_bvnego_eq_closed
     (t : SmtTerm) :
   __smtx_typeof (SmtTerm.bvnego t) =
     __smtx_typeof_bv_op_1_ret (__smtx_typeof t) SmtType.Bool :=
 by
-  rw [__smtx_typeof.eq_bvnego]
+  rw [__smtx_typeof.eq_72]
 
 theorem bvneg_arg_has_smt_translation_of_has_smt_translation
     {x : Term}

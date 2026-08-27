@@ -1220,7 +1220,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                 unfold term_has_non_none_type
                 simpa [hTranslate] using hNN
               have hArgs := bool_binop_args_bool_of_non_none
-                (op := SmtTerm.and) (__smtx_typeof.eq_and (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
+                (op := SmtTerm.and) (__smtx_typeof.eq_7 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
               have h1NN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
                 rw [hArgs.1]
                 simp
@@ -1253,7 +1253,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                   unfold term_has_non_none_type
                   simpa [hTranslate] using hNN
                 have hArgs := bool_binop_args_bool_of_non_none
-                  (op := SmtTerm.imp) (__smtx_typeof.eq_imp (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
+                  (op := SmtTerm.imp) (__smtx_typeof.eq_9 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
                 have h1NN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
                   rw [hArgs.1]
                   simp

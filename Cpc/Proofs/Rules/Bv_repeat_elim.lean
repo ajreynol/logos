@@ -226,7 +226,7 @@ private theorem bv_list_repeat_rec_eval_eq_repeat_rec
         simp [__eo_nil]
         change __smtx_model_eval M (SmtTerm.Binary 0 0) =
           SmtValue.Binary 0 0
-        rw [__smtx_model_eval.eq_Binary]
+        rw [__smtx_model_eval.eq_5]
   | succ n ih =>
       have hTailNe := bv_list_repeat_rec_ne_stuck a w haTy n
       rw [bv_list_repeat_rec_succ_eq a hANe n]
@@ -239,7 +239,7 @@ private theorem bv_list_repeat_rec_eval_eq_repeat_rec
           SmtTerm.concat (__eo_to_smt a)
             (__eo_to_smt
               (__eo_list_repeat_rec (Term.UOp UserOp.concat) a n)) by rfl]
-      rw [__smtx_model_eval.eq_concat, __smtx_repeat_rec]
+      rw [__smtx_model_eval.eq_36, __smtx_repeat_rec]
       rw [ih]
 
 private theorem bv_list_repeat_singleton_eval_eq_repeat_rec
@@ -267,7 +267,7 @@ private theorem bv_list_repeat_singleton_eval_eq_repeat_rec
           native_teq, native_not, SmtEval.native_not]
         change __smtx_model_eval M (SmtTerm.Binary 0 0) =
           SmtValue.Binary 0 0
-        rw [__smtx_model_eval.eq_Binary]
+        rw [__smtx_model_eval.eq_5]
   | succ n =>
       cases n with
       | zero =>
@@ -320,7 +320,7 @@ private theorem bv_list_repeat_singleton_eval_eq_repeat_rec
           -- v4.33 `simp` already leaves the concat translated, so the explicit
           -- `rw` is redundant; only the `succ`/`+ 1` spelling has to be aligned.
           simp only [Nat.succ_eq_add_one] at hTailEval
-          rw [__smtx_model_eval.eq_concat, __smtx_repeat_rec]
+          rw [__smtx_model_eval.eq_36, __smtx_repeat_rec]
           rw [hTailEval]
 
 private theorem bv_repeat_elim_eval_rel
@@ -380,7 +380,7 @@ private theorem bv_repeat_elim_eval_rel
     type_preservation M hM (__eo_to_smt a) hANN
   rw [haTy] at hEvalTy
   rcases bitvec_value_canonical hEvalTy with ⟨payload, hEvalA⟩
-  rw [__smtx_model_eval.eq_repeat, __smtx_model_eval.eq_Numeral, hEvalA]
+  rw [__smtx_model_eval.eq_38, __smtx_model_eval.eq_2, hEvalA]
   simp [__smtx_model_eval_repeat]
   exact RuleProofs.smt_value_rel_refl _
 

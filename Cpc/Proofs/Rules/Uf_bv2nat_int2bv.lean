@@ -349,7 +349,7 @@ private theorem eval_lhs_matches_t
   rw [smtx_eval_int_to_bv_term_eq, smtx_eval_ubv_to_int_term_eq, hEvalT]
   have hEvalN :
       __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n := by
-    rw [__smtx_model_eval.eq_Numeral]
+    rw [__smtx_model_eval.eq_2]
   rw [hEvalN]
   simp [__smtx_model_eval_ubv_to_int, __smtx_model_eval_int_to_bv, hMod]
 

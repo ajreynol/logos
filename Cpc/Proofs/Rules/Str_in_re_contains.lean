@@ -113,7 +113,7 @@ private theorem smtx_typeof_empty_str_to_re :
       SmtType.RegLan := by
   change __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String [])) = SmtType.RegLan
   rw [typeof_str_to_re_eq]
-  simp [__smtx_typeof.eq_String, native_string_valid, native_ite, native_Teq]
+  simp [__smtx_typeof.eq_4, native_string_valid, native_ite, native_Teq]
 
 private theorem smtx_typeof_contains_regex
     (s : Term)

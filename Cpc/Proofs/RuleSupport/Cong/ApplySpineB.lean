@@ -264,7 +264,7 @@ theorem congTrueSpine_or_eq_true
     __smtx_model_eval_or
     (by intro a b; rfl)
     smt_typeof_or_args_bool_of_non_none
-    (by intro a b; rw [__smtx_model_eval.eq_or])
+    (by intro a b; rw [__smtx_model_eval.eq_8])
     x₁ x₂ rhs
 
 theorem congTypeSpine_or_eq_has_bool_type
@@ -296,7 +296,7 @@ theorem congTrueSpine_imp_eq_true
     __smtx_model_eval_imp
     (by intro a b; rfl)
     smt_typeof_imp_args_bool_of_non_none
-    (by intro a b; rw [__smtx_model_eval.eq_imp])
+    (by intro a b; rw [__smtx_model_eval.eq_10])
     x₁ x₂ rhs
 
 theorem congTypeSpine_imp_eq_has_bool_type
@@ -328,7 +328,7 @@ theorem congTrueSpine_xor_eq_true
     __smtx_model_eval_xor
     (by intro a b; rfl)
     smt_typeof_xor_args_bool_of_non_none
-    (by intro a b; rw [__smtx_model_eval.eq_xor])
+    (by intro a b; rw [__smtx_model_eval.eq_11])
     x₁ x₂ rhs
 
 theorem congTypeSpine_xor_eq_has_bool_type

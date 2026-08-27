@@ -80,7 +80,7 @@ private theorem typed___eo_prog_re_plus_elim_impl
   have hEmpTy : __smtx_typeof (__eo_to_smt (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))) = SmtType.RegLan := by
     change __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String (native_string_lit ""))) = SmtType.RegLan
     rw [typeof_str_to_re_eq]
-    simp [__smtx_typeof.eq_String, native_ite, native_Teq, native_string_valid,
+    simp [__smtx_typeof.eq_4, native_ite, native_Teq, native_string_valid,
       native_string_lit]
   have hInnerConcatTranslate :
       __eo_to_smt
@@ -190,7 +190,7 @@ private theorem facts___eo_prog_re_plus_elim_impl
         SmtValue.Seq (native_pack_string (native_string_lit "")) := by
     change __smtx_model_eval M (SmtTerm.String (native_string_lit "")) =
       SmtValue.Seq (native_pack_string (native_string_lit ""))
-    rw [__smtx_model_eval.eq_String]
+    rw [__smtx_model_eval.eq_4]
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_plus a1)) =
         __smtx_model_eval M
@@ -199,8 +199,8 @@ private theorem facts___eo_prog_re_plus_elim_impl
               (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
                 (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))))) := by
     rw [hLhsTranslate, hRhsTranslate, hInnerConcatTranslate, hStarTranslate, hEmpTranslate]
-    rw [__smtx_model_eval.eq_re_plus, __smtx_model_eval.eq_re_concat,
-      __smtx_model_eval.eq_re_concat, __smtx_model_eval.eq_re_mult, __smtx_model_eval.eq_str_to_re]
+    rw [__smtx_model_eval.eq_109, __smtx_model_eval.eq_114,
+      __smtx_model_eval.eq_114, __smtx_model_eval.eq_108, __smtx_model_eval.eq_107]
     simpa [hEmptyStringEval] using
       smtx_model_eval_re_plus_elim (__smtx_model_eval M (__eo_to_smt a1))
   rw [hProg]

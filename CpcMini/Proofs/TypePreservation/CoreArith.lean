@@ -18,20 +18,20 @@ theorem typeof_ite_eq
     (c t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.ite c t1 t2) =
       __smtx_typeof_ite (__smtx_typeof c) (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_ite]
+  rw [__smtx_typeof.eq_11]
 
 /-- Rewrites the typing equation for `eq`. -/
 theorem typeof_eq_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.eq t1 t2) =
       __smtx_typeof_eq (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_eq]
+  rw [__smtx_typeof.eq_10]
 
 /-- Rewrites the typing equation for `not`. -/
 theorem typeof_not_eq (t : SmtTerm) :
     __smtx_typeof (SmtTerm.not t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Bool) SmtType.Bool SmtType.None := by
-  rw [__smtx_typeof.eq_not]
+  rw [__smtx_typeof.eq_6]
 
 /-- Rewrites the typing equation for `or`. -/
 theorem typeof_or_eq (t1 t2 : SmtTerm) :
@@ -39,7 +39,7 @@ theorem typeof_or_eq (t1 t2 : SmtTerm) :
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_or]
+  rw [__smtx_typeof.eq_8]
 
 /-- Rewrites the typing equation for `and`. -/
 theorem typeof_and_eq (t1 t2 : SmtTerm) :
@@ -47,7 +47,7 @@ theorem typeof_and_eq (t1 t2 : SmtTerm) :
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_and]
+  rw [__smtx_typeof.eq_7]
 
 /-- Rewrites the typing equation for `imp`. -/
 theorem typeof_imp_eq (t1 t2 : SmtTerm) :
@@ -55,7 +55,7 @@ theorem typeof_imp_eq (t1 t2 : SmtTerm) :
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_imp]
+  rw [__smtx_typeof.eq_9]
 
 /-- Derives `bool_binop_args_bool` from `non_none`. -/
 theorem bool_binop_args_bool_of_non_none

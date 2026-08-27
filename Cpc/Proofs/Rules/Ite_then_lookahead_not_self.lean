@@ -121,7 +121,7 @@ private theorem facts___eo_prog_ite_then_lookahead_not_self_impl
     · simpa [__smtx_model_eval_ite] using
         RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt x1))
     · simpa [__smtx_model_eval_ite, smtx_eval_not_term_eq, __smtx_model_eval_not,
-        SmtEval.native_not, hEvalC1, __smtx_model_eval.eq_Boolean] using
+        SmtEval.native_not, hEvalC1, __smtx_model_eval.eq_1] using
         RuleProofs.smt_value_rel_refl (SmtValue.Boolean false)
 
 public theorem cmd_step_ite_then_lookahead_not_self_properties

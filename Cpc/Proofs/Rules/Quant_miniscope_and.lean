@@ -189,7 +189,7 @@ private theorem smtx_typeof_eo_to_smt_stuck_none :
 private theorem smtx_typeof_eo_to_smt_true_bool :
     __smtx_typeof (__eo_to_smt (Term.Boolean true)) = SmtType.Bool := by
   change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
-  rw [__smtx_typeof.eq_Boolean]
+  rw [__smtx_typeof.eq_1]
 
 private theorem smtx_model_eval_eo_true
     (M : SmtModel) :
@@ -197,7 +197,7 @@ private theorem smtx_model_eval_eo_true
       SmtValue.Boolean true := by
   change __smtx_model_eval M (SmtTerm.Boolean true) =
     SmtValue.Boolean true
-  rw [__smtx_model_eval.eq_Boolean]
+  rw [__smtx_model_eval.eq_1]
 
 private theorem qforall_non_nil_of_non_none
     (x F : Term) :

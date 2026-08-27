@@ -6061,8 +6061,8 @@ private theorem eval_step_extract
       __smtx_model_eval M
         (SmtTerm.extract (SmtTerm.Numeral ui)
           (SmtTerm.Numeral li) (__eo_to_smt a))
-  rw [smtx_eval_extract_term_eq, __smtx_model_eval.eq_Numeral,
-    __smtx_model_eval.eq_Numeral, hx]
+  rw [smtx_eval_extract_term_eq, __smtx_model_eval.eq_2,
+    __smtx_model_eval.eq_2, hx]
   have hp0 : (0 : Int) ≤ (x.toNat : Int) := Int.natCast_nonneg _
   have hp1 : (x.toNat : Int) < (2 : Int) ^ W := by
     exact_mod_cast x.isLt
