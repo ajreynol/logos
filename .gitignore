@@ -1,8 +1,9 @@
 /.lake
 
-# Downloaded and built by scripts/get-eo-compiler.sh: the ethos source tree,
-# ethos-eoc, the CPC signature from cvc5, and the compiler's staged output.
-/deps
+# Downloaded and built by install/get-eo-compiler.sh: the ethos source tree,
+# ethos-eoc, and the compiler's staged output. What is kept in git instead is
+# install/defs, the signature those compile.
+/install/deps
 
 # LaTeX build artifacts (see docs/Makefile)
 docs/*.aux

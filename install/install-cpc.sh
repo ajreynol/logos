@@ -4,7 +4,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/install-cpc.sh [OPTION]...
+Usage: install/install-cpc.sh [OPTION]...
 
 Compile a Eunoia signature with ethos-eoc and install the Lean files it
 generates into a package of this repository, by default Cpc.
@@ -22,29 +22,30 @@ what makes a newly added rule of the calculus visible here as an obligation.
 Pass --overwrite-rules to replace them instead, which discards proofs.
 
 The signature to compile is always named with --signature. It is not
-something scripts/get-eo-compiler.sh fetches, so any signature reachable on
+something install/get-eo-compiler.sh fetches, so any signature reachable on
 this machine -- a cvc5 checkout, or one being worked on locally -- can be
 compiled without downloading anything.
 
 A copy of the signature the packages here were last compiled from is kept in
-this repository as a single file, signatures/Cpc.eo, with every (include ...)
-of the original spliced in and the comments of the original dropped. --cached compiles that copy, which is how the
-packages can be regenerated, and checked, without a cvc5 checkout at all; it
-is what CI does. --update-cache rewrites the copy from --signature and needs
-no compiler. Run it with the install that used that signature, so that the
-copy stays the one the packages actually came from.
+this repository as a single file, install/defs/Cpc.eo, with every (include ...)
+of the original spliced in and its comments dropped. --cached compiles that
+copy, which is how the packages can be regenerated, and checked, without a
+cvc5 checkout at all; it is what CI does. --update-cache rewrites the copy
+from --signature and needs no compiler. Run it with the install that used that
+signature, so that the copy stays the one the packages actually came from.
 
-The compiler comes from deps/eoc-env.sh, written by scripts/get-eo-compiler.sh,
-unless --ethos names another ethos tree.
+The compiler comes from install/deps/eoc-env.sh, which
+install/get-eo-compiler.sh writes, unless --ethos names another ethos tree.
 
 Options:
   --signature PATH     the Eunoia signature to compile, e.g.
                        <cvc5>/proofs/eo/cpc/Cpc.eo. Required unless --cached
                        names the copy kept here instead
   --ethos PATH         an ethos source tree containing tools/eoc/driver.py
-                       (default: the one recorded in deps/eoc-env.sh). Also
-                       redirects --build-dir, --defs and --lean-config to that
-                       tree, so a local checkout is never mixed with deps/
+                       (default: the one install/deps/eoc-env.sh records).
+                       Also redirects --build-dir, --defs and --lean-config to
+                       that tree, so a local checkout is never mixed with
+                       install/deps/
   --cached             compile the copy of the signature kept in this
                        repository instead of naming one with --signature
   --update-cache       do not install: rewrite that copy from the signature
@@ -52,7 +53,7 @@ Options:
                        includes and dropping every comment, and exit. No
                        compiler is needed for this
   --cache PATH         where that copy lives
-                       (default: <repo>/signatures/Cpc.eo)
+                       (default: <install>/defs/Cpc.eo)
   --package NAME       the package under this repository to install into
                        (default: Cpc)
   --mini               shorthand for the reduced package: --package CpcMini
@@ -77,17 +78,17 @@ Options:
   --build-dir DIR      the ethos-eoc build tree
   --out-dir DIR        where to stage what the compiler publishes before it is
                        installed (default: <deps>/eoc-out)
-  --deps-dir DIR       where deps/eoc-env.sh is (default: <repo>/deps)
+  --deps-dir DIR       where eoc-env.sh is (default: <install>/deps)
   --jobs N             parallel compile jobs if ethos-eoc has to be built
   -h, --help           show this message
 
 Examples:
-  scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
-  scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
-  scripts/install-cpc.sh --cached
-  scripts/install-cpc.sh --cached --check
-  scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
-  scripts/install-cpc.sh --signature ~/sig.eo --package Mine --no-parser \
+  install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
+  install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
+  install/install-cpc.sh --cached
+  install/install-cpc.sh --cached --check
+  install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
+  install/install-cpc.sh --signature ~/sig.eo --package Mine --no-parser \
     --rules symm refl trans
 USAGE
 }
@@ -157,8 +158,8 @@ done
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
-DEPS_DIR="${DEPS_DIR:-${repo_root}/deps}"
-CACHE_FILE="${CACHE_FILE:-${repo_root}/signatures/Cpc.eo}"
+DEPS_DIR="${DEPS_DIR:-${script_dir}/deps}"
+CACHE_FILE="${CACHE_FILE:-${repo_root}/install/defs/Cpc.eo}"
 
 # What get-eo-compiler.sh installed, if it has been run. Anything named on the
 # command line wins over it.
@@ -168,8 +169,8 @@ if [ -f "${ENV_FILE}" ]; then
   source "${ENV_FILE}"
 fi
 
-# --ethos names a tree that is not the one deps/eoc-env.sh describes, so the
-# recorded build directory, defs and lean config belong to a different ethos
+# --ethos names a tree that is not the one install/deps/eoc-env.sh describes,
+# so the recorded build directory, defs and lean config belong to another ethos
 # and must not be used as defaults for it. Deriving them from the named tree
 # instead is what keeps a local-checkout run from silently mixing the two:
 # the binary under the recorded build dir resolves its templates against the
@@ -192,7 +193,9 @@ signature_provenance() {
   dir="$(cd "$(dirname "$1")" && pwd)"
   sig="${dir}/$(basename "$1")"
   if ! top="$(git -C "${dir}" rev-parse --show-toplevel 2>/dev/null)"; then
-    printf '%s, from a directory that is not a git checkout, so the version\n;   it came from is not recorded here\n' "$(basename "${sig}")"
+    printf '%s, from a directory that is not a git checkout,\n' \
+      "$(basename "${sig}")"
+    printf ';   so the version it came from is not recorded here\n'
     return
   fi
   rel="${sig#"${top}"/}"
@@ -225,7 +228,7 @@ INCLUDE_RE = re.compile(r'^\(include\s+"([^"]+)"\s*\)')
 UNSPLICEABLE_RE = re.compile(r"^\((include|reference)\b")
 
 HEADER = """\
-; This file is generated by scripts/install-cpc.sh --update-cache. Do not edit
+; This file is generated by install/install-cpc.sh --update-cache. Do not edit
 ; it, and do not read it as the upstream signature: it is a copy of one.
 ;
 ; It is the Eunoia signature that the Cpc and CpcMini packages of this
@@ -367,7 +370,7 @@ fi
 
 if [ -z "${SIGNATURE}" ]; then
   echo "error: no signature to compile. Name one with --signature, e.g." >&2
-  echo "  scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo" >&2
+  echo "  install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo" >&2
   echo "or compile the copy kept in this repository with --cached." >&2
   exit 2
 fi
@@ -388,14 +391,14 @@ if [ "${UPDATE_CACHE}" = "1" ]; then
 Nothing was compiled and no package was installed. Check that the packages
 match what was just recorded with:
 
-  scripts/install-cpc.sh --cached --check
-  scripts/install-cpc.sh --cached --mini --check
+  install/install-cpc.sh --cached --check
+  install/install-cpc.sh --cached --mini --check
 DONE
   exit 0
 fi
 
 if [ -z "${ETHOS_DIR}" ]; then
-  echo "error: no ethos tree to work from. Run scripts/get-eo-compiler.sh" >&2
+  echo "error: no ethos tree to work from. Run install/get-eo-compiler.sh" >&2
   echo "first, or name one with --ethos. See --help." >&2
   exit 1
 fi
@@ -662,7 +665,7 @@ if [ -n "${cache_note}" ]; then
 ${CACHE_FILE}
 is what CI compiles, so record this signature there as well with:
 
-  scripts/install-cpc.sh --signature ${SIGNATURE} --update-cache
+  install/install-cpc.sh --signature ${SIGNATURE} --update-cache
 
 NOTE
 fi

@@ -1,14 +1,16 @@
-# Regeneration scripts
+# Regenerating the calculus
 
-The `Cpc` and `CpcMini` packages are compiled from the Eunoia definition of CPC,
-not written by hand. Two scripts do that compilation and install the result:
+The `Cpc` and `CpcMini` packages are compiled from the Eunoia definition of
+CPC, not written by hand. This directory is everything that compilation takes:
 
 ```text
-scripts/get-eo-compiler.sh   fetch and build the compiler
-scripts/install-cpc.sh       compile a signature and install the Lean it emits
+install/install-cpc.sh       compile a signature and install the Lean it emits
+install/get-eo-compiler.sh   fetch and build the compiler
+install/defs/Cpc.eo          the signature they compile, kept in git
+install/deps/                the Ethos tree and the compiler built from it
 ```
 
-They drive Ethos through its public interface, `tools/eoc/driver.py`.
+The scripts drive Ethos through its public interface, `tools/eoc/driver.py`.
 Nothing they use depends on an unreleased Ethos branch: `driver.py` and the
 `lean_meta` templates have been on Ethos `main` since
 [#229](https://github.com/cvc5/ethos/pull/229).
@@ -17,20 +19,22 @@ The two are layered, and split along one line: `get-eo-compiler.sh` sets up the
 *compiler*, `install-cpc.sh` compiles a *signature*.
 
 `get-eo-compiler.sh` puts an Ethos tree and an `ethos-eoc` built from it under
-`deps/`, and records where each landed in `deps/eoc-env.sh`. It fetches nothing
-else — in particular no signature, and nothing from cvc5. `install-cpc.sh`
-reads that file, so the signature is the only thing it has to be told. It is
-also usable against an Ethos checkout you already have, via `--ethos`.
+`install/deps/`, and records where each landed in `install/deps/eoc-env.sh`. It
+fetches nothing else — in particular no signature, and nothing from cvc5.
+`install-cpc.sh` reads that file, so the signature is the only thing it has to
+be told. It is also usable against an Ethos checkout you already have, via
+`--ethos`.
 
-`deps/` is ignored by git.
+`install/deps/` is ignored by git. `install/defs/` is not: see [The cached
+signature](#the-cached-signature).
 
 ## Usage
 
 ```bash
-scripts/get-eo-compiler.sh                                  # once
-scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
-scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
-scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
+install/get-eo-compiler.sh                                  # once
+install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
+install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
+install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
 scripts/build.sh Cpc CpcMini                                # check the result
 ```
 
@@ -40,21 +44,21 @@ naming one is `--cached`, which compiles the copy this repository keeps of the
 signature the packages came from:
 
 ```bash
-scripts/install-cpc.sh --cached          # regenerate Cpc from that copy
-scripts/install-cpc.sh --cached --check  # ask whether Cpc still matches it
+install/install-cpc.sh --cached          # regenerate Cpc from that copy
+install/install-cpc.sh --cached --check  # ask whether Cpc still matches it
 ```
 
 Working against an Ethos checkout you already have, with no download at all:
 
 ```bash
-scripts/install-cpc.sh \
+install/install-cpc.sh \
   --ethos ~/ethos \
   --signature ~/cvc5/proofs/eo/cpc/Cpc.eo
 ```
 
 `--ethos` redirects the whole tree, not just the driver: the build directory,
 the `--defs` file and the `--lean-config` file are all taken from the tree it
-names, in preference to whatever `deps/eoc-env.sh` recorded. That matters
+names, in preference to what `install/deps/eoc-env.sh` recorded. That matters
 because `ethos-eoc` resolves its templates against the source tree it was
 configured from, so a run that mixed the two would compile against the wrong
 templates and still exit 0.
@@ -118,7 +122,7 @@ rules — `Logos.lean` loses the `__eo_cmd_step` cases of every other rule,
 `Spec.lean` and `SmtModel.lean` shrink to match.
 
 `install-cpc.sh` installs those reduced modules over the full ones. Running
-`scripts/install-cpc.sh --rules symm` against `Cpc` therefore guts the package
+`install/install-cpc.sh --rules symm` against `Cpc` therefore guts the package
 rather than refreshing one rule. Use `--rules` with `--package`/`--mini` to
 build a deliberately reduced package, and a full run for `Cpc`.
 
@@ -129,7 +133,7 @@ write, and installs nothing. It exits 0 only if the package already matches,
 and 1 if anything at all would change, listing what:
 
 ```console
-$ scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --check
+$ install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --check
   update  Cpc/Logos.lean
   add     Cpc/Proofs/Rules/NewRule.lean
 
@@ -161,12 +165,12 @@ available on its own if the reduced package ever needs a different shape.
 
 ## The cached signature
 
-`signatures/Cpc.eo` is a copy of the signature the packages here were compiled
-from, kept in this repository as a *single file*: every `(include "...")` of
-the original replaced by the text of the file it names, each file appearing
-once and in the order Ethos reads them, and the comments of the original
-dropped. Compiling it produces the same Lean as compiling the original tree,
-byte for byte, so it is the signature and not a summary of one.
+`install/defs/Cpc.eo` is a copy of the signature the packages here were
+compiled from, kept in this repository as a *single file*: every
+`(include "...")` of the original replaced by the text of the file it names,
+each file appearing once and in the order Ethos reads them, and the comments
+of the original dropped. Compiling it produces the same Lean as compiling the
+original tree, byte for byte, so it is the signature and not a summary of one.
 
 Comments go because the upstream file is where the prose belongs, and a copy
 that carried it would turn every rewording upstream into a diff here. What is
@@ -182,8 +186,8 @@ answers it with no cvc5 anywhere in sight, which is what the `regeneration` CI
 group does:
 
 ```bash
-scripts/install-cpc.sh --cached --check
-scripts/install-cpc.sh --cached --mini --check
+install/install-cpc.sh --cached --check
+install/install-cpc.sh --cached --mini --check
 ```
 
 The flattening follows the same rules the compiler does. A file is spliced in
@@ -196,19 +200,24 @@ knows what a comment is: a `;` inside a string literal or a `|quoted symbol|`
 is content, and a line that begins inside either is passed through as it
 stands.
 
+Do not read `install/defs/` as the `--defs` option, which is a different file:
+that one is Ethos's `cpc_defs.eo`, the deep-embedding definitions the
+model-smt stage reads, and it arrives with the compiler under `install/deps/`.
+What is here is the signature itself.
+
 Rewrite it whenever the packages are regenerated from a signature that has
 moved:
 
 ```bash
-scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo             # install
-scripts/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
+install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo   # install
+install/install-cpc.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --update-cache
 ```
 
 `--update-cache` reads nothing but the signature, so it needs no compiler and
-no `deps/`. An install from a signature that is not the cached one ends by
-saying so, since forgetting the second command is what makes CI compile a
-signature the packages were never generated from. The header of the file
-records where it was read from and the commit that checkout was at.
+no `install/deps/`. An install from a signature that is not the cached one
+ends by saying so, since forgetting the second command is what makes CI
+compile a signature the packages were never generated from. The header of the
+file records where it was read from and the commit that checkout was at.
 
 ## Why the compiler is built rather than downloaded
 
@@ -245,8 +254,8 @@ The CPC signature happens to be maintained in the cvc5 repository, at
 What the compiler consumes is Eunoia *source text*, not a solver: no cvc5
 binary and no cvc5 build is involved. Note that `Cpc.eo` includes the rest of
 `proofs/eo` by relative path, so `--signature` needs to name a file sitting in
-a complete copy of that subtree. `signatures/Cpc.eo` is that subtree written as
-one file, which is why `--cached` needs nothing outside this repository.
+a complete copy of that subtree. `install/defs/Cpc.eo` is that subtree written
+as one file, which is why `--cached` needs nothing outside this repository.
 
 ## Pinning
 
@@ -256,9 +265,9 @@ moves the pin deliberately. It is currently
 `b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6` — "Add core Eunoia compiler
 infrastructure (#229)". To move it, edit that line and re-run both scripts.
 
-The signature is pinned by copy rather than by version: `signatures/Cpc.eo` is
-the one the packages were compiled from, and `--cached` compiles exactly that.
-`--signature` is still whatever you point it at, so a run against a checkout
-compiles that checkout; what the copy fixes is the version everything is
-*checked* against, which is why moving to a newer signature means running
+The signature is pinned by copy rather than by version: `install/defs/Cpc.eo`
+is the one the packages were compiled from, and `--cached` compiles exactly
+that. `--signature` is still whatever you point it at, so a run against a
+checkout compiles that checkout; what the copy fixes is the version everything
+is *checked* against, which is why moving to a newer signature means running
 `--update-cache` as well.

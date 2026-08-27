@@ -4,19 +4,19 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/get-eo-compiler.sh [OPTION]...
+Usage: install/get-eo-compiler.sh [OPTION]...
 
-Download and build the Eunoia compiler that scripts/install-cpc.sh runs: the
+Download and build the Eunoia compiler that install/install-cpc.sh runs: the
 ethos source tree, pinned to the commit recorded in ETHOS_VERSION below, and
 ethos-eoc built from the standalone project in its plugins/ directory.
 
-Both are placed under deps/ (see --deps-dir) and the resulting paths and
-version are recorded in deps/eoc-env.sh, which scripts/install-cpc.sh reads so
-that the signature is the only thing it has to be told.
+Both are placed under install/deps/ (see --deps-dir) and the resulting paths
+and version are recorded in install/deps/eoc-env.sh, which install-cpc.sh reads
+so that the signature is the only thing it has to be told.
 
 This sets up the compiler and nothing else. The Eunoia signature to compile is
 not fetched here and is not a concern of this script; name one with --signature
-when running scripts/install-cpc.sh.
+when running install/install-cpc.sh.
 
 ethos-eoc is always compiled here rather than downloaded. No release of ethos
 publishes it, and it reads its Lean and Eunoia templates out of the source tree
@@ -27,7 +27,7 @@ the compiler emits changes only when someone moves the pin deliberately. Move
 it by editing ETHOS_VERSION and re-running both scripts.
 
 Options:
-  --deps-dir DIR       where to put everything (default: <repo>/deps)
+  --deps-dir DIR       where to put everything (default: <install>/deps)
   --jobs N             parallel compile jobs (default: all processors)
   --keep-tmp           keep the downloaded archive instead of deleting it
   -h, --help           show this message
@@ -37,8 +37,8 @@ either wget or curl. On Debian and Ubuntu the GMP headers are libgmp-dev; on
 macOS with Homebrew they are gmp.
 
 Examples:
-  scripts/get-eo-compiler.sh
-  scripts/get-eo-compiler.sh --jobs 8
+  install/get-eo-compiler.sh
+  install/get-eo-compiler.sh --jobs 8
 USAGE
 }
 
@@ -65,8 +65,7 @@ while [ $# -gt 0 ]; do
 done
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd "${script_dir}/.." && pwd)"
-DEPS_DIR="${DEPS_DIR:-${repo_root}/deps}"
+DEPS_DIR="${DEPS_DIR:-${script_dir}/deps}"
 
 if [ -z "${JOBS}" ]; then
   if command -v nproc >/dev/null 2>&1; then
@@ -142,7 +141,7 @@ fi
 
 echo "==> Recording what was installed in ${DEPS_DIR}/eoc-env.sh"
 cat > "${DEPS_DIR}/eoc-env.sh" <<ENV
-# Written by scripts/get-eo-compiler.sh. Read by scripts/install-cpc.sh so that
+# Written by install/get-eo-compiler.sh. Read by install/install-cpc.sh so that
 # it only has to be told which signature to compile. Edit by re-running
 # get-eo-compiler.sh rather than by hand.
 #
@@ -168,7 +167,7 @@ cat <<DONE
 
 Compile a Eunoia signature with it by naming one, e.g.
 
-  scripts/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo
+  install/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo
 
 which reads ${DEPS_DIR}/eoc-env.sh for everything else.
 DONE

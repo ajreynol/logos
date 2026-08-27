@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v6
 
       # ethos-eoc is built here rather than downloaded; see
-      # scripts/get-eo-compiler.sh. cmake, a C++17 compiler and python3 are on
+      # install/get-eo-compiler.sh. cmake, a C++17 compiler and python3 are on
       # the runner already, the GMP headers are not.
       - name: Install the GMP development headers
         run: |
@@ -47,18 +47,18 @@ jobs:
       - name: Restore the Eunoia compiler
         uses: actions/cache@v5
         with:
-          path: deps
-          key: eoc-${{ runner.os }}-${{ hashFiles('scripts/get-eo-compiler.sh') }}
+          path: install/deps
+          key: eoc-${{ runner.os }}-${{ hashFiles('install/get-eo-compiler.sh') }}
 
       - name: Build the Eunoia compiler
         run: |
-          if [ -x deps/ethos/build-eoc/ethos-eoc ]; then
+          if [ -x install/deps/ethos/build-eoc/ethos-eoc ]; then
             echo "Reusing the compiler restored from the cache."
           else
-            bash scripts/get-eo-compiler.sh
+            bash install/get-eo-compiler.sh
           fi
 
-      # Compiles signatures/Cpc.eo, the copy of the signature this repository
+      # Compiles install/defs/Cpc.eo, the copy of the signature this repository
       # keeps, and fails if Cpc or CpcMini is not what comes out. Nothing from
       # cvc5 is fetched: the copy is the whole signature, in one file.
       - name: Check the generated packages against the cached signature
