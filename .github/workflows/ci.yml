@@ -24,6 +24,46 @@ jobs:
       - name: Reject proof escape hatches
         run: bash scripts/run-ci.sh proof-hygiene
 
+  regeneration:
+    name: regeneration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # ethos-eoc is built here rather than downloaded; see
+      # install/get-eo-compiler.sh. cmake, a C++17 compiler and python3 are on
+      # the runner already, the GMP headers are not.
+      - name: Install the GMP development headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgmp-dev
+
+      # Keyed on get-eo-compiler.sh, which is where the ethos commit is pinned,
+      # so moving the pin rebuilds and everything else reuses the build.
+      - name: Restore the Eunoia compiler
+        uses: actions/cache@v5
+        with:
+          path: install/deps
+          key: eoc-${{ runner.os }}-${{ hashFiles('install/get-eo-compiler.sh') }}
+
+      - name: Build the Eunoia compiler
+        run: |
+          if [ -x install/deps/ethos/build-eoc/ethos-eoc ]; then
+            echo "Reusing the compiler restored from the cache."
+          else
+            bash install/get-eo-compiler.sh
+          fi
+
+      # Compiles install/defs/Cpc.cached.eo, the copy of the signature this repository
+      # keeps, and fails if Cpc or CpcMini is not what comes out. Nothing from
+      # cvc5 is fetched: the copy is the whole signature, in one file.
+      - name: Check the generated packages against the cached signature
+        run: bash scripts/run-ci.sh regeneration
+
   checks:
     name: ${{ matrix.group }}
     runs-on: ubuntu-latest
@@ -67,6 +107,7 @@ jobs:
     needs:
       - checks
       - proof_hygiene
+      - regeneration
     runs-on: ubuntu-latest
     permissions: {}
     steps:
@@ -74,6 +115,7 @@ jobs:
         env:
           CHECKS_RESULT: ${{ needs.checks.result }}
           PROOF_HYGIENE_RESULT: ${{ needs.proof_hygiene.result }}
+          REGENERATION_RESULT: ${{ needs.regeneration.result }}
         run: |
           if [ "${CHECKS_RESULT}" != "success" ]; then
             echo "One or more CI groups did not pass: ${CHECKS_RESULT}" >&2
@@ -81,5 +123,9 @@ jobs:
           fi
           if [ "${PROOF_HYGIENE_RESULT}" != "success" ]; then
             echo "Proof hygiene did not pass: ${PROOF_HYGIENE_RESULT}" >&2
+            exit 1
+          fi
+          if [ "${REGENERATION_RESULT}" != "success" ]; then
+            echo "The regeneration check did not pass: ${REGENERATION_RESULT}" >&2
             exit 1
           fi

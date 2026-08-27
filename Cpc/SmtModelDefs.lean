@@ -36,7 +36,7 @@ inductive SmtType : Type where
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
-/- 
+/-
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where
@@ -191,7 +191,7 @@ inductive SmtTerm : Type where
 
 deriving Repr, DecidableEq, Inhabited
 
-/- 
+/-
 SMT-LIB values.
 -/
 inductive SmtValue : Type where
@@ -240,7 +240,7 @@ inductive SmtMap : Type where
   | default : SmtType -> SmtValue -> SmtMap
 deriving Repr, DecidableEq, Inhabited, Ord
 
-/- 
+/-
 SMT-LIB sequence values.
 -/
 inductive SmtSeq : Type where
