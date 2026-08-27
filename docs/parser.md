@@ -20,8 +20,7 @@ Because the configuration is generated, an operator's surface syntax comes from 
 declaration metadata.  The generic `.argList` arity implements Eunoia's `:arg-list` attribute:
 the surface arguments are gathered with the declared n-ary helper and passed as the annotated
 operator's single argument.  `scripts/check-parser-tables.py` checks that the generated table
-covers every operator and proof rule.  Generic arity behavior is tested separately; it is not
-inferred from calculus-specific term types.  Both checks run in the `regressions` CI group.
+covers every operator and proof rule; it runs in the `regressions` CI group.
 
 ## Commands
 

@@ -10,14 +10,20 @@ a standalone Lean formalization of the meaning of SMT-LIB terms that does not de
 on the checker and can be used on its own.
 See [Correctness](#correctness) below for what that proof establishes and what it still assumes.
 
+The calculus Logos checks is compiled from a definition written in *Eunoia*,
+the logical framework of the proof checker Ethos
+(https://github.com/cvc5/ethos), in which proof calculi are defined as
+*signatures*. The Cooperating Proof Calculus (CPC) is one such signature — the
+calculus in which cvc5 emits proofs, maintained at
+https://github.com/cvc5/cvc5/blob/main/proofs/eo/cpc/Cpc.eo.
+
 Logos has a fully functional CPC parser, meaning that it accepts the same syntax for proofs as Ethos
 (see [docs/parser.md](docs/parser.md)).
 However, Logos does not support arbitrary Eunoia signatures.
 Instead,
-the proof rules currently used by Logos are automatically generated from the current definition of the Cooperating Proof Calculus (CPC)
-(https://github.com/cvc5/cvc5/blob/main/proofs/eo/cpc/Cpc.eo).
-This compilation depends on plugins of the proof checker Ethos (https://github.com/cvc5/ethos).
-The definition of Logos is intended to evolve and remain in sync with the definition of Cpc
+the proof rules currently used by Logos are automatically generated from the current definition of CPC.
+This compilation depends on plugins of Ethos.
+The definition of Logos evolves and remains in sync with the definition of CPC
 as further reasoning capabilities are added to cvc5.
 See [Regenerating the calculus](#regenerating-the-calculus) for how to rerun that compilation.
 
@@ -27,37 +33,17 @@ See [Regenerating the calculus](#regenerating-the-calculus) for how to rerun tha
 scripts/build.sh logos
 ```
 
-The build script uses the Lean version pinned in `lean-toolchain`. On older
-Linux systems, it also detects when the Clang/LLVM binaries bundled with Lean
-cannot run against the host's glibc and automatically uses the host C compiler
-and archiver instead while retaining Lean's bundled link libraries. A direct
-Lake build is equivalent on supported hosts:
+The build script uses the Lean version pinned in `lean-toolchain`. A direct
+`lake build logos` is equivalent on supported hosts; the script additionally
+falls back to the host C compiler and archiver on older Linux systems, where
+Lean's bundled Clang cannot run against the host's glibc. The header of
+`scripts/lean-toolchain-env.sh` describes that fallback and what to do when it
+is not enough.
 
-```bash
-lake build logos
-```
-
-If a direct build fails with errors such as `GLIBC_2.27 not found` or
-`GLIBC_2.29 not found` from the toolchain's `bin/clang`, use the build script.
-It performs the equivalent of selecting the host tools with `LEAN_CC` and
-`LEAN_AR`, and also preserves the link-library paths from the Lean toolchain:
-
-```bash
-scripts/build.sh logos
-```
-
-This requires a working host C toolchain (GCC or Clang plus `ar`). Do not replace
-the system `libm.so.6` or glibc in place; use a newer container or build the
-pinned Lean toolchain locally if the host compiler fallback is unavailable.
-Official x86-64 Lean binaries require glibc 2.26 or newer; check the host with
-`getconf GNU_LIBC_VERSION`.
-
-There are two checker executables:
-
-- `logos` checks CPC proofs in s-expression syntax.
-- `logos-native` checks CPC proofs expressed as Lean evaluation scripts.
-
-The first build of a CPC executable takes roughly 3.5 minutes currently.
+The checker executable is `logos`; it checks CPC proofs in s-expression syntax.
+The first build of a CPC executable takes roughly 3.5 minutes currently. A
+second executable, `logos-native`, reads an internal input format; see
+[docs/lean-native-proofs.md](docs/lean-native-proofs.md).
 
 `CpcMini` is a cut-down calculus used to develop and test the proofs; it has no
 parser and no executable of its own.
@@ -142,17 +128,17 @@ See [`install/README.md`](install/README.md) for more details.
 
 ## Using the Logos checker
 
-The standard `logos` executable reads the s-expression (Eunoia) syntax emitted by
+The `logos` executable reads the s-expression (Eunoia) syntax emitted by
 `cvc5 --dump-proofs --proof-format=cpc`:
 
 ```bash
-lake exe logos examples/sexp/test-simple.cpc
+lake exe logos test/regress/sexp/test-simple.cpc
 ```
 
 After building, it can be run directly without invoking Lake:
 
 ```bash
-./.lake/build/bin/logos examples/sexp/test-simple.cpc
+./.lake/build/bin/logos test/regress/sexp/test-simple.cpc
 ```
 
 The executable accepts exactly one proof path and reports one of three outcomes:
@@ -178,17 +164,11 @@ For example, a CPC proof may contain:
 (step @p3 :rule contra :premises (@p0 @p2))
 ```
 
-The parser accepts the same proof syntax as Ethos.  Its structure, the commands and term
-syntax it supports, and how it lexes literals are described in
-[docs/parser.md](docs/parser.md).
+The structure of the parser, the commands and term syntax it supports, and how it lexes
+literals are described in [docs/parser.md](docs/parser.md).
 
 Note that Logos has not (yet) been optimized for performance, so it is significantly slower
 than performant proof checkers for SMT.
-
-Logos also accepts proofs written directly as Lean evaluation scripts, as emitted by
-`cvc5 --dump-proofs --proof-format=cpc-logos`.  These are checked by the `logos-native`
-executable; that format is described in
-[docs/lean-native-proofs.md](docs/lean-native-proofs.md).
 
 ## Correctness
 
@@ -225,8 +205,8 @@ about it:
 
 - `Cpc/Api.lean` is everything `logos` does with a proof file, as one function
   `Eo.logos_check_proof : String -> Except String Verdict`: parse the text, then
-  run the three checks that compute the theorem's components — the assumption
-  term `F`, the refutation check, and the two side conditions.
+  run the three checks that stand for the theorem's hypotheses — the refutation
+  check and the two side conditions.
 - `Cpc/ApiChecks.lean` proves that each check gives the component it stands for.
   In particular it proves that folding the guarded assumption push over the
   parser's list builds the same state as `__eo_invoke_assume_list` on the
@@ -257,13 +237,13 @@ the specification's `__eo_to_smt`, so the executable links the specification
 layer, even though the checker itself never consults it (the proof rules remain
 untyped syntactic manipulations, and the semantics is not used as an oracle).
 A proof that Logos accepts but whose side conditions fail is reported as
-`incomplete` rather than `correct` — `examples/sexp/test-declare-sort.cpc` is
+`incomplete` rather than `correct` — `test/regress/sexp/test-declare-sort.cpc` is
 one, since it declares a sort of arity 1 and the specification has no
 counterpart for a sort constructor applied to a sort.
 
 What is still outside the theorem: the s-expression reader and the parser
-(`Logos/Parser.lean`, `Cpc/Parser.lean`) are unverified, so the assumptions the
-theorem talks about are whatever they read out of the file, and Logos does not
+(`Logos/Sexp.lean`, `Logos/Parser.lean`, `Cpc/Parser.lean`) are unverified, so the
+assumptions the theorem talks about are whatever they read out of the file, and Logos does not
 compare them against an original input problem (`include` and `reference` are
 ignored).
 
