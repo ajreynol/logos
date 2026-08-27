@@ -6,35 +6,28 @@ usage() {
   cat <<'USAGE'
 Usage: install/install-cpc.sh [OPTION]... [SIGNATURE.eo]
 
-Compile a Eunoia signature into both generated packages of this repository,
-Cpc and CpcMini. It is install-sig.sh run twice -- once for the full calculus
-and once with --mini -- which is what keeps the two packages descriptions of
-the same signature rather than of whichever one each was last built from.
-
-The signature is a path ending in .eo, or --cached for the copy this
-repository keeps in install/defs:
+Regenerate both packages of this repository, Cpc and CpcMini, from a Eunoia
+signature:
 
   install/install-cpc.sh ~/cvc5/proofs/eo/cpc/Cpc.eo
+
+The run also records that signature in install/defs, which --cached then
+compiles in place of naming one:
+
   install/install-cpc.sh --cached
 
-Every option is handed to install-sig.sh, so anything it understands means the
-same here; see install/install-sig.sh --help for all of them. The ones this is
-usually run with:
-
-  --cached             compile the copy of the signature kept in install/defs
-  --check              do not install: report whether either package is out of
-                       date and exit 1 if either is. Both are checked whatever
-                       the first one says, so that one run names everything
-                       that is stale rather than the first thing it meets
-  --update-cache       do not install: record the signature in install/defs
+Options:
+  --cached             compile the recorded copy of the signature
+  --check              install nothing; report whether either package is out
+                       of date and exit 1 if either is. Both are checked
+  --update-cache       record the signature; install nothing
   --ethos PATH         an ethos source tree to compile with
+  --no-update-cache    leave the recorded copy as it is
   -h, --help           show this message
 
-Each run reports what it did to its own package; what the two of them add up
-to is said once, here, at the end. --mini and --package are refused rather
-than passed through, since which packages are installed is what this script
-is for. Reach for install-sig.sh directly to install one package, a reduced
-calculus, or a package of your own.
+Anything else is handed to install-sig.sh, which this runs once per package;
+see install/install-sig.sh --help. --mini and --package are refused, since
+which packages are installed is what this script decides.
 USAGE
 }
 
