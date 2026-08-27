@@ -300,14 +300,14 @@ theorem model_eval_extract_canonical
     simp [__smtx_model_eval_extract, value_canonical_notValue, value_canonical_binary_mod]
 
 theorem model_eval_repeat_rec_canonical :
-    ∀ n v, __smtx_value_canonical (__smtx_model_eval_repeat_rec n v)
+    ∀ n v, __smtx_value_canonical (__smtx_repeat_rec n v)
   | native_nat_zero, v => by
-      simp [__smtx_model_eval_repeat_rec, __smtx_value_canonical,
+      simp [__smtx_repeat_rec, __smtx_value_canonical,
         __smtx_value_canonical_bool, native_ite, native_zleq, native_zeq,
         native_mod_total, native_int_pow2, native_zexp_total]
   | native_nat_succ n, v => by
-      simpa [__smtx_model_eval_repeat_rec] using
-        model_eval_concat_canonical v (__smtx_model_eval_repeat_rec n v)
+      simpa [__smtx_repeat_rec] using
+        model_eval_concat_canonical v (__smtx_repeat_rec n v)
 
 theorem model_eval_repeat_canonical
     (v1 v2 : SmtValue) :
@@ -614,17 +614,17 @@ theorem model_eval_bvsdivo_canonical
 theorem model_eval_rotate_left_rec_canonical :
     ∀ n v,
       __smtx_value_canonical v ->
-        __smtx_value_canonical (__smtx_model_eval_rotate_left_rec n v)
+        __smtx_value_canonical (__smtx_rotate_left_rec n v)
   | native_nat_zero, v, hv => by
       cases v with
       | Binary w x =>
-          simpa [__smtx_model_eval_rotate_left_rec] using hv
+          simpa [__smtx_rotate_left_rec] using hv
       | _ =>
-          simp [__smtx_model_eval_rotate_left_rec, value_canonical_notValue]
+          simp [__smtx_rotate_left_rec, value_canonical_notValue]
   | native_nat_succ n, v, hv => by
       cases v with
       | Binary w x =>
-          simpa [__smtx_model_eval_rotate_left_rec] using
+          simpa [__smtx_rotate_left_rec] using
             model_eval_rotate_left_rec_canonical n
               (__smtx_model_eval_concat
                 (__smtx_model_eval_extract
@@ -635,22 +635,22 @@ theorem model_eval_rotate_left_rec_canonical :
                   (SmtValue.Numeral (native_zplus w (native_zneg 1))) (SmtValue.Binary w x)))
               (model_eval_concat_canonical _ _)
       | _ =>
-          simp [__smtx_model_eval_rotate_left_rec, value_canonical_notValue]
+          simp [__smtx_rotate_left_rec, value_canonical_notValue]
 
 theorem model_eval_rotate_right_rec_canonical :
     ∀ n v,
       __smtx_value_canonical v ->
-        __smtx_value_canonical (__smtx_model_eval_rotate_right_rec n v)
+        __smtx_value_canonical (__smtx_rotate_right_rec n v)
   | native_nat_zero, v, hv => by
       cases v with
       | Binary w x =>
-          simpa [__smtx_model_eval_rotate_right_rec] using hv
+          simpa [__smtx_rotate_right_rec] using hv
       | _ =>
-          simp [__smtx_model_eval_rotate_right_rec, value_canonical_notValue]
+          simp [__smtx_rotate_right_rec, value_canonical_notValue]
   | native_nat_succ n, v, hv => by
       cases v with
       | Binary w x =>
-          simpa [__smtx_model_eval_rotate_right_rec] using
+          simpa [__smtx_rotate_right_rec] using
             model_eval_rotate_right_rec_canonical n
               (__smtx_model_eval_concat
                 (__smtx_model_eval_extract (SmtValue.Numeral 0)
@@ -660,7 +660,7 @@ theorem model_eval_rotate_right_rec_canonical :
                   (SmtValue.Numeral 1) (SmtValue.Binary w x)))
               (model_eval_concat_canonical _ _)
       | _ =>
-          simp [__smtx_model_eval_rotate_right_rec, value_canonical_notValue]
+          simp [__smtx_rotate_right_rec, value_canonical_notValue]
 
 theorem model_eval_rotate_left_canonical
     (v1 v2 : SmtValue)
@@ -1299,11 +1299,11 @@ theorem model_eval_re_range_canonical
 
 theorem model_eval_re_exp_rec_canonical :
     ∀ n {v}, __smtx_value_canonical v ->
-      __smtx_value_canonical (__smtx_model_eval_re_exp_rec n v)
+      __smtx_value_canonical (__smtx_re_exp_rec n v)
   | native_nat_zero, v, _hv => by
-      simpa [__smtx_model_eval_re_exp_rec] using empty_regex_value_canonical
+      simpa [__smtx_re_exp_rec] using empty_regex_value_canonical
   | native_nat_succ n, v, hv => by
-      simpa [__smtx_model_eval_re_exp_rec] using
+      simpa [__smtx_re_exp_rec] using
         model_eval_re_concat_canonical
           (model_eval_re_exp_rec_canonical n hv) hv
 
@@ -1321,24 +1321,24 @@ theorem model_eval_re_exp_canonical
 
 theorem model_eval_re_loop_rec_canonical :
     ∀ n v1 v2 {v3}, __smtx_value_canonical v3 ->
-      __smtx_value_canonical (__smtx_model_eval_re_loop_rec n v1 v2 v3)
+      __smtx_value_canonical (__smtx_re_loop_rec n v1 v2 v3)
   | native_nat_zero, v1, v2, v3, hv3 => by
       cases v2 <;>
         try
-          simpa [__smtx_model_eval_re_loop_rec] using value_canonical_notValue
+          simpa [__smtx_re_loop_rec] using value_canonical_notValue
       case Numeral _ =>
-        simpa [__smtx_model_eval_re_loop_rec] using
+        simpa [__smtx_re_loop_rec] using
           model_eval_re_exp_canonical v1 hv3
   | native_nat_succ n, v1, v2, v3, hv3 => by
       cases v2 with
       | Numeral z =>
-          simpa [__smtx_model_eval_re_loop_rec] using
+          simpa [__smtx_re_loop_rec] using
             model_eval_re_union_canonical
               (model_eval_re_loop_rec_canonical n v1
                 (SmtValue.Numeral (native_zplus z (native_zneg 1))) hv3)
               (model_eval_re_exp_canonical (SmtValue.Numeral z) hv3)
       | _ =>
-          simp [__smtx_model_eval_re_loop_rec, value_canonical_notValue]
+          simp [__smtx_re_loop_rec, value_canonical_notValue]
 
 theorem model_eval_re_loop_canonical
     (v1 v2 : SmtValue)
@@ -1352,7 +1352,7 @@ theorem model_eval_re_loop_canonical
     simpa [__smtx_model_eval_re_loop] using
       model_eval_ite_canonical
         (t := SmtValue.RegLan native_re_none)
-        (e := __smtx_model_eval_re_loop_rec (native_int_to_nat (native_zplus n2 (native_zneg n1)))
+        (e := __smtx_re_loop_rec (native_int_to_nat (native_zplus n2 (native_zneg n1)))
           (SmtValue.Numeral n1) (SmtValue.Numeral n2) (SmtValue.RegLan r))
         (value_canonical_reglan native_re_none native_re_canonical_none)
         (model_eval_re_loop_rec_canonical _ _ _ hv3)

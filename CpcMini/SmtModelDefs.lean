@@ -36,7 +36,7 @@ inductive SmtType : Type where
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
-/- 
+/-
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where
@@ -48,8 +48,6 @@ inductive SmtTerm : Type where
   | Binary : native_Int -> native_Int -> SmtTerm
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
   | Var : native_String -> SmtType -> SmtTerm
-  | ite : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | eq : SmtTerm -> SmtTerm -> SmtTerm
   | exists : native_String -> SmtType -> SmtTerm -> SmtTerm
   | forall : native_String -> SmtType -> SmtTerm -> SmtTerm
   | choice : native_String -> SmtType -> SmtTerm -> SmtTerm
@@ -62,10 +60,12 @@ inductive SmtTerm : Type where
   | and : SmtTerm -> SmtTerm -> SmtTerm
   | or : SmtTerm -> SmtTerm -> SmtTerm
   | imp : SmtTerm -> SmtTerm -> SmtTerm
+  | eq : SmtTerm -> SmtTerm -> SmtTerm
+  | ite : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
 
 deriving Repr, DecidableEq, Inhabited
 
-/- 
+/-
 SMT-LIB values.
 -/
 inductive SmtValue : Type where
@@ -114,7 +114,7 @@ inductive SmtMap : Type where
   | default : SmtType -> SmtValue -> SmtMap
 deriving Repr, DecidableEq, Inhabited, Ord
 
-/- 
+/-
 SMT-LIB sequence values.
 -/
 inductive SmtSeq : Type where

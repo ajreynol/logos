@@ -15,8 +15,8 @@ private theorem smt_qdiv_eval_reduction_self
     __smtx_model_eval M (SmtTerm.qdiv x y) =
       (let yv := __smtx_model_eval M y
        let xv := __smtx_model_eval M x
-       let yr := __smtx_model_eval_to_real_coerce yv
-       let xr := __smtx_model_eval_to_real_coerce xv
+       let yr := __smtx_to_real_coerce yv
+       let xr := __smtx_to_real_coerce xv
        __smtx_model_eval_ite
          (__smtx_model_eval_eq yr (SmtValue.Rational (native_mk_rational 0 1)))
          (__smtx_model_eval_apply M
@@ -38,7 +38,7 @@ private theorem smt_div_eval_reduction_self
              (SmtType.FunType SmtType.Int SmtType.Int))
            xv)
          (__smtx_model_eval_div_total xv yv)) := by
-  rw [__smtx_model_eval.eq_24]
+  rw [__smtx_model_eval.eq_26]
 
 private theorem smt_div_eval_reduction_term_rel
     (M : SmtModel) (x y : SmtTerm) :
@@ -51,7 +51,7 @@ private theorem smt_div_eval_reduction_term_rel
           (SmtTerm.div_total x y))) := by
   rw [smt_div_eval_reduction_self, smtx_eval_ite_term_eq,
     smtx_eval_eq_term_eq, __smtx_model_eval.eq_2,
-    __smtx_model_eval.eq_24, __smtx_model_eval.eq_29]
+    __smtx_model_eval.eq_26, __smtx_model_eval.eq_31]
   cases hy : __smtx_model_eval M y <;>
     simp [__smtx_model_eval_ite, __smtx_model_eval_eq,
       __smtx_model_eval_div_total, native_veq] <;>
@@ -69,7 +69,7 @@ private theorem smt_mod_eval_reduction_self
              (SmtType.FunType SmtType.Int SmtType.Int))
            xv)
          (__smtx_model_eval_mod_total xv yv)) := by
-  rw [__smtx_model_eval.eq_25]
+  rw [__smtx_model_eval.eq_27]
 
 private theorem smt_mod_eval_reduction_term_rel
     (M : SmtModel) (x y : SmtTerm) :
@@ -82,7 +82,7 @@ private theorem smt_mod_eval_reduction_term_rel
           (SmtTerm.mod_total x y))) := by
   rw [smt_mod_eval_reduction_self, smtx_eval_ite_term_eq,
     smtx_eval_eq_term_eq, __smtx_model_eval.eq_2,
-    __smtx_model_eval.eq_25, __smtx_model_eval.eq_30]
+    __smtx_model_eval.eq_27, __smtx_model_eval.eq_32]
   cases hy : __smtx_model_eval M y <;>
     simp [__smtx_model_eval_ite, __smtx_model_eval_eq,
       __smtx_model_eval_mod_total, native_veq] <;>
@@ -105,8 +105,8 @@ private theorem smt_abs_eval_reduction_int_term_rel
           (SmtTerm.uneg x)
           x)) := by
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
-  rw [__smtx_model_eval.eq_22, smtx_eval_ite_term_eq,
-    __smtx_model_eval.eq_15, __smtx_model_eval.eq_2, __smtx_model_eval.eq_23]
+  rw [__smtx_model_eval.eq_24, smtx_eval_ite_term_eq,
+    __smtx_model_eval.eq_17, __smtx_model_eval.eq_2, __smtx_model_eval.eq_25]
   by_cases hlt : n < 0
   · simp [hx, __smtx_model_eval_abs, __smtx_model_eval_lt,
       __smtx_model_eval_ite, __smtx_model_eval_uneg, __smtx_model_eval_eq,
@@ -126,8 +126,8 @@ private theorem smt_abs_eval_reduction_real_term_rel
           (SmtTerm.uneg x)
           x)) := by
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
-  rw [__smtx_model_eval.eq_22, smtx_eval_ite_term_eq,
-    __smtx_model_eval.eq_15, __smtx_model_eval.eq_3, __smtx_model_eval.eq_23]
+  rw [__smtx_model_eval.eq_24, smtx_eval_ite_term_eq,
+    __smtx_model_eval.eq_17, __smtx_model_eval.eq_3, __smtx_model_eval.eq_25]
   by_cases hlt : q < 0
   · simp [hx, __smtx_model_eval_abs, __smtx_model_eval_lt,
       __smtx_model_eval_ite, __smtx_model_eval_uneg, __smtx_model_eval_eq,
@@ -222,13 +222,13 @@ private theorem smt_qdiv_eval_reduction_int_term_rel
   rw [smt_qdiv_eval_reduction_self, smtx_eval_ite_term_eq,
     smtx_eval_eq_term_eq, __smtx_model_eval.eq_2,
     smtx_eval_qdiv_term_eq, smtx_eval_qdiv_total_term_eq,
-    __smtx_model_eval.eq_19, __smtx_model_eval.eq_3]
+    __smtx_model_eval.eq_21, __smtx_model_eval.eq_3]
   by_cases hZero : n2 = 0
-  · simp [hx, hy, hZero, __smtx_model_eval_to_real, __smtx_model_eval_to_real_coerce,
+  · simp [hx, hy, hZero, __smtx_model_eval_to_real, __smtx_to_real_coerce,
       __smtx_model_eval_eq,
       __smtx_model_eval_ite, native_veq, native_to_real_eq_zero_iff]
     exact RuleProofs.smt_value_rel_refl _
-  · simp [hx, hy, hZero, __smtx_model_eval_to_real, __smtx_model_eval_to_real_coerce,
+  · simp [hx, hy, hZero, __smtx_model_eval_to_real, __smtx_to_real_coerce,
       __smtx_model_eval_eq,
       __smtx_model_eval_ite, __smtx_model_eval_qdiv_total, native_veq,
       native_to_real_eq_zero_iff, native_to_real_qdiv_total]
@@ -249,11 +249,11 @@ private theorem smt_qdiv_eval_reduction_real_term_rel
     smtx_eval_eq_term_eq, __smtx_model_eval.eq_3,
     smtx_eval_qdiv_term_eq, smtx_eval_qdiv_total_term_eq]
   by_cases hZero : q2 = native_mk_rational 0 1
-  · simp [hx, hy, hZero, __smtx_model_eval_to_real_coerce, __smtx_model_eval_eq,
+  · simp [hx, hy, hZero, __smtx_to_real_coerce, __smtx_model_eval_eq,
       __smtx_model_eval_ite, __smtx_model_eval_qdiv_total,
       __smtx_model_eval.eq_3, native_veq]
     exact RuleProofs.smt_value_rel_refl _
-  · simp [hx, hy, hZero, __smtx_model_eval_to_real_coerce, __smtx_model_eval_eq,
+  · simp [hx, hy, hZero, __smtx_to_real_coerce, __smtx_model_eval_eq,
       __smtx_model_eval_ite, __smtx_model_eval_qdiv_total,
       __smtx_model_eval.eq_3, native_veq]
     exact RuleProofs.smt_value_rel_refl _
@@ -518,10 +518,10 @@ private theorem smt_div_total_bounds_eval_eq
             true)) := by
   simp [smtDivTotalBounds, smtDivTotalProd, smtDivTotalUpper,
     smtDivTotalQuot, __smtx_model_eval.eq_1, __smtx_model_eval.eq_2,
-    __smtx_model_eval.eq_8, __smtx_model_eval.eq_11,
-    __smtx_model_eval.eq_12, __smtx_model_eval.eq_14,
-    __smtx_model_eval.eq_15, __smtx_model_eval.eq_16,
-    __smtx_model_eval.eq_29, hEvalX, hEvalY,
+    __smtx_model_eval.eq_9, __smtx_model_eval.eq_13,
+    __smtx_model_eval.eq_14, __smtx_model_eval.eq_16,
+    __smtx_model_eval.eq_17, __smtx_model_eval.eq_18,
+    __smtx_model_eval.eq_31, hEvalX, hEvalY,
     __smtx_model_eval__at_purify, __smtx_model_eval_div_total,
     __smtx_model_eval_plus, __smtx_model_eval_mult,
     __smtx_model_eval_lt, __smtx_model_eval_leq,
@@ -559,9 +559,9 @@ private theorem smt_div_total_generic_side_eval
           true := by
       simpa [native_zplus] using hUpper
     simp [smtDivTotalGenericSide, __smtx_model_eval.eq_1,
-      __smtx_model_eval.eq_2, __smtx_model_eval.eq_8,
-      __smtx_model_eval.eq_9, __smtx_model_eval.eq_15,
-      __smtx_model_eval.eq_17, hEvalY, hGt, hLtFalse, hBoundsPos,
+      __smtx_model_eval.eq_2, __smtx_model_eval.eq_9,
+      __smtx_model_eval.eq_10, __smtx_model_eval.eq_17,
+      __smtx_model_eval.eq_19, hEvalY, hGt, hLtFalse, hBoundsPos,
       hBoundsNeg, hLower, hUpperS, __smtx_model_eval_lt,
       __smtx_model_eval_gt, __smtx_model_eval_imp,
       __smtx_model_eval_or, __smtx_model_eval_not,
@@ -590,9 +590,9 @@ private theorem smt_div_total_generic_side_eval
             true := by
         simpa [native_zplus] using hUpper
       simp [smtDivTotalGenericSide, __smtx_model_eval.eq_1,
-        __smtx_model_eval.eq_2, __smtx_model_eval.eq_8,
-        __smtx_model_eval.eq_9, __smtx_model_eval.eq_15,
-        __smtx_model_eval.eq_17, hEvalY, hGtFalse, hLt, hBoundsPos,
+        __smtx_model_eval.eq_2, __smtx_model_eval.eq_9,
+        __smtx_model_eval.eq_10, __smtx_model_eval.eq_17,
+        __smtx_model_eval.eq_19, hEvalY, hGtFalse, hLt, hBoundsPos,
         hBoundsNeg, hLower, hUpperS, __smtx_model_eval_lt,
         __smtx_model_eval_gt, __smtx_model_eval_imp,
         __smtx_model_eval_or, __smtx_model_eval_not,
@@ -607,9 +607,9 @@ private theorem smt_div_total_generic_side_eval
         rw [decide_eq_false_iff_not]
         exact hNeg
       simp [smtDivTotalGenericSide, __smtx_model_eval.eq_1,
-        __smtx_model_eval.eq_2, __smtx_model_eval.eq_8,
-        __smtx_model_eval.eq_9, __smtx_model_eval.eq_15,
-        __smtx_model_eval.eq_17, hEvalY, hGtFalse, hLtFalse,
+        __smtx_model_eval.eq_2, __smtx_model_eval.eq_9,
+        __smtx_model_eval.eq_10, __smtx_model_eval.eq_17,
+        __smtx_model_eval.eq_19, hEvalY, hGtFalse, hLtFalse,
         hBoundsPos, hBoundsNeg, __smtx_model_eval_lt,
         __smtx_model_eval_gt, __smtx_model_eval_imp,
         __smtx_model_eval_or, __smtx_model_eval_not,
@@ -639,7 +639,7 @@ private theorem smt_div_total_literal_side_eval_pos
         (native_zmult n (native_zmult (native_div_total n1 n + 1) 1)) =
         true := by
     simpa [native_zplus] using hUpper
-  simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_8, hBounds,
+  simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_9, hBounds,
     hLower, hUpperS, __smtx_model_eval_and, native_zplus, native_and]
 
 private theorem smt_div_total_literal_side_eval_neg
@@ -665,7 +665,7 @@ private theorem smt_div_total_literal_side_eval_neg
         (native_zmult n (native_zmult (native_div_total n1 n + -1) 1)) =
         true := by
     simpa [native_zplus] using hUpper
-  simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_8, hBounds,
+  simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_9, hBounds,
     hLower, hUpperS, __smtx_model_eval_and, native_zplus, native_and]
 
 private theorem smt_div_total_eq_purify_eval
@@ -676,7 +676,7 @@ private theorem smt_div_total_eq_purify_eval
       (SmtTerm.eq (SmtTerm.div_total x y)
         (SmtTerm._at_purify (SmtTerm.div_total x y))) =
       SmtValue.Boolean true := by
-  simp [__smtx_model_eval.eq_11, __smtx_model_eval.eq_29,
+  simp [__smtx_model_eval.eq_13, __smtx_model_eval.eq_31,
     smtx_eval_eq_term_eq, hEvalX, hEvalY,
     __smtx_model_eval__at_purify, __smtx_model_eval_div_total,
     __smtx_model_eval_eq, native_veq]
@@ -691,9 +691,9 @@ private theorem smt_mod_total_eq_remainder_eval
       SmtValue.Boolean true := by
   have hMod := native_mod_total_as_div_remainder n1 n2
   simp [smtDivTotalProd, smtDivTotalQuot, __smtx_model_eval.eq_2,
-    __smtx_model_eval.eq_11, __smtx_model_eval.eq_13,
-    __smtx_model_eval.eq_14, __smtx_model_eval.eq_29,
-    __smtx_model_eval.eq_30, smtx_eval_eq_term_eq, hEvalX,
+    __smtx_model_eval.eq_13, __smtx_model_eval.eq_15,
+    __smtx_model_eval.eq_16, __smtx_model_eval.eq_31,
+    __smtx_model_eval.eq_32, smtx_eval_eq_term_eq, hEvalX,
     hEvalY, hMod, __smtx_model_eval__at_purify,
     __smtx_model_eval_div_total, __smtx_model_eval_mod_total,
     __smtx_model_eval_mult, __smtx_model_eval__, __smtx_model_eval_eq,
@@ -739,11 +739,11 @@ private theorem typed_arith_reduction_is_int
           (SmtTerm.Boolean true))) =
       SmtType.Bool
   rw [typeof_and_eq, typeof_eq_eq, typeof_is_int_eq, typeof_eq_eq,
-    typeof_to_real_eq, __smtx_typeof.eq_11, typeof_to_int_eq,
+    typeof_to_real_eq, __smtx_typeof.eq_13, typeof_to_int_eq,
     typeof_and_eq, typeof_and_eq, typeof_leq_eq, typeof_neg_eq,
-    typeof_to_real_eq, __smtx_typeof.eq_11, typeof_to_int_eq,
+    typeof_to_real_eq, __smtx_typeof.eq_13, typeof_to_int_eq,
     typeof_and_eq, typeof_lt_eq, typeof_neg_eq, typeof_to_real_eq,
-    __smtx_typeof.eq_11, typeof_to_int_eq]
+    __smtx_typeof.eq_13, typeof_to_int_eq]
   simp [__smtx_typeof.eq_1, __smtx_typeof.eq_3, __smtx_typeof_eq,
     __smtx_typeof_arith_overload_op_2,
     __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
@@ -786,10 +786,10 @@ private theorem typed_arith_reduction_to_int
               (SmtTerm.Boolean true)))
           (SmtTerm.Boolean true))) =
       SmtType.Bool
-  rw [typeof_and_eq, typeof_eq_eq, __smtx_typeof.eq_11, typeof_and_eq,
+  rw [typeof_and_eq, typeof_eq_eq, __smtx_typeof.eq_13, typeof_and_eq,
     typeof_and_eq, typeof_leq_eq, typeof_neg_eq, typeof_to_real_eq,
-    __smtx_typeof.eq_11, typeof_to_int_eq, typeof_and_eq, typeof_lt_eq,
-    typeof_neg_eq, typeof_to_real_eq, __smtx_typeof.eq_11,
+    __smtx_typeof.eq_13, typeof_to_int_eq, typeof_and_eq, typeof_lt_eq,
+    typeof_neg_eq, typeof_to_real_eq, __smtx_typeof.eq_13,
     typeof_to_int_eq]
   simp [__smtx_typeof.eq_1, __smtx_typeof.eq_3, __smtx_typeof_eq,
     __smtx_typeof_arith_overload_op_2,
@@ -933,10 +933,10 @@ private theorem typed_arith_reduction_qdiv_total
               (SmtTerm.Boolean true))) =
         SmtType.Bool
     rw [typeof_and_eq, typeof_eq_eq, typeof_qdiv_total_eq,
-      __smtx_typeof.eq_11, typeof_and_eq, typeof_imp_eq, typeof_not_eq,
+      __smtx_typeof.eq_13, typeof_and_eq, typeof_imp_eq, typeof_not_eq,
       typeof_eq_eq, typeof_to_real_eq, __smtx_typeof.eq_3,
       typeof_eq_eq, typeof_mult_eq, typeof_to_real_eq, typeof_mult_eq,
-      __smtx_typeof.eq_11, typeof_qdiv_total_eq, __smtx_typeof.eq_3,
+      __smtx_typeof.eq_13, typeof_qdiv_total_eq, __smtx_typeof.eq_3,
       typeof_to_real_eq, __smtx_typeof.eq_1]
     simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
       __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
@@ -987,9 +987,9 @@ private theorem typed_arith_reduction_qdiv_total
               (SmtTerm.Boolean true))) =
         SmtType.Bool
     rw [typeof_and_eq, typeof_eq_eq, typeof_qdiv_total_eq,
-      __smtx_typeof.eq_11, typeof_and_eq, typeof_imp_eq, typeof_not_eq,
+      __smtx_typeof.eq_13, typeof_and_eq, typeof_imp_eq, typeof_not_eq,
       typeof_eq_eq, __smtx_typeof.eq_3, typeof_eq_eq, typeof_mult_eq,
-      typeof_mult_eq, __smtx_typeof.eq_11, typeof_qdiv_total_eq,
+      typeof_mult_eq, __smtx_typeof.eq_13, typeof_qdiv_total_eq,
       __smtx_typeof.eq_3, __smtx_typeof.eq_1]
     simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
       __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
@@ -1052,7 +1052,7 @@ private theorem typed_arith_reduction_div_total_literal
       | rw [typeof_div_total_eq]
       | rw [__smtx_typeof.eq_1]
       | rw [__smtx_typeof.eq_2]
-      | rw [__smtx_typeof.eq_11]
+      | rw [__smtx_typeof.eq_13]
     simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
       __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
       native_ite, native_Teq, hArgs.1]
@@ -1098,7 +1098,7 @@ private theorem typed_arith_reduction_div_total_literal
       | rw [typeof_div_total_eq]
       | rw [__smtx_typeof.eq_1]
       | rw [__smtx_typeof.eq_2]
-      | rw [__smtx_typeof.eq_11]
+      | rw [__smtx_typeof.eq_13]
     simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
       __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
       native_ite, native_Teq, hArgs.1]
@@ -1181,7 +1181,7 @@ private theorem typed_arith_reduction_div_total_generic
     | rw [typeof_div_total_eq]
     | rw [__smtx_typeof.eq_1]
     | rw [__smtx_typeof.eq_2]
-    | rw [__smtx_typeof.eq_11]
+    | rw [__smtx_typeof.eq_13]
   simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
     __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
     native_ite, native_Teq, hArgs.1, hArgs.2]
@@ -1283,7 +1283,7 @@ private theorem typed_arith_reduction_mod_total_literal
       | rw [typeof_mod_total_eq]
       | rw [__smtx_typeof.eq_1]
       | rw [__smtx_typeof.eq_2]
-      | rw [__smtx_typeof.eq_11]
+      | rw [__smtx_typeof.eq_13]
     simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
       __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
       native_ite, native_Teq, hArgs.1]
@@ -1335,7 +1335,7 @@ private theorem typed_arith_reduction_mod_total_literal
       | rw [typeof_mod_total_eq]
       | rw [__smtx_typeof.eq_1]
       | rw [__smtx_typeof.eq_2]
-      | rw [__smtx_typeof.eq_11]
+      | rw [__smtx_typeof.eq_13]
     simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
       __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
       native_ite, native_Teq, hArgs.1]
@@ -1424,7 +1424,7 @@ private theorem typed_arith_reduction_mod_total_generic
     | rw [typeof_mod_total_eq]
     | rw [__smtx_typeof.eq_1]
     | rw [__smtx_typeof.eq_2]
-    | rw [__smtx_typeof.eq_11]
+    | rw [__smtx_typeof.eq_13]
   simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
     __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
     native_ite, native_Teq, hArgs.1, hArgs.2]
@@ -1668,7 +1668,7 @@ private theorem typed_arith_reduction_int_log2
     | rw [typeof_int_pow2_eq]
     | rw [typeof_plus_eq]
     | rw [typeof_int_log2_eq]
-    | rw [__smtx_typeof.eq_11]
+    | rw [__smtx_typeof.eq_13]
     | rw [__smtx_typeof.eq_2]
     | rw [__smtx_typeof.eq_1]
   simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
@@ -1848,10 +1848,10 @@ private theorem facts_arith_reduction_is_int
             (SmtTerm.Boolean true))) =
         SmtValue.Boolean true
     simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_3,
-      __smtx_model_eval.eq_8, __smtx_model_eval.eq_11,
-      __smtx_model_eval.eq_13, __smtx_model_eval.eq_15,
-      __smtx_model_eval.eq_16, __smtx_model_eval.eq_19,
-      __smtx_model_eval.eq_20, __smtx_model_eval.eq_21,
+      __smtx_model_eval.eq_9, __smtx_model_eval.eq_13,
+      __smtx_model_eval.eq_15, __smtx_model_eval.eq_17,
+      __smtx_model_eval.eq_18, __smtx_model_eval.eq_21,
+      __smtx_model_eval.eq_22, __smtx_model_eval.eq_23,
       smtx_eval_eq_term_eq, hEvalU, __smtx_model_eval__at_purify,
       __smtx_model_eval_to_int, __smtx_model_eval_to_real,
       __smtx_model_eval_is_int, __smtx_model_eval_eq,
@@ -1907,10 +1907,10 @@ private theorem facts_arith_reduction_to_int
             (SmtTerm.Boolean true))) =
         SmtValue.Boolean true
     simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_3,
-      __smtx_model_eval.eq_8, __smtx_model_eval.eq_11,
-      __smtx_model_eval.eq_13, __smtx_model_eval.eq_15,
-      __smtx_model_eval.eq_16, __smtx_model_eval.eq_19,
-      __smtx_model_eval.eq_20, smtx_eval_eq_term_eq,
+      __smtx_model_eval.eq_9, __smtx_model_eval.eq_13,
+      __smtx_model_eval.eq_15, __smtx_model_eval.eq_17,
+      __smtx_model_eval.eq_18, __smtx_model_eval.eq_21,
+      __smtx_model_eval.eq_22, smtx_eval_eq_term_eq,
       hEvalU, __smtx_model_eval__at_purify,
       __smtx_model_eval_to_int, __smtx_model_eval_to_real,
       __smtx_model_eval_eq, __smtx_model_eval__,
@@ -2139,9 +2139,9 @@ private theorem facts_arith_reduction_qdiv_total
           SmtValue.Boolean true
       by_cases hZero : n2 = 0
       · simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_3,
-          __smtx_model_eval.eq_6, __smtx_model_eval.eq_8,
-          __smtx_model_eval.eq_9, __smtx_model_eval.eq_11,
-          __smtx_model_eval.eq_14, __smtx_model_eval.eq_19,
+          __smtx_model_eval.eq_7, __smtx_model_eval.eq_9,
+          __smtx_model_eval.eq_10, __smtx_model_eval.eq_13,
+          __smtx_model_eval.eq_16, __smtx_model_eval.eq_21,
           smtx_eval_qdiv_total_term_eq, smtx_eval_eq_term_eq,
           hEvalU, hEvalV, hZero, __smtx_model_eval__at_purify,
           __smtx_model_eval_to_real, __smtx_model_eval_qdiv_total,
@@ -2156,9 +2156,9 @@ private theorem facts_arith_reduction_qdiv_total
             native_to_real n1 :=
           native_to_real_qmult_mk_rational_cancel n1 n2 hZero
         simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_3,
-          __smtx_model_eval.eq_6, __smtx_model_eval.eq_8,
-          __smtx_model_eval.eq_9, __smtx_model_eval.eq_11,
-          __smtx_model_eval.eq_14, __smtx_model_eval.eq_19,
+          __smtx_model_eval.eq_7, __smtx_model_eval.eq_9,
+          __smtx_model_eval.eq_10, __smtx_model_eval.eq_13,
+          __smtx_model_eval.eq_16, __smtx_model_eval.eq_21,
           smtx_eval_qdiv_total_term_eq, smtx_eval_eq_term_eq,
           hEvalU, hEvalV, hZero, hCancel, __smtx_model_eval__at_purify,
           __smtx_model_eval_to_real, __smtx_model_eval_qdiv_total,
@@ -2232,9 +2232,9 @@ private theorem facts_arith_reduction_qdiv_total
           SmtValue.Boolean true
       by_cases hZero : q2 = native_mk_rational 0 1
       · simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_3,
-          __smtx_model_eval.eq_6, __smtx_model_eval.eq_8,
-          __smtx_model_eval.eq_9, __smtx_model_eval.eq_11,
-          __smtx_model_eval.eq_14, smtx_eval_qdiv_total_term_eq,
+          __smtx_model_eval.eq_7, __smtx_model_eval.eq_9,
+          __smtx_model_eval.eq_10, __smtx_model_eval.eq_13,
+          __smtx_model_eval.eq_16, smtx_eval_qdiv_total_term_eq,
           smtx_eval_eq_term_eq, hEvalU, hEvalV, hZero,
           __smtx_model_eval__at_purify, __smtx_model_eval_qdiv_total,
           __smtx_model_eval_mult, __smtx_model_eval_eq,
@@ -2254,9 +2254,9 @@ private theorem facts_arith_reduction_qdiv_total
               q1 :=
           native_qmult_qdiv_total_cancel q1 q2 hNZ
         simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_3,
-          __smtx_model_eval.eq_6, __smtx_model_eval.eq_8,
-          __smtx_model_eval.eq_9, __smtx_model_eval.eq_11,
-          __smtx_model_eval.eq_14, smtx_eval_qdiv_total_term_eq,
+          __smtx_model_eval.eq_7, __smtx_model_eval.eq_9,
+          __smtx_model_eval.eq_10, __smtx_model_eval.eq_13,
+          __smtx_model_eval.eq_16, smtx_eval_qdiv_total_term_eq,
           smtx_eval_eq_term_eq, hEvalU, hEvalV, hZero, hCancel,
           __smtx_model_eval__at_purify, __smtx_model_eval_qdiv_total,
           __smtx_model_eval_mult, __smtx_model_eval_eq,
@@ -2577,10 +2577,10 @@ private theorem facts_arith_reduction_int_log2
         rw [decide_eq_true_eq]
         exact hPos
       simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_2,
-        __smtx_model_eval.eq_6, __smtx_model_eval.eq_8, __smtx_model_eval.eq_9,
-        __smtx_model_eval.eq_11, __smtx_model_eval.eq_12,
-        __smtx_model_eval.eq_15, __smtx_model_eval.eq_16,
-        __smtx_model_eval.eq_27, __smtx_model_eval.eq_28,
+        __smtx_model_eval.eq_7, __smtx_model_eval.eq_9, __smtx_model_eval.eq_10,
+        __smtx_model_eval.eq_13, __smtx_model_eval.eq_14,
+        __smtx_model_eval.eq_17, __smtx_model_eval.eq_18,
+        __smtx_model_eval.eq_29, __smtx_model_eval.eq_30,
         smtx_eval_eq_term_eq, hEvalU, hCond, hLe, hLt',
         __smtx_model_eval__at_purify, __smtx_model_eval_int_log2,
         __smtx_model_eval_int_pow2, __smtx_model_eval_plus,
@@ -2596,10 +2596,10 @@ private theorem facts_arith_reduction_int_log2
         rw [decide_eq_false_iff_not]
         exact hPos
       simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_2,
-        __smtx_model_eval.eq_6, __smtx_model_eval.eq_8, __smtx_model_eval.eq_9,
-        __smtx_model_eval.eq_11, __smtx_model_eval.eq_12,
-        __smtx_model_eval.eq_15, __smtx_model_eval.eq_16,
-        __smtx_model_eval.eq_27, __smtx_model_eval.eq_28,
+        __smtx_model_eval.eq_7, __smtx_model_eval.eq_9, __smtx_model_eval.eq_10,
+        __smtx_model_eval.eq_13, __smtx_model_eval.eq_14,
+        __smtx_model_eval.eq_17, __smtx_model_eval.eq_18,
+        __smtx_model_eval.eq_29, __smtx_model_eval.eq_30,
         smtx_eval_eq_term_eq, hEvalU, hCond, hLog0,
         __smtx_model_eval__at_purify, __smtx_model_eval_int_log2,
         __smtx_model_eval_int_pow2, __smtx_model_eval_plus,
@@ -2692,7 +2692,7 @@ private theorem facts_arith_reduction_div_total
         have hSide :=
           smt_div_total_literal_side_eval_neg M (__eo_to_smt a) n1 n
             hEvalA hNeg
-        simp [__smtx_model_eval.eq_8, hEq, hSide,
+        simp [__smtx_model_eval.eq_9, hEq, hSide,
           __smtx_model_eval_and, native_and]
       · have hNegBool : native_zlt n 0 = false := by
           unfold native_zlt
@@ -2721,7 +2721,7 @@ private theorem facts_arith_reduction_div_total
         have hSide :=
           smt_div_total_literal_side_eval_pos M (__eo_to_smt a) n1 n
             hEvalA hPos
-        simp [__smtx_model_eval.eq_8, hEq, hSide,
+        simp [__smtx_model_eval.eq_9, hEq, hSide,
           __smtx_model_eval_and, native_and]
     · have hIsZFalse : __eo_is_z b = Term.Boolean false :=
         eo_is_z_eq_false_of_not_true b hIsZ
@@ -2748,7 +2748,7 @@ private theorem facts_arith_reduction_div_total
       have hSide :=
         smt_div_total_generic_side_eval M (__eo_to_smt a) (__eo_to_smt b)
           n1 n2 hEvalA hEvalB
-      simp [__smtx_model_eval.eq_8, hEq, hSide,
+      simp [__smtx_model_eval.eq_9, hEq, hSide,
         __smtx_model_eval_and, native_and]
 
 private theorem facts_arith_reduction_mod_total
@@ -2834,7 +2834,7 @@ private theorem facts_arith_reduction_mod_total
         have hSide :=
           smt_div_total_literal_side_eval_neg M (__eo_to_smt a) n1 n
             hEvalA hNeg
-        simp [__smtx_model_eval.eq_8, hEq, hSide,
+        simp [__smtx_model_eval.eq_9, hEq, hSide,
           __smtx_model_eval_and, native_and]
       · have hNegBool : native_zlt n 0 = false := by
           unfold native_zlt
@@ -2863,7 +2863,7 @@ private theorem facts_arith_reduction_mod_total
         have hSide :=
           smt_div_total_literal_side_eval_pos M (__eo_to_smt a) n1 n
             hEvalA hPos
-        simp [__smtx_model_eval.eq_8, hEq, hSide,
+        simp [__smtx_model_eval.eq_9, hEq, hSide,
           __smtx_model_eval_and, native_and]
     · have hIsZFalse : __eo_is_z b = Term.Boolean false :=
         eo_is_z_eq_false_of_not_true b hIsZ
@@ -2890,7 +2890,7 @@ private theorem facts_arith_reduction_mod_total
       have hSide :=
         smt_div_total_generic_side_eval M (__eo_to_smt a) (__eo_to_smt b)
           n1 n2 hEvalA hEvalB
-      simp [__smtx_model_eval.eq_8, hEq, hSide,
+      simp [__smtx_model_eval.eq_9, hEq, hSide,
         __smtx_model_eval_and, native_and]
 
 private theorem facts_arith_reduction_of_trans

@@ -7930,7 +7930,7 @@ theorem EvaluateProofInternal.bv_eval_concat_list_repeat_rec_binary
             (__eo_list_repeat_rec (Term.UOp UserOp.concat)
               (Term.Binary w n) k) =
           Term.Binary (native_zmult (native_nat_to_int k) w) m ∧
-        __smtx_model_eval_repeat_rec k (SmtValue.Binary w n) =
+        __smtx_repeat_rec k (SmtValue.Binary w n) =
           SmtValue.Binary (native_zmult (native_nat_to_int k) w) m ∧
         native_zeq m
           (native_mod_total m
@@ -7942,7 +7942,7 @@ theorem EvaluateProofInternal.bv_eval_concat_list_repeat_rec_binary
       · change Term.Binary 0 0 =
           Term.Binary (native_zmult (native_nat_to_int 0) w) 0
         simp [SmtEval.native_zmult, SmtEval.native_nat_to_int]
-      · simp [__smtx_model_eval_repeat_rec, SmtEval.native_zmult,
+      · simp [__smtx_repeat_rec, SmtEval.native_zmult,
           SmtEval.native_nat_to_int]
       · simp [SmtEval.native_zeq, SmtEval.native_mod_total,
           SmtEval.native_zmult, SmtEval.native_nat_to_int]
@@ -8002,7 +8002,7 @@ theorem EvaluateProofInternal.bv_eval_concat_list_repeat_rec_binary
               (native_mod_total (native_binary_concat w n recW m)
                 (native_int_pow2 z)))
           hWidthEq
-      · rw [__smtx_model_eval_repeat_rec, hEval, __smtx_model_eval_concat]
+      · rw [__smtx_repeat_rec, hEval, __smtx_model_eval_concat]
         exact congrArg
           (fun z =>
             SmtValue.Binary z
@@ -8021,7 +8021,7 @@ theorem EvaluateProofInternal.bv_eval_concat_list_repeat_binary_eval
           (__bv_eval_concat
             (__eo_list_repeat (Term.UOp UserOp.concat)
               (Term.Binary w n) (Term.Numeral i)))) =
-      __smtx_model_eval_repeat_rec (native_int_to_nat i)
+      __smtx_repeat_rec (native_int_to_nat i)
         (SmtValue.Binary w n) := by
   have hiNonneg : 0 <= i := by
     simpa [SmtEval.native_zleq] using hi0
@@ -10833,7 +10833,7 @@ theorem EvaluateProofInternal.smt_value_rel_model_eval_str_update_to_string_of_r
           (__smtx_model_eval M (__eo_to_smt s))
           (__smtx_model_eval M (__eo_to_smt n))
           (__smtx_model_eval M (__eo_to_smt repl)) by
-    rw [__smtx_model_eval.eq_88]]
+    rw [__smtx_model_eval.eq_90]]
   rw [hRunEval] at hRel
   exact hRel
 

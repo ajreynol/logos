@@ -742,8 +742,8 @@ theorem smtx_eval_qdiv_total_term_eq
 theorem smtx_eval_qdiv_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.qdiv x y) =
-      (let yr := __smtx_model_eval_to_real_coerce (__smtx_model_eval M y)
-       let xr := __smtx_model_eval_to_real_coerce (__smtx_model_eval M x)
+      (let yr := __smtx_to_real_coerce (__smtx_model_eval M y)
+       let xr := __smtx_to_real_coerce (__smtx_model_eval M x)
        __smtx_model_eval_ite
         (__smtx_model_eval_eq yr
           (SmtValue.Rational (native_mk_rational 0 1)))

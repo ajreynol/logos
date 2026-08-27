@@ -1792,14 +1792,14 @@ theorem typeof_value_model_eval_re_plus
 theorem model_eval_re_exp_rec_reglan :
     ∀ (n : native_Nat) (r : SmtRegLan),
       ∃ r' : SmtRegLan,
-        __smtx_model_eval_re_exp_rec n (SmtValue.RegLan r) = SmtValue.RegLan r'
+        __smtx_re_exp_rec n (SmtValue.RegLan r) = SmtValue.RegLan r'
   | native_nat_zero, r =>
       ⟨native_str_to_re (native_unpack_seq (SmtSeq.empty SmtType.Char)), by
-        simp [__smtx_model_eval_re_exp_rec]⟩
+        simp [__smtx_re_exp_rec]⟩
   | native_nat_succ n, r => by
       rcases model_eval_re_exp_rec_reglan n r with ⟨r', hr'⟩
       refine ⟨native_re_concat r' r, ?_⟩
-      simp [__smtx_model_eval_re_exp_rec, hr', __smtx_model_eval_re_concat]
+      simp [__smtx_re_exp_rec, hr', __smtx_model_eval_re_concat]
 
 /-- Lemma about `model_eval_re_exp_reglan`. -/
 theorem model_eval_re_exp_reglan
@@ -1825,7 +1825,7 @@ theorem typeof_value_model_eval_re_exp
       SmtType.RegLan by
     rw [typeof_re_exp_eq]
     simp [__smtx_typeof_re_exp, hArg, hn, native_ite]]
-  rw [__smtx_model_eval.eq_108, __smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_110, __smtx_model_eval.eq_2]
   change __smtx_typeof_value (__smtx_model_eval_re_exp (SmtValue.Numeral n) (__smtx_model_eval M t)) =
     SmtType.RegLan
   rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
@@ -1988,17 +1988,17 @@ theorem typeof_value_model_eval_re_diff
 theorem model_eval_re_loop_rec_reglan :
     ∀ (n : native_Nat) (n1 n2 : native_Int) (r : SmtRegLan),
       ∃ r' : SmtRegLan,
-        __smtx_model_eval_re_loop_rec n (SmtValue.Numeral n1) (SmtValue.Numeral n2)
+        __smtx_re_loop_rec n (SmtValue.Numeral n1) (SmtValue.Numeral n2)
           (SmtValue.RegLan r) = SmtValue.RegLan r'
   | native_nat_zero, n1, n2, r => by
       rcases model_eval_re_exp_reglan n1 r with ⟨r', hr'⟩
-      exact ⟨r', by simpa [__smtx_model_eval_re_loop_rec] using hr'⟩
+      exact ⟨r', by simpa [__smtx_re_loop_rec] using hr'⟩
   | native_nat_succ n, n1, n2, r => by
       rcases model_eval_re_loop_rec_reglan n n1 (native_zplus n2 (native_zneg 1)) r with
         ⟨r1, hr1⟩
       rcases model_eval_re_exp_reglan n2 r with ⟨r2, hr2⟩
       refine ⟨native_re_union r1 r2, ?_⟩
-      simp [__smtx_model_eval_re_loop_rec, hr1, hr2, __smtx_model_eval_re_union]
+      simp [__smtx_re_loop_rec, hr1, hr2, __smtx_model_eval_re_union]
 
 /-- Shows that evaluating `re_loop` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_loop
@@ -2019,7 +2019,7 @@ theorem typeof_value_model_eval_re_loop
       (SmtTerm.re_loop (SmtTerm.Numeral n1) (SmtTerm.Numeral n2) t) = SmtType.RegLan by
     rw [typeof_re_loop_eq]
     simp [__smtx_typeof_re_loop, hArg, hn1, hn2, native_ite]]
-  rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_118, __smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
   change __smtx_typeof_value
       (__smtx_model_eval_re_loop (SmtValue.Numeral n1) (SmtValue.Numeral n2)
         (__smtx_model_eval M t)) = SmtType.RegLan

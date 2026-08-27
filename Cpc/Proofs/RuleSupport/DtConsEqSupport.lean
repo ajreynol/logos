@@ -4358,7 +4358,7 @@ private theorem eval_and_bool_components
         (∃ byy : Bool, __smtx_model_eval M (__eo_to_smt y) = SmtValue.Boolean byy) := by
   intro hEval
   rcases hEval with ⟨b, hEval⟩
-  rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8] at hEval
+  rw [eo_to_smt_and_eq, __smtx_model_eval.eq_9] at hEval
   cases hx : __smtx_model_eval M (__eo_to_smt x) <;>
     cases hy : __smtx_model_eval M (__eo_to_smt y) <;>
     simp [hx, hy, __smtx_model_eval_and, SmtEval.native_and] at hEval
@@ -4401,10 +4401,10 @@ private theorem concat_rec_eval_eq_and
           __smtx_model_eval M
               (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs)) =
             SmtValue.Boolean (native_and bx bxs) := by
-        rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEvalX, hEvalXs]
+        rw [eo_to_smt_and_eq, __smtx_model_eval.eq_9, hEvalX, hEvalXs]
         simp [__smtx_model_eval_and, SmtEval.native_and]
       rw [and_concat_rec_cons x xs c2 hTailNe]
-      rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8]
+      rw [eo_to_smt_and_eq, __smtx_model_eval.eq_9]
       rw [ih hC2 ⟨bxs, hEvalXs⟩ ⟨b2, hEval2⟩]
       rw [hEvalX, hEvalXs, hEval2, hEvalAndXs]
       cases bx <;> cases bxs <;> cases b2 <;>
@@ -4455,7 +4455,7 @@ private theorem singleton_elim_eval_eq
                   (__eo_to_smt
                     (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) (Term.Boolean true))) =
                 __smtx_model_eval M (__eo_to_smt x) := by
-            rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEvalX]
+            rw [eo_to_smt_and_eq, __smtx_model_eval.eq_9, hEvalX]
             simp [__smtx_model_eval.eq_1,
               __smtx_model_eval_and, SmtEval.native_and]
           rw [hSingleton]
@@ -4639,7 +4639,7 @@ private theorem mk_dt_cons_eq_eval_eq
         exact False.elim (hTail hTailEq)
       all_goals simp [__eo_mk_apply]
     rw [hMkApply]
-    rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEqABEval, hTailEval]
+    rw [eo_to_smt_and_eq, __smtx_model_eval.eq_9, hEqABEval, hTailEval]
     have hTupleEval := tuple_prepend_eval_eq_and M hM a as b bs hBool
     have hHeadEval :
         __smtx_model_eval_eq
@@ -4710,14 +4710,14 @@ private theorem mk_dt_cons_eq_eval_eq
     have hRightEvalBool :
         ∃ br' : Bool, __smtx_model_eval M (__eo_to_smt right) = SmtValue.Boolean br' := by
       refine ⟨br, ?_⟩
-      rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEqABEval]
+      rw [eo_to_smt_and_eq, __smtx_model_eval.eq_9, hEqABEval]
       rw [eo_to_smt_true_eq, __smtx_model_eval.eq_1]
       simp [__smtx_model_eval_and, SmtEval.native_and]
     have hApplyEval :=
       dtCons_ctor_spine_eq_apply_eval_eq_and M hM a b hSpDt hBool
     rw [hApplyEval, hArgEval]
     rw [concat_eval_eq_and M hLeftList hRightList hLeftEvalBool hRightEvalBool]
-    rw [hLeftEval, eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEqABEval]
+    rw [hLeftEval, eo_to_smt_and_eq, __smtx_model_eval.eq_9, hEqABEval]
     rw [eo_to_smt_true_eq, __smtx_model_eval.eq_1]
     simp [__smtx_model_eval_and, SmtEval.native_and]
   · subst_vars

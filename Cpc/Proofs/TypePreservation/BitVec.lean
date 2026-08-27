@@ -440,14 +440,14 @@ theorem typeof_value_model_eval_bvsdivo
 theorem model_eval_repeat_rec_binary :
     ∀ n : native_Nat, ∀ w x : native_Int,
       ∃ m : native_Int,
-        __smtx_model_eval_repeat_rec n (SmtValue.Binary w x) =
+        __smtx_repeat_rec n (SmtValue.Binary w x) =
           SmtValue.Binary (native_zmult (native_nat_to_int n) w) m ∧
         native_zeq m
           (native_mod_total m (native_int_pow2 (native_zmult (native_nat_to_int n) w))) = true
   | native_nat_zero, w, x => by
       refine ⟨0, ?_⟩
       constructor
-      · simp [__smtx_model_eval_repeat_rec, SmtEval.native_zmult, SmtEval.native_nat_to_int]
+      · simp [__smtx_repeat_rec, SmtEval.native_zmult, SmtEval.native_nat_to_int]
       · simp [SmtEval.native_zeq, SmtEval.native_mod_total, SmtEval.native_zmult,
           SmtEval.native_nat_to_int]
   | native_nat_succ n, w, x => by
@@ -455,7 +455,7 @@ theorem model_eval_repeat_rec_binary :
       refine ⟨native_mod_total
         (native_binary_concat w x (native_zmult (native_nat_to_int n) w) m)
         (native_int_pow2 (native_zmult (native_nat_to_int (native_nat_succ n)) w)), ?_, ?_⟩
-      rw [__smtx_model_eval_repeat_rec, hm, __smtx_model_eval_concat]
+      rw [__smtx_repeat_rec, hm, __smtx_model_eval_concat]
       have hWidthEq : w + ↑n * w = (↑n + 1) * w := by
         calc
           w + ↑n * w = 1 * w + ↑n * w := by simp
@@ -571,17 +571,17 @@ theorem model_eval_rotate_left_rec_binary :
     ∀ n : native_Nat, ∀ w x : native_Int,
       native_zeq x (native_mod_total x (native_int_pow2 w)) = true ->
       ∃ m : native_Int,
-        __smtx_model_eval_rotate_left_rec n (SmtValue.Binary w x) =
+        __smtx_rotate_left_rec n (SmtValue.Binary w x) =
           SmtValue.Binary w m ∧
         native_zeq m (native_mod_total m (native_int_pow2 w)) = true
   | native_nat_zero, w, x, hCanon => by
       refine ⟨x, ?_, hCanon⟩
-      simp [__smtx_model_eval_rotate_left_rec]
+      simp [__smtx_rotate_left_rec]
   | native_nat_succ n, w, x, hCanon => by
       rcases model_eval_rotate_left_step_binary w x with ⟨y, hy, hCanonY⟩
       rcases model_eval_rotate_left_rec_binary n w y hCanonY with ⟨m, hm, hCanon⟩
       refine ⟨m, ?_, hCanon⟩
-      rw [__smtx_model_eval_rotate_left_rec, hy, hm]
+      rw [__smtx_rotate_left_rec, hy, hm]
 
 /-- Shows that evaluating `rotate_left` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_rotate_left
@@ -655,17 +655,17 @@ theorem model_eval_rotate_right_rec_binary :
     ∀ n : native_Nat, ∀ w x : native_Int,
       native_zeq x (native_mod_total x (native_int_pow2 w)) = true ->
       ∃ m : native_Int,
-        __smtx_model_eval_rotate_right_rec n (SmtValue.Binary w x) =
+        __smtx_rotate_right_rec n (SmtValue.Binary w x) =
           SmtValue.Binary w m ∧
         native_zeq m (native_mod_total m (native_int_pow2 w)) = true
   | native_nat_zero, w, x, hCanon => by
       refine ⟨x, ?_, hCanon⟩
-      simp [__smtx_model_eval_rotate_right_rec]
+      simp [__smtx_rotate_right_rec]
   | native_nat_succ n, w, x, hCanon => by
       rcases model_eval_rotate_right_step_binary w x with ⟨y, hy, hCanonY⟩
       rcases model_eval_rotate_right_rec_binary n w y hCanonY with ⟨m, hm, hCanon⟩
       refine ⟨m, ?_, hCanon⟩
-      rw [__smtx_model_eval_rotate_right_rec, hy, hm]
+      rw [__smtx_rotate_right_rec, hy, hm]
 
 /-- Shows that evaluating `rotate_right` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_rotate_right

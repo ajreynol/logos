@@ -341,16 +341,16 @@ private theorem rotateLeft_zero (x : BitVec w) :
 
 private theorem rotateLeftRec_eq
     (n W : Nat) (p : Int) (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W) :
-    __smtx_model_eval_rotate_left_rec n (SmtValue.Binary (↑W) p) =
+    __smtx_rotate_left_rec n (SmtValue.Binary (↑W) p) =
       SmtValue.Binary (↑W)
         (↑((BitVec.ofInt W p).rotateLeft n).toNat) := by
   induction n generalizing p with
   | zero =>
-      rw [__smtx_model_eval_rotate_left_rec, rotateLeft_zero,
+      rw [__smtx_rotate_left_rec, rotateLeft_zero,
         ofInt_toNat_canonical W p hp0 hp1, Int.toNat_of_nonneg hp0]
   | succ n ih =>
-      rw [__smtx_model_eval_rotate_left_rec]
-      change __smtx_model_eval_rotate_left_rec n (leftStep (↑W) p) = _
+      rw [__smtx_rotate_left_rec]
+      change __smtx_rotate_left_rec n (leftStep (↑W) p) = _
       rw [leftStep_eq_rotateLeft_one W p hp0 hp1]
       let y := (BitVec.ofInt W p).rotateLeft 1
       have hy0 : 0 ≤ (Int.ofNat y.toNat) := Int.natCast_nonneg _
@@ -358,7 +358,7 @@ private theorem rotateLeftRec_eq
         have hPow : (2 : Int) ^ W = Int.ofNat (2 ^ W) := by norm_cast
         rw [hPow]
         exact Int.ofNat_lt.mpr y.isLt
-      change __smtx_model_eval_rotate_left_rec n
+      change __smtx_rotate_left_rec n
         (SmtValue.Binary (↑W) (Int.ofNat y.toNat)) = _
       rw [ih (Int.ofNat y.toNat) hy0 hy1]
       congr 2
@@ -371,18 +371,18 @@ private theorem rotateLeftRec_eq
 
 private theorem rotateRightRec_eq
     (n W : Nat) (p : Int) (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W) :
-    __smtx_model_eval_rotate_right_rec n (SmtValue.Binary (↑W) p) =
+    __smtx_rotate_right_rec n (SmtValue.Binary (↑W) p) =
       SmtValue.Binary (↑W)
         (↑((BitVec.ofInt W p).rotateLeft (n * (W - 1))).toNat) := by
   induction n generalizing p with
   | zero =>
-      rw [__smtx_model_eval_rotate_right_rec]
+      rw [__smtx_rotate_right_rec]
       simp only [Nat.zero_mul]
       rw [rotateLeft_zero, ofInt_toNat_canonical W p hp0 hp1,
         Int.toNat_of_nonneg hp0]
   | succ n ih =>
-      rw [__smtx_model_eval_rotate_right_rec]
-      change __smtx_model_eval_rotate_right_rec n (rightStep (↑W) p) = _
+      rw [__smtx_rotate_right_rec]
+      change __smtx_rotate_right_rec n (rightStep (↑W) p) = _
       rw [rightStep_eq_rotateRight_one W p hp0 hp1]
       let y := (BitVec.ofInt W p).rotateRight 1
       have hy0 : 0 ≤ (Int.ofNat y.toNat) := Int.natCast_nonneg _
@@ -390,7 +390,7 @@ private theorem rotateRightRec_eq
         have hPow : (2 : Int) ^ W = Int.ofNat (2 ^ W) := by norm_cast
         rw [hPow]
         exact Int.ofNat_lt.mpr y.isLt
-      change __smtx_model_eval_rotate_right_rec n
+      change __smtx_rotate_right_rec n
         (SmtValue.Binary (↑W) (Int.ofNat y.toNat)) = _
       rw [ih (Int.ofNat y.toNat) hy0 hy1]
       congr 2
@@ -416,7 +416,7 @@ private theorem rotateRightRec_eq
 /-- Canonical value-level interpretation of the recursive left-rotation evaluator. -/
 theorem bv_rotate_left_rec_eval
     (n W : Nat) (p : Int) (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W) :
-    __smtx_model_eval_rotate_left_rec n (SmtValue.Binary (↑W) p) =
+    __smtx_rotate_left_rec n (SmtValue.Binary (↑W) p) =
       SmtValue.Binary (↑W)
         (↑((BitVec.ofInt W p).rotateLeft n).toNat) :=
   rotateLeftRec_eq n W p hp0 hp1
@@ -424,7 +424,7 @@ theorem bv_rotate_left_rec_eval
 /-- Canonical value-level interpretation of the recursive right-rotation evaluator. -/
 theorem bv_rotate_right_rec_eval
     (n W : Nat) (p : Int) (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W) :
-    __smtx_model_eval_rotate_right_rec n (SmtValue.Binary (↑W) p) =
+    __smtx_rotate_right_rec n (SmtValue.Binary (↑W) p) =
       SmtValue.Binary (↑W)
         (↑((BitVec.ofInt W p).rotateLeft (n * (W - 1))).toNat) :=
   rotateRightRec_eq n W p hp0 hp1
@@ -688,7 +688,7 @@ private theorem bv_rotate_elim_prem_mod_eq_zero
     change __smtx_model_eval M
         (SmtTerm.mod (SmtTerm.Numeral i)
           (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x))) = _
-    rw [__smtx_model_eval.eq_25, hSizeEval]
+    rw [__smtx_model_eval.eq_27, hSizeEval]
     simp [__smtx_model_eval, __smtx_model_eval_eq, __smtx_model_eval_ite,
       __smtx_model_eval_mod_total, native_veq, hwNe]
   have hZeroEval :
@@ -761,7 +761,7 @@ private theorem eval_bv_rotate_elim_lhs_eq
         __smtx_model_eval M (__eo_to_smt x)
       rw [__smtx_model_eval.eq_def] <;> simp only
       rw [__smtx_model_eval.eq_2, hXEval']
-      change __smtx_model_eval_rotate_left_rec A (SmtValue.Binary (↑W) p) =
+      change __smtx_rotate_left_rec A (SmtValue.Binary (↑W) p) =
         SmtValue.Binary (↑W) p
       rw [rotateLeftRec_eq A W p hp0 hp1]
       rw [rotateLeft_eq_self_of_width_zero_or_mod_eq_zero
@@ -773,7 +773,7 @@ private theorem eval_bv_rotate_elim_lhs_eq
         __smtx_model_eval M (__eo_to_smt x)
       rw [__smtx_model_eval.eq_def] <;> simp only
       rw [__smtx_model_eval.eq_2, hXEval']
-      change __smtx_model_eval_rotate_right_rec A (SmtValue.Binary (↑W) p) =
+      change __smtx_rotate_right_rec A (SmtValue.Binary (↑W) p) =
         SmtValue.Binary (↑W) p
       rw [rotateRightRec_eq A W p hp0 hp1]
       rw [rotateRightTracked_eq_self_of_width_zero_or_mod_eq_zero

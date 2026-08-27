@@ -88,7 +88,7 @@ private theorem facts___eo_prog_bool_xor_refl_impl
     rw [show __eo_to_smt (Term.Apply (Term.Apply Term.xor x1) x1) =
       SmtTerm.xor (__eo_to_smt x1) (__eo_to_smt x1) by
       rfl]
-    rw [__smtx_model_eval.eq_10, hEvalX1, hFalseEval]
+    rw [__smtx_model_eval.eq_11, hEvalX1, hFalseEval]
     cases b <;> simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq,
       __smtx_model_eval_xor, __smtx_model_eval_not, native_veq,
       SmtEval.native_not]

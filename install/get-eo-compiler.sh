@@ -4,19 +4,19 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/get-eo-compiler.sh [OPTION]...
+Usage: install/get-eo-compiler.sh [OPTION]...
 
-Download and build the Eunoia compiler that scripts/install-cpc.sh runs: the
+Download and build the Eunoia compiler that install/install-cpc.sh runs: the
 ethos source tree, pinned to the commit recorded in ETHOS_VERSION below, and
 ethos-eoc built from the standalone project in its plugins/ directory.
 
-Both are placed under deps/ (see --deps-dir) and the resulting paths and
-version are recorded in deps/eoc-env.sh, which scripts/install-cpc.sh reads so
-that the signature is the only thing it has to be told.
+Both are placed under install/deps/ (see --deps-dir) and the resulting paths
+and version are recorded in install/deps/eoc-env.sh, which install-cpc.sh reads
+so that the signature is the only thing it has to be told.
 
 This sets up the compiler and nothing else. The Eunoia signature to compile is
 not fetched here and is not a concern of this script; name one with --signature
-when running scripts/install-cpc.sh.
+when running install/install-cpc.sh.
 
 ethos-eoc is always compiled here rather than downloaded. No release of ethos
 publishes it, and it reads its Lean and Eunoia templates out of the source tree
@@ -27,7 +27,7 @@ the compiler emits changes only when someone moves the pin deliberately. Move
 it by editing ETHOS_VERSION and re-running both scripts.
 
 Options:
-  --deps-dir DIR       where to put everything (default: <repo>/deps)
+  --deps-dir DIR       where to put everything (default: <install>/deps)
   --jobs N             parallel compile jobs (default: all processors)
   --keep-tmp           keep the downloaded archive instead of deleting it
   -h, --help           show this message
@@ -37,17 +37,35 @@ either wget or curl. On Debian and Ubuntu the GMP headers are libgmp-dev; on
 macOS with Homebrew they are gmp.
 
 Examples:
-  scripts/get-eo-compiler.sh
-  scripts/get-eo-compiler.sh --jobs 8
+  install/get-eo-compiler.sh
+  install/get-eo-compiler.sh --jobs 8
 USAGE
 }
 
 # The pinned commit of cvc5/ethos this repository is regenerated against.
-# b9fc583f is "Add core Eunoia compiler infrastructure (#229)", the commit that
-# put tools/eoc/driver.py and the lean_meta templates on ethos main. Moving the
-# pin changes what the compiler emits, so move it on purpose and rebuild the
-# generated packages afterwards.
-ETHOS_VERSION="b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6"
+# 1ef8fe31 is the head of ethosEoc3, which is where the model semantics are
+# compiled from a configuration -- install/defs/Cpc.eos here -- rather than
+# read from a file in the ethos tree. Moving the pin changes what the compiler
+# emits, so move it on purpose and rebuild the generated packages afterwards.
+#
+# A leading ~ in --option=VALUE is not the shell's to expand: it does that at
+# the start of a word, and there the word starts with --option. So the tilde
+# arrives here as a character, and every option that takes a path expands it
+# the way the shell would have. ~user is left alone, since resolving that needs
+# more than $HOME.
+expand_tilde() {
+  case "$1" in
+    "~") printf '%s\n' "${HOME}" ;;
+    "~/"*) printf '%s\n' "${HOME}/${1#\~/}" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
+# TODO: this is a workaround. ethosEoc3 is a development branch, and the pin
+# belongs on a commit of ethos main; move it back once what this needs is
+# there. It is pinned to a commit of the branch rather than to the branch
+# itself, so that what the compiler emits still changes only on purpose.
+ETHOS_VERSION="1ef8fe318774851da3339377daefa4f8c69bb429"
 DEPS_DIR=""
 JOBS=""
 KEEP_TMP=0
@@ -64,9 +82,10 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+DEPS_DIR="$(expand_tilde "${DEPS_DIR}")"
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd "${script_dir}/.." && pwd)"
-DEPS_DIR="${DEPS_DIR:-${repo_root}/deps}"
+DEPS_DIR="${DEPS_DIR:-${script_dir}/deps}"
 
 if [ -z "${JOBS}" ]; then
   if command -v nproc >/dev/null 2>&1; then
@@ -114,9 +133,8 @@ tar --strip-components 1 -xzf "${TMP_DIR}/ethos.tgz" -C "${ETHOS_DIR}"
 DRIVER="${ETHOS_DIR}/tools/eoc/driver.py"
 if [ ! -f "${DRIVER}" ]; then
   echo "error: ${DRIVER} is missing from the ethos tree." >&2
-  echo "The Eunoia compiler driver was added to ethos in #229. ETHOS_VERSION" >&2
-  echo "in this script is pinned to ${ETHOS_VERSION}," >&2
-  echo "which should contain it; a pin moved to an older commit will not." >&2
+  echo "ETHOS_VERSION in this script is pinned to ${ETHOS_VERSION}," >&2
+  echo "which should contain it; a pin moved to an older commit may not." >&2
   exit 1
 fi
 
@@ -142,7 +160,7 @@ fi
 
 echo "==> Recording what was installed in ${DEPS_DIR}/eoc-env.sh"
 cat > "${DEPS_DIR}/eoc-env.sh" <<ENV
-# Written by scripts/get-eo-compiler.sh. Read by scripts/install-cpc.sh so that
+# Written by install/get-eo-compiler.sh. Read by install/install-cpc.sh so that
 # it only has to be told which signature to compile. Edit by re-running
 # get-eo-compiler.sh rather than by hand.
 #
@@ -150,8 +168,6 @@ cat > "${DEPS_DIR}/eoc-env.sh" <<ENV
 EOC_ETHOS_DIR="${ETHOS_DIR}"
 EOC_ETHOS_EOC="${ETHOS_EOC}"
 EOC_BUILD_DIR="${BUILD_DIR}"
-EOC_DEFS="${ETHOS_DIR}/plugins/model_smt/cpc_defs.eo"
-EOC_LEAN_CONFIG="${ETHOS_DIR}/plugins/lean_meta/cpc_termination.lean"
 EOC_ETHOS_VERSION="${ETHOS_VERSION}"
 ENV
 
@@ -166,9 +182,9 @@ cat <<DONE
   ethos      ${ETHOS_DIR} (${ETHOS_VERSION})
   ethos-eoc  ${ETHOS_EOC}
 
-Compile a Eunoia signature with it by naming one, e.g.
+Compile a Eunoia signature with, e.g.
 
-  scripts/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo
+  install/install-cpc.sh <cvc5>/proofs/eo/cpc/Cpc.eo
 
 which reads ${DEPS_DIR}/eoc-env.sh for everything else.
 DONE

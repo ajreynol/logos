@@ -74,6 +74,10 @@ To run the same checks as CI locally, use:
 bash scripts/run-ci.sh
 ```
 
+One of them, the `regeneration` group, recompiles the calculus and is skipped
+until `install/get-eo-compiler.sh` has been run once. See
+[Regenerating the calculus](#regenerating-the-calculus).
+
 To build every CPC proof rule, use:
 
 ```bash
@@ -114,26 +118,33 @@ lake clean
 ## Regenerating the calculus
 
 The `Cpc` package is compiled from the Eunoia definition of CPC rather than
-written by hand. Two scripts do that; see
-[`scripts/README.md`](scripts/README.md) for the full description.
+written by hand:
 
 ```bash
-scripts/get-eo-compiler.sh                                     # once: build the compiler
-scripts/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo # regenerate Cpc
-scripts/build.sh Cpc                                           # check the result
+install/get-eo-compiler.sh                  # once: build the compiler
+install/install-cpc.sh <cvc5>/.../Cpc.eo    # regenerate from a signature
+scripts/build.sh Cpc                        # check the result
 ```
 
-The first script sets up the compiler only, under `deps/`, which is ignored by
-git. The signature to compile against is named on each run, so any copy of
-`Cpc.eo` reachable on the machine can be used, including one being edited. What
-is consumed is the Eunoia source of the signature; no cvc5 *binary* or build is
-involved.
+Any copy of `Cpc.eo` reachable on the machine can be passed, including one
+being edited; no cvc5 *binary* or build is involved. Regenerating from the
+version last compiled needs no cvc5 checkout at all:
+
+```bash
+install/install-cpc.sh --cached          # regenerate from that version
+install/install-cpc.sh --cached --check  # ask whether it still matches
+```
+
+The second is the `regeneration` CI group, which fails when generated code has
+drifted from the signature it came from.
 
 Regeneration rewrites the signature-wide modules of the package but preserves
 the existing per-rule proofs under `Proofs/Rules/`. A rule newly added to CPC
 appears as a `sorry` stub, and a rule whose statement changed keeps its old
 proof and therefore fails to build — both are the intended signal that a proof
 needs attention.
+
+See [`install/README.md`](install/README.md) for more details.
 
 ## Using the Logos checker
 

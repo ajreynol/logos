@@ -74,9 +74,6 @@ private theorem type_default_canonical_kernel : ∀ T : SmtType,
     simp [__smtx_type_default, __smtx_value_canonical_bool,
       native_nat_to_int, native_and, native_zleq, native_zeq, native_mod_total,
       native_int_to_nat, native_ite]
-  · intros
-    simp [__smtx_type_default, __smtx_value_canonical_bool,
-      native_char_valid, native_ite]
   · intro T U ih _hInh hRec
     have hRaw :
         (native_inhabited_type T = true ∧
@@ -115,6 +112,9 @@ private theorem type_default_canonical_kernel : ∀ T : SmtType,
   · intros
     simp [__smtx_type_default, __smtx_value_canonical_bool,
       __smtx_seq_canonical]
+  · intros
+    simp [__smtx_type_default, __smtx_value_canonical_bool,
+      native_char_valid, native_ite]
   · intros
     simp [__smtx_type_default, __smtx_value_canonical_bool]
   · intros
