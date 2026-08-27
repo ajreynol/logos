@@ -93,6 +93,19 @@ Examples:
 USAGE
 }
 
+# A leading ~ in --option=VALUE is not the shell's to expand: it does that at
+# the start of a word, and there the word starts with --option. So the tilde
+# arrives here as a character, and every option that takes a path expands it
+# the way the shell would have. ~user is left alone, since resolving that needs
+# more than $HOME.
+expand_tilde() {
+  case "$1" in
+    "~") printf '%s\n' "${HOME}" ;;
+    "~/"*) printf '%s\n' "${HOME}/${1#\~/}" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
 SIGNATURE=""
 CACHED=0
 UPDATE_CACHE=0
@@ -155,6 +168,17 @@ while [ $# -gt 0 ]; do
     *) echo "unrecognized option $1" >&2; usage >&2; exit 2 ;;
   esac
 done
+
+# Every option above that takes a path, whether it arrived as --option VALUE or
+# as --option=VALUE.
+SIGNATURE="$(expand_tilde "${SIGNATURE}")"
+CACHE_FILE="$(expand_tilde "${CACHE_FILE}")"
+ETHOS_DIR="$(expand_tilde "${ETHOS_DIR}")"
+DEFS="$(expand_tilde "${DEFS}")"
+LEAN_CONFIG="$(expand_tilde "${LEAN_CONFIG}")"
+BUILD_DIR="$(expand_tilde "${BUILD_DIR}")"
+OUT_DIR="$(expand_tilde "${OUT_DIR}")"
+DEPS_DIR="$(expand_tilde "${DEPS_DIR}")"
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"

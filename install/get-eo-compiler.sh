@@ -47,6 +47,19 @@ USAGE
 # put tools/eoc/driver.py and the lean_meta templates on ethos main. Moving the
 # pin changes what the compiler emits, so move it on purpose and rebuild the
 # generated packages afterwards.
+# A leading ~ in --option=VALUE is not the shell's to expand: it does that at
+# the start of a word, and there the word starts with --option. So the tilde
+# arrives here as a character, and every option that takes a path expands it
+# the way the shell would have. ~user is left alone, since resolving that needs
+# more than $HOME.
+expand_tilde() {
+  case "$1" in
+    "~") printf '%s\n' "${HOME}" ;;
+    "~/"*) printf '%s\n' "${HOME}/${1#\~/}" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
 ETHOS_VERSION="b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6"
 DEPS_DIR=""
 JOBS=""
@@ -63,6 +76,8 @@ while [ $# -gt 0 ]; do
     *) echo "unrecognized option $1" >&2; usage >&2; exit 2 ;;
   esac
 done
+
+DEPS_DIR="$(expand_tilde "${DEPS_DIR}")"
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPS_DIR="${DEPS_DIR:-${script_dir}/deps}"
