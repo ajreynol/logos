@@ -28,11 +28,11 @@ def t4 : Term := (Term.Apply t3 t1)
 def t5 : Term := (Term.Apply (Term.UOp UserOp.eq) t1)
 def t6 : Term := (Term.Apply t5 t2)
 def t7 : Term := (Term.Apply (Term.UOp UserOp.not) t6)
-def s0 : CState := logos_init_state
-def s1 : CState := (logos_invoke_assume s0 t4)
-def s2 : CState := (logos_invoke_assume s1 t7)
-def s3 : CState := (logos_invoke_cmd s2 (CCmd.step CRule.symm CArgList.nil (CIndexList.cons 0 CIndexList.nil)))
-def s4 : CState := (logos_invoke_cmd s3 (CCmd.step CRule.contra CArgList.nil (CIndexList.cons 2 (CIndexList.cons 0 CIndexList.nil))))
+def s0 : LogosState := logos_init_state
+def s1 : LogosState := (logos_invoke_assume s0 t4)
+def s2 : LogosState := (logos_invoke_assume s1 t7)
+def s3 : LogosState := (logos_invoke_cmd s2 (CCmd.step CRule.symm CArgList.nil (CIndexList.cons 0 CIndexList.nil)))
+def s4 : LogosState := (logos_invoke_cmd s3 (CCmd.step CRule.contra CArgList.nil (CIndexList.cons 2 (CIndexList.cons 0 CIndexList.nil))))
 #eval!
 (logos_state_is_refutation s4)
 ```
@@ -66,27 +66,29 @@ theorem correct___logos_state_is_refutation (assums : List Term) (cmds : CCmdLis
 theorem is about a script's own assumptions and commands, just as
 `correct___logos_check_proof` is about the assumptions the parser read out of a file.
 
-The two front ends run the same three checks — `Eo.verdict_correct_of_state_is_refutation`
-proves that a script passes exactly the checks of `Eo.logos_verdict`, which `logos` runs on
-the parser's output.  A script has no list to hand back, so the two side conditions of
-`correct___eo_is_refutation` are decided one call at a time instead:
+The two front ends run the same three checks — `Eo.logos_state_verdict_eq_verdict` proves
+that a script computes exactly the `Eo.logos_verdict` that `logos` computes from the
+parser's output.  A script has no list to hand back at the end, so the two side conditions
+of `correct___eo_is_refutation` are decided one call at a time instead, and recorded in the
+state as it goes:
 
 * `logos_invoke_assume` pushes an input assumption only if it is Boolean-typed and closed
-  (the guard `logos` applies, which `checkerTypeInvariant` and `StableAssumptionList` need)
-  and has an SMT-LIB translation.
-* `logos_invoke_cmd` runs a command only if its arguments satisfy the per-rule translation
-  side condition the rule's proof assumes.
+  (the guard `logos` applies, which `checkerTypeInvariant` and `StableAssumptionList` need),
+  and records whether it has an SMT-LIB translation.
+* `logos_invoke_cmd` records whether the command's arguments satisfy the per-rule
+  translation side condition the rule's proof assumes.
 
 Both are decided by the definitions of `Cpc/Proofs/Assumptions.lean` that `logos` uses, so
-neither front end has its own copy.  A call that fails its check yields `CState.Stuck`,
-which every later call propagates and which is never a refutation, so `false` is what a
-script that fails one evaluates to.
+neither front end has its own copy.  `LogosState` is the whole interface a script needs: it
+is the checker state together with those records, and a script never names anything else
+internal to the checker.
 
 Two differences from the `logos` path remain, neither of them about what a `true` means:
 
 * `logos` distinguishes a proof it rejects (`incorrect`) from one it accepts but cannot
   translate (`incomplete`), and names the assumption or command at fault.  A script
-  evaluates to a single Boolean, so both read as `false`.
+  evaluates to a single Boolean, so both read as `false`; `Eo.logos_state_verdict` returns
+  the same three-way `Eo.Verdict` for a script that wants it.
 * the exit status of `logos-native` is the number of Lean elaboration errors, not the
   verdict; `logos` exits 0, 1 or 2 for `correct`, `incorrect` and `incomplete`.
 
