@@ -22,7 +22,11 @@ every option there is for saying which signature, which package and which
 rules; `install-cpc.sh` is the one to reach for day to day, and is
 `install-sig.sh` run twice, for the two packages this repository generates.
 Running it rather than the two runs by hand is what keeps `Cpc` and `CpcMini`
-descriptions of the same signature.
+descriptions of the same signature. Each run says what it did to its own
+package; what the two of them add up to — whether both are current, or what
+to build now that they are regenerated — is said once, at the end, by
+`install-cpc.sh` rather than twice by `install-sig.sh` (which is what its
+`--brief` is for).
 
 `get-eo-compiler.sh` puts an Ethos tree and an `ethos-eoc` built from it under
 `install/deps/`, and records where each landed in `install/deps/eoc-env.sh`. It
@@ -235,8 +239,8 @@ An install rewrites it, so there is no second command to remember:
 install/install-cpc.sh ~/cvc5/proofs/eo/cpc/Cpc.eo
 ```
 
-regenerates both packages *and* records the signature it compiled. What the packages
-were generated from and what CI compiles are then the same thing by
+regenerates both packages *and* records the signature it compiled. What the
+packages were generated from and what CI compiles are then the same thing by
 construction rather than by anyone's discipline.
 
 Two runs deliberately do not record anything, because neither compiled the
@@ -290,8 +294,9 @@ The CPC signature happens to be maintained in the cvc5 repository, at
 What the compiler consumes is Eunoia *source text*, not a solver: no cvc5
 binary and no cvc5 build is involved. Note that `Cpc.eo` includes the rest of
 `proofs/eo` by relative path, so `--signature` needs to name a file sitting in
-a complete copy of that subtree. `install/defs/Cpc.cached.eo` is that subtree written
-as one file, which is why `--cached` needs nothing outside this repository.
+a complete copy of that subtree. `install/defs/Cpc.cached.eo` is that subtree
+written as one file, which is why `--cached` needs nothing outside this
+repository.
 
 ## Pinning
 
@@ -301,9 +306,9 @@ moves the pin deliberately. It is currently
 `b9fc583f5a4838fcfcaade2d31f8cdc5f19c62a6` — "Add core Eunoia compiler
 infrastructure (#229)". To move it, edit that line and re-run both scripts.
 
-The signature is pinned by copy rather than by version: `install/defs/Cpc.cached.eo`
-is the one the packages were compiled from, and `--cached` compiles exactly
-that. `--signature` is still whatever you point it at, so a run against a
-checkout compiles that checkout; what the copy fixes is the version everything
-is *checked* against, which is why moving to a newer signature means running
-`--update-cache` as well.
+The signature is pinned by copy rather than by version:
+`install/defs/Cpc.cached.eo` is the one the packages were compiled from, and
+`--cached` compiles exactly that. `--signature` is still whatever you point it
+at, so a run against a checkout compiles that checkout; what the copy fixes is
+the version everything is *checked* against, which is why moving to a newer
+signature means running `--update-cache` as well.

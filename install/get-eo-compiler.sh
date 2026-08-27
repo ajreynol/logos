@@ -180,9 +180,9 @@ cat <<DONE
   ethos      ${ETHOS_DIR} (${ETHOS_VERSION})
   ethos-eoc  ${ETHOS_EOC}
 
-Compile a Eunoia signature with it by naming one, e.g.
+Compile a Eunoia signature with, e.g.
 
-  install/install-cpc.sh --signature <cvc5>/proofs/eo/cpc/Cpc.eo
+  install/install-cpc.sh <cvc5>/proofs/eo/cpc/Cpc.eo
 
 which reads ${DEPS_DIR}/eoc-env.sh for everything else.
 DONE

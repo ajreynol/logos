@@ -30,9 +30,11 @@ usually run with:
   --ethos PATH         an ethos source tree to compile with
   -h, --help           show this message
 
---mini and --package are refused rather than passed through, since which
-packages are installed is what this script is for. Reach for install-sig.sh
-directly to install one package, a reduced calculus, or a package of your own.
+Each run reports what it did to its own package; what the two of them add up
+to is said once, here, at the end. --mini and --package are refused rather
+than passed through, since which packages are installed is what this script
+is for. Reach for install-sig.sh directly to install one package, a reduced
+calculus, or a package of your own.
 USAGE
 }
 
@@ -42,25 +44,32 @@ INSTALL_SIG="${script_dir}/install-sig.sh"
 
 CHECK=0
 UPDATE_CACHE=0
-HAVE_SIGNATURE=0
+SIGNATURE=""
+want_signature=0
 for arg in "$@"; do
+  if [ "${want_signature}" = "1" ]; then
+    SIGNATURE="${arg}"
+    want_signature=0
+    continue
+  fi
   case "${arg}" in
     -h|--help) usage; exit 0 ;;
     --check) CHECK=1 ;;
     --update-cache) UPDATE_CACHE=1 ;;
-    --cached) HAVE_SIGNATURE=1 ;;
-    --signature|--signature=*) HAVE_SIGNATURE=1 ;;
+    --cached) SIGNATURE="the cached signature" ;;
+    --signature) want_signature=1 ;;
+    --signature=*) SIGNATURE="${arg#*=}" ;;
     --mini|--package|--package=*)
       echo "error: ${arg} asks for one package, and this script is the two of" >&2
       echo "them. Run install/install-sig.sh for a single package." >&2
       exit 2
       ;;
     -*) ;;
-    *.eo) HAVE_SIGNATURE=1 ;;
+    *.eo) SIGNATURE="${arg}" ;;
   esac
 done
 
-if [ "${HAVE_SIGNATURE}" = "0" ]; then
+if [ -z "${SIGNATURE}" ]; then
   echo "error: no signature to compile. Name one, e.g." >&2
   echo "  install/install-cpc.sh ~/cvc5/proofs/eo/cpc/Cpc.eo" >&2
   echo "or compile the copy kept in this repository with --cached." >&2
@@ -73,15 +82,44 @@ if [ "${UPDATE_CACHE}" = "1" ]; then
 fi
 
 if [ "${CHECK}" = "1" ]; then
-  status=0
-  bash "${INSTALL_SIG}" "$@" || status=1
+  cpc=0
+  mini=0
+  bash "${INSTALL_SIG}" --brief "$@" || cpc=1
   echo
-  bash "${INSTALL_SIG}" "$@" --mini || status=1
-  exit "${status}"
+  bash "${INSTALL_SIG}" --brief "$@" --mini || mini=1
+
+  echo
+  if [ "${cpc}" = "0" ] && [ "${mini}" = "0" ]; then
+    echo "==> Cpc and CpcMini are both up to date with ${SIGNATURE}."
+    echo "Nothing was written."
+    exit 0
+  fi
+  if [ "${cpc}" = "1" ] && [ "${mini}" = "1" ]; then
+    echo "==> Neither Cpc nor CpcMini is what ${SIGNATURE} compiles to."
+  elif [ "${cpc}" = "1" ]; then
+    echo "==> Cpc is not what ${SIGNATURE} compiles to. CpcMini is."
+  else
+    echo "==> CpcMini is not what ${SIGNATURE} compiles to. Cpc is."
+  fi
+  echo "Nothing was written. Rerun without --check to apply."
+  exit 1
 fi
 
 # An install, where the second run has no business starting if the first did
 # not finish: set -e stops here.
-bash "${INSTALL_SIG}" "$@"
+bash "${INSTALL_SIG}" --brief "$@"
 echo
-bash "${INSTALL_SIG}" "$@" --mini
+bash "${INSTALL_SIG}" --brief "$@" --mini
+
+cat <<DONE
+
+==> Done. Cpc and CpcMini regenerated from ${SIGNATURE}.
+
+Build them with:
+
+  scripts/build.sh Cpc CpcMini
+
+A preserved rule file whose statement the calculus has changed will fail to
+build; a newly written one has \`sorry\` for a proof. Review with git diff
+before committing.
+DONE

@@ -66,6 +66,9 @@ Options:
                        compiler is needed for this
   --no-update-cache    do not record the compiled signature in that copy,
                        which a full install of Cpc or CpcMini otherwise does
+  --brief              say what this run did and leave what it means to
+                       whatever ran it, which is what install-cpc.sh does with
+                       the two runs it makes
   --cache PATH         where that copy lives
                        (default: <install>/defs/Cpc.cached.eo)
   --package NAME       the package under this repository to install into
@@ -124,6 +127,7 @@ SIGNATURE=""
 CACHED=0
 UPDATE_CACHE=0
 NO_UPDATE_CACHE=0
+BRIEF=0
 CACHE_FILE=""
 ETHOS_DIR=""
 ETHOS_GIVEN=0
@@ -149,6 +153,7 @@ while [ $# -gt 0 ]; do
     --cached) CACHED=1; shift ;;
     --update-cache) UPDATE_CACHE=1; shift ;;
     --no-update-cache) NO_UPDATE_CACHE=1; shift ;;
+    --brief) BRIEF=1; shift ;;
     --cache) CACHE_FILE="${2:?--cache requires a value}"; shift 2 ;;
     --cache=*) CACHE_FILE="${1#*=}"; shift ;;
     --ethos) ETHOS_DIR="${2:?--ethos requires a value}"; ETHOS_GIVEN=1; shift 2 ;;
@@ -696,14 +701,18 @@ if [ "${CHECK}" = "1" ]; then
     : > "${current}"
   fi
 
-  echo
   updates=0
   declare -a differing=()
+  # The blank line belongs to the list, so it is printed with the first entry
+  # rather than ahead of a list that may turn out to be empty.
+  open_list() { if [ "${updates}" -eq 0 ]; then echo; fi; }
   while IFS= read -r rel; do
     if [ ! -e "${PACKAGE_DIR}/${rel}" ]; then
+      open_list
       echo "  add     ${PACKAGE}/${rel}"
       updates=$((updates + 1))
     elif ! cmp -s "${DEST_DIR}/${rel}" "${PACKAGE_DIR}/${rel}"; then
+      open_list
       echo "  update  ${PACKAGE}/${rel}"
       differing+=("${rel}")
       updates=$((updates + 1))
@@ -711,14 +720,17 @@ if [ "${CHECK}" = "1" ]; then
   done < "${staged}"
   while IFS= read -r rel; do
     if [ ! -e "${DEST_DIR}/${rel}" ]; then
+      open_list
       echo "  remove  ${PACKAGE}/${rel}"
       updates=$((updates + 1))
     fi
   done < "${current}"
 
   if [ "${updates}" -eq 0 ]; then
-    echo "==> ${PACKAGE} is up to date with ${SIGNATURE}."
-    echo "Nothing was written."
+    if [ "${BRIEF}" = "0" ]; then
+      echo "==> ${PACKAGE} is up to date with ${SIGNATURE}."
+      echo "Nothing was written."
+    fi
     exit 0
   fi
   echo
@@ -749,8 +761,10 @@ if [ "${CHECK}" = "1" ]; then
     echo "(each diff cut off at ${DIFF_LINES} lines; run the check yourself for all of it)"
   fi
 
-  echo
-  echo "Nothing was written. Rerun without --check to apply."
+  if [ "${BRIEF}" = "0" ]; then
+    echo
+    echo "Nothing was written. Rerun without --check to apply."
+  fi
   exit 1
 fi
 
@@ -785,7 +799,8 @@ if [ "${CACHED}" = "0" ]; then
   rm -f "${fresh_cache}"
 fi
 
-cat <<DONE
+if [ "${BRIEF}" = "0" ]; then
+  cat <<DONE
 
 ==> Done. ${PACKAGE} regenerated from ${SIGNATURE}.
 
@@ -797,26 +812,38 @@ A preserved rule file whose statement the calculus has changed will fail to
 build; a newly written one has \`sorry\` for a proof. Review with git diff
 before committing.
 DONE
+fi
 
+# The copy is one thing however many packages are installed from it, so this
+# says its piece once and in one line under --brief, where the caller has a
+# closing summary of its own to give.
 case "${cache_action}" in
   updated)
-    cat <<NOTE
+    if [ "${BRIEF}" = "1" ]; then
+      echo "==> ${CACHE_FILE#"${repo_root}/"} now records this signature."
+    else
+      cat <<NOTE
 
 ==> ${CACHE_FILE#"${repo_root}/"} now records this signature.
 
 That copy is what CI compiles, so commit it along with ${PACKAGE}.
 NOTE
-    version="$(signature_version "${SIGNATURE}")"
-    [ -z "${version}" ] || cat <<NOTE
+      version="$(signature_version "${SIGNATURE}")"
+      [ -z "${version}" ] || cat <<NOTE
 
 It was read at commit
   ${version}
 which the copy does not record: put that in the commit message.
 NOTE
-    echo
+      echo
+    fi
     ;;
   skipped:*)
-    cat <<NOTE
+    if [ "${BRIEF}" = "1" ]; then
+      echo "==> Note: ${CACHE_FILE#"${repo_root}/"} still records another signature," \
+           "since ${cache_action#skipped:}."
+    else
+      cat <<NOTE
 
 ==> Note: the cached signature is not the one just compiled.
 
@@ -826,5 +853,6 @@ It is what CI compiles. Record this signature there with:
   install/install-cpc.sh --signature ${SIGNATURE} --update-cache
 
 NOTE
+    fi
     ;;
 esac
