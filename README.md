@@ -58,12 +58,12 @@ pinned Lean toolchain locally if the host compiler fallback is unavailable.
 Official x86-64 Lean binaries require glibc 2.26 or newer; check the host with
 `getconf GNU_LIBC_VERSION`.
 
-There are two checker executables:
-
-- `logos` checks CPC proofs in s-expression syntax.
-- `logos-native` checks CPC proofs expressed as Lean evaluation scripts.
-
+The checker executable is `logos`; it checks CPC proofs in s-expression syntax.
 The first build of a CPC executable takes roughly 3.5 minutes currently.
+
+A secondary executable, `logos-native`, checks proofs given directly as Lean
+evaluation scripts instead of s-expressions; it is a side path, described in
+[docs/lean-native-proofs.md](docs/lean-native-proofs.md).
 
 `CpcMini` is a cut-down calculus used to develop and test the proofs; it has no
 parser and no executable of its own.
@@ -137,7 +137,7 @@ needs attention.
 
 ## Using the Logos checker
 
-The standard `logos` executable reads the s-expression (Eunoia) syntax emitted by
+The `logos` executable reads the s-expression (Eunoia) syntax emitted by
 `cvc5 --dump-proofs --proof-format=cpc`:
 
 ```bash
@@ -179,11 +179,6 @@ syntax it supports, and how it lexes literals are described in
 
 Note that Logos has not (yet) been optimized for performance, so it is significantly slower
 than performant proof checkers for SMT.
-
-Logos also accepts proofs written directly as Lean evaluation scripts, as emitted by
-`cvc5 --dump-proofs --proof-format=cpc-logos`.  These are checked by the `logos-native`
-executable; that format is described in
-[docs/lean-native-proofs.md](docs/lean-native-proofs.md).
 
 ## Correctness
 
