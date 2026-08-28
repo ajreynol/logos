@@ -27,13 +27,6 @@ def native_char_valid (c : native_Char) : native_Bool :=
 def native_string_valid (s : native_String) : native_Bool :=
   s.all native_char_valid
 
-def native_string_prefix_eq : native_String -> native_String -> native_Bool
-  | [], _ => true
-  | _ :: _, [] => false
-  | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds
-
-    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
-
 def native_or : native_Bool -> native_Bool -> native_Bool
   | x, y => x || y
 
@@ -65,46 +58,13 @@ def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
 def native_uconst_id : native_Nat -> native_String
   | i => (native_string_lit "@u.") ++ (native_string_lit (toString i))
 
-def native_reserved_datatype_name (s : native_String) : native_Bool :=
-  native_string_prefix_eq (native_string_lit "@") s
-
-def native_default_fun_id : native_String := (native_string_lit "@native_default_fun")
-
-/- SMT-LIB model -/
-structure SmtModelKey where
-  isVar : native_Bool
-  name : native_String
-  ty : SmtType
-deriving Repr, DecidableEq, Inhabited
-
-structure SmtModel where
-  values : SmtModelKey -> SmtValue
-  nativeFuns : SmtModelKey -> SmtNativeFun
-deriving Inhabited
-
-def native_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
-  { isVar := false, name := s, ty := T }
-
-def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  M.values { isVar := true, name := s, ty := T }
-
-def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  M.values (native_model_key s T)
-
-def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
-  { M with values := fun k =>
-      if k = { isVar := true, name := s, ty := T } then
-        v
-      else
-        M.values k }
-
-def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtNativeFun :=
-  M.nativeFuns (native_model_key fid (SmtType.FunType T U))
-
--- The reference lists are not reached by any signature compiled so far: they
--- are for the translation proofs of the package the published tree is
--- installed into, which this compiler never sees. So they are roots rather
--- than definitions the compilation has to reach.
+/- Whether s begins with the one character c holds. This is narrower than a
+   prefix test on purpose: what a signature reserves a name by is one
+   character, and the general prefix matcher stays private to this layer. -/
+def native_string_head_eq (c s : native_String) : native_Bool :=
+  match c, s with
+  | [x], y :: _ => decide (x = y)
+  | _, _ => false
 
 /- Type equality -/
 def native_Teq : SmtType -> SmtType -> native_Bool
@@ -133,30 +93,30 @@ def native_re_elem_valid : SmtValue -> native_Bool
   | _ => false
 
 /-- Character ordering on base elements; only characters are comparable. -/
-def native_re_elem_le : SmtValue -> SmtValue -> native_Bool
+def impl_native_re_elem_le : SmtValue -> SmtValue -> native_Bool
   | (SmtValue.Char c₁), (SmtValue.Char c₂) => c₁ <= c₂
   | _, _ => false
 
 /-- The embedding of native strings as value sequences. -/
-def native_string_to_values (s : native_String) : List SmtValue :=
+def impl_native_string_to_values (s : native_String) : List SmtValue :=
   s.map SmtValue.Char
 
 /-- Whether a value sequence denotes a valid string, i.e. all of its
 elements are valid character values. -/
-def native_re_str_valid (xs : List SmtValue) : native_Bool :=
+def impl_native_re_str_valid (xs : List SmtValue) : native_Bool :=
   xs.all native_re_elem_valid
 
-def native_re_nullable : SmtRegLan -> native_Bool
+def impl_native_re_nullable : SmtRegLan -> native_Bool
   | .empty => false
   | .epsilon => true
   | .char _ => false
   | .range _ _ => false
   | .allchar => false
-  | .concat r₁ r₂ => native_re_nullable r₁ && native_re_nullable r₂
-  | .union r₁ r₂ => native_re_nullable r₁ || native_re_nullable r₂
-  | .inter r₁ r₂ => native_re_nullable r₁ && native_re_nullable r₂
+  | .concat r₁ r₂ => impl_native_re_nullable r₁ && impl_native_re_nullable r₂
+  | .union r₁ r₂ => impl_native_re_nullable r₁ || impl_native_re_nullable r₂
+  | .inter r₁ r₂ => impl_native_re_nullable r₁ && impl_native_re_nullable r₂
   | .star _ => true
-  | .comp r => !(native_re_nullable r)
+  | .comp r => !(impl_native_re_nullable r)
 
 def native_re_concat (r₁ r₂ : SmtRegLan) : SmtRegLan :=
   match r₁, r₂ with
@@ -182,30 +142,30 @@ def native_re_comp : SmtRegLan -> SmtRegLan
   | .comp r => r
   | r => .comp r
 
-def native_re_deriv (c : SmtValue) : SmtRegLan -> SmtRegLan
+def impl_native_re_deriv (c : SmtValue) : SmtRegLan -> SmtRegLan
   | .empty => .empty
   | .epsilon => .empty
   | .char d => if c = d then .epsilon else .empty
   | .range lo hi =>
       if native_re_elem_valid c && native_re_elem_valid lo && native_re_elem_valid hi
-          && native_re_elem_le lo c && native_re_elem_le c hi then
+          && impl_native_re_elem_le lo c && impl_native_re_elem_le c hi then
         .epsilon
       else
         .empty
   | .allchar => if native_re_elem_valid c then .epsilon else .empty
   | .concat r₁ r₂ =>
       native_re_union
-        (native_re_concat (native_re_deriv c r₁) r₂)
-        (if native_re_nullable r₁ then native_re_deriv c r₂ else .empty)
-  | .union r₁ r₂ => native_re_union (native_re_deriv c r₁) (native_re_deriv c r₂)
-  | .inter r₁ r₂ => native_re_inter (native_re_deriv c r₁) (native_re_deriv c r₂)
-  | .star r => native_re_concat (native_re_deriv c r) (.star r)
-  | .comp r => native_re_comp (native_re_deriv c r)
+        (native_re_concat (impl_native_re_deriv c r₁) r₂)
+        (if impl_native_re_nullable r₁ then impl_native_re_deriv c r₂ else .empty)
+  | .union r₁ r₂ => native_re_union (impl_native_re_deriv c r₁) (impl_native_re_deriv c r₂)
+  | .inter r₁ r₂ => native_re_inter (impl_native_re_deriv c r₁) (impl_native_re_deriv c r₂)
+  | .star r => native_re_concat (impl_native_re_deriv c r) (.star r)
+  | .comp r => native_re_comp (impl_native_re_deriv c r)
 
 def native_str_in_re : List SmtValue -> SmtRegLan -> native_Bool
   | s, r =>
-      if native_re_str_valid s then
-        native_re_nullable <| s.foldl (fun acc c => native_re_deriv c acc) r
+      if impl_native_re_str_valid s then
+        impl_native_re_nullable <| s.foldl (fun acc c => impl_native_re_deriv c acc) r
       else
         false
 
@@ -227,7 +187,7 @@ macro_rules
   | `(native_re_ext_eq $r1 $r2) => do
       let strInReId := Lean.mkIdent `native_str_in_re
       let validId := Lean.mkIdent `native_string_valid
-      let toValuesId := Lean.mkIdent `native_string_to_values
+      let toValuesId := Lean.mkIdent `impl_native_string_to_values
       `(by
           classical
           exact
@@ -239,62 +199,45 @@ macro_rules
             else
               false)
 
-macro_rules
-  | `(native_eval_texists $M $s $T $body) => do
-      let evalId := Lean.mkIdent `__smtx_model_eval
-      let pushId := Lean.mkIdent `native_model_push
-      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical
-      `(by
-          classical
-          exact
-            if h :
-                ∃ v : SmtValue,
-                  $typeofValueId v = $T ∧
-                    $canonId v = true ∧
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              SmtValue.Boolean true
-            else
-              SmtValue.Boolean false)
 
-macro_rules
-  | `(native_eval_tforall $M $s $T $body) => do
-      let evalId := Lean.mkIdent `__smtx_model_eval
-      let pushId := Lean.mkIdent `native_model_push
-      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical
-      `(by
-          classical
-          exact
-            if h :
-                ∀ v : SmtValue,
-                  $typeofValueId v = $T ->
-                    $canonId v = true ->
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              SmtValue.Boolean true
-            else
-              SmtValue.Boolean false)
+-- The model itself, and what is asked of one. This is not of the native
+-- layer: a model is what this file is about, so what stands over one is
+-- written here rather than in a library the compilation trims. What the
+-- embedding names -- the three lookups and the identifier a default function
+-- is given -- keeps its `native_` name, since that is the name a signature
+-- reaches it by; what only this file names does not.
 
-macro_rules
-  | `(native_eval_tchoice $M $s $T $body) => do
-      let evalId := Lean.mkIdent `__smtx_model_eval
-      let pushId := Lean.mkIdent `native_model_push
-      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      let canonId := Lean.mkIdent `__smtx_value_canonical
-      `(by
-          classical
-          exact
-            if hSat :
-                ∃ v : SmtValue,
-                  $typeofValueId v = $T ∧
-                    $canonId v = true ∧
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              Classical.choose hSat
-            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
-              Classical.choose hTy
-            else
-              SmtValue.NotValue)
+structure SmtModelKey where
+  isVar : native_Bool
+  name : native_String
+  ty : SmtType
+deriving Repr, DecidableEq, Inhabited
 
+structure SmtModel where
+  values : SmtModelKey -> SmtValue
+  nativeFuns : SmtModelKey -> SmtNativeFun
+deriving Inhabited
+
+def model_key (s : native_String) (T : SmtType) : SmtModelKey :=
+  { isVar := false, name := s, ty := T }
+
+def model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtNativeFun :=
+  M.nativeFuns (model_key fid (SmtType.FunType T U))
+
+def native_default_fun_id : native_String := (native_string_lit "@native_default_fun")
+
+def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
+  M.values { isVar := true, name := s, ty := T }
+
+def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
+  M.values (model_key s T)
+
+def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
+  { M with values := fun k =>
+      if k = { isVar := true, name := s, ty := T } then
+        v
+      else
+        M.values k }
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -682,12 +625,74 @@ def __smtx_value_canonical : SmtValue -> native_Bool
 
 
 
+-- The quantifier evaluators, which are of the model rather than of the
+-- native layer: each takes one and asks what a body comes to under it,
+-- which is what this file is about. They stand here for the same reason
+-- the lookups above do, and keep their `native_` names because the
+-- embedding names them, see $EO_TO_SMT_AUX$ in model_smt.eo.
+
+macro_rules
+  | `(native_eval_texists $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical
+      `(by
+          classical
+          exact
+            if h :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $canonId v = true ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+
+macro_rules
+  | `(native_eval_tforall $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical
+      `(by
+          classical
+          exact
+            if h :
+                ∀ v : SmtValue,
+                  $typeofValueId v = $T ->
+                    $canonId v = true ->
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+
+macro_rules
+  | `(native_eval_tchoice $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical
+      `(by
+          classical
+          exact
+            if hSat :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $canonId v = true ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              Classical.choose hSat
+            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
+              Classical.choose hTy
+            else
+              SmtValue.NotValue)
+
 def native_eval_fun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
   let fallback := __smtx_type_default U
   if fid = native_default_fun_id then
     fallback
   else
-    native_model_fun_lookup M fid T U i
+    model_fun_lookup M fid T U i
 
 def native_pack_seq (T : SmtType) : List SmtValue -> SmtSeq
   | [] => (SmtSeq.empty T)

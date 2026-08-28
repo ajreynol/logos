@@ -40,13 +40,6 @@ def native_char_valid (c : native_Char) : native_Bool :=
 def native_string_lit (s : String) : native_String :=
   s.toList.map Char.toNat
 
-def native_string_prefix_eq : native_String -> native_String -> native_Bool
-  | [], _ => true
-  | _ :: _, [] => false
-  | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds
-
-    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
-
 def native_ite {T : Type} (c : native_Bool) (t e : T) : T :=
   if c then t else e
 
@@ -92,10 +85,10 @@ def native_int_pow2 (n : native_Int) : native_Int :=
 def native_piand : native_Int -> native_Int -> native_Int -> native_Int
   | w, x, y => ((BitVec.ofInt (Int.toNat w) x) &&& (BitVec.ofInt (Int.toNat w) y)).toInt
 
-def native_pior : native_Int -> native_Int -> native_Int -> native_Int
+def impl_native_pior : native_Int -> native_Int -> native_Int -> native_Int
   | w, x, y => ((BitVec.ofInt (Int.toNat w) x) ||| (BitVec.ofInt (Int.toNat w) y)).toInt
 
-def native_pixor : native_Int -> native_Int -> native_Int -> native_Int
+def impl_native_pixor : native_Int -> native_Int -> native_Int -> native_Int
   | w, x, y => ((BitVec.ofInt (Int.toNat w) x) ^^^ (BitVec.ofInt (Int.toNat w) y)).toInt
 
 -- Rational arithmetic
@@ -144,10 +137,10 @@ def native_binary_and : native_Int -> native_Int -> native_Int -> native_Int
   | w, n1, n2 => (native_ite (native_zeq w 0) 0 (native_piand w n1 n2))
 
 def native_binary_or : native_Int -> native_Int -> native_Int -> native_Int
-  | w, n1, n2 => (native_ite (native_zeq w 0) 0 (native_pior w n1 n2))
+  | w, n1, n2 => (native_ite (native_zeq w 0) 0 (impl_native_pior w n1 n2))
 
 def native_binary_xor : native_Int -> native_Int -> native_Int -> native_Int
-  | w, n1, n2 => (native_ite (native_zeq w 0) 0 (native_pixor w n1 n2))
+  | w, n1, n2 => (native_ite (native_zeq w 0) 0 (impl_native_pixor w n1 n2))
 
 def native_binary_not : native_Int -> native_Int -> native_Int
   | w, n => (native_zplus (native_int_pow2 w) (native_zneg (native_zplus n 1)))
