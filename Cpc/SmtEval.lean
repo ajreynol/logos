@@ -15,13 +15,14 @@ instance : Ord Rat where
     -- compare a.num / a.den vs b.num / b.den by cross-multiplication
     compare (a.num * Int.ofNat b.den) (b.num * Int.ofNat a.den)
 
--- A proof written against the published tree names its strings with this, so
--- it is kept for a signature that has no string of its own to build.
+-- A proof written against the published tree names its strings with
+-- native_string_lit, which is emitted below, so it is kept for a signature
+-- that has no string of its own to build.
 
 -- The part of the native layer that every generated file can see. What comes
 -- out here is what more than one of them reaches, since a definition only one
--- reaches is emitted into that file instead. See
--- LeanMetaReduce::placeNativeDefs and plugins/lean_meta/lean_meta_native.lean.
+-- reaches is emitted into that file instead.
+
 abbrev native_Bool := Bool
 
 abbrev native_Int := Int
@@ -45,8 +46,6 @@ def native_string_prefix_eq : native_String -> native_String -> native_Bool
   | _ :: _, [] => false
   | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds
 
-    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
-
 def native_ite {T : Type} (c : native_Bool) (t e : T) : T :=
   if c then t else e
 
@@ -61,8 +60,6 @@ def native_iff : native_Bool -> native_Bool -> native_Bool
 
 def native_or : native_Bool -> native_Bool -> native_Bool
   | x, y => x || y
-
--- Integer arithmetic
 
 def native_zplus : native_Int -> native_Int -> native_Int
   | x, y => x+y
@@ -121,8 +118,6 @@ def native_to_int : native_Rat -> native_Int
 def native_to_real : native_Int -> native_Rat
   | x => (native_mk_rational x 1)
 
--- Strings
-
 def native_str_to_code (s : native_String) : native_Int :=
   match s with
   | [c] => if native_char_valid c then Int.ofNat c else -1
@@ -168,8 +163,6 @@ def native_binary_extract : native_Int -> native_Int -> native_Int -> native_Int
   -- here only to match the native EO operation's signature.
   | w, n, x1, x2 => (native_div_total n (native_int_pow2 x2))
 
--- Natural numbers
-
 def native_int_to_nat (x : native_Int) : native_Nat :=
   (Int.toNat x)
 
@@ -180,10 +173,6 @@ macro_rules
 syntax "native_nat_succ " term : term
 macro_rules
   | `(native_nat_succ $x) => `(Nat.succ $x)
-
--- Strings of the checker. The Eunoia string operators are over Lean strings,
--- where the SMT-LIB ones are over sequences of values, so the two are
--- different functions of the layer rather than one shared by both.
 
 
 end SmtEval

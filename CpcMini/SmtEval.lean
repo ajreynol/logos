@@ -15,13 +15,14 @@ instance : Ord Rat where
     -- compare a.num / a.den vs b.num / b.den by cross-multiplication
     compare (a.num * Int.ofNat b.den) (b.num * Int.ofNat a.den)
 
--- A proof written against the published tree names its strings with this, so
--- it is kept for a signature that has no string of its own to build.
+-- A proof written against the published tree names its strings with
+-- native_string_lit, which is emitted below, so it is kept for a signature
+-- that has no string of its own to build.
 
 -- The part of the native layer that every generated file can see. What comes
 -- out here is what more than one of them reaches, since a definition only one
--- reaches is emitted into that file instead. See
--- LeanMetaReduce::placeNativeDefs and plugins/lean_meta/lean_meta_native.lean.
+-- reaches is emitted into that file instead.
+
 abbrev native_Bool := Bool
 
 abbrev native_Int := Int
@@ -68,10 +69,6 @@ macro_rules
 syntax "native_nat_succ " term : term
 macro_rules
   | `(native_nat_succ $x) => `(Nat.succ $x)
-
--- Strings of the checker. The Eunoia string operators are over Lean strings,
--- where the SMT-LIB ones are over sequences of values, so the two are
--- different functions of the layer rather than one shared by both.
 
 
 end SmtEval

@@ -17,7 +17,8 @@ open SmtEval
 /- Eunoia literal evaluation defined -/
 
 -- The part of the native layer that the Eunoia term embedding is what decides,
--- and so cannot come out above this file. See LeanMetaReduce::placeNativeDefs.
+-- and so cannot come out above this file.
+
 -- Helper for native_int_log: repeatedly divides `remaining` by `base`, counting
 -- the steps until it drops below `base`. `fuel` bounds the recursion (the caller
 -- passes the value itself, which is always at least the number of steps when
@@ -40,8 +41,6 @@ def native_qeq : native_Rat -> native_Rat -> native_Bool
 
 def native_qexp_total (x : native_Rat) (y : native_Int) : native_Rat :=
   if y < 0 then (native_mk_rational 0 1) else (x ^ (Int.toNat y))
-
--- Conversions
 
 def native_str_len : native_String -> native_Int
   | x => Int.ofNat x.length
@@ -78,9 +77,6 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
       impl_native_str_indexof_rec s t start (sLen - (start + tLen) + 1)
     else
       -1
-
--- What the model needs of Lean alone: arithmetic and characters it computes
--- with, and the names it gives the values an ill-formed application takes.
 
 
 /- Term ITE -/

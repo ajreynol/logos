@@ -17,7 +17,8 @@ open SmtEval
 /- Eunoia literal evaluation defined -/
 
 -- The part of the native layer that the Eunoia term embedding is what decides,
--- and so cannot come out above this file. See LeanMetaReduce::placeNativeDefs.
+-- and so cannot come out above this file.
+
 def native_zplus : native_Int -> native_Int -> native_Int
   | x, y => x+y
 
