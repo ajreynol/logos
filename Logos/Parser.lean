@@ -326,9 +326,7 @@ structure Config (T R C CL : Type) where
   /-- Whether a term is the sort of sorts, i.e. whether `declare-const` declares a sort. -/
   isType : T → Bool
   /--
-  The sort of sorts, from which the type of a `declare-sort` or `declare-type`
-  is built.  It is given as a term rather than looked up by name, so that a
-  user symbol called `Type` does not change what those commands declare.
+  The sort of sorts, from which the type of a `declare-sort` is built.  It is not syntax: `Type` is an ordinary symbol name.
   -/
   mkType : T
   /--
@@ -731,8 +729,7 @@ def declareSymbol (cfg : Config T R C CL) (name : String) (ty : T) : ParserM T U
           (cfg.mkUConst (s.ufCount + 1) ty :: s.terms.getD name []) }
 
 /--
-The type `(-> t₁ … tₙ res)` of a symbol declared by `declare-fun`, `declare-sort`
-or `declare-type`.  It is built from the signature's own `->` operator, so a
+The type `(-> t₁ … tₙ res)` of a symbol declared by `declare-fun`.  It is built from the signature's own `->` operator, so a
 calculus without function types simply rejects these commands with more than
 zero arguments.
 -/
@@ -742,15 +739,15 @@ def parseFunType (cfg : Config T R C CL) (args : List Sexp) (res : Sexp) : Parse
   | args => parseTerm cfg (.expr (.atom "->" :: (args ++ [res])))
 
 /--
-The type `(-> t₁ … tₙ Type)` of a symbol declared by `declare-sort` or
-`declare-type`, whose result is the sort of sorts itself (`Config.mkType`).
+The type `(-> Type … Type)` of a sort of arity `n`, declared by `declare-sort`,
+built from the sort of sorts itself (`Config.mkType`).
 -/
-def parseSortType (cfg : Config T R C CL) (args : List T) : ParserM T T :=
-  match args with
-  | [] => return cfg.mkType
-  | args => do
+def parseSortType (cfg : Config T R C CL) (n : Nat) : ParserM T T :=
+  match n with
+  | 0 => return cfg.mkType
+  | n + 1 => do
     let arrow ← parseTerm cfg (.atom "->")
-    return (rightAssoc cfg.apply arrow (args ++ [cfg.mkType])).getD cfg.mkType
+    return (rightAssoc cfg.apply arrow (List.replicate (n + 2) cfg.mkType)).getD cfg.mkType
 
 /--
 Parse the parameter list of a `define`.  Only the parameter names are recorded:
@@ -841,13 +838,7 @@ where
       -- `(declare-sort S n)` declares a symbol of type `(-> Type … Type)`; for
       -- `n = 0` that is `Type` itself, i.e. an uninterpreted sort.
       let arity ← parseArity arity
-      let ty ← parseSortType cfg (List.replicate arity cfg.mkType)
-      declareSymbol cfg (← parseName name) ty
-      return .decl
-    | .expr [.atom "declare-type", name, .expr args] => do
-      -- The Eunoia spelling of `declare-sort`, whose arguments are given by type.
-      let args ← args.mapM (parseTerm cfg)
-      declareSymbol cfg (← parseName name) (← parseSortType cfg args)
+      declareSymbol cfg (← parseName name) (← parseSortType cfg arity)
       return .decl
     | .expr [.atom "declare-datatypes", .expr sorts, .expr bodies] => do
       parseDatatypes cfg sorts bodies
@@ -890,7 +881,7 @@ where
       registerStepPop name
       return .cmd (cfg.mkStepPop rule args premises)
     | s => throw s!"Error: unrecognized command {s}, expected one of declare-const, \
-                    declare-fun, declare-sort, declare-type, declare-datatypes, define, \
+                    declare-fun, declare-sort, declare-datatypes, define, \
                     include, reference, assume, assume-push, step or step-pop"
 
 /--

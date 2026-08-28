@@ -78,7 +78,6 @@ private abbrev TestCmd := String × List TestTerm × List Nat
 
 private def testConfig : Config TestTerm String TestCmd (List TestCmd) where
   ops := [
-    { name := "Type", arity := .exact 0, build := fun | [] => some .type | _ => none },
     { name := "->", arity := .rightAssoc, build := fun | [] => some (.atom "->") | _ => none },
     { name := "indexed", indexArity := 1, arity := .exact 1,
       build := fun | [i] => some (.app (.atom "indexed") i) | _ => none }
@@ -150,16 +149,8 @@ private def arrow (dom cod : TestTerm) : TestTerm := .app (.app (.atom "->") dom
      (assume @p0 b)"
   == some [.uconst 2 (.app (.uconst 1 (arrow .type .type)) (.usort 1))]
 
--- `declare-type` is the Eunoia spelling of the same declaration.
-#guard assumptions
-    "(declare-type U ())
-     (declare-type Box (Type))
-     (declare-const b (Box U))
-     (assume @p0 b)"
-  == some [.uconst 2 (.app (.uconst 1 (arrow .type .type)) (.usort 1))]
-
--- A user sort named `Type` does not change what a later `declare-sort` declares:
--- `Poly` is still a sort, not a constant of the user's `Type`.
+-- `Type` is not syntax: a user symbol of that name is an ordinary sort, and does
+-- not affect what a later `declare-sort` declares.
 #guard assumptions
     "(declare-sort Type 0)
      (declare-sort Poly 0)

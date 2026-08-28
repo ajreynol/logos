@@ -1,8 +1,5 @@
-; A user sort named `Type`, as Verus emits, shadows the name of Eunoia's sort of
-; sorts.  The type of a later `declare-sort` is built from the configuration's
-; sort of sorts, not by looking up the name `Type`, so `Poly` below is a sort
-; (and this proof is `correct`) rather than a constant of the user's `Type`
-; (which would make it `incomplete`).
+; A user sort named `Type`, as Verus emits.  `Type` is not syntax, so this is an
+; ordinary sort and the later `declare-sort Poly` still declares a sort.
 (declare-sort Type 0)
 (declare-sort Poly 0)
 (declare-datatypes ((Range 0)) (((mkRange (start Poly) (end Poly)))))

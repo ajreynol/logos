@@ -22,7 +22,6 @@ private def parserLiteral : Logos.Parser.Literal → Option Term
   | .binary width value => some (.Binary width value)
 
 private def parserOps : List (Logos.Parser.OpDecl Term) := [
-  { name := "Type", arity := .exact 0, build := fun | [] => some .Type | _ => none },
   { name := "Bool", arity := .exact 0, build := fun | [] => some .Bool | _ => none },
   { name := "false", arity := .exact 0,
     build := fun | [] => some (.Boolean false) | _ => none },
