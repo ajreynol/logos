@@ -92,6 +92,11 @@ deriving Repr, DecidableEq, Inhabited, Ord
 def native_teq : Term -> Term -> native_Bool
   | x, y => decide (x = y)
 
+/- Term less than, based on arbitrary ordering -/
+def native_tcmp (a b : Term) : native_Bool :=
+  match compare a b with
+  | Ordering.lt => true
+  | _ => false
 
 /-
 Eunoia datatype declarations.

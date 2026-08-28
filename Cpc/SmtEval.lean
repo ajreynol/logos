@@ -97,14 +97,6 @@ def native_int_pow2 (n : native_Int) : native_Int :=
 def native_piand : native_Int -> native_Int -> native_Int -> native_Int
   | w, x, y => ((BitVec.ofInt (Int.toNat w) x) &&& (BitVec.ofInt (Int.toNat w) y)).toInt
 
-def impl_native_pior : native_Int -> native_Int -> native_Int -> native_Int
-  | w, x, y => ((BitVec.ofInt (Int.toNat w) x) ||| (BitVec.ofInt (Int.toNat w) y)).toInt
-
-def impl_native_pixor : native_Int -> native_Int -> native_Int -> native_Int
-  | w, x, y => ((BitVec.ofInt (Int.toNat w) x) ^^^ (BitVec.ofInt (Int.toNat w) y)).toInt
-
--- Rational arithmetic
-
 def native_mk_rational : native_Int -> native_Int -> native_Rat
   | x, y => x/y
 
@@ -148,8 +140,16 @@ def native_streq : native_String -> native_String -> native_Bool
 def native_binary_and : native_Int -> native_Int -> native_Int -> native_Int
   | w, n1, n2 => (native_ite (native_zeq w 0) 0 (native_piand w n1 n2))
 
+def impl_native_pior : native_Int -> native_Int -> native_Int -> native_Int
+  | w, x, y => ((BitVec.ofInt (Int.toNat w) x) ||| (BitVec.ofInt (Int.toNat w) y)).toInt
+
 def native_binary_or : native_Int -> native_Int -> native_Int -> native_Int
   | w, n1, n2 => (native_ite (native_zeq w 0) 0 (impl_native_pior w n1 n2))
+
+def impl_native_pixor : native_Int -> native_Int -> native_Int -> native_Int
+  | w, x, y => ((BitVec.ofInt (Int.toNat w) x) ^^^ (BitVec.ofInt (Int.toNat w) y)).toInt
+
+-- Rational arithmetic
 
 def native_binary_xor : native_Int -> native_Int -> native_Int -> native_Int
   | w, n1, n2 => (native_ite (native_zeq w 0) 0 (impl_native_pixor w n1 n2))
