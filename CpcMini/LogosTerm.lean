@@ -84,6 +84,15 @@ inductive Term : Type where
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
+-- Equality and ordering of Eunoia terms, which the checker asks for and the
+-- term embedding is what decides: they stand beside it rather than in the
+-- native library, which is for what the embedding is written over.
+
+/- Term equality -/
+def native_teq : Term -> Term -> native_Bool
+  | x, y => decide (x = y)
+
+
 /-
 Eunoia datatype declarations.
 -/

@@ -86,12 +86,22 @@ inductive SmtValue : Type where
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
+-- Equality of a type and of a value, which the two above are what decide.
+
+/- Type equality -/
+def native_Teq : SmtType -> SmtType -> native_Bool
+  | x, y => decide (x = y)
+
+/- Value equality -/
+def native_veq : SmtValue -> SmtValue -> native_Bool
+  | x, y => decide (x = y)
+
 /-
 Regular languages. Base elements are SmtValue, which allows regular
 expression operations to be defined uniformly over the same (unpacked)
 sequence representation used by the sequence operations. Well-formed
-regular languages carry only valid character values as base elements
-(see native_re_canonical and native_re_elem_valid below).
+regular languages carry only valid character values as base elements, which
+is what $smtx_re_canonical in tools/eoc/semantics/smt.eos decides.
 -/
 inductive SmtRegLan : Type where
   | empty : SmtRegLan
