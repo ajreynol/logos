@@ -23,8 +23,17 @@ def native_char_valid (c : native_Char) : native_Bool :=
 def native_string_valid (s : native_String) : native_Bool :=
   s.all native_char_valid
 
+def native_string_prefix_eq : native_String -> native_String -> native_Bool
+  | [], _ => true
+  | _ :: _, [] => false
+  | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds
+
+    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
+
 def native_or : native_Bool -> native_Bool -> native_Bool
   | x, y => x || y
+
+-- Integer arithmetic
 
 def native_zleq : native_Int -> native_Int -> native_Bool
   | x, y => decide (x <= y)
@@ -47,14 +56,6 @@ def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
 def native_uconst_id : native_Nat -> native_String
   | i => (native_string_lit "@u.") ++ (native_string_lit (toString i))
 
-/- Whether s begins with the one character c holds. This is narrower than a
-   prefix test on purpose: what a signature reserves a name by is one
-   character, and the general prefix matcher stays private to this layer. -/
-def native_string_head_eq (c s : native_String) : native_Bool :=
-  match c, s with
-  | [x], y :: _ => decide (x = y)
-  | _, _ => false
-
 /-- Whether a base element of a regular language is a valid character value.
 This is the well-formedness condition the matcher goes on; what makes a
 regular language canonical is said by the configuration instead, see
@@ -64,7 +65,7 @@ equality on values, which allows regular languages over arbitrary value
 sequences; the sequence pattern operators (e.g. seq.replace_all) are
 evaluated via singleton regular expressions over their pattern. The
 allchar and range constructors match valid characters only. -/
-def impl_native_re_elem_valid : SmtValue -> native_Bool
+def native_re_elem_valid : SmtValue -> native_Bool
   | (SmtValue.Char c) => native_char_valid c
   | _ => false
 
@@ -80,7 +81,7 @@ def impl_native_string_to_values (s : native_String) : List SmtValue :=
 /-- Whether a value sequence denotes a valid string, i.e. all of its
 elements are valid character values. -/
 def impl_native_re_str_valid (xs : List SmtValue) : native_Bool :=
-  xs.all impl_native_re_elem_valid
+  xs.all native_re_elem_valid
 
 def impl_native_re_nullable : SmtRegLan -> native_Bool
   | .empty => false
@@ -123,12 +124,12 @@ def impl_native_re_deriv (c : SmtValue) : SmtRegLan -> SmtRegLan
   | .epsilon => .empty
   | .char d => if c = d then .epsilon else .empty
   | .range lo hi =>
-      if impl_native_re_elem_valid c && impl_native_re_elem_valid lo && impl_native_re_elem_valid hi
+      if native_re_elem_valid c && native_re_elem_valid lo && native_re_elem_valid hi
           && impl_native_re_elem_le lo c && impl_native_re_elem_le c hi then
         .epsilon
       else
         .empty
-  | .allchar => if impl_native_re_elem_valid c then .epsilon else .empty
+  | .allchar => if native_re_elem_valid c then .epsilon else .empty
   | .concat r₁ r₂ =>
       native_re_union
         (native_re_concat (impl_native_re_deriv c r₁) r₂)
@@ -351,11 +352,6 @@ def __smtx_model_eval_imp (x : SmtValue) (y : SmtValue) : SmtValue :=
 def __smtx_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
   (__smtx_typeof_guard T (native_ite (native_Teq T U) SmtType.Bool SmtType.None))
 
-def __smtx_re_elem_valid : SmtValue -> native_Bool
-  | (SmtValue.Char c) => (native_char_valid c)
-  | v => false
-
-
 def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
   | v1, v2 => (SmtValue.Boolean (native_veq v1 v2))
@@ -577,8 +573,8 @@ def __smtx_re_canonical : SmtRegLan -> native_Bool
   | SmtRegLan.empty => true
   | SmtRegLan.epsilon => true
   | SmtRegLan.allchar => true
-  | (SmtRegLan.char c) => (__smtx_re_elem_valid c)
-  | (SmtRegLan.range lo hi) => (native_and (__smtx_re_elem_valid lo) (__smtx_re_elem_valid hi))
+  | (SmtRegLan.char c) => (native_re_elem_valid c)
+  | (SmtRegLan.range lo hi) => (native_and (native_re_elem_valid lo) (native_re_elem_valid hi))
   | (SmtRegLan.concat r r2) => (native_and (__smtx_re_canonical r) (__smtx_re_canonical r2))
   | (SmtRegLan.union r r2) => (native_and (__smtx_re_canonical r) (__smtx_re_canonical r2))
   | (SmtRegLan.inter r r2) => (native_and (__smtx_re_canonical r) (__smtx_re_canonical r2))

@@ -21,7 +21,7 @@ Definitions for eo_to_smt_type, eo_to_smt
 noncomputable section
 
 def __eo_to_smt_reserved_datatype_name (s : native_String) : native_Bool :=
-  (native_string_head_eq (native_string_lit "@") s)
+  (native_string_prefix_eq (native_string_lit "@") s)
 
 
 

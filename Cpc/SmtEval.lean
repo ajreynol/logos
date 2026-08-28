@@ -40,6 +40,13 @@ def native_char_valid (c : native_Char) : native_Bool :=
 def native_string_lit (s : String) : native_String :=
   s.toList.map Char.toNat
 
+def native_string_prefix_eq : native_String -> native_String -> native_Bool
+  | [], _ => true
+  | _ :: _, [] => false
+  | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds
+
+    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
+
 def native_ite {T : Type} (c : native_Bool) (t e : T) : T :=
   if c then t else e
 
@@ -49,8 +56,13 @@ def native_not : native_Bool -> native_Bool
 def native_and : native_Bool -> native_Bool -> native_Bool
   | x, y => x && y
 
+def native_iff : native_Bool -> native_Bool -> native_Bool
+  | x, y => decide (x = y)
+
 def native_or : native_Bool -> native_Bool -> native_Bool
   | x, y => x || y
+
+-- Integer arithmetic
 
 def native_zplus : native_Int -> native_Int -> native_Int
   | x, y => x+y

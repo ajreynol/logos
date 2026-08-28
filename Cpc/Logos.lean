@@ -18,18 +18,6 @@ open SmtEval
 
 -- The part of the native layer that the Eunoia term embedding is what decides,
 -- and so cannot come out above this file. See LeanMetaReduce::placeNativeDefs.
-def impl_native_string_prefix_eq : native_String -> native_String -> native_Bool
-  | [], _ => true
-  | _ :: _, [] => false
-  | c :: cs, d :: ds => decide (c = d) && impl_native_string_prefix_eq cs ds
-
-    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
-
-def native_xor : native_Bool -> native_Bool -> native_Bool
-  | x, y => Bool.xor x y
-
--- Integer arithmetic
-
 -- Helper for native_int_log: repeatedly divides `remaining` by `base`, counting
 -- the steps until it drops below `base`. `fuel` bounds the recursion (the caller
 -- passes the value itself, which is always at least the number of steps when
@@ -74,7 +62,7 @@ def impl_native_str_indexof_rec (s t : native_String) (i fuel : Nat) : native_In
   match fuel with
   | 0 => -1
   | fuel + 1 =>
-      if impl_native_string_prefix_eq t (s.drop i) then
+      if native_string_prefix_eq t (s.drop i) then
         Int.ofNat i
       else
         impl_native_str_indexof_rec s t (i + 1) fuel
@@ -169,7 +157,7 @@ def __eo_or : Term -> Term -> Term
 
 
 def __eo_xor : Term -> Term -> Term
-  | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_xor b1 b2))
+  | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_not (native_iff b1 b2)))
   | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (Term.Binary w1 (native_mod_total (native_binary_xor w1 n1 n2) (native_int_pow2 w1))))
   | _, _ => Term.Stuck
 

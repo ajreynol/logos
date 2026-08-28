@@ -105,7 +105,7 @@ def __eo_to_smt_sets_deq_diff (a : SmtTerm) : SmtType -> SmtTerm -> SmtType -> S
 
 
 def __eo_to_smt_reserved_datatype_name (s : native_String) : native_Bool :=
-  (native_string_head_eq (native_string_lit "@") s)
+  (native_string_prefix_eq (native_string_lit "@") s)
 
 
 
