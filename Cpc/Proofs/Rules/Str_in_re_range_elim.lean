@@ -365,7 +365,7 @@ private theorem seq_len_one_of_prem
   injection hLenValueEq
 
 private theorem facts
-    (M : SmtModel) (hM : model_total_typed M) (s c1 c2 : Term)
+    (M : SmtModel) (hM : model_wf M) (s c1 c2 : Term)
     (hSTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
     (hC1Ty : __smtx_typeof (__eo_to_smt c1) = SmtType.Seq SmtType.Char)
     (hC2Ty : __smtx_typeof (__eo_to_smt c2) = SmtType.Seq SmtType.Char)
@@ -468,7 +468,7 @@ private theorem facts
 end StrInReRangeElimProof
 
 public theorem cmd_step_str_in_re_range_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_range_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

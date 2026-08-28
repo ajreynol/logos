@@ -287,7 +287,7 @@ private theorem eval_geq_neg_one_eq_true_of_premise
   exact hEval
 
 private theorem facts_str_indexof_re_emp_re_body
-    (M : SmtModel) (hM : model_total_typed M) (t r n : Term)
+    (M : SmtModel) (hM : model_wf M) (t r n : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hRTrans : RuleProofs.eo_has_smt_translation r)
     (hNTrans : RuleProofs.eo_has_smt_translation n)
@@ -445,7 +445,7 @@ private theorem str_indexof_re_emp_requires_eqs
   exact ⟨hReqEq, hR, hT, hN₁, hN₂⟩
 
 public theorem cmd_step_str_indexof_re_emp_re_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_indexof_re_emp_re args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

@@ -708,7 +708,7 @@ private theorem bv_rotate_elim_prem_mod_eq_zero
   simpa [native_int_to_nat, SmtEval.native_int_to_nat] using hToNat.symm
 
 private theorem eval_bv_rotate_elim_lhs_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (k : BvRotateElimKind) (x amount : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof (bvRotateElimTerm k x amount) = Term.Bool ->
@@ -781,7 +781,7 @@ private theorem eval_bv_rotate_elim_lhs_eq
       congr 2
 
 theorem facts_bv_rotate_elim_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (k : BvRotateElimKind) (x amount : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof (bvRotateElimTerm k x amount) = Term.Bool ->

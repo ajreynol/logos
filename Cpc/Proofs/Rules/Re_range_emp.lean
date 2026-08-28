@@ -282,7 +282,7 @@ private theorem code_lt_of_prem
   injection hValueEq
 
 private theorem facts
-    (M : SmtModel) (hM : model_total_typed M) (s t : Term)
+    (M : SmtModel) (hM : model_wf M) (s t : Term)
     (hSTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
     (hTTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq SmtType.Char)
     (hPremS : eo_interprets M (mkLenOne s) true)
@@ -377,7 +377,7 @@ private theorem facts
 end ReRangeEmpProof
 
 public theorem cmd_step_re_range_emp_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_range_emp args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

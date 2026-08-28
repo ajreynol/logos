@@ -641,7 +641,7 @@ private theorem smt_typeof_bvsize_rotate
   simp [native_ite, hw0, __smtx_typeof]
 
 private theorem eval_rotate_mod_numeral
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x : Term) (i w : native_Int)
     (hw0 : native_zleq 0 w = true)
     (hXSmtTy :
@@ -909,7 +909,7 @@ private theorem eval_concat_eo_term
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem eval_bv_rotate_decomp
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (k : BvRotateElimKind) (x amount u1 u2 l1 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof (bvRotateDecompTerm k x amount u1 u2 l1) = Term.Bool ->
@@ -1250,7 +1250,7 @@ private theorem eval_bv_rotate_decomp
       rw [hLhsEval, hRhsEval]
 
 theorem facts_bv_rotate_decomp_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (k : BvRotateElimKind) (x amount u1 u2 l1 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof (bvRotateDecompTerm k x amount u1 u2 l1) = Term.Bool ->

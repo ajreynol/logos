@@ -251,7 +251,7 @@ private theorem typed___eo_prog_str_update_in_first_concat_impl
   exact hBool
 
 private theorem facts___eo_prog_str_update_in_first_concat_impl
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t tail s n pre post P1 P2 P3 P4 T : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hTailTrans : RuleProofs.eo_has_smt_translation tail)
@@ -569,7 +569,7 @@ private theorem facts___eo_prog_str_update_in_first_concat_impl
       (__smtx_model_eval M (__eo_to_smt rhs))
 
 public theorem cmd_step_str_update_in_first_concat_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_update_in_first_concat args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

@@ -683,7 +683,7 @@ private theorem extract_sign_extend_above_val
       exact hOnesCast
 
 private theorem eval_bv_extract_sign_extend_3
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x low high k rn nm : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof (bvExtractSignExtend3Term x low high k rn nm) = Term.Bool ->
@@ -799,7 +799,7 @@ private theorem eval_bv_extract_sign_extend_3
       hLRound.symm hdCast hNmCast hRRound.symm hWPos hLow hFit
 
 private theorem facts_bv_extract_sign_extend_3_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x low high k rn nm : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof (bvExtractSignExtend3Term x low high k rn nm) = Term.Bool ->
@@ -993,7 +993,7 @@ theorem typed_bv_extract_sign_extend_3_program
     x low high k rn nm hXTrans hTermTy
 
 theorem facts_bv_extract_sign_extend_3_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x low high k rn nm P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation low ->

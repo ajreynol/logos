@@ -473,7 +473,7 @@ theorem reConcat_singleton_elim_has_reglan_type (c : Term) :
       simpa [__eo_list_singleton_elim_2] using hTy
 
 theorem smt_eval_seq_char_of_smt_type_seq_char
-    (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm) :
+    (M : SmtModel) (hM : model_wf M) (t : SmtTerm) :
     __smtx_typeof t = SmtType.Seq SmtType.Char ->
     ∃ s, __smtx_model_eval M t = SmtValue.Seq s := by
   intro hTy
@@ -489,7 +489,7 @@ theorem smt_eval_seq_char_of_smt_type_seq_char
   exact seq_value_canonical hValTy
 
 theorem smt_eval_reglan_of_smt_type_reglan
-    (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm) :
+    (M : SmtModel) (hM : model_wf M) (t : SmtTerm) :
     __smtx_typeof t = SmtType.RegLan ->
     ∃ r, __smtx_model_eval M t = SmtValue.RegLan r := by
   intro hTy
@@ -504,7 +504,7 @@ theorem smt_eval_reglan_of_smt_type_reglan
   exact reglan_value_canonical hValTy
 
 theorem smt_eval_int_of_smt_type_int
-    (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm) :
+    (M : SmtModel) (hM : model_wf M) (t : SmtTerm) :
     __smtx_typeof t = SmtType.Int ->
     ∃ n, __smtx_model_eval M t = SmtValue.Numeral n := by
   intro hTy
@@ -543,7 +543,7 @@ theorem eval_str_in_re_of_seq_reglan (M : SmtModel)
   simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hs, hr]
 
 theorem negated_str_in_re_native_false
-    (M : SmtModel) (hM : model_total_typed M) (s r : Term)
+    (M : SmtModel) (hM : model_wf M) (s r : Term)
     (hsTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
     (hrTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan) :
     eo_interprets M (mkNot (mkStrInRe s r)) true ->
@@ -583,7 +583,7 @@ theorem negated_str_in_re_native_false
       exact ⟨ss, rv, hsEval, hrEval, hNative⟩
 
 theorem negated_str_in_re_re_concat_native_false
-    (M : SmtModel) (hM : model_total_typed M) (s r1 r2 : Term)
+    (M : SmtModel) (hM : model_wf M) (s r1 r2 : Term)
     (hsTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
     (hr1Ty : __smtx_typeof (__eo_to_smt r1) = SmtType.RegLan)
     (hr2Ty : __smtx_typeof (__eo_to_smt r2) = SmtType.RegLan) :

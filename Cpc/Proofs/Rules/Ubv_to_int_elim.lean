@@ -551,7 +551,7 @@ private theorem ubvRawExpansion_singleton_eval (M : SmtModel)
               (Nat.succ (Nat.succ len))
 
 private theorem ubv_to_int_expansion_eval_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (b : Term) (w : native_Nat)
     (hbTy : __smtx_typeof (__eo_to_smt b) = SmtType.BitVec w) :
     RuleProofs.smt_value_rel
@@ -648,7 +648,7 @@ private theorem ubv_to_int_elim_shape_of_ne_stuck (A : Term) :
     exact False.elim (h hStuck)
 
 public theorem cmd_step_ubv_to_int_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ubv_to_int_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

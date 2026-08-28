@@ -102,7 +102,7 @@ operation involved (`re.concat`, `re.++`, `str.to_re`, `re.*`, `re.allchar`) is
 faithfully translatable.
 -/
 public theorem cmd_step_re_concat_star_nullable1_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_concat_star_nullable1 args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

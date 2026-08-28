@@ -859,7 +859,7 @@ private theorem eval_bv_mult_pow2_diff
     __smtx_model_eval_int_pow2]
 
 private theorem bv_mult_pow2_premises_numeric
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n : Term) (W E : native_Int) :
     __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
     eo_interprets M
@@ -1027,7 +1027,7 @@ theorem concat_zero_bitvec_value_mult_pow2
   exact_mod_cast hBoundNat
 
 private theorem eval_bv_mult_pow2
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (z size n exponent u : Term) :
     RuleProofs.eo_has_smt_translation z ->
     RuleProofs.eo_has_smt_translation size ->
@@ -1260,7 +1260,7 @@ private theorem eval_bv_mult_pow2
   exact bitvec_mult_pow2_core_toNat DN EN WN hWidthNat hDNPos x
 
 theorem eval_bv_mult_pow2_direct
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (z size n exponent u : Term) :
     RuleProofs.eo_has_smt_translation z ->
     RuleProofs.eo_has_smt_translation size ->
@@ -1461,7 +1461,7 @@ theorem eval_bv_mult_pow2_direct
   exact bitvec_mult_pow2_core_toNat DN EN WN hWidthNat hDNPos x
 
 theorem facts_bv_mult_pow2_direct_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (z size n exponent u : Term) :
     RuleProofs.eo_has_smt_translation z ->
     RuleProofs.eo_has_smt_translation size ->
@@ -1487,7 +1487,7 @@ theorem facts_bv_mult_pow2_direct_term
     exact RuleProofs.smt_value_rel_refl _
 
 theorem facts_bv_mult_pow2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (z size n exponent u : Term) :
     RuleProofs.eo_has_smt_translation z ->
     RuleProofs.eo_has_smt_translation size ->
@@ -1767,7 +1767,7 @@ theorem typed_bv_mult_pow2_program
     hNTrans hExponentTrans hTermTy
 
 theorem facts_bv_mult_pow2_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (z size n exponent u P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation z ->
     RuleProofs.eo_has_smt_translation size ->

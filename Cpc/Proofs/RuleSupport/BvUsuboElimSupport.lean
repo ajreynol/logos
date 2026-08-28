@@ -492,7 +492,7 @@ theorem eval_usubo_lhs
     __smtx_model_eval_bvugt, SmtEval.native_zlt]
 
 theorem facts_usubo_term
-    (M : SmtModel) (hM : model_total_typed M) (x y n : Term) :
+    (M : SmtModel) (hM : model_wf M) (x y n : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
     eo_interprets M (usuboPrem x n) true ->
@@ -597,7 +597,7 @@ theorem typed_usubo_program (x y n : Term) :
   exact typed_usubo_term x y n hXTrans hYTrans hTermTy
 
 theorem facts_usubo_program
-    (M : SmtModel) (hM : model_total_typed M) (x y n : Term) :
+    (M : SmtModel) (hM : model_wf M) (x y n : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
     RuleProofs.eo_has_smt_translation n ->

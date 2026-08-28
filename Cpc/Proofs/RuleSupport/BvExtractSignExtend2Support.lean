@@ -559,7 +559,7 @@ private theorem bv_extract_sign_extend_2_premises_numeric
   exact ⟨hLowEq, hHighEq, hNmEq, hSnEq⟩
 
 private theorem eval_bv_extract_sign_extend_2
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x low high k nm sn : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof (bvExtractSignExtend2Term x low high k nm sn) = Term.Bool ->
@@ -698,7 +698,7 @@ private theorem eval_bv_extract_sign_extend_2
       hSRound.symm hWidth hLow hFit hCross
 
 private theorem facts_bv_extract_sign_extend_2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x low high k nm sn : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof (bvExtractSignExtend2Term x low high k nm sn) = Term.Bool ->
@@ -911,7 +911,7 @@ theorem typed_bv_extract_sign_extend_2_program
     x low high k nm sn hXTrans hTermTy
 
 theorem facts_bv_extract_sign_extend_2_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x low high k nm sn P1 P2 P3 P4 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation low ->

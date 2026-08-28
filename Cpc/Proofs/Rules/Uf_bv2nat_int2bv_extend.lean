@@ -622,7 +622,7 @@ private theorem typed_conclusion_impl
     cases hc
 
 private theorem eval_lhs_extend
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (wi ti ni : native_Int) (t : Term) :
     RuleProofs.eo_has_smt_translation t ->
     wi = native_zplus ni ti ->
@@ -673,7 +673,7 @@ private theorem eval_lhs_extend
   simp [__smtx_model_eval_ubv_to_int, __smtx_model_eval_int_to_bv, hPayloadMod]
 
 private theorem eval_rhs_extend
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (wi ti ni payload : native_Int) (t : Term) :
     wi = native_zplus ni ti ->
     native_zleq 0 ni = true ->
@@ -770,7 +770,7 @@ private theorem eval_rhs_extend
   rw [hConcat, hPayloadModNew, hWi]
 
 private theorem facts_conclusion_impl
-    (M : SmtModel) (hM : model_total_typed M) (w t n : Term) :
+    (M : SmtModel) (hM : model_wf M) (w t n : Term) :
     RuleProofs.eo_has_smt_translation t ->
     __eo_typeof (ufBv2natInt2bvExtendConclusion w t n) = Term.Bool ->
     eo_interprets M (ufBv2natInt2bvExtendConclusion w t n) true := by
@@ -821,7 +821,7 @@ private theorem facts_conclusion_impl
   exact RuleProofs.smt_value_rel_refl _
 
 public theorem cmd_step_uf_bv2nat_int2bv_extend_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.uf_bv2nat_int2bv_extend args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

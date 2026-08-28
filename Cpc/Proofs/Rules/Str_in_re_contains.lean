@@ -514,7 +514,7 @@ private theorem smtx_model_eval_contains_regex
   simp [native_string_to_values, native_ssm_char_of_value, Function.comp_def]
 
 private theorem facts___eo_prog_str_in_re_contains_impl
-    (M : SmtModel) (hM : model_total_typed M) (t s : Term)
+    (M : SmtModel) (hM : model_wf M) (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
     (hTTy : __eo_typeof t = Term.Apply Term.Seq Term.Char)
@@ -636,7 +636,7 @@ private theorem facts___eo_prog_str_in_re_contains_impl
 end StrInReContainsProof
 
 public theorem cmd_step_str_in_re_contains_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_contains args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

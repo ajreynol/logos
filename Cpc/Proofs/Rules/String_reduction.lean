@@ -130,12 +130,12 @@ private theorem sr_eval_str_in_re_term_eq
 /-- `seq.nth` at a natural index agrees with list `getD`. -/
 private theorem sr_ssm_seq_nth_ofNat (d : SmtValue) :
     ∀ (s : SmtSeq) (j : Nat),
-      __smtx_ssm_seq_nth s (Int.ofNat j) d =
+      __smtx_seq_value_nth s (Int.ofNat j) d =
         (native_unpack_seq s).getD j d
   | SmtSeq.empty T, j => by
-      simp [__smtx_ssm_seq_nth, native_unpack_seq]
+      simp [__smtx_seq_value_nth, native_unpack_seq]
   | SmtSeq.cons v vs, 0 => by
-      simp [__smtx_ssm_seq_nth, native_unpack_seq]
+      simp [__smtx_seq_value_nth, native_unpack_seq]
   | SmtSeq.cons v vs, (j + 1) => by
       have hidx :
           native_zplus (Int.ofNat (j + 1)) (native_zneg 1) =
@@ -143,7 +143,7 @@ private theorem sr_ssm_seq_nth_ofNat (d : SmtValue) :
         show Int.ofNat j + 1 + (-1) = Int.ofNat j
         omega
       have ih := sr_ssm_seq_nth_ofNat d vs j
-      simp only [__smtx_ssm_seq_nth, hidx, ih, native_unpack_seq,
+      simp only [__smtx_seq_value_nth, hidx, ih, native_unpack_seq,
         List.getD_cons_succ]
 
 /-- In bounds, the default supplied to `getD` is irrelevant. -/
@@ -1745,7 +1745,7 @@ private theorem sr_eval_forall_encoding_true
     (hAll :
       ∀ v : SmtValue,
         __smtx_typeof_value v = T →
-        __smtx_value_canonical_bool v = true →
+        __smtx_value_canonical v = true →
         __smtx_model_eval (native_model_push M s T v) body =
           SmtValue.Boolean true) :
     __smtx_model_eval M
@@ -1755,7 +1755,7 @@ private theorem sr_eval_forall_encoding_true
   have hNoSat :
       ¬ ∃ v : SmtValue,
         __smtx_typeof_value v = T ∧
-        __smtx_value_canonical_bool v = true ∧
+        __smtx_value_canonical v = true ∧
         __smtx_model_eval (native_model_push M s T v)
             (SmtTerm.not body) = SmtValue.Boolean true := by
     rintro ⟨v, hvTy, hvCanonical, hvNot⟩
@@ -1768,7 +1768,7 @@ private theorem sr_eval_forall_encoding_true
     change (if _h :
         ∃ v : SmtValue,
           __smtx_typeof_value v = T ∧
-          __smtx_value_canonical_bool v = true ∧
+          __smtx_value_canonical v = true ∧
           __smtx_model_eval (native_model_push M s T v)
               (SmtTerm.not body) = SmtValue.Boolean true then
         SmtValue.Boolean true else SmtValue.Boolean false) =
@@ -1788,9 +1788,9 @@ private theorem sr_eval_forall2_encoding_true
     (hAll :
       ∀ v₁ v₂ : SmtValue,
         __smtx_typeof_value v₁ = T₁ →
-        __smtx_value_canonical_bool v₁ = true →
+        __smtx_value_canonical v₁ = true →
         __smtx_typeof_value v₂ = T₂ →
-        __smtx_value_canonical_bool v₂ = true →
+        __smtx_value_canonical v₂ = true →
         __smtx_model_eval
             (native_model_push (native_model_push M s₁ T₁ v₁) s₂ T₂ v₂)
             body = SmtValue.Boolean true) :
@@ -1803,7 +1803,7 @@ private theorem sr_eval_forall2_encoding_true
   have hNoSat :
       ¬ ∃ v₁ : SmtValue,
         __smtx_typeof_value v₁ = T₁ ∧
-        __smtx_value_canonical_bool v₁ = true ∧
+        __smtx_value_canonical v₁ = true ∧
         __smtx_model_eval (native_model_push M s₁ T₁ v₁)
             (SmtTerm.exists s₂ T₂ (SmtTerm.not body)) =
           SmtValue.Boolean true := by
@@ -1811,7 +1811,7 @@ private theorem sr_eval_forall2_encoding_true
     change (if _h :
         ∃ v₂ : SmtValue,
           __smtx_typeof_value v₂ = T₂ ∧
-          __smtx_value_canonical_bool v₂ = true ∧
+          __smtx_value_canonical v₂ = true ∧
           __smtx_model_eval
               (native_model_push (native_model_push M s₁ T₁ v₁)
                 s₂ T₂ v₂) (SmtTerm.not body) =
@@ -1833,7 +1833,7 @@ private theorem sr_eval_forall2_encoding_true
     change (if _h :
         ∃ v₁ : SmtValue,
           __smtx_typeof_value v₁ = T₁ ∧
-          __smtx_value_canonical_bool v₁ = true ∧
+          __smtx_value_canonical v₁ = true ∧
           __smtx_model_eval (native_model_push M s₁ T₁ v₁)
               (SmtTerm.exists s₂ T₂ (SmtTerm.not body)) =
             SmtValue.Boolean true then
@@ -1853,7 +1853,7 @@ private theorem sr_eval_forall_encoding_false
     (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm)
     (v : SmtValue)
     (hvTy : __smtx_typeof_value v = T)
-    (hvCanonical : __smtx_value_canonical_bool v = true)
+    (hvCanonical : __smtx_value_canonical v = true)
     (hvBody :
       __smtx_model_eval (native_model_push M s T v) body =
         SmtValue.Boolean false) :
@@ -1868,7 +1868,7 @@ private theorem sr_eval_forall_encoding_false
   have hSat :
       ∃ w : SmtValue,
         __smtx_typeof_value w = T ∧
-        __smtx_value_canonical_bool w = true ∧
+        __smtx_value_canonical w = true ∧
         __smtx_model_eval (native_model_push M s T w)
             (SmtTerm.not body) = SmtValue.Boolean true :=
     ⟨v, hvTy, hvCanonical, hvNot⟩
@@ -1878,7 +1878,7 @@ private theorem sr_eval_forall_encoding_false
     change (if _h :
         ∃ w : SmtValue,
           __smtx_typeof_value w = T ∧
-          __smtx_value_canonical_bool w = true ∧
+          __smtx_value_canonical w = true ∧
           __smtx_model_eval (native_model_push M s T w)
               (SmtTerm.not body) = SmtValue.Boolean true then
         SmtValue.Boolean true else SmtValue.Boolean false) =
@@ -1924,7 +1924,7 @@ private theorem string_reduction_body_true
 
 /-- Semantic obligations specific to the individual string-reduction cases. -/
 private theorem string_reduction_pred_true
-    (M : SmtModel) (hM : model_total_typed M) (s : Term)
+    (M : SmtModel) (hM : model_wf M) (s : Term)
     (hTrans : RuleProofs.eo_has_smt_translation s)
     (hClosed : __eo_is_closed s = Term.Boolean true)
     (hBodyTy : __eo_typeof (stringReductionBody s) = Term.Bool) :
@@ -2220,7 +2220,7 @@ private theorem string_reduction_pred_true
                     (SmtTerm.not qBody))) = SmtValue.Boolean true
               have hAll : ∀ v : SmtValue,
                   __smtx_typeof_value v = SmtType.Int →
-                  __smtx_value_canonical_bool v = true →
+                  __smtx_value_canonical v = true →
                   __smtx_model_eval
                       (native_model_push M idxName SmtType.Int v) qBody =
                     SmtValue.Boolean true := by
@@ -2249,7 +2249,7 @@ private theorem string_reduction_pred_true
                   simp [sourceLen, tx, __smtx_model_eval,
                     __smtx_model_eval_str_len, hTxEvalPush, native_seq_len,
                     sr_native_unpack_pack_string_length]
-                have hMkTotal : model_total_typed Mk :=
+                have hMkTotal : model_wf Mk :=
                   model_total_typed_push hM idxName SmtType.Int
                     (SmtValue.Numeral k) sr_smt_type_wf_int hvTy hvCanonical
                 change __smtx_model_eval Mk qBody = SmtValue.Boolean true
@@ -2652,7 +2652,7 @@ private theorem string_reduction_pred_true
                     (SmtTerm.not qBody))) = SmtValue.Boolean true
               have hAll : ∀ v : SmtValue,
                   __smtx_typeof_value v = SmtType.Int →
-                  __smtx_value_canonical_bool v = true →
+                  __smtx_value_canonical v = true →
                   __smtx_model_eval
                       (native_model_push M idxName SmtType.Int v) qBody =
                     SmtValue.Boolean true := by
@@ -2683,7 +2683,7 @@ private theorem string_reduction_pred_true
                   simp [outputLen, __smtx_model_eval,
                     __smtx_model_eval_str_len, hOutputEvalPush,
                     native_seq_len, sr_native_unpack_pack_string_length]
-                have hMkTotal : model_total_typed Mk :=
+                have hMkTotal : model_wf Mk :=
                   model_total_typed_push hM idxName SmtType.Int
                     (SmtValue.Numeral k) sr_smt_type_wf_int hvTy
                     _hvCanonical
@@ -3049,7 +3049,7 @@ private theorem string_reduction_pred_true
               have hAll :
                   ∀ v : SmtValue,
                     __smtx_typeof_value v = SmtType.Int →
-                    __smtx_value_canonical_bool v = true →
+                    __smtx_value_canonical v = true →
                     __smtx_model_eval
                         (native_model_push M idxName SmtType.Int v) qBody =
                       SmtValue.Boolean true := by
@@ -3287,7 +3287,7 @@ private theorem string_reduction_pred_true
               have hAll :
                   ∀ v : SmtValue,
                     __smtx_typeof_value v = SmtType.Int →
-                    __smtx_value_canonical_bool v = true →
+                    __smtx_value_canonical v = true →
                     __smtx_model_eval
                         (native_model_push M idxName SmtType.Int v) qBody =
                       SmtValue.Boolean true := by
@@ -3501,7 +3501,7 @@ private theorem string_reduction_pred_true
               have hAll :
                   ∀ v : SmtValue,
                     __smtx_typeof_value v = SmtType.Int →
-                    __smtx_value_canonical_bool v = true →
+                    __smtx_value_canonical v = true →
                     __smtx_model_eval
                         (native_model_push M idxName SmtType.Int v) qBody =
                       SmtValue.Boolean true := by
@@ -3783,7 +3783,7 @@ private theorem string_reduction_pred_true
                     native_not, hIdxLe, hIdxLeCast]
                 exact sr_eval_forall_encoding_false M idxName SmtType.Int
                   qBody (SmtValue.Numeral (Int.ofNat j)) rfl
-                  (by simp [__smtx_value_canonical_bool]) hAtFalse
+                  (by simp [__smtx_value_canonical]) hAtFalse
               simp [formula, __smtx_model_eval, hContainsEval, hContains,
                 hForallFalse, __smtx_model_eval_eq,
                 __smtx_model_eval_not, native_veq, native_not]
@@ -3794,7 +3794,7 @@ private theorem string_reduction_pred_true
               have hAll :
                   ∀ v : SmtValue,
                     __smtx_typeof_value v = SmtType.Int →
-                    __smtx_value_canonical_bool v = true →
+                    __smtx_value_canonical v = true →
                     __smtx_model_eval
                         (native_model_push M idxName SmtType.Int v) qBody =
                       SmtValue.Boolean true := by
@@ -4402,7 +4402,7 @@ private theorem string_reduction_pred_true
                     hjY, hjX]
                 exact sr_eval_forall_encoding_false M idxName SmtType.Int
                   qBody (SmtValue.Numeral (Int.ofNat j)) rfl
-                  (by simp [__smtx_value_canonical_bool]) hAtFalse
+                  (by simp [__smtx_value_canonical]) hAtFalse
               simp [formula, __smtx_model_eval, hYEvalString,
                 hXEvalString, hLeqEval, hForallFalse,
                 __smtx_model_eval_ite, __smtx_model_eval_eq,
@@ -7243,7 +7243,7 @@ private theorem string_reduction_pred_true
                         simpa [foundForall] using
                           sr_eval_forall_encoding_false M lenName SmtType.Int
                             foundBody (SmtValue.Numeral k) rfl
-                            (by simp [__smtx_value_canonical_bool])
+                            (by simp [__smtx_value_canonical])
                             hFoundBodyFalse
                       have hResultNotFound : nativeResult ≠ -1 := by
                         have hStartNonneg : 0 ≤ start :=
@@ -7270,7 +7270,7 @@ private theorem string_reduction_pred_true
                     hMinimalEval, hFoundClauseEval, native_and]
 /-- The complete generated result is true whenever its guard succeeds. -/
 private theorem string_reduction_true
-    (M : SmtModel) (hM : model_total_typed M) (s : Term)
+    (M : SmtModel) (hM : model_wf M) (s : Term)
     (hTrans : RuleProofs.eo_has_smt_translation s)
     (hTy : __eo_typeof (__eo_prog_string_reduction s) = Term.Bool) :
     eo_interprets M (__eo_prog_string_reduction s) true := by
@@ -7304,7 +7304,7 @@ private theorem string_reduction_true
     (string_reduction_pred_true M hM s hTrans hClosed hBodyTy)
 
 public theorem cmd_step_string_reduction_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.string_reduction args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

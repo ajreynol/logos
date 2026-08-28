@@ -285,7 +285,7 @@ private theorem native_str_to_code_inj_of_ne_neg_one
           simp [native_str_to_code] at hNe
 
 private theorem eval_seq_of_seq_char_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq SmtType.Char) :
     ∃ ss : SmtSeq,
       __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq ss ∧
@@ -303,7 +303,7 @@ private theorem eval_seq_of_seq_char_type
   simpa [hEval, __smtx_typeof_value] using hPres
 
 private theorem facts_sciFormula
-    (M : SmtModel) (hM : model_total_typed M) (t s : Term)
+    (M : SmtModel) (hM : model_wf M) (t s : Term)
     (hT : __smtx_typeof (__eo_to_smt t) = SmtType.Seq SmtType.Char)
     (hS : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char) :
     eo_interprets M (sciFormula t s) true := by
@@ -356,7 +356,7 @@ private theorem facts_sciFormula
         native_veq, SmtEval.native_or, SmtEval.native_not]
 
 public theorem cmd_step_string_code_inj_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.string_code_inj args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

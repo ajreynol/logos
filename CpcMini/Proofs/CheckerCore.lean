@@ -1384,7 +1384,7 @@ theorem checkerLocalTruthInvariant_at_var_model (M : SmtModel) :
   forall {s : CState},
     checkerLocalTruthInvariant M s ->
     forall (N : SmtModel),
-      model_total_typed N ->
+      model_wf N ->
       model_agrees_on_globals M N ->
       forall n : native_Int,
         eo_interprets N (stateAssumes s) true ->
@@ -2748,7 +2748,7 @@ theorem premiseTermList_true_of_localTruthInvariant_var_model
   forall (premises : CIndexList),
     checkerLocalTruthInvariant M s ->
     forall (N : SmtModel),
-      model_total_typed N ->
+      model_wf N ->
       model_agrees_on_globals M N ->
       eo_interprets N (stateAssumes s) true ->
       eo_interprets N (statePushes s) true ->
@@ -2772,7 +2772,7 @@ theorem premiseEvidence_of_localTruthInvariant
     (M N : SmtModel) (s : CState) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
   checkerAssumptionStabilityInvariant M s ->
-  model_total_typed N ->
+  model_wf N ->
   model_agrees_on_globals M N ->
   eo_interprets N (stateAssumes s) true ->
   eo_interprets N (statePushes s) true ->
@@ -2789,7 +2789,7 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
     eo_interprets M (statePushes s) true ->
     eo_interprets M P true
   true_in_var_model :
-    ∀ N, model_total_typed N ->
+    ∀ N, model_wf N ->
       model_agrees_on_globals M N ->
       eo_interprets N (stateAssumes s) true ->
       eo_interprets N (statePushes s) true ->
@@ -2808,11 +2808,11 @@ by
 
 /-- Packages rule-level step properties into the checker facts required for a single step. -/
 theorem cmd_step_facts_of_rule_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (premises : CIndexList) {P : Term} :
   checkerLocalTruthInvariant M s ->
   checkerAssumptionStabilityInvariant M s ->
-  (hProps : ∀ N, model_total_typed N ->
+  (hProps : ∀ N, model_wf N ->
     model_agrees_on_globals M N ->
     StepRuleProperties N (premiseTermList s premises) P) ->
   CmdStepFacts M s P :=
@@ -2833,7 +2833,7 @@ by
 
 /-- Packages rule-level step-pop properties into the checker facts required for a pop step. -/
 theorem cmd_step_pop_facts_of_rule_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (root tail : CState) (A : Term) (premises : CIndexList) {P : Term} :
   checkerLocalTruthInvariant M root ->
   checkerAssumptionStabilityInvariant M root ->

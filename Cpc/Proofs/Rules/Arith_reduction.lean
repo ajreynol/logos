@@ -1799,7 +1799,7 @@ private theorem typed_arith_reduction_of_trans
       exact False.elim (false_of_typeof_stuck_bool hTy)
 
 private theorem facts_arith_reduction_is_int
-    (M : SmtModel) (hM : model_total_typed M) (u : Term)
+    (M : SmtModel) (hM : model_wf M) (u : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.UOp UserOp.is_int) u)) :
@@ -1860,7 +1860,7 @@ private theorem facts_arith_reduction_is_int
       native_floor_remainder_lt_one, native_and, eq_comm]
 
 private theorem facts_arith_reduction_to_int
-    (M : SmtModel) (hM : model_total_typed M) (u : Term)
+    (M : SmtModel) (hM : model_wf M) (u : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.UOp UserOp.to_int) u)) :
@@ -1919,7 +1919,7 @@ private theorem facts_arith_reduction_to_int
       native_floor_remainder_lt_one, native_and]
 
 private theorem facts_arith_reduction_qdiv
-    (M : SmtModel) (hM : model_total_typed M) (u v : Term)
+    (M : SmtModel) (hM : model_wf M) (u v : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) u) v)) :
@@ -2060,7 +2060,7 @@ private theorem facts_arith_reduction_qdiv
         (__eo_to_smt u) (__eo_to_smt v) q1 q2 hEvalU hEvalV
 
 private theorem facts_arith_reduction_qdiv_total
-    (M : SmtModel) (hM : model_total_typed M) (u v : Term)
+    (M : SmtModel) (hM : model_wf M) (u v : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) u) v)) :
@@ -2349,7 +2349,7 @@ private theorem facts_arith_reduction_mod
     exact smt_mod_eval_reduction_term_rel M (__eo_to_smt a) (__eo_to_smt b)
 
 private theorem facts_arith_reduction_abs
-    (M : SmtModel) (hM : model_total_typed M) (u : Term)
+    (M : SmtModel) (hM : model_wf M) (u : Term)
     (hBool :
       RuleProofs.eo_has_bool_type
         (Term.Apply
@@ -2432,7 +2432,7 @@ private theorem facts_arith_reduction_abs
         exact smt_abs_eval_reduction_real_term_rel M (__eo_to_smt u) q hEvalU
 
 private theorem facts_arith_reduction_abs_from_trans
-    (M : SmtModel) (hM : model_total_typed M) (u : Term)
+    (M : SmtModel) (hM : model_wf M) (u : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.UOp UserOp.abs) u)) :
@@ -2499,7 +2499,7 @@ private theorem facts_arith_reduction_abs_from_trans
         (typed_arith_reduction_abs u hTrans)
 
 private theorem facts_arith_reduction_int_log2
-    (M : SmtModel) (hM : model_total_typed M) (u : Term)
+    (M : SmtModel) (hM : model_wf M) (u : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.UOp UserOp.int_log2) u)) :
@@ -2610,7 +2610,7 @@ private theorem facts_arith_reduction_int_log2
         native_or, native_and]
 
 private theorem facts_arith_reduction_div_total
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b))
@@ -2752,7 +2752,7 @@ private theorem facts_arith_reduction_div_total
         __smtx_model_eval_and, native_and]
 
 private theorem facts_arith_reduction_mod_total
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b))
@@ -2894,7 +2894,7 @@ private theorem facts_arith_reduction_mod_total
         __smtx_model_eval_and, native_and]
 
 private theorem facts_arith_reduction_of_trans
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hTrans : RuleProofs.eo_has_smt_translation t)
     (hTy : __eo_typeof (__arith_reduction_pred t) = Term.Bool) :
     eo_interprets M (__arith_reduction_pred t) true := by
@@ -2968,7 +2968,7 @@ private theorem typed___eo_prog_arith_reduction_impl
     (by simpa [arith_reduction_prog_eq_pred t] using hTy)
 
 private theorem facts___eo_prog_arith_reduction_impl
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hTrans : RuleProofs.eo_has_smt_translation t)
     (hTy : __eo_typeof (__eo_prog_arith_reduction t) = Term.Bool) :
     eo_interprets M (__eo_prog_arith_reduction t) true := by
@@ -2977,7 +2977,7 @@ private theorem facts___eo_prog_arith_reduction_impl
     (by simpa [arith_reduction_prog_eq_pred t] using hTy)
 
 public theorem cmd_step_arith_reduction_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_reduction args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

@@ -109,7 +109,7 @@ private theorem typed___eo_prog_bv_lt_self_impl (x1 : Term) :
       decide)
 
 private theorem eval_bvslt_self_false
-    (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (x1 : Term) :
     RuleProofs.eo_has_smt_translation x1 ->
     __eo_typeof (__eo_prog_bv_lt_self x1) = Term.Bool ->
     __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvslt) x1) x1)) =
@@ -136,7 +136,7 @@ private theorem eval_bvslt_self_false
   exact hOr.elim (fun hNotA => False.elim (hNotA hA)) (fun hNotB => hNotB hB)
 
 private theorem facts___eo_prog_bv_lt_self_impl
-    (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (x1 : Term) :
     RuleProofs.eo_has_smt_translation x1 ->
     __eo_typeof (__eo_prog_bv_lt_self x1) = Term.Bool ->
     eo_interprets M (__eo_prog_bv_lt_self x1) true := by
@@ -161,7 +161,7 @@ private theorem facts___eo_prog_bv_lt_self_impl
     exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean false)
 
 public theorem cmd_step_bv_lt_self_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_lt_self args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

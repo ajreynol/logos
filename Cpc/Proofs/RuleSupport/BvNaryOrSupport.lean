@@ -324,7 +324,7 @@ private def EvalCanonical (M : SmtModel) (w : Nat) (t : Term) : Prop :=
         true
 
 private theorem evalCanonical_of_smt_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) (w : Nat) :
+    (M : SmtModel) (hM : model_wf M) (t : Term) (w : Nat) :
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
     EvalCanonical M w t := by
   intro hTy
@@ -381,7 +381,7 @@ private theorem listCanonical_eval
           simpa [ListCanonical] using h
 
 private theorem listCanonical_of_smt_type
-    (M : SmtModel) (hM : model_total_typed M) (w : Nat) :
+    (M : SmtModel) (hM : model_wf M) (w : Nat) :
     (t : Term) ->
     __eo_is_list (Term.UOp UserOp.bvor) t = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
@@ -737,7 +737,7 @@ private theorem list_concat_rec_eval_eq_of_canonical
 /-- Concatenating two well-typed n-ary OR lists has the same model value as
     applying binary OR to their aggregate values. -/
 theorem listConcatRecEvalEq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a z : Term) (w : Nat) :
     __eo_is_list (Term.UOp UserOp.bvor) a = Term.Boolean true ->
     __eo_is_list (Term.UOp UserOp.bvor) z = Term.Boolean true ->
@@ -755,7 +755,7 @@ theorem listConcatRecEvalEq
 /-- Eliminating the singleton wrapper of a well-typed n-ary OR list preserves
     its model value. -/
 theorem listSingletonElimEvalEq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (c : Term) (w : Nat) :
     __eo_is_list (Term.UOp UserOp.bvor) c = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
@@ -832,7 +832,7 @@ theorem binarySmtType
   simp [__smtx_typeof_bv_op_2, hX, hY, native_nateq, native_ite]
 
 theorem evalAssoc
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y z : Term) (w : Nat) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
     __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
@@ -855,7 +855,7 @@ theorem evalAssoc
   exact eval_bor_assoc M x y z w nx ny nz hXE hYE hZE
 
 theorem evalComm
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y : Term) (w : Nat) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
     __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
@@ -879,7 +879,7 @@ theorem evalComm
     BitVec.or_comm]
 
 theorem evalRightNil
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x nil : Term) (w : Nat) :
     __eo_is_list_nil (Term.UOp UserOp.bvor) nil = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->

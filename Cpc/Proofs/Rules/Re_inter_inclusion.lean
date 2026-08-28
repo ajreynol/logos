@@ -60,7 +60,7 @@ private theorem prog_form (a : Term)
   · exact False.elim (hNe rfl)
 
 private theorem facts
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (r1 r2 flat1 flat2 side : Term)
     (hFlat1 :
       flat1 = __re_flatten (Term.Boolean true) r1)
@@ -150,7 +150,7 @@ private theorem facts
 end ReInterInclusionProof
 
 public theorem cmd_step_re_inter_inclusion_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_inter_inclusion args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

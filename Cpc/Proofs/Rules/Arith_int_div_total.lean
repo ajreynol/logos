@@ -151,7 +151,7 @@ private theorem typed___eo_prog_arith_int_div_total_impl
     (by rw [hDivTy, hDivTotalTy]) hDivTrans
 
 private theorem facts___eo_prog_arith_int_div_total_impl
-    (M : SmtModel) (hM : model_total_typed M) (t s P : Term) :
+    (M : SmtModel) (hM : model_wf M) (t s P : Term) :
     RuleProofs.eo_has_smt_translation t ->
     RuleProofs.eo_has_smt_translation s ->
     __eo_prog_arith_int_div_total t s (Proof.pf P) =
@@ -228,7 +228,7 @@ private theorem facts___eo_prog_arith_int_div_total_impl
         (SmtValue.Numeral (native_div_total ti si))
 
 public theorem cmd_step_arith_int_div_total_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_int_div_total args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

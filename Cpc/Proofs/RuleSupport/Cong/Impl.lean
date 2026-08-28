@@ -17,7 +17,7 @@ namespace CongSupport
 attribute [local simp] native_streq native_and native_ite
 
 private theorem congStableSpine_eq_true
-    (M : SmtModel) (hM : model_total_typed M) (t rhs : Term) :
+    (M : SmtModel) (hM : model_wf M) (t rhs : Term) :
     RuleProofs.eo_has_bool_type (mkEq t rhs) ->
     CongStableSpine M t rhs ->
     eo_interprets M (mkEq t rhs) true := by
@@ -77,7 +77,7 @@ theorem congStableSpine_rebase_of_globals
 
 /-- Interpret a stable congruence spine as a true public equality term. -/
 theorem eqTerm_true_of_congStableSpine
-    (M : SmtModel) (hM : model_total_typed M) (t rhs : Term) :
+    (M : SmtModel) (hM : model_wf M) (t rhs : Term) :
     RuleProofs.eo_has_bool_type (eqTerm t rhs) ->
     CongStableSpine M t rhs ->
     eo_interprets M (eqTerm t rhs) true := by
@@ -232,7 +232,7 @@ private theorem mk_nary_cong_rhs_congTypeSpine_of_list :
                 __eo_l_1___mk_nary_cong_rhs]))
 
 private theorem mk_nary_cong_rhs_congStableSpine_of_list
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ (ps : List Term) (t : Term),
       RulePremiseEvidence M ps ->
       RuleProofs.eo_has_smt_translation t ->
@@ -1249,7 +1249,7 @@ theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
   exact hEqBool
 
 private theorem congEvidenceSpine_eq_true
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (premises : List Term) (t rhs : Term) :
   RulePremiseEvidence M premises ->
     RuleProofs.eo_has_bool_type (mkEq t rhs) ->
@@ -1297,7 +1297,7 @@ private theorem congEvidenceSpine_eq_true
 
 /-- Correctness for the generated EO implementation of `cong` over a premise list. -/
 theorem facts___eo_prog_cong_impl
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (premises : List Term) :
   RuleProofs.eo_has_smt_translation t ->
   RulePremiseEvidence M premises ->
@@ -1402,7 +1402,7 @@ theorem typed___eo_prog_nary_cong_impl (t : Term) (premises : List Term) :
 
 /-- Correctness for the generated EO implementation of `nary_cong` over a premise list. -/
 theorem facts___eo_prog_nary_cong_impl
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (premises : List Term) :
   RuleProofs.eo_has_smt_translation t ->
   RulePremiseEvidence M premises ->
@@ -1542,7 +1542,7 @@ theorem typed___eo_prog_pairwise_cong_distinct_impl
 
 /-- Correctness for the `distinct`-shaped core of `pairwise_cong`. -/
 theorem facts___eo_prog_pairwise_cong_distinct_impl
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs : Term) (premises : List Term) :
   RuleProofs.eo_has_smt_translation
     (Term.Apply (Term.UOp UserOp.distinct) xs) ->
@@ -1716,7 +1716,7 @@ theorem typed___eo_prog_pairwise_cong_apply_impl
 This is the ordinary congruence path, used when the argument itself has an SMT
 translation. Operators such as `distinct` need a separate list-aware path. -/
 theorem facts___eo_prog_pairwise_cong_apply_impl
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (f xs : Term) (premises : List Term) :
   RuleProofs.eo_has_smt_translation (Term.Apply f xs) ->
   RuleProofs.eo_has_smt_translation xs ->
@@ -1802,7 +1802,7 @@ theorem facts___eo_prog_pairwise_cong_apply_impl
   exact hEqTrue
 
 theorem smt_value_rel_model_eval_apply_of_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (f g x y : SmtTerm)
     (hAppNN : __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None)
     (hFy : __smtx_typeof f = __smtx_typeof g)
@@ -1824,7 +1824,7 @@ and argument values may be obtained from different variable assignments, while
 uninterpreted-function lookup is kept aligned by global agreement.
 -/
 theorem smt_value_rel_model_eval_apply_of_rel_across_models
-    (M N : SmtModel) (hM : model_total_typed M) (hN : model_total_typed N)
+    (M N : SmtModel) (hM : model_wf M) (hN : model_wf N)
     (hGlobals : model_agrees_on_globals M N)
     (f g x y : SmtTerm)
     (hAppNN : __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None)

@@ -107,7 +107,7 @@ private theorem typed___eo_prog_bv_ule_self_impl (x1 : Term) :
       decide)
 
 private theorem eval_bvule_self_true
-    (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (x1 : Term) :
     RuleProofs.eo_has_smt_translation x1 ->
     __eo_typeof (__eo_prog_bv_ule_self x1) = Term.Bool ->
     __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) x1) x1)) =
@@ -130,7 +130,7 @@ private theorem eval_bvule_self_true
     native_zlt, native_veq, native_or]
 
 private theorem facts___eo_prog_bv_ule_self_impl
-    (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (x1 : Term) :
     RuleProofs.eo_has_smt_translation x1 ->
     __eo_typeof (__eo_prog_bv_ule_self x1) = Term.Bool ->
     eo_interprets M (__eo_prog_bv_ule_self x1) true := by
@@ -155,7 +155,7 @@ private theorem facts___eo_prog_bv_ule_self_impl
     exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean true)
 
 public theorem cmd_step_bv_ule_self_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_ule_self args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

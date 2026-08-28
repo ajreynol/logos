@@ -162,7 +162,7 @@ private theorem smt_value_rel_inter_all
   simp
 
 private theorem type_and_facts
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs ys : Term)
     (hXsList :
       __eo_is_list (Term.UOp UserOp.re_inter) xs = Term.Boolean true)
@@ -245,7 +245,7 @@ private theorem type_and_facts
 end ReInterAllProof
 
 public theorem cmd_step_re_inter_all_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_inter_all args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

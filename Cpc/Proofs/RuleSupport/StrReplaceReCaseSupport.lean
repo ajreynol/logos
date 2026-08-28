@@ -549,7 +549,7 @@ private theorem eval_forall_encoding_true
     (hAll :
       ∀ v : SmtValue,
         __smtx_typeof_value v = T →
-        __smtx_value_canonical_bool v = true →
+        __smtx_value_canonical v = true →
         __smtx_model_eval (native_model_push M s T v) body =
           SmtValue.Boolean true) :
     __smtx_model_eval M
@@ -559,7 +559,7 @@ private theorem eval_forall_encoding_true
   have hNoSat :
       ¬ ∃ v : SmtValue,
         __smtx_typeof_value v = T ∧
-        __smtx_value_canonical_bool v = true ∧
+        __smtx_value_canonical v = true ∧
         __smtx_model_eval (native_model_push M s T v)
             (SmtTerm.not body) = SmtValue.Boolean true := by
     rintro ⟨v, hvTy, hvCanonical, hvNot⟩
@@ -572,7 +572,7 @@ private theorem eval_forall_encoding_true
     change (if _h :
         ∃ v : SmtValue,
           __smtx_typeof_value v = T ∧
-          __smtx_value_canonical_bool v = true ∧
+          __smtx_value_canonical v = true ∧
           __smtx_model_eval (native_model_push M s T v)
               (SmtTerm.not body) = SmtValue.Boolean true then
         SmtValue.Boolean true else SmtValue.Boolean false) =
@@ -769,7 +769,7 @@ private theorem eo_is_closed_ternary_uop_args
 
 set_option maxHeartbeats 2000000 in
 theorem str_replace_re_reduction_pred_true
-    (M : SmtModel) (hM : model_total_typed M) (z y x : Term)
+    (M : SmtModel) (hM : model_wf M) (z y x : Term)
     (hTrans : RuleProofs.eo_has_smt_translation
       (Term.Apply
         (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re) z) y) x))

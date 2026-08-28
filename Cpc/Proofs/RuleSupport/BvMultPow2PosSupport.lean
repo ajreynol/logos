@@ -351,7 +351,7 @@ private theorem model_eval_eq_true_of_eo_eq_true
       exact hEval
 
 private theorem premises_numeric
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n : Term) (E : native_Int) :
     __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
     eo_interprets M (bvMultPow2PosIspowPrem n) true ->
@@ -432,7 +432,7 @@ private theorem bitvec_mult_pow2_pos_core_toNat
   exact congrArg BitVec.toNat hEq
 
 theorem eval_direct
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (z size n exponent u : Term) :
     RuleProofs.eo_has_smt_translation z ->
     RuleProofs.eo_has_smt_translation size ->
@@ -611,7 +611,7 @@ theorem eval_direct
   exact bitvec_mult_pow2_pos_core_toNat DN EN WN hWidthNat hDNPos x
 
 theorem facts_direct_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (z size n exponent u : Term) :
     RuleProofs.eo_has_smt_translation z ->
     RuleProofs.eo_has_smt_translation size ->

@@ -1101,7 +1101,7 @@ private theorem bv_poly_mod_coeffs_mod_denote
             exact emod_add_congr (emod_mul_left_congr c (bv_mvar_denote M vars) m) ih
 
 private theorem model_eval_bitvec_payload
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) (w : native_Nat)
+    (M : SmtModel) (hM : model_wf M) (t : Term) (w : native_Nat)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w) :
     ∃ n : native_Int,
       __smtx_model_eval M (__eo_to_smt t) = SmtValue.Binary (native_nat_to_int w) n ∧
@@ -1260,7 +1260,7 @@ private theorem bvsub_args_of_bitvec_type (y x : Term) (w : native_Nat) :
   exact ⟨hy, hx⟩
 
 private theorem bv_atom_denote_bvneg_mod
-    (M : SmtModel) (hM : model_total_typed M) (x : Term) (w : native_Nat)
+    (M : SmtModel) (hM : model_wf M) (x : Term) (w : native_Nat)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.bvneg) x)) =
       SmtType.BitVec w) :
   bv_atom_denote M (Term.Apply (Term.UOp UserOp.bvneg) x) %
@@ -1276,7 +1276,7 @@ private theorem bv_atom_denote_bvneg_mod
     SmtEval.native_mod_total]
 
 private theorem bv_atom_denote_bvadd_mod
-    (M : SmtModel) (hM : model_total_typed M) (y x : Term) (w : native_Nat)
+    (M : SmtModel) (hM : model_wf M) (y x : Term) (w : native_Nat)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) y) x)) =
       SmtType.BitVec w) :
   bv_atom_denote M (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) y) x) %
@@ -1293,7 +1293,7 @@ private theorem bv_atom_denote_bvadd_mod
     SmtEval.native_mod_total]
 
 private theorem bv_atom_denote_bvmul_mod
-    (M : SmtModel) (hM : model_total_typed M) (y x : Term) (w : native_Nat)
+    (M : SmtModel) (hM : model_wf M) (y x : Term) (w : native_Nat)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) y) x)) =
       SmtType.BitVec w) :
   bv_atom_denote M (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) y) x) %
@@ -1310,7 +1310,7 @@ private theorem bv_atom_denote_bvmul_mod
     SmtEval.native_mod_total]
 
 private theorem bv_atom_denote_bvsub_mod
-    (M : SmtModel) (hM : model_total_typed M) (y x : Term) (w : native_Nat)
+    (M : SmtModel) (hM : model_wf M) (y x : Term) (w : native_Nat)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsub) y) x)) =
       SmtType.BitVec w) :
   bv_atom_denote M (Term.Apply (Term.Apply (Term.UOp UserOp.bvsub) y) x) %
@@ -1329,7 +1329,7 @@ private theorem bv_atom_denote_bvsub_mod
     SmtEval.native_mod_total]
 
 private theorem bv_poly_norm_rec_sound
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (t : Term) -> (w : native_Nat) ->
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
     bv_poly_int_wf (__get_bv_poly_norm_rec t) ∧
@@ -1847,7 +1847,7 @@ theorem typed___eo_prog_bv_poly_norm_impl
   exact RuleProofs.eo_typeof_bool_implies_has_bool_type a1 hA1Trans hA1Ty
 
 private theorem smt_value_rel_of_equal_bv_poly_norm
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b modulus : Term) :
   RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) ->
   modulus =
@@ -1937,7 +1937,7 @@ private theorem smt_value_rel_of_equal_bv_poly_norm
     RuleProofs.smt_value_rel_refl (SmtValue.Binary (native_nat_to_int w) na)
 
 theorem facts___eo_prog_bv_poly_norm_impl
-    (M : SmtModel) (hM : model_total_typed M) (a1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (a1 : Term) :
   RuleProofs.eo_has_smt_translation a1 ->
   __eo_typeof (__eo_prog_bv_poly_norm a1) = Term.Bool ->
   eo_interprets M (__eo_prog_bv_poly_norm a1) true := by
@@ -1963,7 +1963,7 @@ theorem facts___eo_prog_bv_poly_norm_impl
       hEqBool hModulus hNormEq hNormNotStuck)
 
 public theorem cmd_step_bv_poly_norm_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_poly_norm args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

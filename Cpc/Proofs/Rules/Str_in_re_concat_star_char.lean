@@ -1256,7 +1256,7 @@ private theorem fixed_len_re_sound
 termination_by r => r
 
 private theorem smtx_model_eval_str_in_re_concat_star_char_side
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (s r side : Term) -> (ss : SmtSeq) -> (rv : SmtRegLan) ->
       __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
       __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
@@ -1550,7 +1550,7 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
 termination_by s => s
 
 private theorem str_in_re_concat_star_char_valid_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s1 s2 r b : Term)
     (hArgTrans :
       RuleProofs.eo_has_smt_translation
@@ -1669,7 +1669,7 @@ private theorem str_in_re_concat_star_char_valid_properties
 end RuleProofs
 
 public theorem cmd_step_str_in_re_concat_star_char_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_concat_star_char args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

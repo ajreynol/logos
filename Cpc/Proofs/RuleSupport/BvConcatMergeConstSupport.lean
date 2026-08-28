@@ -1138,7 +1138,7 @@ theorem typed_bv_concat_merge_const_program
   simpa [hBodyEq] using hTermBool
 
 theorem facts_bv_concat_merge_const_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs n1 w1 n2 w2 ww zs P : Term) :
     RuleProofs.eo_has_smt_translation xs ->
     RuleProofs.eo_has_smt_translation n1 ->

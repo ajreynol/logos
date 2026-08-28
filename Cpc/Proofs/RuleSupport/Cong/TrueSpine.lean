@@ -17,7 +17,7 @@ namespace CongSupport
 attribute [local simp] native_streq native_and native_ite
 
 theorem congTrueSpine_eq_true
-    (M : SmtModel) (hM : model_total_typed M) (t rhs : Term) :
+    (M : SmtModel) (hM : model_wf M) (t rhs : Term) :
     NotTopLevelQuantifier t ->
     RuleProofs.eo_has_bool_type (mkEq t rhs) ->
     CongTrueSpine M t rhs ->

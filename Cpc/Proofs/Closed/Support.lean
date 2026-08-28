@@ -208,12 +208,12 @@ by
   let PM : Prop :=
     ∃ v : SmtValue,
       __smtx_typeof_value v = T ∧
-        __smtx_value_canonical_bool v = true ∧
+        __smtx_value_canonical v = true ∧
         __smtx_model_eval (native_model_push M s T v) body = SmtValue.Boolean true
   let PN : Prop :=
     ∃ v : SmtValue,
       __smtx_typeof_value v = T ∧
-        __smtx_value_canonical_bool v = true ∧
+        __smtx_value_canonical v = true ∧
         __smtx_model_eval (native_model_push N s T v) body = SmtValue.Boolean true
   change (if _ : PM then SmtValue.Boolean true else SmtValue.Boolean false) =
     (if _ : PN then SmtValue.Boolean true else SmtValue.Boolean false)
@@ -243,12 +243,12 @@ by
   let PM : Prop :=
     ∀ v : SmtValue,
       __smtx_typeof_value v = T ->
-        __smtx_value_canonical_bool v = true ->
+        __smtx_value_canonical v = true ->
         __smtx_model_eval (native_model_push M s T v) body = SmtValue.Boolean true
   let PN : Prop :=
     ∀ v : SmtValue,
       __smtx_typeof_value v = T ->
-        __smtx_value_canonical_bool v = true ->
+        __smtx_value_canonical v = true ->
         __smtx_model_eval (native_model_push N s T v) body = SmtValue.Boolean true
   change (if _ : PM then SmtValue.Boolean true else SmtValue.Boolean false) =
     (if _ : PN then SmtValue.Boolean true else SmtValue.Boolean false)
@@ -275,14 +275,14 @@ by
   classical
   let PredM : SmtValue -> Prop := fun v =>
       __smtx_typeof_value v = T ∧
-        __smtx_value_canonical_bool v = true ∧
+        __smtx_value_canonical v = true ∧
         __smtx_model_eval (native_model_push M s T v) body = SmtValue.Boolean true
   let PredN : SmtValue -> Prop := fun v =>
       __smtx_typeof_value v = T ∧
-        __smtx_value_canonical_bool v = true ∧
+        __smtx_value_canonical v = true ∧
         __smtx_model_eval (native_model_push N s T v) body = SmtValue.Boolean true
   let PTy : Prop :=
-    ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical_bool v
+    ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v
   change
     (if hSat : ∃ v : SmtValue, PredM v then Classical.choose hSat
       else if hTy : PTy then Classical.choose hTy else SmtValue.NotValue) =
@@ -7566,12 +7566,12 @@ by
 
 /-- A formula remains true when only SMT variable assignments are changed. -/
 def StableInAnyVarModel (M : SmtModel) (P : Term) : Prop :=
-  ∀ N, model_total_typed N -> model_agrees_on_globals M N ->
+  ∀ N, model_wf N -> model_agrees_on_globals M N ->
     eo_interprets N P true
 
 /-- A formula remains true under variable-model changes whenever it is true. -/
 def StableWhenTrueInAnyVarModel (P : Term) : Prop :=
-  ∀ M, model_total_typed M -> eo_interprets M P true ->
+  ∀ M, model_wf M -> eo_interprets M P true ->
     StableInAnyVarModel M P
 
 theorem smt_interprets_of_model_eval_eq
