@@ -326,6 +326,12 @@ structure Config (T R C CL : Type) where
   /-- Whether a term is the sort of sorts, i.e. whether `declare-const` declares a sort. -/
   isType : T → Bool
   /--
+  The sort of sorts, from which the type of a `declare-sort` or `declare-type`
+  is built.  It is given as a term rather than looked up by name, so that a
+  user symbol called `Type` does not change what those commands declare.
+  -/
+  mkType : T
+  /--
   Whether the calculus can make sense of a term -- for a typed calculus, whether
   it has a type.  This is only used to choose between the several things a name
   may denote: SMT-LIB lets a symbol be declared more than once at different
@@ -736,6 +742,17 @@ def parseFunType (cfg : Config T R C CL) (args : List Sexp) (res : Sexp) : Parse
   | args => parseTerm cfg (.expr (.atom "->" :: (args ++ [res])))
 
 /--
+The type `(-> t₁ … tₙ Type)` of a symbol declared by `declare-sort` or
+`declare-type`, whose result is the sort of sorts itself (`Config.mkType`).
+-/
+def parseSortType (cfg : Config T R C CL) (args : List T) : ParserM T T :=
+  match args with
+  | [] => return cfg.mkType
+  | args => do
+    let arrow ← parseTerm cfg (.atom "->")
+    return (rightAssoc cfg.apply arrow (args ++ [cfg.mkType])).getD cfg.mkType
+
+/--
 Parse the parameter list of a `define`.  Only the parameter names are recorded:
 the body is read where the macro is used, so its parameters are given the types
 of the arguments they stand for.
@@ -824,12 +841,13 @@ where
       -- `(declare-sort S n)` declares a symbol of type `(-> Type … Type)`; for
       -- `n = 0` that is `Type` itself, i.e. an uninterpreted sort.
       let arity ← parseArity arity
-      let ty ← parseFunType cfg (List.replicate arity (.atom "Type")) (.atom "Type")
+      let ty ← parseSortType cfg (List.replicate arity cfg.mkType)
       declareSymbol cfg (← parseName name) ty
       return .decl
     | .expr [.atom "declare-type", name, .expr args] => do
       -- The Eunoia spelling of `declare-sort`, whose arguments are given by type.
-      declareSymbol cfg (← parseName name) (← parseFunType cfg args (.atom "Type"))
+      let args ← args.mapM (parseTerm cfg)
+      declareSymbol cfg (← parseName name) (← parseSortType cfg args)
       return .decl
     | .expr [.atom "declare-datatypes", .expr sorts, .expr bodies] => do
       parseDatatypes cfg sorts bodies

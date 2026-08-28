@@ -30,7 +30,9 @@ The parser supports the commands `declare-const`, `declare-fun`, `declare-sort`,
 check the proof against the original input problem.
 A `declare-sort` of arity `n` (equivalently, a `declare-type` with `n` arguments) declares a
 symbol of type `(-> Type … Type)`, so that arity `0` declares an uninterpreted sort; the
-function type is built from the signature's own `->`, as it is for `declare-fun`.
+function type is built from the signature's own `->`, as it is for `declare-fun`.  The sort of
+sorts is taken from the configuration (`Config.mkType`), not looked up by name, so a user symbol
+named `Type` (as Verus emits) does not change the meaning of these commands.
 A `define` with parameters is a macro, since Eunoia has no lambda: its body is kept as an
 s-expression and read again wherever the defined symbol is applied, with the parameters bound
 to the arguments given there.  Consequently a parameter's declared type is not used, an error

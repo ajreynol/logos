@@ -85,6 +85,7 @@ private def testConfig : Config TestTerm String TestCmd (List TestCmd) where
   ]
   parseLiteral := fun _ => none
   isType := (· == .type)
+  mkType := .type
   mkUSort := .usort
   mkUConst := .uconst
   apply := .app
@@ -156,6 +157,16 @@ private def arrow (dom cod : TestTerm) : TestTerm := .app (.app (.atom "->") dom
      (declare-const b (Box U))
      (assume @p0 b)"
   == some [.uconst 2 (.app (.uconst 1 (arrow .type .type)) (.usort 1))]
+
+-- A user sort named `Type` does not change what a later `declare-sort` declares:
+-- `Poly` is still a sort, not a constant of the user's `Type`.
+#guard assumptions
+    "(declare-sort Type 0)
+     (declare-sort Poly 0)
+     (declare-sort Box 1)
+     (declare-const x Poly)
+     (assume @p0 x)"
+  == some [.uconst 2 (.usort 2)]
 
 -- `reference` is ignored as well.
 #guard assumptions
