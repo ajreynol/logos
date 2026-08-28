@@ -251,7 +251,7 @@ by
             rw [Smtm.__smtx_model_eval.eq_9] at hEvalImp
             cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
               simp [hEvalA, hBeval, __smtx_model_eval_imp, __smtx_model_eval_or,
-                __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not] at hEvalImp
+                __smtx_model_eval_not, Smtm.native_or, SmtEval.native_not] at hEvalImp
             case Boolean a =>
               cases a <;> simp at hEvalImp
               simp
@@ -273,7 +273,7 @@ by
           apply smt_interprets.intro_true
           · simp [Smtm.__smtx_typeof.eq_9, htyA, htyB, native_Teq, native_ite]
           · simp [Smtm.__smtx_model_eval.eq_9, __smtx_model_eval_imp, __smtx_model_eval_or,
-              __smtx_model_eval_not, hEvalA, hEvalB, SmtEval.native_or, SmtEval.native_not]
+              __smtx_model_eval_not, hEvalA, hEvalB, Smtm.native_or, SmtEval.native_not]
 
 /-- Left-projection lemma for `eo_interprets_imp_false`. -/
 theorem eo_interprets_imp_false_left (M : SmtModel) (A B : Term) :
@@ -299,7 +299,7 @@ by
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_imp, __smtx_model_eval_or,
-            __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not] at hEvalImp
+            __smtx_model_eval_not, Smtm.native_or, SmtEval.native_not] at hEvalImp
         case Boolean.Boolean a b =>
           cases a <;> cases b <;> simp at hEvalImp
           simp
@@ -329,7 +329,7 @@ by
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_imp, __smtx_model_eval_or,
-            __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not] at hEvalImp
+            __smtx_model_eval_not, Smtm.native_or, SmtEval.native_not] at hEvalImp
         case Boolean.Boolean a b =>
           cases a <;> cases b <;> simp at hEvalImp
           simp
@@ -351,7 +351,7 @@ by
           apply smt_interprets.intro_false
           · simp [Smtm.__smtx_typeof.eq_9, htyA, htyB, native_Teq, native_ite]
           · simp [Smtm.__smtx_model_eval.eq_9, __smtx_model_eval_imp, __smtx_model_eval_or,
-              __smtx_model_eval_not, hEvalA, hEvalB, SmtEval.native_or, SmtEval.native_not]
+              __smtx_model_eval_not, hEvalA, hEvalB, Smtm.native_or, SmtEval.native_not]
 
 /-- Derives `eo_interprets_and_false_left` from `right_not_false`. -/
 theorem eo_interprets_and_false_left_of_right_not_false (M : SmtModel) (A B : Term) :

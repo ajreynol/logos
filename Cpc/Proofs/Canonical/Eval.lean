@@ -415,7 +415,7 @@ theorem native_eval_tchoice_canonical
     (s : native_String)
     (T : SmtType)
     (body : SmtTerm) :
-    value_canonical (native_eval_tchoice M s T body) := by
+    value_canonical (native_eval_choice M s T body) := by
   classical
   by_cases hSat :
       ∃ v : SmtValue,

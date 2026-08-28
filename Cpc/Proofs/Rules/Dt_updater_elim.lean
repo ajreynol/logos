@@ -531,13 +531,13 @@ private theorem smtx_typeof_eo_to_smt_stuck_none :
 
 private theorem eo_to_smt_apply_dt_sel_unreserved
     (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (x : Term)
-    (hReserved : native_reserved_datatype_name s = false) :
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false) :
     __eo_to_smt (Term.Apply (Term.DtSel s d i j) x) =
       SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j)
         (__eo_to_smt x) := by
   change
     SmtTerm.Apply
-        (native_ite (native_reserved_datatype_name s) SmtTerm.None
+        (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
           (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
         (__eo_to_smt x) =
       SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j)
@@ -705,7 +705,7 @@ private theorem smtDtUpdaterElimRhsRec_self_eq_updater_rec
 private theorem eo_to_smt_dt_updater_elim_rhs_selectors
     (s : native_String) (root : DatatypeDecl) (n m : native_Nat)
     (t a acc : Term)
-    (hReserved : native_reserved_datatype_name s = false)
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false)
     (hAcc : DtConsSpineRoot acc s root n) :
     ∀ (d : Datatype) (ci ai : native_Nat),
       __smtx_typeof
@@ -1217,7 +1217,7 @@ private theorem dt_updater_elim_update_rel
                 (__eo_to_smt_datatype (__eo_dd_lookup s d0)) i : Int) := by
           apply of_decide_eq_true
           simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
-            SmtEval.native_nat_to_int, D,
+            Smtm.native_nat_to_int, D,
             TranslationProofs.eo_to_smt_dd_lookup] using hIdx
         exact Int.ofNat_lt.mp hInt
       have hIteNN :

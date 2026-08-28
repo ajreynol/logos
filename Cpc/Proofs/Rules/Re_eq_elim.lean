@@ -24,16 +24,16 @@ private noncomputable def nativeReExtEq (r1 r2 : SmtRegLan) : native_Bool :=
 private theorem nativeReExtEq_eq_true_iff (r1 r2 : SmtRegLan) :
     nativeReExtEq r1 r2 = true ↔
       ∀ s : native_String, native_string_valid s = true ->
-        native_str_in_re (native_string_to_values s) r1 =
-          native_str_in_re (native_string_to_values s) r2 := by
+        native_str_in_re (impl_native_string_to_values s) r1 =
+          native_str_in_re (impl_native_string_to_values s) r2 := by
   classical
   unfold nativeReExtEq
   constructor
   · intro h
     by_cases hP :
         ∀ s : native_String, native_string_valid s = true ->
-          native_str_in_re (native_string_to_values s) r1 =
-            native_str_in_re (native_string_to_values s) r2
+          native_str_in_re (impl_native_string_to_values s) r1 =
+            native_str_in_re (impl_native_string_to_values s) r2
     · exact hP
     · rw [dif_neg hP] at h
       exact absurd h (by decide)
@@ -262,7 +262,7 @@ private theorem native_unpack_string_pack_string (s : native_String) :
     native_unpack_string (native_pack_string s) = s := by
   unfold native_unpack_string native_pack_string
   rw [unpack_pack_seq, List.map_map]
-  have hid : (native_ssm_char_of_value ∘ SmtValue.Char) = id := by
+  have hid : (impl_native_ssm_char_of_value ∘ SmtValue.Char) = id := by
     funext x; rfl
   rw [hid, List.map_id]
 
@@ -333,7 +333,7 @@ via `smt_eval_reglan_of_smt_type_reglan`).
 
 3. RHS: `smt (reEqForall r1 r2) = not (exists reqName T (not (smt body)))`
    (`re_eq_forall_smt`), so `eval RHS = __smtx_model_eval_not
-   (native_eval_texists M reqName T (not (smt body)))` (SmtModel.lean:2147,2293).
+   (native_eval_exists M reqName T (not (smt body)))` (SmtModel.lean:2147,2293).
    With the freshness from (2), for a value `v = Seq ss`:
      `eval (push) (smt body) =
        Boolean (decide (native_str_in_re (native_unpack_string ss) R1 =

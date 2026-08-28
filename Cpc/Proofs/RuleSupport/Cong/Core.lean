@@ -710,10 +710,10 @@ theorem eo_to_smt_dtcons_ne_dt_sel
       __eo_to_smt (Term.DtCons s d i) ≠ SmtTerm.DtSel s' d' i' j' := by
   intro s' d' i' j'
   change
-    native_ite (native_reserved_datatype_name s) SmtTerm.None
+    native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
         (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i) ≠
       SmtTerm.DtSel s' d' i' j'
-  cases native_reserved_datatype_name s <;> simp [native_ite]
+  cases __eo_to_smt_reserved_datatype_name s <;> simp [native_ite]
 
 theorem eo_to_smt_dtcons_ne_dt_tester
     (s : native_String) (d : DatatypeDecl) (i : native_Nat) :
@@ -721,10 +721,10 @@ theorem eo_to_smt_dtcons_ne_dt_tester
       __eo_to_smt (Term.DtCons s d i) ≠ SmtTerm.DtTester s' d' i' := by
   intro s' d' i'
   change
-    native_ite (native_reserved_datatype_name s) SmtTerm.None
+    native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
         (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i) ≠
       SmtTerm.DtTester s' d' i'
-  cases native_reserved_datatype_name s <;> simp [native_ite]
+  cases __eo_to_smt_reserved_datatype_name s <;> simp [native_ite]
 
 private theorem congTrueSpine_uop_eq
     (M : SmtModel) (op : UserOp) (rhs : Term) :

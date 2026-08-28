@@ -228,7 +228,7 @@ private theorem smtx_eval_exists_term_eq
     (M : SmtModel) (s : native_String) (T : SmtType)
     (body : SmtTerm) :
     __smtx_model_eval M (SmtTerm.exists s T body) =
-      native_eval_texists M s T body := by
+      native_eval_exists M s T body := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem smtx_model_eval_not_eq_of_arg_eq_same
@@ -254,8 +254,8 @@ private theorem native_eval_texists_eq_of_body_eval_eq_same_typed
       __smtx_value_canonical v = true ->
       __smtx_model_eval (native_model_push M s T v) body =
         __smtx_model_eval (native_model_push M s T v) body') :
-    native_eval_texists M s T body =
-      native_eval_texists M s T body' := by
+    native_eval_exists M s T body =
+      native_eval_exists M s T body' := by
   classical
   let P : Prop :=
     ∃ v : SmtValue,

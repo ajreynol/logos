@@ -194,7 +194,7 @@ private theorem native_eval_tchoice_body_true_of_exists
         __smtx_model_eval (native_model_push M s T v) body =
           SmtValue.Boolean true) :
     __smtx_model_eval (native_model_push M s T
-      (native_eval_tchoice M s T body)) body =
+      (native_eval_choice M s T body)) body =
       SmtValue.Boolean true := by
   classical
   change
@@ -331,21 +331,21 @@ private theorem eslFormula_true
   have hChoiceBody :
       __smtx_model_eval
         (native_model_push M (native_string_lit "@x") (SmtType.Seq A)
-          (native_eval_tchoice M (native_string_lit "@x") (SmtType.Seq A)
+          (native_eval_choice M (native_string_lit "@x") (SmtType.Seq A)
             (eslSmtBody A k)))
         (eslSmtBody A k) = SmtValue.Boolean true :=
     native_eval_tchoice_body_true_of_exists M (native_string_lit "@x")
       (SmtType.Seq A) (eslSmtBody A k) hSat
   have hChoiceLen :
       __smtx_model_eval_str_len
-        (native_eval_tchoice M (native_string_lit "@x") (SmtType.Seq A)
+        (native_eval_choice M (native_string_lit "@x") (SmtType.Seq A)
           (eslSmtBody A k)) = SmtValue.Numeral k :=
     eslSmtBody_true_imp_str_len M A k
-      (native_eval_tchoice M (native_string_lit "@x") (SmtType.Seq A)
+      (native_eval_choice M (native_string_lit "@x") (SmtType.Seq A)
         (eslSmtBody A k)) hChoiceBody
   have hChoiceLen' :
       __smtx_model_eval_str_len
-        (native_eval_tchoice M (native_string_lit "@x") (SmtType.Seq A)
+        (native_eval_choice M (native_string_lit "@x") (SmtType.Seq A)
           (SmtTerm.eq
             (SmtTerm.str_len
               (SmtTerm.Var (native_string_lit "@x") (SmtType.Seq A)))

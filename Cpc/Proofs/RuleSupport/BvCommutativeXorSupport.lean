@@ -436,10 +436,10 @@ private theorem native_binary_xor_mod_eq_toNat
       ((BitVec.ofInt w n1 ^^^ BitVec.ofInt w n2).toNat : Int) := by
   cases w with
   | zero =>
-      simp [native_binary_xor, native_pixor, native_mod_total,
+      simp [native_binary_xor, impl_native_pixor, native_mod_total,
         native_int_pow2_nat]
   | succ w =>
-      simp [native_binary_xor, native_pixor, native_mod_total,
+      simp [native_binary_xor, impl_native_pixor, native_mod_total,
         native_nat_to_int, native_ite, native_zeq]
       exact bitvec_toInt_emod_pow (Nat.succ w)
         (BitVec.ofInt (Nat.succ w) n1 ^^^ BitVec.ofInt (Nat.succ w) n2)
@@ -1318,7 +1318,7 @@ private theorem native_nat_to_int_of_int_to_nat_of_nonneg (n : native_Int) :
     simpa [SmtEval.native_zleq] using hNonneg
   have hInt : (Int.ofNat (Int.toNat n) : Int) = n :=
     Int.toNat_of_nonneg hn
-  simpa [SmtEval.native_nat_to_int, SmtEval.native_int_to_nat,
+  simpa [Smtm.native_nat_to_int, SmtEval.native_int_to_nat,
     native_nat_to_int, native_int_to_nat] using hInt
 
 private theorem bv_xor_duplicate_context

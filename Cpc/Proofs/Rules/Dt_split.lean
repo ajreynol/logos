@@ -76,7 +76,7 @@ private theorem mk_dt_split_cons_of_ne_stuck (c xs x : Term) :
 
 private theorem dt_split_ctor_tester_has_bool_type
     (x : Term) (s : native_String) (dd : DatatypeDecl) (idx : Nat)
-    (hReserved : native_reserved_datatype_name s = false)
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
         SmtType.Datatype s (__eo_to_smt_datatype_decl dd))
@@ -114,7 +114,7 @@ private theorem dt_split_ctor_tester_has_bool_type
     change
       SmtTerm.Apply
           (__eo_to_smt_tester
-            (native_ite (native_reserved_datatype_name s) SmtTerm.None
+            (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
               (SmtTerm.DtCons s smtDD idx)))
           (__eo_to_smt x) =
         SmtTerm.Apply (SmtTerm.DtTester s smtDD idx)
@@ -127,7 +127,7 @@ private theorem dt_split_ctor_tester_has_bool_type
 
 private theorem mk_dt_split_has_bool_type
     (x : Term) (s : native_String) (dd : DatatypeDecl)
-    (hReserved : native_reserved_datatype_name s = false)
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
         SmtType.Datatype s (__eo_to_smt_datatype_decl dd)) :
@@ -193,7 +193,7 @@ private theorem mk_dt_split_has_bool_type
 
 private theorem dt_split_ctor_tester_interprets_true
     (M : SmtModel) (x : Term) (s : native_String) (dd : DatatypeDecl) (idx : Nat)
-    (hReserved : native_reserved_datatype_name s = false)
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
         SmtType.Datatype s (__eo_to_smt_datatype_decl dd))
@@ -215,7 +215,7 @@ private theorem dt_split_ctor_tester_interprets_true
       change
         SmtTerm.Apply
             (__eo_to_smt_tester
-              (native_ite (native_reserved_datatype_name s) SmtTerm.None
+              (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
                 (SmtTerm.DtCons s (__eo_to_smt_datatype_decl dd) idx)))
             (__eo_to_smt x) =
           SmtTerm.Apply (SmtTerm.DtTester s (__eo_to_smt_datatype_decl dd) idx)
@@ -227,7 +227,7 @@ private theorem dt_split_ctor_tester_interprets_true
 private theorem mk_dt_split_interprets_true
     (M : SmtModel) (hM : model_wf M)
     (x : Term) (s : native_String) (dd : DatatypeDecl)
-    (hReserved : native_reserved_datatype_name s = false)
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
         SmtType.Datatype s (__eo_to_smt_datatype_decl dd)) :
@@ -398,7 +398,7 @@ private theorem dt_split_datatype_program_true
     (M : SmtModel) (hM : model_wf M)
     (x : Term) (s : native_String) (dd : DatatypeDecl)
     (hType : __eo_typeof x = Term.DatatypeType s dd)
-    (hReserved : native_reserved_datatype_name s = false)
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
         SmtType.Datatype s (__eo_to_smt_datatype_decl dd))
@@ -690,7 +690,7 @@ private theorem facts___eo_prog_dt_split_impl
           __smtx_typeof (__eo_to_smt x) =
             __eo_to_smt_type (Term.DatatypeType s d) := by
         simpa [hT] using hxMatch
-      cases hReserved : native_reserved_datatype_name s
+      cases hReserved : __eo_to_smt_reserved_datatype_name s
       · have hxTy :
             __smtx_typeof (__eo_to_smt x) =
               SmtType.Datatype s (__eo_to_smt_datatype_decl d) := by

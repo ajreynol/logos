@@ -22,7 +22,7 @@ namespace Smtm
   native_decide
 
 @[simp] theorem native_re_canonical_none :
-    native_re_canonical native_re_none = true := by
+    __smtx_re_canonical native_re_none = true := by
   native_decide
 
 /-- The typing conjunct carried by the generated Boolean inhabitation check. -/

@@ -231,10 +231,10 @@ private theorem native_binary_or_mod_eq_toNat
       ((BitVec.ofInt w n1 ||| BitVec.ofInt w n2).toNat : Int) := by
   cases w with
   | zero =>
-      simp [native_binary_or, native_pior, native_mod_total,
+      simp [native_binary_or, impl_native_pior, native_mod_total,
         native_int_pow2_nat]
   | succ w =>
-      simp [native_binary_or, native_pior, native_mod_total,
+      simp [native_binary_or, impl_native_pior, native_mod_total,
         native_nat_to_int, native_ite, native_zeq]
       exact bitvec_toInt_emod_pow (Nat.succ w)
         (BitVec.ofInt (Nat.succ w) n1 ||| BitVec.ofInt (Nat.succ w) n2)
@@ -246,10 +246,10 @@ private theorem native_binary_xor_mod_eq_toNat
       ((BitVec.ofInt w n1 ^^^ BitVec.ofInt w n2).toNat : Int) := by
   cases w with
   | zero =>
-      simp [native_binary_xor, native_pixor, native_mod_total,
+      simp [native_binary_xor, impl_native_pixor, native_mod_total,
         native_int_pow2_nat]
   | succ w =>
-      simp [native_binary_xor, native_pixor, native_mod_total,
+      simp [native_binary_xor, impl_native_pixor, native_mod_total,
         native_nat_to_int, native_ite, native_zeq]
       exact bitvec_toInt_emod_pow (Nat.succ w)
         (BitVec.ofInt (Nat.succ w) n1 ^^^ BitVec.ofInt (Nat.succ w) n2)
@@ -467,7 +467,7 @@ theorem bvand_generated_nil_eq_allOnes
   intro hNe
   exact bvAnd_nil_eq_allOnes_of_type w (by
     simp [__eo_to_smt_type, native_ite, SmtEval.native_zleq, native_nat_to_int, native_int_to_nat,
-      SmtEval.native_nat_to_int, SmtEval.native_int_to_nat]) hNe
+      Smtm.native_nat_to_int, SmtEval.native_int_to_nat]) hNe
 
 theorem bvor_generated_nil_eq_zero
     (w : Nat) :
@@ -481,7 +481,7 @@ theorem bvor_generated_nil_eq_zero
   intro hNe
   exact bvOr_nil_eq_zero_of_type w (by
     simp [__eo_to_smt_type, native_ite, SmtEval.native_zleq, native_nat_to_int, native_int_to_nat,
-      SmtEval.native_nat_to_int, SmtEval.native_int_to_nat]) hNe
+      Smtm.native_nat_to_int, SmtEval.native_int_to_nat]) hNe
 
 theorem bvxor_generated_nil_eq_zero
     (w : Nat) :
@@ -495,7 +495,7 @@ theorem bvxor_generated_nil_eq_zero
   intro hNe
   exact bvXor_nil_eq_zero_of_type w (by
     simp [__eo_to_smt_type, native_ite, SmtEval.native_zleq, native_nat_to_int, native_int_to_nat,
-      SmtEval.native_nat_to_int, SmtEval.native_int_to_nat]) hNe
+      Smtm.native_nat_to_int, SmtEval.native_int_to_nat]) hNe
 
 theorem bvand_generated_nil_smt_type
     (w : Nat) (hNe : __eo_nil (Term.UOp UserOp.bvand)

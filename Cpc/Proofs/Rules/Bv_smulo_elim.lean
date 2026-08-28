@@ -413,7 +413,7 @@ private theorem bvxor_payload_nat
     have hx :
         native_binary_xor ((w : Nat) : Int) cn an =
           (BitVec.ofInt w cn ^^^ BitVec.ofInt w an).toInt := by
-      simp only [native_binary_xor, native_pixor]
+      simp only [native_binary_xor, impl_native_pixor]
       rw [hne, Int.toNat_natCast]
       rfl
     have e1 :

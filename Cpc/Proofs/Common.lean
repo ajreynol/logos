@@ -516,13 +516,13 @@ private theorem smtx_model_eval_eq_true_symm
     by_cases hExt12 :
         ∀ s : native_String,
           native_string_valid s = true ->
-            native_str_in_re (native_string_to_values s) r1 =
-              native_str_in_re (native_string_to_values s) r2
+            native_str_in_re (impl_native_string_to_values s) r1 =
+              native_str_in_re (impl_native_string_to_values s) r2
     · have hExt21 :
           ∀ s : native_String,
             native_string_valid s = true ->
-              native_str_in_re (native_string_to_values s) r2 =
-                native_str_in_re (native_string_to_values s) r1 := by
+              native_str_in_re (impl_native_string_to_values s) r2 =
+                native_str_in_re (impl_native_string_to_values s) r1 := by
         intro s hs
         exact (hExt12 s hs).symm
       simpa [hExt21]

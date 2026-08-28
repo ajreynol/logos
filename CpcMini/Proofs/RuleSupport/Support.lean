@@ -38,8 +38,8 @@ assignments.
 -/
 def model_agrees_on_globals (M N : SmtModel) : Prop :=
   (∀ s T, native_model_lookup M s T = native_model_lookup N s T) ∧
-  (∀ fid T U, native_model_fun_lookup M fid T U =
-    native_model_fun_lookup N fid T U)
+  (∀ fid T U, model_fun_lookup M fid T U =
+    model_fun_lookup N fid T U)
 
 theorem model_agrees_on_globals_refl (M : SmtModel) :
   model_agrees_on_globals M M :=

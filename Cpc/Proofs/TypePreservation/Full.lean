@@ -954,7 +954,7 @@ private theorem tp_native_eval_tchoice_canonical
     (s : native_String)
     (T : SmtType)
     (body : SmtTerm) :
-    value_canonical (native_eval_tchoice M s T body) := by
+    value_canonical (native_eval_choice M s T body) := by
   classical
   by_cases hSat :
       ∃ v : SmtValue,
@@ -3931,7 +3931,7 @@ private theorem bv_binop_type_has_no_none_components_of_non_none
     type_has_no_none_components (__smtx_typeof (op t1 t2)) := by
   rcases bv_binop_args_of_non_none hTy ht with ⟨w, h1, h2⟩
   rw [hTy]
-  simp [__smtx_typeof_bv_op_2, native_ite, native_nateq, SmtEval.native_nateq,
+  simp [__smtx_typeof_bv_op_2, native_ite, native_nateq, Smtm.native_nateq,
     h1, h2, type_has_no_none_components]
 
 private theorem bv_binop_ret_type_has_no_none_components_of_non_none
@@ -3946,7 +3946,7 @@ private theorem bv_binop_ret_type_has_no_none_components_of_non_none
     type_has_no_none_components (__smtx_typeof (op t1 t2)) := by
   rcases bv_binop_ret_args_of_non_none hTy ht with ⟨w, h1, h2⟩
   rw [hTy]
-  simpa [__smtx_typeof_bv_op_2_ret, native_ite, native_nateq, SmtEval.native_nateq,
+  simpa [__smtx_typeof_bv_op_2_ret, native_ite, native_nateq, Smtm.native_nateq,
     h1, h2] using hRet
 
 private theorem eq_type_has_no_none_components_of_non_none

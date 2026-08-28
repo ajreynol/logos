@@ -541,7 +541,7 @@ private theorem typed___eo_prog_string_ext_impl
 /-! ### Value-level semantics of `seq_diff` (the deq-diff index).
 
 `@strings_deq_diff a b` translates (Spec.lean) to `SmtTerm.seq_diff (smt a) (smt b)`,
-whose evaluation `native_eval_seq_diff_ssm` selects, via `Classical.choose`, some index
+whose evaluation `native_eval_seq_diff` selects, via `Classical.choose`, some index
 at which the two evaluated sequence VALUES disagree (counting a missing element past the
 end of the shorter sequence as a disagreement), or `-1` when they are equal.  No model
 push / fresh variable is involved, so the rule's soundness needs no premise-closedness

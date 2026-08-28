@@ -451,14 +451,14 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                         (__smtx_typeof (__eo_to_smt (Term.DtCons s d i)))
                         (__smtx_typeof (__eo_to_smt a)) := by
                   have hReserved :
-                      native_reserved_datatype_name s = false :=
+                      __eo_to_smt_reserved_datatype_name s = false :=
                     SubstituteSupport.dtcons_reserved_false_of_apply_has_smt_translation
                       hFTrans
                   change
                     __smtx_typeof
                         (SmtTerm.Apply
                           (native_ite
-                            (native_reserved_datatype_name s)
+                            (__eo_to_smt_reserved_datatype_name s)
                             SmtTerm.None
                             (SmtTerm.DtCons s
                               (__eo_to_smt_datatype_decl d)
@@ -467,7 +467,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                       __smtx_typeof_apply
                         (__smtx_typeof
                           (native_ite
-                            (native_reserved_datatype_name s)
+                            (__eo_to_smt_reserved_datatype_name s)
                             SmtTerm.None
                             (SmtTerm.DtCons s
                               (__eo_to_smt_datatype_decl d)
@@ -3952,7 +3952,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                                                                                                                                         (Term.Apply (Term.DtCons s d i) x1) a
                                                                                                                                                                                                                                         hOuterTranslate hGenericOuter hFTrans).1
                                                                                                                                                                                                                                     have hReserved :
-                                                                                                                                                                                                                                        native_reserved_datatype_name s = false :=
+                                                                                                                                                                                                                                        __eo_to_smt_reserved_datatype_name s = false :=
                                                                                                                                                                                                                                       SubstituteSupport.dtcons_reserved_false_of_apply_has_smt_translation
                                                                                                                                                                                                                                         hHeadTrans
                                                                                                                                                                                                                                     exact
@@ -3969,7 +3969,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                                                                                                                                             __smtx_typeof
                                                                                                                                                                                                                                                 (SmtTerm.Apply
                                                                                                                                                                                                                                                   (native_ite
-                                                                                                                                                                                                                                                    (native_reserved_datatype_name s)
+                                                                                                                                                                                                                                                    (__eo_to_smt_reserved_datatype_name s)
                                                                                                                                                                                                                                                     SmtTerm.None
                                                                                                                                                                                                                                                     (SmtTerm.DtCons s
                                                                                                                                                                                                                                                       (__eo_to_smt_datatype_decl d)
@@ -3978,7 +3978,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                                                                                                                                               __smtx_typeof_apply
                                                                                                                                                                                                                                                 (__smtx_typeof
                                                                                                                                                                                                                                                   (native_ite
-                                                                                                                                                                                                                                                    (native_reserved_datatype_name s)
+                                                                                                                                                                                                                                                    (__eo_to_smt_reserved_datatype_name s)
                                                                                                                                                                                                                                                     SmtTerm.None
                                                                                                                                                                                                                                                     (SmtTerm.DtCons s
                                                                                                                                                                                                                                                       (__eo_to_smt_datatype_decl d)
@@ -4013,7 +4013,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                                                                                                                                               __smtx_typeof
                                                                                                                                                                                                                                                   (SmtTerm.Apply
                                                                                                                                                                                                                                                     (native_ite
-                                                                                                                                                                                                                                                      (native_reserved_datatype_name s)
+                                                                                                                                                                                                                                                      (__eo_to_smt_reserved_datatype_name s)
                                                                                                                                                                                                                                                       SmtTerm.None
                                                                                                                                                                                                                                                       (SmtTerm.DtCons s
                                                                                                                                                                                                                                                         (__eo_to_smt_datatype_decl d)
@@ -4022,7 +4022,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                                                                                                                                                 __smtx_typeof_apply
                                                                                                                                                                                                                                                   (__smtx_typeof
                                                                                                                                                                                                                                                     (native_ite
-                                                                                                                                                                                                                                                      (native_reserved_datatype_name s)
+                                                                                                                                                                                                                                                      (__eo_to_smt_reserved_datatype_name s)
                                                                                                                                                                                                                                                       SmtTerm.None
                                                                                                                                                                                                                                                       (SmtTerm.DtCons s
                                                                                                                                                                                                                                                         (__eo_to_smt_datatype_decl d)
@@ -5212,7 +5212,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                               __smtx_typeof.eq_2,
                                                               native_ite, native_zleq,
                                                               SmtEval.native_zleq,
-                                                              SmtEval.native_nat_to_int])
+                                                              Smtm.native_nat_to_int])
                                                           (fun hATrans hATy =>
                                                             hRec
                                                               (G := a)
@@ -5289,7 +5289,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                 __smtx_typeof_bv_op_2_ret,
                                                                 native_ite,
                                                                 native_nateq,
-                                                                SmtEval.native_nateq])
+                                                                Smtm.native_nateq])
                                                             (fun hATrans hATy =>
                                                               hRec
                                                                 (G := a)
@@ -5367,7 +5367,7 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                   __smtx_typeof_bv_op_2_ret,
                                                                   native_ite,
                                                                   native_nateq,
-                                                                  SmtEval.native_nateq])
+                                                                  Smtm.native_nateq])
                                                               (fun hATrans hATy =>
                                                                 hRec
                                                                   (G := a)

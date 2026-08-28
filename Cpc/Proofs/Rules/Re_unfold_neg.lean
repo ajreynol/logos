@@ -631,8 +631,8 @@ theorem reConcat_nil_eval_empty_of_is_list_nil_true
                   (SmtTerm.str_to_re (SmtTerm.String [])) =
                 SmtValue.RegLan (native_str_to_re ([] : native_String))
               simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-                native_str_to_re, native_re_of_list, native_pack_string,
-                native_string_to_values, native_pack_seq, native_unpack_seq]
+                native_str_to_re, impl_native_re_of_list, native_pack_string,
+                impl_native_string_to_values, native_pack_seq, native_unpack_seq]
           | cons c cs =>
               simp at hNil
 
@@ -654,7 +654,7 @@ private theorem reConcat_smt_value_rel_right_empty_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hIdEval]
   cases r <;>
     simp [__smtx_model_eval_eq, native_re_concat,
-      native_str_to_re, native_re_of_list, native_string_to_values]
+      native_str_to_re, impl_native_re_of_list, impl_native_string_to_values]
 
 private theorem reConcat_is_list_nil_boolean_of_ne_stuck (t : Term) :
     t ≠ Term.Stuck ->
@@ -1181,13 +1181,13 @@ private theorem re_unfold_neg_star_body_eval_true
     simpa [htEval, ht, __smtx_typeof_value] using hValTy
   have hLeftUnpack :
       native_unpack_seq leftSeq =
-        native_string_to_values (native_unpack_string leftSeq) := by
+        impl_native_string_to_values (native_unpack_string leftSeq) := by
     apply native_unpack_seq_eq_values_of_valid
     simpa [leftSeq, native_unpack_seq_pack_seq] using
       native_re_str_valid_extract hSsValid 0 i
   have hRightUnpack :
       native_unpack_seq rightSeq =
-        native_string_to_values (native_unpack_string rightSeq) := by
+        impl_native_string_to_values (native_unpack_string rightSeq) := by
     apply native_unpack_seq_eq_values_of_valid
     simpa [rightSeq, native_unpack_seq_pack_seq] using
       native_re_str_valid_extract hSsValid i (len - i)
@@ -1467,13 +1467,13 @@ theorem re_unfold_neg_concat_body_eval_true
     simpa [htEval, ht, __smtx_typeof_value] using hValTy
   have hLeftUnpack :
       native_unpack_seq leftSeq =
-        native_string_to_values (native_unpack_string leftSeq) := by
+        impl_native_string_to_values (native_unpack_string leftSeq) := by
     apply native_unpack_seq_eq_values_of_valid
     simpa [leftSeq, native_unpack_seq_pack_seq] using
       native_re_str_valid_extract hSsValid 0 i
   have hRightUnpack :
       native_unpack_seq rightSeq =
-        native_string_to_values (native_unpack_string rightSeq) := by
+        impl_native_string_to_values (native_unpack_string rightSeq) := by
     apply native_unpack_seq_eq_values_of_valid
     simpa [rightSeq, native_unpack_seq_pack_seq] using
       native_re_str_valid_extract hSsValid i (len - i)
