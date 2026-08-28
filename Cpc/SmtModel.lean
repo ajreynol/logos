@@ -90,12 +90,12 @@ def native_const_id : native_Nat -> native_String
 
 /-- Whether a base element of a regular language is a valid character value.
 This is the well-formedness condition the matcher goes on; what makes a
-regular language canonical is said by the configuration instead, see
-__smtx_re_canonical decides, in SmtModel. Matching against a base element
-(.char) is structural equality on values, which allows regular languages over
-arbitrary value sequences; the sequence pattern operators (e.g. seq.replace_all) are
-evaluated via singleton regular expressions over their pattern. The
-allchar and range constructors match valid characters only. -/
+regular language canonical is what __smtx_re_canonical decides, below.
+Matching against a base element (.char) is structural equality on values,
+which allows regular languages over arbitrary value sequences; the sequence
+pattern operators (e.g. seq.replace_all) are evaluated via singleton regular
+expressions over their pattern. The allchar and range constructors match
+valid characters only. -/
 def native_re_elem_valid : SmtValue -> native_Bool
   | (SmtValue.Char c) => native_char_valid c
   | _ => false
