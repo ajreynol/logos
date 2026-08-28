@@ -104,11 +104,22 @@
 
 \pagestyle{empty}
 
+% No \date: this document is built into a PDF that is committed alongside it,
+% and \today would make every rebuild a diff.
+\title{Logos: A Verified Proof Checker for SMT Solvers in Lean\\[0.35em]
+  \large SMT-LIB Semantics, Specification, and Checker Definitions}
+\author{}
+\date{}
+
 % Allow extra interword stretch so long typewriter identifiers do not push
 % text into the margins.
 \emergencystretch=3em
 
 \begin{document}
+
+\maketitle
+% \maketitle asks for the `plain` style, which would number this page alone.
+\thispagestyle{empty}
 
 \section{Introduction}
 
