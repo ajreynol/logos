@@ -834,7 +834,7 @@ private theorem smtx_typeof_re_empty_string :
   simp [native_string_valid, native_ite, native_Teq]
 
 theorem smt_model_eval_reglan_of_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.RegLan) :
     ∃ r : SmtRegLan,
       __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r := by
@@ -1114,7 +1114,7 @@ private theorem seq_char_term_to_z_singleton
       simp [__eo_to_z, __eo_is_neg] at hNonneg
 
 private theorem native_includes_str_to_re_of_eval_side
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (r : Term) (pat : native_String) (rv : SmtRegLan)
     (hSTy :
       __smtx_typeof (__eo_to_smt (Term.String pat)) =
@@ -1148,7 +1148,7 @@ private theorem native_includes_str_to_re_of_eval_side
   exact hPatMem
 
 private theorem native_includes_range_of_side
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s1 s2 s3 s4 : Term) (rvSup rvSub : SmtRegLan)
     (hSupTy :
       __smtx_typeof
@@ -1275,7 +1275,7 @@ private theorem native_includes_range_of_side
     hHiSubValid hLo hHi
 
 private theorem re_unbound_base_prefix_closed
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (tail : Term) (rv : SmtRegLan)
     (hTy :
       __smtx_typeof
@@ -1339,7 +1339,7 @@ private theorem re_unbound_base_prefix_closed
   exact native_prefix_closed_all_concat rtail
 
 private theorem re_unbound_allchar_prefix_closed
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (tail : Term) (rv rtail : SmtRegLan)
     (hTailEval :
       __smtx_model_eval M (__eo_to_smt tail) = SmtValue.RegLan rtail)
@@ -1374,7 +1374,7 @@ private theorem re_unbound_allchar_prefix_closed
   exact native_prefix_closed_allchar_concat hTailClosed
 
 private theorem re_is_unbound_wildcard_prefix_closed
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (t : Term) -> (rv : SmtRegLan) ->
       __smtx_typeof (__eo_to_smt t) = SmtType.RegLan ->
       __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan rv ->
@@ -1438,7 +1438,7 @@ private theorem re_is_unbound_wildcard_prefix_closed
 termination_by t _ _ _ _ => sizeOf t
 
 private theorem native_includes_concat_rhs_of_unbound
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (lhs : Term) (rvLhs rvHead rvTail : SmtRegLan)
     (hLhsTy : __smtx_typeof (__eo_to_smt lhs) = SmtType.RegLan)
     (hLhsEval :
@@ -1453,7 +1453,7 @@ private theorem native_includes_concat_rhs_of_unbound
 
 private def ReIncludesCheckerSound
     (checker : Term -> Term -> Term)
-    (M : SmtModel) (_hM : model_total_typed M)
+    (M : SmtModel) (_hM : model_wf M)
     (sup sub : Term) : Prop :=
   ∀ (rvSup rvSub : SmtRegLan),
     __smtx_typeof (__eo_to_smt sup) = SmtType.RegLan ->
@@ -1464,7 +1464,7 @@ private def ReIncludesCheckerSound
       NativeIncludes rvSup rvSub
 
 private theorem str_re_includes_sound_mutual
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (∀ sup sub,
       ReIncludesCheckerSound __str_re_includes_lhs_union M hM sup sub) ∧
     (∀ sup sub,
@@ -2088,7 +2088,7 @@ private theorem str_re_includes_sound_mutual
     simp_all
 
 private theorem str_re_includes_rec_sound
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (sup sub : Term) -> (rvSup rvSub : SmtRegLan) ->
       __smtx_typeof (__eo_to_smt sup) = SmtType.RegLan ->
       __smtx_typeof (__eo_to_smt sub) = SmtType.RegLan ->
@@ -2745,7 +2745,7 @@ private theorem eo_is_list_eo_list_concat_str_concat
     (Term.UOp UserOp.str_concat) a z hListA hListZ
 
 private theorem smt_value_rel_eo_list_concat_str_concat
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a z : Term) (T : SmtType)
     (hListA :
       __eo_is_list (Term.UOp UserOp.str_concat) a = Term.Boolean true)
@@ -2762,7 +2762,7 @@ private theorem smt_value_rel_eo_list_concat_str_concat
     hListA haTy hzTy
 
 private theorem str_flatten_list_eval_rel
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ (parts : Term) (ss : SmtSeq) (T : SmtType),
       __eo_is_list (Term.UOp UserOp.str_concat) parts = Term.Boolean true ->
       __smtx_typeof (__eo_to_smt parts) = SmtType.Seq T ->
@@ -3206,7 +3206,7 @@ private theorem str_nary_intro_is_list_true_of_seq
     simpa using hListBool
 
 theorem str_flatten_nary_intro_eval_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : Term) (ss : SmtSeq)
     (hTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
     (hEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss)
@@ -3262,7 +3262,7 @@ theorem str_flatten_nary_intro_eval_rel
     RuleProofs.smt_value_rel_trans _ _ _ hFlatRelIntro hIntroRel⟩
 
 private theorem re_split_str_to_re_eval_rel
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ (parts tail : Term) (ss : SmtSeq) (rtail : SmtRegLan),
       __eo_is_list (Term.UOp UserOp.str_concat) parts = Term.Boolean true ->
       __smtx_typeof (__eo_to_smt parts) = SmtType.Seq SmtType.Char ->
@@ -3536,7 +3536,7 @@ Evaluation, typing and value relation for `__eo_list_concat_rec` on
 their values (up to extensional equivalence).
 -/
 private theorem eval_list_concat_rec_re_concat_rel_local
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ (x z : Term),
       __eo_is_list (Term.UOp UserOp.re_concat) x = Term.Boolean true ->
       __smtx_typeof (__eo_to_smt x) = SmtType.RegLan ->
@@ -3662,7 +3662,7 @@ Evaluation, typing and value relation for `__eo_list_concat` on
 `re_concat` lists (unwraps the two `requires` guards).
 -/
 private theorem eval_list_concat_re_concat_rel_local
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x z : Term) (xv zv : SmtRegLan)
     (hXTy : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan)
     (hZTy : __smtx_typeof (__eo_to_smt z) = SmtType.RegLan)
@@ -3707,7 +3707,7 @@ private theorem eval_list_concat_re_concat_rel_local
     hXTy hZTy xv zv hXEval hZEval
 
 theorem re_flatten_false_eval_rel
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ (mode r : Term) (rv : SmtRegLan),
       __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
       __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
@@ -4319,7 +4319,7 @@ theorem re_flatten_false_eval_rel
       simp [__re_flatten] at hFlatNe
 
 theorem re_inclusion_side_native_includes
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (sup sub flatSup flatSub side : Term)
     (rvSup rvSub : SmtRegLan)
     (hSupTy : __smtx_typeof (__eo_to_smt sup) = SmtType.RegLan)

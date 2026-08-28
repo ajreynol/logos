@@ -59,7 +59,7 @@ private theorem eo_has_bool_type_imp_right (A B : Term) :
     (typeof_imp_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
 
 private theorem eo_interprets_or_left_intro
-    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+    (M : SmtModel) (hM : model_wf M) (A B : Term) :
   eo_interprets M A true ->
   RuleProofs.eo_has_bool_type B ->
   eo_interprets M (Term.Apply (Term.Apply Term.or A) B) true := by
@@ -80,7 +80,7 @@ private theorem eo_interprets_or_left_intro
         simp [__smtx_model_eval_or, SmtEval.native_or]
 
 private theorem eo_interprets_or_right_intro
-    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+    (M : SmtModel) (hM : model_wf M) (A B : Term) :
   RuleProofs.eo_has_bool_type A ->
   eo_interprets M B true ->
   eo_interprets M (Term.Apply (Term.Apply Term.or A) B) true := by
@@ -143,7 +143,7 @@ theorem typed___eo_prog_implies_elim_impl (x1 : Term) :
 
 /-- Derives the checker facts exposed by the EO program for `implies_elim`. -/
 theorem facts___eo_prog_implies_elim_impl
-    (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (x1 : Term) :
   eo_interprets M x1 true ->
   __eo_prog_implies_elim (Proof.pf x1) ≠ Term.Stuck ->
   eo_interprets M (__eo_prog_implies_elim (Proof.pf x1)) true := by
@@ -209,7 +209,7 @@ theorem facts___eo_prog_implies_elim_impl
       exact False.elim (hProg rfl)
 
 public theorem cmd_step_implies_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.implies_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

@@ -1811,7 +1811,7 @@ private theorem typed_bv_mult_slt_raw
   exact hDirectBool
 
 private theorem eval_bv_mult_slt_raw
-    (Mdl : SmtModel) (hMdl : model_total_typed Mdl)
+    (Mdl : SmtModel) (hMdl : model_wf Mdl)
     (unsigned : Bool) (x y a n m tn an : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
@@ -2119,7 +2119,7 @@ private theorem eval_bv_mult_slt_raw
       exact unsigned_mult_smt_values_all hWidthBound xv yv av
 
 private theorem facts_bv_mult_slt_raw
-    (Mdl : SmtModel) (hMdl : model_total_typed Mdl)
+    (Mdl : SmtModel) (hMdl : model_wf Mdl)
     (unsigned : Bool) (x y a n m tn an : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
@@ -2167,7 +2167,7 @@ theorem typed_bv_mult_slt_program
     hATrans hTnTrans hAnTrans hRawTy
 
 theorem facts_bv_mult_slt_program
-    (Mdl : SmtModel) (hMdl : model_total_typed Mdl)
+    (Mdl : SmtModel) (hMdl : model_wf Mdl)
     (unsigned : Bool) (x y a n m tn an P1 P2 P3 P4 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->

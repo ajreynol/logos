@@ -452,7 +452,7 @@ private theorem real_gt_false_of_eval
       simpa [__smtx_model_eval_gt, __smtx_model_eval_lt] using hEval
 
 private theorem lt_false_of_geq_true
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (hGeqTrue :
       eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.geq) a) b) true)
     (hLtBool :
@@ -484,7 +484,7 @@ private theorem lt_false_of_geq_true
           simp [__smtx_model_eval_lt, native_qlt_false_of_qleq_true hEval]
 
 private theorem gt_false_of_leq_true
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (hLeqTrue :
       eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.leq) a) b) true)
     (hGtBool :
@@ -518,7 +518,7 @@ private theorem gt_false_of_leq_true
             native_qgt_false_of_qleq_true hEval]
 
 private theorem gt_true_of_eq_false_lt_false
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (hEqFalse :
       eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) false)
     (hLtFalse :
@@ -548,7 +548,7 @@ private theorem gt_true_of_eq_false_lt_false
         native_qgt_of_not_eq_not_lt hEqB hLtB
 
 private theorem lt_true_of_eq_false_gt_false
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (hEqFalse :
       eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) false)
     (hGtFalse :
@@ -578,7 +578,7 @@ private theorem lt_true_of_eq_false_gt_false
         native_qlt_of_not_eq_not_gt hEqB hGtB
 
 private theorem eq_true_of_lt_false_gt_false
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (hLtFalse :
       eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.lt) a) b) false)
     (hGtFalse :
@@ -808,7 +808,7 @@ private theorem arith_normalize_lit_not_eq_false
       simp [__arith_normalize_lit] at hNorm
 
 private theorem arith_normalize_lit_not_lt_false
-    (M : SmtModel) (hM : model_total_typed M) (F a b : Term) :
+    (M : SmtModel) (hM : model_wf M) (F a b : Term) :
     eo_interprets M F true ->
     RuleProofs.eo_has_bool_type F ->
     __arith_normalize_lit (Term.Apply (Term.UOp UserOp.not) F) =
@@ -894,7 +894,7 @@ private theorem arith_normalize_lit_not_lt_false
       simp [__arith_normalize_lit] at hNorm
 
 private theorem arith_normalize_lit_not_gt_false
-    (M : SmtModel) (hM : model_total_typed M) (F a b : Term) :
+    (M : SmtModel) (hM : model_wf M) (F a b : Term) :
     eo_interprets M F true ->
     RuleProofs.eo_has_bool_type F ->
     __arith_normalize_lit (Term.Apply (Term.UOp UserOp.not) F) =
@@ -1156,7 +1156,7 @@ private theorem typed___eo_prog_arith_trichotomy_impl
       simp [__mk_arith_trichotomy] at hProg
 
 private theorem facts___eo_prog_arith_trichotomy_impl
-    (M : SmtModel) (hM : model_total_typed M) (F1 F2 : Term) :
+    (M : SmtModel) (hM : model_wf M) (F1 F2 : Term) :
     eo_interprets M F1 true ->
     eo_interprets M F2 true ->
     RuleProofs.eo_has_bool_type F1 ->
@@ -1349,7 +1349,7 @@ private theorem facts___eo_prog_arith_trichotomy_impl
       simp [__mk_arith_trichotomy] at hProg
 
 public theorem cmd_step_arith_trichotomy_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_trichotomy args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

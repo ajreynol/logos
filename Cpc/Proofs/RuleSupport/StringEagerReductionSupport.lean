@@ -278,7 +278,7 @@ private theorem native_str_indexof_re_le_len
     · simp [hi, hStart]
 
 private theorem int_eval_of_int_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+    (M : SmtModel) (hM : model_wf M) (t : Term) :
     __smtx_typeof (__eo_to_smt t) = SmtType.Int ->
     ∃ z : native_Int, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Numeral z := by
   intro hTy
@@ -290,7 +290,7 @@ private theorem int_eval_of_int_type
   exact int_value_canonical (by simpa [hTy] using hEvalTy)
 
 private theorem seq_eval_of_seq_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) (T : SmtType) :
+    (M : SmtModel) (hM : model_wf M) (t : Term) (T : SmtType) :
     __smtx_typeof (__eo_to_smt t) = SmtType.Seq T ->
     ∃ ss, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq ss := by
   intro hTy
@@ -302,7 +302,7 @@ private theorem seq_eval_of_seq_type
   exact seq_value_canonical (by simpa [hTy] using hEvalTy)
 
 private theorem reglan_eval_of_reglan_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+    (M : SmtModel) (hM : model_wf M) (t : Term) :
     __smtx_typeof (__eo_to_smt t) = SmtType.RegLan ->
     ∃ r, __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r := by
   intro hTy
@@ -1633,7 +1633,7 @@ theorem string_eager_reduction_has_bool_type
             · simpa [__eo_prog_string_eager_reduction, __mk_str_eager_reduction] using hTy
 
 theorem string_eager_reduction_true
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a : Term)
     (hBool : RuleProofs.eo_has_bool_type (__eo_prog_string_eager_reduction a)) :
     eo_interprets M (__eo_prog_string_eager_reduction a) true := by

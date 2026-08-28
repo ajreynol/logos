@@ -712,7 +712,7 @@ private theorem bv_concat_extract_merge_value
   simpa [x, BitVec.toNat_cast] using congrArg BitVec.toNat hAdjacent
 
 private theorem eval_bv_concat_extract_merge_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : Term) (w kv j2v j1v iv : native_Int) :
     __smtx_typeof (__eo_to_smt s) =
         SmtType.BitVec (native_int_to_nat w) ->
@@ -1046,7 +1046,7 @@ theorem typed_bv_concat_extract_merge_program
   simpa [hBodyEq] using hTermBool
 
 theorem facts_bv_concat_extract_merge_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs s ys i j1 j2 k P : Term) :
     RuleProofs.eo_has_smt_translation xs ->
     RuleProofs.eo_has_smt_translation s ->

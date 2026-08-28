@@ -156,7 +156,7 @@ private theorem facts_re_inter
                 simp [hx, hr, __smtx_model_eval_str_in_re] at hEvalXR
 
 public theorem cmd_step_re_inter_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_inter args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

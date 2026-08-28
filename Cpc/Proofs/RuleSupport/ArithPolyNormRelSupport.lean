@@ -307,7 +307,7 @@ theorem native_to_real_mul
     (Rat.divInt_mul_divInt n1 n2 (d₁ := 1) (d₂ := 1)).symm
 
 theorem arith_atom_denote_real_of_to_real
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hInt : __smtx_typeof (__eo_to_smt t) = SmtType.Int) :
   arith_atom_denote_real M (Term.Apply (Term.UOp UserOp.to_real) t) =
     arith_atom_denote_real M t := by
@@ -323,7 +323,7 @@ theorem arith_atom_denote_real_of_to_real
   simp [__smtx_model_eval_to_real, __smtx_to_real_coerce]
 
 theorem arith_atom_denote_real_of_neg
-    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (M : SmtModel) (hM : model_wf M) (t1 t2 : Term)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
         SmtType.Int ∨
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
@@ -406,7 +406,7 @@ theorem arith_atom_denote_real_of_neg
       __smtx_model_eval__]
 
 theorem arith_atom_denote_real_of_mult
-    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (M : SmtModel) (hM : model_wf M) (t1 t2 : Term)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) t1) t2)) =
         SmtType.Int ∨
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) t1) t2)) =
@@ -911,7 +911,7 @@ theorem native_qgeq_zero_eq_of_sign {x y : Rat}
   grind
 
 theorem smt_eval_int_of_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int) :
     ∃ n : native_Int, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Numeral n := by
   have hPres :
@@ -922,7 +922,7 @@ theorem smt_eval_int_of_type
   exact int_value_canonical (by simpa [hTy] using hPres)
 
 theorem smt_eval_real_of_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Real) :
     ∃ q : native_Rat, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Rational q := by
   have hPres :
@@ -1328,7 +1328,7 @@ theorem diff_int_type_of_scaled_factor_to_real
     rcases hOuterTy with h | h <;> · rw [hOuterNone] at h; cases h
 
 theorem arith_rel_eval_bools_of_diff_type
-    (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term)
+    (M : SmtModel) (hM : model_wf M) (x1 x2 : Term)
     (hDiffTy :
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2)) =
@@ -1433,7 +1433,7 @@ theorem arith_rel_eval_bools_of_diff_type
       simp [__smtx_model_eval_geq, __smtx_model_eval_leq, q, native_qsub_geq_zero_eq]
 
 theorem arith_atom_denote_real_of_scaled_factor
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (cx x one : Term) (c q : native_Rat)
     (hOuterTy :
       __smtx_typeof

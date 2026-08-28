@@ -14,7 +14,7 @@ set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_and_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term)
     (rec :
       ∀ A : Term,
@@ -159,7 +159,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_and_core
     simpa [__eo_and, __smtx_model_eval, __smtx_model_eval_and] using hRelAnd
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_or_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term)
     (rec :
       ∀ A : Term,
@@ -304,7 +304,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_or_core
     simpa [__eo_or, __smtx_model_eval, __smtx_model_eval_or] using hRelOr
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_xor_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term)
     (rec :
       ∀ A : Term,
@@ -481,7 +481,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_xor_core
         native_not, native_veq]
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_imp_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term)
     (rec :
       ∀ A : Term,
@@ -667,7 +667,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_imp_core
       using hRelImp
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_concat_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term)
     (rec :
       ∀ A : Term,
@@ -913,7 +913,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_concat_core
       RuleProofs.smtx_model_eval_eq_refl]
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_at_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term)
     (rec :
       ∀ A : Term,
@@ -1081,7 +1081,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_at_core
     exact RuleProofs.smtx_model_eval_eq_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_prefixof_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term)
     (rec :
       ∀ A : Term,
@@ -1327,7 +1327,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_prefixof_core
         hPackNe]
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_suffixof_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term)
     (rec :
       ∀ A : Term,
@@ -1610,7 +1610,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_suffixof_core
         hPackNe]
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_contains_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term)
     (rec :
       ∀ A : Term,
@@ -1857,7 +1857,7 @@ theorem EvaluateProofInternal.smt_value_rel_model_eval_str_indexof_to_numeral_of
   exact hRel
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_indexof_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s pat n : Term)
     (rec :
       ∀ A : Term,
@@ -2280,7 +2280,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_indexof_core
             hSRelRun hPatRelRun hNRelRun hEvalRunIndex
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_update_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s n repl : Term)
     (rec :
       ∀ A : Term,
@@ -2682,7 +2682,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_update_core
             hSRelRun hNRelRun hReplRelRun hEvalRunUpdate
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_leq_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term)
     (rec :
       ∀ A : Term,
@@ -2927,7 +2927,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_leq_core
       exact hRelLeq
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s pat repl : Term)
     (rec :
       ∀ A : Term,
@@ -3326,7 +3326,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_core
       exact hRelReplace
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_all_core
-    (M : SmtModel) (_hM : model_total_typed M)
+    (M : SmtModel) (_hM : model_wf M)
     (s pat repl : Term)
     (_rec :
       ∀ A : Term,
@@ -3499,7 +3499,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_replace_all_core
         exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_substr_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s n m : Term)
     (rec :
       ∀ A : Term,
@@ -3737,7 +3737,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_substr_core
     exact RuleProofs.smtx_model_eval_eq_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_len_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (b : Term)
     (rec :
       ∀ A : Term,
@@ -3852,7 +3852,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_len_core
     exact hRelLen
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_code_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (b : Term)
     (rec :
       ∀ A : Term,
@@ -3986,7 +3986,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_code_core
     exact hRelCode
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (b : Term)
     (rec :
       ∀ A : Term,
@@ -4165,7 +4165,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_int_core
       exact hRelInt
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_lower_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (b : Term)
     (rec :
       ∀ A : Term,
@@ -4385,7 +4385,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_lower_core
       exact hRelLower
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_upper_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (b : Term)
     (rec :
       ∀ A : Term,
@@ -4605,7 +4605,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_to_upper_core
       exact hRelUpper
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_rev_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (b : Term)
     (rec :
       ∀ A : Term,
@@ -4820,7 +4820,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_rev_core
       exact hRelRev
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_code_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x : Term)
     (rec :
       ∀ A : Term,
@@ -4948,7 +4948,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_code_core
       __eo_is_z_internal, native_and, native_not]
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x : Term)
     (rec :
       ∀ A : Term,
@@ -5104,7 +5104,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_str_from_int_core
       exact hRelFrom
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x : Term)
     (rec :
       ∀ A : Term,
@@ -5279,7 +5279,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_ubv_to_int_core
     exact False.elim (hRunToIntNe hRunToIntStuck)
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_sbv_to_int_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x : Term)
     (rec :
       ∀ A : Term,

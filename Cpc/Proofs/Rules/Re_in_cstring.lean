@@ -268,7 +268,7 @@ private theorem typed___eo_prog_re_in_cstring_impl
   exact hBoolEq
 
 private theorem facts___eo_prog_re_in_cstring_impl
-    (M : SmtModel) (hM : model_total_typed M) (a1 a2 : Term)
+    (M : SmtModel) (hM : model_wf M) (a1 a2 : Term)
     (hA1Trans : RuleProofs.eo_has_smt_translation a1)
     (hA2Trans : RuleProofs.eo_has_smt_translation a2)
     (hA1Ty : __eo_typeof a1 = Term.Apply Term.Seq Term.Char)
@@ -385,7 +385,7 @@ private theorem facts___eo_prog_re_in_cstring_impl
 end ReInCStringProof
 
 public theorem cmd_step_re_in_cstring_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_in_cstring args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

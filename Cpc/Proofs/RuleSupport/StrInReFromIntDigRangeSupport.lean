@@ -396,7 +396,7 @@ private theorem smtx_eval_star_range
   rfl
 
 theorem facts
-    (M : SmtModel) (hM : model_total_typed M) (n : Term)
+    (M : SmtModel) (hM : model_wf M) (n : Term)
     (hNTrans : RuleProofs.eo_has_smt_translation n)
     (hNTy : __eo_typeof n = Term.UOp UserOp.Int) :
     eo_interprets M (concl n) true := by

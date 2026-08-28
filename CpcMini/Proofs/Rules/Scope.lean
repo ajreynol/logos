@@ -49,7 +49,7 @@ namespace RuleProofs
 
 /-- Proves correctness of the EO program for `scope`. -/
 theorem correct___eo_prog_scope
-    (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
+    (M : SmtModel) (hM : model_wf M) (x1 x2 : Term) :
   (eo_interprets M x1 true -> eo_interprets M x2 true) ->
   eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2)) ->
   eo_interprets M (__eo_prog_scope x1 (Proof.pf x2)) true := by
@@ -111,7 +111,7 @@ end RuleProofs
 
 /-- Proves correctness of the EO program for `scope_impl`. -/
 theorem correct___eo_prog_scope_impl
-    (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
+    (M : SmtModel) (hM : model_wf M) (x1 x2 : Term) :
   ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
   RuleProofs.eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2)) ->
   (eo_interprets M (__eo_prog_scope x1 (Proof.pf x2)) true) :=
@@ -120,7 +120,7 @@ by
 
 /-- Derives the checker facts exposed by the EO program for `scope_impl`. -/
 theorem facts___eo_prog_scope_impl
-    (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
+    (M : SmtModel) (hM : model_wf M) (x1 x2 : Term) :
   (eo_interprets M x1 true -> eo_interprets M x2 true) ->
   RuleProofs.eo_has_smt_translation x1 ->
   RuleProofs.eo_has_smt_translation x2 ->

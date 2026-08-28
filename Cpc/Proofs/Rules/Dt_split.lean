@@ -199,7 +199,7 @@ private theorem dt_split_ctor_tester_interprets_true
         SmtType.Datatype s (__eo_to_smt_datatype_decl dd))
     (hIdx : idx < eoDatatypeNumCtors (__eo_dd_lookup s dd))
     (hHead :
-      __vsm_apply_head (__smtx_model_eval M (__eo_to_smt x)) =
+      __smtx_apply_head_value (__smtx_model_eval M (__eo_to_smt x)) =
         SmtValue.DtCons s (__eo_to_smt_datatype_decl dd) idx) :
     eo_interprets M
       (Term.Apply (Term.UOp1 UserOp1.is (Term.DtCons s dd idx)) x) true := by
@@ -225,7 +225,7 @@ private theorem dt_split_ctor_tester_interprets_true
     simp [__smtx_model_eval, __smtx_model_eval_dt_tester, hHead, native_veq]
 
 private theorem mk_dt_split_interprets_true
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x : Term) (s : native_String) (dd : DatatypeDecl)
     (hReserved : native_reserved_datatype_name s = false)
     (hxTy :
@@ -235,7 +235,7 @@ private theorem mk_dt_split_interprets_true
       start + eoDatatypeNumCtors current ≤
         eoDatatypeNumCtors (__eo_dd_lookup s dd) ->
       rel < eoDatatypeNumCtors current ->
-      __vsm_apply_head (__smtx_model_eval M (__eo_to_smt x)) =
+      __smtx_apply_head_value (__smtx_model_eval M (__eo_to_smt x)) =
         SmtValue.DtCons s (__eo_to_smt_datatype_decl dd) (start + rel) ->
       eo_interprets M
         (__mk_dt_split (__eo_datatype_constructors_rec s dd current start) x) true
@@ -295,7 +295,7 @@ private theorem mk_dt_split_interprets_true
           have hRel' : rel' < eoDatatypeNumCtors d := by
             simpa [eoDatatypeNumCtors] using Nat.succ_lt_succ_iff.mp hRel
           have hHead' :
-              __vsm_apply_head (__smtx_model_eval M (__eo_to_smt x)) =
+              __smtx_apply_head_value (__smtx_model_eval M (__eo_to_smt x)) =
                 SmtValue.DtCons s (__eo_to_smt_datatype_decl dd)
                   (Nat.succ start + rel') := by
             rw [hHead]
@@ -353,7 +353,7 @@ private theorem mk_dt_split_orList
       exact CnfSupport.OrList.cons tester tail hTailList
 
 private theorem eo_interprets_or_left_of_right_false
-    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+    (M : SmtModel) (hM : model_wf M) (A B : Term) :
     eo_interprets M B false ->
     eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.or) A) B) true ->
     eo_interprets M A true := by
@@ -395,7 +395,7 @@ private theorem list_singleton_elim_or_multiple (x y ys : Term)
     __eo_ite, native_ite, native_teq, native_not, SmtEval.native_not, hYs]
 
 private theorem dt_split_datatype_program_true
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x : Term) (s : native_String) (dd : DatatypeDecl)
     (hType : __eo_typeof x = Term.DatatypeType s dd)
     (hReserved : native_reserved_datatype_name s = false)
@@ -405,7 +405,7 @@ private theorem dt_split_datatype_program_true
     (idx : Nat)
     (hIdx : idx < eoDatatypeNumCtors (__eo_dd_lookup s dd))
     (hHead :
-      __vsm_apply_head (__smtx_model_eval M (__eo_to_smt x)) =
+      __smtx_apply_head_value (__smtx_model_eval M (__eo_to_smt x)) =
         SmtValue.DtCons s (__eo_to_smt_datatype_decl dd) idx) :
     eo_interprets M (__eo_prog_dt_split x) true := by
   have hxTrans : RuleProofs.eo_has_smt_translation x := by
@@ -425,7 +425,7 @@ private theorem dt_split_datatype_program_true
     have hRange : 0 + eoDatatypeNumCtors root ≤ eoDatatypeNumCtors root := by
       omega
     have hHead' :
-        __vsm_apply_head (__smtx_model_eval M (__eo_to_smt x)) =
+        __smtx_apply_head_value (__smtx_model_eval M (__eo_to_smt x)) =
           SmtValue.DtCons s (__eo_to_smt_datatype_decl dd) (0 + idx) := by
       simpa using hHead
     simpa [raw] using
@@ -633,7 +633,7 @@ private theorem unit_tuple_tester_interprets_true
     simp [__smtx_model_eval, __smtx_model_eval_dt_tester, hHead, native_veq]
 
 private theorem dt_split_unit_tuple_program_true
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x : Term)
     (hType : __eo_typeof x = Term.UOp UserOp.UnitTuple)
     (hxTy :
@@ -674,7 +674,7 @@ private theorem dt_split_unit_tuple_program_true
   exact hTesterTrue
 
 private theorem facts___eo_prog_dt_split_impl
-    (M : SmtModel) (hM : model_total_typed M) (x : Term)
+    (M : SmtModel) (hM : model_wf M) (x : Term)
     (hXTrans : RuleProofs.eo_has_smt_translation x)
     (hResultTy : __eo_typeof (__eo_prog_dt_split x) = Term.Bool) :
     eo_interprets M (__eo_prog_dt_split x) true := by
@@ -825,7 +825,7 @@ private theorem facts___eo_prog_dt_split_impl
         native_teq] at hResultTy
 
 public theorem cmd_step_dt_split_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_split args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

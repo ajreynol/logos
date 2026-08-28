@@ -17,7 +17,7 @@ set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_ite_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (c t e : Term)
     (rec :
       ∀ A : Term,
@@ -234,7 +234,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_ite_core
         native_ite, native_teq, hCEval] using hTRel
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_int_to_bv_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n x : Term)
     (rec :
       ∀ A : Term,
@@ -418,7 +418,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_int_to_bv_core
     simp [runToBv, hRunX, __eo_to_bin]
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply_extract_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (hi lo x : Term)
     (rec :
       ∀ A : Term,
@@ -659,7 +659,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply_extract_core
     exact RuleProofs.smt_value_rel_refl _
 
 theorem EvaluateProofInternal.run_evaluate_sound_active_apply_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (f x : Term)
     (rec :
       ∀ A : Term,
@@ -990,7 +990,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_active_apply_core
       exact False.elim (hActive rfl)
 
 theorem EvaluateProofInternal.run_evaluate_sound_apply
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (f x : Term)
     (rec :
       ∀ A : Term,
@@ -1003,7 +1003,7 @@ theorem EvaluateProofInternal.run_evaluate_sound_apply
   · exact EvaluateProofInternal.run_evaluate_sound_active_apply_core M hM f x rec hRun hATrans hEvalTy
 
 theorem EvaluateProofInternal.run_evaluate_sound_core
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ A : Term, EvaluateProofInternal.RunEvaluateSoundGoal M A
   | Term.Apply f x =>
       EvaluateProofInternal.run_evaluate_sound_apply M hM
@@ -1075,7 +1075,7 @@ translation, `__run_evaluate A` has the same SMT type as `A` and evaluates to
 the same SMT value.
 -/
 theorem run_evaluate_sound
-    (M : SmtModel) (hM : model_total_typed M) (A : Term) :
+    (M : SmtModel) (hM : model_wf M) (A : Term) :
   RuleProofs.eo_has_smt_translation A ->
   __eo_typeof (__eo_prog_evaluate A) = Term.Bool ->
   __smtx_typeof (__eo_to_smt A) =
@@ -1087,7 +1087,7 @@ by
   exact EvaluateProofInternal.run_evaluate_sound_core M hM A
 
 theorem run_evaluate_properties
-    (M : SmtModel) (hM : model_total_typed M) (A : Term) :
+    (M : SmtModel) (hM : model_wf M) (A : Term) :
   RuleProofs.eo_has_smt_translation A ->
   __eo_typeof (__eo_prog_evaluate A) = Term.Bool ->
   StepRuleProperties M [] (__eo_prog_evaluate A) :=

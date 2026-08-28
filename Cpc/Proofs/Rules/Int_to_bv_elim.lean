@@ -550,7 +550,7 @@ private theorem intToBvElim_shape_of_ne_stuck (A : Term) :
     exact False.elim (h hStuck)
 
 private theorem intToBvExpanded_eval_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (w n : Term) (i : native_Int)
     (hw : __eo_to_smt w = SmtTerm.Numeral i)
     (hnTy : __smtx_typeof (__eo_to_smt n) = SmtType.Int)
@@ -644,7 +644,7 @@ private theorem intToBvExpanded_eval_rel
   exact RuleProofs.smt_value_rel_refl _
 
 public theorem cmd_step_int_to_bv_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.int_to_bv_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

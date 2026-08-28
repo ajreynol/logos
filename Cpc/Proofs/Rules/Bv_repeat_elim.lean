@@ -32,7 +32,7 @@ private theorem eo_requires_left_ne_stuck_of_ne_stuck
   exact hReq hStuck
 
 private theorem smt_eval_bv_concat_right_empty
-    (M : SmtModel) (hM : model_total_typed M) (a : Term) (w : native_Nat)
+    (M : SmtModel) (hM : model_wf M) (a : Term) (w : native_Nat)
     (haTy : __smtx_typeof (__eo_to_smt a) = SmtType.BitVec w) :
     __smtx_model_eval_concat
         (__smtx_model_eval M (__eo_to_smt a)) (SmtValue.Binary 0 0) =
@@ -243,7 +243,7 @@ private theorem bv_list_repeat_rec_eval_eq_repeat_rec
       rw [ih]
 
 private theorem bv_list_repeat_singleton_eval_eq_repeat_rec
-    (M : SmtModel) (hM : model_total_typed M) (a : Term) (w : native_Nat)
+    (M : SmtModel) (hM : model_wf M) (a : Term) (w : native_Nat)
     (haTy : __smtx_typeof (__eo_to_smt a) = SmtType.BitVec w) :
     ∀ n : native_Nat,
       __smtx_model_eval M
@@ -324,7 +324,7 @@ private theorem bv_list_repeat_singleton_eval_eq_repeat_rec
           rw [hTailEval]
 
 private theorem bv_repeat_elim_eval_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n a : Term) (i : native_Int) (w : native_Nat)
     (hn : __eo_to_smt n = SmtTerm.Numeral i)
     (haTy : __smtx_typeof (__eo_to_smt a) = SmtType.BitVec w)
@@ -406,7 +406,7 @@ private theorem bv_repeat_elim_shape_of_ne_stuck (A : Term) :
     exact False.elim (h hStuck)
 
 public theorem cmd_step_bv_repeat_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_repeat_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

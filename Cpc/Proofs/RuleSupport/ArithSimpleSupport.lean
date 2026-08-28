@@ -518,7 +518,7 @@ private theorem geq_tighten_arg_eo_types
     exact False.elim (hRightNotStuck hRightStuck)
 
 private theorem eval_lt_not_geq_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -582,7 +582,7 @@ private theorem eval_lt_not_geq_rel
       (SmtValue.Boolean (native_not (decide (qs ≤ qt))))
 
 private theorem eval_gt_not_geq_swap_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -646,7 +646,7 @@ private theorem eval_gt_not_geq_swap_rel
       (SmtValue.Boolean (native_not (decide (qt ≤ qs))))
 
 private theorem eval_int_lt_geq_succ_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -687,7 +687,7 @@ private theorem eval_int_lt_geq_succ_rel
     (SmtValue.Boolean (decide (nt + 1 ≤ ns)))
 
 private theorem eval_int_gt_geq_succ_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -729,7 +729,7 @@ private theorem eval_int_gt_geq_succ_rel
     (SmtValue.Boolean (decide (ns + 1 ≤ nt)))
 
 private theorem eval_int_leq_not_geq_succ_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -778,7 +778,7 @@ private theorem eval_int_leq_not_geq_succ_rel
     (SmtValue.Boolean (decide (nt ≤ ns)))
 
 private theorem eval_int_not_geq_geq_succ_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -826,7 +826,7 @@ private theorem eval_int_not_geq_geq_succ_rel
     (SmtValue.Boolean (decide (native_zplus nt (native_zplus 1 0) ≤ ns)))
 
 private theorem eval_eq_geq_leq_and_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -1294,7 +1294,7 @@ theorem typed_arith_elim_leq
     (geq_has_bool_type s t hSTrans hTTrans hRightTy)
 
 theorem facts_arith_elim_leq
-    (M : SmtModel) (_hM : model_total_typed M)
+    (M : SmtModel) (_hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -1374,7 +1374,7 @@ theorem typed_arith_elim_lt
       (geq_has_bool_type t s hTTrans hSTrans hGeqTy))
 
 theorem facts_arith_elim_lt
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -1469,7 +1469,7 @@ theorem typed_arith_elim_gt
       (geq_has_bool_type s t hSTrans hTTrans hGeqTy))
 
 theorem facts_arith_elim_gt
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -1556,7 +1556,7 @@ theorem typed_arith_elim_int_lt
       (intSucc_has_smt_translation t hTTrans hArgTypes.1) hRightTy)
 
 theorem facts_arith_elim_int_lt
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -1626,7 +1626,7 @@ theorem typed_arith_elim_int_gt
       (intSucc_has_smt_translation s hSTrans hArgTypes.2) hRightTy)
 
 theorem facts_arith_elim_int_gt
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -1706,7 +1706,7 @@ theorem typed_arith_leq_norm
         (intSucc_has_smt_translation s hSTrans hArgTypes.2) hGeqTy))
 
 theorem facts_arith_leq_norm
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -1789,7 +1789,7 @@ theorem typed_arith_geq_tighten
       (intSucc_has_smt_translation t hTTrans hArgTypes.1) hRightTy)
 
 theorem facts_arith_geq_tighten
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -1897,7 +1897,7 @@ private theorem typed_arith_eq_elim_body
     hEqLeftBool hRhsBool
 
 private theorem facts_arith_eq_elim_body
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -1932,7 +1932,7 @@ theorem typed_arith_eq_elim_int
   exact typed_arith_eq_elim_body t s hTTrans hSTrans hArgTypes
 
 theorem facts_arith_eq_elim_int
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -1965,7 +1965,7 @@ theorem typed_arith_eq_elim_real
   exact typed_arith_eq_elim_body t s hTTrans hSTrans hArgTypes
 
 theorem facts_arith_eq_elim_real
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -2146,7 +2146,7 @@ private theorem arith_geq_norm1_real_arg_types_of_result
   · exact hReal
 
 private theorem eval_geq_sub_zero_int_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -2185,7 +2185,7 @@ private theorem eval_geq_sub_zero_int_rel
   simp [__smtx_model_eval_eq, native_veq]
 
 private theorem eval_geq_sub_zero_real_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -2262,7 +2262,7 @@ theorem typed_arith_geq_norm1_int
       (numeral_has_smt_translation 0) hRightTy)
 
 theorem facts_arith_geq_norm1_int
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -2329,7 +2329,7 @@ theorem typed_arith_geq_norm1_real
       (rational_has_smt_translation (native_mk_rational 0 1)) hRightTy)
 
 theorem facts_arith_geq_norm1_real
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -2413,7 +2413,7 @@ private theorem smtx_model_eval_to_int_to_real_of_numeral
   exact Rat.floor_intCast n
 
 private theorem eval_to_int_to_real_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hTInt : __eo_typeof t = Term.Int) :
@@ -2455,7 +2455,7 @@ theorem typed_arith_to_int_elim_to_real
     (by rw [hLeftTy]; simp)
 
 theorem facts_arith_to_int_elim_to_real
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hResultTy : __eo_typeof (__eo_prog_arith_to_int_elim_to_real t) = Term.Bool) :
@@ -2553,7 +2553,7 @@ private theorem arith_div_total_zero_int_arg_type_of_result
         SmtEval.native_not, hTy] at hSame hQdivNonStuck
 
 private theorem eval_qdiv_total_real_zero_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hTReal : __eo_typeof t = Term.Real) :
@@ -2578,7 +2578,7 @@ private theorem eval_qdiv_total_real_zero_rel
     (SmtValue.Rational (native_mk_rational 0 1))
 
 private theorem eval_qdiv_total_int_zero_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hTInt : __eo_typeof t = Term.Int) :
@@ -2630,7 +2630,7 @@ theorem typed_arith_div_total_zero_real
     (by rw [hQdivTy]; simp)
 
 theorem facts_arith_div_total_zero_real
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hResultTy : __eo_typeof (__eo_prog_arith_div_total_zero_real t) = Term.Bool) :
@@ -2682,7 +2682,7 @@ theorem typed_arith_div_total_zero_int
     (by rw [hQdivTy]; simp)
 
 theorem facts_arith_div_total_zero_int
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hResultTy : __eo_typeof (__eo_prog_arith_div_total_zero_int t) = Term.Bool) :
@@ -2824,7 +2824,7 @@ private theorem arith_min_lt1_arg_type_cases_of_result
     exact ⟨hReal.2, hSReal⟩
 
 private theorem eval_min_lt1_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -2926,7 +2926,7 @@ theorem typed_arith_min_lt1
     true_has_bool_type
 
 theorem facts_arith_min_lt1
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -3023,7 +3023,7 @@ private theorem arith_min_lt2_arg_type_cases_of_result
     exact ⟨hTReal, hReal.2⟩
 
 private theorem eval_min_lt2_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -3125,7 +3125,7 @@ theorem typed_arith_min_lt2
     true_has_bool_type
 
 theorem facts_arith_min_lt2
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -3292,7 +3292,7 @@ private theorem arith_max_geq2_arg_type_cases_of_result
     exact ⟨hTReal, hReal.2⟩
 
 private theorem eval_max_geq1_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -3355,7 +3355,7 @@ private theorem eval_max_geq1_rel
         native_qleq_refl_true, native_veq]
 
 private theorem eval_max_geq2_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -3494,7 +3494,7 @@ theorem typed_arith_max_geq2
     true_has_bool_type
 
 theorem facts_arith_max_geq1
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
@@ -3521,7 +3521,7 @@ theorem facts_arith_max_geq1
     (eval_max_geq1_rel M hM t s hTTrans hSTrans hArgTypes)
 
 theorem facts_arith_max_geq2
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t s : Term)
     (hTTrans : RuleProofs.eo_has_smt_translation t)
     (hSTrans : RuleProofs.eo_has_smt_translation s)

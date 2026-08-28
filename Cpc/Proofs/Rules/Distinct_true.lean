@@ -94,7 +94,7 @@ private theorem are_distinct_terms_list_cons_true
   all_goals exact h
 
 private theorem distinct_pairs_eval_true_of_guard_rec
-    (M : SmtModel) (hM : model_total_typed M) (t T : Term)
+    (M : SmtModel) (hM : model_wf M) (t T : Term)
     (htTrans : RuleProofs.eo_has_smt_translation t) :
     ∀ xs,
       __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
@@ -224,7 +224,7 @@ private theorem distinct_pairs_eval_true_of_guard_rec
       simp [__eo_to_smt_typed_list_elem_type] at hElemNN
 
 private theorem distinct_eval_true_of_guard_list
-    (M : SmtModel) (hM : model_total_typed M) (T : Term) :
+    (M : SmtModel) (hM : model_wf M) (T : Term) :
     ∀ xs,
       __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
       __are_distinct_terms_list xs T = Term.Boolean true ->
@@ -444,7 +444,7 @@ private theorem typed___eo_prog_distinct_true_impl
   exact RuleProofs.eo_typeof_bool_implies_has_bool_type a1 hA1Trans hA1Ty
 
 private theorem distinct_true_sound
-    (M : SmtModel) (hM : model_total_typed M) (xs : Term) :
+    (M : SmtModel) (hM : model_wf M) (xs : Term) :
   RuleProofs.eo_has_bool_type
     (Term.Apply
       (Term.Apply (Term.UOp UserOp.eq)
@@ -494,7 +494,7 @@ private theorem distinct_true_sound
     exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean true)
 
 private theorem facts___eo_prog_distinct_true_impl
-    (M : SmtModel) (hM : model_total_typed M) (a1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (a1 : Term) :
   RuleProofs.eo_has_smt_translation a1 ->
   __eo_typeof (__eo_prog_distinct_true a1) = Term.Bool ->
   eo_interprets M (__eo_prog_distinct_true a1) true := by
@@ -540,7 +540,7 @@ private theorem facts___eo_prog_distinct_true_impl
   exact distinct_true_sound M hM xs hFormulaBool hGuard
 
 public theorem cmd_step_distinct_true_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.distinct_true args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

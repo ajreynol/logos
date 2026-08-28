@@ -57,7 +57,7 @@ private theorem facts___eo_prog_re_star_emp (M : SmtModel) :
       (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))))
 
 public theorem cmd_step_re_star_emp_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_star_emp args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

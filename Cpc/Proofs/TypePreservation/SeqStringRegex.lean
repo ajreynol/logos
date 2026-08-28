@@ -491,23 +491,23 @@ theorem ssm_seq_nth_typed :
     ∀ {ss : SmtSeq} {n : native_Int} {d : SmtValue} {T : SmtType},
       __smtx_typeof_seq_value ss = SmtType.Seq T ->
         __smtx_typeof_value d = T ->
-        __smtx_typeof_value (__smtx_ssm_seq_nth ss n d) = T
+        __smtx_typeof_value (__smtx_seq_value_nth ss n d) = T
   | SmtSeq.empty U, n, d, T, hss, hd => by
       cases hss
-      simpa [__smtx_ssm_seq_nth] using hd
+      simpa [__smtx_seq_value_nth] using hd
   | SmtSeq.cons v vs, n, d, T, hss, hd => by
       rcases seq_cons_typed_of_typeof_seq_value hss with ⟨hv, hvs⟩
       by_cases hZero : n = 0
       · subst hZero
-        simpa [__smtx_ssm_seq_nth] using hv
-      · simpa [__smtx_ssm_seq_nth, hZero] using
+        simpa [__smtx_seq_value_nth] using hv
+      · simpa [__smtx_seq_value_nth, hZero] using
           ssm_seq_nth_typed (ss := vs) (n := native_zplus n (native_zneg 1))
             (d := d) (T := T) hvs hd
 
 /-- Lemma about `typeof_value_seq_nth_wrong`. -/
 theorem typeof_value_seq_nth_wrong
     (M : SmtModel)
-    (hM : model_total_typed M)
+    (hM : model_wf M)
     (ss : SmtSeq)
     (n : native_Int)
     (T : SmtType)
@@ -2190,7 +2190,7 @@ theorem typeof_value_model_eval_str_is_digit
 /-- Shows that evaluating `seq_nth` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_seq_nth
     (M : SmtModel)
-    (hM : model_total_typed M)
+    (hM : model_wf M)
     (t1 t2 : SmtTerm)
     (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2))
     (hElemRec :

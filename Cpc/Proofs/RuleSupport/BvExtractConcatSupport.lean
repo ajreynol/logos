@@ -228,7 +228,7 @@ private theorem term_ne_stuck_of_smt_bitvec_type
   cases hTy
 
 private theorem bvEvalCanonical_of_smt_type
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t : Term) (w : Nat) :
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
     BvEvalCanonical M t := by
@@ -840,7 +840,7 @@ private theorem concat_bitvec_values
   rw [hFormula, Nat.mod_eq_of_lt (x ++ y).isLt]
 
 private theorem eval_bv_extract_concat_low
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x tail : Term) (wx wt : Nat) (h l : native_Int) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
     __smtx_typeof (__eo_to_smt tail) = SmtType.BitVec wt ->
@@ -973,7 +973,7 @@ private theorem native_zlt_nat_add_right_local
   exact decide_eq_true hltAdd
 
 private theorem eval_bv_extract_list_concat_rec_low
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a z : Term) (wa wz : Nat) (h l : native_Int) :
     __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
@@ -1046,7 +1046,7 @@ private theorem eval_bv_extract_list_concat_rec_low
       simpa [__eo_list_concat_rec]
 
 private theorem eval_bv_extract_list_concat_low
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a z : Term) (wa wz : Nat) (h l : native_Int) :
     __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
     __eo_is_list (Term.UOp UserOp.concat) z = Term.Boolean true ->
@@ -2131,7 +2131,7 @@ theorem typed_bv_extract_concat4_program_body
     using hTermBool
 
 private theorem bvConcatListCanonical_of_smt_type
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (t : Term) -> (w : Nat) ->
     __eo_is_list (Term.UOp UserOp.concat) t = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
@@ -2296,7 +2296,7 @@ private theorem bvConcatListCanonical_eval
           simpa [BvConcatListCanonical] using h
 
 theorem bvConcatSingletonElimEvalRel
-    (M : SmtModel) (hM : model_total_typed M) (c : Term) (w : Nat) :
+    (M : SmtModel) (hM : model_wf M) (c : Term) (w : Nat) :
     __eo_is_list (Term.UOp UserOp.concat) c = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
     RuleProofs.smt_value_rel
@@ -2351,7 +2351,7 @@ theorem bvConcatSingletonElimEvalRel
         RuleProofs.smt_value_rel_refl _
 
 private theorem bvConcat_right_empty_eval_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x : Term) (wx : Nat) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
     __smtx_model_eval M
@@ -2390,7 +2390,7 @@ private theorem bvConcat_right_empty_eval_eq
     cases hConcatValueTy)).mp hRel
 
 private theorem eval_bv_extract_concat1_seed_low
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y : Term) (wx wy : Nat) (h l : native_Int) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
     __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ->
@@ -2432,7 +2432,7 @@ private theorem eval_bv_extract_concat1_seed_low
     hInnerEval]
 
 private theorem eval_bv_extract_concat1_whole_low
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y xs : Term) (wx wy wxs : Nat) (h l : native_Int) :
     __eo_is_list (Term.UOp UserOp.concat) xs = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
@@ -2478,7 +2478,7 @@ private theorem eval_bv_extract_concat1_whole_low
           (Term.Numeral l))) := hSeedLow
 
 theorem facts_bv_extract_concat1_program_body
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x xs y i j : Term) :
     RuleProofs.eo_has_smt_translation xs ->
     RuleProofs.eo_has_smt_translation y ->
@@ -2552,7 +2552,7 @@ theorem facts_bv_extract_concat1_program_body
     exact RuleProofs.smt_value_rel_refl _
 
 theorem facts_bv_extract_concat4_program_body
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y xs i j : Term) :
     RuleProofs.eo_has_bool_type (bvExtractConcat4Prem x y xs j) ->
     __eo_typeof (bvExtractConcat4ProgramBody x y xs i j) = Term.Bool ->
@@ -3592,7 +3592,7 @@ theorem typed_bv_extract_concat3_program_body
   simpa [hBodyEq] using hTermBool
 
 private theorem eval_bv_concat_assoc
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b c : Term) (wa wb wc : Nat) :
     __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
     __smtx_typeof (__eo_to_smt b) = SmtType.BitVec wb ->
@@ -3671,7 +3671,7 @@ private theorem eval_bv_concat_assoc
   simp [Nat.add_assoc, hNat]
 
 private theorem eval_bv_list_concat_rec_append
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (a z1 z2 x : Term) -> (wa wz wx : Nat) ->
     __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
@@ -3752,7 +3752,7 @@ private theorem eval_bv_list_concat_rec_append
       simpa [__eo_list_concat_rec, hZ1, hZ2Ne] using hBase
 
 private theorem eval_bv_extract_concat_seed_append
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y : Term) (wx wy : Nat) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
     __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ->
@@ -3783,7 +3783,7 @@ private theorem eval_bv_extract_concat_seed_append
   exact hAssoc.trans (hXYEmpty.trans hRight)
 
 private theorem eval_bv_extract_concat_whole_append
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y xs : Term) (wx wy wxs : Nat) :
     __eo_is_list (Term.UOp UserOp.concat) xs = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
@@ -3811,7 +3811,7 @@ private theorem eval_bv_extract_concat_whole_append
     SmtEval.native_not] using hRec
 
 private theorem bvConcatSingletonElimEvalEq
-    (M : SmtModel) (hM : model_total_typed M) (c : Term) (w : Nat) :
+    (M : SmtModel) (hM : model_wf M) (c : Term) (w : Nat) :
     __eo_is_list (Term.UOp UserOp.concat) c = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
     __smtx_model_eval M
@@ -3979,7 +3979,7 @@ theorem bvConcat_eo_typeof_list_concat_right_bitvec
   eo_typeof_list_concat_right_bitvec_of_result a z w
 
 theorem bvConcat_list_concat_rec_eval_append
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a z1 z2 x : Term) (wa wz wx : Nat) :
     __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
@@ -3994,7 +3994,7 @@ theorem bvConcat_list_concat_rec_eval_append
   eval_bv_list_concat_rec_append M hM a z1 z2 x wa wz wx
 
 theorem bvConcat_assoc_eval
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b c : Term) (wa wb wc : Nat) :
     __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
     __smtx_typeof (__eo_to_smt b) = SmtType.BitVec wb ->
@@ -4006,7 +4006,7 @@ theorem bvConcat_assoc_eval
   eval_bv_concat_assoc M hM a b c wa wb wc
 
 theorem bvConcat_singleton_elim_eval_eq
-    (M : SmtModel) (hM : model_total_typed M) (c : Term) (w : Nat) :
+    (M : SmtModel) (hM : model_wf M) (c : Term) (w : Nat) :
     __eo_is_list (Term.UOp UserOp.concat) c = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
     __smtx_model_eval M
@@ -4016,7 +4016,7 @@ theorem bvConcat_singleton_elim_eval_eq
   bvConcatSingletonElimEvalEq M hM c w
 
 theorem bvConcat_eval_right_empty
-    (M : SmtModel) (hM : model_total_typed M) (x : Term) (w : Nat) :
+    (M : SmtModel) (hM : model_wf M) (x : Term) (w : Nat) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
     __smtx_model_eval M
         (__eo_to_smt (bvConcatTerm x (Term.Binary 0 0))) =
@@ -4024,7 +4024,7 @@ theorem bvConcat_eval_right_empty
   bvConcat_right_empty_eval_eq M hM x w
 
 private theorem eval_bv_extract_concat_whole_append_elim
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y xs : Term) (wx wy wxs : Nat) :
     __eo_is_list (Term.UOp UserOp.concat) xs = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
@@ -4246,7 +4246,7 @@ private theorem bvExtractConcat2_high_length_fits
   exact_mod_cast hCast
 
 private theorem eval_bv_extract_concat2_rhs_no_empty
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y xs i u1 u2 : Term) (dLow : Nat) :
     __smtx_typeof (__eo_to_smt (bvExtractConcat2Low x i u2)) =
       SmtType.BitVec dLow ->
@@ -4273,7 +4273,7 @@ private theorem eval_bv_extract_concat2_rhs_no_empty
   rw [hEmpty]
 
 theorem facts_bv_extract_concat2_program_body
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x xs y i j u1 u2 : Term) :
     RuleProofs.eo_has_smt_translation y ->
     RuleProofs.eo_has_smt_translation xs ->
@@ -4628,7 +4628,7 @@ private theorem int_cancel_extract_start
   omega
 
 theorem facts_bv_extract_concat3_program_body
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y xs i j u l : Term) :
     RuleProofs.eo_has_smt_translation y ->
     RuleProofs.eo_has_smt_translation xs ->

@@ -693,7 +693,7 @@ private theorem smtx_model_eval_str_in_re_eq_sigma_star_side
       hSSValid
 
 private theorem str_in_re_sigma_star_valid_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s r b : Term)
     (hArgTrans :
       RuleProofs.eo_has_smt_translation
@@ -807,7 +807,7 @@ private theorem str_in_re_sigma_star_valid_properties
 end RuleProofs
 
 public theorem cmd_step_str_in_re_sigma_star_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_sigma_star args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

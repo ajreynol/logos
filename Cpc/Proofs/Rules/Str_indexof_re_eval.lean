@@ -224,7 +224,7 @@ private theorem str_indexof_re_eval_match_regex_model_eval
   rw [show native_re_concat native_re_all SmtRegLan.epsilon = native_re_all by rfl]
 
 private theorem str_indexof_re_eval_match_test_eq_of_bool
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (tail : native_String) (r : Term) (rv : SmtRegLan)
     (hTailValid : native_string_valid tail = true)
     (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
@@ -360,7 +360,7 @@ private theorem native_str_substr_to_end
     exact hTake
 
 private theorem str_indexof_re_eval_prefix_condition_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs : native_String) (rs : Term) (rv : SmtRegLan)
     (hValid : native_string_valid xs = true)
     (hRsTy : __smtx_typeof (__eo_to_smt rs) = SmtType.RegLan)
@@ -396,7 +396,7 @@ private def str_indexof_re_eval_no_match_pair : Term :=
     (Term.Numeral (-1 : native_Int))
 
 private theorem str_indexof_re_eval_first_match_rec_smallest_eq_go
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ (xs : native_String) (r : Term) (rv : SmtRegLan) (n : Nat),
       native_string_valid xs = true ->
       __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
@@ -575,7 +575,7 @@ private theorem str_indexof_re_eval_first_match_rec_smallest_eq_go
         simp [__eo_ite, native_teq, native_ite, hNull]
 
 private theorem str_indexof_re_eval_first_match_rec_eq_find_aux
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ (xs : native_String) (r rs : Term) (rv : SmtRegLan) (n : Nat),
       native_string_valid xs = true ->
       __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
@@ -845,7 +845,7 @@ private theorem str_indexof_re_eval_first_match_rec_eq_find_aux
           exact hTail
 
 private theorem str_indexof_re_eval_idx_term_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (tail : native_String) (r : Term) (offset : native_Int)
     (rv : SmtRegLan)
     (hTailValid : native_string_valid tail = true)
@@ -1031,7 +1031,7 @@ private theorem str_indexof_re_eval_idx_term_eq
       exact hPairFirst
 
 private theorem str_indexof_re_eval_tail_search_side_aux_model_eval
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (tail : native_String) (r : Term) (offset : native_Int)
     (rv : SmtRegLan)
     (hTailValid : native_string_valid tail = true)
@@ -1074,7 +1074,7 @@ private theorem str_indexof_re_eval_tail_search_side_aux_model_eval
           rw [__smtx_model_eval.eq_2]
 
 private theorem str_indexof_re_eval_tail_search_side_model_eval_of_aux
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (tail : native_String) (r : Term) (offset : native_Int)
     (rv : SmtRegLan)
     (hTailValid : native_string_valid tail = true)
@@ -1107,7 +1107,7 @@ private theorem str_indexof_re_eval_tail_search_side_model_eval_of_aux
           simp [hOffsetEq]
 
 private theorem str_indexof_re_eval_tail_search_side_model_eval
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (str : native_String) (r : Term) (ni : native_Int) (rv : SmtRegLan)
     (hSTy : __smtx_typeof (__eo_to_smt (Term.String str)) =
       SmtType.Seq SmtType.Char)
@@ -1137,7 +1137,7 @@ private theorem str_indexof_re_eval_tail_search_side_model_eval
   simpa [native_re_find_idx_from, native_string_to_values, List.map_drop] using hAux
 
 private theorem str_indexof_re_eval_search_side_model_eval
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (str : native_String) (r : Term) (ni : native_Int) (rv : SmtRegLan)
     (hSTy : __smtx_typeof (__eo_to_smt (Term.String str)) =
       SmtType.Seq SmtType.Char)
@@ -1166,7 +1166,7 @@ private theorem str_indexof_re_eval_search_side_model_eval
   simpa [str_indexof_re_eval_search_side, hTailEq] using hTailEval
 
 private theorem str_indexof_re_eval_in_bounds_side_model_eval
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (str : native_String) (r : Term) (ni : native_Int) (rv : SmtRegLan)
     (hSTy : __smtx_typeof (__eo_to_smt (Term.String str)) =
       SmtType.Seq SmtType.Char)
@@ -1207,7 +1207,7 @@ private theorem str_indexof_re_eval_in_bounds_side_model_eval
       hSearchEval
 
 private theorem str_indexof_re_eval_concrete_side_model_eval
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (str : native_String) (r : Term) (ni : native_Int) (rv : SmtRegLan)
     (hSTy : __smtx_typeof (__eo_to_smt (Term.String str)) =
       SmtType.Seq SmtType.Char)
@@ -1268,7 +1268,7 @@ private theorem str_indexof_re_eval_concrete_side_model_eval
       exact hsimpa
 
 private theorem str_indexof_re_eval_side_model_eval
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s r n m : Term)
     (hEqTrans :
       RuleProofs.eo_has_smt_translation
@@ -1371,7 +1371,7 @@ private theorem str_indexof_re_eval_side_model_eval
        native_teq] at hSideNe)
 
 private theorem str_indexof_re_eval_valid_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s r n m : Term)
     (hArgTrans :
       RuleProofs.eo_has_smt_translation
@@ -1439,7 +1439,7 @@ private theorem str_indexof_re_eval_valid_properties
 end RuleProofs
 
 public theorem cmd_step_str_indexof_re_eval_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_indexof_re_eval args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

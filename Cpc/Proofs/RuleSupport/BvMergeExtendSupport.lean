@@ -310,7 +310,7 @@ private theorem sign_extend_compose_value
     (bitvec_sign_extend_compose x I J)
 
 private theorem eval_bv_merge_sign_extend_1
-    (M : SmtModel) (hM : model_total_typed M) (x i j k : Term) :
+    (M : SmtModel) (hM : model_wf M) (x i j k : Term) :
     RuleProofs.eo_has_smt_translation x ->
     eo_interprets M (bvMergeSignExtend1Prem i j k) true ->
     __eo_typeof (bvMergeSignExtend1Term x i j k) = Term.Bool ->
@@ -361,7 +361,7 @@ private theorem eval_bv_merge_sign_extend_1
     sign_extend_compose_value W I J p hp0 hp1
 
 private theorem facts_bv_merge_sign_extend_1_term
-    (M : SmtModel) (hM : model_total_typed M) (x i j k : Term) :
+    (M : SmtModel) (hM : model_wf M) (x i j k : Term) :
     RuleProofs.eo_has_smt_translation x ->
     eo_interprets M (bvMergeSignExtend1Prem i j k) true ->
     __eo_typeof (bvMergeSignExtend1Term x i j k) = Term.Bool ->
@@ -499,7 +499,7 @@ theorem typed_bv_merge_sign_extend_1_program (x i j k : Term) :
   exact typed_bv_merge_sign_extend_1_term x i j k hXTrans hTermTy
 
 theorem facts_bv_merge_sign_extend_1_program
-    (M : SmtModel) (hM : model_total_typed M) (x i j k : Term) :
+    (M : SmtModel) (hM : model_wf M) (x i j k : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation i ->
     RuleProofs.eo_has_smt_translation j ->
@@ -850,7 +850,7 @@ private theorem sign_extend_zero_extend_value
   rw [hSignEq, hDirectNat, hpCast]
 
 private theorem eval_bv_merge_sign_extend_2
-    (M : SmtModel) (hM : model_total_typed M) (x i j k : Term) :
+    (M : SmtModel) (hM : model_wf M) (x i j k : Term) :
     RuleProofs.eo_has_smt_translation x ->
     eo_interprets M (bvMergeSignExtend2PremPos j) true ->
     eo_interprets M (bvMergeSignExtend2PremSum i j k) true ->
@@ -908,7 +908,7 @@ private theorem eval_bv_merge_sign_extend_2
     sign_extend_zero_extend_value W I J p hp0 hp1 hJPos
 
 private theorem facts_bv_merge_sign_extend_2_term
-    (M : SmtModel) (hM : model_total_typed M) (x i j k : Term) :
+    (M : SmtModel) (hM : model_wf M) (x i j k : Term) :
     RuleProofs.eo_has_smt_translation x ->
     eo_interprets M (bvMergeSignExtend2PremPos j) true ->
     eo_interprets M (bvMergeSignExtend2PremSum i j k) true ->
@@ -1045,7 +1045,7 @@ theorem typed_bv_merge_sign_extend_2_program (x i j k : Term) :
   exact typed_bv_merge_sign_extend_2_term x i j k hXTrans hTermTy
 
 theorem facts_bv_merge_sign_extend_2_program
-    (M : SmtModel) (hM : model_total_typed M) (x i j k : Term) :
+    (M : SmtModel) (hM : model_wf M) (x i j k : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation i ->
     RuleProofs.eo_has_smt_translation j ->

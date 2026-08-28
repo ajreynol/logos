@@ -376,7 +376,7 @@ private theorem payload_ne_complement_of_pos
   exact (int_double_ne_double_sub_one payload k) hDouble
 
 private theorem eval_eq_self_bvnot_false
-    (M : SmtModel) (hM : model_total_typed M) (x : Term) :
+    (M : SmtModel) (hM : model_wf M) (x : Term) :
     RuleProofs.eo_has_smt_translation x ->
     eo_interprets M (bvNotNeqPrem x) true ->
     __eo_typeof (bvNotNeqTerm x) = Term.Bool ->
@@ -431,7 +431,7 @@ private theorem eval_eq_self_bvnot_false
     hNotMod, hNoEq]
 
 private theorem facts_bv_not_neq_term
-    (M : SmtModel) (hM : model_total_typed M) (x : Term) :
+    (M : SmtModel) (hM : model_wf M) (x : Term) :
     RuleProofs.eo_has_smt_translation x ->
     eo_interprets M (bvNotNeqPrem x) true ->
     __eo_typeof (bvNotNeqTerm x) = Term.Bool ->
@@ -455,7 +455,7 @@ private theorem facts_bv_not_neq_term
     exact RuleProofs.smt_value_rel_refl _
 
 public theorem cmd_step_bv_not_neq_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_not_neq args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

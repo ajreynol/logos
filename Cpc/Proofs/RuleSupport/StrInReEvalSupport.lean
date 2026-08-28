@@ -7259,7 +7259,7 @@ private theorem re_range_derivative_singletons_eq
       SmtEval.native_and]
 
 theorem smtx_model_eval_derivative_single_rel
-    (M : SmtModel) (hM : model_total_typed M) (c : native_Char)
+    (M : SmtModel) (hM : model_wf M) (c : native_Char)
     (hc : native_char_valid c = true) :
     (r : Term) -> (rv : SmtRegLan) ->
       __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
@@ -8112,7 +8112,7 @@ theorem smtx_model_eval_derivative_single_rel
       simp [__derivative] at hDerNe
 
 private theorem smtx_model_eval_str_in_re_eval_substrWord
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (str : native_String) (r : Term) (rv : SmtRegLan)
     (hValid : native_string_valid str = true)
     (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
@@ -8173,7 +8173,7 @@ private theorem smtx_model_eval_str_in_re_eval_substrWord
       rw [hInEq]
 
 theorem str_eval_str_in_re_rec_substrWord_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (str : native_String) (r : Term) (rv : SmtRegLan)
     (hValid : native_string_valid str = true)
     (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
@@ -8230,7 +8230,7 @@ theorem str_eval_str_in_re_rec_substrWord_eq
       rw [hInEq]
 
 theorem smtx_model_eval_str_in_re_eval_side
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (str : native_String) (r side : Term) (rv : SmtRegLan)
     (hSTy : __smtx_typeof (__eo_to_smt (Term.String str)) = SmtType.Seq SmtType.Char)
     (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)

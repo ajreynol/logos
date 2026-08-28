@@ -351,7 +351,7 @@ private theorem stableInAnyVarModel_rebase
   exact hStable K hK (model_agrees_on_globals_trans hAgreeMN hAgreeNK)
 
 theorem congTrueSpine_of_congStableSpine
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ {t rhs : Term},
       CongStableSpine M t rhs ->
       CongTrueSpine M t rhs
@@ -1191,7 +1191,7 @@ theorem smt_type_eq_of_eq_bool_or_same
   · exact (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type x y hBool).1
 
 private theorem smt_model_eval_eq_of_rel_at_non_reglan_type
-    (M : SmtModel) (hM : model_total_typed M) (x y : SmtTerm)
+    (M : SmtModel) (hM : model_wf M) (x y : SmtTerm)
     (T : SmtType) :
     __smtx_typeof x = T ->
     __smtx_typeof y = T ->
@@ -1219,7 +1219,7 @@ private theorem smt_model_eval_eq_of_rel_at_non_reglan_type
     hxValTy hyValTy hTReg hRel
 
 theorem eo_model_eval_eq_of_eq_true_or_same_at_non_reglan_type
-    (M : SmtModel) (hM : model_total_typed M) (x y : Term)
+    (M : SmtModel) (hM : model_wf M) (x y : Term)
     (T : SmtType) :
     __smtx_typeof (__eo_to_smt x) = T ->
     __smtx_typeof (__eo_to_smt y) = T ->
@@ -1585,7 +1585,7 @@ theorem eo_type_eq_of_eq_true_or_same
       (RuleProofs.eo_has_bool_type_of_interprets_true M (mkEq x y) hTrue)
 
 theorem congTrueSpine_not_eq_true
-    (M : SmtModel) (hM : model_total_typed M) (x rhs : Term) :
+    (M : SmtModel) (hM : model_wf M) (x rhs : Term) :
     RuleProofs.eo_has_bool_type
       (mkEq (Term.Apply (Term.UOp UserOp.not) x) rhs) ->
     CongTrueSpine M (Term.Apply (Term.UOp UserOp.not) x) rhs ->
@@ -1733,7 +1733,7 @@ theorem cong_smtx_typeof_eq_non_none
           hNone, hEq])
 
 theorem smt_eval_seq_of_smt_type_seq
-    (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm)
+    (M : SmtModel) (hM : model_wf M) (t : SmtTerm)
     (T : SmtType) :
     __smtx_typeof t = SmtType.Seq T ->
     ∃ s, __smtx_model_eval M t = SmtValue.Seq s := by
@@ -1749,7 +1749,7 @@ theorem smt_eval_seq_of_smt_type_seq
   exact seq_value_canonical hValTy
 
 theorem smt_eval_reglan_of_smt_type_reglan
-    (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm) :
+    (M : SmtModel) (hM : model_wf M) (t : SmtTerm) :
     __smtx_typeof t = SmtType.RegLan ->
     ∃ r, __smtx_model_eval M t = SmtValue.RegLan r := by
   intro hTy
@@ -1764,7 +1764,7 @@ theorem smt_eval_reglan_of_smt_type_reglan
   exact reglan_value_canonical hValTy
 
 theorem smt_eval_int_of_smt_type_int
-    (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm) :
+    (M : SmtModel) (hM : model_wf M) (t : SmtTerm) :
     __smtx_typeof t = SmtType.Int ->
     ∃ n, __smtx_model_eval M t = SmtValue.Numeral n := by
   intro hTy

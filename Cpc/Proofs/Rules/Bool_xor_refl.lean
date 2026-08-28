@@ -61,7 +61,7 @@ private theorem typed___eo_prog_bool_xor_refl_impl (x1 : Term) :
       decide)
 
 private theorem facts___eo_prog_bool_xor_refl_impl
-    (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (x1 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
   __eo_typeof (__eo_prog_bool_xor_refl x1) = Term.Bool ->
   eo_interprets M (__eo_prog_bool_xor_refl x1) true := by
@@ -94,7 +94,7 @@ private theorem facts___eo_prog_bool_xor_refl_impl
       SmtEval.native_not]
 
 public theorem cmd_step_bool_xor_refl_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_xor_refl args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

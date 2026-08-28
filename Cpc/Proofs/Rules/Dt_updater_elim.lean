@@ -1119,7 +1119,7 @@ private theorem assoc_nil_nth_dt_constructors_find_self
       s d (__eo_dd_lookup s d) 0 i hlt
 
 private theorem dt_updater_elim_update_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (sel t a c tu : Term) :
   __mk_dt_updater_elim_rhs
       (Term.Apply (Term.Apply (Term.UOp1 UserOp1.update sel) t) a)
@@ -1548,7 +1548,7 @@ private theorem dt_updater_elim_non_update_absurd
         (Term.Apply (Term.Apply u t) a) c t tu hMk) hBool
 
 private theorem facts___eo_prog_dt_updater_elim_impl
-    (M : SmtModel) (hM : model_total_typed M) (a1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (a1 : Term) :
   RuleProofs.eo_has_smt_translation a1 ->
   __eo_typeof (__eo_prog_dt_updater_elim a1) = Term.Bool ->
   eo_interprets M (__eo_prog_dt_updater_elim a1) true := by
@@ -1618,7 +1618,7 @@ private theorem facts___eo_prog_dt_updater_elim_impl
             hMk hBool)
 
 public theorem cmd_step_dt_updater_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_updater_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

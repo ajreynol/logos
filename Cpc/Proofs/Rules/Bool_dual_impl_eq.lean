@@ -98,7 +98,7 @@ private theorem typed___eo_prog_bool_dual_impl_eq_impl (t1 s1 : Term) :
       decide)
 
 private theorem facts___eo_prog_bool_dual_impl_eq_impl
-    (M : SmtModel) (hM : model_total_typed M) (t1 s1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (t1 s1 : Term) :
   RuleProofs.eo_has_smt_translation t1 ->
   RuleProofs.eo_has_smt_translation s1 ->
   __eo_typeof (__eo_prog_bool_dual_impl_eq t1 s1) = Term.Bool ->
@@ -143,7 +143,7 @@ private theorem facts___eo_prog_bool_dual_impl_eq_impl
         SmtEval.native_and, SmtEval.native_or, SmtEval.native_not]
 
 public theorem cmd_step_bool_dual_impl_eq_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_dual_impl_eq args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

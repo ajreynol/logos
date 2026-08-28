@@ -416,7 +416,7 @@ private theorem typed_list_cons_type_parts
   exact ⟨hHeadTail, hHeadNN, hTailNN, hConsEq⟩
 
 private theorem typed_list_eval_elem_type
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ xs,
       __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
       ∀ v, v ∈ typedListEvalElems M xs ->
@@ -725,7 +725,7 @@ private theorem compute_card_guard_cases
       simp [__compute_card, __eo_gt] at hGuard
 
 private theorem distinct_true_guard_contradiction
-    (M : SmtModel) (hM : model_total_typed M) (xs : Term) :
+    (M : SmtModel) (hM : model_wf M) (xs : Term) :
   __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
   __eo_gt
     (__eo_list_len (Term.UOp UserOp._at__at_TypedList_cons) xs)
@@ -1037,7 +1037,7 @@ private theorem distinct_card_conflict_shape_of_typeof_bool
       exact False.elim (hProg rfl)
 
 private theorem distinct_card_conflict_cardinality_sound
-    (M : SmtModel) (hM : model_total_typed M) (xs : Term) :
+    (M : SmtModel) (hM : model_wf M) (xs : Term) :
   RuleProofs.eo_has_bool_type
     (Term.Apply
       (Term.Apply (Term.UOp UserOp.eq)
@@ -1110,7 +1110,7 @@ private theorem distinct_card_conflict_cardinality_sound
         (distinct_true_guard_contradiction M hM xs hElemNN hGuard hNodup)
 
 private theorem facts___eo_prog_distinct_card_conflict_impl
-    (M : SmtModel) (hM : model_total_typed M) (a1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (a1 : Term) :
   RuleProofs.eo_has_smt_translation a1 ->
   __eo_typeof (__eo_prog_distinct_card_conflict a1) = Term.Bool ->
   eo_interprets M (__eo_prog_distinct_card_conflict a1) true := by
@@ -1154,7 +1154,7 @@ private theorem facts___eo_prog_distinct_card_conflict_impl
   exact distinct_card_conflict_cardinality_sound M hM xs hFormulaBool hGuard
 
 public theorem cmd_step_distinct_card_conflict_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.distinct_card_conflict args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

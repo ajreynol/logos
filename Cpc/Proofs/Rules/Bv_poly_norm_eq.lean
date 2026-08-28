@@ -230,7 +230,7 @@ private theorem binary_literal_range_of_bitvec_type
   exact Smtm.bitvec_payload_range_of_canonical hWF.1 hWF.2
 
 private theorem model_eval_bitvec_payload
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) (w : native_Nat)
+    (M : SmtModel) (hM : model_wf M) (t : Term) (w : native_Nat)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w) :
     ∃ n : native_Int,
       __smtx_model_eval M (__eo_to_smt t) = SmtValue.Binary (native_nat_to_int w) n ∧
@@ -592,7 +592,7 @@ theorem typed___eo_prog_bv_poly_norm_eq_impl
   exact RuleProofs.eo_typeof_bool_implies_has_bool_type a1 hA1Trans hA1Ty
 
 private theorem facts___eo_prog_bv_poly_norm_eq_impl_shape
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xb1 xb2 yb1 yb2 cx xb1p xb2p one cy yb1p yb2p one2 : Term) :
   RuleProofs.eo_has_smt_translation
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
@@ -971,7 +971,7 @@ private theorem facts___eo_prog_bv_poly_norm_eq_impl_shape
   exact RuleProofs.eo_interprets_eq_of_rel M eqX eqY hOutBool hRel
 
 private theorem facts___eo_prog_bv_poly_norm_eq_impl
-    (M : SmtModel) (hM : model_total_typed M) (a1 prem : Term) :
+    (M : SmtModel) (hM : model_wf M) (a1 prem : Term) :
   RuleProofs.eo_has_smt_translation a1 ->
   RuleProofs.eo_has_bool_type prem ->
   eo_interprets M prem true ->
@@ -1096,7 +1096,7 @@ private theorem facts___eo_prog_bv_poly_norm_eq_impl
   | _ => exact False.elim (hProg (by rfl))
 
 public theorem cmd_step_bv_poly_norm_eq_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_poly_norm_eq args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

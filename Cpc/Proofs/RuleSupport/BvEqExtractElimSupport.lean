@@ -556,7 +556,7 @@ private theorem eval_eq_low_extract_eq_rebuild
       hRightValues, decide_false]
 
 theorem facts_bv_eq_extract_elim2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y j wm jp : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
@@ -920,7 +920,7 @@ theorem typed_bv_eq_extract_elim2_program
     hXTrans hYTrans hTermTy
 
 theorem facts_bv_eq_extract_elim2_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y j wm jp P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
@@ -1362,7 +1362,7 @@ private theorem eval_eq_upper_extract_eq_rebuild
       hRightValues, decide_false]
 
 theorem facts_bv_eq_extract_elim3_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y i j im : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
@@ -1758,7 +1758,7 @@ theorem typed_bv_eq_extract_elim3_program
     hXTrans hYTrans hTermTy
 
 theorem facts_bv_eq_extract_elim3_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y i j im P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
@@ -2254,7 +2254,7 @@ private theorem bv_eq_extract_elim1_premises_numeric
   exact ⟨hHv, hLv, hMv, hRoom, hPositive⟩
 
 theorem facts_bv_eq_extract_elim1_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y i j wm jp im : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
@@ -2752,7 +2752,7 @@ theorem typed_bv_eq_extract_elim1_program
     hXTrans hYTrans hTermTy
 
 theorem facts_bv_eq_extract_elim1_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y i j wm jp im P1 P2 P3 P4 P5 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->

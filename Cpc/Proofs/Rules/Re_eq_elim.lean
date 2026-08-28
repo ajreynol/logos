@@ -285,7 +285,7 @@ private theorem seq_canonical_pack_string :
           (native_pack_seq SmtType.Char ((c :: cs).map SmtValue.Char)) = true
       rw [List.map_cons]
       change
-        native_and (__smtx_value_canonical_bool (SmtValue.Char c))
+        native_and (__smtx_value_canonical (SmtValue.Char c))
           (__smtx_seq_canonical
             (native_pack_seq SmtType.Char (cs.map SmtValue.Char))) = true
       have ih' :
@@ -297,7 +297,7 @@ private theorem seq_canonical_pack_string :
 
 /-- Evaluation of a `RegLan`-typed term yields a `RegLan` value. -/
 private theorem smt_eval_reglan_of_smt_type_reglan
-    (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm) :
+    (M : SmtModel) (hM : model_wf M) (t : SmtTerm) :
     __smtx_typeof t = SmtType.RegLan ->
     ∃ r, __smtx_model_eval M t = SmtValue.RegLan r := by
   intro hTy
@@ -358,7 +358,7 @@ via `smt_eval_reglan_of_smt_type_reglan`).
    `smt_value_rel_refl`.
 -/
 private theorem re_eq_elim_smt_value_rel
-    (M : SmtModel) (hM : model_total_typed M) (r1 r2 : Term)
+    (M : SmtModel) (hM : model_wf M) (r1 r2 : Term)
     (hClosed :
       __is_closed_rec (mkEqT r1 r2) Term.__eo_List_nil = Term.Boolean true)
     (hTrans : eo_has_smt_translation (mkEqT r1 r2))
@@ -466,7 +466,7 @@ private theorem re_eq_elim_smt_value_rel
     by_cases hEx :
         ∃ v : SmtValue,
           __smtx_typeof_value v = __eo_to_smt_type seqCharTy ∧
-            __smtx_value_canonical_bool v = true ∧
+            __smtx_value_canonical v = true ∧
             __smtx_model_eval_not
               (__smtx_model_eval
                 (native_model_push M reqName (__eo_to_smt_type seqCharTy) v)
@@ -522,7 +522,7 @@ private theorem re_eq_elim_smt_value_rel
 end RuleProofs
 
 public theorem cmd_step_re_eq_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_eq_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

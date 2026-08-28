@@ -564,7 +564,7 @@ theorem arith_rel_args_have_translation
           intro hNone <;> simp [hArgs.1, hArgs.2] at hNone
 
 theorem arith_atom_denote_real_of_smt_arith_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+    (M : SmtModel) (hM : model_wf M) (t : Term) :
     (__smtx_typeof (__eo_to_smt t) = SmtType.Int ∨
       __smtx_typeof (__eo_to_smt t) = SmtType.Real) ->
     ∃ q : native_Rat, arith_atom_denote_real M t = SmtValue.Rational q := by
@@ -852,7 +852,7 @@ private theorem scale_smt_type_of_eo_type
     simp [__smtx_typeof_arith_overload_op_2, hmSmtReal, hInner]
 
 private theorem scale_denote
-    (M : SmtModel) (hM : model_total_typed M) (m x : Term)
+    (M : SmtModel) (hM : model_wf M) (m x : Term)
     (qm qx : native_Rat) :
     RuleProofs.eo_has_smt_translation m ->
     RuleProofs.eo_has_smt_translation x ->
@@ -982,7 +982,7 @@ private theorem bool_of_true_eval
       cases b <;> simp at hEvalTrue ⊢
 
 private theorem eval_lt_of_denotes
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (qa qb : native_Rat)
     (hTy :
       (__smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
@@ -1036,7 +1036,7 @@ private theorem eval_lt_of_denotes
     simp [__smtx_model_eval_lt, hqa, hqb]
 
 private theorem eval_leq_of_denotes
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (qa qb : native_Rat)
     (hTy :
       (__smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
@@ -1090,7 +1090,7 @@ private theorem eval_leq_of_denotes
     simp [__smtx_model_eval_leq, hqa, hqb]
 
 private theorem eval_eq_of_denotes
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (qa qb : native_Rat)
     (hTy :
       (__smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
@@ -1145,7 +1145,7 @@ private theorem eval_eq_of_denotes
     simp [__smtx_model_eval_eq, native_veq, native_qeq, hqa, hqb]
 
 private theorem eval_gt_of_denotes
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (qa qb : native_Rat)
     (hTy :
       (__smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
@@ -1200,7 +1200,7 @@ private theorem eval_gt_of_denotes
     simp [__smtx_model_eval_gt, __smtx_model_eval_lt, hqa, hqb]
 
 private theorem eval_geq_of_denotes
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (qa qb : native_Rat)
     (hTy :
       (__smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
@@ -1350,7 +1350,7 @@ private theorem neg_conclusion_bool_of_pair_type
           (by simp [arithRelOp]) hTy
 
 private theorem pos_conclusion_true
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (m r a b : Term) :
     RuleProofs.eo_has_smt_translation m ->
     RuleProofs.eo_has_smt_translation a ->
@@ -1441,7 +1441,7 @@ private theorem pos_conclusion_true
         (by simpa [posConclusion, relTerm, hScaled] using hEval)
 
 private theorem neg_conclusion_true
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (m r a b : Term) :
     RuleProofs.eo_has_smt_translation m ->
     RuleProofs.eo_has_smt_translation a ->
@@ -1545,7 +1545,7 @@ private theorem and_true_bool
     hF RuleProofs.eo_has_bool_type_true
 
 private theorem facts_arith_mult_pos_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (m r a b : Term) :
     RuleProofs.eo_has_smt_translation m ->
     RuleProofs.eo_has_smt_translation (relTerm r a b) ->
@@ -1625,7 +1625,7 @@ private theorem facts_arith_mult_pos_rel
       hAnteFalse hConclBool
 
 private theorem facts_arith_mult_neg_rel
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (m r a b : Term) :
     RuleProofs.eo_has_smt_translation m ->
     RuleProofs.eo_has_smt_translation (relTerm r a b) ->
@@ -2006,7 +2006,7 @@ private theorem neg_prog_args_of_typeof_bool
   exact ⟨r, a, b, rfl, hRel, hTypeFacts.1, hTypeFacts.2.1, hTypeFacts.2.2⟩
 
 theorem facts_arith_mult_pos
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (m F : Term) :
     RuleProofs.eo_has_smt_translation m ->
     RuleProofs.eo_has_smt_translation F ->
@@ -2021,7 +2021,7 @@ theorem facts_arith_mult_pos
     (by simpa [relTerm] using hResultTy)
 
 theorem facts_arith_mult_neg
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (m F : Term) :
     RuleProofs.eo_has_smt_translation m ->
     RuleProofs.eo_has_smt_translation F ->
@@ -2360,7 +2360,7 @@ private theorem eq_abs_operands_smt_int_of_bool (t u : Term)
   exact ⟨ht, smt_type_int_of_abs_non_none u huNN⟩
 
 private theorem abs_gt_factor
-    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    (M : SmtModel) (hM : model_wf M) (t u : Term) :
     eo_interprets M (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) true ->
     ∃ nt nu : native_Int,
       MultListEval M (multSingleton t) nt ∧
@@ -2388,7 +2388,7 @@ private theorem abs_gt_factor
     (native_zlt_intAbs_true_iff nu nt).mp hLtBool⟩
 
 private theorem abs_eq_factor
-    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    (M : SmtModel) (hM : model_wf M) (t u : Term) :
     eo_interprets M (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) true ->
     ∃ nt nu : native_Int,
       __smtx_typeof (__eo_to_smt t) = SmtType.Int ∧
@@ -2733,7 +2733,7 @@ private theorem eval_eq_abs_values (M : SmtModel) (t u : Term)
       native_zeq, native_qeq] at hKind ⊢
 
 private theorem abs_gt_factor_product
-    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    (M : SmtModel) (hM : model_wf M) (t u : Term) :
     eo_interprets M (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) true ->
     ∃ vt vu : ArithValue,
       MultListProduct M (multSingleton t) (some vt) ∧
@@ -2766,7 +2766,7 @@ private theorem abs_gt_factor_product
       ⟨rfl, (ArithValue.ltBool_abs_true_iff_same_kind (a := vu) (b := vt) rfl).mp hLt⟩⟩
 
 private theorem abs_eq_factor_product
-    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    (M : SmtModel) (hM : model_wf M) (t u : Term) :
     eo_interprets M (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) true ->
     ∃ vt vu : ArithValue,
       __smtx_typeof (__eo_to_smt t) = vt.smtType ∧
@@ -3192,7 +3192,7 @@ private theorem eval_eq_abs_values (M : SmtModel) (t u : Term)
       native_zeq, native_qeq] at hKind ⊢
 
 private theorem abs_gt_factor_factors
-    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    (M : SmtModel) (hM : model_wf M) (t u : Term) :
     eo_interprets M (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) true ->
     ∃ vt vu : ArithValue,
       MultListFactors M (multSingleton t) vt.kind [vt] ∧
@@ -3229,7 +3229,7 @@ private theorem abs_gt_factor_factors
         simpa [factorMagnitude] using hMag⟩
 
 private theorem abs_eq_factor_factors
-    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    (M : SmtModel) (hM : model_wf M) (t u : Term) :
     eo_interprets M (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) true ->
     ∃ vt vu : ArithValue,
       __smtx_typeof (__eo_to_smt t) = vt.smtType ∧
@@ -3728,7 +3728,7 @@ private theorem AbsCmpAcc.toTypeAcc
 
 /- Superseded integer-only factor typing.
 private theorem abs_gt_factor_type
-    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    (M : SmtModel) (hM : model_wf M) (t u : Term) :
     RuleProofs.eo_has_bool_type
       (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) ->
     ∃ nt nu : native_Int,
@@ -3743,7 +3743,7 @@ private theorem abs_gt_factor_type
 -/
 
 private theorem abs_gt_factor_type
-    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    (M : SmtModel) (hM : model_wf M) (t u : Term) :
     RuleProofs.eo_has_bool_type
       (relTerm (Term.UOp UserOp.gt) (absTerm t) (absTerm u)) ->
     ∃ vt vu : ArithValue,
@@ -3763,7 +3763,7 @@ private theorem abs_gt_factor_type
       MultListFactors.singleton M u (.real qu) hReal.2 huEval⟩
 
 private theorem abs_eq_factor_type
-    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    (M : SmtModel) (hM : model_wf M) (t u : Term) :
     RuleProofs.eo_has_bool_type
       (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) ->
     ∃ vt vu : ArithValue,
@@ -3784,7 +3784,7 @@ private theorem abs_eq_factor_type
 
 /- Superseded integer-only equality factor typing.
 private theorem abs_eq_factor_type
-    (M : SmtModel) (hM : model_total_typed M) (t u : Term) :
+    (M : SmtModel) (hM : model_wf M) (t u : Term) :
     RuleProofs.eo_has_bool_type
       (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) ->
     ∃ nt nu : native_Int,
@@ -3835,7 +3835,7 @@ private theorem l2_abs_comparison_has_bool_type
                 using hTy))
 
 private theorem arith_mult_abs_comparison_rec_has_bool_type
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (F rel : Term) :
     RuleProofs.eo_has_bool_type F ->
     AbsCmpTypeAcc M rel ->
@@ -4032,7 +4032,7 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
     F rel
 
 private theorem arith_mult_abs_comparison_mk_has_bool_type
-    (M : SmtModel) (hM : model_total_typed M) (F : Term) :
+    (M : SmtModel) (hM : model_wf M) (F : Term) :
     RuleProofs.eo_has_bool_type F ->
     __eo_typeof (__mk_arith_mult_abs_comparison F) = Term.Bool ->
     RuleProofs.eo_has_bool_type (__mk_arith_mult_abs_comparison F) := by
@@ -4084,7 +4084,7 @@ private theorem arith_mult_abs_comparison_mk_has_bool_type
   · exact False.elim (false_of_typeof_stuck_bool hTy)
 
 theorem arith_mult_abs_comparison_has_smt_translation
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (premises : List Term) :
     AllHaveBoolType premises ->
     __eo_typeof (__eo_prog_arith_mult_abs_comparison
@@ -4139,7 +4139,7 @@ private theorem l2_abs_comparison_true
                 using hTy))
 
 private theorem facts_arith_mult_abs_comparison_rec
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (F rel : Term) :
     eo_interprets M F true ->
     AbsCmpAcc M rel ->
@@ -4357,7 +4357,7 @@ private theorem facts_arith_mult_abs_comparison_rec
     F rel
 
 private theorem facts_arith_mult_abs_comparison_mk
-    (M : SmtModel) (hM : model_total_typed M) (F : Term) :
+    (M : SmtModel) (hM : model_wf M) (F : Term) :
     eo_interprets M F true ->
     __eo_typeof (__mk_arith_mult_abs_comparison F) = Term.Bool ->
     eo_interprets M (__mk_arith_mult_abs_comparison F) true := by
@@ -4405,7 +4405,7 @@ private theorem facts_arith_mult_abs_comparison_mk
   · exact False.elim (false_of_typeof_stuck_bool hTy)
 
 theorem facts_arith_mult_abs_comparison
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (premises : List Term) :
     AllInterpretedTrue M premises ->
     __eo_typeof (__eo_prog_arith_mult_abs_comparison
