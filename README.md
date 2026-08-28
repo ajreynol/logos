@@ -10,6 +10,11 @@ a standalone Lean formalization of the meaning of SMT-LIB terms that does not de
 on the checker and can be used on its own.
 See [Correctness](#correctness) below for what that proof establishes and what it still assumes.
 
+The semantics, the correctness specification and the checker are written up in
+[docs/smt-model-definitions.pdf](docs/smt-model-definitions.pdf), which is built
+from `docs/smt-model-definitions.tex` and committed so that it can be read
+without a LaTeX installation; `make -C docs` rebuilds it.
+
 The calculus Logos checks is compiled from a definition written in *Eunoia*,
 the logical framework of the proof checker Ethos
 (https://github.com/cvc5/ethos), in which proof calculi are defined as
