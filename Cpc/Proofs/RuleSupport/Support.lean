@@ -758,7 +758,7 @@ theorem smtx_eval_qdiv_term_eq
 theorem smtx_eval_choice_term_eq
     (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm) :
     __smtx_model_eval M (SmtTerm.choice s T body) =
-      native_eval_tchoice M s T body := by
+      native_eval_choice M s T body := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 /-- Stable rewrite for evaluating SMT let-bindings. -/

@@ -515,7 +515,7 @@ private theorem native_str_to_int_ge_neg_one
   | nil =>
       simp
   | cons c cs =>
-      by_cases hDigits : (c :: cs).all native_char_is_digit = true
+      by_cases hDigits : (c :: cs).all impl_native_char_is_digit = true
       · simp [hDigits]
       · simp [hDigits]
 

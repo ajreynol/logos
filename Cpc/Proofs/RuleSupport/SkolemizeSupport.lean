@@ -687,11 +687,11 @@ theorem eoListAll_skolems (F : Term) :
 
 private theorem eval_exists_eq (M : SmtModel) (s : native_String) (T : SmtType)
     (b : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.exists s T b) = native_eval_texists M s T b := rfl
+    __smtx_model_eval M (SmtTerm.exists s T b) = native_eval_exists M s T b := rfl
 
 private theorem eval_choice_eq (M : SmtModel) (s : native_String) (T : SmtType)
     (b : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.choice s T b) = native_eval_tchoice M s T b := rfl
+    __smtx_model_eval M (SmtTerm.choice s T b) = native_eval_choice M s T b := rfl
 
 private theorem eval_bind_eq (M : SmtModel) (s : native_String) (T : SmtType)
     (v b : SmtTerm) :
@@ -710,8 +710,8 @@ private theorem canonical_bool_of_canonical {v : SmtValue}
 true (`Classical.choose_spec`). -/
 theorem texists_true_push_tchoice
     (N : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm)
-    (hEx : native_eval_texists N s T body = SmtValue.Boolean true) :
-    __smtx_model_eval (native_model_push N s T (native_eval_tchoice N s T body))
+    (hEx : native_eval_exists N s T body = SmtValue.Boolean true) :
+    __smtx_model_eval (native_model_push N s T (native_eval_choice N s T body))
         body = SmtValue.Boolean true := by
   classical
   by_cases hSat :
@@ -721,7 +721,7 @@ theorem texists_true_push_tchoice
           __smtx_model_eval (native_model_push N s T v) body =
             SmtValue.Boolean true
   · have hChoice :
-        native_eval_tchoice N s T body = Classical.choose hSat := by
+        native_eval_choice N s T body = Classical.choose hSat := by
       rw [dif_pos hSat]
     rw [hChoice]
     exact (Classical.choose_spec hSat).2.2
@@ -732,8 +732,8 @@ theorem texists_true_push_tchoice
 theorem tchoice_typed_canonical_of_wf
     (N : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm)
     (hWf : __smtx_type_wf T = true) :
-    __smtx_typeof_value (native_eval_tchoice N s T body) = T ∧
-      __smtx_value_canonical (native_eval_tchoice N s T body) = true := by
+    __smtx_typeof_value (native_eval_choice N s T body) = T ∧
+      __smtx_value_canonical (native_eval_choice N s T body) = true := by
   classical
   by_cases hSat :
       ∃ v : SmtValue,
@@ -760,7 +760,7 @@ theorem native_eval_tchoice_eq_of_body_eval_eq_diff_typed
       __smtx_value_canonical v = true ->
       __smtx_model_eval (native_model_push M s T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    native_eval_tchoice M s T bodyM = native_eval_tchoice N s T bodyN := by
+    native_eval_choice M s T bodyM = native_eval_choice N s T bodyN := by
   classical
   have hPredEq :
       (fun v : SmtValue =>
@@ -790,17 +790,17 @@ noncomputable def chainModel (H : SmtTerm) : SmtModel -> List EoVarKey -> SmtMod
   | M, (s, T) :: vs =>
       chainModel H
         (native_model_push M s (__eo_to_smt_type T)
-          (native_eval_tchoice M s (__eo_to_smt_type T) (smtExistsList vs H)))
+          (native_eval_choice M s (__eo_to_smt_type T) (smtExistsList vs H)))
         vs
 
 /-- The value the chain assigns to the `n`-th binder. -/
 noncomputable def chainValue (H : SmtTerm) : SmtModel -> List EoVarKey -> Nat -> SmtValue
   | M, (s, T) :: vs, 0 =>
-      native_eval_tchoice M s (__eo_to_smt_type T) (smtExistsList vs H)
+      native_eval_choice M s (__eo_to_smt_type T) (smtExistsList vs H)
   | M, (s, T) :: vs, Nat.succ n =>
       chainValue H
         (native_model_push M s (__eo_to_smt_type T)
-          (native_eval_tchoice M s (__eo_to_smt_type T) (smtExistsList vs H)))
+          (native_eval_choice M s (__eo_to_smt_type T) (smtExistsList vs H)))
         vs n
   | _M, [], _n => SmtValue.NotValue
 
@@ -817,7 +817,7 @@ theorem chainModel_body_true (H : SmtTerm) :
   | cons p vs ih =>
       obtain ⟨s, T⟩ := p
       intro M h
-      have hEx : native_eval_texists M s (__eo_to_smt_type T)
+      have hEx : native_eval_exists M s (__eo_to_smt_type T)
           (smtExistsList vs H) = SmtValue.Boolean true := h
       have hPush := texists_true_push_tchoice M s (__eo_to_smt_type T)
         (smtExistsList vs H) hEx
@@ -1148,8 +1148,8 @@ private theorem qskol_head_choice_eq
       model_agrees_on_vars (smtKeys ((s, T) :: vs)) P' Q' ->
       pinsHold Q' pins ->
       __smtx_model_eval P' B = __smtx_model_eval Q' H) :
-    native_eval_tchoice P s (__eo_to_smt_type T) (smtExistsList vs B) =
-      native_eval_tchoice L s (__eo_to_smt_type T) (smtExistsList vs H) := by
+    native_eval_choice P s (__eo_to_smt_type T) (smtExistsList vs B) =
+      native_eval_choice L s (__eo_to_smt_type T) (smtExistsList vs H) := by
   apply native_eval_tchoice_eq_of_body_eval_eq_diff_typed
   intro w hwTy hwCan
   refine existsList_eval_congr M pins B H vs [(s, __eo_to_smt_type T)]
@@ -1255,22 +1255,22 @@ theorem qskol_eval_eq_chainValue (M : SmtModel) (H : SmtTerm) :
             (__eo_to_smt_type T) (smtExistsList vs H) hWfHead
           have hL' : model_wf
               (native_model_push L s (__eo_to_smt_type T)
-                (native_eval_tchoice L s (__eo_to_smt_type T)
+                (native_eval_choice L s (__eo_to_smt_type T)
                   (smtExistsList vs H))) :=
             model_total_typed_push hL s _ _ hWfHead hCTy
               (canonical_of_canonical_bool hCCan)
           have hML' : model_agrees_on_globals M
               (native_model_push L s (__eo_to_smt_type T)
-                (native_eval_tchoice L s (__eo_to_smt_type T)
+                (native_eval_choice L s (__eo_to_smt_type T)
                   (smtExistsList vs H))) :=
             model_agrees_on_globals_trans hML
               (model_agrees_on_globals_push L s _ _)
           have hPins' : pinsHold
               (native_model_push L s (__eo_to_smt_type T)
-                (native_eval_tchoice L s (__eo_to_smt_type T)
+                (native_eval_choice L s (__eo_to_smt_type T)
                   (smtExistsList vs H)))
               (((s, __eo_to_smt_type T),
-                  native_eval_tchoice L s (__eo_to_smt_type T)
+                  native_eval_choice L s (__eo_to_smt_type T)
                     (smtExistsList vs H)) :: pins) := by
             intro pv hpv
             cases hpv with
@@ -1284,7 +1284,7 @@ theorem qskol_eval_eq_chainValue (M : SmtModel) (H : SmtTerm) :
                 exact hPins _ h
           have hD' : DistinctList
               ((((s, __eo_to_smt_type T),
-                  native_eval_tchoice L s (__eo_to_smt_type T)
+                  native_eval_choice L s (__eo_to_smt_type T)
                     (smtExistsList vs H)) :: pins).map Prod.fst ++
                 smtKeys vs) := hDMid
           have hBodyRel' : ∀ P Q : SmtModel,
@@ -1293,7 +1293,7 @@ theorem qskol_eval_eq_chainValue (M : SmtModel) (H : SmtTerm) :
               model_agrees_on_vars (smtKeys vs) P Q ->
               pinsHold Q
                 (((s, __eo_to_smt_type T),
-                    native_eval_tchoice L s (__eo_to_smt_type T)
+                    native_eval_choice L s (__eo_to_smt_type T)
                       (smtExistsList vs H)) :: pins) ->
               __smtx_model_eval P
                   (SmtTerm.bind s (__eo_to_smt_type T)
@@ -1304,20 +1304,20 @@ theorem qskol_eval_eq_chainValue (M : SmtModel) (H : SmtTerm) :
             have hPinsQ : pinsHold Q pins :=
               fun pv hpv => hPinsQ' pv (List.Mem.tail _ hpv)
             have hQHead : native_model_var_lookup Q s (__eo_to_smt_type T) =
-                native_eval_tchoice L s (__eo_to_smt_type T)
+                native_eval_choice L s (__eo_to_smt_type T)
                   (smtExistsList vs H) :=
               hPinsQ' _ (List.Mem.head _)
             rw [eval_bind_eq, eval_choice_eq]
-            have hdc : native_eval_tchoice P s (__eo_to_smt_type T)
+            have hdc : native_eval_choice P s (__eo_to_smt_type T)
                 (smtExistsList vs B) =
-                native_eval_tchoice L s (__eo_to_smt_type T)
+                native_eval_choice L s (__eo_to_smt_type T)
                   (smtExistsList vs H) :=
               qskol_head_choice_eq M pins B H s T vs P L hP hL hMP hML
                 hWfHead hWfTail hPins hFresh hDisjTail hBodyRel
             rw [hdc]
             refine hBodyRel
               (native_model_push P s (__eo_to_smt_type T)
-                (native_eval_tchoice L s (__eo_to_smt_type T)
+                (native_eval_choice L s (__eo_to_smt_type T)
                   (smtExistsList vs H)))
               Q
               (model_total_typed_push hP s _ _ hWfHead hCTy
@@ -1346,7 +1346,7 @@ theorem qskol_eval_eq_chainValue (M : SmtModel) (H : SmtTerm) :
                     (smtExistsList vs B)) B) n) =
             chainValue H
               (native_model_push L s (__eo_to_smt_type T)
-                (native_eval_tchoice L s (__eo_to_smt_type T)
+                (native_eval_choice L s (__eo_to_smt_type T)
                   (smtExistsList vs H)))
               vs n
           exact ih vs
@@ -1354,10 +1354,10 @@ theorem qskol_eval_eq_chainValue (M : SmtModel) (H : SmtTerm) :
               (SmtTerm.choice s (__eo_to_smt_type T) (smtExistsList vs B)) B)
             K
             (native_model_push L s (__eo_to_smt_type T)
-              (native_eval_tchoice L s (__eo_to_smt_type T)
+              (native_eval_choice L s (__eo_to_smt_type T)
                 (smtExistsList vs H)))
             (((s, __eo_to_smt_type T),
-                native_eval_tchoice L s (__eo_to_smt_type T)
+                native_eval_choice L s (__eo_to_smt_type T)
                   (smtExistsList vs H)) :: pins)
             hn' hK hL' hMK hML' hWfTail hD' hPins' hBodyRel'
 

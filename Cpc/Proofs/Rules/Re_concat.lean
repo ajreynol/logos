@@ -201,7 +201,7 @@ private theorem empty_str_in_re_true (M : SmtModel) :
         (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))) =
     SmtValue.Boolean true
   simp [__smtx_model_eval, __smtx_model_eval_str_to_re, __smtx_model_eval_str_in_re,
-    native_str_to_re, Smtm.native_str_in_re, native_re_of_list, native_pack_string,
+    native_str_to_re, Smtm.native_str_in_re, impl_native_re_of_list, native_pack_string,
     native_pack_seq, native_unpack_seq,
     native_re_nullable, native_re_str_valid, native_string_lit]
 

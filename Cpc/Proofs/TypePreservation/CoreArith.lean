@@ -331,9 +331,9 @@ private theorem native_eval_map_diff_msm_typed
     (hm1 : __smtx_typeof_map_value m1 = SmtType.Map A B)
     (hm2 : __smtx_typeof_map_value m2 = SmtType.Map A B)
     (hDefault : __smtx_typeof_value (__smtx_type_default A) = A) :
-    __smtx_typeof_value (native_eval_map_diff_msm m1 m2) = A := by
+    __smtx_typeof_value (native_eval_map_diff m1 m2) = A := by
   classical
-  change __smtx_typeof_value (native_eval_map_diff_msm m1 m2) = A
+  change __smtx_typeof_value (native_eval_map_diff m1 m2) = A
   rw [hm1, hm2]
   simp [native_ite, native_Teq, SmtEval.native_and]
   by_cases hDiff :
@@ -350,9 +350,9 @@ private theorem native_eval_map_diff_msm_canonical
     (hm1 : __smtx_typeof_map_value m1 = SmtType.Map A B)
     (hm2 : __smtx_typeof_map_value m2 = SmtType.Map A B)
     (hDefault : value_canonical (__smtx_type_default A)) :
-    value_canonical (native_eval_map_diff_msm m1 m2) := by
+    value_canonical (native_eval_map_diff m1 m2) := by
   classical
-  change value_canonical (native_eval_map_diff_msm m1 m2)
+  change value_canonical (native_eval_map_diff m1 m2)
   rw [hm1, hm2]
   simp [native_ite, native_Teq, SmtEval.native_and]
   by_cases hDiff :

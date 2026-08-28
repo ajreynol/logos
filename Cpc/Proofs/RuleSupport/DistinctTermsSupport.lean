@@ -103,10 +103,10 @@ private theorem eo_or_true {a b : Term} :
 
 private theorem map_native_ssm_char_char :
     ∀ s : native_String,
-      List.map (native_ssm_char_of_value ∘ SmtValue.Char) s = s
+      List.map (impl_native_ssm_char_of_value ∘ SmtValue.Char) s = s
   | [] => rfl
   | _ :: cs => by
-      simp [Function.comp_def, native_ssm_char_of_value]
+      simp [Function.comp_def, impl_native_ssm_char_of_value]
 
 private theorem are_distinct_int_true {a b : Term} :
     __are_distinct_terms_type a b (Term.UOp UserOp.Int) = Term.Boolean true ->
@@ -2280,21 +2280,21 @@ private theorem tuple_ctor_head_no_smt_translation :
   exact h TranslationProofs.smtx_typeof_none
 
 private theorem native_reserved_datatype_name_tuple :
-    native_reserved_datatype_name (native_string_lit "@Tuple") = true := by
+    __eo_to_smt_reserved_datatype_name (native_string_lit "@Tuple") = true := by
   native_decide
 
 private theorem dtcons_reserved_false_of_translation
     {s : native_String} {d : DatatypeDecl} {i : native_Nat} :
     RuleProofs.eo_has_smt_translation (Term.DtCons s d i) ->
-    native_reserved_datatype_name s = false := by
+    __eo_to_smt_reserved_datatype_name s = false := by
   intro hTrans
   unfold RuleProofs.eo_has_smt_translation at hTrans
   change
     __smtx_typeof
-        (native_ite (native_reserved_datatype_name s) SmtTerm.None
+        (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
           (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i)) ≠
       SmtType.None at hTrans
-  cases hReserved : native_reserved_datatype_name s
+  cases hReserved : __eo_to_smt_reserved_datatype_name s
   · simp
   · exfalso
     rw [hReserved] at hTrans
@@ -2306,11 +2306,11 @@ private theorem dtcons_model_eval_of_translation
     __smtx_model_eval M (__eo_to_smt (Term.DtCons s d i)) =
       SmtValue.DtCons s (__eo_to_smt_datatype_decl d) i := by
   intro hTrans
-  have hReserved : native_reserved_datatype_name s = false :=
+  have hReserved : __eo_to_smt_reserved_datatype_name s = false :=
     dtcons_reserved_false_of_translation hTrans
   change
     __smtx_model_eval M
-        (native_ite (native_reserved_datatype_name s) SmtTerm.None
+        (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
           (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i)) =
       SmtValue.DtCons s (__eo_to_smt_datatype_decl d) i
   rw [hReserved]
@@ -2322,12 +2322,12 @@ private theorem dtcons_smt_datatype_wf_of_translation
     __smtx_type_wf
         (SmtType.Datatype s (__eo_to_smt_datatype_decl d)) = true := by
   intro hTrans
-  have hReserved : native_reserved_datatype_name s = false :=
+  have hReserved : __eo_to_smt_reserved_datatype_name s = false :=
     dtcons_reserved_false_of_translation hTrans
   unfold RuleProofs.eo_has_smt_translation at hTrans
   change
     __smtx_typeof
-        (native_ite (native_reserved_datatype_name s) SmtTerm.None
+        (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
           (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i)) ≠
       SmtType.None at hTrans
   rw [hReserved] at hTrans
@@ -2368,7 +2368,7 @@ private theorem tuple_unit_dtcons_model_eval_eq_false
         (__smtx_model_eval M (__eo_to_smt (Term.DtCons s d i))) =
       SmtValue.Boolean false := by
   intro hTrans
-  have hReserved : native_reserved_datatype_name s = false :=
+  have hReserved : __eo_to_smt_reserved_datatype_name s = false :=
     dtcons_reserved_false_of_translation hTrans
   have hNameNe : s ≠ native_string_lit "@Tuple" := by
     intro hs
@@ -2395,7 +2395,7 @@ private theorem dtcons_tuple_unit_model_eval_eq_false
       SmtValue.Boolean false := by
   intro hTrans
   rw [dtcons_model_eval_of_translation M hTrans, tuple_unit_model_eval M]
-  have hReserved : native_reserved_datatype_name s = false :=
+  have hReserved : __eo_to_smt_reserved_datatype_name s = false :=
     dtcons_reserved_false_of_translation hTrans
   have hNameNe : s ≠ native_string_lit "@Tuple" := by
     intro hs
@@ -2437,7 +2437,7 @@ private theorem dtcons_dtcons_model_eval_eq_false
           __smtx_type_wf
               (SmtType.Datatype s₁ (__eo_to_smt_datatype_decl d₁)) = true :=
         dtcons_smt_datatype_wf_of_translation h₁Trans
-      have hReserved : native_reserved_datatype_name s₁ = false :=
+      have hReserved : __eo_to_smt_reserved_datatype_name s₁ = false :=
         dtcons_reserved_false_of_translation h₁Trans
       have hTypeEq :
           Term.DatatypeType s₁ d₁ = Term.DatatypeType s₁ d₂ :=

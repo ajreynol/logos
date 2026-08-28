@@ -69,7 +69,7 @@ private theorem type_default_canonical_kernel : ∀ T : SmtType,
     simp [__smtx_type_default, __smtx_value_canonical]
   · intros
     simp [__smtx_type_default, __smtx_value_canonical,
-      native_re_canonical, native_re_none]
+      __smtx_re_canonical, native_re_none]
   · intro w _hInh _hRec
     simp [__smtx_type_default, __smtx_value_canonical,
       native_nat_to_int, native_and, native_zleq, native_zeq, native_mod_total,

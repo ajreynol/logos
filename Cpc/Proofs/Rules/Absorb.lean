@@ -660,7 +660,7 @@ private theorem bvand_args_of_bitvec_type (y x : Term) (w : native_Nat) :
               (__smtx_typeof (__eo_to_smt x)) by
           rw [__smtx_typeof.eq_40]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite,
-        native_nateq, SmtEval.native_nateq] using hTy'
+        native_nateq, Smtm.native_nateq] using hTy'
     cases hResult
     rfl
   subst w'
@@ -699,7 +699,7 @@ private theorem bvor_args_of_bitvec_type (y x : Term) (w : native_Nat) :
               (__smtx_typeof (__eo_to_smt x)) by
           rw [__smtx_typeof.eq_41]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite,
-        native_nateq, SmtEval.native_nateq] using hTy'
+        native_nateq, Smtm.native_nateq] using hTy'
     cases hResult
     rfl
   subst w'
@@ -730,7 +730,7 @@ private theorem bvand_result_type_of_non_none (y x : Term) :
     SmtType.BitVec w
   rw [__smtx_typeof.eq_40]
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
-    SmtEval.native_nateq]
+    Smtm.native_nateq]
 
 private theorem bvor_result_type_of_non_none (y x : Term) :
     __smtx_typeof (__eo_to_smt (mkBvOr y x)) ≠ SmtType.None ->
@@ -757,7 +757,7 @@ private theorem bvor_result_type_of_non_none (y x : Term) :
     SmtType.BitVec w
   rw [__smtx_typeof.eq_41]
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
-    SmtEval.native_nateq]
+    Smtm.native_nateq]
 
 private theorem native_str_in_re_mk_union
     (str : native_String) (r s : SmtRegLan) :
@@ -815,10 +815,10 @@ private theorem native_binary_or_mod_eq_toNat
       ((BitVec.ofInt w n1 ||| BitVec.ofInt w n2).toNat : Int) := by
   cases w with
   | zero =>
-      simp [native_binary_or, native_pior, native_mod_total,
+      simp [native_binary_or, impl_native_pior, native_mod_total,
         native_int_pow2_nat]
   | succ w =>
-      simp [native_binary_or, native_pior, native_mod_total,
+      simp [native_binary_or, impl_native_pior, native_mod_total,
         native_nat_to_int, native_ite, native_zeq]
       exact bitvec_toInt_emod_pow (Nat.succ w)
         (BitVec.ofInt (Nat.succ w) n1 ||| BitVec.ofInt (Nat.succ w) n2)

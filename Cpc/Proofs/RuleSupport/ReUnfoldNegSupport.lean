@@ -225,8 +225,8 @@ theorem native_str_in_re_of_reglan_rel
   have hValid := native_string_valid_of_str_in_re_true hMem
   have hModelExt : ∀ str : native_String,
       native_string_valid str = true ->
-        Smtm.native_str_in_re (native_string_to_values str) r =
-          Smtm.native_str_in_re (native_string_to_values str) s := by
+        Smtm.native_str_in_re (impl_native_string_to_values str) r =
+          Smtm.native_str_in_re (impl_native_string_to_values str) s := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
     simpa [__smtx_model_eval_eq] using hRel
   have hExt : native_str_in_re str r = native_str_in_re str s := by
@@ -254,9 +254,9 @@ theorem reConcat_nil_eval_empty_of_is_list_nil_true
                   (SmtTerm.str_to_re (SmtTerm.String [])) =
                 SmtValue.RegLan (native_str_to_re ([] : native_String))
               simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
-                native_str_to_re, native_re_of_list, native_pack_string,
+                native_str_to_re, impl_native_re_of_list, native_pack_string,
                 native_pack_seq, native_unpack_seq,
-                native_string_to_values]
+                impl_native_string_to_values]
           | cons _ _ =>
               simp only [__eo_is_list_nil] at hNil
               cases hNil
@@ -279,7 +279,7 @@ private theorem reConcat_smt_value_rel_right_empty_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hIdEval]
   cases r <;>
     simp [__smtx_model_eval_eq, native_re_concat,
-      native_str_to_re, native_re_of_list, native_string_to_values]
+      native_str_to_re, impl_native_re_of_list, impl_native_string_to_values]
 
 private theorem reConcat_is_list_nil_boolean_of_ne_stuck (t : Term) :
     t ≠ Term.Stuck ->

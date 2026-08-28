@@ -30,7 +30,7 @@ The semantic core shared by substitution-based rules (`instantiate`,
 `skolemize`): the substitution model `pushSubstModel`, the capture-avoiding
 substitution/coincidence engine `substFalse_eval_gen_lt`, and its packaging
 `substitute_simul_eval`, together with the quantifier-evaluator congruence
-lemmas (`native_eval_texists/tforall_eq_of_body_eval_eq_diff(_typed)`).
+lemmas (`native_eval_exists/tforall_eq_of_body_eval_eq_diff(_typed)`).
 
 This file was split out of `Cpc/Proofs/Rules/Instantiate.lean` so that other
 rules can use the engine without depending on the `instantiate` rule module.
@@ -978,8 +978,8 @@ theorem native_eval_texists_eq_of_body_eval_eq_diff
     (hBody : ∀ v : SmtValue,
       __smtx_model_eval (native_model_push M s T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    (native_eval_texists M s T bodyM : SmtValue) =
-      (native_eval_texists N s T bodyN : SmtValue) := by
+    (native_eval_exists M s T bodyM : SmtValue) =
+      (native_eval_exists N s T bodyN : SmtValue) := by
   classical
   let PM : Prop :=
     ∃ v : SmtValue,
@@ -1016,8 +1016,8 @@ theorem native_eval_texists_eq_of_body_eval_eq_diff_typed
       __smtx_value_canonical v = true ->
       __smtx_model_eval (native_model_push M s T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    (native_eval_texists M s T bodyM : SmtValue) =
-      (native_eval_texists N s T bodyN : SmtValue) := by
+    (native_eval_exists M s T bodyM : SmtValue) =
+      (native_eval_exists N s T bodyN : SmtValue) := by
   classical
   let PM : Prop :=
     ∃ v : SmtValue,
@@ -1051,8 +1051,8 @@ theorem native_eval_tforall_eq_of_body_eval_eq_diff
     (hBody : ∀ v : SmtValue,
       __smtx_model_eval (native_model_push M s T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    (native_eval_tforall M s T bodyM : SmtValue) =
-      (native_eval_tforall N s T bodyN : SmtValue) := by
+    (native_eval_forall M s T bodyM : SmtValue) =
+      (native_eval_forall N s T bodyN : SmtValue) := by
   classical
   let PM : Prop :=
     ∀ v : SmtValue,
@@ -1087,8 +1087,8 @@ theorem native_eval_tforall_eq_of_body_eval_eq_diff_typed
       __smtx_value_canonical v = true ->
       __smtx_model_eval (native_model_push M s T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    (native_eval_tforall M s T bodyM : SmtValue) =
-      (native_eval_tforall N s T bodyN : SmtValue) := by
+    (native_eval_forall M s T bodyM : SmtValue) =
+      (native_eval_forall N s T bodyN : SmtValue) := by
   classical
   let PM : Prop :=
     ∀ v : SmtValue,
@@ -6306,10 +6306,10 @@ theorem eo_to_smt_atom_head_ne_dt_sel
   | Var name S => exact False.elim (hNotVar name S rfl)
   | DtCons s0 d0 i0 =>
     change
-      native_ite (native_reserved_datatype_name s0) SmtTerm.None
+      native_ite (__eo_to_smt_reserved_datatype_name s0) SmtTerm.None
           (SmtTerm.DtCons s0 (__eo_to_smt_datatype_decl d0) i0) =
         SmtTerm.DtSel s d i j at hEq
-    cases hRes : native_reserved_datatype_name s0 <;>
+    cases hRes : __eo_to_smt_reserved_datatype_name s0 <;>
       simp [native_ite, hRes] at hEq
   | DtSel s0 d0 i0 j0 => exact False.elim (hNotDtSel s0 d0 i0 j0 rfl)
   | _ => cases hEq
@@ -6333,17 +6333,17 @@ theorem eo_to_smt_atom_head_ne_dt_tester
   | Var name S => exact False.elim (hNotVar name S rfl)
   | DtCons s0 d0 i0 =>
     change
-      native_ite (native_reserved_datatype_name s0) SmtTerm.None
+      native_ite (__eo_to_smt_reserved_datatype_name s0) SmtTerm.None
           (SmtTerm.DtCons s0 (__eo_to_smt_datatype_decl d0) i0) =
         SmtTerm.DtTester s d i at hEq
-    cases hRes : native_reserved_datatype_name s0 <;>
+    cases hRes : __eo_to_smt_reserved_datatype_name s0 <;>
       simp [native_ite, hRes] at hEq
   | DtSel s0 d0 i0 j0 =>
     change
-      native_ite (native_reserved_datatype_name s0) SmtTerm.None
+      native_ite (__eo_to_smt_reserved_datatype_name s0) SmtTerm.None
           (SmtTerm.DtSel s0 (__eo_to_smt_datatype_decl d0) i0 j0) =
         SmtTerm.DtTester s d i at hEq
-    cases hRes : native_reserved_datatype_name s0 <;>
+    cases hRes : __eo_to_smt_reserved_datatype_name s0 <;>
       simp [native_ite, hRes] at hEq
   | _ => cases hEq
 
@@ -6428,21 +6428,21 @@ theorem smtx_model_eval_eo_to_smt_atom_head_eq_of_globals
   | DtCons s d i =>
       change
         __smtx_model_eval M
-            (native_ite (native_reserved_datatype_name s) SmtTerm.None
+            (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
               (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i)) =
           __smtx_model_eval N
-            (native_ite (native_reserved_datatype_name s) SmtTerm.None
+            (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
               (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i))
-      cases native_reserved_datatype_name s <;> simp [native_ite, __smtx_model_eval]
+      cases __eo_to_smt_reserved_datatype_name s <;> simp [native_ite, __smtx_model_eval]
   | DtSel s d i j =>
       change
         __smtx_model_eval M
-            (native_ite (native_reserved_datatype_name s) SmtTerm.None
+            (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
               (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j)) =
           __smtx_model_eval N
-            (native_ite (native_reserved_datatype_name s) SmtTerm.None
+            (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
               (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
-      cases native_reserved_datatype_name s <;> simp [native_ite, __smtx_model_eval]
+      cases __eo_to_smt_reserved_datatype_name s <;> simp [native_ite, __smtx_model_eval]
   | USort n =>
       change __smtx_model_eval M SmtTerm.None =
         __smtx_model_eval N SmtTerm.None

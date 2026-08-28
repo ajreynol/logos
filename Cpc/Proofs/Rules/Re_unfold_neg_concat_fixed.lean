@@ -1467,7 +1467,7 @@ theorem re_unfold_neg_concat_fixed_true_eval_true
           native_str_in_re ([] : native_String)
             (native_str_to_re ([] : native_String)) = true := by
         simp [RuleProofs.native_str_in_re, RuleProofs.nativeListInRe,
-          native_str_to_re, native_re_of_list, native_re_nullable,
+          native_str_to_re, impl_native_re_of_list, native_re_nullable,
           native_string_valid]
       have hSuffixSingleton :
           native_str_in_re suffixStr

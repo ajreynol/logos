@@ -228,7 +228,7 @@ private theorem native_qleq_of_qlt_true {a b : native_Rat} :
   have hLt : a < b := by
     simpa [native_qlt, SmtEval.native_qlt] using h
   have hLe : a <= b := Rat.le_of_lt hLt
-  simpa [native_qleq, SmtEval.native_qleq] using hLe
+  simpa [native_qleq, Smtm.native_qleq] using hLe
 
 private theorem native_zlt_add_of_zlt_of_zle {a b c d : native_Int} :
     native_zlt a b = true ->
@@ -280,7 +280,7 @@ private theorem native_qlt_add_of_qlt_of_qle {a b c d : native_Rat} :
   have hltp : a < b := by
     simpa [native_qlt, SmtEval.native_qlt] using hlt
   have hlep : c <= d := by
-    simpa [native_qleq, SmtEval.native_qleq] using hle
+    simpa [native_qleq, Smtm.native_qleq] using hle
   have hres : a + c < b + d := by
     grind
   simp only [native_qlt, SmtEval.native_qlt, native_qplus, SmtEval.native_qplus]
@@ -292,7 +292,7 @@ private theorem native_qlt_add_of_qle_of_qlt {a b c d : native_Rat} :
     native_qlt (native_qplus a c) (native_qplus b d) = true := by
   intro hle hlt
   have hlep : a <= b := by
-    simpa [native_qleq, SmtEval.native_qleq] using hle
+    simpa [native_qleq, Smtm.native_qleq] using hle
   have hltp : c < d := by
     simpa [native_qlt, SmtEval.native_qlt] using hlt
   have hres : a + c < b + d := by
@@ -306,12 +306,12 @@ private theorem native_qleq_add_of_qle_of_qle {a b c d : native_Rat} :
     native_qleq (native_qplus a c) (native_qplus b d) = true := by
   intro hle1 hle2
   have hle1p : a <= b := by
-    simpa [native_qleq, SmtEval.native_qleq] using hle1
+    simpa [native_qleq, Smtm.native_qleq] using hle1
   have hle2p : c <= d := by
-    simpa [native_qleq, SmtEval.native_qleq] using hle2
+    simpa [native_qleq, Smtm.native_qleq] using hle2
   have hres : a + c <= b + d := by
     grind
-  simp only [native_qleq, SmtEval.native_qleq, native_qplus, SmtEval.native_qplus]
+  simp only [native_qleq, Smtm.native_qleq, native_qplus, SmtEval.native_qplus]
   exact decide_eq_true hres
 
 private theorem smt_eval_int_of_type
@@ -450,7 +450,7 @@ private theorem real_le_eval_of_eq_true
       rw [smtx_eval_eq_term_eq, ha, hb] at hEval
       simp [__smtx_model_eval_eq, native_veq] at hEval
       subst r
-      exact ⟨q, q, ha, hb, by simp [native_qleq, SmtEval.native_qleq]⟩
+      exact ⟨q, q, ha, hb, by simp [native_qleq, Smtm.native_qleq]⟩
 
 private theorem sum_lt_true_of_int_eval
     (M : SmtModel) (a1 b1 a2 b2 : Term)

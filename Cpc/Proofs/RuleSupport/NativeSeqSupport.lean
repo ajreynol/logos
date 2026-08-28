@@ -46,65 +46,65 @@ theorem native_re_concat_char_eq
 
 theorem native_re_of_list_cons_ne :
     ∀ (c : SmtValue) (cs : List SmtValue),
-      native_re_of_list (c :: cs) ≠ SmtRegLan.empty ∧
-        native_re_of_list (c :: cs) ≠ SmtRegLan.epsilon
+      impl_native_re_of_list (c :: cs) ≠ SmtRegLan.empty ∧
+        impl_native_re_of_list (c :: cs) ≠ SmtRegLan.epsilon
   | c, [] => by
-      simp [native_re_of_list, native_re_concat]
+      simp [impl_native_re_of_list, native_re_concat]
   | c, d :: ds => by
       have h := native_re_of_list_cons_ne d ds
-      rw [native_re_of_list.eq_2,
-        native_re_concat_char_eq c (native_re_of_list (d :: ds)) h.1 h.2]
+      rw [impl_native_re_of_list.eq_2,
+        native_re_concat_char_eq c (impl_native_re_of_list (d :: ds)) h.1 h.2]
       simp
 
 theorem native_re_deriv_re_of_list_cons
     (x c : SmtValue) (cs : List SmtValue) :
-    native_re_deriv x (native_re_of_list (c :: cs)) =
-      if x = c then native_re_of_list cs else SmtRegLan.empty := by
+    native_re_deriv x (impl_native_re_of_list (c :: cs)) =
+      if x = c then impl_native_re_of_list cs else SmtRegLan.empty := by
   cases cs with
   | nil =>
-      simp [native_re_of_list, native_re_concat, native_re_deriv]
+      simp [impl_native_re_of_list, native_re_concat, native_re_deriv]
   | cons d ds =>
       have h := native_re_of_list_cons_ne d ds
-      rw [native_re_of_list.eq_2,
-        native_re_concat_char_eq c (native_re_of_list (d :: ds)) h.1 h.2]
+      rw [impl_native_re_of_list.eq_2,
+        native_re_concat_char_eq c (impl_native_re_of_list (d :: ds)) h.1 h.2]
       by_cases hx : x = c <;>
         simp [native_re_deriv, native_re_nullable, native_re_concat,
           native_re_union, hx, h.1]
 
 theorem native_re_nullable_re_of_list (pat : List SmtValue) :
-    native_re_nullable (native_re_of_list pat) = decide (pat = []) := by
+    native_re_nullable (impl_native_re_of_list pat) = decide (pat = []) := by
   cases pat with
-  | nil => simp [native_re_of_list, native_re_nullable]
+  | nil => simp [impl_native_re_of_list, native_re_nullable]
   | cons c cs =>
       cases cs with
-      | nil => simp [native_re_of_list, native_re_concat, native_re_nullable]
+      | nil => simp [impl_native_re_of_list, native_re_concat, native_re_nullable]
       | cons d ds =>
           have ht := native_re_of_list_cons_ne d ds
-          rw [native_re_of_list.eq_2,
-            native_re_concat_char_eq c (native_re_of_list (d :: ds)) ht.1 ht.2]
+          rw [impl_native_re_of_list.eq_2,
+            native_re_concat_char_eq c (impl_native_re_of_list (d :: ds)) ht.1 ht.2]
           simp [native_re_nullable]
 
 theorem native_re_prefix_go_empty (xs : List SmtValue) (n : Nat) :
-    native_re_prefix_match_len?.go SmtRegLan.empty xs n = none := by
+    impl_native_re_prefix_match_len_go SmtRegLan.empty xs n = none := by
   induction xs generalizing n with
-  | nil => simp [native_re_prefix_match_len?.go, native_re_nullable]
+  | nil => simp [impl_native_re_prefix_match_len_go, native_re_nullable]
   | cons x xs ih =>
-      rw [native_re_prefix_match_len?.go.eq_2]
+      rw [impl_native_re_prefix_match_len_go.eq_2]
       simp [native_re_nullable, native_re_deriv, ih]
 
 theorem native_re_prefix_go_re_of_list :
     ∀ (pat xs : List SmtValue) (n : Nat),
-      native_re_prefix_match_len?.go (native_re_of_list pat) xs n =
+      impl_native_re_prefix_match_len_go (impl_native_re_of_list pat) xs n =
         if native_seq_prefix_eq pat xs then some (n + pat.length) else none
   | [], xs, n => by
       cases xs <;>
-        simp [native_re_prefix_match_len?.go, native_re_of_list,
+        simp [impl_native_re_prefix_match_len_go, impl_native_re_of_list,
           native_re_nullable, native_seq_prefix_eq]
   | c :: cs, [], n => by
-      rw [native_re_prefix_match_len?.go.eq_1]
+      rw [impl_native_re_prefix_match_len_go.eq_1]
       simp [native_re_nullable_re_of_list, native_seq_prefix_eq]
   | c :: cs, x :: xs, n => by
-      rw [native_re_prefix_match_len?.go.eq_2]
+      rw [impl_native_re_prefix_match_len_go.eq_2]
       rw [native_re_nullable_re_of_list]
       simp only [List.cons_ne_nil, decide_false, Bool.false_eq_true, if_false]
       rw [native_re_deriv_re_of_list_cons]
@@ -123,7 +123,7 @@ theorem native_re_prefix_go_re_of_list :
 
 theorem native_re_prefix_match_re_of_list
     (pat xs : List SmtValue) :
-    native_re_prefix_match_len? (native_re_of_list pat) xs =
+    native_re_prefix_match_len? (impl_native_re_of_list pat) xs =
       if native_seq_prefix_eq pat xs then some pat.length else none := by
   simp [native_re_prefix_match_len?, native_re_prefix_go_re_of_list]
 
@@ -139,7 +139,7 @@ theorem native_seq_prefix_eq_length_le :
 
 theorem native_re_find_idx_aux_re_of_list_value :
     ∀ (pat xs : List SmtValue) (i : Nat),
-      (match native_re_find_idx_aux (native_re_of_list pat) xs i with
+      (match impl_native_re_find_idx_aux (impl_native_re_of_list pat) xs i with
        | some (idx, _) => Int.ofNat idx
        | none => -1) =
         if _h : pat.length ≤ xs.length then
@@ -149,13 +149,13 @@ theorem native_re_find_idx_aux_re_of_list_value :
   | pat, [], i => by
       cases pat with
       | nil =>
-          simp [native_re_find_idx_aux, native_re_prefix_match_re_of_list,
+          simp [impl_native_re_find_idx_aux, native_re_prefix_match_re_of_list,
             native_seq_prefix_eq, native_seq_indexof_rec]
       | cons p ps =>
-          simp [native_re_find_idx_aux, native_re_prefix_match_re_of_list,
+          simp [impl_native_re_find_idx_aux, native_re_prefix_match_re_of_list,
             native_seq_prefix_eq]
   | pat, x :: xs, i => by
-      rw [native_re_find_idx_aux.eq_def, native_re_prefix_match_re_of_list]
+      rw [impl_native_re_find_idx_aux.eq_def, native_re_prefix_match_re_of_list]
       by_cases hp : native_seq_prefix_eq pat (x :: xs) = true
       · rw [if_pos hp]
         have hLen : pat.length ≤ (x :: xs).length :=

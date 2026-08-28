@@ -663,7 +663,7 @@ private theorem native_eval_tchoice_eq_of_body_eval_eq_typed
       __smtx_value_canonical v = true ->
       __smtx_model_eval (native_model_push M s T v) body =
         __smtx_model_eval (native_model_push N s T v) body) :
-    native_eval_tchoice M s T body = native_eval_tchoice N s T body := by
+    native_eval_choice M s T body = native_eval_choice N s T body := by
   classical
   have hPred : (fun v : SmtValue =>
       __smtx_typeof_value v = T ∧

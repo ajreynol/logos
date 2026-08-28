@@ -17,7 +17,7 @@ private theorem model_total_typed_lookup_canonical_bool
     (T : SmtType)
     (hT : __smtx_type_wf T = true) :
     __smtx_value_canonical (native_model_lookup M s T) = true := by
-  simpa [native_model_lookup, native_model_key] using
+  simpa [native_model_lookup, model_key] using
     hM.2.1 false s T hT
 
 /-- Describes how `model_wf` behaves under lookup for well-formed types. -/
@@ -29,7 +29,7 @@ theorem model_total_typed_lookup
     (hT : __smtx_type_wf T = true) :
     __smtx_typeof_value (native_model_lookup M s T) = T :=
   by
-    simpa [native_model_lookup, native_model_key] using
+    simpa [native_model_lookup, model_key] using
       hM.1 false s T hT
 
 /-- Describes how `model_wf` preserves canonical lookup values for well-formed types. -/
@@ -127,7 +127,7 @@ theorem model_total_typed_push
       · simp [native_model_push, hKey]
         exact hM.2.1 isVar s' T' hT'
     · intro fid A B i hFunWF hi
-      simpa [model_fun_wf, native_eval_fun_apply, native_model_fun_lookup,
+      simpa [model_fun_wf, native_eval_fun_apply, model_fun_lookup,
         native_model_push]
         using model_total_typed_native_fun_typed hM fid A B i hFunWF hi
 

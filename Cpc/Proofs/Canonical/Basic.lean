@@ -63,7 +63,7 @@ theorem value_canonical_char (c : native_Char)
   simp [value_canonical, __smtx_value_canonical, hc]
 
 theorem value_canonical_reglan (r : SmtRegLan)
-    (hr : native_re_canonical r = true) :
+    (hr : __smtx_re_canonical r = true) :
     value_canonical (SmtValue.RegLan r) := by
   simp [value_canonical, __smtx_value_canonical, hr]
 

@@ -16493,7 +16493,7 @@ theorem apply_dt_sel_arg_has_smt_translation_of_has_smt_translation
   eoHasSmtTranslation x :=
 by
   unfold eoHasSmtTranslation at hTrans ⊢
-  cases hReserved : native_reserved_datatype_name s
+  cases hReserved : __eo_to_smt_reserved_datatype_name s
   · have hTrans' :
         __smtx_typeof
             (SmtTerm.Apply
@@ -16503,7 +16503,7 @@ by
       change
           __smtx_typeof
               (SmtTerm.Apply
-                (native_ite (native_reserved_datatype_name s) SmtTerm.None
+                (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
                   (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
                 (__eo_to_smt x)) ≠
             SmtType.None at hTrans
@@ -16526,7 +16526,7 @@ by
     change
         __smtx_typeof
             (SmtTerm.Apply
-              (native_ite (native_reserved_datatype_name s) SmtTerm.None
+              (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
                 (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
               (__eo_to_smt x)) ≠
           SmtType.None at hTrans

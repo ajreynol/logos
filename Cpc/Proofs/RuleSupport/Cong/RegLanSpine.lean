@@ -18,7 +18,7 @@ attribute [local simp] native_streq native_and native_ite
 
 private theorem native_model_str_in_re_eq_local
     (str : native_String) (r : SmtRegLan) :
-    Smtm.native_str_in_re (native_string_to_values str) r =
+    Smtm.native_str_in_re (impl_native_string_to_values str) r =
       native_str_in_re str r := by
   rw [← RuleProofs.native_str_in_re_eq_model]
   rfl
@@ -32,8 +32,8 @@ private theorem native_str_ext_of_reglan_rel_local
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
   have hModelExt : ∀ str : native_String,
       native_string_valid str = true ->
-        Smtm.native_str_in_re (native_string_to_values str) r =
-          Smtm.native_str_in_re (native_string_to_values str) r' := by
+        Smtm.native_str_in_re (impl_native_string_to_values str) r =
+          Smtm.native_str_in_re (impl_native_string_to_values str) r' := by
     simpa [__smtx_model_eval_eq] using hRel
   intro str hValid
   simpa only [native_model_str_in_re_eq_local] using hModelExt str hValid
@@ -2590,7 +2590,7 @@ private theorem regl_choose_eq_of_pred_eq {p q : SmtValue -> Prop}
 private theorem regl_smtx_eval_choice_term_eq
     (M : SmtModel) (s : native_String) (T : SmtType) (b : SmtTerm) :
     __smtx_model_eval M (SmtTerm.choice s T b) =
-      native_eval_tchoice M s T b := by
+      native_eval_choice M s T b := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem regl_tchoice_congr_bodies
@@ -2600,7 +2600,7 @@ private theorem regl_tchoice_congr_bodies
       __smtx_value_canonical v = true ->
       __smtx_model_eval (native_model_push M s T v) b₁ =
         __smtx_model_eval (native_model_push M s T v) b₂) :
-    native_eval_tchoice M s T b₁ = native_eval_tchoice M s T b₂ := by
+    native_eval_choice M s T b₁ = native_eval_choice M s T b₂ := by
   classical
   have hPredEq : (fun v : SmtValue =>
       __smtx_typeof_value v = T ∧
@@ -2994,11 +2994,11 @@ theorem congTrueSpine_strings_num_occur_re_eq_true
       native_unpack_string_valid_of_typeof_seq_char hSxTy
     have hRACongr : ∀ (w : native_String),
         native_str_replace_re_all
-            (native_string_to_values (native_unpack_string sx)) rx
-            (native_string_to_values w) =
+            (impl_native_string_to_values (native_unpack_string sx)) rx
+            (impl_native_string_to_values w) =
           native_str_replace_re_all
-            (native_string_to_values (native_unpack_string sx)) ry
-            (native_string_to_values w) := by
+            (impl_native_string_to_values (native_unpack_string sx)) ry
+            (impl_native_string_to_values w) := by
       intro w
       exact native_str_replace_re_all_congr (native_unpack_string sx) rx ry w
         hSxValid hExt
@@ -3007,7 +3007,7 @@ theorem congTrueSpine_strings_num_occur_re_eq_true
             (List.map SmtValue.Char (native_unpack_string sx)) rx [] =
           native_str_replace_re_all
             (List.map SmtValue.Char (native_unpack_string sx)) ry [] := by
-      simpa [native_string_to_values] using hRACongr []
+      simpa [impl_native_string_to_values] using hRACongr []
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
     change
       __smtx_model_eval_eq
@@ -3023,7 +3023,7 @@ theorem congTrueSpine_strings_num_occur_re_eq_true
     simp [__smtx_model_eval_str_substr, __smtx_model_eval_str_replace_re_all,
       __smtx_model_eval_str_len, __smtx_model_eval__, __smtx_model_eval_eq,
       native_veq, Smtm.native_unpack_pack_seq, hSxUnpack,
-      native_seq_extract, native_string_to_values]
+      native_seq_extract, impl_native_string_to_values]
     by_cases hEmpty : native_unpack_string sx = []
     · simp only [if_pos hEmpty]
       rw [hRAZero]
@@ -3033,7 +3033,7 @@ theorem congTrueSpine_strings_num_occur_re_eq_true
         (List.take
           (min 1 (List.length (native_unpack_string sx) : Int)).toNat
           (native_unpack_string sx))
-      simp only [native_string_to_values] at hRAOne
+      simp only [impl_native_string_to_values] at hRAOne
       rw [hRAOne, hRAZero]
 
 theorem congTrueSpine_strings_occur_index_eq_true

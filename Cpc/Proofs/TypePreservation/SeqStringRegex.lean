@@ -1062,7 +1062,7 @@ theorem typeof_seq_diff_eq (t1 t2 : SmtTerm) :
 
 /-- Shows that evaluating `seq_diff` terms produces values of the expected (`Int`) type.
 
-`native_eval_seq_diff_ssm` is a macro containing a `let rec`, so each textual occurrence
+`native_eval_seq_diff` is a macro containing a `let rec`, so each textual occurrence
 elaborates to a distinct recursion that is not definitionally equal across expansions.  We
 therefore unfold `__smtx_model_eval_seq_diff` (which bakes in a single expansion) rather than
 restating the macro, and only ever observe that the result is a `Numeral`. -/
@@ -1085,7 +1085,7 @@ theorem typeof_value_model_eval_seq_diff
   rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
   rcases seq_value_canonical (by simpa [h2] using hpres2) with ⟨ss2, hss2⟩
   rw [hss1, hss2]
-  -- `native_eval_seq_diff_ssm` now always returns a `Numeral` (the differing index,
+  -- `native_eval_seq_diff` now always returns a `Numeral` (the differing index,
   -- or `-1` as the default), so the result type is unconditionally `Int`.
   simp only [__smtx_model_eval_seq_diff]
   split <;> rfl

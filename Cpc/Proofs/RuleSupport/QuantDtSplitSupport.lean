@@ -704,7 +704,7 @@ theorem dtEoSpine_spine_translation
 theorem dtEoSpine_translation_head
     {c : Term} {s : native_String} {d : DatatypeDecl} {i : Nat}
     (hSpine : DtEoSpine c s d i)
-    (hReserved : native_reserved_datatype_name s = false) :
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false) :
     qdsSmtApplyHead (__eo_to_smt c) =
       SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i := by
   induction hSpine with
@@ -925,7 +925,7 @@ theorem eoTermArgs_eoTermSpine : ∀ (head : Term) (args : List Term),
 
 theorem eo_to_smt_spine_dtcons
     (s : native_String) (d : DatatypeDecl) (i : Nat) (args : List Term)
-    (hReserved : native_reserved_datatype_name s = false) :
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false) :
     __eo_to_smt (eoTermSpine (Term.DtCons s d i) args) =
       List.foldl (fun f a => SmtTerm.Apply f (__eo_to_smt a))
         (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i) args := by
@@ -1997,8 +1997,8 @@ theorem datatype_name_not_reserved_of_type_wf
     (s : native_String) (d : DatatypeDecl)
     (hWf : __smtx_type_wf
       (__eo_to_smt_type (Term.DatatypeType s d)) = true) :
-    native_reserved_datatype_name s = false := by
-  cases hRes : native_reserved_datatype_name s
+    __eo_to_smt_reserved_datatype_name s = false := by
+  cases hRes : __eo_to_smt_reserved_datatype_name s
   · rfl
   · simp [__eo_to_smt_type, hRes, native_ite, __smtx_type_wf,
       __smtx_type_wf_component, __smtx_type_wf_rec, native_and] at hWf
@@ -2170,7 +2170,7 @@ selected conjunct so that its final constructor evaluates to the requested
 constructor value. -/
 private theorem conj_ctor_inst_from_values_aux
     (s : native_String) (d : DatatypeDecl) (i : Nat)
-    (hReserved : native_reserved_datatype_name s = false) :
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false) :
     ∀ {x F c ys g : Term}
       (rel : ConjRel x F c ys g),
       DtEoSpine c s d i ->
@@ -2429,7 +2429,7 @@ private theorem conj_ctor_inst_from_values_aux
 
 theorem conj_ctor_inst_from_values
     (s : native_String) (d : DatatypeDecl) (i : Nat)
-    (hReserved : native_reserved_datatype_name s = false) :
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false) :
     ∀ {x F ys g : Term}
       (rel : ConjRel x F (Term.DtCons s d i) ys g),
       ∀ (M : SmtModel) (v : SmtValue) (args : List SmtValue),
@@ -3228,7 +3228,7 @@ theorem split_backward
           SmtValue.DtCons sD (__eo_to_smt_datatype_decl dD) ci := by
         have hRootTo : __eo_to_smt (Term.DtCons sD dD ci) =
             SmtTerm.DtCons sD (__eo_to_smt_datatype_decl dD) ci := by
-          change native_ite (native_reserved_datatype_name sD) SmtTerm.None
+          change native_ite (__eo_to_smt_reserved_datatype_name sD) SmtTerm.None
             (SmtTerm.DtCons sD (__eo_to_smt_datatype_decl dD) ci) = _
           rw [hReserved]
           rfl
@@ -3238,7 +3238,7 @@ theorem split_backward
           (__smtx_model_eval N₀ (__eo_to_smt (Term.DtCons sD dD ci))) args := by
         have hRootTo : __eo_to_smt (Term.DtCons sD dD ci) =
             SmtTerm.DtCons sD (__eo_to_smt_datatype_decl dD) ci := by
-          change native_ite (native_reserved_datatype_name sD) SmtTerm.None
+          change native_ite (__eo_to_smt_reserved_datatype_name sD) SmtTerm.None
             (SmtTerm.DtCons sD (__eo_to_smt_datatype_decl dD) ci) = _
           rw [hReserved]
           rfl
