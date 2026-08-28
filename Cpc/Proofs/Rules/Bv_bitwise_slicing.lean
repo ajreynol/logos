@@ -48,7 +48,7 @@ private theorem int_canon_bounds {n : Int} {W : Nat}
   · rw [h]; exact Int.emod_lt_of_pos n hpos
 
 -- A non-none term of type `BitVec W` evaluates to a canonical width-W binary value.
-private theorem bv_term_eval_canonical (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm)
+private theorem bv_term_eval_canonical (M : SmtModel) (hM : model_wf M) (t : SmtTerm)
     (W : Nat) (hnn : term_has_non_none_type t) (hty : __smtx_typeof t = SmtType.BitVec ↑W) :
     ∃ n : Int, __smtx_model_eval M t = SmtValue.Binary ↑W n ∧ 0 ≤ n ∧ n < 2^W := by
   have hpres := type_preservation M hM t hnn
@@ -1981,7 +1981,7 @@ private theorem gfc_ne_stuck_shape {lhs : Term} (h : __bv_get_first_const_child 
     | _ => exact (h rfl).elim
   | _ => exact (h rfl).elim
 
-private theorem mk_spine_fuel (op : BvOpSpec) (M : SmtModel) (hM : model_total_typed M) (W : Nat) :
+private theorem mk_spine_fuel (op : BvOpSpec) (M : SmtModel) (hM : model_wf M) (W : Nat) :
     ∀ (n : Nat) (lhs : Term), sizeOf lhs ≤ n →
       term_has_non_none_type (__eo_to_smt lhs) →
       __smtx_typeof (__eo_to_smt lhs) = SmtType.BitVec ↑W →
@@ -2034,7 +2034,7 @@ private theorem mk_spine_fuel (op : BvOpSpec) (M : SmtModel) (hM : model_total_t
         exact Spine.tail a1 b ca hca0 hca1 heva hta1 hbf
           (ih b hszb hnn2 hta2 hlist2 hgfc2)
 
-private theorem mk_spine (op : BvOpSpec) (M : SmtModel) (hM : model_total_typed M) (W : Nat)
+private theorem mk_spine (op : BvOpSpec) (M : SmtModel) (hM : model_wf M) (W : Nat)
     (lhs : Term) (hnn : term_has_non_none_type (__eo_to_smt lhs))
     (hty : __smtx_typeof (__eo_to_smt lhs) = SmtType.BitVec ↑W)
     (hlist : __eo_is_list op.f lhs = Term.Boolean true)
@@ -2044,7 +2044,7 @@ private theorem mk_spine (op : BvOpSpec) (M : SmtModel) (hM : model_total_typed 
 
 
 -- singleton_elim preserves the evaluated value on a width-W op-list.
-private theorem sing_elim_eval (op : BvOpSpec) (M : SmtModel) (hM : model_total_typed M) (W : Nat)
+private theorem sing_elim_eval (op : BvOpSpec) (M : SmtModel) (hM : model_wf M) (W : Nat)
     (Z : Term) (hnn : term_has_non_none_type (__eo_to_smt Z))
     (hty : __smtx_typeof (__eo_to_smt Z) = SmtType.BitVec ↑W)
     (hlist : __eo_is_list op.f Z = Term.Boolean true) :
@@ -2180,7 +2180,7 @@ private theorem bitwise_guard_true_cases (f : Term) :
       simp [__eo_eq, __eo_or, native_teq, native_or, SmtEval.native_or] at h
 
 private theorem bv_bitwise_slicing_eval_rel_op (op : BvOpSpec)
-    (M : SmtModel) (hM : model_total_typed M) (a1 a2 : Term)
+    (M : SmtModel) (hM : model_wf M) (a1 a2 : Term)
     (hExpandedNe :
       __bv_mk_bitwise_slicing (Term.Apply (Term.Apply op.f a1) a2) ≠ Term.Stuck)
     (hRepNN : term_has_non_none_type
@@ -2371,7 +2371,7 @@ private theorem bv_bitwise_slicing_eval_rel_op (op : BvOpSpec)
 
 /-- The soundness core of the wrapper: the sliced form `__bv_mk_bitwise_slicing lhs`
 evaluates to the same bitvector value as `lhs`. -/
-private theorem bv_bitwise_slicing_eval_rel (M : SmtModel) (hM : model_total_typed M)
+private theorem bv_bitwise_slicing_eval_rel (M : SmtModel) (hM : model_wf M)
     (lhs : Term)
     (hExpandedNe : __bv_mk_bitwise_slicing lhs ≠ Term.Stuck)
     (hRepNN : term_has_non_none_type (__eo_to_smt lhs)) :
@@ -2425,7 +2425,7 @@ private theorem bv_bitwise_slicing_eval_rel (M : SmtModel) (hM : model_total_typ
       exact bv_bitwise_slicing_eval_rel_op bvOpXor M hM a1 a2 hExpandedNe hRepNN
 
 public theorem cmd_step_bv_bitwise_slicing_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_bitwise_slicing args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

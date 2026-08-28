@@ -576,7 +576,7 @@ theorem typed_term_of_type_or_nil
       (by rw [hLhsTy, hRhsTy]) (by rw [hLhsTy]; simp)
 
 theorem facts_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs zs n w : Term) (W : native_Int) :
     __smtx_typeof (__eo_to_smt xs) =
       SmtType.BitVec (native_int_to_nat W) ->
@@ -697,7 +697,7 @@ theorem facts_term
     exact RuleProofs.smt_value_rel_refl _
 
 theorem facts_term_of_type_or_nil
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs zs n w : Term) (W : native_Int) :
     (__smtx_typeof (__eo_to_smt xs) =
         SmtType.BitVec (native_int_to_nat W) ∨

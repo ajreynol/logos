@@ -388,7 +388,7 @@ private theorem trusted_bv_redor_eliminate_canonical_properties
       (typed_redor_body x w hXTrans hwNe hBodyTy)
 
 public theorem cmd_step_bv_redor_eliminate_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_redor_eliminate args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

@@ -66,13 +66,13 @@ private theorem eo_eq_true_not_eval_true_iff
 private theorem eo_to_smt_exists_eval_true_iff_of_body_true_iff
     (M : SmtModel) (body body' : SmtTerm)
     (hBody :
-      ∀ N, model_total_typed N ->
+      ∀ N, model_wf N ->
         model_agrees_on_globals M N ->
         (__smtx_model_eval N body = SmtValue.Boolean true ↔
           __smtx_model_eval N body' = SmtValue.Boolean true)) :
     ∀ (xs : Term) (N : SmtModel),
       QuantifierBinderTypesWf xs ->
-      model_total_typed N ->
+      model_wf N ->
       model_agrees_on_globals M N ->
       (__smtx_model_eval N (__eo_to_smt_exists xs body) =
           SmtValue.Boolean true ↔
@@ -105,7 +105,7 @@ private theorem eo_to_smt_exists_eval_true_iff_of_body_true_iff
                 by_cases hSat :
                     ∃ v : SmtValue,
                       __smtx_typeof_value v = __eo_to_smt_type T ∧
-                        __smtx_value_canonical_bool v = true ∧
+                        __smtx_value_canonical v = true ∧
                         __smtx_model_eval
                             (native_model_push N s (__eo_to_smt_type T) v)
                             (__eo_to_smt_exists xs body) =
@@ -113,7 +113,7 @@ private theorem eo_to_smt_exists_eval_true_iff_of_body_true_iff
                 · have hSat' :
                       ∃ v : SmtValue,
                         __smtx_typeof_value v = __eo_to_smt_type T ∧
-                          __smtx_value_canonical_bool v = true ∧
+                          __smtx_value_canonical v = true ∧
                           __smtx_model_eval
                               (native_model_push N s (__eo_to_smt_type T) v)
                               (__eo_to_smt_exists xs body') =
@@ -127,7 +127,7 @@ private theorem eo_to_smt_exists_eval_true_iff_of_body_true_iff
                         hBinderWf.2
                         (model_total_typed_push hN s (__eo_to_smt_type T) v
                           hBinderWf.1 hvTy
-                          (by simpa [__smtx_value_canonical] using hvCan))
+                          (by simpa [value_canonical] using hvCan))
                         (model_agrees_on_globals_trans hAgree
                           (model_agrees_on_globals_push N s (__eo_to_smt_type T) v))).1
                         hvEval
@@ -137,7 +137,7 @@ private theorem eo_to_smt_exists_eval_true_iff_of_body_true_iff
                 by_cases hSat :
                     ∃ v : SmtValue,
                       __smtx_typeof_value v = __eo_to_smt_type T ∧
-                        __smtx_value_canonical_bool v = true ∧
+                        __smtx_value_canonical v = true ∧
                         __smtx_model_eval
                             (native_model_push N s (__eo_to_smt_type T) v)
                             (__eo_to_smt_exists xs body') =
@@ -145,7 +145,7 @@ private theorem eo_to_smt_exists_eval_true_iff_of_body_true_iff
                 · have hSat' :
                       ∃ v : SmtValue,
                         __smtx_typeof_value v = __eo_to_smt_type T ∧
-                          __smtx_value_canonical_bool v = true ∧
+                          __smtx_value_canonical v = true ∧
                           __smtx_model_eval
                               (native_model_push N s (__eo_to_smt_type T) v)
                               (__eo_to_smt_exists xs body) =
@@ -159,7 +159,7 @@ private theorem eo_to_smt_exists_eval_true_iff_of_body_true_iff
                         hBinderWf.2
                         (model_total_typed_push hN s (__eo_to_smt_type T) v
                           hBinderWf.1 hvTy
-                          (by simpa [__smtx_value_canonical] using hvCan))
+                          (by simpa [value_canonical] using hvCan))
                         (model_agrees_on_globals_trans hAgree
                           (model_agrees_on_globals_push N s (__eo_to_smt_type T) v))).2
                         hvEval
@@ -216,7 +216,7 @@ termination_by xs N _ _ _ => xs
 private theorem eo_to_smt_exists_eval_eq_of_body_true_iff_cons
     (M : SmtModel) (body body' : SmtTerm)
     (hBody :
-      ∀ N, model_total_typed N ->
+      ∀ N, model_wf N ->
         model_agrees_on_globals M N ->
         (__smtx_model_eval N body = SmtValue.Boolean true ↔
           __smtx_model_eval N body' = SmtValue.Boolean true))
@@ -224,7 +224,7 @@ private theorem eo_to_smt_exists_eval_eq_of_body_true_iff_cons
     (hBindersWf :
       QuantifierBinderTypesWf
         (Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
-    (hN : model_total_typed N)
+    (hN : model_wf N)
     (hAgree : model_agrees_on_globals M N) :
     __smtx_model_eval N
         (__eo_to_smt_exists
@@ -247,7 +247,7 @@ private theorem eo_to_smt_exists_eval_eq_of_body_true_iff_cons
       by_cases hSat :
           ∃ v : SmtValue,
             __smtx_typeof_value v = __eo_to_smt_type T ∧
-              __smtx_value_canonical_bool v = true ∧
+              __smtx_value_canonical v = true ∧
               __smtx_model_eval
                   (native_model_push N s (__eo_to_smt_type T) v)
                   (__eo_to_smt_exists tail body) =
@@ -255,7 +255,7 @@ private theorem eo_to_smt_exists_eval_eq_of_body_true_iff_cons
       · have hSat' :
             ∃ v : SmtValue,
               __smtx_typeof_value v = __eo_to_smt_type T ∧
-                __smtx_value_canonical_bool v = true ∧
+                __smtx_value_canonical v = true ∧
                 __smtx_model_eval
                     (native_model_push N s (__eo_to_smt_type T) v)
                     (__eo_to_smt_exists tail body') =
@@ -269,7 +269,7 @@ private theorem eo_to_smt_exists_eval_eq_of_body_true_iff_cons
               hBinderWf.2
               (model_total_typed_push hN s (__eo_to_smt_type T) v
                 hBinderWf.1 hvTy
-                (by simpa [__smtx_value_canonical] using hvCan))
+                (by simpa [value_canonical] using hvCan))
               (model_agrees_on_globals_trans hAgree
                 (model_agrees_on_globals_push N s (__eo_to_smt_type T) v))).1
               hvEval
@@ -277,7 +277,7 @@ private theorem eo_to_smt_exists_eval_eq_of_body_true_iff_cons
       · have hSat' :
             ¬ ∃ v : SmtValue,
               __smtx_typeof_value v = __eo_to_smt_type T ∧
-                __smtx_value_canonical_bool v = true ∧
+                __smtx_value_canonical v = true ∧
                 __smtx_model_eval
                     (native_model_push N s (__eo_to_smt_type T) v)
                     (__eo_to_smt_exists tail body') =
@@ -293,7 +293,7 @@ private theorem eo_to_smt_exists_eval_eq_of_body_true_iff_cons
               hBinderWf.2
               (model_total_typed_push hN s (__eo_to_smt_type T) v
                 hBinderWf.1 hvTy
-                (by simpa [__smtx_value_canonical] using hvCan))
+                (by simpa [value_canonical] using hvCan))
               (model_agrees_on_globals_trans hAgree
                 (model_agrees_on_globals_push N s (__eo_to_smt_type T) v))).2
               hvEval
@@ -303,7 +303,7 @@ private abbrev mkBinderApp (op : UserOp) (xs body : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp op) xs) body
 
 private theorem premiseEvidence_lifts_congruence_over_binders
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (premises : List Term)
     (op : UserOp) (xs body body' : Term)
     (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
@@ -319,7 +319,7 @@ private theorem premiseEvidence_lifts_congruence_over_binders
   -- the required checker-side fact is now explicit: the body equality premise
   -- is available in every variable-variant model via `true_in_var_model`.
   have hBodyAny :
-      ∀ N, model_total_typed N ->
+      ∀ N, model_wf N ->
         model_agrees_on_globals M N ->
         eo_interprets N (mkEq body body') true := by
     intro N hN hAgree
@@ -339,7 +339,7 @@ private theorem premiseEvidence_lifts_congruence_over_binders
     | inl hForall =>
         subst hForall
         have hNotBody :
-            ∀ N, model_total_typed N ->
+            ∀ N, model_wf N ->
               model_agrees_on_globals M N ->
               (__smtx_model_eval N (SmtTerm.not (__eo_to_smt body)) =
                   SmtValue.Boolean true ↔
@@ -387,7 +387,7 @@ private theorem premiseEvidence_lifts_congruence_over_binders
     | inr hExists =>
         subst hExists
         have hBodyTrue :
-            ∀ N, model_total_typed N ->
+            ∀ N, model_wf N ->
               model_agrees_on_globals M N ->
               (__smtx_model_eval N (__eo_to_smt body) =
                   SmtValue.Boolean true ↔
@@ -431,7 +431,7 @@ private theorem premiseEvidence_lifts_congruence_over_binders
     (mkBinderApp op xs body) (mkBinderApp op xs body') hEqBool hRel
 
 private theorem stable_lifts_congruence_over_binders
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : UserOp) (xs body body' : Term)
     (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
     StableInAnyVarModel M (mkEq body body') ->
@@ -457,7 +457,7 @@ private theorem stable_lifts_congruence_over_binders
     (by simp) hBinderTypesWf hEqBool
 
 theorem congEvidenceSpine_quantifier_eq_true
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (premises : List Term)
     (op : UserOp) (xs body rhs : Term)
     (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
@@ -517,7 +517,7 @@ theorem congEvidenceSpine_quantifier_eq_true
                   (by simpa [mkEq] using hListBool))
 
 theorem congStableSpine_quantifier_eq_true
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : UserOp) (xs body rhs : Term)
     (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
     QuantifierBinderTypesWf xs ->

@@ -610,7 +610,7 @@ private theorem distinct_elim_shape_of_typeof_bool
       exact False.elim (hProg rfl)
 
 private theorem distinct_elim_sound
-    (M : SmtModel) (hM : model_total_typed M) (b1 b2 : Term) :
+    (M : SmtModel) (hM : model_wf M) (b1 b2 : Term) :
   RuleProofs.eo_has_bool_type
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq) b1) b2) ->
   __eo_list_singleton_elim (Term.UOp UserOp.and)
@@ -693,7 +693,7 @@ private theorem distinct_elim_sound
         simp [__mk_distinct_elim, list_singleton_elim_stuck])
 
 private theorem facts___eo_prog_distinct_elim_impl
-    (M : SmtModel) (hM : model_total_typed M) (a1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (a1 : Term) :
   RuleProofs.eo_has_smt_translation a1 ->
   __eo_typeof (__eo_prog_distinct_elim a1) = Term.Bool ->
   eo_interprets M (__eo_prog_distinct_elim a1) true := by
@@ -720,7 +720,7 @@ private theorem facts___eo_prog_distinct_elim_impl
   exact distinct_elim_sound M hM b1 b2 hFormulaBool hGuard hGuardNe
 
 public theorem cmd_step_distinct_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.distinct_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

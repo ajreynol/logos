@@ -132,7 +132,7 @@ private theorem typed___eo_prog_bool_not_eq_elim2_impl (x1 y1 : Term) :
       decide)
 
 private theorem facts___eo_prog_bool_not_eq_elim2_impl
-    (M : SmtModel) (hM : model_total_typed M) (x1 y1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (x1 y1 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
   RuleProofs.eo_has_smt_translation y1 ->
   __eo_typeof (__eo_prog_bool_not_eq_elim2 x1 y1) = Term.Bool ->
@@ -174,7 +174,7 @@ private theorem facts___eo_prog_bool_not_eq_elim2_impl
       __smtx_model_eval_not, native_veq, SmtEval.native_not]
 
 public theorem cmd_step_bool_not_eq_elim2_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_not_eq_elim2 args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

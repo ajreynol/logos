@@ -821,7 +821,7 @@ theorem typed_bvExtractMultLeadingRaw
     (hExtractSmtTy.trans hZeroSmtTy.symm) (by rw [hExtractSmtTy]; simp)
 
 private theorem extractLead_eval_int_term
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+    (M : SmtModel) (hM : model_wf M) (t : Term) :
     __smtx_typeof (__eo_to_smt t) = SmtType.Int ->
     ∃ k : native_Int,
       __smtx_model_eval M (__eo_to_smt t) = SmtValue.Numeral k := by
@@ -1175,7 +1175,7 @@ private theorem extractLead_concat_nat_values
   rw [Nat.mod_eq_of_lt hBound]
 
 private theorem eval_bv_extract_mult_leading_raw
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (high low xi xin x yi yin y w : Term) :
     RuleProofs.eo_has_smt_translation high ->
     RuleProofs.eo_has_smt_translation low ->
@@ -1502,7 +1502,7 @@ private theorem eval_bv_extract_mult_leading_raw
   simp [__smtx_model_eval_eq, native_veq]
 
 theorem facts_bv_extract_mult_leading_raw
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (high low xi xin x yi yin y w : Term) :
     RuleProofs.eo_has_smt_translation high ->
     RuleProofs.eo_has_smt_translation low ->

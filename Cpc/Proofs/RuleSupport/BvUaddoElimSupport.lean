@@ -573,7 +573,7 @@ theorem uaddo_index_eq_of_premise
     (by simpa [uaddoPrem, usuboPrem] using hPrem) hw0 hXSmtTy
 
 theorem facts_uaddo_term
-    (M : SmtModel) (hM : model_total_typed M) (x y n : Term) :
+    (M : SmtModel) (hM : model_wf M) (x y n : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
     eo_interprets M (uaddoPrem x n) true ->
@@ -719,7 +719,7 @@ theorem typed_uaddo_program (x y n : Term) :
   exact typed_uaddo_term x y n hXTrans hYTrans hTermTy
 
 theorem facts_uaddo_program
-    (M : SmtModel) (hM : model_total_typed M) (x y n : Term) :
+    (M : SmtModel) (hM : model_wf M) (x y n : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
     RuleProofs.eo_has_smt_translation n ->

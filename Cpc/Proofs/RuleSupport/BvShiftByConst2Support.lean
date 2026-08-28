@@ -301,7 +301,7 @@ private theorem typed_bv_lshr_by_const_2_term
     (by rw [hLhsTy]; intro h; cases h)
 
 private theorem eval_int_term_local
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+    (M : SmtModel) (hM : model_wf M) (t : Term) :
     __smtx_typeof (__eo_to_smt t) = SmtType.Int ->
     ∃ k : native_Int,
       __smtx_model_eval M (__eo_to_smt t) = SmtValue.Numeral k := by
@@ -312,7 +312,7 @@ private theorem eval_int_term_local
   exact int_value_canonical (by simpa [hTy] using hEvalTy)
 
 private theorem eval_bv_term_local
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t : Term) (W : native_Int) :
     native_zleq 0 W = true ->
     __smtx_typeof (__eo_to_smt t) =
@@ -518,7 +518,7 @@ private theorem native_mod_div_pow2_eq_zero_of_le
   simp [native_mod_total]
 
 private theorem eval_shift_const_local
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x amount : Term) (W : native_Int) :
     RuleProofs.eo_has_smt_translation x ->
     native_zleq 0 W = true ->
@@ -600,7 +600,7 @@ private theorem eval_shift_zero_local
   simp [native_mod_total]
 
 private theorem facts_bv_shl_by_const_2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x amount sz w : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation amount ->
@@ -634,7 +634,7 @@ private theorem facts_bv_shl_by_const_2_term
     exact RuleProofs.smt_value_rel_refl _
 
 private theorem facts_bv_lshr_by_const_2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x amount sz : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation amount ->
@@ -970,7 +970,7 @@ theorem typed_bv_lshr_by_const_2_program
     hXTrans hAmountTrans hSzTrans hTermTy
 
 theorem facts_bv_shl_by_const_2_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x amount sz w P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation amount ->
@@ -1006,7 +1006,7 @@ theorem facts_bv_shl_by_const_2_program
     hGePrem hLtPrem hWidthPrem
 
 theorem facts_bv_lshr_by_const_2_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x amount sz P1 P2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation amount ->
@@ -1599,7 +1599,7 @@ private theorem bv_ashr_by_const_2_premises_numeric
   exact ⟨hWA, hAPow, hNmEq, hRnEq⟩
 
 private theorem eval_bv_ashr_by_const_2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x amount sz nm rn : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation amount ->
@@ -1696,7 +1696,7 @@ private theorem eval_bv_ashr_by_const_2_term
     hR hRange.1 hRange.2
 
 private theorem facts_bv_ashr_by_const_2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x amount sz nm rn : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation amount ->
@@ -1913,7 +1913,7 @@ theorem typed_bv_ashr_by_const_2_program
     hXTrans hAmountTrans hSzTrans hNmTrans hRnTrans hTermTy
 
 theorem facts_bv_ashr_by_const_2_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x amount sz nm rn P1 P2 P3 P4 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation amount ->

@@ -235,7 +235,7 @@ theorem eo_interprets_of_bool_eval
 
 /-- Derives `eo_eval_is_boolean` from `has_bool_type`. -/
 theorem eo_eval_is_boolean_of_has_bool_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+    (M : SmtModel) (hM : model_wf M) (t : Term) :
   eo_has_bool_type t ->
   ∃ b : Bool, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Boolean b := by
   intro hTy
@@ -244,7 +244,7 @@ theorem eo_eval_is_boolean_of_has_bool_type
 /-- A Boolean-typed term with no `true` interpretation is false in every model. -/
 theorem smt_satisfiability_false_of_no_true (t : Term)
     (hTy : eo_has_bool_type t)
-    (h : ∀ M : SmtModel, model_total_typed M -> ¬ eo_interprets M t true) :
+    (h : ∀ M : SmtModel, model_wf M -> ¬ eo_interprets M t true) :
     smt_satisfiability (__eo_to_smt t) false := by
   apply smt_satisfiability.intro_false
   intro M hM

@@ -217,7 +217,7 @@ private theorem native_str_to_int_neg_one_of_nonempty_not_all_digits
       simp [native_str_to_int, hDigits]
 
 private theorem facts___eo_prog_str_to_int_concat_neg_one_impl
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s₁ s₂ s₃ P₁ P₂ : Term)
     (hStructure :
       __eo_is_list (Term.UOp UserOp.str_concat) s₁ = Term.Boolean true ∧
@@ -339,7 +339,7 @@ private theorem facts___eo_prog_str_to_int_concat_neg_one_impl
       (__smtx_model_eval M (__eo_to_smt rhs))
 
 public theorem cmd_step_str_to_int_concat_neg_one_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_to_int_concat_neg_one args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

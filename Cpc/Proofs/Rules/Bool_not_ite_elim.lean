@@ -169,7 +169,7 @@ private theorem typed___eo_prog_bool_not_ite_elim_impl (c1 x1 y1 : Term) :
       decide)
 
 private theorem facts___eo_prog_bool_not_ite_elim_impl
-    (M : SmtModel) (hM : model_total_typed M) (c1 x1 y1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (c1 x1 y1 : Term) :
   RuleProofs.eo_has_smt_translation c1 ->
   RuleProofs.eo_has_smt_translation x1 ->
   RuleProofs.eo_has_smt_translation y1 ->
@@ -226,7 +226,7 @@ private theorem facts___eo_prog_bool_not_ite_elim_impl
         __smtx_model_eval_not, native_veq, SmtEval.native_not]
 
 public theorem cmd_step_bool_not_ite_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_not_ite_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

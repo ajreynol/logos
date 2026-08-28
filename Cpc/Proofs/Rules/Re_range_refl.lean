@@ -195,7 +195,7 @@ private theorem typed_concl
     (by rw [hLhsTy, hRhsTy]) (by rw [hLhsTy]; decide)
 
 private theorem facts
-    (M : SmtModel) (hM : model_total_typed M) (s : Term)
+    (M : SmtModel) (hM : model_wf M) (s : Term)
     (hSTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
     (hPrem : eo_interprets M (mkLenOne s) true) :
     eo_interprets M (concl s) true := by
@@ -272,7 +272,7 @@ private theorem facts
 end ReRangeReflProof
 
 public theorem cmd_step_re_range_refl_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_range_refl args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

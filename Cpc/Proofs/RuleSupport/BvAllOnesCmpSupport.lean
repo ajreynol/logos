@@ -304,7 +304,7 @@ private theorem numeral_rel_eq_local {a b : native_Int} :
     SmtEval.native_zeq] using hRel
 
 private theorem bitvec_eval_payload_with_width_local
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t : Term) (n : native_Int) :
     RuleProofs.eo_has_smt_translation t ->
     native_zleq 0 n = true ->
@@ -362,7 +362,7 @@ theorem smt_typeof_bv_const_of_int_type
   simp [__smtx_typeof_int_to_bv, native_ite, hW0]
 
 private theorem eval_int_term_local
-    (M : SmtModel) (hM : model_total_typed M) (n : Term) :
+    (M : SmtModel) (hM : model_wf M) (n : Term) :
     __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
     ∃ k : native_Int,
       __smtx_model_eval M (__eo_to_smt n) = SmtValue.Numeral k := by
@@ -388,7 +388,7 @@ private theorem eval_bv_const_of_int_eval_local
 /-- An `@bv` term constrained by the standard all-ones premise evaluates to
     the canonical maximum value for its width. -/
 theorem eval_bv_all_ones_const_of_prem
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n w : Term) (W : native_Int) :
     __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
     w = Term.Numeral W ->
@@ -579,7 +579,7 @@ theorem typed_bv_ult_ones_term
     (by rw [hCmpBool]; decide)
 
 theorem facts_bv_ule_max_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x n w : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation n ->
@@ -652,7 +652,7 @@ theorem facts_bv_ule_max_term
     exact RuleProofs.smt_value_rel_refl _
 
 theorem facts_bv_ult_ones_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x n w : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation n ->

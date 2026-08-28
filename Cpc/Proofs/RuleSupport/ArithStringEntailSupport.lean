@@ -232,7 +232,7 @@ private theorem geq_left_int_type_of_has_bool_type
     cases hReal.2
 
 private theorem geq_zero_eval_true_of_int_denote_nonneg
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n : Term) (q : native_Rat) :
   __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
   arith_poly_norm_atom_denote_real M n = SmtValue.Rational q ->
@@ -273,7 +273,7 @@ private theorem geq_zero_eval_true_of_int_denote_nonneg
   simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hZle]
 
 private theorem geq_eval_true_of_diff_denote_nonneg
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n m : Term) (q : native_Rat) :
   RuleProofs.eo_has_bool_type
       (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) ->
@@ -379,7 +379,7 @@ private theorem geq_eval_true_of_diff_denote_nonneg
     simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hQle]
 
 theorem arith_string_pred_simple_geq_true
-    (M : SmtModel) (hM : model_total_typed M) (n m : Term) :
+    (M : SmtModel) (hM : model_wf M) (n m : Term) :
   RuleProofs.eo_has_bool_type
       (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) ->
   __str_arith_entail_simple_pred
@@ -458,7 +458,7 @@ private theorem geq_has_bool_type_of_non_none (n m : Term) :
     simp [__smtx_typeof_arith_overload_op_2_ret, hReal.1, hReal.2]
 
 private theorem int_eval_of_int_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+    (M : SmtModel) (hM : model_wf M) (t : Term) :
   __smtx_typeof (__eo_to_smt t) = SmtType.Int ->
   ∃ z : native_Int, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Numeral z := by
   intro hTy
@@ -520,7 +520,7 @@ private theorem native_str_to_int_ge_neg_one
       · simp [hDigits]
 
 private theorem int_le_of_simple_geq_true
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n m : Term) (zn zm : native_Int) :
   __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
   __smtx_typeof (__eo_to_smt m) = SmtType.Int ->
@@ -666,7 +666,7 @@ private theorem mult_int_args_of_int_type (n m : Term) :
     cases hRet
 
 private theorem plus_int_eval_decomp
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n m : Term) (z : native_Int) :
     __smtx_typeof
         (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) n) m)) =
@@ -692,7 +692,7 @@ private theorem plus_int_eval_decomp
   simpa [__smtx_model_eval_plus, native_zplus] using hEval.symm
 
 private theorem mult_int_eval_decomp
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n m : Term) (z : native_Int) :
     __smtx_typeof
         (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) n) m)) =
@@ -718,7 +718,7 @@ private theorem mult_int_eval_decomp
   simpa [__smtx_model_eval_mult, native_zmult] using hEval.symm
 
 private theorem seq_eval_of_seq_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term) (T : SmtType) :
+    (M : SmtModel) (hM : model_wf M) (t : Term) (T : SmtType) :
     __smtx_typeof (__eo_to_smt t) = SmtType.Seq T ->
     ∃ ss, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq ss := by
   intro hTy
@@ -730,7 +730,7 @@ private theorem seq_eval_of_seq_type
   exact seq_value_canonical (by simpa [hTy] using hEvalTy)
 
 private theorem str_len_eval_decomp
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : Term) (z : native_Int) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_len) s)) =
       SmtType.Int ->
@@ -763,7 +763,7 @@ private theorem native_unpack_pack_string_len
   simp [native_pack_string, Smtm.native_unpack_pack_seq]
 
 private theorem str_to_int_eval_decomp
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : Term) (z : native_Int) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_int) s)) =
       SmtType.Int ->
@@ -791,7 +791,7 @@ private theorem str_to_int_eval_decomp
   simpa [__smtx_model_eval_str_to_int] using hEval.symm
 
 private theorem str_indexof_eval_decomp
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s t n : Term) (z : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -834,7 +834,7 @@ private theorem str_indexof_eval_decomp
   simpa [__smtx_model_eval_str_indexof] using hEval.symm
 
 private theorem str_substr_len_eval_decomp
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s n1 n2 : Term) (z : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -892,7 +892,7 @@ private theorem str_substr_len_eval_decomp
   rw [hzLen, hLenEq]
 
 private theorem str_replace_len_eval_decomp
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s t r : Term) (z : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -956,7 +956,7 @@ private theorem str_replace_len_eval_decomp
   rw [hzLen, hLenEq]
 
 private theorem str_from_int_len_eval_decomp
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n : Term) (z : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -1001,7 +1001,7 @@ private theorem str_from_int_len_eval_decomp
   rw [hzLen, hLenEq]
 
 private theorem int_nonneg_of_simple_rec_true
-    (M : SmtModel) (hM : model_total_typed M) (n : Term) (zn : native_Int) :
+    (M : SmtModel) (hM : model_wf M) (n : Term) (zn : native_Int) :
     __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
     __smtx_model_eval M (__eo_to_smt n) = SmtValue.Numeral zn ->
     __str_arith_entail_simple_rec (__get_arith_poly_norm n) = Term.Boolean true ->
@@ -1027,7 +1027,7 @@ private theorem int_nonneg_of_simple_rec_true
   exact_mod_cast hNonnegRat
 
 private theorem int_pos_of_simple_gt_zero_true
-    (M : SmtModel) (hM : model_total_typed M) (n : Term) (zn : native_Int) :
+    (M : SmtModel) (hM : model_wf M) (n : Term) (zn : native_Int) :
     __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
     __smtx_model_eval M (__eo_to_smt n) = SmtValue.Numeral zn ->
     __str_arith_entail_simple_pred
@@ -2150,7 +2150,7 @@ private theorem native_str_from_int_len_le_self_of_pos
         exact False.elim hFalse
 
 private theorem str_from_int_len_l1_true_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n1 m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -2201,7 +2201,7 @@ private theorem str_from_int_len_l1_true_order
         cases hFalse
 
 private theorem str_from_int_len_l1_false_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (n1 m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -2264,7 +2264,7 @@ private theorem str_from_int_len_l1_false_order
         cases hFalse
 
 private theorem str_substr_len_l1_true_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s n1 n2 m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -2371,7 +2371,7 @@ private theorem str_substr_len_l1_true_order
         cases hFalse
 
 private theorem str_substr_len_l1_false_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s n1 n2 m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -2457,7 +2457,7 @@ private theorem str_substr_len_l1_false_order
         cases hFalse
 
 private theorem str_replace_len_l1_true_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s t r m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -2577,7 +2577,7 @@ private theorem str_replace_len_l1_true_order
         cases hFalse
 
 private theorem str_replace_len_l1_false_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s t r m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -2674,7 +2674,7 @@ private theorem str_replace_len_l1_false_order
         cases hFalse
 
 private theorem str_to_int_l1_true_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_int) s)) =
@@ -2725,7 +2725,7 @@ private theorem str_to_int_l1_false_order
     cases hFalse
 
 private theorem str_indexof_l1_true_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s t n0 m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -2768,7 +2768,7 @@ private theorem str_indexof_l1_true_order
         cases hFalse
 
 private theorem str_indexof_l1_false_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s t n0 m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt
@@ -2853,7 +2853,7 @@ private theorem str_indexof_l1_false_order
         cases hFalse
 
 private theorem str_len_l1_true_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_len) s)) =
@@ -2932,7 +2932,7 @@ private theorem str_len_l1_true_order
         __str_arith_entail_is_approx_len] at hL1Branch
 
 private theorem str_len_l1_false_order
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s m : Term) (zn zm : native_Int) :
     __smtx_typeof
         (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_len) s)) =
@@ -3008,7 +3008,7 @@ private theorem str_len_l1_false_order
         __str_arith_entail_is_approx_len] at hL1Branch
 
 private theorem str_arith_entail_is_approx_int_eval_order_bool
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (n m : Term) -> (zn zm : native_Int) ->
       __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
       __smtx_typeof (__eo_to_smt m) = SmtType.Int ->
@@ -4348,7 +4348,7 @@ private theorem str_arith_entail_is_approx_int_eval_order_bool
               simp [__eo_l_1___str_arith_entail_is_approx] at hL1Branch
 
 private theorem str_arith_entail_is_approx_int_eval_order
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (n m isUnder : Term) -> (zn zm : native_Int) ->
       __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
       __smtx_typeof (__eo_to_smt m) = SmtType.Int ->
@@ -4369,7 +4369,7 @@ private theorem str_arith_entail_is_approx_int_eval_order
           hNInt hMInt hNEval hMEval).2 hApprox
 
 private theorem str_arith_entail_is_approx_int_denote_order
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (n m isUnder : Term) -> (qn qm : native_Rat) ->
       __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
       __smtx_typeof (__eo_to_smt m) = SmtType.Int ->
@@ -4403,7 +4403,7 @@ private theorem str_arith_entail_is_approx_int_denote_order
         exact (native_to_real_le_iff zn zm).2 (hOrder.2 hOver)
 
 private theorem arith_string_pred_safe_approx_left_true
-    (M : SmtModel) (hM : model_total_typed M) (n m : Term) :
+    (M : SmtModel) (hM : model_wf M) (n m : Term) :
   RuleProofs.eo_has_bool_type
       (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)) ->
   RuleProofs.eo_has_bool_type
@@ -4484,7 +4484,7 @@ private theorem arith_string_pred_safe_approx_left_true
     (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)) true hNBool hNEval
 
 theorem arith_string_pred_entail_formula_true
-    (M : SmtModel) (hM : model_total_typed M) (n : Term) :
+    (M : SmtModel) (hM : model_wf M) (n : Term) :
   RuleProofs.eo_has_bool_type
       (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
         (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)))
@@ -4534,7 +4534,7 @@ theorem arith_string_pred_entail_formula_true
   simp [__smtx_model_eval_eq, native_veq]
 
 theorem arith_string_pred_safe_approx_formula_true
-    (M : SmtModel) (hM : model_total_typed M) (n m : Term) :
+    (M : SmtModel) (hM : model_wf M) (n m : Term) :
   RuleProofs.eo_has_bool_type
       (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
         (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)))

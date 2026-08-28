@@ -66,7 +66,7 @@ theorem eo_has_bool_type_or_right (A B : Term) :
 
 /-- Introduces the left side of a Boolean `or`. -/
 theorem eo_interprets_or_left_intro
-    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+    (M : SmtModel) (hM : model_wf M) (A B : Term) :
     eo_interprets M A true ->
     eo_has_bool_type B ->
     eo_interprets M (Term.Apply (Term.Apply Term.or A) B) true := by
@@ -87,7 +87,7 @@ theorem eo_interprets_or_left_intro
 
 /-- Introduces the right side of a Boolean `or`. -/
 theorem eo_interprets_or_right_intro
-    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+    (M : SmtModel) (hM : model_wf M) (A B : Term) :
     eo_has_bool_type A ->
     eo_interprets M B true ->
     eo_interprets M (Term.Apply (Term.Apply Term.or A) B) true := by

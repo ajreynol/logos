@@ -274,7 +274,7 @@ private theorem arith_poly_norm_atom_denote_real_rational_or_notValue
     simp [__smtx_to_real_coerce]
 
 theorem arith_poly_norm_atom_denote_real_rational_of_smt_arith_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int ∨
       __smtx_typeof (__eo_to_smt t) = SmtType.Real) :
   ∃ q, arith_poly_norm_atom_denote_real M t = SmtValue.Rational q := by
@@ -2272,7 +2272,7 @@ private theorem arith_poly_norm_atom_denote_real_of_numeral
   simp [__smtx_model_eval, __smtx_to_real_coerce]
 
 private theorem arith_poly_norm_atom_denote_real_of_to_real
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hInt : __smtx_typeof (__eo_to_smt t) = SmtType.Int) :
   arith_poly_norm_atom_denote_real M (Term.Apply (Term.UOp UserOp.to_real) t) =
     arith_poly_norm_atom_denote_real M t := by
@@ -2346,7 +2346,7 @@ private theorem arith_poly_norm_atom_denote_real_of_uneg
     exact Rat.neg_mul _ _
 
 private theorem arith_poly_norm_atom_denote_real_of_plus
-    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (M : SmtModel) (hM : model_wf M) (t1 t2 : Term)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) =
         SmtType.Int ∨
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) =
@@ -2403,7 +2403,7 @@ private theorem arith_poly_norm_atom_denote_real_of_plus
     simp [__smtx_to_real_coerce, __smtx_model_eval_plus]
 
 private theorem arith_poly_norm_atom_denote_real_of_neg
-    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (M : SmtModel) (hM : model_wf M) (t1 t2 : Term)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
         SmtType.Int ∨
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
@@ -2463,7 +2463,7 @@ private theorem arith_poly_norm_atom_denote_real_of_neg
       __smtx_model_eval__]
 
 private theorem arith_poly_norm_atom_denote_real_of_mult
-    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (M : SmtModel) (hM : model_wf M) (t1 t2 : Term)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) t1) t2)) =
         SmtType.Int ∨
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) t1) t2)) =
@@ -2520,7 +2520,7 @@ private theorem arith_poly_norm_atom_denote_real_of_mult
       __smtx_model_eval_mult]
 
 private theorem arith_poly_norm_atom_denote_real_of_qdiv_total
-    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (M : SmtModel) (hM : model_wf M) (t1 t2 : Term)
     (hTy :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2)) =
         SmtType.Real) :
@@ -2909,7 +2909,7 @@ private theorem arith_poly_rational_of_get_arith_poly_norm_numeral
     exact arith_poly_rational_of_const_poly M (native_to_real n)
 
 private theorem arith_poly_rational_of_get_arith_poly_norm_eq_atomic_of_smt_arith_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int ∨
       __smtx_typeof (__eo_to_smt t) = SmtType.Real)
     (hNorm : __get_arith_poly_norm t = arith_atomic_poly t) :
@@ -2931,7 +2931,7 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_numeral
   rw [arith_poly_denote_real_of_numeral, arith_poly_norm_atom_denote_real_of_numeral]
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_to_real
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hInt : __smtx_typeof (__eo_to_smt t) = SmtType.Int)
     (hRec : arith_poly_denote_real M (__get_arith_poly_norm t) = arith_poly_norm_atom_denote_real M t) :
   arith_poly_denote_real M (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.to_real) t)) =
@@ -2987,7 +2987,7 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_uneg
   simp [hRec]
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_plus
-    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (M : SmtModel) (hM : model_wf M) (t1 t2 : Term)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) =
         SmtType.Int ∨
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) =
@@ -3004,7 +3004,7 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_plus
   exact (arith_poly_norm_atom_denote_real_of_plus M hM t1 t2 hTy).symm
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_neg
-    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (M : SmtModel) (hM : model_wf M) (t1 t2 : Term)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
         SmtType.Int ∨
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
@@ -3028,7 +3028,7 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_neg
   exact (arith_poly_norm_atom_denote_real_of_neg M hM t1 t2 hTy).symm
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_mult
-    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (M : SmtModel) (hM : model_wf M) (t1 t2 : Term)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) t1) t2)) =
         SmtType.Int ∨
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) t1) t2)) =
@@ -3161,7 +3161,7 @@ private theorem smt_typeof_qdiv_left_of_rational_right
   · exact hArgs.1
 
 private theorem arith_poly_norm_atom_denote_real_of_qdiv_rational
-    (M : SmtModel) (hM : model_total_typed M) (t1 : Term) (q : native_Rat)
+    (M : SmtModel) (hM : model_wf M) (t1 : Term) (q : native_Rat)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1)
         (Term.Rational q))) = SmtType.Real)
     (hZero : q ≠ native_mk_rational 0 1) :
@@ -3211,7 +3211,7 @@ private theorem smt_typeof_qdiv_left_of_numeral_right
     cases hNTy.symm.trans hArgs.2
 
 private theorem arith_poly_norm_atom_denote_real_of_qdiv_numeral
-    (M : SmtModel) (hM : model_total_typed M) (t1 : Term) (n : native_Int)
+    (M : SmtModel) (hM : model_wf M) (t1 : Term) (n : native_Int)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1)
         (Term.Numeral n))) = SmtType.Real)
     (hZero : native_to_real n ≠ native_mk_rational 0 1) :
@@ -3252,7 +3252,7 @@ private theorem smtx_model_eval_mult_const_recip_eq_qdiv_total
     native_mk_rational_one, Rat.div_def, Rat.mul_comm]
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_of_rational
-    (M : SmtModel) (hM : model_total_typed M) (t1 : Term) (q : native_Rat)
+    (M : SmtModel) (hM : model_wf M) (t1 : Term) (q : native_Rat)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1)
         (Term.Rational q))) = SmtType.Real)
     (hZero : q ≠ native_mk_rational 0 1)
@@ -3273,7 +3273,7 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_of_rational
   exact smtx_model_eval_mult_const_recip_eq_qdiv_total q1 q
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_of_numeral
-    (M : SmtModel) (hM : model_total_typed M) (t1 : Term) (n : native_Int)
+    (M : SmtModel) (hM : model_wf M) (t1 : Term) (n : native_Int)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1)
         (Term.Numeral n))) = SmtType.Real)
     (hZero : native_to_real n ≠ native_mk_rational 0 1)
@@ -3294,7 +3294,7 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_of_numeral
   exact smtx_model_eval_mult_const_recip_eq_qdiv_total q1 (native_to_real n)
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_rational
-    (M : SmtModel) (hM : model_total_typed M) (t1 : Term) (q : native_Rat)
+    (M : SmtModel) (hM : model_wf M) (t1 : Term) (q : native_Rat)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1)
         (Term.Rational q))) = SmtType.Real)
     (hZero : q ≠ native_mk_rational 0 1)
@@ -3318,7 +3318,7 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_rati
   exact smtx_model_eval_mult_const_recip_eq_qdiv_total q1 q
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_numeral
-    (M : SmtModel) (hM : model_total_typed M) (t1 : Term) (n : native_Int)
+    (M : SmtModel) (hM : model_wf M) (t1 : Term) (n : native_Int)
     (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1)
         (Term.Numeral n))) = SmtType.Real)
     (hZero : native_to_real n ≠ native_mk_rational 0 1)
@@ -3419,7 +3419,7 @@ private theorem smt_typeof_qdiv_of_qdiv_total
     simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_numeral_zero
-    (M : SmtModel) (_hM : model_total_typed M) (t1 : Term) (n : native_Int)
+    (M : SmtModel) (_hM : model_wf M) (t1 : Term) (n : native_Int)
     (_hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1)
         (Term.Numeral n))) = SmtType.Real)
     (hZero : native_to_real n = native_mk_rational 0 1) :
@@ -3439,7 +3439,7 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_nume
   exact arith_poly_denote_real_eq_arith_poly_norm_atom_denote_real_of_norm_eq_atomic M _ hNorm
 
 theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (t : Term) ->
     (__smtx_typeof (__eo_to_smt t) = SmtType.Int ∨
       __smtx_typeof (__eo_to_smt t) = SmtType.Real) ->
@@ -3806,7 +3806,7 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
   exact (go t hTy).2.2
 
 private theorem smt_value_rel_of_eq_arith_poly_norm_atom_denote_real_of_smt_arith_type
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term) :
   RuleProofs.eo_has_smt_translation
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) ->
@@ -3871,7 +3871,7 @@ private theorem smt_value_rel_of_eq_arith_poly_norm_atom_denote_real_of_smt_arit
     simpa [hEvalA, hEvalB] using RuleProofs.smt_value_rel_refl (SmtValue.Rational qA)
 
 private theorem smt_value_rel_of_equal_arith_poly_norm_of_smt_arith_type
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term) :
   RuleProofs.eo_has_smt_translation
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) ->
@@ -3906,7 +3906,7 @@ private theorem smt_value_rel_of_equal_arith_poly_norm_of_smt_arith_type
     M hM a b hEqTrans hArithTy hAtomEq
 
 private theorem smt_value_rel_of_equal_arith_poly_norm
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a b : Term) :
   RuleProofs.eo_has_smt_translation
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) ->
@@ -3947,7 +3947,7 @@ private theorem smt_value_rel_of_equal_arith_poly_norm
       exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt b))
 
 theorem facts___eo_prog_arith_poly_norm_impl
-    (M : SmtModel) (hM : model_total_typed M) (a1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (a1 : Term) :
   RuleProofs.eo_has_smt_translation a1 ->
   __eo_typeof (__eo_prog_arith_poly_norm a1) = Term.Bool ->
   eo_interprets M (__eo_prog_arith_poly_norm a1) true := by

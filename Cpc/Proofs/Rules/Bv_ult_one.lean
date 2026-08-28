@@ -422,7 +422,7 @@ private theorem typed_bv_ult_one_term
       decide)
 
 private theorem eval_bvult_one_matches_eq_zero
-    (M : SmtModel) (hM : model_total_typed M) (x n : Term) :
+    (M : SmtModel) (hM : model_wf M) (x n : Term) :
     RuleProofs.eo_has_smt_translation x ->
     eo_interprets M (bvUltOnePrem x) true ->
     __eo_typeof (bvUltOneTerm x n) = Term.Bool ->
@@ -515,7 +515,7 @@ private theorem eval_bvult_one_matches_eq_zero
       hZeroNePayload]
 
 private theorem facts_bv_ult_one_term
-    (M : SmtModel) (hM : model_total_typed M) (x n : Term) :
+    (M : SmtModel) (hM : model_wf M) (x n : Term) :
     RuleProofs.eo_has_smt_translation x ->
     eo_interprets M (bvUltOnePrem x) true ->
     __eo_typeof (bvUltOneTerm x n) = Term.Bool ->
@@ -540,7 +540,7 @@ private theorem facts_bv_ult_one_term
     exact RuleProofs.smt_value_rel_refl _
 
 public theorem cmd_step_bv_ult_one_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_ult_one args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

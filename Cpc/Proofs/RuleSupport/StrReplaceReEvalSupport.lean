@@ -58,7 +58,7 @@ theorem eq_has_bool_type_of_translation
   exact Smtm.eq_term_typeof_of_non_none hNN
 
 theorem seq_eval_of_type
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq SmtType.Char) :
     ∃ ss : SmtSeq,
       __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq ss ∧
@@ -78,7 +78,7 @@ theorem seq_eval_of_type
   exact ⟨ss, hss, hSeqTy, native_unpack_string_valid_of_typeof_seq_char hSeqTy⟩
 
 theorem reglan_eval_of_type
-    (M : SmtModel) (hM : model_total_typed M) (r : Term)
+    (M : SmtModel) (hM : model_wf M) (r : Term)
     (hTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan) :
     ∃ rv : SmtRegLan,
       __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv := by
@@ -244,7 +244,7 @@ theorem replace_re_search_re_eval
       native_re_of_list]
 
 theorem str_first_match_rec_smallest_eq_go
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ (xs : native_String) (r : Term) (rv : SmtRegLan) (n : Nat),
       native_string_valid xs = true ->
       __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
@@ -423,7 +423,7 @@ theorem str_first_match_rec_smallest_eq_go
         simp [__eo_ite, native_teq, native_ite, hNull]
 
 theorem str_eval_prefix_condition_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs : native_String) (rs : Term) (rv : SmtRegLan)
     (hValid : native_string_valid xs = true)
     (hRsTy : __smtx_typeof (__eo_to_smt rs) = SmtType.RegLan)
@@ -593,7 +593,7 @@ private def replace_re_no_match_pair : Term :=
     (Term.Numeral (-1 : native_Int))
 
 private theorem str_first_match_rec_eq_find_aux
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ (xs : native_String) (r rs : Term) (rv : SmtRegLan) (n : Nat),
       native_string_valid xs = true ->
       __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
@@ -940,7 +940,7 @@ private theorem replace_re_match_ne_stuck_of_eval_ne_stuck
     simp [__str_eval_replace_re] at hNe
 
 private theorem str_eval_replace_re_eval_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (str : native_String) (r t side : Term) (rv : SmtRegLan) (repl : SmtSeq)
     (hSTy : __smtx_typeof (__eo_to_smt (Term.String str)) =
       SmtType.Seq SmtType.Char)
@@ -1057,7 +1057,7 @@ private theorem str_eval_replace_re_eval_eq
         List.map_append, List.append_assoc]
 
 private theorem str_replace_re_eval_valid_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s r t u : Term)
     (hArgTrans :
       RuleProofs.eo_has_smt_translation
@@ -1189,7 +1189,7 @@ private theorem str_replace_re_eval_valid_properties
       (by simpa [lhs'] using hEqBool)
 
 theorem str_replace_re_eval_arg_properties
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (a1 : Term) ->
     RuleProofs.eo_has_smt_translation a1 ->
     __eo_prog_str_replace_re_eval a1 ≠ Term.Stuck ->

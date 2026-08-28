@@ -405,7 +405,7 @@ theorem smtx_eval_concat_range
   rfl
 
 theorem nonneg_of_premise
-    (M : SmtModel) (hM : model_total_typed M) (n : Term)
+    (M : SmtModel) (hM : model_wf M) (n : Term)
     (hNTrans : RuleProofs.eo_has_smt_translation n)
     (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
     (hPrem : eo_interprets M (prem n) true) :
@@ -454,7 +454,7 @@ theorem nonneg_of_premise
   exact ⟨z, hNEval, by simpa [native_zleq] using hzBool⟩
 
 theorem facts
-    (M : SmtModel) (hM : model_total_typed M) (n : Term)
+    (M : SmtModel) (hM : model_wf M) (n : Term)
     (hNTrans : RuleProofs.eo_has_smt_translation n)
     (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
     (hPrem : eo_interprets M (prem n) true) :
@@ -506,7 +506,7 @@ theorem facts
 end StrInReFromIntNempDigRangeProof
 
 public theorem cmd_step_str_in_re_from_int_nemp_dig_range_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_from_int_nemp_dig_range args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

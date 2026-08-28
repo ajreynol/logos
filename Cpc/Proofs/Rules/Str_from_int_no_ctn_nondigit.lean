@@ -305,7 +305,7 @@ private theorem contained_string_all_digits
       hNeedleVals
 
 private theorem premise_nonempty_seq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : Term)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
     (hSTy : __eo_typeof s = Term.Apply Term.Seq Term.Char)
@@ -365,7 +365,7 @@ private theorem premise_to_int_neg_one
         native_veq] using hEval
 
 private theorem facts
-    (M : SmtModel) (hM : model_total_typed M) (n s : Term)
+    (M : SmtModel) (hM : model_wf M) (n s : Term)
     (hNTrans : RuleProofs.eo_has_smt_translation n)
     (hSTrans : RuleProofs.eo_has_smt_translation s)
     (hNTy : __eo_typeof n = Term.Int)
@@ -448,7 +448,7 @@ private theorem facts
 end StrFromIntNoCtnNondigitProof
 
 public theorem cmd_step_str_from_int_no_ctn_nondigit_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_from_int_no_ctn_nondigit args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

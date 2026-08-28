@@ -3758,7 +3758,7 @@ private theorem nil_bvmul_ne_of_bvSmuloExpanded_ne
     __bv_smulo_elim_rec, smulo_rec_list_stuck_eq, smulo_rec_res_stuck_eq]
 
 private theorem eval_bv_smulo_expanded
-    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (M : SmtModel) (hM : model_wf M) (a b : Term)
     (hNN : term_has_non_none_type
       (SmtTerm.bvsmulo (__eo_to_smt a) (__eo_to_smt b)))
     (hExpandedNe : bvSmuloExpanded a b ≠ Term.Stuck) :
@@ -3806,7 +3806,7 @@ private theorem eval_bv_smulo_expanded
           hNilXorA hNilXorB hNilMul
 
 public theorem cmd_step_bv_smulo_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_smulo_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

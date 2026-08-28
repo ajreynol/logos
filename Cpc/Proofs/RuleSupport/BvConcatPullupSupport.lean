@@ -640,7 +640,7 @@ theorem BvConcatPullupOp.listSingletonElimSmtType
 
 theorem BvConcatPullupOp.listConcatRecEvalEq
     (op : BvConcatPullupOp)
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (a z : Term) (w : Nat) :
     __eo_is_list op.term a = Term.Boolean true ->
     __eo_is_list op.term z = Term.Boolean true ->
@@ -655,7 +655,7 @@ theorem BvConcatPullupOp.listConcatRecEvalEq
 
 theorem BvConcatPullupOp.listSingletonElimEvalEq
     (op : BvConcatPullupOp)
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (c : Term) (w : Nat) :
     __eo_is_list op.term c = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
@@ -669,7 +669,7 @@ theorem BvConcatPullupOp.listSingletonElimEvalEq
 
 theorem BvConcatPullupOp.evalAssoc
     (op : BvConcatPullupOp)
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y z : Term) (w : Nat) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
     __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
@@ -683,7 +683,7 @@ theorem BvConcatPullupOp.evalAssoc
 
 theorem BvConcatPullupOp.evalComm
     (op : BvConcatPullupOp)
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x y : Term) (w : Nat) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
     __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
@@ -696,7 +696,7 @@ theorem BvConcatPullupOp.evalComm
 
 theorem BvConcatPullupOp.evalRightNil
     (op : BvConcatPullupOp)
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x nil : Term) (w : Nat) :
     __eo_is_list_nil op.term nil = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
@@ -828,7 +828,7 @@ private theorem pullup_generated_nil_smt_type
       simpa [BvConcatPullupOp.term] using hNil)
 
 theorem bvConcatPullupEvalApplyGeneratedNil
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp) (x T : Term) (w width : Nat) :
     T =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -963,7 +963,7 @@ private theorem pullup_list_type_or_nil_of_concat_type
         split <;> simp_all)
 
 theorem bvConcatPullupListEval
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp) (xs ws full : Term) (w : Nat) :
     __eo_is_list op.term xs = Term.Boolean true ->
     __eo_is_list op.term ws = Term.Boolean true ->
@@ -1781,7 +1781,7 @@ theorem bvConcatPullup1ConcatTypes
   · simpa [bvConcatPullup1ConcatZs, Nat.add_assoc] using hHighTy
 
 theorem bvConcatPullup1FullEval
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (z y ys : Term) (wz wy wys : Nat) :
     __eo_is_list (Term.UOp UserOp.concat) ys = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt z) = SmtType.BitVec wz ->
@@ -2672,7 +2672,7 @@ theorem bvConcatPullup1Indices
   rw [hAggEoH, hWH]
 
 theorem eval_bvConcatPullup1
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (xs ws y z ys nxm ny nym : Term) (wz wy wys : Nat) :
     __eo_is_list op.term xs = Term.Boolean true ->
@@ -2910,7 +2910,7 @@ theorem eval_bvConcatPullup1
     _ = _ := hRhsEval.symm
 
 theorem facts_bvConcatPullup1Term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (xs ws y z ys nxm ny nym : Term) :
     RuleProofs.eo_has_smt_translation xs ->
@@ -3001,7 +3001,7 @@ theorem facts_bvConcatPullup1Term
     exact RuleProofs.smt_value_rel_refl _
 
 theorem bvConcatPullup1ProgramProperties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (xs ws y z ys nxm ny nym P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation xs ->
@@ -4112,7 +4112,7 @@ theorem typed_bvConcatPullup2Term
     hConcat.2.2 (by simpa [bvConcatPullup2Term] using hBodyTy)
 
 theorem eval_bvConcatPullupTwo
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (xs ws full highComp lowComp nxm ny nym : Term) (A B : Nat) :
     __eo_is_list op.term xs = Term.Boolean true ->
@@ -4594,7 +4594,7 @@ theorem bvConcatPullup2Indices
     hNym.trans (congrArg Term.Numeral hLL), hAPos, hBPos⟩
 
 theorem bvConcatPullup2FullEval
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (y z ys : Term) (wz wy wys : Nat) :
     __eo_is_list (Term.UOp UserOp.concat)
         (bvConcatPullupConcat y ys) = Term.Boolean true ->
@@ -4625,7 +4625,7 @@ theorem bvConcatPullup2FullEval
     (by simpa [bvConcatPullup2LowComp] using hElim.symm)
 
 theorem facts_bvConcatPullup2Term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (xs ws y z ys nxm ny nym : Term) :
     RuleProofs.eo_has_smt_translation xs ->
@@ -4674,7 +4674,7 @@ theorem facts_bvConcatPullup2Term
     exact RuleProofs.smt_value_rel_refl _
 
 theorem bvConcatPullup2ProgramProperties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (xs ws y z ys nxm ny nym P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation xs ->
@@ -4763,7 +4763,7 @@ def BvConcatPullupOp.pullup2Rule : BvConcatPullupOp → CRule
   | .bxor => CRule.bv_xor_concat_pullup2
 
 theorem cmd_step_bvConcatPullup2_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (s : CState) (args : CArgList) (premises : CIndexList) :
     cmdTranslationOk (CCmd.step op.pullup2Rule args premises) ->
@@ -6220,7 +6220,7 @@ theorem bvConcatPullup3Indices
     hNum.trans (congrArg Term.Numeral hLL), hWzPos, hWyPos, hWuPos⟩
 
 theorem eval_bvConcatPullup3
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (xs ws y z u nxm nyu nyum nu num : Term) (wz wy wu : Nat) :
     __eo_is_list op.term xs = Term.Boolean true ->
@@ -6546,7 +6546,7 @@ theorem eval_bvConcatPullup3
     _ = _ := hRhsEval.symm
 
 theorem facts_bvConcatPullup3Term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (xs ws y z u nxm nyu nyum nu num : Term) :
     RuleProofs.eo_has_smt_translation xs ->
@@ -6596,7 +6596,7 @@ theorem facts_bvConcatPullup3Term
     exact RuleProofs.smt_value_rel_refl _
 
 theorem bvConcatPullup3ProgramProperties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (xs ws y z u nxm nyu nyum nu num P1 P2 P3 P4 P5 : Term) :
     RuleProofs.eo_has_smt_translation xs ->
@@ -6700,7 +6700,7 @@ def BvConcatPullupOp.pullup3Rule : BvConcatPullupOp → CRule
   | .bxor => CRule.bv_xor_concat_pullup3
 
 theorem cmd_step_bvConcatPullup3_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (op : BvConcatPullupOp)
     (s : CState) (args : CArgList) (premises : CIndexList) :
     cmdTranslationOk (CCmd.step op.pullup3Rule args premises) ->

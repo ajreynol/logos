@@ -399,7 +399,7 @@ private theorem str_concat_eval_replacement_left
     native_pack_seq_char_append_unpack_string [] sy repl hReplTy
 
 private theorem str_eval_replace_re_all_rec_properties
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     ∀ (xs acc : native_String) (fuel skip : Nat)
       (r : Term) (rv : SmtRegLan) (t : Term) (repl : SmtSeq),
       native_string_valid xs = true ->
@@ -931,7 +931,7 @@ private theorem term_ne_stuck_of_smt_seq_type_local
   simp at hTy
 
 private theorem strConcat_singleton_elim_rel
-    (M : SmtModel) (hM : model_total_typed M) (c : Term) (T : SmtType) :
+    (M : SmtModel) (hM : model_wf M) (c : Term) (T : SmtType) :
     __eo_is_list (Term.UOp UserOp.str_concat) c = Term.Boolean true ->
     __smtx_typeof (__eo_to_smt c) = SmtType.Seq T ->
     RuleProofs.smt_value_rel
@@ -991,7 +991,7 @@ private theorem strConcat_singleton_elim_rel
         RuleProofs.smt_value_rel_refl _
 
 private theorem str_replace_re_all_eval_valid_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s r t u : Term)
     (hArgTrans :
       RuleProofs.eo_has_smt_translation
@@ -1221,7 +1221,7 @@ private theorem str_replace_re_all_eval_valid_properties
       (by simpa [lhs, lhs'] using hEqBool)
 
 private theorem str_replace_re_all_eval_arg_properties
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
     (a1 : Term) ->
     RuleProofs.eo_has_smt_translation a1 ->
     __eo_prog_str_replace_re_all_eval a1 ≠ Term.Stuck ->
@@ -1278,7 +1278,7 @@ private theorem str_replace_re_all_eval_arg_properties
 end RuleProofs
 
 public theorem cmd_step_str_replace_re_all_eval_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_replace_re_all_eval args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

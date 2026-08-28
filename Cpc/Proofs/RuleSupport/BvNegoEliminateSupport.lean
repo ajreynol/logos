@@ -526,7 +526,7 @@ private theorem smtx_eval_bvnego_term_eq
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 theorem eval_bvnego_matches_eq_min
-    (M : SmtModel) (hM : model_total_typed M) (x n : Term) :
+    (M : SmtModel) (hM : model_wf M) (x n : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof (bvNegoTerm x n) = Term.Bool ->
     __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp UserOp.bvnego) x)) =
@@ -572,7 +572,7 @@ theorem eval_bvnego_matches_eq_min
     hSub, SmtEval.native_zeq]
 
 theorem facts_bv_nego_term
-    (M : SmtModel) (hM : model_total_typed M) (x n : Term) :
+    (M : SmtModel) (hM : model_wf M) (x n : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof (bvNegoTerm x n) = Term.Bool ->
     eo_interprets M (bvNegoTerm x n) true := by

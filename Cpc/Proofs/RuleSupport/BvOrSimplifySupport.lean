@@ -1253,7 +1253,7 @@ theorem typed_term2_of_type_or_nil
         hW hW0 (zero_is_list width) (zero_is_list width) hZsList
 
 private theorem eval_lhs
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs ys zs first second : Term) (width : Nat) :
     __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec width ->
     __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec width ->
@@ -1364,7 +1364,7 @@ private theorem eval_allOnes
   rw [hWidth]
 
 private theorem facts_term1_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs ys zs x w : Term) (W : native_Int) :
     __smtx_typeof (__eo_to_smt xs) =
       SmtType.BitVec (native_int_to_nat W) ->
@@ -1425,7 +1425,7 @@ private theorem facts_term1_core
     exact RuleProofs.smt_value_rel_refl _
 
 private theorem facts_term2_core
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs ys zs x w : Term) (W : native_Int) :
     __smtx_typeof (__eo_to_smt xs) =
       SmtType.BitVec (native_int_to_nat W) ->
@@ -1486,7 +1486,7 @@ private theorem facts_term2_core
     exact RuleProofs.smt_value_rel_refl _
 
 theorem facts_term1_of_type_or_nil
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs ys zs x w : Term) (W : native_Int) :
     ListTypeOrNil xs (native_int_to_nat W) ->
     ListTypeOrNil ys (native_int_to_nat W) ->
@@ -1525,7 +1525,7 @@ theorem facts_term1_of_type_or_nil
         hW hW0 (zero_is_list width) (zero_is_list width) hZsList
 
 theorem facts_term2_of_type_or_nil
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (xs ys zs x w : Term) (W : native_Int) :
     ListTypeOrNil xs (native_int_to_nat W) ->
     ListTypeOrNil ys (native_int_to_nat W) ->

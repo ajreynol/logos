@@ -3539,7 +3539,7 @@ theorem EvaluateProofInternal.native_nat_to_int_of_int_to_nat_eq
     Int.toNat_of_nonneg hw0]
 
 theorem EvaluateProofInternal.model_eval_bitvec_term_binary
-    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (M : SmtModel) (hM : model_wf M) (t : Term)
     (w : native_Nat)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w) :
     ∃ n : native_Int,
@@ -8835,7 +8835,7 @@ theorem EvaluateProofInternal.str_replace_run_repl_string_of_nonneg
     exact ⟨repl, rfl, EvaluateProofInternal.native_string_valid_of_string_type hZTy⟩
 
 theorem EvaluateProofInternal.smt_model_eval_seq_of_type_local
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (t : SmtTerm) (T : SmtType)
     (hTy : __smtx_typeof t = SmtType.Seq T) :
     ∃ seq : SmtSeq, __smtx_model_eval M t = SmtValue.Seq seq := by

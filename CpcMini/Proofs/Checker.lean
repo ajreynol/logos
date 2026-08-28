@@ -46,7 +46,7 @@ by
 
 /-- Shows that `invoke_step` preserves `localTruthInvariant`. -/
 theorem invoke_step_preserves_localTruthInvariant
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
@@ -130,7 +130,7 @@ by
 
 /-- Shows that `invoke_step` preserves `translationInvariant`. -/
 theorem invoke_step_preserves_translationInvariant
-    (M : SmtModel) (_hM : model_total_typed M)
+    (M : SmtModel) (_hM : model_wf M)
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
@@ -168,7 +168,7 @@ by
 
 /-- Auxiliary lemma for `invoke_cmd_step_pop_preserves_localTruthInvariant`. -/
 theorem invoke_cmd_step_pop_preserves_localTruthInvariant_aux
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
   forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
     checkerLocalTruthInvariant M root ->
     checkerLocalTruthInvariant M cur ->
@@ -240,7 +240,7 @@ by
 
 /-- Shows that `invoke_cmd_step_pop` preserves `localTruthInvariant`. -/
 theorem invoke_cmd_step_pop_preserves_localTruthInvariant
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
   checkerTypeInvariant s ->
@@ -300,7 +300,7 @@ by
 
 /-- Auxiliary lemma for `invoke_cmd_step_pop_preserves_translationInvariant`. -/
 theorem invoke_cmd_step_pop_preserves_translationInvariant_aux
-    (M : SmtModel) (hM : model_total_typed M) :
+    (M : SmtModel) (hM : model_wf M) :
   forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
     checkerLocalTruthInvariant M root ->
     checkerTypeInvariant root ->
@@ -379,7 +379,7 @@ by
 
 /-- Shows that `invoke_cmd_step_pop` preserves `translationInvariant`. -/
 theorem invoke_cmd_step_pop_preserves_translationInvariant
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
   checkerTypeInvariant s ->
@@ -452,7 +452,7 @@ by
 
 /-- Shows that `invoke_cmd` preserves `localTruthInvariant_nonstuck`. -/
 theorem invoke_cmd_preserves_localTruthInvariant_nonstuck (M : SmtModel) :
-  forall _hM : model_total_typed M,
+  forall _hM : model_wf M,
   forall s : CState, forall c : CCmd,
     checkerLocalTruthInvariant M s ->
     checkerTypeInvariant s ->
@@ -602,7 +602,7 @@ by
 
 /-- Shows that `invoke_cmd` preserves `truthInvariant_nonstuck`. -/
 theorem invoke_cmd_preserves_truthInvariant_nonstuck (M : SmtModel) :
-  forall _hM : model_total_typed M,
+  forall _hM : model_wf M,
   forall s : CState, forall c : CCmd,
     checkerLocalTruthInvariant M s ->
     checkerTypeInvariant s ->
@@ -680,7 +680,7 @@ by
 
 /-- Shows that `invoke_cmd` preserves `translationInvariant_nonstuck`. -/
 theorem invoke_cmd_preserves_translationInvariant_nonstuck (M : SmtModel) :
-  forall _hM : model_total_typed M,
+  forall _hM : model_wf M,
   forall s : CState, forall c : CCmd,
     checkerLocalTruthInvariant M s ->
     checkerTypeInvariant s ->
@@ -752,7 +752,7 @@ by
 
 /-- Shows that `invoke_cmd` preserves `stateInvariant_nonstuck`. -/
 theorem invoke_cmd_preserves_stateInvariant_nonstuck (M : SmtModel) :
-  forall _hM : model_total_typed M,
+  forall _hM : model_wf M,
   forall s : CState, forall c : CCmd,
     checkerStateInvariant M s ->
     cmdTranslationOk c ->
@@ -780,7 +780,7 @@ by
 
 /-- Shows that `invoke_cmd` preserves `stateInvariant`. -/
 theorem invoke_cmd_preserves_stateInvariant (M : SmtModel) :
-  forall _hM : model_total_typed M,
+  forall _hM : model_wf M,
   forall s : CState, forall c : CCmd,
     checkerStateInvariant M s ->
     cmdTranslationOk c ->
@@ -798,7 +798,7 @@ by
 
 /-- Shows that `invoke_cmd_list` preserves `stateInvariant`. -/
 theorem invoke_cmd_list_preserves_stateInvariant (M : SmtModel) :
-  forall _hM : model_total_typed M,
+  forall _hM : model_wf M,
   forall s : CState, forall cs : CCmdList,
     checkerStateInvariant M s ->
     CmdListTranslationOk cs ->
@@ -854,7 +854,7 @@ theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
   eo_satisfiability F false :=
 by
   intro hFTrans hPfTrans hRef
-  have hNoInterp : forall M : SmtModel, model_total_typed M -> ¬ (eo_interprets M F true) := by
+  have hNoInterp : forall M : SmtModel, model_wf M -> ¬ (eo_interprets M F true) := by
     intro M hM hF
     cases hRef with
     | intro hChecker =>

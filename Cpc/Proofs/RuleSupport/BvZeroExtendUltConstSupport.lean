@@ -585,7 +585,7 @@ private theorem eval_bvult_term_local
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem eval_bv_zero_extend_ult_const_both
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x c nm2 : Term) (W A : native_Int) :
     native_zleq 0 W = true ->
     native_zleq 0 A = true ->
@@ -719,7 +719,7 @@ private theorem eval_bv_zero_extend_ult_const_both
     simp [__smtx_model_eval_bvult, __smtx_model_eval_bvugt]
 
 private theorem facts_bv_zero_extend_ult_const_1_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -753,7 +753,7 @@ private theorem facts_bv_zero_extend_ult_const_1_term
     exact RuleProofs.smt_value_rel_refl _
 
 private theorem facts_bv_zero_extend_ult_const_2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -1096,7 +1096,7 @@ theorem typed_bv_zero_extend_ult_const_2_program
     hXTrans hMTrans hCTrans hNmTrans hTermTy
 
 theorem facts_bv_zero_extend_ult_const_1_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 P1 P2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -1127,7 +1127,7 @@ theorem facts_bv_zero_extend_ult_const_1_program
     hXTrans hMTrans hCTrans hNmTrans hTermTy hValuePrem
 
 theorem facts_bv_zero_extend_ult_const_2_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 P1 P2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -1726,7 +1726,7 @@ private theorem bv_zero_extend_eq_const_widths_false
   omega
 
 private theorem facts_bv_zero_extend_eq_const_1_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 nmm1 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -1751,7 +1751,7 @@ private theorem facts_bv_zero_extend_eq_const_1_term
     (bv_zero_extend_eq_const_widths_false W A L H hLWidth hHWidth hNmm1)
 
 private theorem facts_bv_zero_extend_eq_const_2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 nmm1 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -2054,7 +2054,7 @@ theorem typed_bv_zero_extend_eq_const_2_program
     hXTrans hMTrans hCTrans hNmTrans hTermTy
 
 theorem facts_bv_zero_extend_eq_const_1_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 nmm1 P1 P2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -2090,7 +2090,7 @@ theorem facts_bv_zero_extend_eq_const_1_program
     hXTrans hMTrans hCTrans hNmTrans hTermTy hWidthPrem hNmm1Prem
 
 theorem facts_bv_zero_extend_eq_const_2_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 nmm1 P1 P2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -3309,7 +3309,7 @@ private theorem eval_bvnot_term_local (M : SmtModel) (x : Term) :
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem eval_bv_sign_extend_eq_const_1_lhs_eq_rhs
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x c : Term) (W A P L H : native_Int) :
     native_zleq 0 W = true ->
     native_zleq 0 A = true ->
@@ -3653,7 +3653,7 @@ private theorem eval_bv_sign_extend_eq_const_1_lhs_eq_rhs
   exact eval_sign_extend_eq_characterization xBV cBV hWNatPos
 
 private theorem facts_bv_sign_extend_eq_const_1_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm mp nm2 nmm1 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -3692,7 +3692,7 @@ private theorem facts_bv_sign_extend_eq_const_1_term
     exact RuleProofs.smt_value_rel_refl _
 
 private theorem eval_bv_sign_extend_eq_const_2_lhs_eq_1_lhs
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x c : Term) (W A : native_Int) :
     native_zleq 0 W = true ->
     native_zleq 0 A = true ->
@@ -3846,7 +3846,7 @@ private theorem eval_bv_sign_extend_eq_const_2_lhs_eq_1_lhs
   rw [hDec]
 
 private theorem facts_bv_sign_extend_eq_const_2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm mp nm2 nmm1 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -4076,7 +4076,7 @@ theorem typed_bv_sign_extend_eq_const_1_program
     hXTrans hMTrans hCTrans hNmTrans hMpTrans hTermTy
 
 theorem facts_bv_sign_extend_eq_const_1_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm mp nm2 nmm1 P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -4271,7 +4271,7 @@ theorem typed_bv_sign_extend_eq_const_2_program
     hXTrans hMTrans hCTrans hNmTrans hMpTrans hTermTy
 
 theorem facts_bv_sign_extend_eq_const_2_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm mp nm2 nmm1 P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -4888,7 +4888,7 @@ private theorem eval_bvule_term_local
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem sign_extend_ult_const_2_eval_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x c : Term) (W A H : native_Int) :
     native_zleq 0 W = true -> native_zleq 0 A = true ->
     native_zleq 0 H = true -> native_zlt H W = true ->
@@ -5233,7 +5233,7 @@ private theorem sign_extend_ult_const_2_eval_eq
     sign_bit_extract_eq_zero xBV hWNatPos]
 
 private theorem facts_bv_sign_extend_ult_const_2_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -5506,7 +5506,7 @@ theorem typed_bv_sign_extend_ult_const_2_program
     hXTrans hMTrans hCTrans hNmTrans hTermTy
 
 theorem facts_bv_sign_extend_ult_const_2_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -5925,7 +5925,7 @@ private theorem sign_bit_extract_eq_one
       BitVec.getLsbD_eq_getElem (by omega)] using h
 
 private theorem sign_extend_ult_const_4_eval_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x c : Term) (W A H : native_Int) :
     native_zleq 0 W = true -> native_zleq 0 A = true ->
     native_zleq 0 H = true -> native_zlt H W = true ->
@@ -6183,7 +6183,7 @@ private theorem sign_extend_ult_const_4_eval_eq
     sign_bit_extract_eq_one xBV hWNatPos]
 
 private theorem facts_bv_sign_extend_ult_const_4_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -6389,7 +6389,7 @@ theorem typed_bv_sign_extend_ult_const_4_program
     hXTrans hMTrans hCTrans hNmTrans hTermTy
 
 theorem facts_bv_sign_extend_ult_const_4_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 P1 P2 P3 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -7018,7 +7018,7 @@ private theorem eval_bvult_binary_nat (N a b : Nat) :
     SmtEval.native_zlt]
 
 private theorem sign_extend_ult_const_outside_values
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x c : Term) (W A H : native_Int) :
     native_zleq 0 W = true -> native_zleq 0 A = true ->
     native_zleq 0 H = true ->
@@ -7251,7 +7251,7 @@ private theorem eval_or_term_local
   exact smtx_eval_or_term_eq M (__eo_to_smt x) (__eo_to_smt y)
 
 private theorem sign_extend_ult_const_1_eval_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x c : Term) (W A H : native_Int) :
     native_zleq 0 W = true -> native_zleq 0 A = true ->
     native_zleq 0 H = true ->
@@ -7365,7 +7365,7 @@ private theorem sign_extend_ult_const_1_eval_eq
     sign_extend_ult_outside xBV cBV hWNatPos hOutside]
 
 private theorem facts_bv_sign_extend_ult_const_1_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -7401,7 +7401,7 @@ private theorem facts_bv_sign_extend_ult_const_1_term
     exact RuleProofs.smt_value_rel_refl _
 
 private theorem sign_extend_ult_const_3_eval_eq
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x c : Term) (W A H : native_Int) :
     native_zleq 0 W = true -> native_zleq 0 A = true ->
     native_zleq 0 H = true ->
@@ -7518,7 +7518,7 @@ private theorem sign_extend_ult_const_3_eval_eq
     sign_extend_ult_outside_rev xBV cBV hWNatPos hOutside]
 
 private theorem facts_bv_sign_extend_ult_const_3_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -7780,7 +7780,7 @@ theorem typed_bv_sign_extend_ult_const_1_program
     hXTrans hMTrans hCTrans hNmTrans hTermTy
 
 theorem facts_bv_sign_extend_ult_const_1_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 P1 P2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->
@@ -7965,7 +7965,7 @@ theorem typed_bv_sign_extend_ult_const_3_program
     hXTrans hMTrans hCTrans hNmTrans hTermTy
 
 theorem facts_bv_sign_extend_ult_const_3_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (x m c nm nm2 P1 P2 : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation m ->

@@ -810,7 +810,7 @@ theorem typed_bv_bitwise_elim_term
       simp)
 
 private theorem smt_eval_binary_of_smt_type_bitvec
-    (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm)
+    (M : SmtModel) (hM : model_wf M) (t : SmtTerm)
     (w : native_Nat) :
     __smtx_typeof t = SmtType.BitVec w ->
     ∃ n, __smtx_model_eval M t =
@@ -907,7 +907,7 @@ private theorem smtx_eval_bvxnor_term_eq
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem eval_bv_bitwise_elim
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (k : BvBitwiseElimKind) (x y : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
@@ -993,7 +993,7 @@ private theorem eval_bv_bitwise_elim
       rw [hInner]
 
 theorem facts_bv_bitwise_elim_term
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (k : BvBitwiseElimKind) (x y : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->
@@ -1117,7 +1117,7 @@ theorem typed_bv_bitwise_elim_program
   exact typed_bv_bitwise_elim_term k x y hXTrans hYTrans hTermTy
 
 theorem facts_bv_bitwise_elim_program
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (k : BvBitwiseElimKind) (x y : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation y ->

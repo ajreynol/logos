@@ -47,7 +47,7 @@ private theorem facts___eo_prog_re_all_elim (M : SmtModel) :
       (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult Term.re_allchar)))
 
 public theorem cmd_step_re_all_elim_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_all_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

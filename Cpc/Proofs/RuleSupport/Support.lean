@@ -915,7 +915,7 @@ structure ContextualTruth
     eo_interprets M pushes true ->
     eo_interprets M P true
   true_in_var_model :
-    ∀ N, model_total_typed N ->
+    ∀ N, model_wf N ->
       model_agrees_on_globals M N ->
       eo_interprets N assumes true ->
       eo_interprets N pushes true ->
@@ -933,7 +933,7 @@ structure RulePremiseEvidence
   true_here :
     AllInterpretedTrue M premises
   true_in_var_model :
-    ∀ N, model_total_typed N ->
+    ∀ N, model_wf N ->
       model_agrees_on_globals M N ->
       AllInterpretedTrue N premises
 
@@ -1076,7 +1076,7 @@ def StepPopRuleProperties
     (x1 : Term) (premises : List Term) (P : Term) : Prop :=
   ∃ x2,
     x2 ∈ premises ∧
-    (forall (M : SmtModel), model_total_typed M ->
+    (forall (M : SmtModel), model_wf M ->
       ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
       eo_interprets M P true) ∧
     RuleProofs.eo_has_smt_translation P

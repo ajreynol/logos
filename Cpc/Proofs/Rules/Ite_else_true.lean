@@ -94,7 +94,7 @@ private theorem typed___eo_prog_ite_else_true_impl (c1 x1 : Term) :
       decide)
 
 private theorem facts___eo_prog_ite_else_true_impl
-    (M : SmtModel) (hM : model_total_typed M) (c1 x1 : Term) :
+    (M : SmtModel) (hM : model_wf M) (c1 x1 : Term) :
   RuleProofs.eo_has_smt_translation c1 ->
   RuleProofs.eo_has_smt_translation x1 ->
   __eo_typeof (__eo_prog_ite_else_true c1 x1) = Term.Bool ->
@@ -140,7 +140,7 @@ private theorem facts___eo_prog_ite_else_true_impl
         SmtEval.native_or, SmtEval.native_not]
 
 public theorem cmd_step_ite_else_true_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ite_else_true args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->

@@ -400,7 +400,7 @@ private theorem trusted_bv_redand_eliminate_canonical_properties
       (typed_redand_body x w hXTrans hwNe hBodyTy)
 
 public theorem cmd_step_bv_redand_eliminate_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_redand_eliminate args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
