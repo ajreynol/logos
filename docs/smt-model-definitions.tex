@@ -1853,10 +1853,6 @@ when evaluating binders), where the interpretation of a constant is fixed.
 def smt_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
   (if (smt_type_wf T) then U else SmtType.None)
   
-def smt_typeof_not : SmtType -> SmtType
-  | SmtType.Bool => SmtType.Bool
-  | T => SmtType.None
-
 def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
   (smt_typeof_guard T (if (Teq T U) then SmtType.Bool else SmtType.None))
 
@@ -1886,7 +1882,8 @@ def smt_typeof : SmtTerm -> SmtType
   | (SmtTerm.Numeral n) => SmtType.Int
   | (SmtTerm.Binary w n) =>
       if 0 <= w ∧ n = n % (2 ^ w) then (SmtType.BitVec (Int.toNat w)) else SmtType.None
-  | (SmtTerm.not x1) => (smt_typeof_not (smt_typeof x1))
+  | (SmtTerm.not x1) =>
+      if (Teq (smt_typeof x1) SmtType.Bool) then SmtType.Bool else SmtType.None
   | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.exists s T x1) =>
       if smt_typeof x1 = SmtType.Bool then (smt_typeof_guard_wf T SmtType.Bool) else SmtType.None
@@ -1919,7 +1916,7 @@ For the remaining operators, it is important to note that, since our definition 
 terms do not allow us to specify partially applied interpreted functions,
 the type rules we give are for fully applied terms.
 We give some of the cases above, for example,
-for SMT-LIB \code{not}, the method \code{smt_typeof_not} returns the Boolean type
+for SMT-LIB \code{not}, the type is the Boolean type
 iff the argument is Boolean.
 For SMT-LIB equality \code{eq},
 the method for computing its type \code{smt_typeof_eq}
@@ -2316,7 +2313,7 @@ The next set of operators denote the other builtin types
 of Eunoia including Booleans (\code{Bool}),
 the arrow type (\code{FunType}), and
 the type of types (\code{Type}).
-The next four constructors denote the SMT-LIB literal categories
+The next five constructors denote the SMT-LIB literal categories
 supported by Eunoia.
 Note that these constructors carry native Lean types
 that denote their values, similar to our definition of SMT-LIB terms and values.
