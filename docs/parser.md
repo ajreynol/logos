@@ -25,12 +25,12 @@ covers every operator and proof rule; it runs in the `regressions` CI group.
 ## Commands
 
 The parser supports the commands `declare-const`, `declare-fun`, `declare-sort`,
-`declare-type`, `declare-datatypes`, `define`, `assume`, `assume-push`, `step` and `step-pop`.
+`declare-datatypes`, `define`, `assume`, `assume-push`, `step` and `step-pop`.
 `include` and `reference` commands are ignored: Logos has the signature built in and does not
 check the proof against the original input problem.
-A `declare-sort` of arity `n` (equivalently, a `declare-type` with `n` arguments) declares a
-symbol of type `(-> Type … Type)`, so that arity `0` declares an uninterpreted sort; the
-function type is built from the signature's own `->`, as it is for `declare-fun`.
+A `declare-sort` of arity `n` declares a symbol whose type is the sort of sorts, or a function
+type into it, so that arity `0` declares an uninterpreted sort.  The sort of sorts is not itself
+syntax: `Type` is an ordinary symbol name, which cvc5 output declares (e.g. proofs from Verus).
 A `define` with parameters is a macro, since Eunoia has no lambda: its body is kept as an
 s-expression and read again wherever the defined symbol is applied, with the parameters bound
 to the arguments given there.  Consequently a parameter's declared type is not used, an error
