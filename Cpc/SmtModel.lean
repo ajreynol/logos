@@ -358,7 +358,7 @@ macro_rules
               false)
 
 macro_rules
-  | `(native_eval_map_diff_msm $m1 $m2) => do
+  | `(native_eval_map_diff $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_map_lookup
       let typeofMapValueId := Lean.mkIdent `__smtx_typeof_map_value
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
@@ -382,7 +382,7 @@ macro_rules
             | _ => SmtValue.NotValue)
 
 macro_rules
-  | `(native_eval_seq_diff_ssm $s1 $s2) => do
+  | `(native_eval_seq_diff $s1 $s2) => do
       `(by
           classical
           exact
@@ -845,8 +845,8 @@ def __smtx_typeof_map_diff : SmtType -> SmtType -> SmtType
 
 
 def __smtx_model_eval_map_diff : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Map m1), (SmtValue.Map m2) => (native_eval_map_diff_msm m1 m2)
-  | (SmtValue.Set m1), (SmtValue.Set m2) => (native_eval_map_diff_msm m1 m2)
+  | (SmtValue.Map m1), (SmtValue.Map m2) => (native_eval_map_diff m1 m2)
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (native_eval_map_diff m1 m2)
   | t1, t2 => SmtValue.NotValue
 
 
@@ -1444,7 +1444,7 @@ def __smtx_typeof_seq_diff : SmtType -> SmtType -> SmtType
 
 
 def __smtx_model_eval_seq_diff : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq s), (SmtValue.Seq t) => (native_eval_seq_diff_ssm s t)
+  | (SmtValue.Seq s), (SmtValue.Seq t) => (native_eval_seq_diff s t)
   | t1, t2 => SmtValue.NotValue
 
 
@@ -1930,7 +1930,7 @@ end
 -- embedding names them.
 
 macro_rules
-  | `(native_eval_texists $M $s $T $body) => do
+  | `(native_eval_exists $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
@@ -1948,7 +1948,7 @@ macro_rules
               SmtValue.Boolean false)
 
 macro_rules
-  | `(native_eval_tforall $M $s $T $body) => do
+  | `(native_eval_forall $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
@@ -1966,7 +1966,7 @@ macro_rules
               SmtValue.Boolean false)
 
 macro_rules
-  | `(native_eval_tchoice $M $s $T $body) => do
+  | `(native_eval_choice $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
@@ -2134,9 +2134,9 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.int_to_bv x1 x2) => (__smtx_model_eval_int_to_bv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.ubv_to_int x1) => (__smtx_model_eval_ubv_to_int (__smtx_model_eval M x1))
   | (SmtTerm.sbv_to_int x1) => (__smtx_model_eval_sbv_to_int (__smtx_model_eval M x1))
-  | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
-  | (SmtTerm.forall s T x1) => (native_eval_tforall M s T x1)
-  | (SmtTerm.choice s T x1) => (native_eval_tchoice M s T x1)
+  | (SmtTerm.exists s T x1) => (native_eval_exists M s T x1)
+  | (SmtTerm.forall s T x1) => (native_eval_forall M s T x1)
+  | (SmtTerm.choice s T x1) => (native_eval_choice M s T x1)
   | (SmtTerm.bind s T x1 x2) => (__smtx_model_eval (native_model_push M s T (__smtx_model_eval M x1)) x2)
   | (SmtTerm.DtCons s dd i) => (SmtValue.DtCons s dd i)
   | (SmtTerm.Apply (SmtTerm.DtSel s dd i j) x1) => (__smtx_model_eval_dt_sel M s dd i j (__smtx_model_eval M x1))

@@ -628,7 +628,7 @@ end
 -- embedding names them.
 
 macro_rules
-  | `(native_eval_texists $M $s $T $body) => do
+  | `(native_eval_exists $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
@@ -646,7 +646,7 @@ macro_rules
               SmtValue.Boolean false)
 
 macro_rules
-  | `(native_eval_tforall $M $s $T $body) => do
+  | `(native_eval_forall $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
@@ -664,7 +664,7 @@ macro_rules
               SmtValue.Boolean false)
 
 macro_rules
-  | `(native_eval_tchoice $M $s $T $body) => do
+  | `(native_eval_choice $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
       let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
@@ -695,9 +695,9 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.imp x1 x2) => (__smtx_model_eval_imp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.eq x1 x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.ite x1 x2 x3) => (__smtx_model_eval_ite (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
-  | (SmtTerm.forall s T x1) => (native_eval_tforall M s T x1)
-  | (SmtTerm.choice s T x1) => (native_eval_tchoice M s T x1)
+  | (SmtTerm.exists s T x1) => (native_eval_exists M s T x1)
+  | (SmtTerm.forall s T x1) => (native_eval_forall M s T x1)
+  | (SmtTerm.choice s T x1) => (native_eval_choice M s T x1)
   | (SmtTerm.bind s T x1 x2) => (__smtx_model_eval (native_model_push M s T (__smtx_model_eval M x1)) x2)
   | (SmtTerm.DtCons s dd i) => (SmtValue.DtCons s dd i)
   | (SmtTerm.Apply (SmtTerm.DtSel s dd i j) x1) => (__smtx_model_eval_dt_sel M s dd i j (__smtx_model_eval M x1))
