@@ -65,7 +65,7 @@ expand_tilde() {
 # belongs on a commit of ethos main; move it back once what this needs is
 # there. It is pinned to a commit of the branch rather than to the branch
 # itself, so that what the compiler emits still changes only on purpose.
-ETHOS_VERSION="3eadc500eb878849d808abf7921bc7ea1308af63"
+ETHOS_VERSION="e48016247ae72176f8ee04da499fe7a7700ba48f"
 DEPS_DIR=""
 JOBS=""
 KEEP_TMP=0
