@@ -99,34 +99,33 @@ commit that updates the copy.
 
 `install/defs/Cpc.eos` says what each symbol of the signature means, as a
 transformation into the deep embedding, and this repository is where it lives.
-
-`Spec.lean` and the `SmtModel` modules are what it compiles to, so changing
-what CPC means is changing that file and regenerating.
-
 The core SMT-LIB semantics it is written against live with the eoc compiler
 rather than here: `tools/eoc/semantics/smt.eos` in
 [cvc5/ethos](https://github.com/cvc5/ethos).
 
-Either half can be replaced for a run, which is the less common use of these
-scripts: `--semantics PATH` names another configuration of what the symbols of
+`Spec.lean` and the `SmtModel` Lean modules are what they compile to, so changing
+what CPC means changes the core definition of the definition of satisfiability
+in Logos.
+
+In practice, these files only need to modified if e.g. a new theory symbol
+is added, if the formalized semantics of an operator is planning to be
+change, or if the Eunoia compiler is changing.
+Either semantics configuration file can be replaced for a run:
+`--semantics PATH` names another configuration of what the symbols of
 the signature mean, and `--smt-semantics PATH` another of what the SMT-LIB
-symbols they are written against mean. Both take a *central file* of a
-configuration set, the same thing `Cpc.eos` and `smt.eos` are, and both are
-options of `install-cpc.sh` and of `install-sig.sh`:
+symbols they are written against mean. Both are command line
+options of `install-cpc.sh` and of `install-sig.sh`.
+For example, the following command can be run on the Cpc signature
+if the semantics of cpc and smt are being extended as part of the update
+to the signature:
 
 ```bash
-install/install-cpc.sh --cached --smt-semantics ~/ethos/tools/eoc/semantics/smt.eos
+install/install-cpc.sh ~/cvc5/proofs/eo/cpc/Cpc.eo --semantics <my cpc semantics> --smt-semantics <my smt semantics>
 ```
 
-That is for trying a change to the semantics out rather than for a normal
-update: it regenerates the packages against something other than the pair they
+Note that this regenerates the Logos source against something other than the pair they
 are checked in against, so `--check` reports the tree as out of date until the
-change lands in `install/defs/Cpc.eos` or in the pinned compiler.
-
-The compiler compiles a named set in place of the one it ships with rather
-than beside it, and writes what it compiles to under `tools/eoc/out` of the
-Ethos tree, which is `install/deps/` here. Nothing of it is kept in git; what
-is kept is the configuration.
+change lands in `install/defs/Cpc.eos` and the SMT semantics (`tools/eoc/semantics/smt.eos`) the pinned compiler.
 
 ## install-sig.sh
 
