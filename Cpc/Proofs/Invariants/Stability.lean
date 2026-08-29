@@ -1,7 +1,7 @@
 module
 
-public import CpcMini.Proofs.CheckerState
-import all CpcMini.Proofs.CheckerState
+public import Cpc.Proofs.CheckerState
+import all Cpc.Proofs.CheckerState
 
 /-!
 # The variable-stability invariant
@@ -17,9 +17,9 @@ rules never look under a binder can define `StableWhenTrueInAnyVarModel` as
 `True`, as `CpcMini` does, and everything here is then discharged for free by
 `checkerAssumptionStabilityInvariant_any`.
 
-Keeping it in its own module is what lets `CpcMini/Proofs/CheckerState.lean` stay
+Keeping it in its own module is what lets `Cpc/Proofs/CheckerState.lean` stay
 free of it entirely, and confines the rest of the commitment to the five decls
-of `CpcMini/Proofs/CheckerCore.lean` that mention it.
+of `Cpc/Proofs/CheckerCore.lean` that mention it.
 -/
 
 public section
@@ -28,15 +28,8 @@ open Eo
 open SmtEval
 open Smtm
 
-/-- Mini formulas are stable under variable-model changes whenever required by the checker interface. -/
-def StableWhenTrueInAnyVarModel (_P : Term) : Prop :=
-  True
-/-- Closed EO formulas satisfy the mini stability side condition. -/
-theorem stableWhenTrueInAnyVarModel_of_closed
-    (P : Term) (_hClosed : __eo_is_closed P = Term.Boolean true) :
-  StableWhenTrueInAnyVarModel P :=
-by
-  trivial
+set_option linter.unusedVariables false
+set_option maxHeartbeats 0
 /-- Assumptions in an input formula remain true under variable-model changes. -/
 inductive StableAssumptionList (M : SmtModel) : Term -> Prop
   | base : StableAssumptionList M (Term.Boolean true)
@@ -45,7 +38,7 @@ inductive StableAssumptionList (M : SmtModel) : Term -> Prop
       StableAssumptionList M rest ->
       StableAssumptionList M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 /-- The model-dependent stability side condition for commands that introduce assumptions. -/
-def cmdAssumptionStabilityOk (_M : SmtModel) : CCmd -> Prop
+def cmdAssumptionStabilityOk (M : SmtModel) : CCmd -> Prop
   | CCmd.assume_push A => StableWhenTrueInAnyVarModel A
   | _ => True
 /-- Every command in a checker command list satisfies `cmdAssumptionStabilityOk`. -/
@@ -55,7 +48,14 @@ inductive CmdListAssumptionStabilityOk (M : SmtModel) : CCmdList -> Prop
       cmdAssumptionStabilityOk M c ->
       CmdListAssumptionStabilityOk M cs ->
       CmdListAssumptionStabilityOk M (CCmdList.cons c cs)
-/-- Assumptions and pushed assumptions satisfy the mini stability side condition. -/
+/- Variable-model stability for assumptions.
+
+   The local truth invariant already records stability for derived facts.
+   Assumptions and local pushes are base facts, so the checker needs one
+   extra invariant for precisely those entries if they may be used as
+   binder-congruence premises.
+-/
+/-- Assumptions and pushed assumptions remain true under variable-model changes whenever true. -/
 def checkerAssumptionStabilityInvariant (M : SmtModel) : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.assume A) s =>
@@ -78,11 +78,13 @@ theorem checkerAssumptionStabilityInvariant_of_stateStepPopSuffix (M : SmtModel)
     checkerAssumptionStabilityInvariant M cur
 :=
 by
-  intro cur root hSuffix hsRoot
+  intro cur root hSuffix
   induction hSuffix with
   | refl _ =>
+      intro hsRoot
       exact hsRoot
   | proven P hSuffix ih =>
+      intro hsRoot
       exact ih (by simpa [checkerAssumptionStabilityInvariant] using hsRoot)
 /-- Shows how `checkerAssumptionStabilityInvariant` behaves on suffix tails. -/
 theorem checkerAssumptionStabilityInvariant_tail (M : SmtModel) :
@@ -99,7 +101,7 @@ by
       exact hs.2
   | proven P =>
       simpa [checkerAssumptionStabilityInvariant] using hs
-/-- The mini assumption-stability invariant is independent of the current model. -/
+/-- The assumption-stability invariant is independent of the current model. -/
 theorem checkerAssumptionStabilityInvariant_rebase (M N : SmtModel) :
   forall {s : CState},
     checkerAssumptionStabilityInvariant M s ->
@@ -120,24 +122,84 @@ by
           exact ⟨hs.1, ih hs.2⟩
       | proven P =>
           exact ih (by simpa [checkerAssumptionStabilityInvariant] using hs)
-/-- The mini stability side condition holds for every current checker state. -/
-theorem checkerAssumptionStabilityInvariant_any (M : SmtModel) :
-  forall s : CState, checkerAssumptionStabilityInvariant M s :=
+/-- Transfers the active input assumptions across a variable-model change. -/
+theorem stateAssumes_true_in_var_model_of_assumptionStability
+    (M : SmtModel) (hM : model_wf M) :
+  forall {s : CState},
+    checkerAssumptionStabilityInvariant M s ->
+    eo_interprets M (stateAssumes s) true ->
+    forall (N : SmtModel),
+      model_wf N ->
+      model_agrees_on_globals M N ->
+      eo_interprets N (stateAssumes s) true
+:=
 by
-  intro s
+  intro s hStable hAss
   induction s with
   | nil =>
-      trivial
+      intro N hN hAgree
+      simpa [stateAssumes] using eo_interprets_true N
   | Stuck =>
-      trivial
+      intro N hN hAgree
+      exact False.elim (eo_interprets_stuck_true_absurd M (by simpa [stateAssumes] using hAss))
   | cons so s ih =>
+      intro N hN hAgree
       cases so with
       | assume A =>
-          exact ⟨trivial, ih⟩
+          have hA : eo_interprets M A true :=
+            eo_interprets_and_left M A (stateAssumes s) hAss
+          have hTailAss : eo_interprets M (stateAssumes s) true :=
+            eo_interprets_and_right M A (stateAssumes s) hAss
+          have hA' : eo_interprets N A true :=
+            hStable.1 M hM hA N hN hAgree
+          have hTail' : eo_interprets N (stateAssumes s) true :=
+            ih hStable.2 hTailAss N hN hAgree
+          simpa [stateAssumes] using
+            eo_interprets_and_intro N A (stateAssumes s) hA' hTail'
       | assume_push A =>
-          exact ⟨trivial, ih⟩
+          exact ih hStable.2 (by simpa [stateAssumes] using hAss) N hN hAgree
       | proven P =>
-          simpa [checkerAssumptionStabilityInvariant] using ih
+          exact ih (by simpa [checkerAssumptionStabilityInvariant] using hStable)
+            (by simpa [stateAssumes] using hAss) N hN hAgree
+/-- Transfers the active pushed assumptions across a variable-model change. -/
+theorem statePushes_true_in_var_model_of_assumptionStability
+    (M : SmtModel) (hM : model_wf M) :
+  forall {s : CState},
+    checkerAssumptionStabilityInvariant M s ->
+    eo_interprets M (statePushes s) true ->
+    forall (N : SmtModel),
+      model_wf N ->
+      model_agrees_on_globals M N ->
+      eo_interprets N (statePushes s) true
+:=
+by
+  intro s hStable hPush
+  induction s with
+  | nil =>
+      intro N hN hAgree
+      simpa [statePushes] using eo_interprets_true N
+  | Stuck =>
+      intro N hN hAgree
+      exact False.elim (eo_interprets_stuck_true_absurd M (by simpa [statePushes] using hPush))
+  | cons so s ih =>
+      intro N hN hAgree
+      cases so with
+      | assume A =>
+          exact ih hStable.2 (by simpa [statePushes] using hPush) N hN hAgree
+      | assume_push A =>
+          have hA : eo_interprets M A true :=
+            eo_interprets_and_left M A (statePushes s) hPush
+          have hTailPush : eo_interprets M (statePushes s) true :=
+            eo_interprets_and_right M A (statePushes s) hPush
+          have hA' : eo_interprets N A true :=
+            hStable.1 M hM hA N hN hAgree
+          have hTail' : eo_interprets N (statePushes s) true :=
+            ih hStable.2 hTailPush N hN hAgree
+          simpa [statePushes] using
+            eo_interprets_and_intro N A (statePushes s) hA' hTail'
+      | proven P =>
+          exact ih (by simpa [checkerAssumptionStabilityInvariant] using hStable)
+            (by simpa [statePushes] using hPush) N hN hAgree
 /-- Describes `checkerAssumptionStabilityInvariant` after `assume_list`. -/
 theorem checkerAssumptionStabilityInvariant_after_assume_list
     (M : SmtModel) (F : Term) :

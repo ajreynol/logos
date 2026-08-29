@@ -6,12 +6,15 @@ public import CpcMini.Proofs.Invariants.Stability
 import all CpcMini.Proofs.Invariants.Stability
 
 /-!
-The checker invariants and the bridge to the rule layer.
+# Checker invariants and the rule bridge
 
 Each invariant says what holds of every object on the checker stack; together
 they are `checkerStateInvariant`, which `CpcMini/Proofs/Checker.lean` shows every
-command preserves.  `CmdStepFacts` is the seam the generated
-`Proofs/RuleLemmas.lean` targets.
+checker command preserves.
+
+`CmdStepFacts` and `cmd_step_facts_of_rule_properties` are the seam the
+generated `CpcMini/Proofs/RuleLemmas.lean` targets: they turn what a rule proves
+about its premises into what the checker needs about its conclusion.
 -/
 
 public section
