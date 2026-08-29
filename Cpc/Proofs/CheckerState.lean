@@ -6,8 +6,8 @@ public import Cpc.Logos
 import all Cpc.Logos
 public import Cpc.Proofs.Assumptions
 import all Cpc.Proofs.Assumptions
-public import Cpc.Proofs.RuleSupport.Support
-import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.Contract
+import all Cpc.Proofs.RuleSupport.Contract
 
 /-!
 # Checker state machine

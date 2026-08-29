@@ -2,6 +2,8 @@ module
 
 public import Cpc.Proofs.CheckerState
 import all Cpc.Proofs.CheckerState
+public import Cpc.Proofs.Closed.Support
+import all Cpc.Proofs.Closed.Support
 
 /-!
 # The variable-stability invariant
