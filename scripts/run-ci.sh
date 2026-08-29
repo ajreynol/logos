@@ -76,6 +76,14 @@ run_proof_hygiene() {
   bash scripts/check-proof-hygiene.sh
 }
 
+# Modularity invariants of the checker layer: that the two packages share one
+# Checker.lean, that it names no rule and no operator, and that the layer
+# depends on `and` alone. Textual, so it needs no toolchain and no build.
+# See docs/modularity.md.
+run_proof_modularity() {
+  bash scripts/check-proof-modularity.sh
+}
+
 # The generated packages against the signature they came from, which this
 # repository keeps a copy of. Needs the Eunoia compiler and nothing from cvc5;
 # pass "skip" to pass silently where the compiler has not been set up, which is
@@ -154,6 +162,12 @@ run_cpc_proofs() {
   echo "Compiling representative Cpc proof targets..."
   lake build "${targets[@]}"
 
+  # Cpc.Proofs.Checker and Cpc.ApiCorrect are excluded below because they need
+  # all 591 rule files. This typechecks both with the rule bridge stubbed, so
+  # the soundness theorem is not left entirely unchecked by CI.
+  echo
+  bash scripts/check-checker-soundness.sh Cpc
+
   # Expensive and not currently used in CI checks:
   # Cpc.Proofs.Rules.Chain_resolution
   # Cpc.Proofs.Checker
@@ -187,11 +201,15 @@ case "${group}" in
   proof-hygiene)
     run_proof_hygiene
     ;;
+  proof-modularity)
+    run_proof_modularity
+    ;;
   regeneration)
     run_regeneration
     ;;
   all)
     run_proof_hygiene
+    run_proof_modularity
     run_regeneration skip
     configure_lean_toolchain
     run_regressions
@@ -199,7 +217,7 @@ case "${group}" in
     run_cpcmini
     ;;
   *)
-    echo "Usage: $0 [all|regressions|cpc-proofs|cpcmini|proof-hygiene|regeneration]" >&2
+    echo "Usage: $0 [all|regressions|cpc-proofs|cpcmini|proof-hygiene|proof-modularity|regeneration]" >&2
     exit 2
     ;;
 esac

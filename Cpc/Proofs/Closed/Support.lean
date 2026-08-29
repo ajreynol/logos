@@ -5,6 +5,8 @@ public import Cpc.Proofs.Common
 import all Cpc.Proofs.Common
 public import Cpc.Proofs.Assumptions
 import all Cpc.Proofs.Assumptions
+public import Cpc.Proofs.RuleSupport.Contract
+import all Cpc.Proofs.RuleSupport.Contract
 
 public section
 
@@ -14,18 +16,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-
-/--
-Two models agree on the global part of the interpretation.
-
-Variables may vary, but user constants and native function interpretations are
-kept fixed. This is the model relation used when a binder pushes fresh variable
-assignments.
--/
-def model_agrees_on_globals (M N : SmtModel) : Prop :=
-  (∀ s T, native_model_lookup M s T = native_model_lookup N s T) ∧
-  (∀ fid T U, model_fun_lookup M fid T U =
-    model_fun_lookup N fid T U)
 
 abbrev SmtVarKey : Type := native_String × SmtType
 
@@ -39,11 +29,6 @@ structure model_agrees_on_env (vars : List SmtVarKey) (M N : SmtModel) : Prop wh
   globals : model_agrees_on_globals M N
   vars_eq : model_agrees_on_vars vars M N
 
-theorem model_agrees_on_globals_refl (M : SmtModel) :
-  model_agrees_on_globals M M :=
-by
-  exact ⟨by intro s T; rfl, by intro fid T U; rfl⟩
-
 theorem model_agrees_on_env_refl (vars : List SmtVarKey) (M : SmtModel) :
   model_agrees_on_env vars M M :=
 by
@@ -56,20 +41,6 @@ theorem model_agrees_on_env_nil_of_globals
 by
   intro hAgree
   exact ⟨hAgree, by intro s T hMem; cases hMem⟩
-
-theorem model_agrees_on_globals_trans {M N K : SmtModel} :
-  model_agrees_on_globals M N ->
-  model_agrees_on_globals N K ->
-  model_agrees_on_globals M K :=
-by
-  intro hMN hNK
-  exact
-    ⟨by
-      intro s T
-      exact (hMN.1 s T).trans (hNK.1 s T),
-    by
-      intro fid T U
-      exact (hMN.2 fid T U).trans (hNK.2 fid T U)⟩
 
 theorem model_agrees_on_globals_push
     (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) :

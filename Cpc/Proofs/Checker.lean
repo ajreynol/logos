@@ -9,49 +9,6 @@ open Eo
 open SmtEval
 open Smtm
 
-/-- Shows that `push_assume` preserves `checkerAssumptionStabilityInvariant`. -/
-theorem push_assume_preserves_assumptionStabilityInvariant
-    (M : SmtModel) (s : CState) (A : Term) :
-  StableWhenTrueInAnyVarModel A ->
-  checkerAssumptionStabilityInvariant M s ->
-  checkerAssumptionStabilityInvariant M
-    (__eo_push_assume_check (assumptionCheckGuard A) A s) :=
-by
-  intro hA hs
-  by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
-  · have hsimpa :
-        StableWhenTrueInAnyVarModel A ∧ checkerAssumptionStabilityInvariant M s :=
-      ⟨hA, hs⟩
-    try simp [hGuard] at hsimpa ⊢
-    exact hsimpa
-  · simpa [push_assume_eq_stuck_of_guard_ne_true, hGuard] using
-      checkerAssumptionStabilityInvariant_stuck M
-
-/-- Shows that `push_proven` preserves `checkerAssumptionStabilityInvariant`. -/
-theorem push_proven_preserves_assumptionStabilityInvariant
-    (M : SmtModel) (s : CState) (P : Term) :
-  checkerAssumptionStabilityInvariant M s ->
-  checkerAssumptionStabilityInvariant M (__eo_push_proven P s) :=
-by
-  intro hs
-  by_cases hTy : __eo_typeof P = Term.Bool
-  · simpa [push_proven_eq_cons_of_typeof_bool, hTy,
-      checkerAssumptionStabilityInvariant] using hs
-  · simpa [push_proven_eq_stuck_of_typeof_ne_bool, hTy] using
-      checkerAssumptionStabilityInvariant_stuck M
-
-/-- Shows that `invoke_step` preserves `checkerAssumptionStabilityInvariant`. -/
-theorem invoke_step_preserves_assumptionStabilityInvariant
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerAssumptionStabilityInvariant M s ->
-  checkerAssumptionStabilityInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
-by
-  intro hs
-  rw [invoke_step_eq_of_nonstuck s hNotStuck r args premises]
-  exact push_proven_preserves_assumptionStabilityInvariant M s
-    (__eo_cmd_step_proven s r args premises) hs
-
 /-- Shows that `invoke_step` preserves `localTruthInvariant_of_stuck`. -/
 theorem invoke_step_preserves_localTruthInvariant_of_stuck
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
@@ -93,7 +50,7 @@ theorem invoke_step_preserves_localTruthInvariant
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
-  checkerAssumptionStabilityInvariant M s ->
+  checkerExtraInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   cmdTranslationOk (CCmd.step r args premises) ->
@@ -178,7 +135,7 @@ theorem invoke_step_preserves_translationInvariant
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
-  checkerAssumptionStabilityInvariant M s ->
+  checkerExtraInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   cmdTranslationOk (CCmd.step r args premises) ->
@@ -217,7 +174,7 @@ theorem invoke_cmd_step_pop_preserves_localTruthInvariant_aux
   forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
     checkerLocalTruthInvariant M root ->
     checkerLocalTruthInvariant M cur ->
-    checkerAssumptionStabilityInvariant M root ->
+    checkerExtraInvariant M root ->
     checkerTypeInvariant root ->
     checkerTranslationInvariant root ->
     stateAssumptionSuffix cur ->
@@ -288,7 +245,7 @@ theorem invoke_cmd_step_pop_preserves_localTruthInvariant
     (M : SmtModel) (hM : model_wf M)
     (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
-  checkerAssumptionStabilityInvariant M s ->
+  checkerExtraInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   stateAssumptionSuffix s ->
@@ -349,7 +306,7 @@ theorem invoke_cmd_step_pop_preserves_translationInvariant_aux
     (M : SmtModel) (hM : model_wf M) :
   forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
     checkerLocalTruthInvariant M root ->
-    checkerAssumptionStabilityInvariant M root ->
+    checkerExtraInvariant M root ->
     checkerTypeInvariant root ->
     checkerTypeInvariant cur ->
     checkerTranslationInvariant root ->
@@ -429,7 +386,7 @@ theorem invoke_cmd_step_pop_preserves_translationInvariant
     (M : SmtModel) (hM : model_wf M)
     (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
-  checkerAssumptionStabilityInvariant M s ->
+  checkerExtraInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   stateAssumptionSuffix s ->
@@ -498,62 +455,12 @@ by
   intro hSuffix
   exact invoke_cmd_step_pop_preserves_shapeInvariant_aux s s r args premises hSuffix
 
-/-- Auxiliary lemma for `invoke_cmd_step_pop_preserves_assumptionStabilityInvariant`. -/
-theorem invoke_cmd_step_pop_preserves_assumptionStabilityInvariant_aux (M : SmtModel) :
-  forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
-    checkerAssumptionStabilityInvariant M cur ->
-    stateAssumptionSuffix cur ->
-    checkerAssumptionStabilityInvariant M (__eo_invoke_cmd_step_pop root cur r args premises)
-:=
-by
-  intro root cur
-  induction cur with
-  | nil =>
-      intro r args premises hCur hSuffix
-      simpa [__eo_invoke_cmd_step_pop] using checkerAssumptionStabilityInvariant_stuck M
-  | Stuck =>
-      intro r args premises hCur hSuffix
-      cases hSuffix
-  | cons so cur ih =>
-      intro r args premises hCur hSuffix
-      cases so with
-      | assume_push A =>
-          have hTail : checkerAssumptionStabilityInvariant M cur :=
-            checkerAssumptionStabilityInvariant_tail M hCur
-          simpa [__eo_invoke_cmd_step_pop] using
-            push_proven_preserves_assumptionStabilityInvariant M cur
-              (__eo_cmd_step_pop_proven root r args A premises) hTail
-      | assume A =>
-          have hTail : stateAssumptionTail cur := by
-            simpa [stateAssumptionSuffix] using hSuffix
-          have hStuck : __eo_invoke_cmd_step_pop root cur r args premises = CState.Stuck :=
-            invoke_cmd_step_pop_of_assumptionTail root cur r args premises hTail
-          simpa [__eo_invoke_cmd_step_pop, hStuck] using
-            checkerAssumptionStabilityInvariant_stuck M
-      | proven P =>
-          have hTailSuffix : stateAssumptionSuffix cur := by
-            simpa [stateAssumptionSuffix] using hSuffix
-          simpa [__eo_invoke_cmd_step_pop] using
-            ih r args premises (checkerAssumptionStabilityInvariant_tail M hCur)
-              hTailSuffix
-
-/-- Shows that `invoke_cmd_step_pop` preserves `checkerAssumptionStabilityInvariant`. -/
-theorem invoke_cmd_step_pop_preserves_assumptionStabilityInvariant
-    (M : SmtModel) (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerAssumptionStabilityInvariant M s ->
-  stateAssumptionSuffix s ->
-  checkerAssumptionStabilityInvariant M (__eo_invoke_cmd_step_pop s s r args premises) :=
-by
-  intro hs hSuffix
-  exact invoke_cmd_step_pop_preserves_assumptionStabilityInvariant_aux M s s r args premises
-    hs hSuffix
-
 /-- Shows that `invoke_cmd` preserves `localTruthInvariant_nonstuck`. -/
 theorem invoke_cmd_preserves_localTruthInvariant_nonstuck (M : SmtModel) :
   forall _hM : model_wf M,
   forall s : CState, forall c : CCmd,
     checkerLocalTruthInvariant M s ->
-    checkerAssumptionStabilityInvariant M s ->
+    checkerExtraInvariant M s ->
     checkerTypeInvariant s ->
     checkerTranslationInvariant s ->
     cmdTranslationOk c ->
@@ -704,7 +611,7 @@ theorem invoke_cmd_preserves_truthInvariant_nonstuck (M : SmtModel) :
   forall _hM : model_wf M,
   forall s : CState, forall c : CCmd,
     checkerLocalTruthInvariant M s ->
-    checkerAssumptionStabilityInvariant M s ->
+    checkerExtraInvariant M s ->
     checkerTypeInvariant s ->
     checkerTranslationInvariant s ->
     cmdTranslationOk c ->
@@ -781,7 +688,7 @@ theorem invoke_cmd_preserves_translationInvariant_nonstuck (M : SmtModel) :
   forall _hM : model_wf M,
   forall s : CState, forall c : CCmd,
     checkerLocalTruthInvariant M s ->
-    checkerAssumptionStabilityInvariant M s ->
+    checkerExtraInvariant M s ->
     checkerTypeInvariant s ->
     checkerTranslationInvariant s ->
     cmdTranslationOk c ->
@@ -796,12 +703,10 @@ by
       cases s with
       | nil =>
           change checkerTranslationInvariant (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
-          exact push_assume_preserves_translationInvariant CState.nil A hsTrans
-            (by simpa [cmdTranslationOk] using hCmdTrans)
+          exact push_assume_preserves_translationInvariant CState.nil A hsTrans hCmdTrans
       | cons so s =>
           change checkerTranslationInvariant (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
-          exact push_assume_preserves_translationInvariant (CState.cons so s) A hsTrans
-            (by simpa [cmdTranslationOk] using hCmdTrans)
+          exact push_assume_preserves_translationInvariant (CState.cons so s) A hsTrans hCmdTrans
       | Stuck =>
           exact False.elim (hNotStuck rfl)
   | check_proven proven =>
@@ -845,82 +750,13 @@ by
       | Stuck =>
           exact False.elim (hNotStuck rfl)
 
-/-- Shows that `invoke_cmd` preserves `checkerAssumptionStabilityInvariant_nonstuck`. -/
-theorem invoke_cmd_preserves_assumptionStabilityInvariant_nonstuck (M : SmtModel) :
-  forall s : CState, forall c : CCmd,
-    checkerAssumptionStabilityInvariant M s ->
-    cmdAssumptionStabilityOk M c ->
-    stateAssumptionSuffix s ->
-    s ≠ CState.Stuck ->
-    checkerAssumptionStabilityInvariant M (__eo_invoke_cmd s c)
-:=
-by
-  intro s c hs hCmdStable hSuffix hNotStuck
-  cases c with
-  | assume_push A =>
-      cases s with
-      | nil =>
-          change checkerAssumptionStabilityInvariant M
-            (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
-          exact push_assume_preserves_assumptionStabilityInvariant M CState.nil A
-            hCmdStable hs
-      | cons so s =>
-          change checkerAssumptionStabilityInvariant M
-            (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
-          exact push_assume_preserves_assumptionStabilityInvariant M (CState.cons so s) A
-            hCmdStable hs
-      | Stuck =>
-          exact False.elim (hNotStuck rfl)
-  | check_proven proven =>
-      cases s with
-      | nil =>
-          simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerAssumptionStabilityInvariant]
-      | Stuck =>
-          exact False.elim (hNotStuck rfl)
-      | cons so s =>
-          cases so with
-          | assume A =>
-              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven,
-                checkerAssumptionStabilityInvariant]
-          | assume_push A =>
-              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven,
-                checkerAssumptionStabilityInvariant]
-          | proven F =>
-              cases hEq : __eo_eq F proven <;>
-                try
-                  (simpa [__eo_push_proven_check, hEq] using
-                    checkerAssumptionStabilityInvariant_stuck M)
-              case Boolean b =>
-                cases b with
-                | false =>
-                    simpa [__eo_push_proven_check, hEq] using
-                      checkerAssumptionStabilityInvariant_stuck M
-                | true =>
-                    simpa [__eo_push_proven_check, hEq,
-                      checkerAssumptionStabilityInvariant] using hs
-  | step r args premises =>
-      exact invoke_step_preserves_assumptionStabilityInvariant M s hNotStuck
-        r args premises hs
-  | step_pop r args premises =>
-      cases s with
-      | nil =>
-          simpa [__eo_invoke_cmd] using
-            invoke_cmd_step_pop_preserves_assumptionStabilityInvariant M CState.nil
-              r args premises hs hSuffix
-      | cons so s =>
-          simpa [__eo_invoke_cmd] using
-            invoke_cmd_step_pop_preserves_assumptionStabilityInvariant M
-              (CState.cons so s) r args premises hs hSuffix
-      | Stuck =>
-          exact False.elim (hNotStuck rfl)
-
 /-- Shows that `invoke_cmd` preserves `stateInvariant_nonstuck`. -/
 theorem invoke_cmd_preserves_stateInvariant_nonstuck (M : SmtModel) :
   forall _hM : model_wf M,
   forall s : CState, forall c : CCmd,
     checkerStateInvariant M s ->
     cmdTranslationOk c ->
-    cmdAssumptionStabilityOk M c ->
+    cmdExtraOk M c ->
     s ≠ CState.Stuck ->
     checkerStateInvariant M (__eo_invoke_cmd s c)
 :=
@@ -932,8 +768,8 @@ by
     invoke_cmd_preserves_localTruthInvariant_nonstuck M hM s c hs.2.1 hs.2.2.1
       hs.2.2.2.1 hs.2.2.2.2 hCmdTrans hSuffix hNotStuck
   have hStable :
-      checkerAssumptionStabilityInvariant M (__eo_invoke_cmd s c) :=
-    invoke_cmd_preserves_assumptionStabilityInvariant_nonstuck M s c hs.2.2.1
+      checkerExtraInvariant M (__eo_invoke_cmd s c) :=
+    invoke_cmd_preserves_extraInvariant_nonstuck M s c hs.2.2.1
       hCmdStable hSuffix hNotStuck
   have hType :
       checkerTypeInvariant (__eo_invoke_cmd s c) :=
@@ -953,7 +789,7 @@ theorem invoke_cmd_preserves_stateInvariant (M : SmtModel) :
   forall s : CState, forall c : CCmd,
     checkerStateInvariant M s ->
     cmdTranslationOk c ->
-    cmdAssumptionStabilityOk M c ->
+    cmdExtraOk M c ->
     checkerStateInvariant M (__eo_invoke_cmd s c)
 :=
 by
@@ -962,7 +798,7 @@ by
   · subst hStuck
     have hInvStuck : checkerStateInvariant M CState.Stuck := by
       exact ⟨trivial, checkerLocalTruthInvariant_stuck M,
-        checkerAssumptionStabilityInvariant_stuck M, checkerTypeInvariant_stuck,
+        checkerExtraInvariant_stuck M, checkerTypeInvariant_stuck,
         checkerTranslationInvariant_stuck⟩
     cases c <;> simpa [__eo_invoke_cmd, checkerStateInvariant] using hInvStuck
   · exact invoke_cmd_preserves_stateInvariant_nonstuck M hM s c hs hCmdTrans
@@ -974,7 +810,7 @@ theorem invoke_cmd_list_preserves_stateInvariant (M : SmtModel) :
   forall s : CState, forall cs : CCmdList,
     checkerStateInvariant M s ->
     CmdListTranslationOk cs ->
-    CmdListAssumptionStabilityOk M cs ->
+    CmdListExtraOk M cs ->
     checkerStateInvariant M (__eo_invoke_cmd_list s cs)
 :=
 by
@@ -1044,13 +880,13 @@ by
           simpa [S0, S1] using final_stateOk_of_checker_true F pf hChecker
         have hS0Ok : stateOk S0 := by
           simpa [S1] using invoke_cmd_list_reflects_stateOk S0 pf hS1Ok
-        have hFStable : StableAssumptionList M F :=
-          stableAssumptionList_of_stateOk_assume_list M hValid hS0Ok
+        have hFStable : extraAssumptionListOk M F :=
+          extraAssumptionListOk_of_stateOk_assume_list M hValid hS0Ok
         have hInit : checkerStateInvariant M S0 := by
           simpa [S0] using checkerStateInvariant_after_assume_list M F hValid hS0Ok
             hFTrans hFStable
-        have hPfStable : CmdListAssumptionStabilityOk M pf :=
-          cmdListAssumptionStabilityOk_of_stateOk_invoke_cmd_list M S0 pf hS1Ok
+        have hPfStable : CmdListExtraOk M pf :=
+          cmdListExtraOk_of_stateOk_invoke_cmd_list M S0 pf hS1Ok
         have hSteps : checkerStateInvariant M S1 := by
           simpa [S0, S1] using invoke_cmd_list_preserves_stateInvariant M hM S0 pf
             hInit hPfTrans hPfStable
