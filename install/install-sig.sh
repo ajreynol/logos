@@ -506,22 +506,23 @@ if [ -n "${SMT_SEMANTICS}" ] && [ ! -f "${SMT_SEMANTICS}" ]; then
 fi
 
 # The signature-wide files the lean subcommand of driver.py publishes, in
-# module dependency order, as "<name under out/lean> <destination relative to
-# the package>". out/lean is the package with the leading Proofs component
-# dropped, so RuleLemmas.lean goes back under Proofs/ and so do the per-rule
-# files, which are handled separately below. This list has to cover everything
-# the driver writes apart from Rules/; a file added there but not here is
-# silently left behind.
+# module dependency order, named as they stand in the package. The driver
+# publishes its tree in the layout of the package the tree is installed into,
+# see LEAN_OUTPUTS in tools/eoc/driver.py, so one name is both where a file is
+# read and where it is written; the per-rule files under Proofs/Rules/ stand
+# there too and are handled separately below. This list has to cover
+# everything the driver writes apart from those; a file added there but not
+# here is silently left behind.
 LEAN_OUTPUTS=(
-  "Logos.lean Logos.lean"
-  "LogosTerm.lean LogosTerm.lean"
-  "Parser.lean Parser.lean"
-  "SmtEval.lean SmtEval.lean"
-  "SmtModelDefs.lean SmtModelDefs.lean"
-  "SmtValueOrder.lean SmtValueOrder.lean"
-  "SmtModel.lean SmtModel.lean"
-  "Spec.lean Spec.lean"
-  "RuleLemmas.lean Proofs/RuleLemmas.lean"
+  "Logos.lean"
+  "LogosTerm.lean"
+  "Parser.lean"
+  "SmtEval.lean"
+  "SmtModelDefs.lean"
+  "SmtValueOrder.lean"
+  "SmtModel.lean"
+  "Spec.lean"
+  "Proofs/RuleLemmas.lean"
 )
 
 # The banner every generated file carries, so that a reader who opens one in
@@ -632,26 +633,25 @@ else
   echo "==> Installing generated Lean files into ${DEST_DIR}"
 fi
 mkdir -p "${DEST_DIR}" "${DEST_DIR}/Proofs" "${DEST_DIR}/Proofs/Rules"
-for entry in "${LEAN_OUTPUTS[@]}"; do
-  read -r src dest <<< "${entry}"
-  if [ "${NO_PARSER}" = "1" ] && [ "${src}" = "Parser.lean" ]; then
-    rm -f "${DEST_DIR}/${dest}"
+for name in "${LEAN_OUTPUTS[@]}"; do
+  if [ "${NO_PARSER}" = "1" ] && [ "${name}" = "Parser.lean" ]; then
+    rm -f "${DEST_DIR}/${name}"
     continue
   fi
-  if [ ! -f "${LEAN_DIR}/${src}" ]; then
-    echo "error: ${LEAN_DIR}/${src} was not generated." >&2
+  if [ ! -f "${LEAN_DIR}/${name}" ]; then
+    echo "error: ${LEAN_DIR}/${name} was not generated." >&2
     exit 1
   fi
-  [ "${CHECK}" = "1" ] || echo "    ${src} -> ${PACKAGE}/${dest}"
-  cp "${LEAN_DIR}/${src}" "${DEST_DIR}/${dest}"
-  prepend_header "${DEST_DIR}/${dest}"
+  [ "${CHECK}" = "1" ] || echo "    ${PACKAGE}/${name}"
+  cp "${LEAN_DIR}/${name}" "${DEST_DIR}/${name}"
+  prepend_header "${DEST_DIR}/${name}"
 done
 
 copied=0
 preserved=0
-if [ -d "${LEAN_DIR}/Rules" ]; then
+if [ -d "${LEAN_DIR}/Proofs/Rules" ]; then
   shopt -s nullglob
-  for file in "${LEAN_DIR}"/Rules/*.lean; do
+  for file in "${LEAN_DIR}"/Proofs/Rules/*.lean; do
     rule_dest="${DEST_DIR}/Proofs/Rules/$(basename "${file}")"
     if [ -e "${rule_dest}" ]; then
       preserved=$((preserved + 1))
@@ -662,7 +662,7 @@ if [ -d "${LEAN_DIR}/Rules" ]; then
   done
   shopt -u nullglob
   [ "${CHECK}" = "1" ] || \
-    echo "    Rules/*.lean -> ${PACKAGE}/Proofs/Rules/ (${copied} written, ${preserved} existing preserved)"
+    echo "    ${PACKAGE}/Proofs/Rules/*.lean (${copied} written, ${preserved} existing preserved)"
 fi
 
 # The generated files import each other under the name the compiler gave the
