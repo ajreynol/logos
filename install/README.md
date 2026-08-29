@@ -107,6 +107,27 @@ The core SMT-LIB semantics it is written against live with the eoc compiler
 rather than here: `tools/eoc/semantics/smt.eos` in
 [cvc5/ethos](https://github.com/cvc5/ethos).
 
+Either half can be replaced for a run, which is the less common use of these
+scripts: `--semantics PATH` names another configuration of what the symbols of
+the signature mean, and `--smt-semantics PATH` another of what the SMT-LIB
+symbols they are written against mean. Both take a *central file* of a
+configuration set, the same thing `Cpc.eos` and `smt.eos` are, and both are
+options of `install-cpc.sh` and of `install-sig.sh`:
+
+```bash
+install/install-cpc.sh --cached --smt-semantics ~/ethos/tools/eoc/semantics/smt.eos
+```
+
+That is for trying a change to the semantics out rather than for a normal
+update: it regenerates the packages against something other than the pair they
+are checked in against, so `--check` reports the tree as out of date until the
+change lands in `install/defs/Cpc.eos` or in the pinned compiler.
+
+The compiler compiles a named set in place of the one it ships with rather
+than beside it, and writes what it compiles to under `tools/eoc/out` of the
+Ethos tree, which is `install/deps/` here. Nothing of it is kept in git; what
+is kept is the configuration.
+
 ## install-sig.sh
 
 `install-cpc.sh` is `install-sig.sh` run twice, once plain and once `--mini`.

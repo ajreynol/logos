@@ -13,9 +13,12 @@
 
 ; This is a configuration of the eoc pipeline rather than anything a stage of it
 ; reads. tools/eoc/sem_compile.py compiles it, before any stage runs, into
-; user_defs.eo and user_termination.lean beside it, both generated in full and
-; neither kept in git: what is to be changed is here. See tools/eoc/README.md
-; in the ethos tree for the language.
+; tools/eoc/out/user_defs.eo and tools/eoc/out/user_termination.lean of the
+; ethos tree, both generated in full and neither kept in git: what is to be
+; changed is here. Where a set compiles to is said by the role it is given and
+; not by where it stands, so this one stands in for the copy the compiler ships
+; rather than compiling beside it. See tools/eoc/README.md in the ethos tree
+; for the language.
 ;
 ; The whole of the set stands here, one theory to a section, in the order the
 ; blocks are emitted.
