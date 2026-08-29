@@ -14,13 +14,7 @@ namespace Eo
 
 open SmtEval
 
-/- Eunoia literal evaluation defined -/
-
--- The part of the native layer that the Eunoia term embedding is what decides,
--- and so cannot come out above this file, together with whatever of the rest
--- only this file reaches. Since equality and ordering of terms stand beside
--- the Term inductive itself, the second is all that comes out here today.
-
+-- The primitive operations that only what is written over Eunoia terms uses.
 def native_zplus : native_Int -> native_Int -> native_Int
   | x, y => x+y
 
@@ -36,6 +30,7 @@ def native_binary_and : native_Int -> native_Int -> native_Int -> native_Int
 def native_str_len : native_String -> native_Int
   | x => Int.ofNat x.length
 
+/- Eunoia literal evaluation defined -/
 
 /- Term ITE -/
 abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
