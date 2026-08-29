@@ -10,6 +10,9 @@ a standalone Lean formalization of the meaning of SMT-LIB terms that does not de
 on the checker and can be used on its own.
 See [Correctness](#correctness) below for what that proof establishes and what it still assumes.
 
+The semantics, the correctness specification and the checker are written up in
+[docs/smt-model-definitions.pdf](docs/smt-model-definitions.pdf).
+
 The calculus Logos checks is compiled from a definition written in *Eunoia*,
 the logical framework of the proof checker Ethos
 (https://github.com/cvc5/ethos), in which proof calculi are defined as
@@ -22,7 +25,9 @@ Logos has a fully functional CPC parser, meaning that it accepts the same syntax
 However, Logos does not support arbitrary Eunoia signatures.
 Instead,
 the proof rules currently used by Logos are automatically generated from the current definition of CPC.
-This compilation depends on plugins of Ethos.
+This compilation uses the Eunoia compiler `ethos-eoc`,
+which lives in the Ethos repository and is documented at
+https://github.com/cvc5/ethos/blob/main/tools/eoc/README.md.
 The definition of Logos evolves and remains in sync with the definition of CPC
 as further reasoning capabilities are added to cvc5.
 See [Regenerating the calculus](#regenerating-the-calculus) for how to rerun that compilation.

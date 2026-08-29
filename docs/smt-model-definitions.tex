@@ -104,11 +104,22 @@
 
 \pagestyle{empty}
 
+% No \date: this document is built into a PDF that is committed alongside it,
+% and \today would make every rebuild a diff.
+\title{Logos: A Verified Proof Checker for SMT Solvers in Lean\\[0.35em]
+  \large SMT-LIB Semantics, Specification, and Checker Definitions}
+\author{}
+\date{}
+
 % Allow extra interword stretch so long typewriter identifiers do not push
 % text into the margins.
 \emergencystretch=3em
 
 \begin{document}
+
+\maketitle
+% \maketitle asks for the `plain` style, which would number this page alone.
+\thispagestyle{empty}
 
 \section{Introduction}
 
@@ -210,7 +221,7 @@ Second, methods that define the semantics of Eunoia terms
 based on a reduction to SMT-LIB.
 Third, the core methods that Logos depends on.
 
-\noindent\textbf{SMT-LIB definition (roughly 2600 LOC):}
+\noindent\textbf{SMT-LIB definition (roughly 2050 LOC):}
 \begin{itemize}
   \item \smttypeofvalue \code{:} \smtvalue \code{->} \smttype
     \begin{itemize}
@@ -237,7 +248,7 @@ Third, the core methods that Logos depends on.
     \end{itemize}
 \end{itemize}
 
-\noindent\textbf{Specification definition (roughly 750 LOC):}
+\noindent\textbf{Specification definition (roughly 650 LOC):}
 \begin{itemize}
   \item \eotosmt \code{:} \term \code{->} \smtterm
     \begin{itemize}
@@ -253,7 +264,7 @@ Third, the core methods that Logos depends on.
     \end{itemize}
 \end{itemize}
 
-\noindent\textbf{Logos definitions (roughly 10500 LOC):}
+\noindent\textbf{Logos definitions (roughly 8200 LOC):}
 \begin{itemize}
   \item \eotypeof \code{:} \term \code{->} \term
     \begin{itemize}
@@ -276,11 +287,11 @@ then indeed $F$ is unsatisfiable.
 Our trusted core for this specification is thus the definition of \eosatisfiability,
 which is contained in the SMT-LIB and specification layers.
 The third layer does not need to be trusted.
-Roughly, the first layer is 2600 lines of Lean,
-the second layer is 750 lines of Lean (including the shared definition of Eunoia terms),
-and the third layer is roughly 10500 lines of Lean.
+Roughly, the first layer is 2050 lines of Lean,
+the second layer is 650 lines of Lean (including the shared definition of Eunoia terms),
+and the third layer is roughly 8200 lines of Lean.
 In other words, the trusted computing base of Logos
-is the sum of the first two layers, roughly 3350 lines of Lean.
+is the sum of the first two layers, roughly 2700 lines of Lean.
 
 The executable portion of the Logos checker (the third layer) 
 does \emph{not} depend on the SMT-LIB definition or the specification definition.
@@ -2305,7 +2316,7 @@ The next set of operators denote the other builtin types
 of Eunoia including Booleans (\code{Bool}),
 the arrow type (\code{FunType}), and
 the type of types (\code{Type}).
-The next four constructors denote the SMT-LIB literal categories
+The next five constructors denote the SMT-LIB literal categories
 supported by Eunoia.
 Note that these constructors carry native Lean types
 that denote their values, similar to our definition of SMT-LIB terms and values.

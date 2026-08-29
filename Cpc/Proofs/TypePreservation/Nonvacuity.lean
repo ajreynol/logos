@@ -97,7 +97,7 @@ theorem exists_total_typed_model :
   ⟨default_typed_model, default_typed_model_total_typed⟩
 
 /-- Shows that total typed SMT models exist. -/
-theorem total_typed_model_nonvacuous :
+theorem model_wf_nonvacuous :
     ∃ M : SmtModel, model_wf M :=
   exists_total_typed_model
 

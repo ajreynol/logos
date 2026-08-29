@@ -57,6 +57,12 @@ Cpc/Parser.lean      Cpc/SmtModel.lean       Cpc/Proofs/Rules/<Rule>.lean
 Cpc/SmtEval.lean
 ```
 
+Each of those signature-wide modules is installed with a banner saying it is
+auto-generated, that an install overwrites it, and where the semantics it
+realizes are written down (`docs/smt-model-definitions.pdf`). Rule files do not
+get one: the compiler's stub is where the proof then goes, so it stops being
+generated code the moment it is worth keeping.
+
 Everything else is hand-written and is left alone: `Cpc/Api*.lean`,
 `Cpc/Diagnostics.lean`, `Cpc/Native.lean` and `Cpc/Native/`, and everything under
 `Cpc/Proofs/` other than `RuleLemmas.lean` and `Rules/`.

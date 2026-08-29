@@ -13,4 +13,6 @@ docs/*.toc
 docs/*.fls
 docs/*.fdb_latexmk
 docs/*.synctex.gz
-docs/*.pdf
+# docs/smt-model-definitions.pdf is deliberately not ignored: the built PDF is
+# committed so that it can be read without a LaTeX installation. Rebuild it
+# with `make -C docs`.
