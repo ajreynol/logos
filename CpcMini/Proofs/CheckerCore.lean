@@ -636,7 +636,7 @@ by
 def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
   checkerShapeInvariant s ∧
   checkerLocalTruthInvariant M s ∧
-  checkerAssumptionStabilityInvariant M s ∧
+  checkerExtraInvariant M s ∧
   checkerTypeInvariant s ∧
   checkerTranslationInvariant s
 /-- Retrieves the `checkerTruthInvariant` fact at a given index. -/
@@ -760,7 +760,7 @@ theorem checkerStateInvariant_after_assume_list (M : SmtModel) (F : Term) :
   ValidAssumptionList F ->
   stateOk (__eo_invoke_assume_list CState.nil F) ->
   TranslatableAssumptionList F ->
-  StableAssumptionList M F ->
+  extraAssumptionListOk M F ->
   checkerStateInvariant M (__eo_invoke_assume_list CState.nil F)
 :=
 by
@@ -768,7 +768,7 @@ by
   exact ⟨
     checkerShapeInvariant_of_suffix (stateAssumptionSuffix_invoke_assume_list hValid hOk),
     checkerLocalTruthInvariant_after_assume_list M F hValid,
-    checkerAssumptionStabilityInvariant_after_assume_list M F hStable,
+    checkerExtraInvariant_after_assume_list M F hStable,
     checkerTypeInvariant_after_assume_list F hValid hOk,
     checkerTranslationInvariant_after_assume_list F hTrans
   ⟩
@@ -904,7 +904,7 @@ by
 theorem premiseEvidence_of_localTruthInvariant
     (M N : SmtModel) (s : CState) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
-  checkerAssumptionStabilityInvariant M s ->
+  checkerExtraInvariant M s ->
   model_wf N ->
   model_agrees_on_globals M N ->
   eo_interprets N (stateAssumes s) true ->
@@ -941,7 +941,7 @@ theorem cmd_step_facts_of_rule_properties
     (M : SmtModel) (hM : model_wf M)
     (s : CState) (premises : CIndexList) {P : Term} :
   checkerLocalTruthInvariant M s ->
-  checkerAssumptionStabilityInvariant M s ->
+  checkerExtraInvariant M s ->
   (hProps : ∀ N, model_wf N ->
     model_agrees_on_globals M N ->
     StepRuleProperties N (premiseTermList s premises) P) ->
@@ -965,7 +965,7 @@ theorem cmd_step_pop_facts_of_rule_properties
     (M : SmtModel) (hM : model_wf M)
     (root tail : CState) (A : Term) (premises : CIndexList) {P : Term} :
   checkerLocalTruthInvariant M root ->
-  checkerAssumptionStabilityInvariant M root ->
+  checkerExtraInvariant M root ->
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
   StepPopRuleProperties A (premiseTermList root premises) P ->
   CmdStepFacts M tail P :=

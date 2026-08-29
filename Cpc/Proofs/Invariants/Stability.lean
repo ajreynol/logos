@@ -317,3 +317,234 @@ by
       exact CmdListAssumptionStabilityOk.cons c cs
         (cmdAssumptionStabilityOk_of_stateOk_invoke_cmd M s c hStepOk)
         (ih (__eo_invoke_cmd s c) hTailOk)
+
+/-!
+## Preservation of the stability invariant by the checker commands
+-/
+
+/-- Shows that `push_assume` preserves `checkerAssumptionStabilityInvariant`. -/
+theorem push_assume_preserves_assumptionStabilityInvariant
+    (M : SmtModel) (s : CState) (A : Term) :
+  StableWhenTrueInAnyVarModel A ->
+  checkerAssumptionStabilityInvariant M s ->
+  checkerAssumptionStabilityInvariant M
+    (__eo_push_assume_check (assumptionCheckGuard A) A s) :=
+by
+  intro hA hs
+  by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
+  · have hsimpa :
+        StableWhenTrueInAnyVarModel A ∧ checkerAssumptionStabilityInvariant M s :=
+      ⟨hA, hs⟩
+    try simp [hGuard] at hsimpa ⊢
+    exact hsimpa
+  · simpa [push_assume_eq_stuck_of_guard_ne_true, hGuard] using
+      checkerAssumptionStabilityInvariant_stuck M
+
+/-- Shows that `push_proven` preserves `checkerAssumptionStabilityInvariant`. -/
+theorem push_proven_preserves_assumptionStabilityInvariant
+    (M : SmtModel) (s : CState) (P : Term) :
+  checkerAssumptionStabilityInvariant M s ->
+  checkerAssumptionStabilityInvariant M (__eo_push_proven P s) :=
+by
+  intro hs
+  by_cases hTy : __eo_typeof P = Term.Bool
+  · simpa [push_proven_eq_cons_of_typeof_bool, hTy,
+      checkerAssumptionStabilityInvariant] using hs
+  · simpa [push_proven_eq_stuck_of_typeof_ne_bool, hTy] using
+      checkerAssumptionStabilityInvariant_stuck M
+
+/-- Shows that `invoke_step` preserves `checkerAssumptionStabilityInvariant`. -/
+theorem invoke_step_preserves_assumptionStabilityInvariant
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerAssumptionStabilityInvariant M s ->
+  checkerAssumptionStabilityInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
+by
+  intro hs
+  rw [invoke_step_eq_of_nonstuck s hNotStuck r args premises]
+  exact push_proven_preserves_assumptionStabilityInvariant M s
+    (__eo_cmd_step_proven s r args premises) hs
+
+/-- Auxiliary lemma for `invoke_cmd_step_pop_preserves_assumptionStabilityInvariant`. -/
+theorem invoke_cmd_step_pop_preserves_assumptionStabilityInvariant_aux (M : SmtModel) :
+  forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
+    checkerAssumptionStabilityInvariant M cur ->
+    stateAssumptionSuffix cur ->
+    checkerAssumptionStabilityInvariant M (__eo_invoke_cmd_step_pop root cur r args premises)
+:=
+by
+  intro root cur
+  induction cur with
+  | nil =>
+      intro r args premises hCur hSuffix
+      simpa [__eo_invoke_cmd_step_pop] using checkerAssumptionStabilityInvariant_stuck M
+  | Stuck =>
+      intro r args premises hCur hSuffix
+      cases hSuffix
+  | cons so cur ih =>
+      intro r args premises hCur hSuffix
+      cases so with
+      | assume_push A =>
+          have hTail : checkerAssumptionStabilityInvariant M cur :=
+            checkerAssumptionStabilityInvariant_tail M hCur
+          simpa [__eo_invoke_cmd_step_pop] using
+            push_proven_preserves_assumptionStabilityInvariant M cur
+              (__eo_cmd_step_pop_proven root r args A premises) hTail
+      | assume A =>
+          have hTail : stateAssumptionTail cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          have hStuck : __eo_invoke_cmd_step_pop root cur r args premises = CState.Stuck :=
+            invoke_cmd_step_pop_of_assumptionTail root cur r args premises hTail
+          simpa [__eo_invoke_cmd_step_pop, hStuck] using
+            checkerAssumptionStabilityInvariant_stuck M
+      | proven P =>
+          have hTailSuffix : stateAssumptionSuffix cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          simpa [__eo_invoke_cmd_step_pop] using
+            ih r args premises (checkerAssumptionStabilityInvariant_tail M hCur)
+              hTailSuffix
+
+/-- Shows that `invoke_cmd_step_pop` preserves `checkerAssumptionStabilityInvariant`. -/
+theorem invoke_cmd_step_pop_preserves_assumptionStabilityInvariant
+    (M : SmtModel) (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerAssumptionStabilityInvariant M s ->
+  stateAssumptionSuffix s ->
+  checkerAssumptionStabilityInvariant M (__eo_invoke_cmd_step_pop s s r args premises) :=
+by
+  intro hs hSuffix
+  exact invoke_cmd_step_pop_preserves_assumptionStabilityInvariant_aux M s s r args premises
+    hs hSuffix
+
+/-- Shows that `invoke_cmd` preserves `checkerAssumptionStabilityInvariant_nonstuck`. -/
+theorem invoke_cmd_preserves_assumptionStabilityInvariant_nonstuck (M : SmtModel) :
+  forall s : CState, forall c : CCmd,
+    checkerAssumptionStabilityInvariant M s ->
+    cmdAssumptionStabilityOk M c ->
+    stateAssumptionSuffix s ->
+    s ≠ CState.Stuck ->
+    checkerAssumptionStabilityInvariant M (__eo_invoke_cmd s c)
+:=
+by
+  intro s c hs hCmdStable hSuffix hNotStuck
+  cases c with
+  | assume_push A =>
+      cases s with
+      | nil =>
+          change checkerAssumptionStabilityInvariant M
+            (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
+          exact push_assume_preserves_assumptionStabilityInvariant M CState.nil A
+            hCmdStable hs
+      | cons so s =>
+          change checkerAssumptionStabilityInvariant M
+            (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
+          exact push_assume_preserves_assumptionStabilityInvariant M (CState.cons so s) A
+            hCmdStable hs
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+  | check_proven proven =>
+      cases s with
+      | nil =>
+          simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerAssumptionStabilityInvariant]
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+      | cons so s =>
+          cases so with
+          | assume A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven,
+                checkerAssumptionStabilityInvariant]
+          | assume_push A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven,
+                checkerAssumptionStabilityInvariant]
+          | proven F =>
+              cases hEq : __eo_eq F proven <;>
+                try
+                  (simpa [__eo_push_proven_check, hEq] using
+                    checkerAssumptionStabilityInvariant_stuck M)
+              case Boolean b =>
+                cases b with
+                | false =>
+                    simpa [__eo_push_proven_check, hEq] using
+                      checkerAssumptionStabilityInvariant_stuck M
+                | true =>
+                    simpa [__eo_push_proven_check, hEq,
+                      checkerAssumptionStabilityInvariant] using hs
+  | step r args premises =>
+      exact invoke_step_preserves_assumptionStabilityInvariant M s hNotStuck
+        r args premises hs
+  | step_pop r args premises =>
+      cases s with
+      | nil =>
+          simpa [__eo_invoke_cmd] using
+            invoke_cmd_step_pop_preserves_assumptionStabilityInvariant M CState.nil
+              r args premises hs hSuffix
+      | cons so s =>
+          simpa [__eo_invoke_cmd] using
+            invoke_cmd_step_pop_preserves_assumptionStabilityInvariant M
+              (CState.cons so s) r args premises hs hSuffix
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+
+/-!
+## The calculus-independent view of this invariant
+
+`Proofs/Checker.lean` is written against the four names below rather than
+against the stability invariant itself.  What it needs is *an* extra invariant
+on the checker state that every command preserves -- not this particular one.
+
+A calculus that needs no extra invariant points `checkerExtraInvariant` at
+`fun _ _ => True`; one that needs a different invariant points these four at
+it, supplies the preservation theorem, and `Checker.lean` is unchanged.  They
+are `abbrev`s so that the generated `Proofs/RuleLemmas.lean`, which names the
+underlying invariant, accepts them without a wrapper.
+-/
+
+/-- The extra, calculus-supplied component of `checkerStateInvariant`. -/
+abbrev checkerExtraInvariant (M : SmtModel) (s : CState) : Prop :=
+  checkerAssumptionStabilityInvariant M s
+
+/-- The extra side condition a single checker command must satisfy. -/
+abbrev cmdExtraOk (M : SmtModel) (c : CCmd) : Prop :=
+  cmdAssumptionStabilityOk M c
+
+/-- `cmdExtraOk` for every command of a checker command list. -/
+abbrev CmdListExtraOk (M : SmtModel) (cs : CCmdList) : Prop :=
+  CmdListAssumptionStabilityOk M cs
+
+/-- The extra side condition on an input assumption list. -/
+abbrev extraAssumptionListOk (M : SmtModel) (F : Term) : Prop :=
+  StableAssumptionList M F
+
+/-- Describes `checkerExtraInvariant` on the stuck state. -/
+theorem checkerExtraInvariant_stuck (M : SmtModel) :
+  checkerExtraInvariant M CState.Stuck :=
+  checkerAssumptionStabilityInvariant_stuck M
+
+/-- Describes `checkerExtraInvariant` after `assume_list`. -/
+theorem checkerExtraInvariant_after_assume_list (M : SmtModel) (F : Term) :
+  extraAssumptionListOk M F ->
+  checkerExtraInvariant M (__eo_invoke_assume_list CState.nil F) :=
+  checkerAssumptionStabilityInvariant_after_assume_list M F
+
+/-- A successful checked input-assumption pass yields `extraAssumptionListOk`. -/
+theorem extraAssumptionListOk_of_stateOk_assume_list (M : SmtModel) {F : Term} :
+  ValidAssumptionList F ->
+  stateOk (__eo_invoke_assume_list CState.nil F) ->
+  extraAssumptionListOk M F :=
+  stableAssumptionList_of_stateOk_assume_list M
+
+/-- A successful checked command list satisfies `CmdListExtraOk`. -/
+theorem cmdListExtraOk_of_stateOk_invoke_cmd_list (M : SmtModel)
+    (s : CState) (cs : CCmdList) :
+  stateOk (__eo_invoke_cmd_list s cs) ->
+  CmdListExtraOk M cs :=
+  cmdListAssumptionStabilityOk_of_stateOk_invoke_cmd_list M s cs
+
+/-- Shows that `invoke_cmd` preserves `checkerExtraInvariant`. -/
+theorem invoke_cmd_preserves_extraInvariant_nonstuck (M : SmtModel)
+    (s : CState) (c : CCmd) :
+  checkerExtraInvariant M s ->
+  cmdExtraOk M c ->
+  stateAssumptionSuffix s ->
+  s ≠ CState.Stuck ->
+  checkerExtraInvariant M (__eo_invoke_cmd s c) :=
+  invoke_cmd_preserves_assumptionStabilityInvariant_nonstuck M s c
