@@ -24,6 +24,21 @@ jobs:
       - name: Reject proof escape hatches
         run: bash scripts/run-ci.sh proof-hygiene
 
+  proof_structure:
+    name: proof-structure
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Textual, so no Lean toolchain: that the two packages share one
+      # Checker.lean, that it names no rule and no operator, and that the
+      # checker layer depends on `and` alone. See docs/modularity.md.
+      - name: Check checker-layer structure
+        run: bash scripts/run-ci.sh proof-structure
+
   regeneration:
     name: regeneration
     runs-on: ubuntu-latest

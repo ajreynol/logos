@@ -243,20 +243,30 @@ templates — this is TODO 2, and is cheap. **(b)** Parameterize the proofs over
 an abstract `Term` — expensive, because `CheckerCore.lean` also depends on the
 translation layer and on `UserOp.and`. Recommend (a); do not start with (b).
 
-### 7. Add a fast soundness check to CI
+### 7. Add a fast soundness check to CI — **done**
 
 `Cpc.Proofs.Checker` and `Cpc.ApiCorrect` are deliberately excluded from CI
 (`scripts/run-ci.sh`, "Expensive and not currently used in CI checks") because
 they need all 591 rule files — roughly two hours. **Changes to `Checker.lean`
 are therefore not verified by CI at all.**
 
-There is a cheap substitute, verified to work: typecheck `Checker.lean` against
-`Proofs/CheckerCore` with the two generated bridge theorems
+`scripts/check-checker-soundness.sh` closes that gap, and now runs inside the
+`cpc-proofs` group. It typechecks `Checker.lean` *and* `ApiCorrect.lean` against
+the already-built `Proofs/CheckerCore` with the two generated bridge theorems
 (`cmd_step_proven_facts_of_invariants`,
-`cmd_step_pop_proven_facts_of_invariants`) replaced by `sorry`. That elaborates
-the whole file in **under a second** and catches everything except the rule
-proofs themselves. Add a canary — a deliberately bogus identifier at the end,
-expected to error — so the check cannot silently degrade into a no-op.
+`cmd_step_pop_proven_facts_of_invariants`) stubbed by `sorry`. Whole thing runs
+in **1.7 seconds** and catches everything except the rule proofs themselves.
+
+Two details that make it trustworthy rather than decorative:
+
+- it reads the two stubbed signatures *out of* `Proofs/RuleLemmas.lean` rather
+  than hard-coding them, so a change to the compiler's template fails the check
+  instead of silently testing the wrong statement;
+- it ends with a canary — a declaration that must be rejected — so the harness
+  cannot degrade into a no-op that always passes.
+
+Verified against an injected error: replacing a hypothesis in one proof step of
+`Checker.lean` makes it exit 1.
 
 ### 8. Check the signature contract explicitly
 
@@ -268,16 +278,6 @@ with confusing errors. Either check it in `install-sig.sh` or put a Lean-level
 symbol.
 
 Now cheap, because the list is one symbol plus the Bool literals.
-
-### 11. Guard the properties this work established
-
-Three one-line CI checks would keep the separation from rotting, and each
-corresponds to something that had already drifted once:
-
-- `Cpc/Proofs/Checker.lean` and `CpcMini/Proofs/Checker.lean` are identical
-  modulo the package name. They diverged by 376 lines before being unforked.
-- The core names no `CRule` constructor and no `UserOp` other than `and`.
-- `Proofs/CheckerState.lean` contains no occurrence of `Invariant`.
 
 ### 9. Split `Closed/Support.lean`
 
@@ -291,6 +291,44 @@ but it is a monolith and the natural next `Invariants/` tenant.
 352,795 lines in one flat directory. Rule-specific, so off the critical path for
 modularity, but it is the bulk of the repository and would benefit from
 theory-level structure.
+
+### 11. Guard the properties this work established — **done**
+
+`scripts/check-proof-structure.sh`, CI group `proof-structure`. Textual, no
+toolchain, well under a second. Each invariant it checks had drifted at least
+once:
+
+- `Cpc/Proofs/Checker.lean` and `CpcMini/Proofs/Checker.lean` are identical
+  modulo the package name — they diverged by 376 lines before being unforked;
+- `Checker.lean` names no `CRule` constructor, no `UserOp`, and no
+  calculus-specific invariant;
+- `Proofs/CheckerState.lean` contains no occurrence of `Invariant`;
+- the checker layer names exactly one `UserOp`, namely `and`.
+
+### 12. Cross-check the soundness proof against the Eudaimonia template
+
+**Not yet — Eudaimonia is in active development.** Recorded so it is not lost.
+
+Once Eudaimonia's `templates/pkg/Proofs/Checker.lean.in` carries content rather
+than a description, the same identity check that keeps `Cpc` and `CpcMini` in
+agreement should extend across the two repositories: the template and both
+Logos packages should be one file modulo the calculus name. That is what would
+make the template *the* soundness proof rather than a copy of it, and it is the
+natural end state of TODO 2.
+
+Two things block it today, both on the Eudaimonia side and both deliberate:
+
+- `templates/pkg/Proofs/Checker.lean.in` and `CheckerCore.lean.in` are 22-line
+  stubs carrying a description of what belongs in them, so there is nothing to
+  compare against.
+- `scripts/get-eo-compiler.sh` runs with `DEV_MODE=1`, building the head of the
+  `ethosEoc3` branch rather than a pinned commit, so a cross-repository check
+  would be comparing against a moving target. Their roadmap has leaving
+  development mode as its own item.
+
+Revisit when both are resolved. Until then the in-repo check (TODO 11) covers
+the property that matters most, which is that Logos does not re-fork its own
+soundness proof.
 
 ## Cross-reference: the Eudaimonia roadmap
 
