@@ -796,12 +796,10 @@ by
       cases s with
       | nil =>
           change checkerTranslationInvariant (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
-          exact push_assume_preserves_translationInvariant CState.nil A hsTrans
-            (by simpa [cmdTranslationOk] using hCmdTrans)
+          exact push_assume_preserves_translationInvariant CState.nil A hsTrans hCmdTrans
       | cons so s =>
           change checkerTranslationInvariant (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
-          exact push_assume_preserves_translationInvariant (CState.cons so s) A hsTrans
-            (by simpa [cmdTranslationOk] using hCmdTrans)
+          exact push_assume_preserves_translationInvariant (CState.cons so s) A hsTrans hCmdTrans
       | Stuck =>
           exact False.elim (hNotStuck rfl)
   | check_proven proven =>
