@@ -221,7 +221,7 @@ Second, methods that define the semantics of Eunoia terms
 based on a reduction to SMT-LIB.
 Third, the core methods that Logos depends on.
 
-\noindent\textbf{SMT-LIB definition (roughly 2600 LOC):}
+\noindent\textbf{SMT-LIB definition (roughly 2050 LOC):}
 \begin{itemize}
   \item \smttypeofvalue \code{:} \smtvalue \code{->} \smttype
     \begin{itemize}
@@ -248,7 +248,7 @@ Third, the core methods that Logos depends on.
     \end{itemize}
 \end{itemize}
 
-\noindent\textbf{Specification definition (roughly 750 LOC):}
+\noindent\textbf{Specification definition (roughly 650 LOC):}
 \begin{itemize}
   \item \eotosmt \code{:} \term \code{->} \smtterm
     \begin{itemize}
@@ -264,7 +264,7 @@ Third, the core methods that Logos depends on.
     \end{itemize}
 \end{itemize}
 
-\noindent\textbf{Logos definitions (roughly 10500 LOC):}
+\noindent\textbf{Logos definitions (roughly 8200 LOC):}
 \begin{itemize}
   \item \eotypeof \code{:} \term \code{->} \term
     \begin{itemize}
@@ -287,11 +287,11 @@ then indeed $F$ is unsatisfiable.
 Our trusted core for this specification is thus the definition of \eosatisfiability,
 which is contained in the SMT-LIB and specification layers.
 The third layer does not need to be trusted.
-Roughly, the first layer is 2600 lines of Lean,
-the second layer is 750 lines of Lean (including the shared definition of Eunoia terms),
-and the third layer is roughly 10500 lines of Lean.
+Roughly, the first layer is 2050 lines of Lean,
+the second layer is 650 lines of Lean (including the shared definition of Eunoia terms),
+and the third layer is roughly 8200 lines of Lean.
 In other words, the trusted computing base of Logos
-is the sum of the first two layers, roughly 3350 lines of Lean.
+is the sum of the first two layers, roughly 2700 lines of Lean.
 
 The executable portion of the Logos checker (the third layer) 
 does \emph{not} depend on the SMT-LIB definition or the specification definition.
@@ -1853,6 +1853,10 @@ when evaluating binders), where the interpretation of a constant is fixed.
 def smt_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
   (if (smt_type_wf T) then U else SmtType.None)
   
+def smt_typeof_not : SmtType -> SmtType
+  | SmtType.Bool => SmtType.Bool
+  | T => SmtType.None
+
 def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
   (smt_typeof_guard T (if (Teq T U) then SmtType.Bool else SmtType.None))
 
@@ -1882,8 +1886,7 @@ def smt_typeof : SmtTerm -> SmtType
   | (SmtTerm.Numeral n) => SmtType.Int
   | (SmtTerm.Binary w n) =>
       if 0 <= w ∧ n = n % (2 ^ w) then (SmtType.BitVec (Int.toNat w)) else SmtType.None
-  | (SmtTerm.not x1) =>
-      if (Teq (smt_typeof x1) SmtType.Bool) then SmtType.Bool else SmtType.None
+  | (SmtTerm.not x1) => (smt_typeof_not (smt_typeof x1))
   | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.exists s T x1) =>
       if smt_typeof x1 = SmtType.Bool then (smt_typeof_guard_wf T SmtType.Bool) else SmtType.None
@@ -1916,7 +1919,7 @@ For the remaining operators, it is important to note that, since our definition 
 terms do not allow us to specify partially applied interpreted functions,
 the type rules we give are for fully applied terms.
 We give some of the cases above, for example,
-for SMT-LIB \code{not}, the type is the Boolean type
+for SMT-LIB \code{not}, the method \code{smt_typeof_not} returns the Boolean type
 iff the argument is Boolean.
 For SMT-LIB equality \code{eq},
 the method for computing its type \code{smt_typeof_eq}
