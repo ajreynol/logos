@@ -1,0 +1,288 @@
+# Modularity of the Logos checker
+
+Logos is one checker for one calculus, CPC. But most of its soundness argument
+is not about CPC: it is about a stack machine that pushes assumptions and proven
+facts, and about invariants that machine maintains. This document records how
+far that separation has been taken, what a *second* consumer has to supply, and
+what is left to do.
+
+It has two audiences:
+
+- Logos maintainers — the TODO list at the end.
+- Anyone building a Logos-like checker for a different calculus (e.g.
+  [eudaimonia](https://github.com/ajreynol/eudaimonia)) — the contract in
+  [What a new checker supplies](#what-a-new-checker-supplies). Start from
+  `CpcMini`, not `Cpc`.
+
+## Current layering
+
+Hand-written proof, in lines, after the split described below. "Reusable" means
+a new calculus can take the file essentially as-is.
+
+| layer | files | Cpc | CpcMini | reusable? |
+| --- | --- | ---: | ---: | --- |
+| checker | `Proofs/{Checker,CheckerState,CheckerCore}.lean`, `Proofs/Invariants/Stability.lean`, `Proofs/RuleSupport/Contract.lean`, `Proofs/Assumptions.lean` | 4,474 | 4,229 | yes, except `Assumptions.lean` |
+| common | `Proofs/{Common,CommonBoolOps,TermCompat}.lean` | 1,388 | 804 | mostly |
+| translation | `Proofs/Translation*` | 33,463 | 5,194 | no — signature-specific |
+| type preservation | `Proofs/TypePreservation*` | 17,700 | 5,638 | no — signature-specific |
+| canonical models | `Proofs/Canonical*` | 10,083 | 228 | no — signature-specific |
+| closedness / var-model | `Proofs/Closed*` | 32,274 | 0 | only if you have binder rules |
+| rule support | `Proofs/RuleSupport/*` | 352,795 | 259 | no — rule-specific |
+| rules | `Proofs/Rules/*` | 279,000 (591 files) | 1,209 (5 files) | no |
+
+Everything else — `Logos.lean`, `LogosTerm.lean`, `SmtEval.lean`,
+`SmtModel*.lean`, `SmtValueOrder.lean`, `Spec.lean`, `Parser.lean`,
+`Proofs/RuleLemmas.lean`, and one stub per rule — is emitted by `ethos-eoc`;
+see `install/install-sig.sh`.
+
+**Read that table before planning work.** The checker layer is 4.2K of
+CpcMini's ~17.5K hand-written lines (24%), and 4.5K of Cpc's ~730K (0.6%). The
+checker layer is now in good shape; the cost of a new checker is dominated by
+the *semantics* layer. See TODO 5.
+
+### Module order
+
+```
+Proofs/Common.lean            core semantics predicates (eo_interprets, eo_has_bool_type)
+Proofs/Assumptions.lean       input-problem + per-command side conditions
+Proofs/RuleSupport/Contract.lean   the checker/rule contract
+Proofs/CheckerState.lean      the state machine — no invariant is named here
+Proofs/Invariants/Stability.lean   the one optional invariant
+Proofs/CheckerCore.lean       the invariants, the bundle, the rule bridge
+     ↑ (generated) Proofs/RuleLemmas.lean, Proofs/Rules/*.lean
+Proofs/Checker.lean           preservation + correct___eo_is_refutation
+```
+
+`Proofs/CommonBoolOps.lean` and the rest of `Proofs/RuleSupport/` hang off
+`Contract.lean` on the rule side and are deliberately *not* in the checker's
+transitive imports.
+
+## What a new checker inherits
+
+`Proofs/Checker.lean` — the ~25 preservation theorems and
+`correct___eo_is_refutation` — is **byte-identical between `Cpc` and `CpcMini`**
+modulo the package name. It contains:
+
+- zero references to any `CRule` constructor;
+- zero references to the stability invariant, or to any other calculus-specific
+  invariant;
+- three `Term` constructors only: `Stuck`, `Bool`, `Boolean`.
+
+`CheckerState.lean` contains zero occurrences of the string `Invariant`.
+
+The evidence that this is real, not aspirational: `CpcMini` uses Cpc's
+`Checker.lean` verbatim while differing in rule set (5 rules vs 591), in
+signature, *and* in which invariants its rules require.
+
+## What a new checker supplies
+
+### 1. Signature symbols
+
+The checker layer hard-codes a small number of SMT-LIB symbols. Eunoia does not
+guarantee these exist; your signature must declare them.
+
+- **`and`**, and not merely the symbol: it must be declared right-associative
+  with nil `true`. `stateAssumes` / `statePushes` / `stateProvens` fold the
+  checker stack with it (`Proofs/CheckerState.lean`);
+  `__eo_invoke_assume_list` parses the input problem as an `and`-chain
+  terminated by `true`; `__eo_nil` carries a hard-coded arm
+  `| (Term.UOp UserOp.and), T => Term.Boolean true`, which
+  `__eo_mk_premise_list` relies on for *every* `:list`-premise rule; and the
+  conclusion `eo_satisfiability F false` is a statement about that chain.
+- **`imp`** — used by `Proofs/CheckerState.lean`'s translation helpers.
+- **The Bool literals `true` / `false`.** `Term.Boolean` is a builtin `Term`
+  constructor so it always exists, but the checker fixes its meaning: `false`
+  is the refutation target (`__eo_state_is_refutation` is literally
+  `check_proven false`), and `true` is the unit of the assumption conjunction.
+
+`not` and `=` are **not** required by the checker. They are used only by rule
+proofs, and as of the split they live in `Proofs/CommonBoolOps.lean`, outside
+the checker's transitive imports. A signature declaring neither can delete that
+module without touching anything else.
+
+Nothing currently *checks* these requirements — see TODO 8.
+
+### 2. The SMT semantics side
+
+`__eo_to_smt` must send `and` to `SmtTerm.and` and `Bool` to `SmtType.Bool`.
+The checker layer's entire SMT surface is `SmtTerm.and`, `SmtTerm.Boolean`,
+`SmtType.Bool` and the `None` cases. A signature that declared `and` but
+translated it to something else would break soundness silently at that seam:
+nothing cross-checks it.
+
+### 3. The semantics layer
+
+`Translation/`, `TypePreservation/`, `Canonical/` — proofs about the generated
+`__eo_to_smt` and `__smtx_typeof` for *your* operators. This is the bulk of the
+work and it scales with how many SMT theories you take on: 228 lines of
+`Canonical/` in CpcMini against 10,083 in Cpc.
+
+### 4. `cmdTranslationOk`
+
+`Proofs/Assumptions.lean`. Seed it from **CpcMini's** 44-line version, whose
+`cmdTranslationOk` is generic (`| CCmd.step _ args _ => cArgListTranslationOk args`)
+and names no rule. Cpc's 257-line version is a hand-maintained specialization —
+see TODO 1.
+
+### 5. Optionally, an extra invariant
+
+If your rules need something of the proof state beyond "well-typed, translatable,
+locally true", supply it through the slot in
+`Proofs/Invariants/Stability.lean`:
+
+```lean
+abbrev checkerExtraInvariant (M : SmtModel) (s : CState) : Prop := ...
+abbrev cmdExtraOk            (M : SmtModel) (c : CCmd)    : Prop := ...
+abbrev CmdListExtraOk        (M : SmtModel) (cs : CCmdList) : Prop := ...
+abbrev extraAssumptionListOk (M : SmtModel) (F : Term)    : Prop := ...
+```
+
+plus `invoke_cmd_preserves_extraInvariant_nonstuck`. `Checker.lean` is written
+against those four names and never mentions what they stand for. A calculus with
+no extra invariant points `checkerExtraInvariant` at `fun _ _ => True`.
+
+In CPC the slot holds variable stability, which exists so binder-sensitive rules
+(`instantiate`, `skolemize`, `alpha_equiv`) can be given premise truth in a
+variable-variant model via `RulePremiseEvidence.true_in_var_model`. CpcMini
+defines `StableWhenTrueInAnyVarModel := True` and pays nothing.
+
+**The slot is coupled to `RuleSupport/Contract.lean`.** Adding
+`true_in_var_model` to `RulePremiseEvidence` is exactly what makes an extra
+invariant load-bearing. Those two choices are made together, up front.
+
+## TODO
+
+Ordered by value to a second consumer.
+
+### 1. Make `cmdTranslationOk` per-rule and generated
+
+`Cpc/Proofs/Assumptions.lean` is a 257-line hand-maintained table naming 32
+individual CPC rules. It is the **only** hand-written non-rule file that
+mentions a rule, and it appears in the hypothesis of the top-level
+`correct___eo_is_refutation`.
+
+Have the rule stub template emit
+`def cmd_step_<rule>_args_ok : CArgList → Prop := fun _ => True`, let the proof
+author strengthen it in the rule file, and have `ethos-eoc` generate
+`cmdTranslationOk` as a dispatch — exactly as it already generates
+`cmd_step_proven_facts_of_invariants`. Then no hand-written file in the checker
+layer names a rule.
+
+The masks cannot be inferred from the signature: the kind
+(`term`/`list`/`type`/`wfTerm`/`wfElem`) is discovered while proving the rule.
+So it must be *declared* in the rule file, not derived.
+
+Needs an eoc template change, and a `Decidable` instance per rule so
+`Cpc/ApiChecks.lean` can keep discharging it with `decide`.
+
+### 2. Promote the checker layer to eoc templates
+
+`Checker.lean`, `CheckerState.lean`, `RuleSupport/Contract.lean` and a generic
+`Assumptions.lean` should be *seeded* into a new package and then owned by it —
+the install-once, preserve-if-present treatment that `Proofs/Rules/*.lean`
+already gets in `install/install-sig.sh` (see the loop near line 652). Today
+they are hand-maintained per package, and they drifted: before being unforked,
+Cpc's and CpcMini's `Checker.lean` differed by 376 lines purely because CpcMini
+did not need one invariant.
+
+`Checker.lean` needs no parameterization beyond the package name — 25 `Term`
+references, zero `CRule`, zero `UserOp`.
+
+### 3. Split `CheckerCore.lean` per invariant
+
+It still holds four invariants, the bundle, and the rule bridge in one file
+(1,123 / 1,005 lines). Splitting into `Invariants/{Type,Translation,LocalTruth}.lean`
+plus a bundle module would let a consumer replace the *translation* invariant —
+relevant if your specification is not "translate to SMT-LIB and interpret".
+
+Low risk: the same split was done for `Stability.lean` by computing the
+declaration reference graph, and it had zero generic→invariant violations, so no
+proof needed fixing.
+
+### 4. Generalize the extra-invariant slot
+
+`checkerExtraInvariant` is a single slot. A calculus needing two extra invariants
+must conjoin them by hand. Making it a list, or documenting the conjunction
+idiom, is cheap. Low value until someone hits it.
+
+### 5. Make the semantics layer cheaper — the biggest lever
+
+Cpc: semantics layer 93,530 lines against a 4,474-line checker layer. Whatever
+else is done to the checker has bounded returns; **this** is what a new consumer
+pays.
+
+Two directions:
+
+- Have `ethos-eoc` emit the translation and type-preservation proofs alongside
+  `__eo_to_smt`. They are largely mechanical case analyses over the operator set,
+  which is exactly what the compiler already enumerates.
+- Share the SMT-LIB half properly. `SmtModel.lean` is a formalization of
+  *SMT-LIB*, not of CPC, yet each package gets its own pruned copy (2,186 lines
+  in Cpc, 743 in CpcMini). A real shared library with per-package pruning as an
+  optimization would let two consumers share the theory proofs.
+
+This is the item most worth coordinating with eudaimonia before they start: if
+their signature differs substantially from CPC's, this is the cost they will
+actually feel.
+
+### 6. Move calculus-independent material into `Logos/`
+
+The `Logos` library is 1,069 lines (`Sexp.lean`, `Parser.lean`). Everything
+reusable lives in per-package files instead, because `Term`, `CState` and
+`CRule` are generated per package.
+
+Two routes. **(a)** Keep per-package files but generate them from shared
+templates — this is TODO 2, and is cheap. **(b)** Parameterize the proofs over
+an abstract `Term` — expensive, because `CheckerCore.lean` also depends on the
+translation layer and on `UserOp.and`. Recommend (a); do not start with (b).
+
+### 7. Add a fast soundness check to CI
+
+`Cpc.Proofs.Checker` and `Cpc.ApiCorrect` are deliberately excluded from CI
+(`scripts/run-ci.sh`, "Expensive and not currently used in CI checks") because
+they need all 591 rule files — roughly two hours. **Changes to `Checker.lean`
+are therefore not verified by CI at all.**
+
+There is a cheap substitute, verified to work: typecheck `Checker.lean` against
+`Proofs/CheckerCore` with the two generated bridge theorems
+(`cmd_step_proven_facts_of_invariants`,
+`cmd_step_pop_proven_facts_of_invariants`) replaced by `sorry`. That elaborates
+the whole file in **under a second** and catches everything except the rule
+proofs themselves. Add a canary — a deliberately bogus identifier at the end,
+expected to error — so the check cannot silently degrade into a no-op.
+
+### 8. Check the signature contract explicitly
+
+Nothing verifies the requirements in
+[Signature symbols](#1-signature-symbols). A signature without `and`, or with
+`and` not declared right-assoc-nil `true`, fails deep inside generated files
+with confusing errors. Either check it in `install-sig.sh` or put a Lean-level
+`example` in the seeded template that fails with a message naming the missing
+symbol.
+
+### 9. Split `Closed/Support.lean`
+
+7,917 lines in one file, now reached only through `Invariants/Stability.lean`.
+It mixes generic closedness machinery with binder/variable-model stability. A
+calculus without binders pays nothing for it today, so this is low priority —
+but it is a monolith and the natural next `Invariants/` tenant.
+
+### 10. Organize `RuleSupport/`
+
+352,795 lines in one flat directory. Rule-specific, so off the critical path for
+modularity, but it is the bulk of the repository and would benefit from
+theory-level structure.
+
+## A note on mechanical file splitting
+
+Several TODOs above involve splitting large Lean files. When doing that
+programmatically, a declaration scanner must handle: multi-line `/-- … -/`
+docstrings, `@[attr]` on the *same* line as the declaration, `set_option … in`
+prefixes, and dotted names (`RulePremiseEvidence.instCoeFun` must not be
+conflated with `RulePremiseEvidence`). Each of those, missed, produces a file
+that either fails to parse or — worse — silently duplicates a declaration into
+both outputs.
+
+Assert an exact line partition (`moved + kept + header + trailer == original`),
+and afterwards diff every declaration body against the original. Both checks are
+cheap and catch what the compiler will not.
