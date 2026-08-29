@@ -1,0 +1,19 @@
+The authors, designers, and main contributors to logos are listed below.
+logos's copyright is held by these individuals and the affiliated
+institutions at the time of their contributions (note that some authors have
+had more than one affiliated institution).  See the file COPYING for details on
+the copyright and licensing of logos.
+
+The developers and authors of logos are:
+	Andrew Reynolds, The University of Iowa, Amazon Web Services
+	Abdalrhman Mohamed, Stanford University
+
+The logos codebase contains some source code from the lean-smt project, which
+is licensed under the Apache License, Version 2.0.  The copyright of that code
+is held by the lean-smt authors.  See the lean-smt repository at
+https://github.com/ufmg-smite/lean-smt for details.
+
+The calculus that logos checks is compiled from a Eunoia signature of the
+Cooperating Proof Calculus maintained by the cvc5 project.  The copyright of
+that signature is held by the cvc5 authors.  See the cvc5 repository at
+https://github.com/cvc5/cvc5 for details.

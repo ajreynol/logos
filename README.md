@@ -260,3 +260,20 @@ which is also auto-generated based on the calculus.
 
 `scripts/cpc-loc-summary.py` reports the size of each of these pieces — the specification, the
 checker, the parser and the correctness proof — in lines of code.
+
+## License
+
+Logos is licensed under the modified BSD license, the same license as
+[cvc5](https://github.com/cvc5/cvc5) and [ethos](https://github.com/cvc5/ethos).
+See [COPYING](COPYING) for the terms and [AUTHORS](AUTHORS) for the
+contributors whose copyright it is.
+
+Two pieces come from elsewhere and are covered by the Third-Party Software
+section of [COPYING](COPYING):
+
+- `Logos/Sexp.lean` is derived from
+  [lean-smt](https://github.com/ufmg-smite/lean-smt) and remains under the
+  Apache License 2.0 (see [licenses/apache-2.0.txt](licenses/apache-2.0.txt)).
+- The signature in `install/defs/Cpc.cached.eo`, and the Lean sources generated
+  from it, are derived from the definition of CPC maintained by cvc5, whose
+  authors hold its copyright.

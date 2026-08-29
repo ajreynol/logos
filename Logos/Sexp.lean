@@ -1,11 +1,20 @@
 module
 
 /-
-Copyright (c) 2021-2022 by the authors listed in the file AUTHORS and their
-institutional affiliations. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
+This file is derived from the lean-smt project and is licensed under the Apache
+License, Version 2.0, not under the modified BSD license of the rest of logos.
+See the file licenses/apache-2.0.txt for a copy of that license, and the
+Third-Party Software section of the file COPYING.
+
+Copyright (c) 2021-2022 by the authors listed in the AUTHORS file of
+https://github.com/ufmg-smite/lean-smt and their institutional affiliations.
+All rights reserved.
 Authors: Wojciech Nawrocki
 Source: https://github.com/ufmg-smite/lean-smt/blob/main/Smt/Data/Sexp.lean
+
+Changes from the original: migrated to the module system, wrapped in the
+`Logos` namespace, the `ToSexp` class dropped, and `strLit` rewritten so that
+a `""` escape is kept as written.
 -/
 
 public import Std.Internal.Parsec.String

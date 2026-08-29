@@ -1,0 +1,54 @@
+logos is copyright (C) 2026 by its authors and contributors (see the
+file AUTHORS) and their institutional affiliations.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNERS AND CONTRIBUTORS
+''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-------------------------------------------------------------------------------
+ Third-Party Software
+-------------------------------------------------------------------------------
+
+Logos/Sexp.lean is derived from Smt/Data/Sexp.lean of the lean-smt project
+(https://github.com/ufmg-smite/lean-smt), which is licensed under the Apache
+License, Version 2.0.  See the file licenses/apache-2.0.txt for a copy of that
+license.  That file remains under Apache 2.0; the rest of logos is under the
+modified BSD license above.
+
+The Eunoia signature recorded in install/defs/Cpc.cached.eo is a copy of the
+Cooperating Proof Calculus as defined by the cvc5 project
+(https://github.com/cvc5/cvc5), which is licensed under the modified BSD
+license.  The Lean sources generated from it -- Cpc/Logos.lean,
+Cpc/LogosTerm.lean, Cpc/Parser.lean, Cpc/Spec.lean, Cpc/SmtEval.lean,
+Cpc/SmtModel.lean, Cpc/SmtModelDefs.lean, Cpc/SmtValueOrder.lean,
+Cpc/Proofs/RuleLemmas.lean and their CpcMini equivalents -- are derived from
+that signature.  The copyright of the signature is held by the cvc5 authors.
+
+logos is compiled by ethos-eoc, the Eunoia compiler of the ethos project
+(https://github.com/cvc5/ethos), which is licensed under the modified BSD
+license.  ethos is a build-time tool: it is downloaded by
+install/get-eo-compiler.sh, is not part of this repository, and is not
+distributed with it.

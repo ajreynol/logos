@@ -2,6 +2,10 @@
 -- Eunoia signature recorded in install/defs/Cpc.cached.eo into Lean.
 -- Do not edit. Change the signature, or the compiler, instead.
 --
+-- That signature is a copy of the Cooperating Proof Calculus as defined by the
+-- cvc5 project (https://github.com/cvc5/cvc5); its copyright is held by the
+-- cvc5 authors. See the files COPYING and AUTHORS.
+--
 -- The SMT-LIB semantics and the checker specification that these definitions
 -- realize are documented in docs/smt-model-definitions.pdf.
 
