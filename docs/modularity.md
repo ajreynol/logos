@@ -89,16 +89,23 @@ guarantee these exist; your signature must declare them.
   `| (Term.UOp UserOp.and), T => Term.Boolean true`, which
   `__eo_mk_premise_list` relies on for *every* `:list`-premise rule; and the
   conclusion `eo_satisfiability F false` is a statement about that chain.
-- **`imp`** — used by `Proofs/CheckerState.lean`'s translation helpers.
 - **The Bool literals `true` / `false`.** `Term.Boolean` is a builtin `Term`
   constructor so it always exists, but the checker fixes its meaning: `false`
   is the refutation target (`__eo_state_is_refutation` is literally
   `check_proven false`), and `true` is the unit of the assumption conjunction.
 
-`not` and `=` are **not** required by the checker. They are used only by rule
-proofs, and as of the split they live in `Proofs/CommonBoolOps.lean`, outside
-the checker's transitive imports. A signature declaring neither can delete that
-module without touching anything else.
+`not`, `=` and `imp` are **not** required by the checker. They are used only by
+rule proofs, and live in `Proofs/CommonBoolOps.lean`, outside the checker's
+transitive imports. A signature declaring none of them can delete that module
+without touching anything else.
+
+`imp` was the last to go and was pure accident: `CheckerState.lean` carried five
+`eo_interprets_imp_*` lemmas that **nothing in the checker used** — in Cpc they
+were one-line forwarders to the `RuleProofs` versions in `Common.lean`, and in
+CpcMini they had no users anywhere. Deleting them, and moving Cpc's originals
+to `CommonBoolOps.lean`, left the core naming exactly one operator.
+
+**The core of both packages now depends on a single signature symbol: `and`.**
 
 Nothing currently *checks* these requirements — see TODO 8.
 
@@ -260,6 +267,18 @@ with confusing errors. Either check it in `install-sig.sh` or put a Lean-level
 `example` in the seeded template that fails with a message naming the missing
 symbol.
 
+Now cheap, because the list is one symbol plus the Bool literals.
+
+### 11. Guard the properties this work established
+
+Three one-line CI checks would keep the separation from rotting, and each
+corresponds to something that had already drifted once:
+
+- `Cpc/Proofs/Checker.lean` and `CpcMini/Proofs/Checker.lean` are identical
+  modulo the package name. They diverged by 376 lines before being unforked.
+- The core names no `CRule` constructor and no `UserOp` other than `and`.
+- `Proofs/CheckerState.lean` contains no occurrence of `Invariant`.
+
 ### 9. Split `Closed/Support.lean`
 
 7,917 lines in one file, now reached only through `Invariants/Stability.lean`.
@@ -272,6 +291,38 @@ but it is a monolith and the natural next `Invariants/` tenant.
 352,795 lines in one flat directory. Rule-specific, so off the critical path for
 modularity, but it is the bulk of the repository and would benefit from
 theory-level structure.
+
+## Cross-reference: the Eudaimonia roadmap
+
+`~/eudiamonia/TODO.md` §4b measures the same tree independently and reaches
+compatible conclusions. Two of its findings are worth importing here.
+
+**Syntactic independence is not semantic independence.** Compilation
+*configures the model*: `SmtModel.lean` is 743 lines in CpcMini and 2,186 in
+Cpc, and `Spec.lean` 105 against 475. So a proof file that never names an
+operator is still *stated about* an `SmtModel` that varies with the signature.
+`Checker.lean` being byte-identical across the two packages therefore buys
+**template** reuse, not library reuse — the two files are the same text about
+two different types. That is exactly what TODO 2 proposes and what TODO 6(b)
+would have to fix; the roadmap is right that stabilizing the SMT-LIB model as a
+fixed base which signatures *extend* is the prerequisite for real sharing. It
+matches TODO 5 here and should be sequenced first.
+
+**`Term` has no per-operator constructors.** Operators live in the
+`UserOp`/`UserOp1`/`UserOp2`/`UserOp3` enums and `Term` is uniform, so core
+proofs never pattern-match an individual operator. Parameterizing `Term` over
+the op enums with a small class supplying the required operators is therefore
+much cheaper than abstracting the term algebra — and since the core is now down
+to `and` alone, that class has one member. The roadmap's advice to try it on
+`Proofs/Invariants/Stability.lean` first (one operator, self-contained) is
+sound.
+
+Two corrections to send back: the required-builtin list in the Eudaimonia
+README (`and`, `imp`, `eq`, `not`, `Bool`, `true`, `false`) is stale — `eq` and
+`not` were removed, and `imp` since — and the 108 differing lines it measures in
+`Invariants/Stability.lean` are necessity rather than duplication: Cpc carries
+the real `StableWhenTrueInAnyVarModel` machinery while CpcMini defines it
+`True`.
 
 ## A note on mechanical file splitting
 

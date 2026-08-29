@@ -125,39 +125,6 @@ theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) true :=
 by
   exact RuleProofs.eo_interprets_and_intro M A B
-/-- Elimination lemma for `eo_interprets_imp`. -/
-theorem eo_interprets_imp_elim (M : SmtModel) (A B : Term) :
-  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) true ->
-  eo_interprets M A true ->
-  eo_interprets M B true :=
-by
-  exact RuleProofs.eo_interprets_imp_elim M A B
-/-- Introduction lemma for `eo_interprets_imp`. -/
-theorem eo_interprets_imp_intro (M : SmtModel) (A B : Term) :
-  eo_interprets M A true ->
-  eo_interprets M B true ->
-  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) true :=
-by
-  exact RuleProofs.eo_interprets_imp_intro M A B
-/-- Left-projection lemma for `eo_interprets_imp_false`. -/
-theorem eo_interprets_imp_false_left (M : SmtModel) (A B : Term) :
-  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) false ->
-  eo_interprets M A true :=
-by
-  exact RuleProofs.eo_interprets_imp_false_left M A B
-/-- Right-projection lemma for `eo_interprets_imp_false`. -/
-theorem eo_interprets_imp_false_right (M : SmtModel) (A B : Term) :
-  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) false ->
-  eo_interprets M B false :=
-by
-  exact RuleProofs.eo_interprets_imp_false_right M A B
-/-- Introduction lemma for `eo_interprets_imp_false`. -/
-theorem eo_interprets_imp_false_intro (M : SmtModel) (A B : Term) :
-  eo_interprets M A true ->
-  eo_interprets M B false ->
-  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) false :=
-by
-  exact RuleProofs.eo_interprets_imp_false_intro M A B
 /-- Derives `eo_interprets_and_false_left` from `right_not_false`. -/
 theorem eo_interprets_and_false_left_of_right_not_false (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) false ->
