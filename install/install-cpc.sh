@@ -115,11 +115,41 @@ if [ "${CHECK}" = "1" ]; then
   exit 1
 fi
 
+# The rule files the two packages hold, named as this repository spells them.
+# A rule file is written only for a rule that has none -- one that exists is
+# preserved, since that is where its proof lives -- so a file here afterwards
+# that was not here before is a rule the calculus has just gained, and the
+# only kind of file carrying `sorry`. Reading the directory rather than the
+# two runs' output is what lets this say so: they are installed with --brief.
+repo_root="$(cd "${script_dir}/.." && pwd)"
+
+rules_snapshot() {
+  local pkg file
+  shopt -s nullglob
+  for pkg in Cpc CpcMini; do
+    for file in "${repo_root}/${pkg}/Proofs/Rules"/*.lean; do
+      echo "${pkg}/Proofs/Rules/${file##*/}"
+    done
+  done
+  shopt -u nullglob
+}
+
+rules_before="$(mktemp "${TMPDIR:-/tmp}/install-cpc-rules.XXXXXX")"
+rules_after="$(mktemp "${TMPDIR:-/tmp}/install-cpc-rules.XXXXXX")"
+trap 'rm -f "${rules_before}" "${rules_after}"' EXIT
+rules_snapshot | LC_ALL=C sort > "${rules_before}"
+
 # An install, where the second run has no business starting if the first did
 # not finish: set -e stops here.
 bash "${INSTALL_SIG}" --brief "$@"
 echo
 bash "${INSTALL_SIG}" --brief "$@" --mini
+
+rules_snapshot | LC_ALL=C sort > "${rules_after}"
+declare -a new_rules=()
+while IFS= read -r rule; do
+  new_rules+=("${rule}")
+done < <(comm -13 "${rules_before}" "${rules_after}")
 
 cat <<DONE
 
@@ -130,6 +160,26 @@ Build them with:
   scripts/build.sh Cpc CpcMini
 
 A preserved rule file whose statement the calculus has changed will fail to
-build; a newly written one has \`sorry\` for a proof. Review with git diff
-before committing.
+build. Review with git diff before committing.
 DONE
+
+# Said only when there is something to say it about: a run that adds no rule
+# has written no stub, and a standing note about `sorry` in that case sends a
+# reader looking for one that is not there.
+if [ "${#new_rules[@]}" -gt 0 ]; then
+  echo
+  echo "==> ${#new_rules[@]} new rule file(s), each with \`sorry\` for a proof:"
+  echo
+  # A run that finds Rules/ empty writes one file per rule of the calculus,
+  # which is a list nobody reads. Say how many are not shown rather than
+  # print all of them.
+  shown=0
+  for rule in "${new_rules[@]}"; do
+    if [ "${shown}" -ge 20 ]; then
+      echo "  ... and $(( ${#new_rules[@]} - shown )) more (git status lists them all)"
+      break
+    fi
+    echo "  ${rule}"
+    shown=$((shown + 1))
+  done
+fi
