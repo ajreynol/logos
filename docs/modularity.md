@@ -294,7 +294,7 @@ theory-level structure.
 
 ### 11. Guard the properties this work established — **done**
 
-`scripts/check-proof-structure.sh`, CI group `proof-structure`. Textual, no
+`scripts/check-proof-modularity.sh`, CI group `proof-modularity`. Textual, no
 toolchain, well under a second. Each invariant it checks had drifted at least
 once:
 

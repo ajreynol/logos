@@ -76,12 +76,12 @@ run_proof_hygiene() {
   bash scripts/check-proof-hygiene.sh
 }
 
-# Structural invariants of the checker layer: that the two packages share one
+# Modularity invariants of the checker layer: that the two packages share one
 # Checker.lean, that it names no rule and no operator, and that the layer
 # depends on `and` alone. Textual, so it needs no toolchain and no build.
 # See docs/modularity.md.
-run_proof_structure() {
-  bash scripts/check-proof-structure.sh
+run_proof_modularity() {
+  bash scripts/check-proof-modularity.sh
 }
 
 # The generated packages against the signature they came from, which this
@@ -201,15 +201,15 @@ case "${group}" in
   proof-hygiene)
     run_proof_hygiene
     ;;
-  proof-structure)
-    run_proof_structure
+  proof-modularity)
+    run_proof_modularity
     ;;
   regeneration)
     run_regeneration
     ;;
   all)
     run_proof_hygiene
-    run_proof_structure
+    run_proof_modularity
     run_regeneration skip
     configure_lean_toolchain
     run_regressions
@@ -217,7 +217,7 @@ case "${group}" in
     run_cpcmini
     ;;
   *)
-    echo "Usage: $0 [all|regressions|cpc-proofs|cpcmini|proof-hygiene|proof-structure|regeneration]" >&2
+    echo "Usage: $0 [all|regressions|cpc-proofs|cpcmini|proof-hygiene|proof-modularity|regeneration]" >&2
     exit 2
     ;;
 esac

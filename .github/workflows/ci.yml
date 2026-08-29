@@ -24,8 +24,8 @@ jobs:
       - name: Reject proof escape hatches
         run: bash scripts/run-ci.sh proof-hygiene
 
-  proof_structure:
-    name: proof-structure
+  proof_modularity:
+    name: proof-modularity
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,8 +36,8 @@ jobs:
       # Textual, so no Lean toolchain: that the two packages share one
       # Checker.lean, that it names no rule and no operator, and that the
       # checker layer depends on `and` alone. See docs/modularity.md.
-      - name: Check checker-layer structure
-        run: bash scripts/run-ci.sh proof-structure
+      - name: Check checker-layer modularity
+        run: bash scripts/run-ci.sh proof-modularity
 
   regeneration:
     name: regeneration

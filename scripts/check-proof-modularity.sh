@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Structural invariants of the checker layer, checked textually.
+# Modularity invariants of the checker layer, checked textually.
 #
 # These hold today and each one has drifted at least once, so they are checked
 # rather than documented.  Nothing here builds anything: it is a grep pass over
@@ -98,8 +98,8 @@ done
 
 echo
 if [ "${fail}" = "0" ]; then
-  echo "Checker structure check passed."
+  echo "Checker modularity check passed."
 else
-  echo "Checker structure check FAILED. See docs/modularity.md for what these invariants are for." >&2
+  echo "Checker modularity check FAILED. See docs/modularity.md for what these invariants are for." >&2
   exit 1
 fi
