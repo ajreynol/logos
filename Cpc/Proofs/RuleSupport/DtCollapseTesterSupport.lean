@@ -514,7 +514,7 @@ private theorem ctorSpineRoot_tupleUnit_typeof_unit
 private theorem eo_to_smt_dtCons_eq
     (s : native_String) (d : DatatypeDecl) (i : native_Nat) :
     __eo_to_smt (Term.DtCons s d i) =
-      native_ite (native_reserved_datatype_name s) SmtTerm.None
+      native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
         (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i) := by
   rfl
 
@@ -549,7 +549,7 @@ private theorem dtConsSpineRoot_to_smt_ne_dt_sel
   | root s d i =>
       intro s' d' i' j
       rw [eo_to_smt_dtCons_eq]
-      by_cases hRes : native_reserved_datatype_name s <;>
+      by_cases hRes : __eo_to_smt_reserved_datatype_name s <;>
         simp [native_ite, hRes]
   | app x hSp ih =>
       intro s' d' i' j hEq
@@ -564,7 +564,7 @@ private theorem dtConsSpineRoot_to_smt_ne_dt_tester
   | root s d i =>
       intro s' d' i'
       rw [eo_to_smt_dtCons_eq]
-      by_cases hRes : native_reserved_datatype_name s <;>
+      by_cases hRes : __eo_to_smt_reserved_datatype_name s <;>
         simp [native_ite, hRes]
   | app x hSp ih =>
       intro s' d' i' hEq
@@ -611,7 +611,7 @@ private theorem dtConsSpineRoot_eval_head
   induction hSp with
   | root s d i =>
       rw [eo_to_smt_dtCons_eq] at hNN
-      by_cases hRes : native_reserved_datatype_name s
+      by_cases hRes : __eo_to_smt_reserved_datatype_name s
       · exfalso
         apply hNN
         simp [native_ite, hRes]
@@ -656,11 +656,11 @@ private theorem dtConsSpineRoot_unreserved_of_non_none
     {t : Term} {s : native_String} {d : DatatypeDecl} {i : native_Nat}
     (hSp : DtConsSpineRoot t s d i)
     (hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None) :
-    native_reserved_datatype_name s = false := by
+    __eo_to_smt_reserved_datatype_name s = false := by
   induction hSp with
   | root s d i =>
       rw [eo_to_smt_dtCons_eq] at hNN
-      cases hRes : native_reserved_datatype_name s
+      cases hRes : __eo_to_smt_reserved_datatype_name s
       · rfl
       · exfalso
         apply hNN
@@ -1881,7 +1881,7 @@ private theorem dt_collapse_tester_sound
                     DtConsSpineRoot t s' d' i' :=
                   dtConsSpineRoot_of_ctor_dtCons hRoot
                 have hUnreserved :
-                    native_reserved_datatype_name s' = false :=
+                    __eo_to_smt_reserved_datatype_name s' = false :=
                   dtConsSpineRoot_unreserved_of_non_none hSpDt hTNN
                 have hHeadRoot :
                     __smtx_apply_head_value
@@ -1900,7 +1900,7 @@ private theorem dt_collapse_tester_sound
                 injection hHeadUnit with hs _hD _hi
                 cases hs
                 have hTupleReserved :
-                    native_reserved_datatype_name (native_string_lit "@Tuple") =
+                    __eo_to_smt_reserved_datatype_name (native_string_lit "@Tuple") =
                       true := by
                   native_decide
                 rw [hTupleReserved] at hUnreserved

@@ -295,4 +295,19 @@ deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 
+-- Equality and ordering of Eunoia terms, which the checker asks for and the
+-- Term inductive above is what decides. They stand after the mutual block
+-- rather than beside the inductive whose `deriving` makes them possible: a
+-- mutual block holds inductives or definitions, never both.
+
+/- Term equality -/
+def native_teq : Term -> Term -> native_Bool
+  | x, y => decide (x = y)
+
+/- Term less than, based on arbitrary ordering -/
+def native_tcmp (a b : Term) : native_Bool :=
+  match compare a b with
+  | Ordering.lt => true
+  | _ => false
+
 end Eo

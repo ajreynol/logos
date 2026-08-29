@@ -295,7 +295,7 @@ private theorem type_and_facts
         (SmtTerm.re_concat
           (__eo_to_smt (strRe (mergedString s t))) (__eo_to_smt ys)) = _
     simp [__smtx_model_eval, __smtx_model_eval_re_concat,
-      hMergedReEval, hYsEval, native_string_to_values,
+      hMergedReEval, hYsEval, impl_native_string_to_values,
       RuleProofs.native_unpack_string_pack_string]
   rcases RuleProofs.reConcat_list_concat_eval_rel M xs (leftTail s t ys)
       rxs _ hXsList hLeftTailList hXsTy hLeftTailTy

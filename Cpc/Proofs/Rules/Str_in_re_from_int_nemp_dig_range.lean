@@ -190,13 +190,13 @@ theorem native_str_from_int_exists_cons_of_nonneg
 
 theorem native_string_valid_of_all_digits :
     ∀ xs : native_String,
-      xs.all native_char_is_digit = true -> native_string_valid xs = true
+      xs.all impl_native_char_is_digit = true -> native_string_valid xs = true
   | [], _ => by
       simp [native_string_valid]
   | c :: cs, hDigits => by
       have hParts :
-          native_char_is_digit c = true ∧
-            cs.all native_char_is_digit = true := by
+          impl_native_char_is_digit c = true ∧
+            cs.all impl_native_char_is_digit = true := by
         simpa [Bool.and_eq_true] using hDigits
       have hCsValid := native_string_valid_of_all_digits cs hParts.2
       rw [native_string_valid, List.all_eq_true]
@@ -215,7 +215,7 @@ theorem native_str_in_re_str_to_re_empty :
     RuleProofs.native_str_in_re ([] : native_String) (native_str_to_re []) =
       true := by
   simp [RuleProofs.native_str_in_re, native_string_valid, native_str_to_re,
-    native_re_of_list, RuleProofs.nativeListInRe, native_re_nullable]
+    impl_native_re_of_list, RuleProofs.nativeListInRe, native_re_nullable]
 
 theorem native_str_in_re_from_int_nonempty_digit_range_star
     (z : native_Int) (hz : 0 ≤ z) :
@@ -225,13 +225,13 @@ theorem native_str_in_re_from_int_nonempty_digit_range_star
       true := by
   rcases native_str_from_int_exists_cons_of_nonneg z hz with ⟨c, cs, hStr⟩
   have hDigitsAll :
-      (c :: cs).all native_char_is_digit = true := by
+      (c :: cs).all impl_native_char_is_digit = true := by
     have hAll :=
       StrInReFromIntDigRangeProof.native_str_from_int_all_digits z
     rwa [hStr] at hAll
   have hParts :
-      native_char_is_digit c = true ∧
-        cs.all native_char_is_digit = true := by
+      impl_native_char_is_digit c = true ∧
+        cs.all impl_native_char_is_digit = true := by
     simpa [Bool.and_eq_true] using hDigitsAll
   have hC :
       RuleProofs.native_str_in_re [c] digitRange = true :=

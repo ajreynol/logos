@@ -15,8 +15,8 @@ and version are recorded in install/deps/eoc-env.sh, which install-cpc.sh reads
 so that the signature is the only thing it has to be told.
 
 This sets up the compiler and nothing else. The Eunoia signature to compile is
-not fetched here and is not a concern of this script; name one with --signature
-when running install/install-cpc.sh.
+not fetched here and is not a concern of this script; name one when running
+install/install-cpc.sh.
 
 ethos-eoc is always compiled here rather than downloaded. No release of ethos
 publishes it, and it reads its Lean and Eunoia templates out of the source tree
@@ -42,12 +42,6 @@ Examples:
 USAGE
 }
 
-# The pinned commit of cvc5/ethos this repository is regenerated against.
-# 1ef8fe31 is the head of ethosEoc3, which is where the model semantics are
-# compiled from a configuration -- install/defs/Cpc.eos here -- rather than
-# read from a file in the ethos tree. Moving the pin changes what the compiler
-# emits, so move it on purpose and rebuild the generated packages afterwards.
-#
 # A leading ~ in --option=VALUE is not the shell's to expand: it does that at
 # the start of a word, and there the word starts with --option. So the tilde
 # arrives here as a character, and every option that takes a path expands it
@@ -61,11 +55,17 @@ expand_tilde() {
   esac
 }
 
+# The pinned commit of cvc5/ethos this repository is regenerated against.
+# 3eec2ed2 is the head of ethosEoc3, which is where the model semantics are
+# compiled from a configuration -- install/defs/Cpc.eos here -- rather than
+# read from a file in the ethos tree. Moving the pin changes what the compiler
+# emits, so move it on purpose and rebuild the generated packages afterwards.
+#
 # TODO: this is a workaround. ethosEoc3 is a development branch, and the pin
 # belongs on a commit of ethos main; move it back once what this needs is
 # there. It is pinned to a commit of the branch rather than to the branch
 # itself, so that what the compiler emits still changes only on purpose.
-ETHOS_VERSION="3eadc500eb878849d808abf7921bc7ea1308af63"
+ETHOS_VERSION="3eec2ed2742466b320dce9a4f8fc2b4346a3da20"
 DEPS_DIR=""
 JOBS=""
 KEEP_TMP=0

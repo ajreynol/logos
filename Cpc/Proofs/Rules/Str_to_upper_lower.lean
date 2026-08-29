@@ -60,8 +60,8 @@ private theorem smtx_eval_str_to_upper_term_eq
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem native_char_to_upper_lower (c : native_Char) :
-    native_char_to_upper (native_char_to_lower c) = native_char_to_upper c := by
-  unfold native_char_to_upper native_char_to_lower
+    impl_native_char_to_upper (impl_native_char_to_lower c) = impl_native_char_to_upper c := by
+  unfold impl_native_char_to_upper impl_native_char_to_lower
   by_cases hLowerLo : 65 <= c
   · by_cases hLowerHi : c <= 90
     · have hLowerCond : (65 <= c && c <= 90) = true := by
@@ -101,10 +101,10 @@ private theorem native_str_to_upper_lower (s : native_String) :
 
 private theorem map_native_ssm_char_of_value_char :
     ∀ s : native_String,
-      List.map (native_ssm_char_of_value ∘ SmtValue.Char) s = s
+      List.map (impl_native_ssm_char_of_value ∘ SmtValue.Char) s = s
   | [] => rfl
   | c :: cs => by
-      simp [Function.comp_def, native_ssm_char_of_value]
+      simp [Function.comp_def, impl_native_ssm_char_of_value]
 
 private theorem native_unpack_string_pack_string (s : native_String) :
     native_unpack_string (native_pack_string s) = s := by

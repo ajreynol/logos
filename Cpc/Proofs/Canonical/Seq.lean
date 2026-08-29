@@ -193,16 +193,16 @@ theorem seq_canonical_pack_replace_all_aux
       (∀ v, v ∈ xs -> value_canonical v) ->
         __smtx_seq_canonical
           (native_pack_seq T
-            (native_re_replace_all_nonempty_list_aux fuel r repl xs)) = true
+            (impl_native_re_replace_all_nonempty_list_aux fuel r repl xs)) = true
   | 0, xs, hxs => by
-      simpa [native_re_replace_all_nonempty_list_aux] using
+      simpa [impl_native_re_replace_all_nonempty_list_aux] using
         seq_canonical_pack_seq T hxs
   | fuel + 1, xs, hxs => by
       cases hMatch : native_re_positive_prefix_match_len? r xs with
       | none =>
           cases xs with
           | nil =>
-              simpa [native_re_replace_all_nonempty_list_aux, hMatch] using
+              simpa [impl_native_re_replace_all_nonempty_list_aux, hMatch] using
                 seq_canonical_pack_seq T hxs
           | cons x xs =>
               have hx : value_canonical x := hxs x List.mem_cons_self
@@ -210,7 +210,7 @@ theorem seq_canonical_pack_replace_all_aux
                 fun u hu => hxs u (List.mem_cons_of_mem x hu)
               apply seq_canonical_pack_seq
               intro u hu
-              simp [native_re_replace_all_nonempty_list_aux, hMatch] at hu
+              simp [impl_native_re_replace_all_nonempty_list_aux, hMatch] at hu
               rcases hu with rfl | hu
               · exact hx
               · exact seq_unpack_values_canonical
@@ -222,7 +222,7 @@ theorem seq_canonical_pack_replace_all_aux
           | zero =>
               cases xs with
               | nil =>
-                  simpa [native_re_replace_all_nonempty_list_aux, hMatch] using
+                  simpa [impl_native_re_replace_all_nonempty_list_aux, hMatch] using
                     seq_canonical_pack_seq T hxs
               | cons x xs =>
                   have hx : value_canonical x := hxs x List.mem_cons_self
@@ -230,7 +230,7 @@ theorem seq_canonical_pack_replace_all_aux
                     fun u hu => hxs u (List.mem_cons_of_mem x hu)
                   apply seq_canonical_pack_seq
                   intro u hu
-                  simp [native_re_replace_all_nonempty_list_aux, hMatch] at hu
+                  simp [impl_native_re_replace_all_nonempty_list_aux, hMatch] at hu
                   rcases hu with rfl | hu
                   · exact hx
                   · exact seq_unpack_values_canonical
@@ -240,7 +240,7 @@ theorem seq_canonical_pack_replace_all_aux
           | succ len =>
               apply seq_canonical_pack_seq
               intro v hv
-              simp [native_re_replace_all_nonempty_list_aux, hMatch,
+              simp [impl_native_re_replace_all_nonempty_list_aux, hMatch,
                 List.mem_append] at hv
               rcases hv with hv | hv
               · exact hrepl v hv
@@ -261,7 +261,7 @@ theorem seq_canonical_pack_unpack_replace_all
         (native_seq_replace_all (native_unpack_seq s)
           (native_unpack_seq pat) (native_unpack_seq repl))) = true := by
   unfold native_seq_replace_all
-  unfold native_str_replace_re_all native_re_replace_all_nonempty_list
+  unfold native_str_replace_re_all impl_native_re_replace_all_nonempty_list
   exact seq_canonical_pack_replace_all_aux T
     (fun u hu => seq_unpack_values_canonical hrepl u hu)
     ((native_unpack_seq s).length + 1)
@@ -278,7 +278,7 @@ theorem seq_canonical_pack_unpack_replace_re_all
       (native_pack_seq T
         (native_str_replace_re_all (native_unpack_seq s) r
           (native_unpack_seq repl))) = true := by
-  unfold native_str_replace_re_all native_re_replace_all_nonempty_list
+  unfold native_str_replace_re_all impl_native_re_replace_all_nonempty_list
   exact seq_canonical_pack_replace_all_aux T
     (fun u hu => seq_unpack_values_canonical hrepl u hu)
     ((native_unpack_seq s).length + 1)
@@ -325,7 +325,7 @@ theorem native_unpack_string_valid_of_seq_canonical
   have hvCan : value_canonical v :=
     seq_unpack_values_canonical hs v hv
   cases v <;>
-    simp [native_ssm_char_of_value, native_char_valid,
+    simp [impl_native_ssm_char_of_value, native_char_valid,
       value_canonical, __smtx_value_canonical] at hvCan ⊢
   exact decide_eq_true hvCan
 

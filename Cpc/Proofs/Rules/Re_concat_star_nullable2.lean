@@ -81,7 +81,7 @@ theorem nullable_of_premise (M : SmtModel) (r1 : Term) (r1v : SmtRegLan)
   have hMem : native_str_in_re ([] : native_String) r1v = true := by
     simpa using hEq
   have hNull : native_re_nullable r1v = true := by
-    simpa [Smtm.native_str_in_re, native_re_str_valid, native_string_to_values]
+    simpa [Smtm.native_str_in_re, native_re_str_valid, impl_native_string_to_values]
       using hMem
   exact hNull
 

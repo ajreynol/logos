@@ -348,7 +348,7 @@ private theorem native_q_tangent_geq (x y a b : native_Rat) :
       native_or (native_and (native_qleq x a) (native_qleq y b))
         (native_and (native_qleq a x) (native_qleq b y)) := by
   have hiff := rat_tangent_geq_prop x y a b
-  simp [native_qleq, SmtEval.native_qleq, native_qplus, SmtEval.native_qplus,
+  simp [native_qleq, Smtm.native_qleq, native_qplus, SmtEval.native_qplus,
     native_qmult, SmtEval.native_qmult, native_qneg, SmtEval.native_qneg,
     native_and, SmtEval.native_and, native_or, SmtEval.native_or]
   -- v4.33 keeps the goal's `decide _ = true` shape (stale `Decidable`
@@ -363,7 +363,7 @@ private theorem native_q_tangent_leq (x y a b : native_Rat) :
       native_or (native_and (native_qleq x a) (native_qleq b y))
         (native_and (native_qleq a x) (native_qleq y b)) := by
   have hiff := rat_tangent_leq_prop x y a b
-  simp [native_qleq, SmtEval.native_qleq, native_qplus, SmtEval.native_qplus,
+  simp [native_qleq, Smtm.native_qleq, native_qplus, SmtEval.native_qplus,
     native_qmult, SmtEval.native_qmult, native_qneg, SmtEval.native_qneg,
     native_and, SmtEval.native_and, native_or, SmtEval.native_or]
   -- v4.33 keeps the goal's `decide _ = true` shape (stale `Decidable`

@@ -105,13 +105,30 @@ commit that updates the copy.
 
 `install/defs/Cpc.eos` says what each symbol of the signature means, as a
 transformation into the deep embedding, and this repository is where it lives.
-
-`Spec.lean` and the `SmtModel` modules are what it compiles to, so changing
-what CPC means is changing that file and regenerating.
-
 The core SMT-LIB semantics it is written against live with the eoc compiler
 rather than here: `tools/eoc/semantics/smt.eos` in
 [cvc5/ethos](https://github.com/cvc5/ethos).
+
+`Spec.lean` and the `SmtModel` modules are what the two compile to, so changing
+what CPC means changes what satisfiability means in Logos.
+
+In practice they only need to change when a new theory symbol is added, when
+the formalized semantics of an operator is being revised, or when the Eunoia
+compiler changes. Either can be replaced for a run: `--semantics PATH` names
+another configuration of what the symbols of the signature mean, and
+`--smt-semantics PATH` another of what the SMT-LIB symbols they are written
+against mean. Both are options of `install-cpc.sh` and of `install-sig.sh`. For
+example, to extend both semantics along with the signature:
+
+```bash
+install/install-cpc.sh ~/cvc5/proofs/eo/cpc/Cpc.eo \
+  --semantics <my cpc semantics> --smt-semantics <my smt semantics>
+```
+
+This regenerates the Logos source against something other than the pair the
+checked-in packages are of, so `--check` reports the tree as out of date until
+the change lands in `install/defs/Cpc.eos` and in the `smt.eos` of the pinned
+compiler.
 
 ## install-sig.sh
 

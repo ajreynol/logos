@@ -1478,7 +1478,7 @@ theorem StrInReConsumeInternal.native_str_in_re_snoc_word_eq_consume_local
 
 theorem StrInReConsumeInternal.map_char_of_comp_char_consume_local :
     ∀ w : native_String,
-      w.map (native_ssm_char_of_value ∘ SmtValue.Char) = w
+      w.map (impl_native_ssm_char_of_value ∘ SmtValue.Char) = w
   | [] => rfl
   | c :: cs => by
       simp only [List.map_cons]
@@ -1494,7 +1494,7 @@ theorem StrInReConsumeInternal.eval_string_unpack_consume_local
   refine ⟨native_pack_string w, ?_, ?_⟩
   · change __smtx_model_eval M (SmtTerm.String w) = _
     simp only [__smtx_model_eval]
-  · simp [native_unpack_string, native_string_to_values,
+  · simp [native_unpack_string, impl_native_string_to_values,
      
       StrInReConsumeInternal.map_char_of_comp_char_consume_local]
 
@@ -1503,7 +1503,7 @@ theorem StrInReConsumeInternal.typed_seq_unpack_values_of_eval_local
     (hTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
     (hEval : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss) :
     native_unpack_seq ss =
-      native_string_to_values (native_unpack_string ss) := by
+      impl_native_string_to_values (native_unpack_string ss) := by
   apply native_unpack_seq_eq_string_to_values_of_typeof_seq_char
   have h := smt_model_eval_preserves_type_of_non_none M hM
     (__eo_to_smt s) (by
@@ -1551,7 +1551,7 @@ theorem StrInReConsumeInternal.native_str_in_re_congr_of_reglan_rel_consume_loca
 theorem StrInReConsumeInternal.native_str_in_re_nil_str_to_re_nil_consume_local :
     native_str_in_re [] (native_str_to_re []) = true := by
   simp [native_str_in_re, native_string_valid, native_str_to_re,
-    native_re_of_list, nativeListInRe, native_re_nullable]
+    impl_native_re_of_list, nativeListInRe, native_re_nullable]
 
 theorem StrInReConsumeInternal.smt_value_rel_union_right_none_consume_local
     (r : SmtRegLan) :

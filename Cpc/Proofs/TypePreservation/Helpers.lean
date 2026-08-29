@@ -23,7 +23,7 @@ instance : Coe native_Char SmtValue where
   coe := SmtValue.Char
 
 instance : Coe (List native_Char) (List SmtValue) where
-  coe := native_string_to_values
+  coe := impl_native_string_to_values
 
 abbrev native_re_mk_concat := native_re_concat
 abbrev native_re_mk_union := native_re_union
@@ -1290,29 +1290,29 @@ theorem list_typed_replace_all_aux
     ∀ fuel (r : SmtRegLan) (repl : List SmtValue) {xs : List SmtValue},
       list_typed T repl ->
         list_typed T xs ->
-        list_typed T (native_re_replace_all_nonempty_list_aux fuel r repl xs)
+        list_typed T (impl_native_re_replace_all_nonempty_list_aux fuel r repl xs)
   | 0, r, repl, xs, hrepl, hxs => by
-      simpa [native_re_replace_all_nonempty_list_aux] using hxs
+      simpa [impl_native_re_replace_all_nonempty_list_aux] using hxs
   | Nat.succ fuel, r, repl, xs, hrepl, hxs => by
       cases hMatch : native_re_positive_prefix_match_len? r xs with
       | none =>
           cases xs with
-          | nil => simp [native_re_replace_all_nonempty_list_aux, hMatch, list_typed]
+          | nil => simp [impl_native_re_replace_all_nonempty_list_aux, hMatch, list_typed]
           | cons x xs =>
               rcases hxs with ⟨hx, hxs⟩
-              simpa [native_re_replace_all_nonempty_list_aux, hMatch, list_typed, hx] using
+              simpa [impl_native_re_replace_all_nonempty_list_aux, hMatch, list_typed, hx] using
                 list_typed_replace_all_aux fuel r repl hrepl hxs
       | some len =>
           cases len with
           | zero =>
               cases xs with
-              | nil => simp [native_re_replace_all_nonempty_list_aux, hMatch, list_typed]
+              | nil => simp [impl_native_re_replace_all_nonempty_list_aux, hMatch, list_typed]
               | cons x xs =>
                   rcases hxs with ⟨hx, hxs⟩
-                  simpa [native_re_replace_all_nonempty_list_aux, hMatch, list_typed, hx] using
+                  simpa [impl_native_re_replace_all_nonempty_list_aux, hMatch, list_typed, hx] using
                     list_typed_replace_all_aux fuel r repl hrepl hxs
           | succ len =>
-              simpa [native_re_replace_all_nonempty_list_aux, hMatch] using
+              simpa [impl_native_re_replace_all_nonempty_list_aux, hMatch] using
                 list_typed_append hrepl
                   (list_typed_replace_all_aux fuel r repl hrepl
                     (list_typed_drop (len + 1) hxs))
@@ -1325,7 +1325,7 @@ theorem list_typed_replace_all
     (hrepl : list_typed T repl) :
     list_typed T (native_seq_replace_all xs pat repl) := by
   unfold native_seq_replace_all
-  unfold native_str_replace_re_all native_re_replace_all_nonempty_list
+  unfold native_str_replace_re_all impl_native_re_replace_all_nonempty_list
   exact list_typed_replace_all_aux (xs.length + 1) (native_str_to_re pat) repl hrepl hxs
 
 /-- Regex replace-all preserves the element type of a value list. -/
@@ -1336,7 +1336,7 @@ theorem list_typed_replace_re_all
     (hxs : list_typed T xs)
     (hrepl : list_typed T repl) :
     list_typed T (native_str_replace_re_all xs r repl) := by
-  unfold native_str_replace_re_all native_re_replace_all_nonempty_list
+  unfold native_str_replace_re_all impl_native_re_replace_all_nonempty_list
   exact list_typed_replace_all_aux (xs.length + 1) r repl hrepl hxs
 
 /-- Lemma about `list_typed_update`. -/
@@ -1426,7 +1426,7 @@ theorem native_string_valid_cons
 theorem native_string_valid_of_list_typed_char :
     ∀ {xs : List SmtValue},
       list_typed SmtType.Char xs ->
-        native_string_valid (xs.map native_ssm_char_of_value) = true
+        native_string_valid (xs.map impl_native_ssm_char_of_value) = true
   | [], _ => by
       simp [native_string_valid]
   | v :: vs, hxs => by
@@ -1434,7 +1434,7 @@ theorem native_string_valid_of_list_typed_char :
       rcases char_value_canonical hv with ⟨c, hvc, hc⟩
       subst hvc
       have hTail := native_string_valid_of_list_typed_char hvs
-      simpa [native_ssm_char_of_value] using native_string_valid_cons hc hTail
+      simpa [impl_native_ssm_char_of_value] using native_string_valid_cons hc hTail
 
 /-- A sequence value typed as `Seq Char` unpacks to a valid native string. -/
 theorem native_unpack_string_valid_of_typeof_seq_char
@@ -1450,20 +1450,20 @@ embedding of its native string view. -/
 theorem native_unpack_seq_eq_string_to_values_of_typeof_seq_char
     {ss : SmtSeq}
     (h : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char) :
-    native_unpack_seq ss = native_string_to_values (native_unpack_string ss) := by
+    native_unpack_seq ss = impl_native_string_to_values (native_unpack_string ss) := by
   have hTyped : list_typed SmtType.Char (native_unpack_seq ss) :=
     typed_unpack_seq_of_typeof_seq_value h
   have hMap : ∀ {xs : List SmtValue},
       list_typed SmtType.Char xs ->
-        xs.map (fun v => SmtValue.Char (native_ssm_char_of_value v)) = xs := by
+        xs.map (fun v => SmtValue.Char (impl_native_ssm_char_of_value v)) = xs := by
     intro xs hxs
     induction xs with
     | nil => rfl
     | cons v vs ih =>
         rcases hxs with ⟨hv, hvs⟩
         rcases char_value_canonical hv with ⟨c, rfl, _hc⟩
-        simpa [native_ssm_char_of_value] using ih hvs
-  unfold native_unpack_string native_string_to_values
+        simpa [impl_native_ssm_char_of_value] using ih hvs
+  unfold native_unpack_string impl_native_string_to_values
   simpa only [List.map_map, Function.comp_def] using (hMap hTyped).symm
 
 /-- Appending valid native strings preserves validity. -/
@@ -1516,27 +1516,27 @@ theorem native_string_valid_map
 theorem native_char_valid_to_lower
     {c : native_Char}
     (hc : native_char_valid c = true) :
-    native_char_valid (native_char_to_lower c) = true := by
+    native_char_valid (impl_native_char_to_lower c) = true := by
   have hcLt : c < 196608 := by
     simpa [native_char_valid] using hc
   cases hRange : (decide (65 ≤ c) && decide (c ≤ 90))
-  · simp [native_char_to_lower, hRange, native_char_valid, hcLt]
+  · simp [impl_native_char_to_lower, hRange, native_char_valid, hcLt]
   · have hle90 : c ≤ 90 := by
       simp at hRange
       exact hRange.2
-    simp [native_char_to_lower, hRange, native_char_valid]
+    simp [impl_native_char_to_lower, hRange, native_char_valid]
     exact Nat.lt_of_le_of_lt (Nat.add_le_add_right hle90 32) (by decide)
 
 /-- Uppercasing a valid SMT character preserves validity. -/
 theorem native_char_valid_to_upper
     {c : native_Char}
     (hc : native_char_valid c = true) :
-    native_char_valid (native_char_to_upper c) = true := by
+    native_char_valid (impl_native_char_to_upper c) = true := by
   have hcLt : c < 196608 := by
     simpa [native_char_valid] using hc
   cases hRange : (decide (97 ≤ c) && decide (c ≤ 122))
-  · simp [native_char_to_upper, hRange, native_char_valid, hcLt]
-  · simp [native_char_to_upper, hRange, native_char_valid]
+  · simp [impl_native_char_to_upper, hRange, native_char_valid, hcLt]
+  · simp [impl_native_char_to_upper, hRange, native_char_valid]
     exact Nat.lt_of_le_of_lt (Nat.sub_le c 32) hcLt
 
 /-- Lowercasing a valid native string preserves validity. -/
@@ -1545,7 +1545,7 @@ theorem native_str_to_lower_valid
     (hs : native_string_valid s = true) :
     native_string_valid (native_str_to_lower s) = true := by
   unfold native_str_to_lower
-  exact native_string_valid_map native_char_to_lower
+  exact native_string_valid_map impl_native_char_to_lower
     (fun _ hc => native_char_valid_to_lower hc) hs
 
 /-- Uppercasing a valid native string preserves validity. -/
@@ -1554,7 +1554,7 @@ theorem native_str_to_upper_valid
     (hs : native_string_valid s = true) :
     native_string_valid (native_str_to_upper s) = true := by
   unfold native_str_to_upper
-  exact native_string_valid_map native_char_to_upper
+  exact native_string_valid_map impl_native_char_to_upper
     (fun _ hc => native_char_valid_to_upper hc) hs
 
 /-- Regex replacement preserves character-sequence typing. -/
@@ -1572,7 +1572,7 @@ theorem native_re_replace_all_nonempty_list_aux_valid :
       list_typed SmtType.Char replacement ->
         list_typed SmtType.Char xs ->
           list_typed SmtType.Char
-            (native_re_replace_all_nonempty_list_aux fuel r replacement xs) :=
+            (impl_native_re_replace_all_nonempty_list_aux fuel r replacement xs) :=
   list_typed_replace_all_aux
 
 /-- Regex replace-all preserves character-sequence typing. -/

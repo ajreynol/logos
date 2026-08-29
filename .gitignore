@@ -5,11 +5,6 @@
 # install/defs, the signature those compile.
 /install/deps
 
-# Compiled from install/defs/Cpc.eos, beside it, every time the compiler runs.
-# What is kept is the configuration they come from.
-/install/defs/user_defs.eo
-/install/defs/user_termination.lean
-
 # LaTeX build artifacts (see docs/Makefile)
 docs/*.aux
 docs/*.log

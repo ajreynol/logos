@@ -22,12 +22,36 @@ namespace Eo
 
 open SmtEval
 
-/- Eunoia literal evaluation defined -/
+-- The primitive operations that only what is written over Eunoia terms uses.
+-- Helper for native_int_log: repeatedly divides `remaining` by `base`, counting
+-- the steps until it drops below `base`. `fuel` bounds the recursion (the caller
+-- passes the value itself, which is always at least the number of steps when
+-- base >= 2).
+def impl_native_int_log_rec (base : native_Nat) : native_Nat -> native_Nat -> native_Nat
+  | 0, _ => 0
+  | fuel + 1, remaining =>
+    if remaining < base then 0 else 1 + impl_native_int_log_rec base fuel (remaining / base)
+
+-- The (rounded-down) integer logarithm of `v` in base `b`, i.e. the greatest
+-- m >= 0 such that b^m <= v, or 0 when b <= 1 or v <= 0. This aligns with Lean's
+-- `Nat.log` and is the integer inverse of native_zexp_total.
+def native_int_log (b : native_Int) (v : native_Int) : native_Int :=
+  let base := Int.toNat b
+  let value := Int.toNat v
+  if base <= 1 || value == 0 then 0 else Int.ofNat (impl_native_int_log_rec base value value)
+
+def native_qeq : native_Rat -> native_Rat -> native_Bool
+  | x, y => decide (x = y)
+
+def native_qexp_total (x : native_Rat) (y : native_Int) : native_Rat :=
+  if y < 0 then (native_mk_rational 0 1) else (x ^ (Int.toNat y))
 
 def native_str_len : native_String -> native_Int
   | x => Int.ofNat x.length
+
 def native_str_concat : native_String -> native_String -> native_String
   | x, y => x ++ y
+
 def native_str_substr (s : native_String) (i n : native_Int) : native_String :=
   let len : Int := (native_str_len s)
   if i < 0 || n <= 0 || i >= len then
@@ -36,14 +60,16 @@ def native_str_substr (s : native_String) (i n : native_Int) : native_String :=
     let start : Nat := Int.toNat i
     let take  : Nat := Int.toNat (min n (len - i))
     (s.drop start).take take
-def native_str_indexof_rec (s t : native_String) (i fuel : Nat) : native_Int :=
+
+def impl_native_str_indexof_rec (s t : native_String) (i fuel : Nat) : native_Int :=
   match fuel with
   | 0 => -1
   | fuel + 1 =>
       if native_string_prefix_eq t (s.drop i) then
         Int.ofNat i
       else
-        native_str_indexof_rec s t (i + 1) fuel
+        impl_native_str_indexof_rec s t (i + 1) fuel
+
 def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
   if i < 0 then
     -1
@@ -52,13 +78,11 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
     let start := Int.toNat i
     let tLen := Int.toNat (native_str_len t)
     if h : start + tLen <= sLen then
-      native_str_indexof_rec s t start (sLen - (start + tLen) + 1)
+      impl_native_str_indexof_rec s t start (sLen - (start + tLen) + 1)
     else
       -1
 
-/- Term equality -/
-def native_teq : Term -> Term -> native_Bool
-  | x, y => decide (x = y)
+/- Eunoia literal evaluation defined -/
 
 /- Term ITE -/
 abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
@@ -67,18 +91,6 @@ abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
     (native_ite (native_teq x1 (Term.Boolean false))
       x3
       Term.Stuck))
-
-/- Term less than, based on arbitrary ordering -/
-def native_tcmp (a b : Term) : native_Bool :=
-  match compare a b with
-  | Ordering.lt => true
-  | _ => false
-
-/- Used for defining hash. This is intentionally a stub: EO treats hash as an
-   underconstrained oracle, so signatures must not rely on distinct terms
-   receiving distinct values in the executable Lean checker. -/
-def native_thash : Term -> native_Int
-  | _ => 0
 
 /- Proofs -/
 inductive Proof : Type where
@@ -146,7 +158,7 @@ def __eo_or : Term -> Term -> Term
 
 
 def __eo_xor : Term -> Term -> Term
-  | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_xor b1 b2))
+  | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_not (native_iff b1 b2)))
   | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (Term.Binary w1 (native_mod_total (native_binary_xor w1 n1 n2) (native_int_pow2 w1))))
   | _, _ => Term.Stuck
 
@@ -317,11 +329,6 @@ def __eo_is_str_internal : Term -> Term
 
 def __eo_is_str : Term -> Term
   | t => (Term.Boolean (native_and (native_not (native_teq t Term.Stuck)) (native_teq (__eo_is_str_internal t) (Term.Boolean true))))
-
-
-def __eo_hash : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | t => (Term.Numeral (native_thash t))
 
 
 def __eo_gt : Term -> Term -> Term

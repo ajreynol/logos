@@ -311,10 +311,10 @@ private theorem model_agrees_on_globals_push_diff
       (native_model_push M t T v) (native_model_push N s T v) := by
   refine ⟨?_, ?_⟩
   · intro name ty
-    simpa [native_model_lookup, native_model_key, native_model_push]
+    simpa [native_model_lookup, model_key, native_model_push]
       using h.1 name ty
   · intro fid A B
-    simpa [native_model_fun_lookup, native_model_key, native_model_push]
+    simpa [model_fun_lookup, model_key, native_model_push]
       using h.2 fid A B
 
 /-- Model relation used by uniform renaming.  `N` interprets each source key as
@@ -1199,8 +1199,8 @@ theorem native_eval_texists_eq_of_renamed_body
       __smtx_value_canonical v = true →
       __smtx_model_eval (native_model_push M t T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    (native_eval_texists M t T bodyM : SmtValue) =
-      (native_eval_texists N s T bodyN : SmtValue) := by
+    (native_eval_exists M t T bodyM : SmtValue) =
+      (native_eval_exists N s T bodyN : SmtValue) := by
   classical
   let PM : Prop :=
     ∃ v : SmtValue,

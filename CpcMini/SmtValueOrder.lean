@@ -32,9 +32,7 @@ lexicographic order on keys, given by Key.lt.
 The key method for an argument is found by name: it is the name of the
 argument's type with the Smt or native_ prefix dropped, its first letter
 lowercased and Key appended, e.g. datatypeDeclKey orders SmtDatatypeDecl
-and intKey orders native_Int. Every type that can occur as an argument of
-a value or type constructor must therefore have a method of that name,
-either generated below or given here.
+and intKey orders the native integer type.
 -/
 namespace SmtValueOrder
 
@@ -148,5 +146,12 @@ end
 @[expose] def lt (a b : SmtValue) : Bool := Key.lt (valueKey a) (valueKey b)
 
 end SmtValueOrder
+
+-- The comparison of two values, which is the order above under the name the
+-- embedding gives it.
+
+/- Value comparison -/
+def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
+  SmtValueOrder.lt v1 v2
 
 end Smtm

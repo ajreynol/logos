@@ -2655,7 +2655,7 @@ theorem map_diff_singleton_empty_eq
     (v : SmtValue) (A : SmtType)
     (hvTy : __smtx_typeof_value v = A)
     (hvCan : __smtx_value_canonical v = true) :
-    native_eval_map_diff_msm
+    native_eval_map_diff
         (SmtMap.cons v (SmtValue.Boolean true)
           (SmtMap.default A (SmtValue.Boolean false)))
         (SmtMap.default A (SmtValue.Boolean false)) = v := by

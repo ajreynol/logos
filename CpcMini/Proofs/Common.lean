@@ -374,13 +374,13 @@ private theorem native_re_ext_eq_true_symm
   by_cases hExt :
       ∀ s : native_String,
         native_string_valid s = true ->
-          native_str_in_re (native_string_to_values s) r1 =
-            native_str_in_re (native_string_to_values s) r2
+          native_str_in_re (impl_native_string_to_values s) r1 =
+            native_str_in_re (impl_native_string_to_values s) r2
   · have hExtSymm :
         ∀ s : native_String,
           native_string_valid s = true ->
-            native_str_in_re (native_string_to_values s) r2 =
-              native_str_in_re (native_string_to_values s) r1 := by
+            native_str_in_re (impl_native_string_to_values s) r2 =
+              native_str_in_re (impl_native_string_to_values s) r1 := by
       intro s hs
       exact (hExt s hs).symm
     simp

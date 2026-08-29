@@ -25,7 +25,7 @@ The semantic domain of a sort `T` is its set of *typed canonical values*,
                           __smtx_value_canonical v = true}`,
 
 which is exactly the range of the quantifier evaluators
-(`native_eval_texists` / `native_eval_tforall` / `native_eval_tchoice`).
+(`native_eval_exists` / `native_eval_forall` / `native_eval_choice`).
 The executable classifiers `__smtx_is_finite_type` and `__smtx_is_unit_type`
 (both instances of the `__smtx_type_bounded` fixpoint) are intended to
 characterize the cardinality of `⟦T⟧`.  Their correctness decomposes into

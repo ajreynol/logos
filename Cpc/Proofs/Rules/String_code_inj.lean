@@ -214,13 +214,13 @@ private theorem sciFormula_has_bool_type
 private theorem list_typed_char_pack_unpack :
     ∀ {xs : List SmtValue},
       list_typed SmtType.Char xs ->
-        xs.map (fun v => SmtValue.Char (native_ssm_char_of_value v)) = xs
+        xs.map (fun v => SmtValue.Char (impl_native_ssm_char_of_value v)) = xs
   | [], _ => rfl
   | v :: vs, hxs => by
       rcases hxs with ⟨hv, hvs⟩
       rcases char_value_canonical hv with ⟨c, hvc, _hc⟩
       rw [hvc]
-      simpa [native_ssm_char_of_value] using list_typed_char_pack_unpack hvs
+      simpa [impl_native_ssm_char_of_value] using list_typed_char_pack_unpack hvs
 
 private theorem native_pack_string_unpack_string_of_typeof_seq_char
     (ss : SmtSeq)
@@ -230,7 +230,7 @@ private theorem native_pack_string_unpack_string_of_typeof_seq_char
     typed_unpack_seq_of_typeof_seq_value hTy
   have hMap :
       (native_unpack_seq ss).map
-          (fun v => SmtValue.Char (native_ssm_char_of_value v)) =
+          (fun v => SmtValue.Char (impl_native_ssm_char_of_value v)) =
         native_unpack_seq ss :=
     list_typed_char_pack_unpack hTyped
   unfold native_pack_string native_unpack_string
@@ -238,7 +238,7 @@ private theorem native_pack_string_unpack_string_of_typeof_seq_char
     elem_typeof_seq_value_of_typeof_seq_value hTy
   simp only [List.map_map]
   change native_pack_seq SmtType.Char
-      ((native_unpack_seq ss).map (fun v => SmtValue.Char (native_ssm_char_of_value v))) =
+      ((native_unpack_seq ss).map (fun v => SmtValue.Char (impl_native_ssm_char_of_value v))) =
     ss
   rw [hMap]
   rw [← native_pack_unpack_seq ss, hElem]

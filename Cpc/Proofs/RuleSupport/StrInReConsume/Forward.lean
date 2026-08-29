@@ -1243,7 +1243,7 @@ theorem StrInReConsumeInternal.re_split_str_to_re_eval_rel_consume_local
                 (native_str_to_re (native_unpack_string partsSs))
                 tailRv)) := by
         rw [hPartsUnpack]
-        simpa [native_string_to_values, List.map_append] using
+        simpa [impl_native_string_to_values, List.map_append] using
           RuleProofs.smt_value_rel_refl
             (SmtValue.RegLan
               (native_re_concat

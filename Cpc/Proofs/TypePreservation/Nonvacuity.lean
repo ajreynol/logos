@@ -45,8 +45,8 @@ private theorem default_typed_model_of_native_fun_typed
     simpa [value_canonical] using hDefault.2
   by_cases hDefaultId : fid = native_default_fun_id
   · simp [native_eval_fun_apply, hDefaultId, hDefault.1, hDefaultCan]
-  · simp [native_eval_fun_apply, native_model_fun_lookup,
-      default_typed_model_of, native_model_key, hDefaultId, hDefault.1, hDefaultCan]
+  · simp [native_eval_fun_apply, model_fun_lookup,
+      default_typed_model_of, model_key, hDefaultId, hDefault.1, hDefaultCan]
 
 /--
 Reduces nonvacuity of total typed models to the canonical-inhabitant theorem

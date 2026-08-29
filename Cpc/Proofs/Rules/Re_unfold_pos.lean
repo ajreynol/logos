@@ -192,13 +192,13 @@ private theorem nativeListInRe_str_to_re_true_eq :
       have hConcat :
           nativeListInRe xs
               (native_re_mk_concat (SmtRegLan.char c)
-                (native_re_of_list cs)) = true := by
+                (impl_native_re_of_list cs)) = true := by
         have hsimpa := h
         try simp [native_str_to_re] at hsimpa ⊢
         exact hsimpa
       rcases
           (RuleProofs.nativeListInRe_mk_concat_true_iff_exists_append xs
-            (SmtRegLan.char c) (native_re_of_list cs)).1 hConcat with
+            (SmtRegLan.char c) (impl_native_re_of_list cs)).1 hConcat with
         ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
       have hLeftEq : xs₁ = [c] :=
         nativeListInRe_char_true_eq_singleton hLeft
@@ -475,8 +475,8 @@ private theorem native_str_in_re_re_mult_middle_factor
       native_str_in_re ([] : native_String)
         (native_str_to_re ([] : native_String)) = true := by
     simp [native_str_in_re, native_string_valid, native_str_to_re,
-      native_re_of_list, native_re_nullable, nativeListInRe,
-      native_string_to_values]
+      impl_native_re_of_list, native_re_nullable, nativeListInRe,
+      impl_native_string_to_values]
   have hLastConcat :
       native_str_in_re (last ++ ([] : native_String))
         (native_re_concat
@@ -633,16 +633,16 @@ private theorem split_aux_cons_step
     (suf : List SmtValue) (i : native_Nat)
     (h : (Smtm.native_str_in_re pre r1 &&
           Smtm.native_str_in_re (v :: suf) r2) = false) :
-    native_str_indexof_re_split_aux r1 r2 pre (v :: suf) i =
-      native_str_indexof_re_split_aux r1 r2 (pre ++ [v]) suf (i + 1) := by
-  rw [native_str_indexof_re_split_aux.eq_def]
+    impl_native_str_indexof_re_split_aux r1 r2 pre (v :: suf) i =
+      impl_native_str_indexof_re_split_aux r1 r2 (pre ++ [v]) suf (i + 1) := by
+  rw [impl_native_str_indexof_re_split_aux.eq_def]
   simp [h]
 
 private theorem split_aux_of_cond_true
     (r1 r2 : SmtRegLan) (pre suf : List SmtValue) (i : native_Nat)
     (h : (Smtm.native_str_in_re pre r1 && Smtm.native_str_in_re suf r2) = true) :
-    native_str_indexof_re_split_aux r1 r2 pre suf i = Int.ofNat i := by
-  rw [native_str_indexof_re_split_aux.eq_def]
+    impl_native_str_indexof_re_split_aux r1 r2 pre suf i = Int.ofNat i := by
+  rw [impl_native_str_indexof_re_split_aux.eq_def]
   simp [h]
 
 private theorem native_str_indexof_re_split_aux_spec
@@ -657,7 +657,7 @@ private theorem native_str_indexof_re_split_aux_spec
         left ++ right = pre ++ suf ∧
           native_str_in_re left r1 = true ∧
           native_str_in_re right r2 = true ∧
-          native_str_indexof_re_split_aux r1 r2 pre suf i =
+          impl_native_str_indexof_re_split_aux r1 r2 pre suf i =
             Int.ofNat left.length
   | pre, suf, i, hi, hExists => by
       cases hCur :
@@ -701,9 +701,9 @@ private theorem native_str_indexof_re_split_aux_spec
                   · simpa [tailRight, List.append_assoc] using hLeft
                   · simpa [tailRight] using hRight
                 have hIdxStep :
-                    native_str_indexof_re_split_aux r1 r2 pre
+                    impl_native_str_indexof_re_split_aux r1 r2 pre
                         (c :: midTail ++ tailRight) i =
-                      native_str_indexof_re_split_aux r1 r2
+                      impl_native_str_indexof_re_split_aux r1 r2
                         (pre ++ [c]) (midTail ++ tailRight) (i + 1) := by
                   have hCur' :
                       (native_str_in_re pre r1 &&
@@ -711,17 +711,17 @@ private theorem native_str_indexof_re_split_aux_spec
                         false := by
                     simpa [tailRight] using hCur
                   have hCurModel :
-                      (Smtm.native_str_in_re (native_string_to_values pre) r1 &&
+                      (Smtm.native_str_in_re (impl_native_string_to_values pre) r1 &&
                           Smtm.native_str_in_re
-                            (native_string_to_values
+                            (impl_native_string_to_values
                               (c :: (midTail ++ tailRight))) r2) = false := by
                     rw [← native_str_in_re_eq_model, ← native_str_in_re_eq_model]
                     exact hCur'
                   have hStep := split_aux_cons_step r1 r2
-                    (native_string_to_values pre) (SmtValue.Char c)
-                    (native_string_to_values (midTail ++ tailRight)) i (by
-                      simpa [native_string_to_values] using hCurModel)
-                  simpa [native_string_to_values] using hStep
+                    (impl_native_string_to_values pre) (SmtValue.Char c)
+                    (impl_native_string_to_values (midTail ++ tailRight)) i (by
+                      simpa [impl_native_string_to_values] using hCurModel)
+                  simpa [impl_native_string_to_values] using hStep
                 have hi' : i + 1 = (pre ++ [c]).length := by
                   subst i
                   simp
@@ -733,14 +733,14 @@ private theorem native_str_indexof_re_split_aux_spec
                 refine ⟨left, right, ?_, hLeftLR, hRightLR, ?_⟩
                 · simpa [tailRight, List.append_assoc] using hAppendLR
                 · have hIdx' :
-                      native_str_indexof_re_split_aux r1 r2
-                          (native_string_to_values pre ++
-                            native_string_to_values [c])
-                          (native_string_to_values midTail ++
-                            native_string_to_values tailRight) (i + 1) =
+                      impl_native_str_indexof_re_split_aux r1 r2
+                          (impl_native_string_to_values pre ++
+                            impl_native_string_to_values [c])
+                          (impl_native_string_to_values midTail ++
+                            impl_native_string_to_values tailRight) (i + 1) =
                         Int.ofNat left.length := by
-                    simpa [native_string_to_values] using hIdx
-                  simpa [tailRight, native_string_to_values] using
+                    simpa [impl_native_string_to_values] using hIdx
+                  simpa [tailRight, impl_native_string_to_values] using
                     hIdxStep.trans hIdx'
       · refine ⟨pre, suf, by simp, ?_, ?_, ?_⟩
         · have hParts :
@@ -755,8 +755,8 @@ private theorem native_str_indexof_re_split_aux_spec
           exact hParts.2
         · subst i
           have hCondTrue :
-              (Smtm.native_str_in_re (native_string_to_values pre) r1 &&
-                Smtm.native_str_in_re (native_string_to_values suf) r2) = true := by
+              (Smtm.native_str_in_re (impl_native_string_to_values pre) r1 &&
+                Smtm.native_str_in_re (impl_native_string_to_values suf) r2) = true := by
             rw [← native_str_in_re_eq_model, ← native_str_in_re_eq_model]
             exact hCur
           exact split_aux_of_cond_true r1 r2 _ _ _ hCondTrue
@@ -810,21 +810,21 @@ private theorem native_str_indexof_re_split_spec
   refine ⟨splitLeft, splitRight, by simpa using hSplitAppend,
     hSplitLeft, hSplitRight, ?_⟩
   have hIdx' :
-      native_str_indexof_re_split_aux r1 r2 [] (native_string_to_values s) 0 =
+      impl_native_str_indexof_re_split_aux r1 r2 [] (impl_native_string_to_values s) 0 =
         Int.ofNat splitLeft.length := by
-    simpa [native_string_to_values] using hIdx
+    simpa [impl_native_string_to_values] using hIdx
   simp [native_str_indexof_re_split, hParts.1, hIdx']
 
 private theorem list_typed_char_pack_unpack :
     ∀ {xs : List SmtValue},
       list_typed SmtType.Char xs ->
-        xs.map (fun v => SmtValue.Char (native_ssm_char_of_value v)) = xs
+        xs.map (fun v => SmtValue.Char (impl_native_ssm_char_of_value v)) = xs
   | [], _ => rfl
   | v :: vs, hxs => by
       rcases hxs with ⟨hv, hvs⟩
       rcases char_value_canonical hv with ⟨c, hvc, _hc⟩
       rw [hvc]
-      simpa [native_ssm_char_of_value] using list_typed_char_pack_unpack hvs
+      simpa [impl_native_ssm_char_of_value] using list_typed_char_pack_unpack hvs
 
 private theorem native_pack_string_unpack_string_of_typeof_seq_char
     (ss : SmtSeq)
@@ -834,7 +834,7 @@ private theorem native_pack_string_unpack_string_of_typeof_seq_char
     typed_unpack_seq_of_typeof_seq_value hTy
   have hMap :
       (native_unpack_seq ss).map
-          (fun v => SmtValue.Char (native_ssm_char_of_value v)) =
+          (fun v => SmtValue.Char (impl_native_ssm_char_of_value v)) =
         native_unpack_seq ss :=
     list_typed_char_pack_unpack hTyped
   unfold native_pack_string native_unpack_string
@@ -843,7 +843,7 @@ private theorem native_pack_string_unpack_string_of_typeof_seq_char
   simp only [List.map_map]
   change native_pack_seq SmtType.Char
       ((native_unpack_seq ss).map
-        (fun v => SmtValue.Char (native_ssm_char_of_value v))) =
+        (fun v => SmtValue.Char (impl_native_ssm_char_of_value v))) =
     ss
   rw [hMap]
   rw [← native_pack_unpack_seq ss, hElem]
@@ -1062,11 +1062,11 @@ private theorem native_unpack_string_substr_left
     typed_unpack_seq_of_typeof_seq_value hTy
   have hMap :
       (native_unpack_seq ss).map
-          (fun v => SmtValue.Char (native_ssm_char_of_value v)) =
+          (fun v => SmtValue.Char (impl_native_ssm_char_of_value v)) =
         native_unpack_seq ss :=
     list_typed_char_pack_unpack hTyped
   have hMapChars :
-      (native_unpack_seq ss).map native_ssm_char_of_value = left ++ right := by
+      (native_unpack_seq ss).map impl_native_ssm_char_of_value = left ++ right := by
     simpa [native_unpack_string] using hUnpack
   have hLenLe : left.length <= (native_unpack_seq ss).length := by
     have hLen := congrArg List.length hMapChars
@@ -1097,7 +1097,7 @@ private theorem native_unpack_string_substr_right
   have hTyped : list_typed SmtType.Char (native_unpack_seq ss) :=
     typed_unpack_seq_of_typeof_seq_value hTy
   have hMapChars :
-      (native_unpack_seq ss).map native_ssm_char_of_value = left ++ right := by
+      (native_unpack_seq ss).map impl_native_ssm_char_of_value = left ++ right := by
     simpa [native_unpack_string] using hUnpack
   have hLenLe : left.length <= (native_unpack_seq ss).length := by
     have hLen := congrArg List.length hMapChars

@@ -887,7 +887,7 @@ private theorem vsm_apply_ext_aux :
                   (vsm_num_apply_args (SmtValue.Apply g b)) :=
             hArgs (vsm_num_apply_args f) (by simp [vsm_num_apply_args])
           have hab : a = b := by
-            simpa [__smtx_apply_arg_nth_value, vsm_num_apply_args, hCountFG, SmtEval.native_nateq, native_ite] using hLast
+            simpa [__smtx_apply_arg_nth_value, vsm_num_apply_args, hCountFG, Smtm.native_nateq, native_ite] using hLast
           have hfg : f = g := by
             apply ih f g hv
             · simpa [__smtx_apply_head_value] using hHead
@@ -903,7 +903,7 @@ private theorem vsm_apply_ext_aux :
                 apply hNeF
                 rw [hCountFG, hEq]
               simpa [__smtx_apply_arg_nth_value, vsm_num_apply_args, hCountFG,
-                SmtEval.native_nateq, native_ite, hNeF, hNeG] using hArg
+                Smtm.native_nateq, native_ite, hNeF, hNeG] using hArg
           subst hfg
           subst hab
           rfl
@@ -963,13 +963,13 @@ private theorem dtSelectorApps_get_of_lt
 
 private theorem eo_to_smt_apply_dt_sel_unreserved
     (s : native_String) (d : DatatypeDecl) (i j : native_Nat) (x : Term)
-    (hReserved : native_reserved_datatype_name s = false) :
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false) :
     __eo_to_smt (Term.Apply (Term.DtSel s d i j) x) =
       SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j)
         (__eo_to_smt x) := by
   change
     SmtTerm.Apply
-        (native_ite (native_reserved_datatype_name s) SmtTerm.None
+        (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
           (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
         (__eo_to_smt x) =
       SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j)
@@ -980,7 +980,7 @@ private theorem eo_to_smt_apply_dt_sel_unreserved
 private theorem eo_to_smt_mk_dt_inst_rec_selectors
     (s : native_String) (root : DatatypeDecl) (n : native_Nat)
     (x acc : Term)
-    (hReserved : native_reserved_datatype_name s = false)
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false)
     (hx : x ≠ Term.Stuck)
     (hAcc : DtConsSpineRoot acc s root n) :
     ∀ (d : Datatype) (ci ai : native_Nat),
@@ -1081,7 +1081,7 @@ private theorem eo_to_smt_mk_dt_inst_rec_selectors
 private theorem dt_inst_bare_dtcons_interprets
     (M : SmtModel) (hM : model_wf M)
     (x : Term) (s : native_String) (d : DatatypeDecl) (i : Nat)
-    (hReserved : native_reserved_datatype_name s = false)
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false)
     (hXTy :
       __smtx_typeof (__eo_to_smt x) =
         SmtType.Datatype s (__eo_to_smt_datatype_decl d))
@@ -1119,10 +1119,10 @@ private theorem dt_inst_bare_dtcons_interprets
         SmtTerm.eq
           (SmtTerm.Apply
             (__eo_to_smt_tester
-              (native_ite (native_reserved_datatype_name s) SmtTerm.None
+              (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
                 (SmtTerm.DtCons s D i))) X)
           (SmtTerm.eq X
-            (native_ite (native_reserved_datatype_name s) SmtTerm.None
+            (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
               (SmtTerm.DtCons s D i))) =
           SmtTerm.eq (SmtTerm.Apply (SmtTerm.DtTester s D i) X)
             (SmtTerm.eq X (SmtTerm.DtCons s D i))
@@ -1168,7 +1168,7 @@ private theorem dt_inst_bare_dtcons_interprets
 private theorem dt_inst_dtcons_interprets
     (M : SmtModel) (hM : model_wf M)
     (x t : Term) (s : native_String) (d : DatatypeDecl) (i : Nat)
-    (hReserved : native_reserved_datatype_name s = false)
+    (hReserved : __eo_to_smt_reserved_datatype_name s = false)
     (hXTy :
       __smtx_typeof (__eo_to_smt x) =
         SmtType.Datatype s (__eo_to_smt_datatype_decl d))
@@ -1206,7 +1206,7 @@ private theorem dt_inst_dtcons_interprets
       change
         SmtTerm.Apply
             (__eo_to_smt_tester
-              (native_ite (native_reserved_datatype_name s) SmtTerm.None
+              (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
                 (SmtTerm.DtCons s D i))) X =
           SmtTerm.Apply (SmtTerm.DtTester s D i) X
       rw [hReserved]
@@ -1302,7 +1302,7 @@ private theorem dt_inst_dtcons_interprets
       rw [hRecTrans]
       change
         mkDtSmtAppSpineRev
-            (native_ite (native_reserved_datatype_name s) SmtTerm.None
+            (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
               (SmtTerm.DtCons s D i))
             args.reverse =
           mkDtSmtAppSpineRev (SmtTerm.DtCons s D i) args.reverse
@@ -1369,7 +1369,7 @@ private theorem dt_inst_dtcons_interprets
         SmtTerm.eq
           (SmtTerm.Apply
             (__eo_to_smt_tester
-              (native_ite (native_reserved_datatype_name s) SmtTerm.None
+              (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
                 (SmtTerm.DtCons s D i))) X)
           (SmtTerm.eq X T) =
           SmtTerm.eq (SmtTerm.Apply (SmtTerm.DtTester s D i) X)

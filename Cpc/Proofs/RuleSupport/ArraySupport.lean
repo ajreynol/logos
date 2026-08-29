@@ -681,14 +681,14 @@ theorem map_diff_selects_model_eval_eq_false_of_default_eq
     (hNe : __smtx_model_eval_eq (SmtValue.Map m1) (SmtValue.Map m2) =
       SmtValue.Boolean false) :
     __smtx_model_eval_eq
-        (__smtx_map_lookup m1 (native_eval_map_diff_msm m1 m2))
-        (__smtx_map_lookup m2 (native_eval_map_diff_msm m1 m2)) =
+        (__smtx_map_lookup m1 (native_eval_map_diff m1 m2))
+        (__smtx_map_lookup m2 (native_eval_map_diff m1 m2)) =
       SmtValue.Boolean false := by
   classical
   change
     __smtx_model_eval_eq
-        (__smtx_map_lookup m1 (native_eval_map_diff_msm m1 m2))
-        (__smtx_map_lookup m2 (native_eval_map_diff_msm m1 m2)) =
+        (__smtx_map_lookup m1 (native_eval_map_diff m1 m2))
+        (__smtx_map_lookup m2 (native_eval_map_diff m1 m2)) =
       SmtValue.Boolean false
   rw [hm1Ty, hm2Ty]
   simp [native_ite, native_Teq, SmtEval.native_and]
@@ -757,14 +757,14 @@ theorem map_diff_selects_model_eval_eq_false
     (hNe : __smtx_model_eval_eq (SmtValue.Map m1) (SmtValue.Map m2) =
       SmtValue.Boolean false) :
     __smtx_model_eval_eq
-        (__smtx_map_lookup m1 (native_eval_map_diff_msm m1 m2))
-        (__smtx_map_lookup m2 (native_eval_map_diff_msm m1 m2)) =
+        (__smtx_map_lookup m1 (native_eval_map_diff m1 m2))
+        (__smtx_map_lookup m2 (native_eval_map_diff m1 m2)) =
       SmtValue.Boolean false := by
   classical
   change
     __smtx_model_eval_eq
-        (__smtx_map_lookup m1 (native_eval_map_diff_msm m1 m2))
-        (__smtx_map_lookup m2 (native_eval_map_diff_msm m1 m2)) =
+        (__smtx_map_lookup m1 (native_eval_map_diff m1 m2))
+        (__smtx_map_lookup m2 (native_eval_map_diff m1 m2)) =
       SmtValue.Boolean false
   rw [hm1Ty, hm2Ty]
   simp [native_ite, native_Teq, SmtEval.native_and]

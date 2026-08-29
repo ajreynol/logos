@@ -508,14 +508,14 @@ private theorem nativeListInRe_re_range_true_length
 
 private theorem nativeListInRe_re_of_list_true_length :
     (pat xs : List native_Char) ->
-      nativeListInRe xs (native_re_of_list pat) = true ->
+      nativeListInRe xs (impl_native_re_of_list pat) = true ->
       xs.length = pat.length
   | [], xs, h => by
       cases xs with
       | nil =>
           rfl
       | cons c cs =>
-          simp [native_re_of_list, nativeListInRe,
+          simp [impl_native_re_of_list, nativeListInRe,
             native_re_deriv] at h
           have hEmpty := nativeListInRe_empty cs
           unfold nativeListInRe at hEmpty
@@ -523,8 +523,8 @@ private theorem nativeListInRe_re_of_list_true_length :
           simp at h
   | c :: pat, xs, h => by
       rcases (nativeListInRe_mk_concat_true_iff_exists_append xs
-          (SmtRegLan.char c) (native_re_of_list pat)).1
-                  (by simpa [native_re_of_list] using h) with
+          (SmtRegLan.char c) (impl_native_re_of_list pat)).1
+                  (by simpa [impl_native_re_of_list] using h) with
         ⟨left, right, hAppend, hLeft, hRight⟩
       have hLeftLen : left.length = 1 :=
         nativeListInRe_char_true_length left c hLeft
@@ -550,7 +550,7 @@ private theorem nativeListInRe_allchar_true_length
 private theorem nativeListInRe_str_to_re_true_length
     (pat xs : List native_Char)
     (h : nativeListInRe xs
-      (native_str_to_re (native_string_to_values pat)) = true) :
+      (native_str_to_re (impl_native_string_to_values pat)) = true) :
     xs.length = pat.length :=
   nativeListInRe_str_to_re_string_true_length pat xs h
 
@@ -794,12 +794,12 @@ private theorem fixed_len_re_sound
       subst rv
       have hIn' : nativeListInRe xs (native_str_to_re pat) = true := by
         have hMap :
-            List.map (native_ssm_char_of_value ∘ SmtValue.Char) pat = pat := by
+            List.map (impl_native_ssm_char_of_value ∘ SmtValue.Char) pat = pat := by
           clear hIn
           induction pat with
           | nil => rfl
           | cons c cs ih =>
-              simp [Function.comp, native_ssm_char_of_value, ih]
+              simp [Function.comp, impl_native_ssm_char_of_value, ih]
         exact hIn
       have hLen := nativeListInRe_str_to_re_true_length pat xs hIn'
       simpa [native_str_len] using congrArg Int.ofNat hLen
@@ -1023,12 +1023,12 @@ private theorem fixed_len_re_sound
                   subst rv
                   have hIn' : nativeListInRe xs (native_str_to_re pat) = true := by
                     have hMap :
-                        List.map (native_ssm_char_of_value ∘ SmtValue.Char) pat = pat := by
+                        List.map (impl_native_ssm_char_of_value ∘ SmtValue.Char) pat = pat := by
                       clear hIn
                       induction pat with
                       | nil => rfl
                       | cons c cs ih =>
-                          simp [Function.comp, native_ssm_char_of_value, ih]
+                          simp [Function.comp, impl_native_ssm_char_of_value, ih]
                     exact hIn
                   have hLen := nativeListInRe_str_to_re_true_length pat xs hIn'
                   simpa [native_str_len] using congrArg Int.ofNat hLen
@@ -1367,12 +1367,12 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                             native_unpack_string_valid_of_typeof_seq_char hS2EvalTy
                           have hS1Unpack :
                               native_unpack_seq ss1 =
-                                native_string_to_values (native_unpack_string ss1) :=
+                                impl_native_string_to_values (native_unpack_string ss1) :=
                             native_unpack_seq_eq_string_to_values_of_typeof_seq_char
                               hS1EvalTy
                           have hS2Unpack :
                               native_unpack_seq ss2 =
-                                native_string_to_values (native_unpack_string ss2) :=
+                                impl_native_string_to_values (native_unpack_string ss2) :=
                             native_unpack_seq_eq_string_to_values_of_typeof_seq_char
                               hS2EvalTy
                           have hLeftEval :
@@ -1454,10 +1454,10 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                             __smtx_model_eval.eq_108, hS1Eval, hS2Eval, hREval]
                           simp [__smtx_model_eval_str_concat, __smtx_model_eval_str_in_re,
                             __smtx_model_eval_re_mult, native_unpack_seq_pack,
-                            hS1Unpack, hS2Unpack, native_string_to_values]
+                            hS1Unpack, hS2Unpack, impl_native_string_to_values]
                           rw [native_seq_concat, ← List.map_append]
                           change Smtm.native_str_in_re
-                              (native_string_to_values
+                              (impl_native_string_to_values
                                 (native_unpack_string ss1 ++ native_unpack_string ss2))
                               (native_re_mult rv) = _
                           rw [← native_str_in_re_eq_model]

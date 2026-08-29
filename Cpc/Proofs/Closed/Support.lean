@@ -24,8 +24,8 @@ assignments.
 -/
 def model_agrees_on_globals (M N : SmtModel) : Prop :=
   (∀ s T, native_model_lookup M s T = native_model_lookup N s T) ∧
-  (∀ fid T U, native_model_fun_lookup M fid T U =
-    native_model_fun_lookup N fid T U)
+  (∀ fid T U, model_fun_lookup M fid T U =
+    model_fun_lookup N fid T U)
 
 abbrev SmtVarKey : Type := native_String × SmtType
 
@@ -78,10 +78,10 @@ by
   exact
     ⟨by
       intro s' T'
-      simp [native_model_lookup, native_model_key, native_model_push],
+      simp [native_model_lookup, model_key, native_model_push],
     by
       intro fid A B
-      simp [native_model_fun_lookup, native_model_key, native_model_push]⟩
+      simp [model_fun_lookup, model_key, native_model_push]⟩
 
 theorem model_agrees_on_globals_push₂
     {M N : SmtModel} {s : native_String} {T : SmtType} {v : SmtValue} :
@@ -92,11 +92,11 @@ by
   exact
     ⟨by
       intro s' T'
-      simpa [native_model_lookup, native_model_key, native_model_push]
+      simpa [native_model_lookup, model_key, native_model_push]
         using hAgree.1 s' T',
     by
       intro fid A B
-      simpa [native_model_fun_lookup, native_model_key, native_model_push]
+      simpa [model_fun_lookup, model_key, native_model_push]
         using hAgree.2 fid A B⟩
 
 theorem model_agrees_on_env_push_same
@@ -134,8 +134,8 @@ theorem native_model_fun_lookup_eq_of_env
     {vars : List SmtVarKey} {M N : SmtModel}
     (hAgree : model_agrees_on_env vars M N)
     (fid : native_String) (T U : SmtType) :
-  native_model_fun_lookup M fid T U =
-    native_model_fun_lookup N fid T U :=
+  model_fun_lookup M fid T U =
+    model_fun_lookup N fid T U :=
 by
   exact hAgree.globals.2 fid T U
 
@@ -201,8 +201,8 @@ theorem native_eval_texists_eq_of_body_eval_eq
     (hBody : ∀ v : SmtValue,
       __smtx_model_eval (native_model_push M s T v) body =
         __smtx_model_eval (native_model_push N s T v) body) :
-  (native_eval_texists M s T body : SmtValue) =
-    (native_eval_texists N s T body : SmtValue) :=
+  (native_eval_exists M s T body : SmtValue) =
+    (native_eval_exists N s T body : SmtValue) :=
 by
   classical
   let PM : Prop :=
@@ -236,8 +236,8 @@ theorem native_eval_tforall_eq_of_body_eval_eq
     (hBody : ∀ v : SmtValue,
       __smtx_model_eval (native_model_push M s T v) body =
         __smtx_model_eval (native_model_push N s T v) body) :
-  (native_eval_tforall M s T body : SmtValue) =
-    (native_eval_tforall N s T body : SmtValue) :=
+  (native_eval_forall M s T body : SmtValue) =
+    (native_eval_forall N s T body : SmtValue) :=
 by
   classical
   let PM : Prop :=
@@ -269,8 +269,8 @@ theorem native_eval_tchoice_eq_of_body_eval_eq
     (hBody : ∀ v : SmtValue,
       __smtx_model_eval (native_model_push M s T v) body =
         __smtx_model_eval (native_model_push N s T v) body) :
-  (native_eval_tchoice M s T body : SmtValue) =
-    (native_eval_tchoice N s T body : SmtValue) :=
+  (native_eval_choice M s T body : SmtValue) =
+    (native_eval_choice N s T body : SmtValue) :=
 by
   classical
   let PredM : SmtValue -> Prop := fun v =>
@@ -1176,9 +1176,9 @@ theorem smtTermClosedIn_eo_to_smt_dtcons
   SmtTermClosedIn vars (__eo_to_smt (Term.DtCons s d i)) :=
 by
   change SmtTermClosedIn vars
-    (native_ite (native_reserved_datatype_name s) SmtTerm.None
+    (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
       (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i))
-  cases native_reserved_datatype_name s <;> trivial
+  cases __eo_to_smt_reserved_datatype_name s <;> trivial
 
 theorem smtTermClosedIn_eo_to_smt_dtsel
     (vars : List SmtVarKey) (s : native_String) (d : DatatypeDecl)
@@ -1186,9 +1186,9 @@ theorem smtTermClosedIn_eo_to_smt_dtsel
   SmtTermClosedIn vars (__eo_to_smt (Term.DtSel s d i j)) :=
 by
   change SmtTermClosedIn vars
-    (native_ite (native_reserved_datatype_name s) SmtTerm.None
+    (native_ite (__eo_to_smt_reserved_datatype_name s) SmtTerm.None
       (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
-  cases native_reserved_datatype_name s <;> trivial
+  cases __eo_to_smt_reserved_datatype_name s <;> trivial
 
 theorem smtTermClosedIn_eo_to_smt_uconst
     (vars : List SmtVarKey) (i : native_Nat) (T : Term) :

@@ -30,7 +30,7 @@ private theorem native_unpack_pack_string (s : native_String) :
   | nil =>
       rfl
   | cons c cs ih =>
-      simp [native_ssm_char_of_value, ih]
+      simp [impl_native_ssm_char_of_value, ih]
 
 private theorem native_str_to_code_singleton_bounds
     {xs : native_String}
@@ -102,7 +102,7 @@ private theorem native_str_to_int_ge_neg_one
   | nil =>
       simp [native_str_to_int]
   | cons c cs =>
-      by_cases hDigits : List.all (c :: cs) native_char_is_digit = true
+      by_cases hDigits : List.all (c :: cs) impl_native_char_is_digit = true
       · simp [native_str_to_int, hDigits]
       · simp [native_str_to_int, hDigits]
 
@@ -204,10 +204,10 @@ private theorem eval_nil_str_concat_typeof_of_smt_type_seq
 private theorem native_re_find_idx_aux_bound
     {r : SmtRegLan} :
     (xs : List SmtValue) -> (idx : Nat) -> {found len : Nat} ->
-      native_re_find_idx_aux r xs idx = some (found, len) ->
+      impl_native_re_find_idx_aux r xs idx = some (found, len) ->
       idx ≤ found ∧ found ≤ idx + xs.length
   | xs, idx, found, len, hFind => by
-      unfold native_re_find_idx_aux at hFind
+      unfold impl_native_re_find_idx_aux at hFind
       split at hFind
       · cases hFind
         omega
@@ -850,14 +850,14 @@ private theorem native_str_in_re_range_length
 
 private theorem native_str_in_re_re_of_list_length :
     (pat : List SmtValue) -> {str : native_String} ->
-      native_str_in_re str (native_re_of_list pat) = true ->
+      native_str_in_re str (impl_native_re_of_list pat) = true ->
       str.length = pat.length
   | [], str, h => by
       exact native_str_in_re_epsilon_length h
   | c :: cs, str, h => by
       rcases native_str_in_re_concat_true
-          (r := SmtRegLan.char c) (s := native_re_of_list cs)
-          (by simpa [native_re_concat, native_re_of_list] using h) with
+          (r := SmtRegLan.char c) (s := impl_native_re_of_list cs)
+          (by simpa [native_re_concat, impl_native_re_of_list] using h) with
         ⟨s1, s2, hAppend, hLeft, hRight⟩
       have hLeftLen := native_str_in_re_char_length hLeft
       have hRightLen := native_str_in_re_re_of_list_length cs hRight

@@ -59,9 +59,8 @@ Options:
                        kept here instead
   --ethos PATH         an ethos source tree containing tools/eoc/driver.py
                        (default: the one install/deps/eoc-env.sh records).
-                       Also redirects --build-dir and --lean-config to
-                       that tree, so a local checkout is never mixed with
-                       install/deps/
+                       Also redirects --build-dir to that tree, so a local
+                       checkout is never mixed with install/deps/
   --cached             compile the copy of the signature kept in this
                        repository instead of naming one with --signature
   --brief              say what this run did and leave what it means to
@@ -84,9 +83,17 @@ Options:
   --semantics PATH     what the symbols of the signature mean, as a
                        configuration the compiler compiles before it runs
                        (default: <install>/defs/Cpc.eos)
+  --smt-semantics PATH the same for the SMT-LIB semantics that one is written
+                       against: what a symbol of SMT-LIB means to a model,
+                       which is the target of the compilation rather than
+                       anything about this signature. The compiler ships one
+                       and compiles it where this names none, so naming one
+                       is changing what the target means
+                       (default: <ethos>/tools/eoc/semantics/smt.eos)
   --lean-config PATH   why each recursive program of the input terminates,
-                       read by the lean-meta stage. Compiled from --semantics
-                       beside it, so naming one is rarely wanted
+                       read by the lean-meta stage. The compiler writes one
+                       from --semantics and gives it to that stage itself, so
+                       naming one is rarely wanted
   --build-dir DIR      the ethos-eoc build tree
   --out-dir DIR        where to stage what the compiler publishes before it is
                        installed (default: <deps>/eoc-out)
@@ -99,6 +106,7 @@ Examples:
   install/install-sig.sh --cached --check
   install/install-sig.sh --signature ~/cvc5/proofs/eo/cpc/Cpc.eo --mini
   install/install-sig.sh ~/sig.eo --package Mine --rules symm refl trans
+  install/install-sig.sh --cached --smt-semantics ~/smt.eos
 USAGE
 }
 
@@ -129,6 +137,7 @@ NO_PARSER=0
 NO_PARTIAL=0
 CHECK=0
 SEMANTICS=""
+SMT_SEMANTICS=""
 LEAN_CONFIG=""
 BUILD_DIR=""
 OUT_DIR=""
@@ -158,6 +167,8 @@ while [ $# -gt 0 ]; do
     --check) CHECK=1; shift ;;
     --semantics) SEMANTICS="${2:?--semantics requires a value}"; shift 2 ;;
     --semantics=*) SEMANTICS="${1#*=}"; shift ;;
+    --smt-semantics) SMT_SEMANTICS="${2:?--smt-semantics requires a value}"; shift 2 ;;
+    --smt-semantics=*) SMT_SEMANTICS="${1#*=}"; shift ;;
     --lean-config) LEAN_CONFIG="${2:?--lean-config requires a value}"; shift 2 ;;
     --lean-config=*) LEAN_CONFIG="${1#*=}"; shift ;;
     --build-dir) BUILD_DIR="${2:?--build-dir requires a value}"; shift 2 ;;
@@ -198,6 +209,7 @@ SIGNATURE="$(expand_tilde "${SIGNATURE}")"
 CACHE_FILE="$(expand_tilde "${CACHE_FILE}")"
 ETHOS_DIR="$(expand_tilde "${ETHOS_DIR}")"
 SEMANTICS="$(expand_tilde "${SEMANTICS}")"
+SMT_SEMANTICS="$(expand_tilde "${SMT_SEMANTICS}")"
 LEAN_CONFIG="$(expand_tilde "${LEAN_CONFIG}")"
 BUILD_DIR="$(expand_tilde "${BUILD_DIR}")"
 OUT_DIR="$(expand_tilde "${OUT_DIR}")"
@@ -217,9 +229,9 @@ if [ -f "${ENV_FILE}" ]; then
 fi
 
 # --ethos names a tree that is not the one install/deps/eoc-env.sh describes,
-# so the recorded build directory, defs and lean config belong to another ethos
-# and must not be used as defaults for it. Deriving them from the named tree
-# instead is what keeps a local-checkout run from silently mixing the two:
+# so the recorded build directory belongs to another ethos and must not be
+# used as a default for it. Deriving it from the named tree instead is what
+# keeps a local-checkout run from silently mixing the two:
 # the binary under the recorded build dir resolves its templates against the
 # tree it was configured from, so a mixed run compiles with the wrong
 # templates and still exits 0.
@@ -451,11 +463,13 @@ fi
 PACKAGE="${PACKAGE:-Cpc}"
 
 # The semantics are this repository's, not the compiler's: the compiler reads
-# the configuration and compiles it, beside itself, into the two files the
-# model-smt and lean-meta stages read. Only the second of those is named here;
-# the first the compiler works out for itself from what it compiled.
+# the configuration and compiles it, in place of the set it ships with, into
+# the two files the model-smt and lean-meta stages read. Where those two come
+# out is the compiler's own: a set compiles by the role it is given and not by
+# where it stands, and each stage is handed what it reads, so neither file is
+# named here. The SMT-LIB semantics they are written against is the
+# compiler's too, which is what --smt-semantics replaces.
 SEMANTICS="${SEMANTICS:-${script_dir}/defs/Cpc.eos}"
-LEAN_CONFIG="${LEAN_CONFIG:-$(dirname "${SEMANTICS}")/user_termination.lean}"
 BUILD_DIR="${BUILD_DIR:-${EOC_BUILD_DIR:-${ETHOS_DIR}/build-eoc}}"
 OUT_DIR="${OUT_DIR:-${DEPS_DIR}/eoc-out}"
 DEST_DIR="${repo_root}/${PACKAGE}"
@@ -486,9 +500,10 @@ fi
   echo "error: --semantics file ${SEMANTICS} not found." >&2
   exit 1
 }
-# --lean-config is deliberately not checked here: it is compiled from
-# --semantics by the run itself, so on a fresh checkout it does not exist yet.
-# driver.py checks it after it has written it.
+if [ -n "${SMT_SEMANTICS}" ] && [ ! -f "${SMT_SEMANTICS}" ]; then
+  echo "error: --smt-semantics file ${SMT_SEMANTICS} not found." >&2
+  exit 1
+fi
 
 # The signature-wide files the lean subcommand of driver.py publishes, in
 # module dependency order, as "<name under out/lean> <destination relative to
@@ -578,10 +593,17 @@ calc_name_of() {
 echo "==> Compiling ${SIGNATURE}"
 echo "    ethos    ${ETHOS_DIR}"
 echo "    package  ${PACKAGE_DIR}"
+[ -z "${SMT_SEMANTICS}" ] || echo "    smt      ${SMT_SEMANTICS}"
 
+# --semantics is what the symbols of the signature mean and --smt-semantics
+# what the SMT-LIB ones they are written against do; the compiler compiles the
+# one it ships with where the second names none. --lean-config is left out
+# unless it was named, since the compiler writes one from --semantics and
+# gives the lean-meta stage that.
 driver_args=(lean --build-dir "${BUILD_DIR}" --final-out-dir "${OUT_DIR}"
-             --signature "${SEMANTICS}" --lean-config "${LEAN_CONFIG}"
-             --skip-cvc5)
+             --semantics "${SEMANTICS}" --skip-cvc5)
+[ -z "${SMT_SEMANTICS}" ] || driver_args+=(--smt-semantics "${SMT_SEMANTICS}")
+[ -z "${LEAN_CONFIG}" ] || driver_args+=(--lean-config "${LEAN_CONFIG}")
 if [ -x "${BUILD_DIR}/ethos-eoc" ]; then
   driver_args+=(--no-build)
 else

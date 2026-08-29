@@ -1890,24 +1890,24 @@ namespace Smtm
 private theorem reglan_rel_model_ext {r r' : SmtRegLan}
     (h : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan r')) :
     ∀ s : native_String, native_string_valid s = true ->
-      Smtm.native_str_in_re (native_string_to_values s) r =
-        Smtm.native_str_in_re (native_string_to_values s) r' := by
+      Smtm.native_str_in_re (impl_native_string_to_values s) r =
+        Smtm.native_str_in_re (impl_native_string_to_values s) r' := by
   have hb : native_re_ext_eq r r' = true := by
     have h' : SmtValue.Boolean (native_re_ext_eq r r') =
         SmtValue.Boolean true := h
     simpa using h'
   intro s hs
   by_cases hAll : ∀ str : native_String, native_string_valid str = true ->
-      Smtm.native_str_in_re (native_string_to_values str) r =
-        Smtm.native_str_in_re (native_string_to_values str) r'
+      Smtm.native_str_in_re (impl_native_string_to_values str) r =
+        Smtm.native_str_in_re (impl_native_string_to_values str) r'
   · exact hAll s hs
   · rw [dif_neg hAll] at hb
     cases hb
 
 private theorem reglan_rel_of_model_ext {r r' : SmtRegLan}
     (h : ∀ s : native_String, native_string_valid s = true ->
-      Smtm.native_str_in_re (native_string_to_values s) r =
-        Smtm.native_str_in_re (native_string_to_values s) r') :
+      Smtm.native_str_in_re (impl_native_string_to_values s) r =
+        Smtm.native_str_in_re (impl_native_string_to_values s) r') :
     RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan r') := by
   show SmtValue.Boolean (native_re_ext_eq r r') = SmtValue.Boolean true
   rw [dif_pos h]
