@@ -14,13 +14,7 @@ namespace Eo
 
 open SmtEval
 
-/- Eunoia literal evaluation defined -/
-
--- The part of the native layer that the Eunoia term embedding is what decides,
--- and so cannot come out above this file, together with whatever of the rest
--- only this file reaches. Since equality and ordering of terms stand beside
--- the Term inductive itself, the second is all that comes out here today.
-
+-- The primitive operations that only what is written over Eunoia terms uses.
 -- Helper for native_int_log: repeatedly divides `remaining` by `base`, counting
 -- the steps until it drops below `base`. `fuel` bounds the recursion (the caller
 -- passes the value itself, which is always at least the number of steps when
@@ -80,6 +74,7 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
     else
       -1
 
+/- Eunoia literal evaluation defined -/
 
 /- Term ITE -/
 abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=

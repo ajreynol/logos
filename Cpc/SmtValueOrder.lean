@@ -24,9 +24,7 @@ lexicographic order on keys, given by Key.lt.
 The key method for an argument is found by name: it is the name of the
 argument's type with the Smt or native_ prefix dropped, its first letter
 lowercased and Key appended, e.g. datatypeDeclKey orders SmtDatatypeDecl
-and intKey orders native_Int. Every type that can occur as an argument of
-a value or type constructor must therefore have a method of that name,
-either generated below or given here.
+and intKey orders the native integer type.
 -/
 namespace SmtValueOrder
 

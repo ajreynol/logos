@@ -8,21 +8,12 @@ set_option linter.unusedVariables false
 
 namespace SmtEval
 
--- Not a block: SmtValue carries a Rational constructor whatever the input
--- signature is, and derives Ord, so this instance is always needed.
 instance : Ord Rat where
   compare a b :=
     -- compare a.num / a.den vs b.num / b.den by cross-multiplication
     compare (a.num * Int.ofNat b.den) (b.num * Int.ofNat a.den)
 
--- native_string_lit is kept whatever a signature reaches: a proof written
--- against the published tree names its strings with it, and a signature with
--- no string of its own to build would not otherwise keep it alive.
-
--- The part of the native layer that every generated file can see. What comes
--- out here is what more than one of them reaches, since a definition only one
--- reaches is emitted into that file instead.
-
+-- The primitive operations every other module is written over.
 abbrev native_Bool := Bool
 
 abbrev native_Int := Int
@@ -59,6 +50,9 @@ def native_zexp_total (x : native_Int) (y : native_Int) : native_Int :=
 def native_int_pow2 (n : native_Int) : native_Int :=
   (native_zexp_total 2 n)
 
+def native_mk_rational : native_Int -> native_Int -> native_Rat
+  | x, y => x/y
+
 def native_streq : native_String -> native_String -> native_Bool
   | x, y => decide (x = y)
 
@@ -69,6 +63,5 @@ macro_rules
 syntax "native_nat_succ " term : term
 macro_rules
   | `(native_nat_succ $x) => `(Nat.succ $x)
-
 
 end SmtEval
