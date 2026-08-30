@@ -1071,15 +1071,6 @@ theorem eo_type_valid_rec_non_none :
           simp [__eo_to_smt_type]
       | _ =>
           simp [eo_type_valid_rec] at h
-  | refs, Term.UOp1 op x, h => by
-      cases op
-      simp [eo_type_valid_rec] at h
-  | refs, Term.UOp2 op x y, h => by
-      cases op
-      simp [eo_type_valid_rec] at h
-  | refs, Term.UOp3 op x y z, h => by
-      cases op
-      simp [eo_type_valid_rec] at h
   | refs, Term.__eo_List, h => by
       simp [eo_type_valid_rec] at h
   | refs, Term.__eo_List_nil, h => by
@@ -2892,15 +2883,6 @@ private theorem eo_type_valid_of_smt_wf_rec_aux
   | Term.UOp op, h => by
       cases op <;> simp [__eo_to_smt_type, __smtx_type_wf_rec,
         eo_type_valid_rec] at h ⊢
-  | Term.UOp1 op x, h => by
-      cases op
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
-  | Term.UOp2 op x y, h => by
-      cases op
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
-  | Term.UOp3 op x y z, h => by
-      cases op
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
   | Term.Bool, _ => by simp [eo_type_valid_rec]
   | Term.DatatypeType s dd, h => by
       cases hReserved : __eo_to_smt_reserved_datatype_name s
@@ -3078,9 +3060,6 @@ theorem eo_to_smt_type_ne_reglan (T : Term) :
     __eo_to_smt_type T ≠ SmtType.RegLan := by
   cases T with
   | UOp op => cases op <;> simp [__eo_to_smt_type]
-  | UOp1 op x => cases op <;> simp [__eo_to_smt_type]
-  | UOp2 op x y => cases op <;> simp [__eo_to_smt_type]
-  | UOp3 op x y z => cases op <;> simp [__eo_to_smt_type]
   | Apply f x =>
       cases f with
       | UOp op =>
