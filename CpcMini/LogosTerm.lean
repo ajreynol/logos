@@ -35,38 +35,11 @@ inductive UserOp : Type where
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
-/-
-User operators with one index.
--/
-inductive UserOp1 : Type where
-  | None : UserOp1
-
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-User operators with two indices.
--/
-inductive UserOp2 : Type where
-  | None : UserOp2
-
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-User operators with three indices.
--/
-inductive UserOp3 : Type where
-  | None : UserOp3
-
-deriving Repr, DecidableEq, Inhabited, Ord
-
 mutual
 
 /- Term definition -/
 inductive Term : Type where
   | UOp : UserOp -> Term
-  | UOp1 : UserOp1 -> Term -> Term
-  | UOp2 : UserOp2 -> Term -> Term -> Term
-  | UOp3 : UserOp3 -> Term -> Term -> Term -> Term
   | __eo_List : Term
   | __eo_List_nil : Term
   | __eo_List_cons : Term

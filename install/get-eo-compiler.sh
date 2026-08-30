@@ -56,7 +56,7 @@ expand_tilde() {
 }
 
 # The pinned commit of cvc5/ethos this repository is regenerated against.
-# b704df9d is the head of ethosEoc3, which is where the model semantics are
+# 78e993c1 is the head of ethosEoc3, which is where the model semantics are
 # compiled from a configuration -- install/defs/Cpc.eos here -- rather than
 # read from a file in the ethos tree. Moving the pin changes what the compiler
 # emits, so move it on purpose and rebuild the generated packages afterwards.
@@ -65,7 +65,7 @@ expand_tilde() {
 # belongs on a commit of ethos main; move it back once what this needs is
 # there. It is pinned to a commit of the branch rather than to the branch
 # itself, so that what the compiler emits still changes only on purpose.
-ETHOS_VERSION="b704df9da616dfbd9aff2dab25a9c508860324e9"
+ETHOS_VERSION="78e993c19cbfa3a00fca34d9b626e35718ffb62c"
 DEPS_DIR=""
 JOBS=""
 KEEP_TMP=0

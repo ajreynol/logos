@@ -1045,12 +1045,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
         TranslationProofs.eo_type_valid_rec [] (__eo_typeof t)
   | Term.UOp op, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
-  | Term.UOp1 op x, hNN => by
-      cases op <;> simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
-  | Term.UOp2 op x y, hNN => by
-      cases op <;> simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
-  | Term.UOp3 op x y z, hNN => by
-      cases op <;> simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.__eo_List, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.__eo_List_nil, hNN => by
