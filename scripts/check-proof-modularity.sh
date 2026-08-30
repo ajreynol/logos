@@ -32,23 +32,53 @@ core_files() {
     "${pkg}/Proofs/Checker.lean"
 }
 
-# 1. The two packages' soundness proofs are the same file.
+# The files Cpc and CpcMini are meant to hold in common, each of which is one
+# file modulo the package name.  Every one of them was forked at some point and
+# unforked deliberately; this is what keeps them from re-forking.
 #
-# Cpc and CpcMini kept hand-maintained copies that diverged by 376 lines,
-# because CpcMini did not need one invariant.  They were unforked; this is what
-# keeps them that way.  It is also the property that makes Checker.lean a
-# candidate for a shared template rather than a per-package file.
-echo "Checking that Cpc and CpcMini share one Checker.lean..."
-if diff -q \
-     <(sed 's/\bCpcMini\./@PKG@./g' CpcMini/Proofs/Checker.lean) \
-     <(sed 's/\bCpc\./@PKG@./g' Cpc/Proofs/Checker.lean) >/dev/null; then
-  note "Cpc/Proofs/Checker.lean and CpcMini/Proofs/Checker.lean agree."
-else
-  bad "Cpc/Proofs/Checker.lean and CpcMini/Proofs/Checker.lean have diverged."
-  bad "They are meant to be one file modulo the package name. Diff them with:"
-  bad "  diff <(sed 's/\\bCpcMini\\./@PKG@./g' CpcMini/Proofs/Checker.lean) \\"
-  bad "       <(sed 's/\\bCpc\\./@PKG@./g' Cpc/Proofs/Checker.lean)"
-fi
+#   Proofs/Checker.lean                    the soundness proof.  Diverged by 376
+#                                          lines before being unforked, because
+#                                          CpcMini did not need one invariant.
+#   Proofs/CheckerState.lean               the state machine.  Diverged by 145
+#                                          lines, because Cpc delegated to
+#                                          Proofs/Common.lean where CpcMini
+#                                          inlined the same proofs, and because
+#                                          CpcMini named generated equation-lemma
+#                                          arms by number (see check 5).
+#   Proofs/TypePreservation/Datatypes.lean semantics-layer proofs that turned out
+#   Proofs/TypePreservation/Nonvacuity.lean   not to vary with the signature at
+#   Proofs/TypePreservation/Predicates.lean   all.  They are here so that the set
+#   Proofs/Canonical/TypeDefaultBasic.lean    of files a second checker could
+#                                          inherit is measured rather than
+#                                          assumed -- see docs/modularity.md,
+#                                          TODO 5.
+SHARED_FILES=(
+  "Proofs/Checker.lean"
+  "Proofs/CheckerState.lean"
+  "Proofs/TypePreservation/Datatypes.lean"
+  "Proofs/TypePreservation/Nonvacuity.lean"
+  "Proofs/TypePreservation/Predicates.lean"
+  "Proofs/Canonical/TypeDefaultBasic.lean"
+)
+
+# 1. Those files are the same file in both packages.
+echo "Checking that Cpc and CpcMini share one copy of each common file..."
+for f in "${SHARED_FILES[@]}"; do
+  if [ ! -f "Cpc/${f}" ] || [ ! -f "CpcMini/${f}" ]; then
+    bad "${f} is missing from one of the packages; it is meant to be in both."
+    continue
+  fi
+  if diff -q \
+       <(sed 's/\bCpcMini\./@PKG@./g' "CpcMini/${f}") \
+       <(sed 's/\bCpc\./@PKG@./g' "Cpc/${f}") >/dev/null; then
+    note "${f}"
+  else
+    bad "Cpc/${f} and CpcMini/${f} have diverged."
+    bad "They are meant to be one file modulo the package name. Diff them with:"
+    bad "  diff <(sed 's/\\bCpcMini\\./@PKG@./g' CpcMini/${f}) \\"
+    bad "       <(sed 's/\\bCpc\\./@PKG@./g' Cpc/${f})"
+  fi
+done
 
 # 2. The soundness proof names no rule and no operator.
 #
@@ -93,6 +123,27 @@ for pkg in Cpc CpcMini; do
   else
     bad "${pkg} checker layer depends on operators: ${ops:-<none>} (expected exactly: and)"
     bad "  A rule-only lemma probably landed in the checker layer; move it to Proofs/CommonBoolOps.lean."
+  fi
+done
+
+# 5. The checker layer names no arm of a generated definition by number.
+#
+# `__smtx_typeof.eq_<n>` and `__smtx_model_eval.eq_<n>` are the arm numbering
+# the compiler happened to emit for one signature, and it moves when the
+# operator set does: the `and` arm of `__smtx_model_eval` is `eq_9` in Cpc and
+# `eq_7` in CpcMini.  A checker-layer proof that names a number typechecks
+# against one signature and silently means something else against another --
+# which is exactly how CheckerState.lean and Common.lean forked.  The arms this
+# layer needs are named in Proofs/Common.lean instead.
+echo "Checking that the checker layer names no generated arm by number..."
+for pkg in Cpc CpcMini; do
+  hits=$(grep -Hn '\.eq_[0-9]' $(core_files "${pkg}") 2>/dev/null || true)
+  if [ -n "${hits}" ]; then
+    bad "${pkg} checker layer names generated equation lemmas by arm number:"
+    printf '%s\n' "${hits}" | sed 's/^/    /' >&2
+    bad "  Add a named lemma in ${pkg}/Proofs/Common.lean and use that instead."
+  else
+    note "${pkg}: no arm numbers"
   fi
 done
 

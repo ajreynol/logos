@@ -33,6 +33,38 @@ namespace RuleProofs
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-!
+## Arms of the generated semantics, by name
+
+`__smtx_typeof.eq_<n>` and `__smtx_model_eval.eq_<n>` are the arm numbering the
+compiler happened to emit for one signature, and the numbering shifts when the
+operator set does: the `and` arm of `__smtx_model_eval` is `eq_9` in `Cpc` and
+`eq_7` in `CpcMini`.  A proof in the checker layer that names a number is
+reusable only by accident, so the three arms this layer needs are named here
+and the numbers are not used anywhere in it.  See `docs/modularity.md`.
+-/
+
+/-- The `Boolean` arm of the generated `__smtx_typeof`. -/
+theorem typeof_boolean_eq (b : Bool) :
+    __smtx_typeof (SmtTerm.Boolean b) = SmtType.Bool := by
+  rfl
+
+/-- The `None` arm of the generated `__smtx_typeof`. -/
+theorem typeof_none_eq :
+    __smtx_typeof SmtTerm.None = SmtType.None := by
+  rfl
+
+/-- The `Boolean` arm of the generated `__smtx_model_eval`. -/
+theorem model_eval_boolean_eq (M : SmtModel) (b : Bool) :
+    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
+  rfl
+
+/-- The `and` arm of the generated `__smtx_model_eval`. -/
+theorem model_eval_and_eq (M : SmtModel) (a b : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.and a b) =
+      __smtx_model_eval_and (__smtx_model_eval M a) (__smtx_model_eval M b) := by
+  rfl
+
 /-- Simplifies EO-to-SMT translation for `true`. -/
 private theorem eo_to_smt_true_eq :
     __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
@@ -59,8 +91,8 @@ theorem eo_interprets_true (M : SmtModel) :
   eo_interprets M (Term.Boolean true) true := by
   rw [eo_interprets_iff_smt_interprets, eo_to_smt_true_eq]
   refine smt_interprets.intro_true M (SmtTerm.Boolean true) ?_ ?_
-  · simpa using Smtm.__smtx_typeof.eq_1 true
-  · simpa using Smtm.__smtx_model_eval.eq_1 M true
+  · simpa using typeof_boolean_eq true
+  · simpa using model_eval_boolean_eq M true
 
 /-- Predicate asserting that translating an EO term yields a non-`None` SMT term. -/
 def eo_has_smt_translation (t : Term) : Prop :=
@@ -74,14 +106,14 @@ def eo_has_bool_type (t : Term) : Prop :=
 theorem eo_has_smt_translation_true :
   eo_has_smt_translation (Term.Boolean true) := by
   unfold eo_has_smt_translation
-  rw [eo_to_smt_true_eq, Smtm.__smtx_typeof.eq_1]
+  rw [eo_to_smt_true_eq, typeof_boolean_eq]
   decide
 
 /-- Lemma about `eo_has_bool_type_true`. -/
 theorem eo_has_bool_type_true :
   eo_has_bool_type (Term.Boolean true) := by
   unfold eo_has_bool_type
-  rw [eo_to_smt_true_eq, Smtm.__smtx_typeof.eq_1]
+  rw [eo_to_smt_true_eq, typeof_boolean_eq]
 
 /-- Derives `eo_has_bool_type` from `interprets_true`. -/
 theorem eo_has_bool_type_of_interprets_true (M : SmtModel) (t : Term) :
@@ -150,7 +182,7 @@ theorem eo_has_bool_type_and_of_bool_args (A B : Term) :
   intro hA hB
   unfold eo_has_bool_type at hA hB ⊢
   rw [eo_to_smt_and_eq A B]
-  simp [Smtm.__smtx_typeof.eq_7, hA, hB, native_ite, native_Teq]
+  simp [typeof_and_eq, hA, hB, native_ite, native_Teq]
 
 /-- Left-projection lemma for `eo_has_bool_type_and`. -/
 theorem eo_has_bool_type_and_left (A B : Term) :
@@ -166,7 +198,7 @@ theorem eo_has_bool_type_and_left (A B : Term) :
     simp
   exact
     (bool_binop_args_bool_of_non_none
-      (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).1
+      (op := SmtTerm.and) (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).1
 
 /-- Right-projection lemma for `eo_has_bool_type_and`. -/
 theorem eo_has_bool_type_and_right (A B : Term) :
@@ -182,7 +214,7 @@ theorem eo_has_bool_type_and_right (A B : Term) :
     simp
   exact
     (bool_binop_args_bool_of_non_none
-      (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
+      (op := SmtTerm.and) (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
 
 /-- Derives `eo_interprets` from `bool_eval`. -/
 theorem eo_interprets_of_bool_eval
@@ -249,9 +281,9 @@ theorem eo_interprets_and_left (M : SmtModel) (A B : Term) :
           simp
         exact
           (bool_binop_args_bool_of_non_none
-            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).1
+            (op := SmtTerm.and) (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).1
       have hEvalA : __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean true := by
-        rw [Smtm.__smtx_model_eval.eq_7] at hEval
+        rw [model_eval_and_eq] at hEval
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
@@ -277,9 +309,9 @@ theorem eo_interprets_and_right (M : SmtModel) (A B : Term) :
           simp
         exact
           (bool_binop_args_bool_of_non_none
-            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
+            (op := SmtTerm.and) (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
       have hEvalB : __smtx_model_eval M (__eo_to_smt B) = SmtValue.Boolean true := by
-        rw [Smtm.__smtx_model_eval.eq_7] at hEval
+        rw [model_eval_and_eq] at hEval
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
@@ -301,8 +333,8 @@ theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
       cases hB with
       | intro_true htyB hEvalB =>
           apply smt_interprets.intro_true
-          · simp [Smtm.__smtx_typeof.eq_7, htyA, htyB, native_Teq, native_ite]
-          · simp [Smtm.__smtx_model_eval.eq_7, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
+          · simp [typeof_and_eq, htyA, htyB, native_Teq, native_ite]
+          · simp [model_eval_and_eq, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
 
 /-- Semantic equality relation on SMT values, defined by evaluation of SMT equality. -/
 def smt_value_rel (M : SmtModel) (v1 v2 : SmtValue) : Prop :=
