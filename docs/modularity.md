@@ -21,10 +21,10 @@ a new calculus can take the file essentially as-is.
 
 | layer | files | Cpc | CpcMini | reusable? |
 | --- | --- | ---: | ---: | --- |
-| checker | `Proofs/{Checker,CheckerState,CheckerCore}.lean`, `Proofs/Invariants/Stability.lean`, `Proofs/RuleSupport/Contract.lean`, `Proofs/Assumptions.lean` | 4,474 | 4,229 | yes, except `Assumptions.lean` |
-| common | `Proofs/{Common,CommonBoolOps,TermCompat}.lean` | 1,388 | 804 | mostly |
+| checker | `Proofs/{Checker,CheckerState,CheckerCore}.lean`, `Proofs/Invariants/Stability.lean`, `Proofs/RuleSupport/Contract.lean`, `Proofs/Assumptions.lean` | 4,460 | 4,045 | yes, except `Assumptions.lean` |
+| common | `Proofs/{Common,CommonBoolOps,TermCompat}.lean` | 1,422 | 836 | mostly |
 | translation | `Proofs/Translation*` | 33,463 | 5,194 | no — signature-specific |
-| type preservation | `Proofs/TypePreservation*` | 17,700 | 5,638 | no — signature-specific |
+| type preservation | `Proofs/TypePreservation*` | 17,700 | 5,633 | no — signature-specific |
 | canonical models | `Proofs/Canonical*` | 10,083 | 228 | no — signature-specific |
 | closedness / var-model | `Proofs/Closed*` | 32,274 | 0 | only if you have binder rules |
 | rule support | `Proofs/RuleSupport/*` | 352,795 | 259 | no — rule-specific |
@@ -74,6 +74,38 @@ The evidence that this is real, not aspirational: `CpcMini` uses Cpc's
 `Checker.lean` verbatim while differing in rule set (5 rules vs 591), in
 signature, *and* in which invariants its rules require.
 
+`Proofs/CheckerState.lean` is byte-identical too, as of the unforking described
+in the next section.
+
+### The hazard that broke it before: generated arm numbers
+
+`CheckerState.lean` had re-forked, by 145 lines, and the interesting half of
+that divergence was not sloppiness. Lean names the arms of a generated
+definition positionally — `__smtx_model_eval.eq_9` — and **the numbering moves
+with the operator set**. The `and` arm of `__smtx_model_eval` is `eq_9` in Cpc
+and `eq_7` in CpcMini; `eq_9` in CpcMini is `imp`.
+
+So a checker-layer proof that names an arm number is reusable only by accident.
+It does not fail loudly when carried to another signature — it either fails to
+rewrite, or, in the bad case, rewrites with the *wrong* arm. That is what made
+`CheckerState.lean` and `Proofs/Common.lean` fork in the first place: each
+package wrote the proof against its own numbering, and the two texts stopped
+being one text.
+
+The fix is one line of discipline: the three arms this layer needs are given
+names in `Proofs/Common.lean` —
+
+```lean
+theorem typeof_boolean_eq   (b : Bool)                : __smtx_typeof (SmtTerm.Boolean b) = SmtType.Bool
+theorem typeof_none_eq                                : __smtx_typeof SmtTerm.None = SmtType.None
+theorem model_eval_boolean_eq (M : SmtModel) (b : Bool) : __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b
+theorem model_eval_and_eq   (M : SmtModel) (a b : SmtTerm) : __smtx_model_eval M (SmtTerm.and a b) = ...
+```
+
+— each proved by `rfl`, and the numbers are used nowhere in the layer.
+`scripts/check-proof-modularity.sh` keeps it that way (TODO 11). A new checker
+should adopt the same rule before its first proof, not after its second package.
+
 ## What a new checker supplies
 
 ### 1. Signature symbols
@@ -81,14 +113,21 @@ signature, *and* in which invariants its rules require.
 The checker layer hard-codes a small number of SMT-LIB symbols. Eunoia does not
 guarantee these exist; your signature must declare them.
 
-- **`and`**, and not merely the symbol: it must be declared right-associative
-  with nil `true`. `stateAssumes` / `statePushes` / `stateProvens` fold the
-  checker stack with it (`Proofs/CheckerState.lean`);
-  `__eo_invoke_assume_list` parses the input problem as an `and`-chain
-  terminated by `true`; `__eo_nil` carries a hard-coded arm
-  `| (Term.UOp UserOp.and), T => Term.Boolean true`, which
-  `__eo_mk_premise_list` relies on for *every* `:list`-premise rule; and the
-  conclusion `eo_satisfiability F false` is a statement about that chain.
+- **`and`.** `stateAssumes` / `statePushes` / `stateProvens` fold the checker
+  stack with it (`Proofs/CheckerState.lean`); `__eo_invoke_assume_list` parses
+  the input problem as an `and`-chain terminated by `true`; and the conclusion
+  `eo_satisfiability F false` is a statement about that chain.
+- **`:right-assoc-nil true` on `and`, but only if your rules need it.** This
+  document used to state the attribute as a flat requirement. It is not one.
+  Compiling CPC with `and` declared as a plain binary operator leaves
+  `__eo_invoke_assume_list`, the refutation test and the SMT translation
+  **byte-identical**: the core does not use the attribute at all. What the
+  attribute buys is the `__eo_nil` arm
+  `| (Term.UOp UserOp.and), T => Term.Boolean true`, and that arm is reached
+  only where a rule gathers `:list` premises with `and` through
+  `__eo_mk_premise_list`. CPC has eleven such call sites; a calculus may have
+  none, and one with binary `and` and no `and`-gathered premise lists is fine.
+  (Measured on the eudaimonia side; see the cross-reference at the end.)
 - **The Bool literals `true` / `false`.** `Term.Boolean` is a builtin `Term`
   constructor so it always exists, but the checker fixes its meaning: `false`
   is the refutation target (`__eo_state_is_refutation` is literally
@@ -107,15 +146,21 @@ to `CommonBoolOps.lean`, left the core naming exactly one operator.
 
 **The core of both packages now depends on a single signature symbol: `and`.**
 
-Nothing currently *checks* these requirements — see TODO 8.
+`install/install-sig.sh` checks all of this against what the compiler emitted,
+before it installs anything — see TODO 8.
 
 ### 2. The SMT semantics side
 
 `__eo_to_smt` must send `and` to `SmtTerm.and` and `Bool` to `SmtType.Bool`.
 The checker layer's entire SMT surface is `SmtTerm.and`, `SmtTerm.Boolean`,
 `SmtType.Bool` and the `None` cases. A signature that declared `and` but
-translated it to something else would break soundness silently at that seam:
-nothing cross-checks it.
+translated it to something else would compile, would check proofs, and
+`correct___eo_is_refutation` would be a statement about the wrong formula.
+
+This is the seam where a mistake is silent, so it is the one requirement whose
+check earns its keep on its own: `install/install-sig.sh` greps the generated
+`Spec.lean` for the `UserOp.and -> SmtTerm.and` arm and refuses to install
+without it.
 
 ### 3. The semantics layer
 
@@ -232,6 +277,37 @@ This is the item most worth coordinating with eudaimonia before they start: if
 their signature differs substantially from CPC's, this is the cost they will
 actually feel.
 
+**A measured starting point.** Diffing every file the two packages share,
+modulo the package name, the semantics layer is not uniformly per-calculus:
+
+| file | Cpc | CpcMini | difference |
+| --- | ---: | ---: | --- |
+| `Proofs/TypePreservation/Datatypes.lean` | 1,334 | 1,334 | none |
+| `Proofs/Canonical/TypeDefaultBasic.lean` | 228 | 228 | none |
+| `Proofs/TypePreservation/Nonvacuity.lean` | 104 | 104 | one space of indentation |
+| `Proofs/TypePreservation/Predicates.lean` | 21 | 21 | a `simp` lemma CpcMini did not use |
+| `Proofs/TypePreservation/Common.lean` | 529 | 529 | one import line |
+| `Proofs/TypePreservation/Model.lean` | 208 | 203 | 15 lines |
+
+The first four are now identical and guarded by TODO 11 — about 1,690 lines of
+hand-written semantics proof that two calculi can hold in common, which is the
+first evidence that the "L (library)" category eudaimonia's roadmap asks for
+reaches past the checker layer.
+
+`TypePreservation/Common.lean` is worth a warning, because it looks like a
+five-second fix and is not. The two copies differ by exactly one import: Cpc
+pulls `Proofs/TermCompat.lean`, CpcMini pulls
+`Proofs/TypePreservation/CanonicalAssumptions.lean`, and neither module exists
+in the other package. Neither import is used by the 529-line body — but Cpc's
+is load-bearing *transitively*: `TermCompat.lean` is where the `@[simp]` lemma
+`native_Teq_self` lives, and `Translation/Special.lean` and
+`TypePreservation/Full.lean` reach it only through this file. Naming
+`TermCompat` directly in those two, which is the right fix on its face, changes
+which definitions are exposed and breaks `simp` in `Translation/Apply.lean`
+(17,003 lines) on Lean's `import all` visibility rules. Not attempted further;
+it needs the module-visibility question settled first, and a full build to
+validate.
+
 ### 6. Move calculus-independent material into `Logos/`
 
 The `Logos` library is 1,069 lines (`Sexp.lean`, `Parser.lean`). Everything
@@ -242,6 +318,19 @@ Two routes. **(a)** Keep per-package files but generate them from shared
 templates — this is TODO 2, and is cheap. **(b)** Parameterize the proofs over
 an abstract `Term` — expensive, because `CheckerCore.lean` also depends on the
 translation layer and on `UserOp.and`. Recommend (a); do not start with (b).
+
+**One file is already known to be invariant across *signatures*, not merely
+across the two packages.** `Cpc/SmtValueOrder.lean` (156 lines) and the
+`SmtValueOrder.lean` of eudaimonia's hello-world checker — a different
+signature, compiled by a different invocation — differ only in the two import
+lines that name the package. Every other cross-package measurement in this
+document, and in eudaimonia's roadmap, compares two packages built from the
+same signature; this one does not, which makes it the strongest evidence
+available that a shared base is real rather than coincidental. It is generated,
+so it belongs to TODO 5's second bullet rather than to `Logos/` as such — and
+note that the compiler prunes it for small signatures (19 lines for a mini
+package), which is exactly the "fixed base, pruning as an optimization" shape
+the eudaimonia roadmap argues for.
 
 ### 7. Add a fast soundness check to CI — **done**
 
@@ -268,16 +357,29 @@ Two details that make it trustworthy rather than decorative:
 Verified against an injected error: replacing a hypothesis in one proof step of
 `Checker.lean` makes it exit 1.
 
-### 8. Check the signature contract explicitly
+### 8. Check the signature contract explicitly — **done**
 
-Nothing verifies the requirements in
-[Signature symbols](#1-signature-symbols). A signature without `and`, or with
-`and` not declared right-assoc-nil `true`, fails deep inside generated files
-with confusing errors. Either check it in `install-sig.sh` or put a Lean-level
-`example` in the seeded template that fails with a message naming the missing
-symbol.
+`install/install-sig.sh` checks the three requirements against **what the
+compiler just emitted**, before anything is installed, and refuses naming what
+is missing. It runs in both the `Cpc` and the `CpcMini` install, so the
+`regeneration` CI group exercises it twice.
 
-Now cheap, because the list is one symbol plus the Bool literals.
+Checking the output rather than the signature text is the point: the name an
+operator compiles to need not be its spelling, and `:right-assoc-nil` is
+visible only in what it generates. The three checks are that `LogosTerm.lean`
+declares `and`, that `Spec.lean` sends it to `SmtTerm.and`, and — conditionally
+— that `Logos.lean` has an `__eo_nil` arm for `and` whenever it also calls
+`__eo_mk_premise_list (Term.UOp UserOp.and)`.
+
+The design is eudaimonia's, ported here; they implemented this item first and
+in doing so found that the `:right-assoc-nil` half of the requirement as this
+document stated it was too strong. See
+[Signature symbols](#1-signature-symbols), which has been corrected.
+
+Verified against an injected error: making the `and` test look for an operator
+no signature declares makes `install-cpc.sh --cached --check` exit 1 with
+"no operator `and`, which the soundness statement is about", and install
+nothing.
 
 ### 9. Split `Closed/Support.lean`
 
@@ -298,12 +400,24 @@ theory-level structure.
 toolchain, well under a second. Each invariant it checks had drifted at least
 once:
 
-- `Cpc/Proofs/Checker.lean` and `CpcMini/Proofs/Checker.lean` are identical
-  modulo the package name — they diverged by 376 lines before being unforked;
+- **six files are identical between `Cpc` and `CpcMini`** modulo the package
+  name, and the check is table-driven so the set can grow:
+  `Proofs/Checker.lean` (diverged by 376 lines before being unforked),
+  `Proofs/CheckerState.lean` (145), and four semantics-layer files that turned
+  out not to vary with the signature at all —
+  `Proofs/TypePreservation/{Datatypes,Nonvacuity,Predicates}.lean` and
+  `Proofs/Canonical/TypeDefaultBasic.lean`;
 - `Checker.lean` names no `CRule` constructor, no `UserOp`, and no
   calculus-specific invariant;
 - `Proofs/CheckerState.lean` contains no occurrence of `Invariant`;
-- the checker layer names exactly one `UserOp`, namely `and`.
+- the checker layer names exactly one `UserOp`, namely `and`;
+- **the checker layer names no generated arm by number** — no `.eq_<n>` on
+  `__smtx_typeof` or `__smtx_model_eval`. See
+  [the hazard](#the-hazard-that-broke-it-before-generated-arm-numbers); this is
+  the invariant whose absence caused two of the forks above.
+
+Both new checks were verified against an injected error: perturbing a shared
+file, and adding an `.eq_1` to `CheckerCore.lean`, each make the script exit 1.
 
 ### 12. Cross-check the soundness proof against the Eudaimonia template
 
@@ -316,19 +430,80 @@ Logos packages should be one file modulo the calculus name. That is what would
 make the template *the* soundness proof rather than a copy of it, and it is the
 natural end state of TODO 2.
 
-Two things block it today, both on the Eudaimonia side and both deliberate:
+Two things block it, both on the Eudaimonia side and both deliberate. Both
+still hold, re-checked 2026-08-30:
 
-- `templates/pkg/Proofs/Checker.lean.in` and `CheckerCore.lean.in` are 22-line
-  stubs carrying a description of what belongs in them, so there is nothing to
-  compare against.
-- `scripts/get-eo-compiler.sh` runs with `DEV_MODE=1`, building the head of the
+- `templates/pkg/Proofs/Checker.lean.in` is 61 lines of description rather than
+  proof, and `CheckerCore.lean.in` 23, so there is nothing to compare against.
+- `get-eo-compiler.sh` still has `DEV_MODE=1`, building the head of the
   `ethosEoc3` branch rather than a pinned commit, so a cross-repository check
   would be comparing against a moving target. Their roadmap has leaving
   development mode as its own item.
 
-Revisit when both are resolved. Until then the in-repo check (TODO 11) covers
-the property that matters most, which is that Logos does not re-fork its own
-soundness proof.
+**What has changed is where to start.** `templates/pkg/Proofs/Assumptions.lean.in`
+is no longer a stub: it is 101 real lines, seeded from CpcMini's generic
+version, with `Decidable` instances and both `ApiChecks.lean` bridge lemmas
+proven against it. So the first file to bring under a cross-repository identity
+check is `Assumptions.lean`, not `Checker.lean` — it is available now, and it
+is the file this document's TODO 1 wants to change, which makes agreement on it
+worth establishing before either side moves.
+
+Note also that the two repositories have drifted apart in *layout*, which a
+textual check has to reconcile before it can compare anything: eudaimonia's
+generated tree has `Proofs/Invariants/Extra.lean` and
+`Proofs/RuleSupport/Support.lean` where this one has
+`Proofs/Invariants/Stability.lean` and `Proofs/RuleSupport/Contract.lean`.
+Theirs are the better names — the slot file should be named for the slot, not
+for the CPC invariant that happens to occupy it — and renaming here is cheap
+and is a prerequisite for TODO 2.
+
+Until then the in-repo check (TODO 11) covers the property that matters most,
+which is that Logos does not re-fork its own soundness proof.
+
+### 13. Push the var-model fields behind the extra-invariant slot
+
+**Ranks with TODO 1 and 2 by value; it is numbered last only to keep the
+existing numbers stable, since eudaimonia's roadmap cites them.**
+
+The claim in [Optionally, an extra invariant](#5-optionally-an-extra-invariant)
+— that a calculus needing no extra invariant pays nothing — is true of
+`Closed/` and false of the core. Two structures in the layer this document
+calls reusable hard-code a variable-model notion:
+
+- `Proofs/RuleSupport/Contract.lean:83`, `ContextualTruth`, the predicate
+  `Proofs/Checker.lean` is stated against, carries a `true_in_var_model` field
+  **in both packages**;
+- `Proofs/CheckerCore.lean:1036`, `CmdStepFacts`, carries the same field, also
+  in both;
+- `model_agrees_on_globals` (`Contract.lean:41`) exists to state them.
+
+So `CpcMini` — no binders, `checkerExtraInvariant := True` — still discharges a
+variable-model obligation on every push. Only `RulePremiseEvidence` is
+conditional, which is why `Contract.lean` still differs between the packages by
+46 lines, of which the field is the only real one; the rest is declaration
+order, docstrings and `set_option`.
+
+The fix is to give the slot a fifth and sixth name — an `extraContextualTruth`
+and an `extraPremiseEvidence`, `True` by default, defined where
+`checkerExtraInvariant` is — and point both structures at them. That would make
+`RuleSupport/Contract.lean` byte-identical across the packages, retire the
+"decide both up front" coupling warning in section 5, and stop a binder-free
+calculus paying for binder machinery. It is the concrete form of TODO 3 and 4.
+
+Not attempted here: it changes `ContextualTruth`, which every rule proof sees
+through `StepRuleProperties`, so it needs the full two-hour build to validate
+even though only seven files name `true_in_var_model`.
+
+### 14. Unfork `Proofs/Common.lean`
+
+523 lines against CpcMini's 496 and 263 of them differing. A large part of that
+was the arm-numbering problem described
+[above](#the-hazard-that-broke-it-before-generated-arm-numbers) — Cpc wrote
+`__smtx_model_eval.eq_9` where CpcMini wrote `.eq_7` for the same arm — and
+that half is now gone: both files name the arms instead, and TODO 11 keeps them
+from regressing. What remains is genuine proof-text divergence plus Cpc's
+`TermCompat` import. Worth a pass now that the mechanical obstacle is removed;
+it is the last file of the checker layer that is forked for no stated reason.
 
 ## Cross-reference: the Eudaimonia roadmap
 
@@ -361,6 +536,31 @@ README (`and`, `imp`, `eq`, `not`, `Bool`, `true`, `false`) is stale — `eq` an
 `Invariants/Stability.lean` are necessity rather than duplication: Cpc carries
 the real `StableWhenTrueInAnyVarModel` machinery while CpcMini defines it
 `True`.
+
+### What came back, and what to send next (2026-08-30)
+
+Both corrections above were accepted there and verified rather than taken on
+trust. Two things arrived in return and are now acted on here:
+
+- **The signature contract check**, which they implemented first and which is
+  ported into `install/install-sig.sh` — TODO 8, now done. Their measurement
+  also corrected this document: `:right-assoc-nil true` is a conditional
+  requirement, not a flat one.
+- **`Proofs/Assumptions.lean` seeded from CpcMini's generic version**, which is
+  what makes it, rather than `Checker.lean`, the file to start TODO 12 on.
+
+One correction to send back: `docs/logos-experience-report.md` records
+`Cpc/Proofs/Checker.lean` as 1,063 lines. It is 901, and has been since the
+modularization in `ea3c7002`.
+
+And one finding they will want, because it is the kind of thing only visible
+from inside a working development: **do not let a proof name a generated
+equation-lemma arm by number.** The numbering is signature-dependent, it is how
+two of this repository's forks started, and the template is the right place to
+say so — see
+[the hazard](#the-hazard-that-broke-it-before-generated-arm-numbers). Their
+`templates/pkg/Proofs/` files carry exactly the kind of prose that should carry
+it.
 
 ## A note on mechanical file splitting
 
