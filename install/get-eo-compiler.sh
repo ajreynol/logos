@@ -24,7 +24,8 @@ it was built from, so that tree has to be fetched either way.
 
 The ethos commit is not an option. It is pinned in this script, so that what
 the compiler emits changes only when someone moves the pin deliberately. Move
-it by editing ETHOS_VERSION and re-running both scripts.
+it with the internal scripts/bump-eoc-version.py helper, then re-run this script
+and install/install-cpc.sh.
 
 Options:
   --deps-dir DIR       where to put everything (default: <install>/deps)
@@ -56,7 +57,7 @@ expand_tilde() {
 }
 
 # The pinned commit of cvc5/ethos this repository is regenerated against.
-# 78e993c1 is the head of ethosEoc3, which is where the model semantics are
+# ad59c954 is the head of ethosEoc3, which is where the model semantics are
 # compiled from a configuration -- install/defs/Cpc.eos here -- rather than
 # read from a file in the ethos tree. Moving the pin changes what the compiler
 # emits, so move it on purpose and rebuild the generated packages afterwards.
@@ -65,7 +66,7 @@ expand_tilde() {
 # belongs on a commit of ethos main; move it back once what this needs is
 # there. It is pinned to a commit of the branch rather than to the branch
 # itself, so that what the compiler emits still changes only on purpose.
-ETHOS_VERSION="78e993c19cbfa3a00fca34d9b626e35718ffb62c"
+ETHOS_VERSION="ad59c9542282e5aaee070f67c49bc26ff95fdd93"
 DEPS_DIR=""
 JOBS=""
 KEEP_TMP=0
