@@ -61,7 +61,7 @@ private theorem eo_to_smt_and_eq (A B : Term) :
 /-- Lemma about `eo_has_smt_translation_true`. -/
 private theorem eo_has_smt_translation_true :
     RuleProofs.eo_has_smt_translation (Term.Boolean true) := by
-  rw [RuleProofs.eo_has_smt_translation, eo_to_smt_true_eq, __smtx_typeof.eq_1]
+  rw [RuleProofs.eo_has_smt_translation, eo_to_smt_true_eq, RuleProofs.typeof_boolean_eq _]
   decide
 /-- Characterizes EO interpretation in terms of the translated SMT interpretation. -/
 theorem eo_interprets_iff_smt_interprets (M : SmtModel) (t : Term) (b : Bool) :
@@ -90,7 +90,8 @@ by
   intro h
   cases h with
   | intro_false hty _ =>
-      simp at hty
+      rw [RuleProofs.typeof_none_eq] at hty
+      cases hty
 /-- Lemma about `eo_interprets_stuck_true_absurd`. -/
 theorem eo_interprets_stuck_true_absurd (M : SmtModel) :
   ¬ eo_interprets M Term.Stuck true :=
@@ -99,7 +100,8 @@ by
   intro h
   cases h with
   | intro_true hty _ =>
-      simp at hty
+      rw [RuleProofs.typeof_none_eq] at hty
+      cases hty
 /-- Lemma about `eo_interprets_true_not_false`. -/
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :
   eo_interprets M t true ->
@@ -153,7 +155,7 @@ by
         exact (bool_binop_args_bool_of_non_none (op := SmtTerm.and)
           (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
       have hEvalA : __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false := by
-        rw [__smtx_model_eval.eq_9] at hEval
+        rw [RuleProofs.model_eval_and_eq] at hEval
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
@@ -195,7 +197,7 @@ by
             exact (bool_binop_args_bool_of_non_none (op := SmtTerm.and)
               (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
           have hEvalB : __smtx_model_eval M (__eo_to_smt B) = SmtValue.Boolean true := by
-            rw [__smtx_model_eval.eq_9] at hEvalAnd
+            rw [RuleProofs.model_eval_and_eq] at hEvalAnd
             cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
               simp [hEvalA, hBeval, __smtx_model_eval_and] at hEvalAnd
             case Boolean b =>
@@ -364,6 +366,23 @@ by
 /-- The combined guard used for assumptions and pushed assumptions. -/
 def assumptionCheckGuard (A : Term) : Term :=
   __eo_and (__eo_is_bool_type A) (__eo_is_closed A)
+/-!
+The three projections of the generated `__eo_StateObj_proven`.  They are `rfl`,
+but they are wanted as simp lemmas: `CheckerCore.lean` reasons about the term a
+state object carries and would otherwise have to unfold the generated function
+by name at every step.  `CStateObj` is part of the checker's state machine, so
+its constructors are the same whatever the calculus is.
+-/
+
+@[simp] private theorem stateObjProven_assume (A : Term) :
+    __eo_StateObj_proven (CStateObj.assume A) = A := rfl
+
+@[simp] private theorem stateObjProven_assume_push (A : Term) :
+    __eo_StateObj_proven (CStateObj.assume_push A) = A := rfl
+
+@[simp] private theorem stateObjProven_proven (P : Term) :
+    __eo_StateObj_proven (CStateObj.proven P) = P := rfl
+
 /-- Splits a successful assumption guard. -/
 theorem assumptionCheckGuard_eq_true_cases (A : Term) :
   assumptionCheckGuard A = Term.Boolean true ->

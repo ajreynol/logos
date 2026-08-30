@@ -36,6 +36,38 @@ namespace RuleProofs
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-!
+## Arms of the generated semantics, by name
+
+`__smtx_typeof.eq_<n>` and `__smtx_model_eval.eq_<n>` are the arm numbering the
+compiler happened to emit for one signature, and the numbering shifts when the
+operator set does: the `and` arm of `__smtx_model_eval` is `eq_9` in `Cpc` and
+`eq_7` in `CpcMini`.  A proof in the checker layer that names a number is
+reusable only by accident, so the three arms this layer needs are named here
+and the numbers are not used anywhere in it.  See `docs/modularity.md`.
+-/
+
+/-- The `Boolean` arm of the generated `__smtx_typeof`. -/
+theorem typeof_boolean_eq (b : Bool) :
+    __smtx_typeof (SmtTerm.Boolean b) = SmtType.Bool := by
+  rfl
+
+/-- The `None` arm of the generated `__smtx_typeof`. -/
+theorem typeof_none_eq :
+    __smtx_typeof SmtTerm.None = SmtType.None := by
+  rfl
+
+/-- The `Boolean` arm of the generated `__smtx_model_eval`. -/
+theorem model_eval_boolean_eq (M : SmtModel) (b : Bool) :
+    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
+  rfl
+
+/-- The `and` arm of the generated `__smtx_model_eval`. -/
+theorem model_eval_and_eq (M : SmtModel) (a b : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.and a b) =
+      __smtx_model_eval_and (__smtx_model_eval M a) (__smtx_model_eval M b) := by
+  rfl
+
 /-- Simplifies EO-to-SMT translation for `true`. -/
 private theorem eo_to_smt_true_eq :
     __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
@@ -62,9 +94,9 @@ theorem eo_interprets_true (M : SmtModel) :
   eo_interprets M (Term.Boolean true) true := by
   rw [eo_interprets_iff_smt_interprets, eo_to_smt_true_eq]
   have hTy : __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool := by
-    rw [__smtx_typeof.eq_1]
+    rw [typeof_boolean_eq]
   have hEval : __smtx_model_eval M (SmtTerm.Boolean true) = SmtValue.Boolean true := by
-    rw [__smtx_model_eval.eq_1]
+    rw [model_eval_boolean_eq]
   exact smt_interprets.intro_true M (SmtTerm.Boolean true) hTy hEval
 
 /-- Predicate asserting that translating an EO term yields a non-`None` SMT term. -/
@@ -78,13 +110,13 @@ def eo_has_bool_type (t : Term) : Prop :=
 /-- Shows that `Term.Boolean true` has an SMT translation. -/
 theorem eo_has_smt_translation_true :
   eo_has_smt_translation (Term.Boolean true) := by
-  rw [eo_has_smt_translation, eo_to_smt_true_eq, __smtx_typeof.eq_1]
+  rw [eo_has_smt_translation, eo_to_smt_true_eq, typeof_boolean_eq]
   decide
 
 /-- Shows that `Term.Boolean true` has translated SMT Boolean type. -/
 theorem eo_has_bool_type_true :
   eo_has_bool_type (Term.Boolean true) := by
-  rw [eo_has_bool_type, eo_to_smt_true_eq, __smtx_typeof.eq_1]
+  rw [eo_has_bool_type, eo_to_smt_true_eq, typeof_boolean_eq]
 
 /-- Derives `eo_has_bool_type` from `interprets_true`. -/
 theorem eo_has_bool_type_of_interprets_true (M : SmtModel) (t : Term) :
@@ -240,7 +272,7 @@ theorem eo_interprets_and_left (M : SmtModel) (A B : Term) :
         exact (bool_binop_args_bool_of_non_none (op := SmtTerm.and)
           (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).1
       have hEvalA : __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean true := by
-        rw [__smtx_model_eval.eq_9] at hEval
+        rw [model_eval_and_eq] at hEval
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
@@ -267,7 +299,7 @@ theorem eo_interprets_and_right (M : SmtModel) (A B : Term) :
         exact (bool_binop_args_bool_of_non_none (op := SmtTerm.and)
           (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
       have hEvalB : __smtx_model_eval M (__eo_to_smt B) = SmtValue.Boolean true := by
-        rw [__smtx_model_eval.eq_9] at hEval
+        rw [model_eval_and_eq] at hEval
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
@@ -291,7 +323,7 @@ theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
           apply smt_interprets.intro_true
           · rw [typeof_and_eq]
             simp [htyA, htyB, native_Teq, native_ite]
-          · rw [__smtx_model_eval.eq_9]
+          · rw [model_eval_and_eq]
             rw [hEvalA, hEvalB]
             simp [__smtx_model_eval_and, SmtEval.native_and]
 

@@ -24,6 +24,8 @@ open Eo
 open SmtEval
 open Smtm
 
+set_option linter.unusedVariables false
+set_option maxHeartbeats 0
 /-- Inductive predicate for assumption terms that are well-formed `and`-chains ending in `true`. -/
 inductive ValidAssumptionList : Term -> Prop
   | base : ValidAssumptionList (Term.Boolean true)
@@ -38,24 +40,29 @@ def stateOk : CState -> Prop
 /-- Simplifies EO-to-SMT translation for `true_eq`. -/
 private theorem eo_to_smt_true_eq :
     __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `false_eq`. -/
 private theorem eo_to_smt_false_eq :
     __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `stuck_eq`. -/
 private theorem eo_to_smt_stuck_eq :
     __eo_to_smt Term.Stuck = SmtTerm.None := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `and_eq`. -/
 private theorem eo_to_smt_and_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) =
       SmtTerm.and (__eo_to_smt A) (__eo_to_smt B) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
+/-- Lemma about `eo_has_smt_translation_true`. -/
+private theorem eo_has_smt_translation_true :
+    RuleProofs.eo_has_smt_translation (Term.Boolean true) := by
+  rw [RuleProofs.eo_has_smt_translation, eo_to_smt_true_eq, RuleProofs.typeof_boolean_eq _]
+  decide
 /-- Characterizes EO interpretation in terms of the translated SMT interpretation. -/
 theorem eo_interprets_iff_smt_interprets (M : SmtModel) (t : Term) (b : Bool) :
   eo_interprets M t b ↔ smt_interprets M (__eo_to_smt t) b :=
@@ -65,10 +72,7 @@ by
 theorem eo_interprets_true (M : SmtModel) :
   eo_interprets M (Term.Boolean true) true :=
 by
-  rw [eo_interprets_iff_smt_interprets, eo_to_smt_true_eq]
-  refine smt_interprets.intro_true M (SmtTerm.Boolean true) ?_ ?_
-  · simpa using Smtm.__smtx_typeof.eq_1 true
-  · simpa using Smtm.__smtx_model_eval.eq_1 M true
+  exact RuleProofs.eo_interprets_true M
 /-- Lemma about `eo_interprets_false_true_absurd`. -/
 theorem eo_interprets_false_true_absurd (M : SmtModel) :
   ¬ eo_interprets M (Term.Boolean false) true :=
@@ -77,8 +81,7 @@ by
   intro h
   cases h with
   | intro_true _ hEval =>
-      rw [Smtm.__smtx_model_eval.eq_1] at hEval
-      cases hEval
+      simp [__smtx_model_eval] at hEval
 /-- Lemma about `eo_interprets_stuck_false_absurd`. -/
 theorem eo_interprets_stuck_false_absurd (M : SmtModel) :
   ¬ eo_interprets M Term.Stuck false :=
@@ -87,9 +90,8 @@ by
   intro h
   cases h with
   | intro_false hty _ =>
-      have : SmtType.None = SmtType.Bool := by
-        simp [Smtm.__smtx_typeof.eq_def] at hty
-      cases this
+      rw [RuleProofs.typeof_none_eq] at hty
+      cases hty
 /-- Lemma about `eo_interprets_stuck_true_absurd`. -/
 theorem eo_interprets_stuck_true_absurd (M : SmtModel) :
   ¬ eo_interprets M Term.Stuck true :=
@@ -98,94 +100,33 @@ by
   intro h
   cases h with
   | intro_true hty _ =>
-      have : SmtType.None = SmtType.Bool := by
-        simp [Smtm.__smtx_typeof.eq_def] at hty
-      cases this
+      rw [RuleProofs.typeof_none_eq] at hty
+      cases hty
 /-- Lemma about `eo_interprets_true_not_false`. -/
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :
   eo_interprets M t true ->
   ¬ eo_interprets M t false :=
 by
-  intro hTrue hFalse
-  rw [eo_interprets_iff_smt_interprets] at hTrue hFalse
-  cases hTrue with
-  | intro_true hTyTrue hEvalTrue =>
-      cases hFalse with
-      | intro_false hTyFalse hEvalFalse =>
-          rw [hEvalTrue] at hEvalFalse
-          cases hEvalFalse
+  exact RuleProofs.eo_interprets_true_not_false M t
 /-- Left-projection lemma for `eo_interprets_and`. -/
 theorem eo_interprets_and_left (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) true ->
   eo_interprets M A true :=
 by
-  intro h
-  rw [eo_interprets_iff_smt_interprets] at h ⊢
-  rw [eo_to_smt_and_eq A B] at h
-  cases h with
-  | intro_true hty hEval =>
-      have htyA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
-        have hNN : term_has_non_none_type
-            (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
-          unfold term_has_non_none_type
-          rw [hty]
-          simp
-        exact
-          (bool_binop_args_bool_of_non_none
-            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).1
-      have hEvalA : __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean true := by
-        rw [Smtm.__smtx_model_eval.eq_7] at hEval
-        cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
-          cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
-          simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
-        case Boolean.Boolean a b =>
-          cases a <;> cases b <;> simp [SmtEval.native_and] at hEval
-          simp
-      exact smt_interprets.intro_true M (__eo_to_smt A) htyA hEvalA
+  exact RuleProofs.eo_interprets_and_left M A B
 /-- Right-projection lemma for `eo_interprets_and`. -/
 theorem eo_interprets_and_right (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) true ->
   eo_interprets M B true :=
 by
-  intro h
-  rw [eo_interprets_iff_smt_interprets] at h ⊢
-  rw [eo_to_smt_and_eq A B] at h
-  cases h with
-  | intro_true hty hEval =>
-      have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
-        have hNN : term_has_non_none_type
-            (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
-          unfold term_has_non_none_type
-          rw [hty]
-          simp
-        exact
-          (bool_binop_args_bool_of_non_none
-            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
-      have hEvalB : __smtx_model_eval M (__eo_to_smt B) = SmtValue.Boolean true := by
-        rw [Smtm.__smtx_model_eval.eq_7] at hEval
-        cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
-          cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
-          simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
-        case Boolean.Boolean a b =>
-          cases a <;> cases b <;> simp [SmtEval.native_and] at hEval
-          simp
-      exact smt_interprets.intro_true M (__eo_to_smt B) htyB hEvalB
+  exact RuleProofs.eo_interprets_and_right M A B
 /-- Introduction lemma for `eo_interprets_and`. -/
 theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
   eo_interprets M A true ->
   eo_interprets M B true ->
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) true :=
 by
-  intro hA hB
-  rw [eo_interprets_iff_smt_interprets] at hA hB ⊢
-  rw [eo_to_smt_and_eq A B]
-  cases hA with
-  | intro_true htyA hEvalA =>
-      cases hB with
-      | intro_true htyB hEvalB =>
-          apply smt_interprets.intro_true
-          · simp [Smtm.__smtx_typeof.eq_7, htyA, htyB, native_Teq, native_ite]
-          · simp [Smtm.__smtx_model_eval.eq_7, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
+  exact RuleProofs.eo_interprets_and_intro M A B
 /-- Derives `eo_interprets_and_false_left` from `right_not_false`. -/
 theorem eo_interprets_and_false_left_of_right_not_false (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) false ->
@@ -203,20 +144,18 @@ by
           unfold term_has_non_none_type
           rw [hty]
           simp
-        exact
-          (bool_binop_args_bool_of_non_none
-            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).1
+        exact (bool_binop_args_bool_of_non_none (op := SmtTerm.and)
+          (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).1
       have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
         have hNN : term_has_non_none_type
             (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [hty]
           simp
-        exact
-          (bool_binop_args_bool_of_non_none
-            (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
+        exact (bool_binop_args_bool_of_non_none (op := SmtTerm.and)
+          (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
       have hEvalA : __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean false := by
-        rw [Smtm.__smtx_model_eval.eq_7] at hEval
+        rw [RuleProofs.model_eval_and_eq] at hEval
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
@@ -255,11 +194,10 @@ by
               unfold term_has_non_none_type
               rw [htyAnd]
               simp
-            exact
-              (bool_binop_args_bool_of_non_none
-                (op := SmtTerm.and) (Smtm.__smtx_typeof.eq_7 (__eo_to_smt A) (__eo_to_smt B)) hNN).2
+            exact (bool_binop_args_bool_of_non_none (op := SmtTerm.and)
+              (typeof_and_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
           have hEvalB : __smtx_model_eval M (__eo_to_smt B) = SmtValue.Boolean true := by
-            rw [Smtm.__smtx_model_eval.eq_7] at hEvalAnd
+            rw [RuleProofs.model_eval_and_eq] at hEvalAnd
             cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
               simp [hEvalA, hBeval, __smtx_model_eval_and] at hEvalAnd
             case Boolean b =>
@@ -428,6 +366,13 @@ by
 /-- The combined guard used for assumptions and pushed assumptions. -/
 def assumptionCheckGuard (A : Term) : Term :=
   __eo_and (__eo_is_bool_type A) (__eo_is_closed A)
+/-!
+The three projections of the generated `__eo_StateObj_proven`.  They are `rfl`,
+but they are wanted as simp lemmas: `CheckerCore.lean` reasons about the term a
+state object carries and would otherwise have to unfold the generated function
+by name at every step.  `CStateObj` is part of the checker's state machine, so
+its constructors are the same whatever the calculus is.
+-/
 
 @[simp] private theorem stateObjProven_assume (A : Term) :
     __eo_StateObj_proven (CStateObj.assume A) = A := rfl
@@ -437,6 +382,7 @@ def assumptionCheckGuard (A : Term) : Term :=
 
 @[simp] private theorem stateObjProven_proven (P : Term) :
     __eo_StateObj_proven (CStateObj.proven P) = P := rfl
+
 /-- Splits a successful assumption guard. -/
 theorem assumptionCheckGuard_eq_true_cases (A : Term) :
   assumptionCheckGuard A = Term.Boolean true ->
@@ -448,8 +394,8 @@ by
     simp [__eo_and, hb, hc, native_and, __eo_requires, native_ite, native_teq] at h
   case Binary.Binary =>
     split at h <;> contradiction
-  case Boolean.Boolean b1 b2 =>
-    cases b1 <;> cases b2 <;> simp at h ⊢
+  case Boolean.Boolean b₁ b₂ =>
+    cases b₁ <;> cases b₂ <;> simp at h ⊢
 /-- Simplifies the successful checked assume push. -/
 theorem push_assume_check_true (A : Term) (s : CState) :
   __eo_push_assume_check (Term.Boolean true) A s =
@@ -775,11 +721,11 @@ by
       · subst hZero
         cases so with
         | assume A =>
-            simpa [__eo_state_proven_nth] using eo_interprets_and_left M A (stateAssumes s) hAss
+            simpa [__eo_state_proven_nth, __eo_StateObj_proven] using eo_interprets_and_left M A (stateAssumes s) hAss
         | assume_push A =>
-            simpa [__eo_state_proven_nth] using eo_interprets_and_left M A (statePushes s) hPush
+            simpa [__eo_state_proven_nth, __eo_StateObj_proven] using eo_interprets_and_left M A (statePushes s) hPush
         | proven A =>
-            simpa [__eo_state_proven_nth] using eo_interprets_and_left M A (stateProvens s) hProv
+            simpa [__eo_state_proven_nth, __eo_StateObj_proven] using eo_interprets_and_left M A (stateProvens s) hProv
       ·
         cases so with
         | assume A =>
@@ -1230,7 +1176,7 @@ by
                     have hTailSuffix : stateAssumptionSuffix s := by
                       simpa [stateAssumptionSuffix] using hSuffix
                     simpa [__eo_invoke_cmd, __eo_push_proven_check,
-                      stateAssumptionSuffix, hEq] using hTailSuffix
+                      hEq, stateAssumptionSuffix] using hTailSuffix
   | step r args premises =>
       intro hSuffix hOk
       cases s with
@@ -1429,8 +1375,7 @@ by
   have hCheckedOk : stateOk (__eo_invoke_cmd_check_proven S1 (Term.Boolean false)) :=
     stateOk_of_state_closed_true hClosed
   have hCheckedOk' : stateOk (__eo_invoke_cmd S1 (CCmd.check_proven (Term.Boolean false))) := by
-    cases hS1 : S1 <;>
-      simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, hS1] using hCheckedOk
+    cases hS1 : S1 <;> simpa [__eo_invoke_cmd, hS1, __eo_invoke_cmd_check_proven] using hCheckedOk
   have hFinalOk : stateOk S1 :=
     invoke_cmd_reflects_stateOk S1 (CCmd.check_proven (Term.Boolean false))
       hCheckedOk'
@@ -1449,8 +1394,7 @@ by
   have hCheckedOk : stateOk (__eo_invoke_cmd_check_proven S1 (Term.Boolean false)) :=
     stateOk_of_state_closed_true hClosed
   have hCheckedOk' : stateOk (__eo_invoke_cmd S1 (CCmd.check_proven (Term.Boolean false))) := by
-    cases hS1 : S1 <;>
-      simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, hS1] using hCheckedOk
+    cases hS1 : S1 <;> simpa [__eo_invoke_cmd, hS1, __eo_invoke_cmd_check_proven] using hCheckedOk
   simpa using invoke_cmd_reflects_stateOk S1 (CCmd.check_proven (Term.Boolean false)) hCheckedOk'
 /-- Shows that `eo_eq_false_true` implies `eq_false`. -/
 theorem eo_eq_false_true_implies_eq_false (t : Term) :

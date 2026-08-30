@@ -18,7 +18,7 @@ noncomputable def default_typed_model_of
           ∃ v : SmtValue, __smtx_typeof_value v = T ∧ value_canonical v) :
     SmtModel := by
   classical
- exact
+  exact
     { values := fun k =>
         if hWF : __smtx_type_wf k.ty = true then
           Classical.choose (hCan k.ty hWF)
