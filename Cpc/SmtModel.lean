@@ -528,12 +528,6 @@ def __smtx_type_wf_rec : SmtType -> native_Bool
   | U => true
 
 
-def __smtx_type_wf : SmtType -> native_Bool
-  | SmtType.RegLan => true
-  | (SmtType.FunType T U) => (native_and (__smtx_type_wf_component T) (__smtx_type_wf U))
-  | T => (__smtx_type_wf_component T)
-
-
 def __smtx_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.cons v vs) =>
     let _v0 := (__smtx_typeof_seq_value vs)
@@ -582,6 +576,15 @@ def __smtx_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
 def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
   | v1, v2 => (SmtValue.Boolean (native_veq v1 v2))
+
+
+def __smtx_type_wf_component (T : SmtType) : native_Bool :=
+  (native_and (native_inhabited_type T) (__smtx_type_wf_rec T))
+
+def __smtx_type_wf : SmtType -> native_Bool
+  | SmtType.RegLan => true
+  | (SmtType.FunType T U) => (native_and (__smtx_type_wf_component T) (__smtx_type_wf U))
+  | T => (__smtx_type_wf_component T)
 
 
 def __smtx_model_eval__at_purify (x : SmtValue) : SmtValue :=
@@ -1488,9 +1491,6 @@ def __smtx_decl_wf_rec (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> native_Bool
   | (SmtDatatypeDecl.cons s d ddF) => (native_and (__smtx_dt_wf_rec dd d) (native_and (native_inhabited_type (SmtType.Datatype s dd)) (native_and (__smtx_decl_wf_rec dd ddF) (native_not (__smtx_dd_has_dt s ddF)))))
   | SmtDatatypeDecl.nil => true
 
-
-def __smtx_type_wf_component (T : SmtType) : native_Bool :=
-  (native_and (native_inhabited_type T) (__smtx_type_wf_rec T))
 
 def __smtx_model_eval_set_singleton (x : SmtValue) : SmtValue :=
   (SmtValue.Set (SmtMap.cons x (SmtValue.Boolean true) (SmtMap.default (__smtx_typeof_value x) (SmtValue.Boolean false))))

@@ -229,12 +229,6 @@ def __smtx_type_wf_rec : SmtType -> native_Bool
   | U => true
 
 
-def __smtx_type_wf : SmtType -> native_Bool
-  | SmtType.RegLan => true
-  | (SmtType.FunType T U) => (native_and (__smtx_type_wf_component T) (__smtx_type_wf U))
-  | T => (__smtx_type_wf_component T)
-
-
 def __smtx_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.cons v vs) =>
     let _v0 := (__smtx_typeof_seq_value vs)
@@ -305,6 +299,12 @@ def __smtx_typeof_apply : SmtType -> SmtType -> SmtType
   | (SmtType.FunType T U), V => (__smtx_typeof_guard T (native_ite (native_Teq T V) U SmtType.None))
   | (SmtType.DtcAppType T U), V => (__smtx_typeof_guard T (native_ite (native_Teq T V) U SmtType.None))
   | T, U => SmtType.None
+
+
+def __smtx_type_wf : SmtType -> native_Bool
+  | SmtType.RegLan => true
+  | (SmtType.FunType T U) => (native_and (__smtx_type_wf_component T) (__smtx_type_wf U))
+  | T => (__smtx_type_wf_component T)
 
 
 def __smtx_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
