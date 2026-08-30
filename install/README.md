@@ -154,8 +154,10 @@ with `install/deps/`.
 ## Pinning
 
 The Ethos commit is not an option. It is hardcoded as `ETHOS_VERSION` in
-`get-eo-compiler.sh`. To move it, edit that line, re-run that script, and
-regenerate.
+`get-eo-compiler.sh`. For internal development only,
+`scripts/bump-eoc-version.py` moves it to the current head of `ethosEoc3` and
+copies that same revision's `tools/eoc/semantics/development-cpc.eos` into the
+authoritative `install/defs/Cpc.eos`. Then re-run `get-eo-compiler.sh`.
 
 The Eunoia signature that Logos is compiled against is pinned by copy:
 `install/defs/Cpc.cached.eo` is the one the packages were compiled from, and
