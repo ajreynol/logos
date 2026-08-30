@@ -118,6 +118,21 @@ def __eo_to_smt_reserved_datatype_name (s : native_String) : native_Bool :=
 
 mutual
 
+def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
+  | DatatypeCons.unit => SmtDatatypeCons.unit
+  | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
+
+
+def __eo_to_smt_datatype : Datatype -> SmtDatatype
+  | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
+  | Datatype.null => SmtDatatype.null
+
+
+def __eo_to_smt_datatype_decl : DatatypeDecl -> SmtDatatypeDecl
+  | (DatatypeDecl.cons s d dd) => (SmtDatatypeDecl.cons s (__eo_to_smt_datatype d) (__eo_to_smt_datatype_decl dd))
+  | DatatypeDecl.nil => SmtDatatypeDecl.nil
+
+
 def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) => (SmtTerm.and (SmtTerm.not (SmtTerm.eq s (__eo_to_smt x))) (__eo_to_smt_distinct_pairs s xs))
   | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) => (SmtTerm.Boolean true)
@@ -174,21 +189,6 @@ def __eo_to_smt_quantifiers_skolemize : Term -> SmtTerm -> native_Nat -> SmtTerm
     let _v0 := (__eo_to_smt_type T)
     (__eo_to_smt_quantifiers_skolemize vs (SmtTerm.bind s _v0 (SmtTerm.choice s _v0 (__eo_to_smt_exists vs G)) G) n)
   | vs, G, t => SmtTerm.None
-
-
-def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
-  | DatatypeCons.unit => SmtDatatypeCons.unit
-  | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
-
-
-def __eo_to_smt_datatype : Datatype -> SmtDatatype
-  | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
-  | Datatype.null => SmtDatatype.null
-
-
-def __eo_to_smt_datatype_decl : DatatypeDecl -> SmtDatatypeDecl
-  | (DatatypeDecl.cons s d dd) => (SmtDatatypeDecl.cons s (__eo_to_smt_datatype d) (__eo_to_smt_datatype_decl dd))
-  | DatatypeDecl.nil => SmtDatatypeDecl.nil
 
 
 def __eo_to_smt_type : Term -> SmtType
