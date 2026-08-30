@@ -31,7 +31,7 @@ ETHOS_CPC = "tools/eoc/semantics/development-cpc.eos"
 COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 PIN_RE = re.compile(r'(?m)^ETHOS_VERSION="([0-9a-f]{40})"$')
 PIN_COMMENT_RE = re.compile(
-    r"(?m)^# [0-9a-f]{8} is the head of ethosEoc3, which is where the model semantics are$"
+    r"(?m)^# [0-9a-f]{8} is the head of ethosEoc3, the temporary development branch\.$"
 )
 
 # The upstream file describes itself as an Ethos test fixture.  Once copied
@@ -47,9 +47,7 @@ LOGOS_OWNERSHIP = """\
 ; This is the semantics of CPC and this file is where it lives. The development
 ; copy under tools/eoc/semantics in the ethos tree is also a compiler fixture;
 ; scripts/bump-eoc-version.py synchronizes this file from that copy when the
-; pinned development compiler is advanced. install/install-cpc.sh names this
-; file when it compiles, so what is changed here is what the generated Cpc and
-; CpcMini mean.
+; pinned development compiler is advanced.
 """
 
 
@@ -114,7 +112,7 @@ def updated_pin(source: str, commit: str) -> str:
     if len(PIN_COMMENT_RE.findall(source)) != 1:
         raise BumpError(f"expected exactly one ethosEoc3 pin comment in {PIN_FILE}")
     return PIN_COMMENT_RE.sub(
-        f"# {commit[:8]} is the head of ethosEoc3, which is where the model semantics are",
+        f"# {commit[:8]} is the head of ethosEoc3, the temporary development branch.",
         source,
     )
 
@@ -166,7 +164,7 @@ def main(argv: list[str]) -> int:
     print(f"{'updated' if pin_changed else 'unchanged'}: {PIN_FILE.relative_to(REPO_ROOT)}")
     print(f"{'updated' if cpc_changed else 'unchanged'}: {CPC_FILE.relative_to(REPO_ROOT)}")
     if pin_changed or cpc_changed:
-        print("Next: install/get-eo-compiler.sh, then regenerate Cpc and CpcMini.")
+        print("Next: install/get-eo-compiler.sh")
     return 0
 
 

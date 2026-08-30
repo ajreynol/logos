@@ -8,9 +8,7 @@
 ; This is the semantics of CPC and this file is where it lives. The development
 ; copy under tools/eoc/semantics in the ethos tree is also a compiler fixture;
 ; scripts/bump-eoc-version.py synchronizes this file from that copy when the
-; pinned development compiler is advanced. install/install-cpc.sh names this
-; file when it compiles, so what is changed here is what the generated Cpc and
-; CpcMini mean.
+; pinned development compiler is advanced.
 
 ; This is a configuration of the eoc pipeline rather than anything a stage of it
 ; reads. tools/eoc/sem_compile.py compiles it, before any stage runs, into

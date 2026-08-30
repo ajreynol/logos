@@ -24,8 +24,7 @@ it was built from, so that tree has to be fetched either way.
 
 The ethos commit is not an option. It is pinned in this script, so that what
 the compiler emits changes only when someone moves the pin deliberately. Move
-it with the internal scripts/bump-eoc-version.py helper, then re-run this script
-and install/install-cpc.sh.
+it with the internal scripts/bump-eoc-version.py helper, then re-run this script.
 
 Options:
   --deps-dir DIR       where to put everything (default: <install>/deps)
@@ -56,11 +55,8 @@ expand_tilde() {
   esac
 }
 
-# The pinned commit of cvc5/ethos this repository is regenerated against.
-# 52bba671 is the head of ethosEoc3, which is where the model semantics are
-# compiled from a configuration -- install/defs/Cpc.eos here -- rather than
-# read from a file in the ethos tree. Moving the pin changes what the compiler
-# emits, so move it on purpose and rebuild the generated packages afterwards.
+# The pinned commit of cvc5/ethos used to build the Eunoia compiler.
+# 52bba671 is the head of ethosEoc3, the temporary development branch.
 #
 # TODO: this is a workaround. ethosEoc3 is a development branch, and the pin
 # belongs on a commit of ethos main; move it back once what this needs is
