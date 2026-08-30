@@ -2,8 +2,9 @@
 """Internal-use-only helper for advancing Logos to the development EOC.
 
 The development compiler is temporarily taken from cvc5/ethos's ``ethosEoc3``
-branch.  Advance the pinned commit to that branch's current head and synchronize
-Logos's CPC semantics with the development copy from the same commit.
+branch. Advance the pinned commit to that branch's current head, synchronize
+Logos's CPC semantics with the development copy from the same commit, build the
+compiler, and regenerate CPC from the cached signature.
 """
 
 from __future__ import annotations
@@ -22,6 +23,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PIN_FILE = REPO_ROOT / "install" / "get-eo-compiler.sh"
 CPC_FILE = REPO_ROOT / "install" / "defs" / "Cpc.eos"
+GET_EO_COMPILER = REPO_ROOT / "install" / "get-eo-compiler.sh"
+INSTALL_CPC = REPO_ROOT / "install" / "install-cpc.sh"
 
 ETHOS_REMOTE = "https://github.com/cvc5/ethos.git"
 ETHOS_RAW = "https://raw.githubusercontent.com/cvc5/ethos"
@@ -138,11 +141,25 @@ def replace_file(path: Path, source: str) -> bool:
     return True
 
 
+def run_step(description: str, command: list[str]) -> None:
+    """Run one setup step with its output connected to this process."""
+    print(f"\n==> {description}", flush=True)
+    try:
+        subprocess.run(command, cwd=REPO_ROOT, check=True)
+    except FileNotFoundError as error:
+        raise BumpError(f"could not run {command[0]}: file not found") from error
+    except subprocess.CalledProcessError as error:
+        raise BumpError(
+            f"{description} failed with exit status {error.returncode}"
+        ) from error
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Internal use only: pin EOC to the head of ethosEoc3 and copy its "
-            "development CPC semantics into Logos."
+            "development CPC semantics into Logos, build the compiler, and "
+            "regenerate CPC from the cached signature."
         )
     )
     return parser.parse_args(argv)
@@ -156,15 +173,24 @@ def main(argv: list[str]) -> int:
         pin_source = updated_pin(PIN_FILE.read_text(encoding="utf-8"), commit)
         pin_changed = replace_file(PIN_FILE, pin_source)
         cpc_changed = replace_file(CPC_FILE, cpc_source)
+        print(f"ethosEoc3: {commit}")
+        print(
+            f"{'updated' if pin_changed else 'unchanged'}: "
+            f"{PIN_FILE.relative_to(REPO_ROOT)}"
+        )
+        print(
+            f"{'updated' if cpc_changed else 'unchanged'}: "
+            f"{CPC_FILE.relative_to(REPO_ROOT)}"
+        )
+        run_step("Building the pinned EOC compiler", [str(GET_EO_COMPILER)])
+        run_step(
+            "Regenerating CPC from the cached signature",
+            [str(INSTALL_CPC), "--cached"],
+        )
     except (BumpError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
 
-    print(f"ethosEoc3: {commit}")
-    print(f"{'updated' if pin_changed else 'unchanged'}: {PIN_FILE.relative_to(REPO_ROOT)}")
-    print(f"{'updated' if cpc_changed else 'unchanged'}: {CPC_FILE.relative_to(REPO_ROOT)}")
-    if pin_changed or cpc_changed:
-        print("Next: install/get-eo-compiler.sh")
     return 0
 
 
