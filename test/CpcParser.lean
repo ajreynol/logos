@@ -41,6 +41,11 @@ produce the same terms in the two spellings.
 #guard assumptions "(assume @p0 (extract 1 0 #b1010))" ==
   assumptions "(assume @p0 ((_ extract 1 0) #b1010))"
 
+-- Eunoia marks a curried application with `_`, so `(extract 1 0)` in head
+-- position is not the indexed operator.  Reading it as one accepted proofs
+-- Ethos refuses to parse, which is what `((extract 1 0) a)` provoked.
+#guard assumptions "(assume @p0 ((extract 1 0) #b1010))" == none
+
 #guard assumptions "(assume @p0 (@bit 0 #b1))" ==
   assumptions "(assume @p0 ((_ @bit 0) #b1))"
 
@@ -136,5 +141,24 @@ private def overloadPrelude : String :=
 #guard assumptions (datatypePrelude ++ "(declare-const is (-> D Bool))
      (assume @p0 (is a d))") ==
   assumptions (datatypePrelude ++ "(assume @p0 (is a d))")
+
+/-!
+## The order of assume and step
+
+A proof is read as an assumption set together with the steps that refute it, so
+every `assume` stands before the first proof step.  Ethos accepts one anywhere;
+`docs/parser.md` records the difference.
+-/
+
+-- The same three commands, differing only in where the `assume` stands.
+#guard (assumptions
+    "(declare-const x Bool)
+     (assume @p0 x)
+     (step @p1 :rule evaluate :args ((not true)))").isSome
+
+#guard assumptions
+    "(declare-const x Bool)
+     (step @p1 :rule evaluate :args ((not true)))
+     (assume @p0 x)" == none
 
 end Cpc.Parser.Tests

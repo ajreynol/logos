@@ -187,6 +187,12 @@ private def gTy : TestTerm := arrow (.usort 1) (arrow (.usort 1) (.usort 1))
 #guard assumptions (binary ++ "(assume @p0 (indexed a b))") ==
   assumptions (binary ++ "(assume @p0 ((_ indexed a) b))")
 
+-- Eunoia marks a curried application with `_`, so a parenthesized head that
+-- does not is rejected rather than read as one; Ethos refuses the same file.
+#guard assumptions (binary ++ "(assume @p0 ((g a) b))") == none
+#guard assumptions (binary ++ "(assume @p0 (_ (_ g a) b))") ==
+  assumptions (binary ++ "(assume @p0 (g a b))")
+
 -- `let` bindings are parallel, and their scope ends after the body.
 #guard assumptions (binary ++
     "(assume @p0 (let ((a b) (b a)) (g a b))) (assume @p1 (g a b))") ==
