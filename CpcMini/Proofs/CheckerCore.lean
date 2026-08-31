@@ -449,16 +449,14 @@ by
       intro n hAss hPush
       exact checkerLocalTruthInvariant_at M hs n hAss hPush
 /-- Describes `checkerLocalTruthInvariant` after `assume_list`. -/
-theorem checkerLocalTruthInvariant_after_assume_list (M : SmtModel) (F : Term) :
-  ValidAssumptionList F ->
+theorem checkerLocalTruthInvariant_after_assume_list (M : SmtModel) (F : CArgList) :
   checkerLocalTruthInvariant M (__eo_invoke_assume_list CState.nil F)
 :=
 by
-  intro hValid
-  induction hValid with
-  | base =>
+  induction F with
+  | nil =>
       simp [__eo_invoke_assume_list, checkerLocalTruthInvariant]
-  | step A rest hRest ih =>
+  | cons A rest ih =>
       by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
       · change checkerLocalTruthInvariant M
           (__eo_push_input_assume_check (assumptionCheckGuard A) A
@@ -473,17 +471,16 @@ by
           (__eo_invoke_assume_list CState.nil rest) hGuard]
         exact checkerLocalTruthInvariant_stuck M
 /-- Describes `checkerTypeInvariant` after `assume_list`. -/
-theorem checkerTypeInvariant_after_assume_list (F : Term) :
-  ValidAssumptionList F ->
+theorem checkerTypeInvariant_after_assume_list (F : CArgList) :
   stateOk (__eo_invoke_assume_list CState.nil F) ->
   checkerTypeInvariant (__eo_invoke_assume_list CState.nil F)
 :=
 by
-  intro hValid hOk
-  induction hValid with
-  | base =>
+  intro hOk
+  induction F with
+  | nil =>
       simp [__eo_invoke_assume_list, checkerTypeInvariant]
-  | step A rest hRest ih =>
+  | cons A rest ih =>
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
@@ -507,16 +504,18 @@ by
             checkerTypeInvariant (__eo_invoke_assume_list CState.nil rest) from
           ⟨hTy, ih hRestOk⟩)
 /-- Describes `checkerTranslationInvariant` after `assume_list`. -/
-theorem checkerTranslationInvariant_after_assume_list (F : Term) :
+theorem checkerTranslationInvariant_after_assume_list (F : CArgList) :
   TranslatableAssumptionList F ->
   checkerTranslationInvariant (__eo_invoke_assume_list CState.nil F)
 :=
 by
-  intro hTrans
-  induction hTrans with
-  | base =>
+  induction F with
+  | nil =>
+      intro _
       simp [__eo_invoke_assume_list, checkerTranslationInvariant]
-  | step A rest hA hRest ih =>
+  | cons A rest ih =>
+      intro hTrans
+      obtain ⟨hA, hRestTrans⟩ := hTrans
       by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
       · change checkerTranslationInvariant
           (__eo_push_input_assume_check (assumptionCheckGuard A) A
@@ -526,7 +525,7 @@ by
         simpa [checkerTranslationInvariant] using
           (show RuleProofs.eo_has_smt_translation A ∧
               checkerTranslationInvariant (__eo_invoke_assume_list CState.nil rest) from
-            ⟨hA, ih⟩)
+            ⟨hA, ih hRestTrans⟩)
       · change checkerTranslationInvariant
           (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest))
@@ -721,19 +720,18 @@ by
       checkerTruthInvariant_at M hs
         (native_zplus n (native_zneg 1)) hAss' hPush'
 /-- Describes `checkerTruthInvariant` after `assume_list`. -/
-theorem checkerTruthInvariant_after_assume_list (M : SmtModel) (F : Term) :
-  ValidAssumptionList F ->
+theorem checkerTruthInvariant_after_assume_list (M : SmtModel) (F : CArgList) :
   stateOk (__eo_invoke_assume_list CState.nil F) ->
   checkerTruthInvariant M (__eo_invoke_assume_list CState.nil F)
 :=
 by
-  intro hValid hOk
+  intro hOk
   have hNotStuck :
       __eo_invoke_assume_list CState.nil F ≠ CState.Stuck :=
     stateOk_not_stuck hOk
   have hProvens :
       stateProvens (__eo_invoke_assume_list CState.nil F) = Term.Boolean true :=
-    stateProvens_invoke_assume_list hValid hOk
+    stateProvens_invoke_assume_list hOk
   cases hS : __eo_invoke_assume_list CState.nil F with
   | nil =>
       intro n hAss hPush
@@ -756,26 +754,25 @@ by
   | Stuck =>
       exact False.elim (hNotStuck hS)
 /-- Describes `checkerStateInvariant` after `assume_list`. -/
-theorem checkerStateInvariant_after_assume_list (M : SmtModel) (F : Term) :
-  ValidAssumptionList F ->
+theorem checkerStateInvariant_after_assume_list (M : SmtModel) (F : CArgList) :
   stateOk (__eo_invoke_assume_list CState.nil F) ->
   TranslatableAssumptionList F ->
   extraAssumptionListOk M F ->
   checkerStateInvariant M (__eo_invoke_assume_list CState.nil F)
 :=
 by
-  intro hValid hOk hTrans hStable
+  intro hOk hTrans hStable
   exact ⟨
-    checkerShapeInvariant_of_suffix (stateAssumptionSuffix_invoke_assume_list hValid hOk),
-    checkerLocalTruthInvariant_after_assume_list M F hValid,
+    checkerShapeInvariant_of_suffix (stateAssumptionSuffix_invoke_assume_list hOk),
+    checkerLocalTruthInvariant_after_assume_list M F,
     checkerExtraInvariant_after_assume_list M F hStable,
-    checkerTypeInvariant_after_assume_list F hValid hOk,
+    checkerTypeInvariant_after_assume_list F hOk,
     checkerTranslationInvariant_after_assume_list F hTrans
   ⟩
 /-- Derives `refutation_contradiction` from `truthInvariant`. -/
 theorem refutation_contradiction_of_truthInvariant
-    (M : SmtModel) (F : Term) (pf : CCmdList) :
-  eo_interprets M F true ->
+    (M : SmtModel) (F : CArgList) (pf : CCmdList) :
+  eo_interprets M (argListAssumes F) true ->
   checkerTruthInvariant M (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) ->
   (__eo_checker_is_refutation F pf) = true ->
   False :=
@@ -784,9 +781,9 @@ by
   let S1 := __eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf
   rcases final_state_shape_of_checker_true F pf hChecker with ⟨s, hShape, hClosed⟩
   have hAssumes : eo_interprets M (stateAssumes (CState.cons (CStateObj.proven (Term.Boolean false)) s)) true := by
-    have hAssumesEq : stateAssumes S1 = F := by
+    have hAssumesEq : stateAssumes S1 = argListAssumes F := by
       simpa [S1] using stateAssumes_of_checker_true F pf hChecker
-    have hAssumesEqS : stateAssumes s = F := by
+    have hAssumesEqS : stateAssumes s = argListAssumes F := by
       simpa [S1, hShape, stateAssumes] using hAssumesEq
     simpa [stateAssumes, hAssumesEqS] using hF
   have hPushes : eo_interprets M (statePushes (CState.cons (CStateObj.proven (Term.Boolean false)) s)) true := by

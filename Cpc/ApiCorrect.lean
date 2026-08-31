@@ -11,7 +11,7 @@ public section
 # Soundness of the `logos` executable
 
 `correct___eo_is_refutation` (`Cpc/Proofs/Checker.lean`) is stated about an
-assumption term `F`, a `CCmdList`, and two side conditions.  The theorems below
+assumption list `F`, a `CCmdList`, and two side conditions.  The theorems below
 restate it about what the executable actually runs:
 `Eo.logos_check_proof` (`Cpc/Api.lean`), which takes the text of a proof file to
 the word `logos` prints for it.
@@ -42,16 +42,20 @@ Each of the three checks `logos_verdict` runs discharges one hypothesis of
 `correct___eo_is_refutation`, with no proof obligation left to the caller:
 
 * `logos_check_translatableAssumptionList assums` gives
-  `TranslatableAssumptionList (logos_assumption_term assums)`,
+  `TranslatableAssumptionList (logos_assumption_arglist assums)`,
 * `logos_check_cmdListTranslationOk cmds` gives `CmdListTranslationOk cmds`,
 * `logos_check_refutation assums cmds` gives
-  `eo_is_refutation (logos_assumption_term assums) cmds`.
+  `eo_is_refutation (logos_assumption_arglist assums) cmds`.
+
+`logos_assumption_term assums` is `argListAssumes (logos_assumption_arglist assums)`
+by definition, so the conclusion is the one the theorem gives, with no step in
+between.
 -/
 theorem correct___logos_verdict (assums : List Term) (cmds : CCmdList)
     (h : logos_verdict assums cmds = Verdict.correct) :
     eo_satisfiability (logos_assumption_term assums) false := by
   obtain ⟨hRefutation, hAssums, hCmds⟩ := checks_of_verdict_correct assums cmds h
-  exact correct___eo_is_refutation (logos_assumption_term assums) cmds
+  exact correct___eo_is_refutation (logos_assumption_arglist assums) cmds
     (translatableAssumptionList_of_check assums hAssums)
     (cmdListTranslationOk_of_check cmds hCmds)
     (eo_is_refutation_of_check assums cmds hRefutation)

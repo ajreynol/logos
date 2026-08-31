@@ -632,9 +632,10 @@ SPEC_MODULE="${LEAN_DIR}/Spec.lean"
 # 1. An operator named `and`.
 #
 #    Soundness is stated about the conjunction of a proof's assumptions:
-#    `__eo_invoke_assume_list` walks the input problem as `(and F rest)`
-#    terminated by `true`, and `stateAssumes` / `statePushes` / `stateProvens`
-#    fold the checker stack the same way. Those name the operator directly.
+#    `__eo_invoke_assume_list` walks the input problem as a `CArgList`, and
+#    `argListAssumes` folds that list -- like `stateAssumes` / `statePushes` /
+#    `stateProvens` fold the checker stack -- into the `and`-chain the theorem
+#    concludes about. Those name the operator directly.
 if [ -f "${TERM_MODULE}" ] && \
    ! grep -qE "^[[:space:]]*\|[[:space:]]+and[[:space:]]*:[[:space:]]*UserOp\b" "${TERM_MODULE}"; then
   contract_errors+=("no operator \`and\`, which the soundness statement is about")
