@@ -10470,21 +10470,19 @@ def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState
 def __eo_state_is_refutation (s : CState) : native_Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
 
-def __eo_invoke_assume_list (S : CState) : Term -> CState
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) => (__eo_push_input_assume_check (__eo_and (__eo_is_bool_type F) (__eo_is_closed F)) F (__eo_invoke_assume_list S as))
-  | (Term.Boolean true) => S
-  | as => CState.Stuck
+def __eo_invoke_assume_list (S : CState) : CArgList -> CState
+  | CArgList.nil => S
+  | (CArgList.cons F as) => (__eo_push_input_assume_check (__eo_and (__eo_is_bool_type F) (__eo_is_closed F)) F (__eo_invoke_assume_list S as))
 
 
-def __eo_checker_is_refutation : Term -> CCmdList -> native_Bool
-  | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
-
+def __eo_checker_is_refutation (as : CArgList) (cs : CCmdList) : native_Bool :=
+  (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
 
 
 
 /- Definition of refutation -/
-inductive eo_is_refutation : Term -> CCmdList -> Prop
-  | intro (F : Term) (c : CCmdList) :
+inductive eo_is_refutation : CArgList -> CCmdList -> Prop
+  | intro (F : CArgList) (c : CCmdList) :
     (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 
 
