@@ -220,11 +220,39 @@ inductive SmtValue : Type where
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
-Regular languages. Base elements are SmtValue, which allows regular
-expression operations to be defined uniformly over the same (unpacked)
-sequence representation used by the sequence operations. Well-formed
-regular languages carry only valid character values as base elements, which
-is what __smtx_re_canonical decides, in SmtModel.
+The SmtDatatype of the embedding.
+-/
+inductive SmtDatatype : Type where
+  | null : SmtDatatype
+  | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+The SmtDatatypeCons of the embedding.
+-/
+inductive SmtDatatypeCons : Type where
+  | unit : SmtDatatypeCons
+  | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+The SmtDatatypeDecl of the embedding.
+-/
+inductive SmtDatatypeDecl : Type where
+  | nil : SmtDatatypeDecl
+  | cons : native_String -> SmtDatatype -> SmtDatatypeDecl -> SmtDatatypeDecl
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+The SmtMap of the embedding.
+-/
+inductive SmtMap : Type where
+  | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
+  | default : SmtType -> SmtValue -> SmtMap
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+The SmtRegLan of the embedding.
 -/
 inductive SmtRegLan : Type where
   | empty : SmtRegLan
@@ -240,44 +268,14 @@ inductive SmtRegLan : Type where
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
-SMT-LIB map values.
--/
-inductive SmtMap : Type where
-  | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
-  | default : SmtType -> SmtValue -> SmtMap
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB sequence values.
+The SmtSeq of the embedding.
 -/
 inductive SmtSeq : Type where
   | cons : SmtValue -> SmtSeq -> SmtSeq
   | empty : SmtType -> SmtSeq
 deriving Repr, DecidableEq, Inhabited, Ord
 
-/-
-SMT-LIB datatype declarations.
--/
-inductive SmtDatatypeDecl : Type where
-  | nil : SmtDatatypeDecl
-  | cons : native_String -> SmtDatatype -> SmtDatatypeDecl -> SmtDatatypeDecl
-deriving Repr, DecidableEq, Inhabited, Ord
 
-/-
-SMT-LIB datatypes.
--/
-inductive SmtDatatype : Type where
-  | null : SmtDatatype
-  | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-SMT-LIB datatype constructors.
--/
-inductive SmtDatatypeCons : Type where
-  | unit : SmtDatatypeCons
-  | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
-deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 
