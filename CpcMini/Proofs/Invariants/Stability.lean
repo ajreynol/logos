@@ -37,13 +37,13 @@ theorem stableWhenTrueInAnyVarModel_of_closed
   StableWhenTrueInAnyVarModel P :=
 by
   trivial
-/-- Assumptions in an input formula remain true under variable-model changes. -/
-inductive StableAssumptionList (M : SmtModel) : Term -> Prop
-  | base : StableAssumptionList M (Term.Boolean true)
-  | step (A rest : Term) :
+/-- Every assumption of an input list remains true under variable-model changes. -/
+inductive StableAssumptionList (M : SmtModel) : CArgList -> Prop
+  | base : StableAssumptionList M CArgList.nil
+  | step (A : Term) (rest : CArgList) :
       StableWhenTrueInAnyVarModel A ->
       StableAssumptionList M rest ->
-      StableAssumptionList M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
+      StableAssumptionList M (CArgList.cons A rest)
 /-- The model-dependent stability side condition for commands that introduce assumptions. -/
 def cmdAssumptionStabilityOk (_M : SmtModel) : CCmd -> Prop
   | CCmd.assume_push A => StableWhenTrueInAnyVarModel A
@@ -140,7 +140,7 @@ by
           simpa [checkerAssumptionStabilityInvariant] using ih
 /-- Describes `checkerAssumptionStabilityInvariant` after `assume_list`. -/
 theorem checkerAssumptionStabilityInvariant_after_assume_list
-    (M : SmtModel) (F : Term) :
+    (M : SmtModel) (F : CArgList) :
   StableAssumptionList M F ->
   checkerAssumptionStabilityInvariant M (__eo_invoke_assume_list CState.nil F)
 :=
@@ -169,18 +169,17 @@ by
         exact checkerAssumptionStabilityInvariant_stuck M
 /-- A successful checked input-assumption pass yields stable assumptions. -/
 theorem stableAssumptionList_of_stateOk_assume_list (M : SmtModel) :
-  forall {F : Term},
-    ValidAssumptionList F ->
+  forall {F : CArgList},
     stateOk (__eo_invoke_assume_list CState.nil F) ->
     StableAssumptionList M F
 :=
 by
-  intro F hValid
-  induction hValid with
-  | base =>
+  intro F
+  induction F with
+  | nil =>
       intro hOk
       exact StableAssumptionList.base
-  | step A rest hRest ih =>
+  | cons A rest ih =>
       intro hOk
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
@@ -449,7 +448,7 @@ abbrev CmdListExtraOk (M : SmtModel) (cs : CCmdList) : Prop :=
   CmdListAssumptionStabilityOk M cs
 
 /-- The extra side condition on an input assumption list. -/
-abbrev extraAssumptionListOk (M : SmtModel) (F : Term) : Prop :=
+abbrev extraAssumptionListOk (M : SmtModel) (F : CArgList) : Prop :=
   StableAssumptionList M F
 
 /-- Describes `checkerExtraInvariant` on the stuck state. -/
@@ -458,14 +457,13 @@ theorem checkerExtraInvariant_stuck (M : SmtModel) :
   checkerAssumptionStabilityInvariant_stuck M
 
 /-- Describes `checkerExtraInvariant` after `assume_list`. -/
-theorem checkerExtraInvariant_after_assume_list (M : SmtModel) (F : Term) :
+theorem checkerExtraInvariant_after_assume_list (M : SmtModel) (F : CArgList) :
   extraAssumptionListOk M F ->
   checkerExtraInvariant M (__eo_invoke_assume_list CState.nil F) :=
   checkerAssumptionStabilityInvariant_after_assume_list M F
 
 /-- A successful checked input-assumption pass yields `extraAssumptionListOk`. -/
-theorem extraAssumptionListOk_of_stateOk_assume_list (M : SmtModel) {F : Term} :
-  ValidAssumptionList F ->
+theorem extraAssumptionListOk_of_stateOk_assume_list (M : SmtModel) {F : CArgList} :
   stateOk (__eo_invoke_assume_list CState.nil F) ->
   extraAssumptionListOk M F :=
   stableAssumptionList_of_stateOk_assume_list M

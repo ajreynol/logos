@@ -32,19 +32,22 @@ correctness theorem is about the assumptions *as parsed*, whatever they are.
 component of `correct___eo_is_refutation` (`Cpc/Proofs/Checker.lean`):
 
 ```
-theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+theorem correct___eo_is_refutation (F : CArgList) (pf : CCmdList) :
   TranslatableAssumptionList F ->
   CmdListTranslationOk pf ->
   (eo_is_refutation F pf) ->
-  eo_satisfiability F false
+  eo_satisfiability (argListAssumes F) false
 ```
 
 | component of the theorem        | computed here by                           |
 | ------------------------------- | ------------------------------------------ |
-| the term `F`                    | `logos_assumption_term assums`             |
+| the list `F`                    | `logos_assumption_arglist assums`          |
 | `eo_is_refutation F pf`         | `logos_check_refutation assums cmds`       |
 | `TranslatableAssumptionList F`  | `logos_check_translatableAssumptionList`   |
 | `CmdListTranslationOk pf`       | `logos_check_cmdListTranslationOk`         |
+
+`logos_assumption_term assums` is `argListAssumes` of that list: the formula the
+correctness of the executable is ultimately about.
 
 Nothing here is trusted: `Cpc/ApiChecks.lean` proves that each check gives the
 component it stands for, and `Cpc/ApiCorrect.lean` assembles those into
@@ -66,37 +69,49 @@ open Smtm
 
 namespace Eo
 
-/-! ## The assumptions the parser produced, as one formula -/
+/-! ## The assumptions the parser produced, as the checker's input list -/
 
-/-- One link of the assumption chain: `A` conjoined onto the assumptions already read. -/
-def logos_assumption_chain_step (rest A : Term) : Term :=
-  Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest
+/-- One link of the assumption list: `A` in front of the assumptions already read. -/
+def logos_assumption_list_step (rest : CArgList) (A : Term) : CArgList :=
+  CArgList.cons A rest
 
 /--
-The conjunction of the parser's assumptions: the term `F` of
-`correct___eo_is_refutation`, and the term the correctness of the executable is
-ultimately about.
+The parser's assumptions as the checker takes them: the `F` of
+`correct___eo_is_refutation`.
 
-The order is not the obvious one.  `__eo_invoke_assume_list` consumes an
-`and`-chain by pushing its head *last*, so the head of the chain ends up on top
-of the proof stack.  The parser numbers premises against a stack whose *first*
-assumption is at the bottom (`registerStep` and `parsePremise` in
-`Logos/Parser.lean`), so the chain that matches the parser's numbering lists the
-assumptions in reverse file order: for assumptions `A1 ... An` this builds
+The order is not the obvious one.  `__eo_invoke_assume_list` consumes the list by
+pushing its head *last*, so the head ends up on top of the proof stack.  The
+parser numbers premises against a stack whose *first* assumption is at the bottom
+(`registerStep` and `parsePremise` in `Logos/Parser.lean`), so the list that
+matches the parser's numbering holds the assumptions in reverse file order: for
+assumptions `A1 ... An` this builds
 
-    (and An (and A(n-1) ... (and A1 true) ... ))
+    [An, A(n-1), ..., A1]
 
 which `__eo_invoke_assume_list` pushes as `A1` first and `An` on top.  Building
-the chain the other way round cannot silently accept a bad proof -- premise
+the list the other way round cannot silently accept a bad proof -- premise
 indices then resolve to the wrong stack entries and the checker rejects -- but
 it would make the theorem talk about a different `F`.
 
-Nothing at run time builds this term: `logos_check_refutation` folds over the
-parser's list instead, and `invoke_assume_list_eq_fold` (`Cpc/ApiChecks.lean`)
-proves the two agree.
+Nothing at run time builds this list either: `logos_check_refutation` folds the
+guarded push over the parser's list instead, and `invoke_assume_list_eq_fold`
+(`Cpc/ApiChecks.lean`) proves the two agree.
+-/
+def logos_assumption_arglist (assums : List Term) : CArgList :=
+  assums.foldl logos_assumption_list_step CArgList.nil
+
+/--
+The conjunction of the parser's assumptions: the term the correctness of the
+executable is ultimately about.
+
+`correct___eo_is_refutation` concludes `eo_satisfiability (argListAssumes F) false`
+for the list `F` it was run on, and this is that term for the list the parser
+produced -- for assumptions `A1 ... An`,
+
+    (and An (and A(n-1) ... (and A1 true) ... ))
 -/
 def logos_assumption_term (assums : List Term) : Term :=
-  assums.foldl logos_assumption_chain_step (Term.Boolean true)
+  argListAssumes (logos_assumption_arglist assums)
 
 /--
 The checker state a run starts in: nothing assumed, nothing proven.
@@ -110,7 +125,7 @@ def logos_checker_init_state : CState := CState.nil
 
 /--
 Push one input assumption, applying the well-formedness guard that
-`__eo_invoke_assume_list` applies to each element of the `and`-chain: the
+`__eo_invoke_assume_list` applies to each element of the input list: the
 assumption must be Boolean-typed and closed, or the state goes `Stuck`.
 
 The guard is not cosmetic:
@@ -137,9 +152,9 @@ has proven `false`.  `logos_check_refutation_eq_checker` (`Cpc/ApiChecks.lean`)
 proves
 
     logos_check_refutation assums cmds
-      = __eo_checker_is_refutation (logos_assumption_term assums) cmds
+      = __eo_checker_is_refutation (logos_assumption_arglist assums) cmds
 
-so this returning `true` is exactly `eo_is_refutation (logos_assumption_term assums) cmds`.
+so this returning `true` is exactly `eo_is_refutation (logos_assumption_arglist assums) cmds`.
 The fold needs no stack, while `__eo_invoke_assume_list` recurses once per
 assumption.
 -/
@@ -150,7 +165,7 @@ def logos_check_refutation (assums : List Term) (cmds : CCmdList) : Bool :=
 /--
 Every assumption has an SMT-LIB translation.  `translatableAssumptionList_of_check`
 (`Cpc/ApiChecks.lean`) turns this into `TranslatableAssumptionList
-(logos_assumption_term assums)`, the first hypothesis of
+(logos_assumption_arglist assums)`, the first hypothesis of
 `correct___eo_is_refutation`.
 -/
 def logos_check_translatableAssumptionList (assums : List Term) : Bool :=

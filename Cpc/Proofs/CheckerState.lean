@@ -26,11 +26,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 0
-/-- Inductive predicate for assumption terms that are well-formed `and`-chains ending in `true`. -/
-inductive ValidAssumptionList : Term -> Prop
-  | base : ValidAssumptionList (Term.Boolean true)
-  | step (A rest : Term) : ValidAssumptionList rest ->
-      ValidAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 /-- Predicate asserting that a checker state is structurally well-formed and not `Stuck`. -/
 def stateOk : CState -> Prop
   | CState.nil => True
@@ -745,16 +740,16 @@ by
               ih (native_zplus n (native_zneg 1)) hAss hPush hProvTail
 /-- Describes `stateAssumptionTail` after `invoke_assume_list`. -/
 theorem stateAssumptionTail_invoke_assume_list :
-  forall {F : Term}, ValidAssumptionList F ->
+  forall {F : CArgList},
     stateOk (__eo_invoke_assume_list CState.nil F) ->
     stateAssumptionTail (__eo_invoke_assume_list CState.nil F)
 :=
 by
-  intro F hValid hOk
-  induction hValid with
-  | base =>
+  intro F hOk
+  induction F with
+  | nil =>
       simp [__eo_invoke_assume_list, stateAssumptionTail]
-  | step A rest hRest ih =>
+  | cons A rest ih =>
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
@@ -772,25 +767,25 @@ by
       simpa [stateAssumptionTail] using ih hRestOk
 /-- Describes `stateAssumptionSuffix` after `invoke_assume_list`. -/
 theorem stateAssumptionSuffix_invoke_assume_list :
-  forall {F : Term}, ValidAssumptionList F ->
+  forall {F : CArgList},
     stateOk (__eo_invoke_assume_list CState.nil F) ->
     stateAssumptionSuffix (__eo_invoke_assume_list CState.nil F)
 :=
 by
-  intro F hValid hOk
-  exact stateAssumptionSuffix_of_tail (stateAssumptionTail_invoke_assume_list hValid hOk)
+  intro F hOk
+  exact stateAssumptionSuffix_of_tail (stateAssumptionTail_invoke_assume_list hOk)
 /-- Describes `stateAssumes` after `invoke_assume_list`. -/
 theorem stateAssumes_invoke_assume_list :
-  forall {F : Term}, ValidAssumptionList F ->
+  forall {F : CArgList},
     stateOk (__eo_invoke_assume_list CState.nil F) ->
-    stateAssumes (__eo_invoke_assume_list CState.nil F) = F
+    stateAssumes (__eo_invoke_assume_list CState.nil F) = argListAssumes F
 :=
 by
-  intro F hValid hOk
-  induction hValid with
-  | base =>
-      simp [__eo_invoke_assume_list, stateAssumes]
-  | step A rest hRest ih =>
+  intro F hOk
+  induction F with
+  | nil =>
+      simp [__eo_invoke_assume_list, stateAssumes, argListAssumes]
+  | cons A rest ih =>
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
@@ -804,21 +799,21 @@ by
       change stateAssumes
           (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) =
-        Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest
+        Term.Apply (Term.Apply (Term.UOp UserOp.and) A) (argListAssumes rest)
       rw [hPushEq]
       simpa [stateAssumes] using ih hRestOk
 /-- Describes `statePushes` after `invoke_assume_list`. -/
 theorem statePushes_invoke_assume_list :
-  forall {F : Term}, ValidAssumptionList F ->
+  forall {F : CArgList},
     stateOk (__eo_invoke_assume_list CState.nil F) ->
     statePushes (__eo_invoke_assume_list CState.nil F) = Term.Boolean true
 :=
 by
-  intro F hValid hOk
-  induction hValid with
-  | base =>
+  intro F hOk
+  induction F with
+  | nil =>
       simp [__eo_invoke_assume_list, statePushes]
-  | step A rest hRest ih =>
+  | cons A rest ih =>
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
@@ -837,16 +832,16 @@ by
       simpa [statePushes] using ih hRestOk
 /-- Describes `stateProvens` after `invoke_assume_list`. -/
 theorem stateProvens_invoke_assume_list :
-  forall {F : Term}, ValidAssumptionList F ->
+  forall {F : CArgList},
     stateOk (__eo_invoke_assume_list CState.nil F) ->
     stateProvens (__eo_invoke_assume_list CState.nil F) = Term.Boolean true
 :=
 by
-  intro F hValid hOk
-  induction hValid with
-  | base =>
+  intro F hOk
+  induction F with
+  | nil =>
       simp [__eo_invoke_assume_list, stateProvens]
-  | step A rest hRest ih =>
+  | cons A rest ih =>
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
@@ -901,44 +896,6 @@ by
           cases hClosed
       | proven A =>
           simpa [__eo_state_is_closed, statePushes] using ih hClosed
-/-- Derives `validAssumptionList` from `stateOk_assume_list`. -/
-theorem validAssumptionList_of_stateOk_assume_list :
-  forall {F : Term}, stateOk (__eo_invoke_assume_list CState.nil F) -> ValidAssumptionList F
-:=
-by
-  intro F hOk
-  cases F with
-  | Boolean b =>
-      cases b with
-      | false =>
-          simp [__eo_invoke_assume_list, stateOk] at hOk
-      | true =>
-          exact ValidAssumptionList.base
-  | Apply f a =>
-      cases f with
-      | Apply g lhs =>
-          cases g with
-          | UOp op =>
-              cases op with
-              | and =>
-                  have hPushOk :
-                      stateOk (__eo_push_input_assume_check (assumptionCheckGuard lhs) lhs
-                        (__eo_invoke_assume_list CState.nil a)) := by
-                    simpa [__eo_invoke_assume_list, assumptionCheckGuard] using hOk
-                  have hRestOk :
-                      stateOk (__eo_invoke_assume_list CState.nil a) :=
-                    push_input_assume_reflects_stateOk lhs
-                      (__eo_invoke_assume_list CState.nil a) hPushOk
-                  exact ValidAssumptionList.step lhs a
-                    (validAssumptionList_of_stateOk_assume_list hRestOk)
-              | _ =>
-                  simp [__eo_invoke_assume_list, stateOk] at hOk
-          | _ =>
-              simp [__eo_invoke_assume_list, stateOk] at hOk
-      | _ =>
-          simp [__eo_invoke_assume_list, stateOk] at hOk
-  | _ =>
-      simp [__eo_invoke_assume_list, stateOk] at hOk
 /-- Derives `invoke_cmd_step_pop` from `assumptionTail`. -/
 theorem invoke_cmd_step_pop_of_assumptionTail :
   forall (s cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
@@ -1362,28 +1319,8 @@ by
                   ih (__eo_invoke_cmd s c) hStepSuffix
                     (by simpa [__eo_invoke_cmd_list] using hOk)
         _ = stateAssumes s := hStepAssumes
-/-- Derives `validAssumptionList` from `checker_true`. -/
-theorem validAssumptionList_of_checker_true (F : Term) (pf : CCmdList) :
-  (__eo_checker_is_refutation F pf) = true ->
-  ValidAssumptionList F :=
-by
-  intro hChecker
-  let S0 := __eo_invoke_assume_list CState.nil F
-  let S1 := __eo_invoke_cmd_list S0 pf
-  have hClosed : __eo_state_is_closed (__eo_invoke_cmd_check_proven S1 (Term.Boolean false)) = true := by
-    simpa [__eo_checker_is_refutation, __eo_state_is_refutation, S0, S1] using hChecker
-  have hCheckedOk : stateOk (__eo_invoke_cmd_check_proven S1 (Term.Boolean false)) :=
-    stateOk_of_state_closed_true hClosed
-  have hCheckedOk' : stateOk (__eo_invoke_cmd S1 (CCmd.check_proven (Term.Boolean false))) := by
-    cases hS1 : S1 <;> simpa [__eo_invoke_cmd, hS1, __eo_invoke_cmd_check_proven] using hCheckedOk
-  have hFinalOk : stateOk S1 :=
-    invoke_cmd_reflects_stateOk S1 (CCmd.check_proven (Term.Boolean false))
-      hCheckedOk'
-  have hInitOk : stateOk S0 := by
-    simpa [S1] using invoke_cmd_list_reflects_stateOk S0 pf hFinalOk
-  simpa [S0] using validAssumptionList_of_stateOk_assume_list hInitOk
 /-- Derives `final_stateOk` from `checker_true`. -/
-theorem final_stateOk_of_checker_true (F : Term) (pf : CCmdList) :
+theorem final_stateOk_of_checker_true (F : CArgList) (pf : CCmdList) :
   (__eo_checker_is_refutation F pf) = true ->
   stateOk (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) :=
 by
@@ -1404,7 +1341,7 @@ by
   intro hEq
   cases t <;> simp [__eo_eq, native_teq] at hEq ⊢ <;> assumption
 /-- Derives `final_state_shape` from `checker_true`. -/
-theorem final_state_shape_of_checker_true (F : Term) (pf : CCmdList) :
+theorem final_state_shape_of_checker_true (F : CArgList) (pf : CCmdList) :
   (__eo_checker_is_refutation F pf) = true ->
   ∃ s : CState,
     __eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf =
@@ -1441,23 +1378,22 @@ by
                 refine ⟨s, ?_, hClosed⟩
                 simp [S1, hS1]
 /-- Derives `stateAssumes` from `checker_true`. -/
-theorem stateAssumes_of_checker_true (F : Term) (pf : CCmdList) :
+theorem stateAssumes_of_checker_true (F : CArgList) (pf : CCmdList) :
   (__eo_checker_is_refutation F pf) = true ->
-  stateAssumes (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) = F :=
+  stateAssumes (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) =
+    argListAssumes F :=
 by
   intro hChecker
   let S0 := __eo_invoke_assume_list CState.nil F
   let S1 := __eo_invoke_cmd_list S0 pf
-  have hValid : ValidAssumptionList F :=
-    validAssumptionList_of_checker_true F pf hChecker
   have hS1Ok : stateOk S1 := by
     simpa [S1, S0] using final_stateOk_of_checker_true F pf hChecker
   have hS0Ok : stateOk S0 := by
     simpa [S1] using invoke_cmd_list_reflects_stateOk S0 pf hS1Ok
   have hShape0 : stateAssumptionSuffix S0 := by
-    simpa [S0] using stateAssumptionSuffix_invoke_assume_list hValid hS0Ok
+    simpa [S0] using stateAssumptionSuffix_invoke_assume_list hS0Ok
   calc
     stateAssumes S1 = stateAssumes S0 := by
       simpa [S1] using stateAssumes_invoke_cmd_list S0 pf hShape0 hS1Ok
-    _ = F := by
-      simpa [S0] using stateAssumes_invoke_assume_list hValid hS0Ok
+    _ = argListAssumes F := by
+      simpa [S0] using stateAssumes_invoke_assume_list hS0Ok
