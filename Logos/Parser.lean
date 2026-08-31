@@ -304,7 +304,9 @@ structure DatatypeOps (T : Type) where
   mkRef : String → T
   /--
   The bindings (one per sort, constructor and selector) introduced by a block.
-  The datatypes and their constructors are in declaration order.
+  The constructors of a datatype, and the selectors of a constructor, are in
+  declaration order; the datatypes are in the order `productiveOrder` settled
+  on, which need not be the one they were declared in.
   -/
   mkDecls : List (DatatypeSpec T) → Option (List (String × T))
 
@@ -683,6 +685,67 @@ def parseConsSpec (cfg : Config T R C CL) : Sexp → ParserM T (ConsSpec T)
   | s => throw s!"Error: expected a datatype constructor, got {s}"
 
 /--
+The datatypes of the block that one constructor's fields reference.  A field
+references one of them exactly when its type is written as the bare name of a
+datatype of the block: those become the block's type references, and they are
+the only fields the specification follows to witness a datatype.
+-/
+private def consRefs (names : List String) : Sexp → List String
+  | .expr (_ :: sels) =>
+    sels.filterMap fun
+      | .expr [_, .atom ty] => if names.contains ty then some ty else none
+      | _ => none
+  | _ => []
+
+/-- `consRefs` of each constructor of one datatype body. -/
+private def bodyRefs (names : List String) : Sexp → List (List String)
+  | .expr ctors => ctors.map (consRefs names)
+  | _ => []
+
+/--
+Whether a datatype whose constructors reference `ctors` can be given a value
+using only the datatypes in `placed`: one of its constructors has to reference
+nothing outside them.
+-/
+private def witnessableBy (placed : List String) (ctors : List (List String)) : Bool :=
+  ctors.any fun refs => refs.all placed.contains
+
+/--
+The order a `declare-datatypes` block has to be given in, as a permutation of
+the positions of `dts`, which pairs each datatype's name with the references of
+each of its constructors.
+
+The specification witnesses a datatype only through references to entries
+declared *later* in its block (`smt_type_default`, see
+`docs/smt-model-definitions.pdf`), so a block that declares a datatype before
+the ones witnessing it has no inhabited datatype at all, and then every type it
+declares is ill-formed -- including the ones that are witnessed, since
+well-formedness of a datatype asks it of the whole block.  Nothing else about a
+block depends on the order it is written in, so the parser puts it in one that
+works.
+
+Datatypes are ranked by the round in which they become witnessable: those with
+a constructor referencing nothing else in the block are rank 1, those witnessed
+by rank-1 datatypes are rank 2, and so on.  Listing them by *decreasing* rank is
+productive, because a datatype's witnessing constructor references strictly
+lower ranks only, which then come after it.  Ranks are found by saturation, one
+round per pass, which needs no more passes than there are datatypes.  Equal
+ranks keep the order they were written in, so a block that is already in a
+productive order is left exactly as it was.  Datatypes that never become
+witnessable have no finite value; they are left at the front, being rejected
+whatever the order.
+-/
+private def productiveOrder (dts : List (String × List (List String))) : List Nat :=
+  go dts.length [] dts.zipIdx []
+where
+  go : Nat → List String → List ((String × List (List String)) × Nat) → List Nat → List Nat
+    | 0, _, remaining, order => remaining.map (·.2) ++ order
+    | fuel + 1, placed, remaining, order =>
+      let (ready, rest) := remaining.partition fun d => witnessableBy placed d.1.2
+      if ready.isEmpty then remaining.map (·.2) ++ order
+      else go fuel (placed ++ ready.map (·.1.1)) rest (ready.map (·.2) ++ order)
+
+/--
 Parse a `declare-datatypes` block and bind the sorts, constructors and selectors
 it introduces.
 -/
@@ -704,7 +767,10 @@ def parseDatatypes (cfg : Config T R C CL) (sorts bodies : List Sexp) : ParserM 
     let constructors ← ctors.mapM (parseConsSpec cfg)
     return ({ name, constructors } : DatatypeSpec T)
   modify fun s => { s with terms := saved }
-  let some bindings := dtOps.mkDecls specs
+  -- The block is built in an order that witnesses its datatypes, which is not
+  -- necessarily the one it was written in; see `productiveOrder`.
+  let order := productiveOrder (names.zip (bodies.map (bodyRefs names)))
+  let some bindings := dtOps.mkDecls (order.filterMap (specs[·]?))
     | throw s!"Error: could not build the declaration of {String.intercalate ", " names}"
   modify fun s =>
     { s with terms := bindings.foldl (fun m (n, t) => m.insert n (t :: m.getD n [])) s.terms }

@@ -1352,11 +1352,14 @@ height \code{h} has fields whose smallest values have height below \code{h},
 placing them later in that order.
 Assuming a productive order is therefore without loss of generality.
 
-The definitions do not perform that reordering, however, and neither does
-anything upstream of them: both front ends carry a declaration block through in
-the order the input wrote it, so the assumption is not in fact discharged.
-A block that is well-founded but written in another order is rejected, and it
-is rejected \emph{as a whole}.
+The definitions do not perform that reordering, however.
+It is discharged upstream of them instead, and only for one of the two front
+ends: the parser of the s-expression front end sorts a declaration block into a
+productive order before building it (\code{productiveOrder} in
+\code{Logos/Parser.lean}), which is sound but unverified, being part of the
+front end rather than of the checker.
+A block that reaches these definitions in another order is rejected, and it is
+rejected \emph{as a whole}.
 Since \code{smt_decl_wf_rec} (Section~\ref{sec:type-wf}) requires
 \code{inhabited_type} of every datatype of the block, a single datatype whose
 references all point earlier makes every type of the block ill-formed,
@@ -1372,6 +1375,9 @@ For example, of the two SMT-LIB declarations
 which declare the same two datatypes, the first is accepted and the second is
 rejected, and in the second neither \code{Tree} nor \code{TreeList} is a
 well-formed type.
+A proof file writing the second is accepted nonetheless, since the parser
+rewrites it into the first; a Lean-native proof script naming the second
+directly is not.
 Note this limitation is unrelated to the exclusion of nested recursion
 described in Section~\ref{sec:type-wf}: a datatype such as
 \code{(declare-datatypes ((T 0)) (((mk (s (Seq T))))))} likewise has no
