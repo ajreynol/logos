@@ -1332,6 +1332,66 @@ yielding \code{(Apply (DtCons "A" DD 0) (DtCons "B" DD 1))}.
 For self references such as the \code{listc} constructor of \code{List},
 the failing reference simply forces the choice of a
 non-recursive constructor (\code{listn}).
+This treatment of field references imposes a requirement on the \emph{order}
+of a declaration block that is stronger than well-foundedness.
+Say that a block is in \emph{productive order} when every datatype it declares
+has a constructor whose type references all name datatypes declared strictly
+later in the block.
+Only blocks in productive order have inhabited datatypes by the definitions
+above, whereas the notion we intend to capture --- that each datatype of the
+block has a finite value --- does not depend on the order in which the block
+was written.
+The two notions coincide only up to reordering.
+For a block whose recursion goes exclusively through direct constructor fields,
+which is the only form of recursion these definitions admit (see
+Section~\ref{sec:type-wf}),
+every datatype has a finite value iff \emph{some} permutation of the block is
+in productive order: sorting the datatypes by decreasing height of their
+smallest value gives one, since the constructor witnessing a smallest value of
+height \code{h} has fields whose smallest values have height below \code{h},
+placing them later in that order.
+Assuming a productive order is therefore without loss of generality.
+
+The definitions do not perform that reordering, however, and neither does
+anything upstream of them: both front ends carry a declaration block through in
+the order the input wrote it, so the assumption is not in fact discharged.
+A block that is well-founded but written in another order is rejected, and it
+is rejected \emph{as a whole}.
+Since \code{smt_decl_wf_rec} (Section~\ref{sec:type-wf}) requires
+\code{inhabited_type} of every datatype of the block, a single datatype whose
+references all point earlier makes every type of the block ill-formed,
+including those datatypes that do have a default value.
+For example, of the two SMT-LIB declarations
+\begin{examplecode}
+(declare-datatypes ((Tree 0) (TreeList 0))
+  (((node (children TreeList))) ((tlistn) (tlistc (head Tree) (tail TreeList)))))
+
+(declare-datatypes ((TreeList 0) (Tree 0))
+  (((tlistn) (tlistc (head Tree) (tail TreeList))) ((node (children TreeList)))))
+\end{examplecode}
+which declare the same two datatypes, the first is accepted and the second is
+rejected, and in the second neither \code{Tree} nor \code{TreeList} is a
+well-formed type.
+Note this limitation is unrelated to the exclusion of nested recursion
+described in Section~\ref{sec:type-wf}: a datatype such as
+\code{(declare-datatypes ((T 0)) (((mk (s (Seq T))))))} likewise has no
+well-formed type here, but for a different reason, and no reordering admits it.
+
+Note also that the specification is not uniform in this respect.
+Finiteness of a datatype is decided by the fixpoint computation
+\code{smt_datatype_decl_bounded} described above, which does not depend on the
+order of the block, whereas inhabitedness is decided by the suffix walk of
+\code{smt_type_default}, which does.
+The two therefore disagree: for the block above written with \code{TreeList}
+first, \code{smt_is_finite_type} of a datatype of the block is unchanged by
+the reordering while \code{inhabited_type} of it becomes false.
+Reformulating \code{smt_type_default} as a fixpoint of the same shape, so that
+a reference resolves against the declarations already known to have a default
+value rather than against the suffix, would remove the ordering requirement;
+the cost is that the recursion is then no longer structural in the block, and
+so needs a termination argument of the kind \code{smt_datatype_decl_bounded}
+already carries.
+
 
 The other definitions of default values are trivial.
 Maps and sets use a default (constant) map, where maps store the default
@@ -1354,6 +1414,9 @@ succeeds in generating a value of that type,
 where recall that the type of values can be computed by the method \code{smt_typeof_value}.
 Note that any datatype that is not well-founded (i.e. does not have finite values)
 will be such that \code{smt_type_default} fails to return a value of that sort.
+The converse does not hold: as discussed above, \code{smt_type_default} also
+fails on a well-founded datatype whose declaration block is not in productive
+order.
 It is important to note that the definition of \code{inhabited_type}
 could alternatively have been defined by a native Lean binder,
 i.e. a type is inhabited iff there exists a value having that type.
@@ -1497,6 +1560,7 @@ For the remaining composite SMT-LIB values, we simply traverse their structure
 and confirm that all values they are built from are also canonical.
 
 \subsection{Well-Formedness of Types}
+\label{sec:type-wf}
 
 \begin{figure}
 \begin{lstlisting}

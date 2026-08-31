@@ -38,6 +38,13 @@ in the body is reported at the use site, and a recursive `define` is rejected.  
 without parameters is read where it is given, as before.
 Datatypes may be mutually recursive; parametric datatypes (a non-zero arity, or a `par` body)
 are rejected, since Logos has no representation for them.
+A `declare-datatypes` block is passed on in the order it was written, and the order matters:
+the specification only witnesses a datatype through references to entries declared *later* in
+its block (`smt_type_default`, `docs/smt-model-definitions.tex`), so a block that is
+well-founded but not in that "productive" order is not rejected here — it parses, and every
+type of the block then has no SMT-LIB translation, which the executable reports as
+`incomplete`.  Reordering such a block is always possible and would not change what it means,
+but neither this parser nor the native front end does it.
 The conclusion printed on a `step` is ignored, since Logos recomputes it from the rule.
 
 ## Terms
