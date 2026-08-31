@@ -114,9 +114,11 @@ The checker layer hard-codes a small number of SMT-LIB symbols. Eunoia does not
 guarantee these exist; your signature must declare them.
 
 - **`and`.** `stateAssumes` / `statePushes` / `stateProvens` fold the checker
-  stack with it (`Proofs/CheckerState.lean`); `__eo_invoke_assume_list` parses
-  the input problem as an `and`-chain terminated by `true`; and the conclusion
-  `eo_satisfiability F false` is a statement about that chain.
+  stack with it (`Proofs/CheckerState.lean`), and `argListAssumes` folds the
+  input assumption list with it (`Proofs/Assumptions.lean`); the conclusion
+  `eo_satisfiability (argListAssumes F) false` is a statement about that chain.
+  `__eo_invoke_assume_list` itself does not name the operator: it walks the
+  input problem as a `CArgList`.
 - **`:right-assoc-nil true` on `and`, but only if your rules need it.** This
   document used to state the attribute as a flat requirement. It is not one.
   Compiling CPC with `and` declared as a plain binary operator leaves
@@ -171,9 +173,9 @@ work and it scales with how many SMT theories you take on: 228 lines of
 
 ### 4. `cmdTranslationOk`
 
-`Proofs/Assumptions.lean`. Seed it from **CpcMini's** 44-line version, whose
+`Proofs/Assumptions.lean`. Seed it from **CpcMini's** 64-line version, whose
 `cmdTranslationOk` is generic (`| CCmd.step _ args _ => cArgListTranslationOk args`)
-and names no rule. Cpc's 257-line version is a hand-maintained specialization —
+and names no rule. Cpc's 277-line version is a hand-maintained specialization —
 see TODO 1.
 
 ### 5. Optionally, an extra invariant
@@ -186,7 +188,7 @@ locally true", supply it through the slot in
 abbrev checkerExtraInvariant (M : SmtModel) (s : CState) : Prop := ...
 abbrev cmdExtraOk            (M : SmtModel) (c : CCmd)    : Prop := ...
 abbrev CmdListExtraOk        (M : SmtModel) (cs : CCmdList) : Prop := ...
-abbrev extraAssumptionListOk (M : SmtModel) (F : Term)    : Prop := ...
+abbrev extraAssumptionListOk (M : SmtModel) (F : CArgList) : Prop := ...
 ```
 
 plus `invoke_cmd_preserves_extraInvariant_nonstuck`. `Checker.lean` is written
@@ -208,7 +210,7 @@ Ordered by value to a second consumer.
 
 ### 1. Make `cmdTranslationOk` per-rule and generated
 
-`Cpc/Proofs/Assumptions.lean` is a 257-line hand-maintained table naming 32
+`Cpc/Proofs/Assumptions.lean` is a 277-line hand-maintained table naming 32
 individual CPC rules. It is the **only** hand-written non-rule file that
 mentions a rule, and it appears in the hypothesis of the top-level
 `correct___eo_is_refutation`.

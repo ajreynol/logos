@@ -833,17 +833,17 @@ by
 /-- A checked, translatable assumption list translates to a Boolean-typed SMT term.
 The Boolean typing comes from the checker's assumption guard (via `stateOk`); translatability
 alone only guarantees a non-`None` translation. -/
-theorem eo_has_bool_type_of_translatableAssumptionList (F : Term) :
+theorem eo_has_bool_type_of_translatableAssumptionList (F : CArgList) :
   TranslatableAssumptionList F ->
   stateOk (__eo_invoke_assume_list CState.nil F) ->
-  RuleProofs.eo_has_bool_type F := by
-  intro hF
-  induction hF with
-  | base =>
-      intro _
+  RuleProofs.eo_has_bool_type (argListAssumes F) := by
+  induction F with
+  | nil =>
+      intro _ _
       exact RuleProofs.eo_has_bool_type_true
-  | step A rest hA hRest ih =>
-      intro hOk
+  | cons A rest ih =>
+      intro hF hOk
+      obtain ⟨hA, hRestTrans⟩ := hF
       have hPushOk :
           stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
@@ -856,34 +856,34 @@ theorem eo_has_bool_type_of_translatableAssumptionList (F : Term) :
       have hRestOk : stateOk (__eo_invoke_assume_list CState.nil rest) :=
         push_input_assume_reflects_stateOk A
           (__eo_invoke_assume_list CState.nil rest) hPushOk
-      exact RuleProofs.eo_has_bool_type_and_of_bool_args A rest
-        (RuleProofs.eo_typeof_bool_implies_has_bool_type A hA hTyA) (ih hRestOk)
+      exact RuleProofs.eo_has_bool_type_and_of_bool_args A (argListAssumes rest)
+        (RuleProofs.eo_typeof_bool_implies_has_bool_type A hA hTyA)
+        (ih hRestTrans hRestOk)
 
 /- correctness theorem for the checker -/
 /-- Main soundness theorem showing that a successful checker run yields an EO refutation. -/
-theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+theorem correct___eo_is_refutation (F : CArgList) (pf : CCmdList) :
   TranslatableAssumptionList F ->
   CmdListTranslationOk pf ->
   (eo_is_refutation F pf) ->
-  eo_satisfiability F false :=
+  eo_satisfiability (argListAssumes F) false :=
 by
   intro hFTrans hPfTrans hRef
-  have hNoInterp : forall M : SmtModel, model_wf M -> ¬ (eo_interprets M F true) := by
+  have hNoInterp :
+      forall M : SmtModel, model_wf M -> ¬ (eo_interprets M (argListAssumes F) true) := by
     intro M hM hF
     cases hRef with
     | intro hChecker =>
         let S0 := __eo_invoke_assume_list CState.nil F
         let S1 := __eo_invoke_cmd_list S0 pf
-        have hValid : ValidAssumptionList F :=
-          validAssumptionList_of_checker_true F pf hChecker
         have hS1Ok : stateOk S1 := by
           simpa [S0, S1] using final_stateOk_of_checker_true F pf hChecker
         have hS0Ok : stateOk S0 := by
           simpa [S1] using invoke_cmd_list_reflects_stateOk S0 pf hS1Ok
         have hFStable : extraAssumptionListOk M F :=
-          extraAssumptionListOk_of_stateOk_assume_list M hValid hS0Ok
+          extraAssumptionListOk_of_stateOk_assume_list M hS0Ok
         have hInit : checkerStateInvariant M S0 := by
-          simpa [S0] using checkerStateInvariant_after_assume_list M F hValid hS0Ok
+          simpa [S0] using checkerStateInvariant_after_assume_list M F hS0Ok
             hFTrans hFStable
         have hPfStable : CmdListExtraOk M pf :=
           cmdListExtraOk_of_stateOk_invoke_cmd_list M S0 pf hS1Ok
@@ -897,5 +897,5 @@ by
     | intro hChecker =>
         exact invoke_cmd_list_reflects_stateOk (__eo_invoke_assume_list CState.nil F) pf
           (final_stateOk_of_checker_true F pf hChecker)
-  exact RuleProofs.smt_satisfiability_false_of_no_true F
+  exact RuleProofs.smt_satisfiability_false_of_no_true (argListAssumes F)
     (eo_has_bool_type_of_translatableAssumptionList F hFTrans hS0Ok) hNoInterp
