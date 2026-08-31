@@ -55,12 +55,6 @@ private theorem type_default_canonical_kernel : ∀ T : SmtType,
       __smtx_value_canonical
         (__smtx_field_type_default dd T ddF) = true)
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
-  · intro s dd ih _hInh hRec
-    have hDecl : __smtx_decl_wf_rec dd dd = true := by
-      have h := hRec
-      simp [__smtx_type_wf_rec, native_and] at h
-      exact h.2
-    simpa [__smtx_type_default] using ih hDecl
   · intros
     simp [__smtx_type_default, __smtx_value_canonical]
   · intros
@@ -115,6 +109,12 @@ private theorem type_default_canonical_kernel : ∀ T : SmtType,
   · intros
     simp [__smtx_type_default, __smtx_value_canonical,
       native_char_valid, native_ite]
+  · intro s dd ih _hInh hRec
+    have hDecl : __smtx_decl_wf_rec dd dd = true := by
+      have h := hRec
+      simp [__smtx_type_wf_rec, native_and] at h
+      exact h.2
+    simpa [__smtx_type_default] using ih hDecl
   · intros
     simp [__smtx_type_default, __smtx_value_canonical]
   · intros
