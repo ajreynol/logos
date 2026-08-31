@@ -26,6 +26,9 @@ covers every operator and proof rule; it runs in the `regressions` CI group.
 
 The parser supports the commands `declare-const`, `declare-fun`, `declare-sort`,
 `declare-datatypes`, `define`, `assume`, `assume-push`, `step` and `step-pop`.
+Every `assume` must stand before the first proof step, since a proof is read as an
+assumption set together with the steps that refute it; an `assume` after a `step`,
+`assume-push` or `step-pop` is refused, where Ethos accepts one anywhere.
 `include` and `reference` commands are ignored: Logos has the signature built in and does not
 check the proof against the original input problem.
 A `declare-sort` of arity `n` declares a symbol whose type is the sort of sorts, or a function

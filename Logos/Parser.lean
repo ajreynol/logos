@@ -520,10 +520,20 @@ partial def parseTermCore (cfg : Config T R C CL) : Sexp → ParserM T T
     match f with
     | .expr (.atom "_" :: rest) =>
       parseUnderscoreExpr cfg rest args
+    | .expr (.atom "as" :: _) =>
+      -- A type ascription is a qualified identifier, so it may head an
+      -- application.
+      return args.foldl cfg.apply (← parseTerm cfg f)
     | _ =>
       match asOpHead f with
       | some (name, idxs) => parseApp cfg name idxs args
-      | none => return args.foldl cfg.apply (← parseTerm cfg f)
+      | none =>
+        -- Eunoia marks a curried application with `_`, so the head of an
+        -- application is a name, an indexed symbol or a type ascription and
+        -- nothing else.  Reading a parenthesized head as a curried application
+        -- would accept files Ethos refuses to parse.
+        throw s!"Error: expected a symbol, an indexed symbol or a type \
+                  ascription as the head of an application, got {f}"
 
 /--
 Parse an expression headed by `_`, applied to `args`.  Eunoia writes both an
