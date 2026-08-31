@@ -38,6 +38,16 @@ in the body is reported at the use site, and a recursive `define` is rejected.  
 without parameters is read where it is given, as before.
 Datatypes may be mutually recursive; parametric datatypes (a non-zero arity, or a `par` body)
 are rejected, since Logos has no representation for them.
+The order of a `declare-datatypes` block matters: the specification witnesses a datatype only
+through references to entries declared *later* in its block (`smt_type_default`,
+`docs/smt-model-definitions.tex`), so a block declaring a datatype before the ones witnessing
+it has no well-formed type at all.  The parser therefore reorders a block that was not written
+that way, by decreasing rank in the saturation `productiveOrder` describes, which leaves a
+block that is already productive exactly as it was.  A block denotes the same datatypes
+however it is sorted, so this is the order and nothing else; but it is the parser that says so,
+and the parser is not verified.  The native front end (`docs/lean-native-proofs.md`) does not
+go through here and is not normalized: a script names its declaration block directly, and one
+not in a productive order is reported `incomplete`.
 The conclusion printed on a `step` is ignored, since Logos recomputes it from the rule.
 
 ## Terms

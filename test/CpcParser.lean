@@ -65,6 +65,46 @@ private def datatypePrelude : String :=
      (assume @p1 x)"
 
 /-!
+## Datatype block order
+
+The specification witnesses a datatype of a `declare-datatypes` block only
+through references to entries declared after it, so the parser reorders a block
+that was not written that way (`Logos.Parser.productiveOrder`).  Only the order
+changes: a block denotes the same datatypes however it is sorted.
+-/
+
+private def mutualUse : String :=
+  "(declare-const a A) (assume @p0 (= (unA a) (unA a)))"
+
+-- The two spellings of one mutually recursive block denote the same terms.
+#guard assumptions
+    ("(declare-datatypes ((A 0) (B 0)) (((mkA (unA B))) ((mkB (unB A)) (nilB))))"
+      ++ mutualUse) ==
+  assumptions
+    ("(declare-datatypes ((B 0) (A 0)) (((mkB (unB A)) (nilB)) ((mkA (unA B)))))"
+      ++ mutualUse)
+
+-- A chain of three, written back to front.
+#guard assumptions
+    "(declare-datatypes ((C 0) (B 0) (A 0)) (((mkC)) ((mkB (unB C))) ((mkA (unA B)))))
+     (declare-const a A) (assume @p0 (= a a))" ==
+  assumptions
+    "(declare-datatypes ((A 0) (B 0) (C 0)) (((mkA (unA B))) ((mkB (unB C))) ((mkC))))
+     (declare-const a A) (assume @p0 (= a a))"
+
+-- A block is reordered only where it has to be.  Both spellings below are
+-- already productive, since each datatype has a constructor taking no field of
+-- the block, so each is left as written and the two stay distinct.
+#guard assumptions
+    "(declare-datatypes ((D 0) (L 0))
+       (((node (children L)) (leaf)) ((lnil) (lcons (hd D) (tl L)))))
+     (declare-const d D) (assume @p0 (= d d))" !=
+  assumptions
+    "(declare-datatypes ((L 0) (D 0))
+       (((lnil) (lcons (hd D) (tl L))) ((node (children L)) (leaf))))
+     (declare-const d D) (assume @p0 (= d d))"
+
+/-!
 ## Overloaded names
 
 SMT-LIB lets a symbol be declared more than once at different types, and lets a

@@ -23,9 +23,9 @@ a new calculus can take the file essentially as-is.
 | --- | --- | ---: | ---: | --- |
 | checker | `Proofs/{Checker,CheckerState,CheckerCore}.lean`, `Proofs/Invariants/Stability.lean`, `Proofs/RuleSupport/Contract.lean`, `Proofs/Assumptions.lean` | 4,460 | 4,045 | yes, except `Assumptions.lean` |
 | common | `Proofs/{Common,CommonBoolOps,TermCompat}.lean` | 1,422 | 836 | mostly |
-| translation | `Proofs/Translation*` | 33,463 | 5,194 | no — signature-specific |
+| translation | `Proofs/Translation*` | 33,463 | 5,167 | no — signature-specific |
 | type preservation | `Proofs/TypePreservation*` | 17,700 | 5,633 | no — signature-specific |
-| canonical models | `Proofs/Canonical*` | 10,083 | 228 | no — signature-specific |
+| canonical models | `Proofs/Canonical*` | 10,093 | 228 | no — signature-specific |
 | closedness / var-model | `Proofs/Closed*` | 32,274 | 0 | only if you have binder rules |
 | rule support | `Proofs/RuleSupport/*` | 352,795 | 259 | no — rule-specific |
 | rules | `Proofs/Rules/*` | 279,000 (591 files) | 1,209 (5 files) | no |
@@ -35,8 +35,8 @@ Everything else — `Logos.lean`, `LogosTerm.lean`, `SmtEval.lean`,
 `Proofs/RuleLemmas.lean`, and one stub per rule — is emitted by `ethos-eoc`;
 see `install/install-sig.sh`.
 
-**Read that table before planning work.** The checker layer is 4.2K of
-CpcMini's ~17.5K hand-written lines (24%), and 4.5K of Cpc's ~730K (0.6%). The
+**Read that table before planning work.** The checker layer is 4.0K of
+CpcMini's ~17.4K hand-written lines (23%), and 4.5K of Cpc's ~730K (0.6%). The
 checker layer is now in good shape; the cost of a new checker is dominated by
 the *semantics* layer. See TODO 5.
 
@@ -169,7 +169,7 @@ without it.
 `Translation/`, `TypePreservation/`, `Canonical/` — proofs about the generated
 `__eo_to_smt` and `__smtx_typeof` for *your* operators. This is the bulk of the
 work and it scales with how many SMT theories you take on: 228 lines of
-`Canonical/` in CpcMini against 10,083 in Cpc.
+`Canonical/` in CpcMini against 10,093 in Cpc.
 
 ### 4. `cmdTranslationOk`
 
@@ -261,7 +261,7 @@ idiom, is cheap. Low value until someone hits it.
 
 ### 5. Make the semantics layer cheaper — the biggest lever
 
-Cpc: semantics layer 93,530 lines against a 4,474-line checker layer. Whatever
+Cpc: semantics layer 93,530 lines against a 4,460-line checker layer. Whatever
 else is done to the checker has bounded returns; **this** is what a new consumer
 pays.
 
@@ -312,7 +312,7 @@ validate.
 
 ### 6. Move calculus-independent material into `Logos/`
 
-The `Logos` library is 1,069 lines (`Sexp.lean`, `Parser.lean`). Everything
+The `Logos` library is 1,135 lines (`Sexp.lean`, `Parser.lean`). Everything
 reusable lives in per-package files instead, because `Term`, `CState` and
 `CRule` are generated per package.
 
@@ -322,7 +322,7 @@ an abstract `Term` — expensive, because `CheckerCore.lean` also depends on the
 translation layer and on `UserOp.and`. Recommend (a); do not start with (b).
 
 **One file is already known to be invariant across *signatures*, not merely
-across the two packages.** `Cpc/SmtValueOrder.lean` (156 lines) and the
+across the two packages.** `Cpc/SmtValueOrder.lean` (157 lines) and the
 `SmtValueOrder.lean` of eudaimonia's hello-world checker — a different
 signature, compiled by a different invocation — differ only in the two import
 lines that name the package. Every other cross-package measurement in this
@@ -498,7 +498,7 @@ even though only seven files name `true_in_var_model`.
 
 ### 14. Unfork `Proofs/Common.lean`
 
-523 lines against CpcMini's 496 and 263 of them differing. A large part of that
+555 lines against CpcMini's 528 and 263 of them differing. A large part of that
 was the arm-numbering problem described
 [above](#the-hazard-that-broke-it-before-generated-arm-numbers) — Cpc wrote
 `__smtx_model_eval.eq_9` where CpcMini wrote `.eq_7` for the same arm — and
