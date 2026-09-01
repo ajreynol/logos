@@ -265,7 +265,8 @@ checker, the parser and the correctness proof — in lines of code.
 ## How this repository is maintained
 
 Parts of Logos are AI generated. This section says which, and why that is
-acceptable for each.
+acceptable for each. Logos is under active development, and these policies are
+subject to change.
 
 **Human maintained.** Everything that determines what a `correct` verdict
 *means* is written and understood in full by the human maintainers:
