@@ -282,8 +282,10 @@ acceptable for each.
 No claim Logos makes rests on a definition no human maintainer has read.
 
 **Borrowed.** The s-expression reader `Logos/Sexp.lean` is adapted from
-[lean-smt](https://github.com/ufmg-smite/lean-smt) (Apache 2.0); the file keeps
-its original copyright header and attribution.
+[lean-smt](https://github.com/ufmg-smite/lean-smt), used under Apache 2.0. It
+keeps the upstream copyright header and author list and states how it was
+modified; copies of the lean-smt `LICENSE` and `AUTHORS` its header refers to
+are in `licenses/`.
 
 **AI generated.** The internal proof details — the per-rule proofs under
 `Cpc/Proofs/Rules/` — and the parser (`Logos/Parser.lean`, `Cpc/Parser.lean`).
