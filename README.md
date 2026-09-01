@@ -271,10 +271,6 @@ thing the tool reads, and not a claim about how well it reads it.
 
 ## How this repository is maintained
 
-This repository is part of the **Eunoia ecosystem** and follows its shared
-repository policy, kept by [anoieu](https://github.com/ajreynol/anoieu) in
-[`docs/policy.md`](https://github.com/ajreynol/anoieu/blob/main/docs/policy.md).
-
 Parts of Logos are AI generated. This section says which, and why that is
 acceptable for each. Logos is under active development, and these policies are
 subject to change.
@@ -313,3 +309,8 @@ parser are both outside the theorem, which speaks about the assumptions the
 parser reports, not about the text of the file. Confirming that those
 assumptions are the intended ones remains the user's obligation, AI generated or
 not.
+
+It works with the **Eunoia ecosystem** and is **not held to** that ecosystem's
+repository policy: it adopts none of it, it is not checked against it, and it
+speaks only for itself. Where a tool in that ecosystem publishes an assessment
+of this repository, that assessment is that tool's own work and not ours.
