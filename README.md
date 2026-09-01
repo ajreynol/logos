@@ -261,3 +261,41 @@ which is also auto-generated based on the calculus.
 
 `scripts/cpc-loc-summary.py` reports the size of each of these pieces — the specification, the
 checker, the parser and the correctness proof — in lines of code.
+
+## How this repository is maintained
+
+Parts of Logos are AI generated. This section says which, and why that is
+acceptable for each.
+
+**Human maintained.** Everything that determines what a `correct` verdict
+*means* is written and understood in full by the human maintainers:
+
+- the SMT-LIB model semantics (`Cpc/SmtModel.lean`) and the correctness
+  specification (`Cpc/Spec.lean`), written up in
+  [docs/smt-model-definitions.pdf](docs/smt-model-definitions.pdf);
+- the soundness theorem and the checker it is about (`Cpc/Proofs/Checker.lean`,
+  `Cpc/Api.lean`, `Cpc/ApiCorrect.lean`) and the side conditions of
+  `Cpc/Proofs/Assumptions.lean`;
+- the Eunoia definition of the calculus and the compiler `ethos-eoc` that turns
+  it into the `Cpc` package.
+
+No claim Logos makes rests on a definition no human maintainer has read.
+
+**Borrowed.** The s-expression reader `Logos/Sexp.lean` is adapted from
+[lean-smt](https://github.com/ufmg-smite/lean-smt) (Apache 2.0); the file keeps
+its original copyright header and attribution.
+
+**AI generated.** The internal proof details — the per-rule proofs under
+`Cpc/Proofs/Rules/` — and the parser (`Logos/Parser.lean`, `Cpc/Parser.lean`).
+
+The proofs are checked by Lean against human-maintained statements, and
+`scripts/check-proof-hygiene.sh` rejects `sorry`, `admit` and `axiom`; how such
+a proof was found does not affect what it establishes.
+
+The parser carries no such guarantee, and none is claimed: Logos is not yet
+battle tested and the accuracy of its parser is not guaranteed. The correctness
+result already says so — see [Correctness](#correctness) — the reader and the
+parser are both outside the theorem, which speaks about the assumptions the
+parser reports, not about the text of the file. Confirming that those
+assumptions are the intended ones remains the user's obligation, AI generated or
+not.
