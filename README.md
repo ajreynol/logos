@@ -262,7 +262,18 @@ which is also auto-generated based on the calculus.
 `scripts/cpc-loc-summary.py` reports the size of each of these pieces — the specification, the
 checker, the parser and the correctness proof — in lines of code.
 
+## The name
+
+*Logos* (λόγος) is Greek for an account or a reasoned argument — what somebody
+gives when asked to justify a claim rather than restate it. A proof is such an
+account, and this checker decides whether one holds. The name is therefore the
+thing the tool reads, and not a claim about how well it reads it.
+
 ## How this repository is maintained
+
+This repository is part of the **Eunoia ecosystem** and follows its shared
+repository policy, kept by [anoieu](https://github.com/ajreynol/anoieu) in
+[`docs/policy.md`](https://github.com/ajreynol/anoieu/blob/main/docs/policy.md).
 
 Parts of Logos are AI generated. This section says which, and why that is
 acceptable for each. Logos is under active development, and these policies are
