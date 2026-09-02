@@ -176,6 +176,26 @@ For example, CPC defines several non-standard extensions of SMT-LIB (e.g. sets a
 supports non-standard extensions of theories, and defines non-standard internal symbols
 (i.e. Skolem variables) to define several of its proof rules.
 
+\subsection{Deviations from SMT-LIB}
+
+The formalization that follows is faithful to SMT-LIB apart from four
+restrictions on the class of models it admits. Each is stated again at the
+definition that introduces it; they are collected here so that the list can be
+read in one place. Arrays are interpreted as almost-constant maps, values of
+type \code{Real} are assumed to be rational, uninterpreted sorts are assumed to
+be of infinite cardinality, and sets are finite.
+
+Every model of this semantics is an SMT-LIB model, and the converse does not
+hold. Unsatisfiability as defined here is therefore implied by unsatisfiability
+in SMT-LIB and does not imply it: a formula satisfiable in SMT-LIB only by a
+model this semantics cannot express is treated here as unsatisfiable. Each of
+the four is confined to quantified or nonlinear reasoning, and on the
+quantifier-free linear fragments the two notions agree. Separately, parametric
+datatypes are rejected by the parser rather than interpreted.
+
+The file \code{docs/smt-lib-conformance.md} records the same list from the point
+of view of somebody running the checker, with what each restriction costs.
+
 \subsection{An Overview of Core Definitions}
 
 Before looking into the definitions,
