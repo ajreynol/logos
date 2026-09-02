@@ -1,17 +1,24 @@
 # Conformance to SMT-LIB
 
 Logos's soundness theorem is stated against `Cpc/SmtModel.lean`, a formalization
-of SMT-LIB semantics written independently of the checker. Most of that
-formalization is faithful, and the places where it is not are known, small and
-listed here.
+of SMT-LIB semantics written independently of the checker. It parts company with
+SMT-LIB in three ways, and they are different kinds of thing:
+
+- **Narrowings.** On three standard theories — arrays, `Real`, and uninterpreted
+  sorts — the semantics admits fewer models than SMT-LIB does. These change what
+  `correct` claims, and are most of this page.
+- **Extensions.** Sets and sequences are not in SMT-LIB at all, and neither are
+  the auxiliary operators the semantics adds. Conformance is not defined for
+  them, so nothing here is measured against the standard.
+- **Refusals.** Parametric datatypes are rejected rather than interpreted, which
+  costs coverage and nothing else.
 
 **None of them is a gap in the proof.** The theorem is proven, and it says what
-it says about the semantics it is stated against. What this page records is that
-the semantics admits a slightly narrower class of models than SMT-LIB does, so
-`correct` claims slightly less than the words *these assumptions are
-unsatisfiable* are normally taken to mean. Every deviation below is confined to
-quantified or nonlinear reasoning; on the quantifier-free linear fragments the
-two agree.
+it says about the semantics it is stated against. What the narrowings record is
+that the model class is slightly smaller than SMT-LIB's, so `correct` claims
+slightly less than the words *these assumptions are unsatisfiable* are normally
+taken to mean. Each is confined to quantified or nonlinear reasoning; on the
+quantifier-free linear fragments the two agree.
 
 ## What `correct` means, exactly
 
@@ -20,8 +27,9 @@ Unsatisfiability in the specification is *false under every well-formed model*
 symbol a value of the right SMT type (`model_wf`, `Cpc/SmtModel.lean:2164`), and
 the values available at a type are the inhabitants of `SmtValue` at that type.
 
-That value inductive is where the narrowing happens. Every model of this
-semantics is an SMT-LIB model, but not every SMT-LIB model is one of these — so
+That value inductive is where the narrowing happens. Read on the standard
+theories alone, every model of this semantics is an SMT-LIB model, and not every
+SMT-LIB model is one of these — so
 
 > SMT-LIB says unsatisfiable **⟹** Logos says unsatisfiable, and not the reverse.
 
@@ -33,12 +41,11 @@ The channel by which that could produce a wrong `correct` is a CPC rule that is
 sound for this model class and unsound for SMT-LIB's: its Lean proof would go
 through, and proofs using it would be accepted.
 
-| deviation | this semantics | SMT-LIB | where it bites |
+| narrowing | this semantics | SMT-LIB | where it bites |
 | --- | --- | --- | --- |
 | arrays are almost constant | a default plus finitely many overrides | the full function space | quantifiers over arrays or indices |
 | `Real` is the rationals | ℚ | ℝ | nonlinear real arithmetic |
 | uninterpreted sorts are infinite | one countably infinite domain per sort | any nonempty cardinality | quantified cardinality constraints |
-| sets are finite | finite sets only | (an extension; cvc5 admits infinite sets) | quantifiers over set membership |
 
 ## Arrays are almost-constant maps
 
@@ -98,15 +105,21 @@ which bounds `U` at two elements: satisfiable in SMT-LIB, false under every mode
 here. Quantifier-free formulas are unaffected, since a satisfiable one always has
 an infinite model.
 
-## Sets are finite
+## Extensions: what the standard does not define
 
-Sets share the map representation, and a set value is canonical only when its
-default is `false` (`__smtx_value_canonical`, `Cpc/SmtModel.lean:1903`), so every
-set in every model is finite. Sets are a non-standard extension rather than
-SMT-LIB proper, and the operators the semantics carries — union, intersection,
-difference, singleton, membership, subset — preserve finiteness, so this is
-reachable only through quantified membership constraints such as
-`(forall ((i Int)) (set.member i S))`.
+Sets and sequences are cvc5 extensions rather than SMT-LIB theories, and the
+standard `String` sort is modeled here as a sequence over a `Char` sort the
+standard does not have. The semantics also carries auxiliary operators of its
+own: total division and modulus, purification, and the difference witnesses for
+arrays and sequences. **There is no SMT-LIB meaning for any of these to differ
+from**, so the reference for them is CPC's meaning, not the standard's, and the
+proofs of the rules that use them are what ties the two together.
+
+Two facts about them are worth knowing anyway. Every set value is finite
+(canonicity forces the map default to `false`, `Cpc/SmtModel.lean:1903`), which
+the available set operators preserve; and out-of-bounds `seq.nth` is
+underspecified through a model-dependent function, `@oob_seq_nth`, in the same
+way SMT-LIB underspecifies partial standard operators.
 
 ## A coverage limit, not a semantic one: parametric datatypes
 
@@ -131,19 +144,18 @@ conditions fail and the run reports `incomplete` rather than `correct`.
   model-dependent function (`@div_by_zero`, `@mod_by_zero`, `@qdiv_by_zero`), so
   models disagreeing about `(div 1 0)` are all admitted, and nothing here fixes a
   value for it.
-- **Out-of-bounds `seq.nth`** is underspecified the same way, through
-  `@oob_seq_nth`.
 - **The character alphabet** is SMT-LIB's, code points `0` to `196607`
   (`native_char_valid`, `Cpc/SmtEval.lean:36`).
 - **Uninterpreted functions** get the full function space, not the almost-constant
   restriction arrays carry.
-- **Sequences** are finite, which is what SMT-LIB says they are.
 
 ## Where this is written down elsewhere
 
-Each deviation is stated in passing in the write-up,
-[`smt-model-definitions.pdf`](smt-model-definitions.pdf) — arrays under the type
-constructors and again where maps are defined, the rational assumption where
-values are introduced, and the cardinality assumption where uninterpreted sort
-values are. The parser's refusal is in [`parser.md`](parser.md). This page is the
-collected list; the write-up is where the definitions and their reasoning are.
+The write-up, [`smt-model-definitions.pdf`](smt-model-definitions.pdf), states the
+same three kinds in its introduction and then each narrowing again at the
+definition that introduces it — arrays under the type constructors and again
+where maps are defined, the rational assumption where values are introduced, and
+the cardinality assumption where uninterpreted sort values are. The parser's
+refusal is in [`parser.md`](parser.md). This page is the list as it matters to
+somebody running the checker; the write-up is where the definitions and their
+reasoning are.

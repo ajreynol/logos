@@ -178,20 +178,27 @@ supports non-standard extensions of theories, and defines non-standard internal 
 
 \subsection{Deviations from SMT-LIB}
 
-The formalization that follows is faithful to SMT-LIB apart from four
-restrictions on the class of models it admits. Each is stated again at the
-definition that introduces it; they are collected here so that the list can be
-read in one place. Arrays are interpreted as almost-constant maps, values of
-type \code{Real} are assumed to be rational, uninterpreted sorts are assumed to
-be of infinite cardinality, and sets are finite.
+The formalization that follows departs from SMT-LIB in three ways, which are
+different in kind.
 
-Every model of this semantics is an SMT-LIB model, and the converse does not
-hold. Unsatisfiability as defined here is therefore implied by unsatisfiability
-in SMT-LIB and does not imply it: a formula satisfiable in SMT-LIB only by a
-model this semantics cannot express is treated here as unsatisfiable. Each of
-the four is confined to quantified or nonlinear reasoning, and on the
-quantifier-free linear fragments the two notions agree. Separately, parametric
-datatypes are rejected by the parser rather than interpreted.
+First, on three standard theories it admits fewer models than SMT-LIB does:
+arrays are interpreted as almost-constant maps, values of type \code{Real} are
+assumed to be rational, and uninterpreted sorts are assumed to be of infinite
+cardinality. Each restriction is stated again at the definition that introduces
+it, and they are collected here so that the list can be read in one place. Read
+on the standard theories alone, every model of this semantics is an SMT-LIB
+model and the converse does not hold, so unsatisfiability as defined here is
+implied by unsatisfiability in SMT-LIB and does not imply it: a formula
+satisfiable in SMT-LIB only by a model this semantics cannot express is treated
+here as unsatisfiable. All three are confined to quantified or nonlinear
+reasoning, and on the quantifier-free linear fragments the two notions agree.
+
+Second, the semantics interprets sorts and operators that SMT-LIB does not
+define, including the theories of sets and sequences and the auxiliary operators
+introduced below. Conformance to SMT-LIB is not defined for these, and what they
+are measured against is the meaning CPC gives them.
+
+Third, parametric datatypes are rejected by the parser rather than interpreted.
 
 The file \code{docs/smt-lib-conformance.md} records the same list from the point
 of view of somebody running the checker, with what each restriction costs.
