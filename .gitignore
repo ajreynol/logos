@@ -16,3 +16,8 @@ docs/*.synctex.gz
 # docs/smt-model-definitions.pdf is deliberately not ignored: the built PDF is
 # committed so that it can be read without a LaTeX installation. Rebuild it
 # with `make -C docs`.
+
+# Working space, kept out of the tree rather than tidied out of it later:
+# scratch output, and local notes written beside a document.
+scratch/
+*.local.md
